@@ -1,30 +1,35 @@
 /*eslint-env node*/
-/*eslint no-var:0 import/no-nodejs-modules:0 */
-var path = require('path'),
-  fs = require('fs'),
-  webpack = require('webpack'),
-  ExtractTextPlugin = require('extract-text-webpack-plugin'),
-  LodashModuleReplacementPlugin = require('lodash-webpack-plugin');
+/*eslint import/no-nodejs-modules:0 */
+const path = require('path');
+const fs = require('fs');
+const webpack = require('webpack');
+const ExtractTextPlugin = require('mini-css-extract-plugin');
+const CompressionPlugin = require('compression-webpack-plugin');
+const OptimizeCssAssetsPlugin = require('optimize-css-assets-webpack-plugin');
+const LodashModuleReplacementPlugin = require('lodash-webpack-plugin');
 
-var staticPrefix = 'src/sentry/static/sentry',
-  distPath = path.join(__dirname, staticPrefix, 'dist');
+const staticPrefix = 'src/sentry/static/sentry';
+let distPath = path.join(__dirname, staticPrefix, 'dist');
 
 // this is set by setup.py sdist
 if (process.env.SENTRY_STATIC_DIST_PATH) {
   distPath = process.env.SENTRY_STATIC_DIST_PATH;
 }
 
-var IS_PRODUCTION = process.env.NODE_ENV === 'production';
-var IS_TEST = process.env.NODE_ENV === 'test' || process.env.TEST_SUITE;
-var WEBPACK_DEV_PORT = process.env.WEBPACK_DEV_PORT;
-var SENTRY_DEVSERVER_PORT = process.env.SENTRY_DEVSERVER_PORT;
-var USE_HOT_MODULE_RELOAD = !IS_PRODUCTION && WEBPACK_DEV_PORT && SENTRY_DEVSERVER_PORT;
-var WITH_CSS_SOURCEMAPS = !!process.env.WITH_CSS_SOURCEMAPS || IS_PRODUCTION;
+const IS_PRODUCTION = process.env.NODE_ENV === 'production';
+const IS_TEST = process.env.NODE_ENV === 'test' || process.env.TEST_SUITE;
+const IS_STORYBOOK = process.env.STORYBOOK_BUILD === '1';
+const WEBPACK_DEV_PORT = process.env.WEBPACK_DEV_PORT;
+const SENTRY_DEVSERVER_PORT = process.env.SENTRY_DEVSERVER_PORT;
+const USE_HOT_MODULE_RELOAD = !IS_PRODUCTION && WEBPACK_DEV_PORT && SENTRY_DEVSERVER_PORT;
+const WEBPACK_MODE = IS_PRODUCTION ? 'production' : 'development';
 
-var babelConfig = JSON.parse(fs.readFileSync(path.join(__dirname, '.babelrc')));
+const babelConfig = JSON.parse(fs.readFileSync(path.join(__dirname, '.babelrc')));
 babelConfig.cacheDirectory = true;
 
-// only extract po files if we need to
+/**
+ * Locale file extraction build step
+ */
 if (process.env.SENTRY_EXTRACT_TRANSLATIONS === '1') {
   babelConfig.plugins.push([
     'babel-gettext-extractor',
@@ -43,129 +48,184 @@ if (process.env.SENTRY_EXTRACT_TRANSLATIONS === '1') {
   ]);
 }
 
-var appEntry = {
-  app: ['app'],
-  vendor: [
-    'babel-polyfill',
-    // Yes this is included in prod builds, but has no effect on render and build size in prod
-    'react-hot-loader/patch',
-    'bootstrap/js/dropdown',
-    'bootstrap/js/tab',
-    'bootstrap/js/tooltip',
-    'bootstrap/js/alert',
-    'create-react-class',
-    'jed',
-    'jquery',
-    'marked',
-    'moment',
-    'moment-timezone',
-    'raven-js',
-    'react',
-    'react-dom',
-    'react-dom/server',
-    'react-document-title',
-    'react-router',
-    'react-bootstrap/lib/Modal',
-    'reflux',
-    'vendor/simple-slider/simple-slider',
-    'emotion',
-    'react-emotion',
-    'grid-emotion',
-    'emotion-theming',
-  ],
-};
+/**
+ * Locale compilation and optimizations.
+ *
+ * Locales are code-split from the app and vendor chunk into separate chunks
+ * that will be loaded by layout.html depending on the users configured locale.
+ *
+ * Code splitting happens using the splitChunks plugin, configured under the
+ * `optimization` key of the webpack module. We create chunk (cache) groups for
+ * each of our supported locales and extract the PO files and moment.js locale
+ * files into each chunk.
+ *
+ * A plugin is used to remove the locale chunks from the app entry's chunk
+ * dependency list, so that our compiled bundle does not expect that *all*
+ * locale chunks must be loadd
+ */
+const localeCatalogPath = path.join(
+  __dirname,
+  'src',
+  'sentry',
+  'locale',
+  'catalogs.json'
+);
 
-// dynamically iterate over locale files and add to `entry` appConfig
-var localeCatalogPath = path.join(__dirname, 'src', 'sentry', 'locale', 'catalogs.json');
-var localeCatalog = JSON.parse(fs.readFileSync(localeCatalogPath, 'utf8'));
-var localeEntries = [];
+const localeCatalog = JSON.parse(fs.readFileSync(localeCatalogPath, 'utf8'));
 
-localeCatalog.supported_locales.forEach(function(locale) {
-  if (locale === 'en') return;
+// Translates a locale name to a language code.
+//
+// * po files are kept in a directory represented by the locale name [0]
+// * moment.js locales are stored as language code files
+// * Sentry will request the user configured language from locale/{language}.js
+//
+// [0] https://docs.djangoproject.com/en/2.1/topics/i18n/#term-locale-name
+const localeToLanguage = locale => locale.toLowerCase().replace('_', '-');
 
-  // Django locale names are "zh_CN", moment's are "zh-cn"
-  var normalizedLocale = locale.toLowerCase().replace('_', '-');
-  appEntry['locale/' + normalizedLocale] = [
-    'moment/locale/' + normalizedLocale,
-    'sentry-locale/' + locale + '/LC_MESSAGES/django.po', // relative to static/sentry
+const supportedLocales = localeCatalog.supported_locales;
+const supportedLanguages = supportedLocales.map(localeToLanguage);
+
+// A mapping of chunk groups used for locale code splitting
+const localeChunkGroups = {};
+
+// No need to split the english locale out as it will be completely empty and
+// is not included in the django layout.html.
+supportedLocales.filter(l => l !== 'en').forEach(locale => {
+  const language = localeToLanguage(locale);
+  const group = `locale/${language}`;
+
+  // List of module path tests to group into locale chunks
+  const localeGroupTests = [
+    new RegExp(`locale\\/${locale}\\/.*\\.po$`),
+    new RegExp(`moment\\/locale\\/${language}\\.js$`),
   ];
-  localeEntries.push('locale/' + normalizedLocale);
+
+  // module test taken from [0] and modified to support testing against
+  // multiple expressions.
+  //
+  // [0] https://github.com/webpack/webpack/blob/7a6a71f1e9349f86833de12a673805621f0fc6f6/lib/optimize/SplitChunksPlugin.js#L309-L320
+  const groupTest = module =>
+    localeGroupTests.some(
+      pattern =>
+        module.nameForCondition && pattern.test(module.nameForCondition())
+          ? true
+          : Array.from(module.chunksIterable).some(c => c.name && pattern.test(c.name))
+    );
+
+  localeChunkGroups[group] = {
+    name: group,
+    test: groupTest,
+    enforce: true,
+  };
 });
+
+/**
+ * Restirct translation files that are pulled in through app/translations.jsx
+ * and through moment/locale/* to only those which we create bundles for via
+ * locale/catalogs.json.
+ */
+const localeRestrictionPlugins = [
+  new webpack.ContextReplacementPlugin(
+    /sentry-locale$/,
+    path.join(__dirname, 'src', 'sentry', 'locale', path.sep),
+    true,
+    new RegExp(`(${supportedLocales.join('|')})/.*\\.po$`)
+  ),
+  new webpack.ContextReplacementPlugin(
+    /moment\/locale/,
+    new RegExp(`(${supportedLanguages.join('|')})\\.js$`)
+  ),
+];
+
+/**
+ * When our locales are codesplit into cache groups, webpack expects that all
+ * chunks *must* be loaded before the main entrypoint can be executed. However,
+ * since we will only be using one locale at a time we do not want to load all
+ * locale chunks, just the one the user has enabled.
+ *
+ * This plugin removes the locale chunks from the app entrypoint's immediate
+ * chunk dependants list, ensuring the the compiled entrypoint will execute
+ * *without* all locale chunks loaded.
+ */
+const pluginName = 'OptionalLocaleChunkPlugin';
+
+const clearLocaleChunks = chunks =>
+  chunks.filter(chunk => chunk.name !== 'app').forEach(chunk => {
+    const mainGroup = Array.from(chunk.groupsIterable)[0];
+    mainGroup.chunks = mainGroup.chunks.filter(
+      c => c.name && !c.name.startsWith('locale')
+    );
+  });
+
+class OptionalLocaleChunkPlugin {
+  apply(compiler) {
+    compiler.hooks.compilation.tap(pluginName, compilation =>
+      compilation.hooks.afterOptimizeChunks.tap(pluginName, clearLocaleChunks)
+    );
+  }
+}
+
+/**
+ * Explicit codesplitting cache groups
+ */
+const cacheGroups = {
+  vendors: {
+    name: 'vendor',
+    test: /[\\/]node_modules[\\/]/,
+    priority: -10,
+    enforce: true,
+    chunks: 'initial',
+  },
+  ...localeChunkGroups,
+};
 
 /**
  * Main Webpack config for Sentry React SPA.
  */
-var appConfig = {
-  entry: appEntry,
+const appConfig = {
+  mode: WEBPACK_MODE,
+  entry: {app: 'app'},
   context: path.join(__dirname, staticPrefix),
   module: {
     rules: [
       {
         test: /\.jsx?$/,
-        loader: 'babel-loader',
         include: path.join(__dirname, staticPrefix),
         exclude: /(vendor|node_modules|dist)/,
-        query: babelConfig,
-      },
-      {
-        test: /\.po$/,
-        loader: 'po-catalog-loader',
-        query: {
-          referenceExtensions: ['.js', '.jsx'],
-          domain: 'sentry',
+        use: {
+          loader: 'babel-loader',
+          options: babelConfig,
         },
       },
       {
-        test: /\.json$/,
-        loader: 'json-loader',
+        test: /\.po$/,
+        use: {
+          loader: 'po-catalog-loader',
+          options: {
+            referenceExtensions: ['.js', '.jsx'],
+            domain: 'sentry',
+          },
+        },
       },
       {
         test: /app\/icons\/.*\.svg$/,
-        use: [
-          {
-            loader: 'svg-sprite-loader',
-          },
-          {
-            loader: 'svgo-loader',
-          },
-        ],
-      },
-      // loader for dynamic styles imported into components (embedded as js)
-      {
-        test: /\.less$/,
-        use: [
-          {
-            loader: 'style-loader',
-          },
-          {
-            loader: 'css-loader',
-            options: {
-              minimize: IS_PRODUCTION,
-            },
-          },
-          {
-            loader: 'less-loader',
-          },
-        ],
+        use: ['svg-sprite-loader', 'svgo-loader'],
       },
       {
         test: /\.css/,
-        use: [
-          {
-            loader: 'style-loader',
-          },
-          {
-            loader: 'css-loader',
-            options: {
-              minimize: IS_PRODUCTION,
-            },
-          },
-        ],
+        use: ['style-loader', 'css-loader'],
       },
       {
         test: /\.(woff|woff2|ttf|eot|svg|png|gif|ico|jpg)($|\?)/,
         exclude: /app\/icons\/.*\.svg$/,
-        loader: 'file-loader?name=' + '[name].[ext]',
+        use: [
+          {
+            loader: 'file-loader',
+            options: {
+              name: '[name].[ext]',
+            },
+          },
+        ],
       },
     ],
     noParse: [
@@ -182,17 +242,13 @@ var appConfig = {
       flattening: true, // used by a dependency of react-mentions
       shorthands: true,
     }),
-    new webpack.optimize.CommonsChunkPlugin({
-      names: localeEntries.concat(['vendor']), // 'vendor' must be last entry
-    }),
     new webpack.ProvidePlugin({
       $: 'jquery',
       jQuery: 'jquery',
       'window.jQuery': 'jquery',
       'root.jQuery': 'jquery',
     }),
-    new ExtractTextPlugin('[name].css'),
-    new webpack.IgnorePlugin(/^\.\/locale$/, /moment$/), // ignore moment.js locale files
+    new ExtractTextPlugin(),
     new webpack.DefinePlugin({
       'process.env': {
         NODE_ENV: JSON.stringify(process.env.NODE_ENV),
@@ -201,25 +257,21 @@ var appConfig = {
         ),
       },
     }),
-    // restrict translation files pulled into dist/app.js to only those specified
-    // in locale/catalogs.json
-    new webpack.ContextReplacementPlugin(
-      /locale$/,
-      path.join(__dirname, 'src', 'sentry', 'locale', path.sep),
-      true,
-      new RegExp('(' + localeCatalog.supported_locales.join('|') + ')/.*\\.po$')
-    ),
+    new OptionalLocaleChunkPlugin(),
+    ...localeRestrictionPlugins,
   ],
   resolve: {
     alias: {
       app: path.join(__dirname, 'src', 'sentry', 'static', 'sentry', 'app'),
+      'app-test': path.join(__dirname, 'tests', 'js'),
       'sentry-locale': path.join(__dirname, 'src', 'sentry', 'locale'),
-      'integration-docs-platforms': IS_TEST
-        ? path.join(__dirname, 'tests/fixtures/integration-docs/_platforms.json')
-        : path.join(__dirname, 'src/sentry/integration-docs/_platforms.json'),
+      'integration-docs-platforms':
+        IS_TEST || IS_STORYBOOK
+          ? path.join(__dirname, 'tests/fixtures/integration-docs/_platforms.json')
+          : path.join(__dirname, 'src/sentry/integration-docs/_platforms.json'),
     },
     modules: [path.join(__dirname, staticPrefix), 'node_modules'],
-    extensions: ['.less', '.jsx', '.js', '.json'],
+    extensions: ['.jsx', '.js', '.json'],
   },
   output: {
     path: distPath,
@@ -228,13 +280,22 @@ var appConfig = {
     library: 'exports',
     sourceMapFilename: '[name].js.map',
   },
-  devtool: IS_PRODUCTION ? '#source-map' : '#cheap-module-eval-source-map',
+  optimization: {
+    splitChunks: {
+      chunks: 'all',
+      maxInitialRequests: 5,
+      maxAsyncRequests: 7,
+      cacheGroups,
+    },
+  },
+  devtool: IS_PRODUCTION ? 'source-map' : 'cheap-module-eval-source-map',
 };
 
 /**
  * Webpack entry for password strength checker
  */
-var pwConfig = {
+const pwConfig = {
+  mode: WEBPACK_MODE,
   entry: {
     pwstrength: './index',
   },
@@ -252,7 +313,7 @@ var pwConfig = {
     library: 'sentrypw',
     sourceMapFilename: '[name].js.map',
   },
-  devtool: IS_PRODUCTION ? '#source-map' : '#cheap-source-map',
+  devtool: IS_PRODUCTION ? 'source-map' : 'cheap-source-map',
 };
 
 /**
@@ -260,7 +321,8 @@ var pwConfig = {
  * This generates a single "sentry.css" file that imports ALL component styles
  * for use on Django-powered pages.
  */
-var legacyCssConfig = {
+const legacyCssConfig = {
+  mode: WEBPACK_MODE,
   entry: {
     sentry: 'less/sentry.less',
 
@@ -271,9 +333,8 @@ var legacyCssConfig = {
   context: path.join(__dirname, staticPrefix),
   output: {
     path: distPath,
-    filename: '[name].css',
   },
-  plugins: [new ExtractTextPlugin('[name].css')],
+  plugins: [new ExtractTextPlugin()],
   resolve: {
     extensions: ['.less', '.js'],
     modules: [path.join(__dirname, staticPrefix), 'node_modules'],
@@ -283,40 +344,25 @@ var legacyCssConfig = {
       {
         test: /\.less$/,
         include: path.join(__dirname, staticPrefix),
-        use: ExtractTextPlugin.extract({
-          fallback: 'style-loader?sourceMap=false',
-          use: [
-            {
-              loader: 'css-loader',
-              options: {
-                sourceMap: WITH_CSS_SOURCEMAPS,
-                minimize: IS_PRODUCTION,
-              },
-            },
-            {
-              loader: 'less-loader',
-              options: {
-                sourceMap: WITH_CSS_SOURCEMAPS,
-              },
-            },
-          ],
-        }),
+        use: [ExtractTextPlugin.loader, 'css-loader', 'less-loader'],
       },
       {
         test: /\.(woff|woff2|ttf|eot|svg|png|gif|ico|jpg)($|\?)/,
-        loader: 'file-loader?name=' + '[name].[ext]',
+        use: [
+          {
+            loader: 'file-loader',
+            options: {
+              name: '[name].[ext]',
+            },
+          },
+        ],
       },
     ],
   },
-  devtool: WITH_CSS_SOURCEMAPS ? '#source-map' : undefined,
 };
 
 // Dev only! Hot module reloading
 if (USE_HOT_MODULE_RELOAD) {
-  // Otherwise with hot reloads we get module ID number
-  appConfig.plugins.push(new webpack.NamedModulesPlugin());
-
-  // HMR
   appConfig.plugins.push(new webpack.HotModuleReplacementPlugin());
   appConfig.devServer = {
     headers: {
@@ -334,32 +380,21 @@ if (USE_HOT_MODULE_RELOAD) {
 
   // Required, without this we get this on updates:
   // [HMR] Update failed: SyntaxError: Unexpected token < in JSON at position 12
-  appConfig.output.publicPath = 'http://localhost:' + WEBPACK_DEV_PORT + '/';
+  appConfig.output.publicPath = `http://localhost:${WEBPACK_DEV_PORT}/`;
 }
 
-var minificationPlugins = [
+const minificationPlugins = [
   // This compression-webpack-plugin generates pre-compressed files
   // ending in .gz, to be picked up and served by our internal static media
   // server as well as nginx when paired with the gzip_static module.
-  new (require('compression-webpack-plugin'))({
-    algorithm: function(buffer, options, callback) {
-      require('zlib').gzip(buffer, callback);
-    },
-    regExp: /\.(js|map|css|svg|html|txt|ico|eot|ttf)$/,
+  new CompressionPlugin({
+    algorithm: 'gzip',
+    test: /\.(js|map|css|svg|html|txt|ico|eot|ttf)$/,
   }),
+  new OptimizeCssAssetsPlugin(),
 
-  // Disable annoying UglifyJS warnings that pollute Travis log output
-  // NOTE: This breaks -p in webpack 2. Must call webpack w/ NODE_ENV=production for minification.
-  new webpack.optimize.UglifyJsPlugin({
-    compress: {
-      warnings: false,
-    },
-    // https://github.com/webpack/webpack/blob/951a7603d279c93c936e4b8b801a355dc3e26292/bin/convert-argv.js#L442
-    sourceMap:
-      appConfig.devtool &&
-      (appConfig.devtool.indexOf('sourcemap') >= 0 ||
-        appConfig.devtool.indexOf('source-map') >= 0),
-  }),
+  // NOTE: In production mode webpack will automatically minify javascript
+  // using the TerserWebpackPlugin.
 ];
 
 if (IS_PRODUCTION) {
@@ -371,4 +406,4 @@ if (IS_PRODUCTION) {
   });
 }
 
-module.exports = [appConfig, legacyCssConfig, pwConfig];
+module.exports = [appConfig, pwConfig, legacyCssConfig];

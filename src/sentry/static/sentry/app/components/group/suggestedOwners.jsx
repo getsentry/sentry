@@ -1,31 +1,47 @@
-import PropTypes from 'prop-types';
 import React from 'react';
 import createReactClass from 'create-react-class';
-import ReactDOMServer from 'react-dom/server';
-import moment from 'moment';
 
-import Avatar from 'app/components/avatar';
-import ActorAvatar from 'app/components/actorAvatar';
-import Tooltip from 'app/components/tooltip';
-import ApiMixin from 'app/mixins/apiMixin';
-import GroupState from 'app/mixins/groupState';
 import {assignToUser, assignToActor} from 'app/actionCreators/group';
-import {t} from 'app/locale';
 import {openCreateOwnershipRule} from 'app/actionCreators/modal';
+import {t} from 'app/locale';
+import Access from 'app/components/acl/access';
+import ActorAvatar from 'app/components/actorAvatar';
+import ApiMixin from 'app/mixins/apiMixin';
+import Button from 'app/components/button';
+import GroupState from 'app/mixins/groupState';
 import GuideAnchor from 'app/components/assistant/guideAnchor';
+import SentryTypes from 'app/sentryTypes';
+import SuggestedOwnerHovercard from 'app/components/group/suggestedOwnerHovercard';
+
+/**
+ * Given a list of rule objects returned from the API, locate the matching
+ * rules for a specific owner.
+ */
+function findMatchedRules(rules, owner) {
+  const matchOwner = (actorType, key) =>
+    (actorType == 'user' && key === owner.email) ||
+    (actorType == 'team' && key == owner.name);
+
+  const actorHasOwner = ([actorType, key]) =>
+    actorType === owner.type && matchOwner(actorType, key);
+
+  return rules
+    .filter(([_, ruleActors]) => ruleActors.find(actorHasOwner))
+    .map(([rule]) => rule);
+}
 
 const SuggestedOwners = createReactClass({
   displayName: 'SuggestedOwners',
 
   propTypes: {
-    event: PropTypes.object,
+    event: SentryTypes.Event,
   },
 
   mixins: [ApiMixin, GroupState],
 
   getInitialState() {
     return {
-      rule: null,
+      rules: null,
       owners: [],
       committers: [],
     };
@@ -70,7 +86,7 @@ const SuggestedOwners = createReactClass({
       success: (data, _, jqXHR) => {
         this.setState({
           owners: data.owners,
-          rule: data.rule,
+          rules: data.rules,
         });
       },
       error: error => {
@@ -81,131 +97,75 @@ const SuggestedOwners = createReactClass({
     });
   },
 
-  assignTo(user) {
-    if (user.id !== undefined) {
-      assignToUser({id: this.props.event.groupID, user});
+  assign(actor) {
+    if (actor.id === undefined) {
+      return;
+    }
+
+    if (actor.type === 'user') {
+      assignToUser({id: this.props.event.groupID, user: actor});
+    }
+
+    if (actor.type === 'team') {
+      assignToActor({id: this.props.event.groupID, actor});
     }
   },
 
-  assignToActor(actor) {
-    if (actor.id !== undefined) {
-      assignToActor({
-        actor,
-        id: this.props.event.groupID,
-      });
-    }
-  },
+  /**
+   * Combine the commiter and ownership data into a single array, merging
+   * users who are both owners based on having commits, and owners matching
+   * project ownership rules into one array.
+   *
+   * The return array will include objects of the format:
+   *
+   * {
+   *   actor: <
+   *    type,              # Either user or team
+   *    SentryTypes.User,  # API expanded user object
+   *    {email, id, name}  # Sentry user which is *not* expanded
+   *    {email, name}      # Unidentified user (from commits)
+   *    {id, name},        # Sentry team (check `type`)
+   *   >,
+   *
+   *   # One or both of commits and rules will be present
+   *
+   *   commits: [...]  # List of commits made by this owner
+   *   rules:   [...]  # Project rules matched for this owner
+   * }
+   */
+  getOwnerList() {
+    const owners = this.state.committers.map(commiter => ({
+      actor: {type: 'user', ...commiter.author},
+      commits: commiter.commits,
+    }));
 
-  renderCommitter(committer) {
-    let {author, commits} = committer;
-    return (
-      <span
-        key={author.id || author.email}
-        className="avatar-grid-item"
-        style={{cursor: 'pointer'}}
-        onClick={() => this.assignTo(author)}
-      >
-        <Tooltip
-          tooltipOptions={{
-            html: true,
-            container: 'body',
-            template:
-              '<div class="tooltip" role="tooltip"><div class="tooltip-arrow"></div><div class="tooltip-inner tooltip-owners"></div></div>',
-          }}
-          title={ReactDOMServer.renderToStaticMarkup(
-            <div>
-              {author.id ? (
-                <div className="tooltip-owners-name">{author.name}</div>
-              ) : (
-                <div className="tooltip-owners-unknown">
-                  <p className="tooltip-owners-unknown-email">
-                    <span className="icon icon-circle-cross" />
-                    <strong>{author.email}</strong>
-                  </p>
-                  <p>
-                    {t(`Sorry, we don't recognize this member. Make sure to link alternative
-                    emails in Account Settings.`)}
-                  </p>
-                  <hr />
-                </div>
-              )}
-              <ul className="tooltip-owners-commits">
-                {commits.slice(0, 6).map(c => {
-                  return (
-                    <li key={c.id} className="tooltip-owners-commit">
-                      <div style={{whiteSpace: 'pre-line'}}>
-                        {c.message.replace(
-                          /\n\s*\n/g,
-                          '\n'
-                        ) /*repress repeated newlines*/}
-                      </div>
-                      <span className="tooltip-owners-date">
-                        {' '}
-                        - {moment(c.dateCreated).fromNow()}
-                      </span>
-                    </li>
-                  );
-                })}
-              </ul>
-            </div>
-          )}
-        >
-          <Avatar user={author} />
-        </Tooltip>
-      </span>
-    );
-  },
+    this.state.owners.forEach(owner => {
+      const normalizedOwner = {
+        actor: owner,
+        rules: findMatchedRules(this.state.rules || [], owner),
+      };
 
-  renderOwner(owner) {
-    let {rule} = this.state;
-    return (
-      <span
-        key={`${owner.id}:${owner.type}`}
-        className="avatar-grid-item"
-        style={{cursor: 'pointer'}}
-        onClick={() => this.assignToActor(owner)}
-      >
-        <Tooltip
-          tooltipOptions={{
-            html: true,
-            container: 'body',
-            template:
-              '<div class="tooltip" role="tooltip"><div class="tooltip-arrow"></div><div class="tooltip-inner tooltip-owners"></div></div>',
-          }}
-          title={ReactDOMServer.renderToStaticMarkup(
-            <div>
-              <div className="tooltip-owners-name">{owner.name}</div>
-              <ul className="tooltip-owners-commits">
-                {t("Assigned based on your Project's Issue Ownership settings")}
-              </ul>
-              <ul className="tooltip-owners-commits">
-                {rule[0] + t(' matched: ') + rule[1]}
-              </ul>
-            </div>
-          )}
-        >
-          <ActorAvatar actor={owner} hasTooltip={false} />
-        </Tooltip>
-      </span>
-    );
+      const existingIdx = owners.findIndex(o => o.actor.email === owner.email);
+      if (existingIdx > -1) {
+        owners[existingIdx] = {...normalizedOwner, ...owners[existingIdx]};
+      } else {
+        owners.push(normalizedOwner);
+      }
+    });
+
+    return owners;
   },
 
   render() {
-    let {committers, owners} = this.state;
+    const owners = this.getOwnerList();
 
     let group = this.getGroup();
     let project = this.getProject();
     let org = this.getOrganization();
-    let access = new Set(org.access);
-
-    let showCreateRule = access.has('project:write');
-
-    let showSuggestedAssignees =
-      (committers && committers.length > 0) || (owners && owners.length > 0);
 
     return (
       <React.Fragment>
-        {showSuggestedAssignees && (
+        {owners.length > 0 && (
           <div className="m-b-1">
             <h6>
               <span>{t('Suggested Assignees')}</span>
@@ -213,34 +173,48 @@ const SuggestedOwners = createReactClass({
             </h6>
 
             <div className="avatar-grid">
-              {committers.map(this.renderCommitter)}
-              {owners.map(this.renderOwner)}
+              {owners.map((owner, i) => (
+                <SuggestedOwnerHovercard
+                  key={`${owner.actor.id}:${owner.actor.email}:${owner.actor.name}:${i}`}
+                  actor={owner.actor}
+                  rules={owner.rules}
+                  commits={owner.commits}
+                  containerClassName="avatar-grid-item"
+                >
+                  <span onClick={() => this.assign(owner.actor)}>
+                    <ActorAvatar
+                      style={{cursor: 'pointer'}}
+                      hasTooltip={false}
+                      actor={owner.actor}
+                    />
+                  </span>
+                </SuggestedOwnerHovercard>
+              ))}
             </div>
           </div>
         )}
-        {showCreateRule && (
+        <Access access={['project:write']}>
           <div className="m-b-1">
             <h6>
               <GuideAnchor target="owners" type="text" />
               <span>{t('Ownership Rules')}</span>
             </h6>
-
-            <a
+            <Button
               onClick={() =>
                 openCreateOwnershipRule({
                   project,
                   organization: org,
                   issueId: group.id,
                 })}
+              size="small"
               className="btn btn-default btn-sm btn-create-ownership-rule"
             >
               {t('Create Ownership Rule')}
-            </a>
+            </Button>
           </div>
-        )}
+        </Access>
       </React.Fragment>
     );
   },
 });
-
 export default SuggestedOwners;

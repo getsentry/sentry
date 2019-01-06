@@ -8,6 +8,7 @@ exports[`Sentry App Installations when Apps exist displays all Apps owned by the
       Object {
         "clientId": "client-id",
         "clientSecret": "client-secret",
+        "events": Array [],
         "isAlertable": false,
         "name": "Sample App",
         "overview": "This is an app.",
@@ -16,6 +17,7 @@ exports[`Sentry App Installations when Apps exist displays all Apps owned by the
           "project:read",
         ],
         "slug": "sample-app",
+        "status": "unpublished",
         "uuid": "123456123456123456123456",
         "webhookUrl": "https://example.com/webhook",
       },
@@ -29,6 +31,7 @@ exports[`Sentry App Installations when Apps exist displays all Apps owned by the
       Object {
         "clientId": "client-id",
         "clientSecret": "client-secret",
+        "events": Array [],
         "isAlertable": false,
         "name": "Sample App",
         "overview": "This is an app.",
@@ -37,6 +40,7 @@ exports[`Sentry App Installations when Apps exist displays all Apps owned by the
           "project:read",
         ],
         "slug": "sample-app",
+        "status": "unpublished",
         "uuid": "123456123456123456123456",
         "webhookUrl": "https://example.com/webhook",
       }
@@ -68,6 +72,7 @@ exports[`Sentry App Installations when Apps exist displays all Apps owned by the
                     Object {
                       "clientId": "client-id",
                       "clientSecret": "client-secret",
+                      "events": Array [],
                       "isAlertable": false,
                       "name": "Sample App",
                       "overview": "This is an app.",
@@ -76,6 +81,7 @@ exports[`Sentry App Installations when Apps exist displays all Apps owned by the
                         "project:read",
                       ],
                       "slug": "sample-app",
+                      "status": "unpublished",
                       "uuid": "123456123456123456123456",
                       "webhookUrl": "https://example.com/webhook",
                     }
@@ -270,7 +276,7 @@ exports[`Sentry App Installations when Apps exist displays all Apps owned by the
                                           "backgroundActive": "#FFFFFF",
                                           "border": "#e3e5e6",
                                           "borderActive": "#e3e5e6",
-                                          "color": "#ced3d6",
+                                          "color": "#BDB4C7",
                                         },
                                         "link": Object {
                                           "background": "transparent",
@@ -323,7 +329,7 @@ exports[`Sentry App Installations when Apps exist displays all Apps owned by the
                                         "removed": "#f7ceca",
                                         "removedRow": "#fcefee",
                                       },
-                                      "disabled": "#ced3d6",
+                                      "disabled": "#BDB4C7",
                                       "dropShadowHeavy": "0 1px 4px 1px rgba(47,40,55,0.08), 0 4px 16px 0 rgba(47,40,55,0.12)",
                                       "dropShadowLight": "0 2px 0 rgba(37, 11, 54, 0.04)",
                                       "error": "#e03e2f",
@@ -536,7 +542,7 @@ exports[`Sentry App Installations when Apps exist displays all Apps owned by the
                                                   "backgroundActive": "#FFFFFF",
                                                   "border": "#e3e5e6",
                                                   "borderActive": "#e3e5e6",
-                                                  "color": "#ced3d6",
+                                                  "color": "#BDB4C7",
                                                 },
                                                 "link": Object {
                                                   "background": "transparent",
@@ -589,7 +595,7 @@ exports[`Sentry App Installations when Apps exist displays all Apps owned by the
                                                 "removed": "#f7ceca",
                                                 "removedRow": "#fcefee",
                                               },
-                                              "disabled": "#ced3d6",
+                                              "disabled": "#BDB4C7",
                                               "dropShadowHeavy": "0 1px 4px 1px rgba(47,40,55,0.08), 0 4px 16px 0 rgba(47,40,55,0.12)",
                                               "dropShadowLight": "0 2px 0 rgba(37, 11, 54, 0.04)",
                                               "error": "#e03e2f",

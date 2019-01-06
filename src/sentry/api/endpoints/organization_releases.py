@@ -41,7 +41,7 @@ def create_new_org_release_commit_scenario(runner):
         method='POST',
         path='/organizations/%s/releases/' % (runner.org.slug, ),
         data={
-            'version': '2.0rc2',
+            'version': '2.0rc3',
             'projects': [runner.default_project.slug],
             'commits': [
                 {
@@ -110,7 +110,8 @@ class OrganizationReleasesEndpoint(OrganizationReleasesBaseEndpoint, Environment
 
         if 'environment' in filter_params:
             queryset = queryset.filter(
-                releaseenvironment__environment__name__in=filter_params['environment'],
+                releaseprojectenvironment__environment__name__in=filter_params['environment'],
+                releaseprojectenvironment__project_id__in=filter_params['project_id'],
             )
 
         if query:
@@ -165,12 +166,14 @@ class OrganizationReleasesEndpoint(OrganizationReleasesBaseEndpoint, Environment
                               ``id`` (the sha of the commit), and can optionally
                               include ``repository``, ``message``, ``patch_set``,
                               ``author_name``, ``author_email``, and ``timestamp``.
+                              See [release without integration example](/workflow/releases/).
         :param array refs: an optional way to indicate the start and end commits
                            for each repository included in a release. Head commits
                            must include parameters ``repository`` and ``commit``
                            (the HEAD sha). They can optionally include ``previousCommit``
                            (the sha of the HEAD of the previous release), which should
                            be specified if this is the first time you've sent commit data.
+                           ``commit`` may contain a range in the form of ``previousCommit..commit``
         :auth: required
         """
         serializer = ReleaseSerializerWithProjects(data=request.DATA)

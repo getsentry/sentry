@@ -9,6 +9,7 @@ import {
   DEFAULT_USE_UTC,
 } from 'app/constants';
 import {analytics} from 'app/utils/analytics';
+import {callIfFunction} from 'app/utils/callIfFunction';
 import {getLocalToUtc, getPeriodAgo, getUtcInLocal} from 'app/utils/dates';
 import {parsePeriodToHours} from 'app/utils';
 import {t} from 'app/locale';
@@ -71,7 +72,7 @@ class TimeRangeSelector extends React.PureComponent {
 
   static defaultProps = {
     showAbsolute: true,
-    showRelative: false,
+    showRelative: true,
     utc: DEFAULT_USE_UTC,
   };
 
@@ -80,29 +81,34 @@ class TimeRangeSelector extends React.PureComponent {
     this.state = {
       utc: props.utc,
       isOpen: false,
+      hasChanges: false,
+      start: props.start,
+      end: props.end,
+      relative: props.relative,
     };
   }
 
-  getSelectedStateFromProps = props => {
-    const {start, end, relative} = props || this.props;
-    return !!start && !!end ? 'absolute' : relative;
-  };
-
   handleCloseMenu = () => {
-    this.handleUpdate();
+    const {relative, start, end, utc} = this.state;
+
+    if (this.state.hasChanges) {
+      // Only call update if we close when absolute date is selected
+      this.handleUpdate({relative, start, end, utc});
+    } else {
+      this.setState({isOpen: false});
+    }
   };
 
-  handleUpdate = () => {
+  handleUpdate = datetime => {
     const {onUpdate} = this.props;
 
     this.setState(
       {
         isOpen: false,
+        hasChanges: false,
       },
       () => {
-        if (typeof onUpdate === 'function') {
-          onUpdate();
-        }
+        callIfFunction(onUpdate, datetime);
       }
     );
   };
@@ -112,7 +118,7 @@ class TimeRangeSelector extends React.PureComponent {
 
     // Set default range to equivalent of last relative period,
     // or use default stats period
-    onChange({
+    const newDateTime = {
       relative: null,
       start: getPeriodAgo(
         parsePeriodToHours(relative || DEFAULT_STATS_PERIOD),
@@ -120,29 +126,34 @@ class TimeRangeSelector extends React.PureComponent {
       ).toDate(),
       end: new Date(),
       utc: this.state.utc,
-    });
+    };
+    this.setState({hasChanges: true, ...newDateTime});
+    callIfFunction(onChange, newDateTime);
   };
 
   handleSelectRelative = value => {
     const {onChange} = this.props;
-    onChange({
+    const newDateTime = {
       relative: value,
       start: null,
       end: null,
       utc: this.state.utc,
-    });
-    this.handleUpdate();
+    };
+    callIfFunction(onChange, newDateTime);
+    this.handleUpdate(newDateTime);
   };
 
   handleSelectDateRange = ({start, end}) => {
     const {onChange} = this.props;
 
-    onChange({
+    const newDateTime = {
       relative: null,
       start,
       end,
       utc: this.state.utc,
-    });
+    };
+    this.setState({hasChanges: true, ...newDateTime});
+    callIfFunction(onChange, newDateTime);
   };
 
   handleUseUtc = () => {
@@ -153,22 +164,24 @@ class TimeRangeSelector extends React.PureComponent {
       analytics('dateselector.utc_changed', {
         utc,
       });
-
-      onChange({
+      const newDateTime = {
         relative: null,
         start: utc ? getLocalToUtc(start) : getUtcInLocal(start),
         end: utc ? getLocalToUtc(end) : getUtcInLocal(end),
         utc,
-      });
+      };
+      callIfFunction(onChange, newDateTime);
 
       return {
-        utc,
+        hasChanges: true,
+        ...newDateTime,
       };
     });
   };
 
   render() {
-    const {start, end, relative, showAbsolute, showRelative} = this.props;
+    const {showAbsolute, showRelative} = this.props;
+    const {start, end, relative} = this.state;
 
     const shouldShowAbsolute = showAbsolute;
     const shouldShowRelative = showRelative;
@@ -193,7 +206,9 @@ class TimeRangeSelector extends React.PureComponent {
               icon={<StyledInlineSvg src="icon-calendar" />}
               isOpen={isOpen}
               hasSelected={true}
+              hasChanges={this.state.hasChanges}
               allowClear={false}
+              onSubmit={this.handleCloseMenu}
               {...getActorProps({isStyled: true})}
             >
               {getDynamicText({value: summary, fixed: 'start to end'})}

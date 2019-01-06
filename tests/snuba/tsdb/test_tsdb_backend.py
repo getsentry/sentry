@@ -67,6 +67,7 @@ class SnubaTSDBTest(TestCase):
         self.proj1 = self.create_project()
         self.proj1env1 = self.create_environment(project=self.proj1, name='test')
         self.proj1env2 = self.create_environment(project=self.proj1, name='dev')
+        self.proj1env3 = self.create_environment(project=self.proj1, name='staging')
         self.proj1defaultenv = self.create_environment(project=self.proj1, name='')
 
         self.proj1group1 = self.create_group(self.proj1)
@@ -120,7 +121,7 @@ class SnubaTSDBTest(TestCase):
                     'foo': 'bar',
                     'baz': 'quux',
                     # Switch every 2 hours
-                    'environment': [self.proj1env1.name, None][(r // 7200) % 2],
+                    'environment': [self.proj1env1.name, None][(r // 7200) % 3],
                     'sentry:user': u'id:user{}'.format(r // 3300),
                     'sentry:release': six.text_type(r // 3600) * 10,  # 1 per hour
                 },
@@ -225,7 +226,7 @@ class SnubaTSDBTest(TestCase):
             [self.proj1.id],
             dts[0], dts[-1],
             rollup=3600,
-            environment_id=self.proj1env1.id
+            environment_ids=[self.proj1env1.id]
         ) == {
             self.proj1.id: [
                 (timestamp(dts[0]), 6),
@@ -241,7 +242,7 @@ class SnubaTSDBTest(TestCase):
             [self.proj1.id],
             dts[0], dts[-1],
             rollup=3600,
-            environment_id=self.proj1env2.id
+            environment_ids=[self.proj1env2.id],
         ) == {
             self.proj1.id: [
                 (timestamp(dts[0]), 0),
@@ -257,7 +258,7 @@ class SnubaTSDBTest(TestCase):
             [self.proj1.id],
             dts[0], dts[-1],
             rollup=3600,
-            environment_id=self.proj1defaultenv.id
+            environment_ids=[self.proj1defaultenv.id],
         ) == {
             self.proj1.id: [
                 (timestamp(dts[0]), 0),

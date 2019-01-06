@@ -5,6 +5,7 @@ from collections import defaultdict
 from datetime import timedelta
 
 import six
+from django.conf import settings
 from django.core.urlresolvers import reverse
 from django.db.models import Q
 from django.utils import timezone
@@ -19,6 +20,8 @@ from sentry.models import (
     GroupShare, GroupStatus, GroupSubscription, GroupSubscriptionReason, Integration, User, UserOption,
     UserOptionValue
 )
+from sentry.tagstore.snuba.backend import SnubaTagStorage
+from sentry.tsdb.snuba import SnubaTSDB
 from sentry.utils.db import attach_foreignkey
 from sentry.utils.http import absolute_uri
 from sentry.utils.safe import safe_execute
@@ -35,10 +38,20 @@ SUBSCRIPTION_REASON_MAP = {
 disabled = object()
 
 
-@register(Group)
-class GroupSerializer(Serializer):
-    def __init__(self, environment_func=None):
-        self.environment_func = environment_func if environment_func is not None else lambda: None
+# TODO(jess): remove when snuba is primary backend
+snuba_tsdb = SnubaTSDB(**settings.SENTRY_TSDB_OPTIONS)
+
+
+class GroupSerializerBase(Serializer):
+    def _get_seen_stats(self, item_list, user):
+        """
+        Returns a dictionary keyed by item that includes:
+            - times_seen
+            - first_seen
+            - last_seen
+            - user_count
+        """
+        raise NotImplementedError
 
     def _get_subscriptions(self, item_list, user):
         """
@@ -147,42 +160,6 @@ class GroupSerializer(Serializer):
         }
         resolved_assignees = Actor.resolve_dict(assignees)
 
-        try:
-            environment = self.environment_func()
-        except Environment.DoesNotExist:
-            user_counts = {}
-            first_seen = {}
-            last_seen = {}
-            times_seen = {}
-        else:
-            project_id = item_list[0].project_id
-            item_ids = [g.id for g in item_list]
-            user_counts = tagstore.get_groups_user_counts(
-                [project_id],
-                item_ids,
-                environment_ids=environment and [environment.id],
-            )
-            first_seen = {}
-            last_seen = {}
-            times_seen = {}
-            if environment is not None:
-                environment_tagvalues = tagstore.get_group_list_tag_value(
-                    [project_id],
-                    item_ids,
-                    [environment.id],
-                    'environment',
-                    environment.name,
-                )
-                for item_id, value in environment_tagvalues.items():
-                    first_seen[item_id] = value.first_seen
-                    last_seen[item_id] = value.last_seen
-                    times_seen[item_id] = value.times_seen
-            else:
-                for item in item_list:
-                    first_seen[item.id] = item.first_seen
-                    last_seen[item.id] = item.last_seen
-                    times_seen[item.id] = item.times_seen
-
         ignore_items = {g.group_id: g for g in GroupSnooze.objects.filter(
             group__in=item_list,
         )}
@@ -243,6 +220,9 @@ class GroupSerializer(Serializer):
         ).values_list('group_id', 'uuid'))
 
         result = {}
+
+        seen_stats = self._get_seen_stats(item_list, user)
+
         for item in item_list:
             active_date = item.active_at or item.first_seen
 
@@ -289,17 +269,15 @@ class GroupSerializer(Serializer):
                 'subscription': subscriptions[item.id],
                 'has_seen': seen_groups.get(item.id, active_date) > active_date,
                 'annotations': annotations,
-                'user_count': user_counts.get(item.id, 0),
                 'ignore_until': ignore_item,
                 'ignore_actor': ignore_actor,
                 'resolution': resolution,
                 'resolution_type': resolution_type,
                 'resolution_actor': resolution_actor,
                 'share_id': share_ids.get(item.id),
-                'times_seen': times_seen.get(item.id, 0),
-                'first_seen': first_seen.get(item.id),  # TODO: missing?
-                'last_seen': last_seen.get(item.id),
             }
+
+            result[item].update(seen_stats.get(item, {}))
         return result
 
     def serialize(self, obj, attrs, user):
@@ -414,26 +392,70 @@ class GroupSerializer(Serializer):
         }
 
 
-class StreamGroupSerializer(GroupSerializer):
+@register(Group)
+class GroupSerializer(GroupSerializerBase):
+    def __init__(self, environment_func=None):
+        self.environment_func = environment_func if environment_func is not None else lambda: None
+
+    def _get_seen_stats(self, item_list, user):
+        try:
+            environment = self.environment_func()
+        except Environment.DoesNotExist:
+            user_counts = {}
+            first_seen = {}
+            last_seen = {}
+            times_seen = {}
+        else:
+            project_id = item_list[0].project_id
+            item_ids = [g.id for g in item_list]
+            user_counts = tagstore.get_groups_user_counts(
+                [project_id],
+                item_ids,
+                environment_ids=environment and [environment.id],
+            )
+            first_seen = {}
+            last_seen = {}
+            times_seen = {}
+            if environment is not None:
+                environment_tagvalues = tagstore.get_group_list_tag_value(
+                    [project_id],
+                    item_ids,
+                    [environment.id],
+                    'environment',
+                    environment.name,
+                )
+                for item_id, value in environment_tagvalues.items():
+                    first_seen[item_id] = value.first_seen
+                    last_seen[item_id] = value.last_seen
+                    times_seen[item_id] = value.times_seen
+            else:
+                for item in item_list:
+                    first_seen[item.id] = item.first_seen
+                    last_seen[item.id] = item.last_seen
+                    times_seen[item.id] = item.times_seen
+
+        attrs = {}
+        for item in item_list:
+            attrs[item] = {
+                'times_seen': times_seen.get(item.id, 0),
+                'first_seen': first_seen.get(item.id),  # TODO: missing?
+                'last_seen': last_seen.get(item.id),
+                'user_count': user_counts.get(item.id, 0),
+            }
+
+        return attrs
+
+
+class GroupStatsMixin(object):
     STATS_PERIOD_CHOICES = {
         '14d': StatsPeriod(14, timedelta(hours=24)),
         '24h': StatsPeriod(24, timedelta(hours=1)),
     }
 
-    def __init__(self, environment_func=None, stats_period=None,
-                 matching_event_id=None, matching_event_environment=None):
-        super(StreamGroupSerializer, self).__init__(environment_func)
+    def query_tsdb(self, group_ids, query_params):
+        raise NotImplementedError
 
-        if stats_period is not None:
-            assert stats_period in self.STATS_PERIOD_CHOICES
-
-        self.stats_period = stats_period
-        self.matching_event_id = matching_event_id
-        self.matching_event_environment = matching_event_environment
-
-    def get_attrs(self, item_list, user):
-        attrs = super(StreamGroupSerializer, self).get_attrs(item_list, user)
-
+    def get_stats(self, item_list, user):
         if self.stats_period:
             # we need to compute stats at 1d (1h resolution), and 14d
             group_ids = [g.id for g in item_list]
@@ -446,20 +468,43 @@ class StreamGroupSerializer(GroupSerializer):
                 'rollup': int(interval.total_seconds()),
             }
 
-            try:
-                environment = self.environment_func()
-            except Environment.DoesNotExist:
-                stats = {key: tsdb.make_series(0, **query_params) for key in group_ids}
-            else:
-                stats = tsdb.get_range(
-                    model=tsdb.models.group,
-                    keys=group_ids,
-                    environment_id=environment and environment.id,
-                    **query_params
-                )
+            return self.query_tsdb(group_ids, query_params)
 
+
+class StreamGroupSerializer(GroupSerializer, GroupStatsMixin):
+
+    def __init__(self, environment_func=None, stats_period=None,
+                 matching_event_id=None, matching_event_environment=None):
+        super(StreamGroupSerializer, self).__init__(environment_func)
+
+        if stats_period is not None:
+            assert stats_period in self.STATS_PERIOD_CHOICES
+
+        self.stats_period = stats_period
+        self.matching_event_id = matching_event_id
+        self.matching_event_environment = matching_event_environment
+
+    def query_tsdb(self, group_ids, query_params):
+        try:
+            environment = self.environment_func()
+        except Environment.DoesNotExist:
+            stats = {key: tsdb.make_series(0, **query_params) for key in group_ids}
+        else:
+            stats = tsdb.get_range(
+                model=tsdb.models.group,
+                keys=group_ids,
+                environment_ids=environment and [environment.id],
+                **query_params
+            )
+
+        return stats
+
+    def get_attrs(self, item_list, user):
+        attrs = super(StreamGroupSerializer, self).get_attrs(item_list, user)
+
+        if self.stats_period:
+            stats = self.get_stats(item_list, user)
             for item in item_list:
-
                 attrs[item].update({
                     'stats': stats[item.id],
                 })
@@ -499,4 +544,90 @@ class SharedGroupSerializer(GroupSerializer):
     def serialize(self, obj, attrs, user):
         result = super(SharedGroupSerializer, self).serialize(obj, attrs, user)
         del result['annotations']
+        return result
+
+
+class GroupSerializerSnuba(GroupSerializerBase):
+    def __init__(self, environment_ids=None):
+        self.environment_ids = environment_ids
+
+    def _get_seen_stats(self, item_list, user):
+        tagstore = SnubaTagStorage()
+        project_ids = list(set([item.project_id for item in item_list]))
+        group_ids = [item.id for item in item_list]
+        user_counts = tagstore.get_groups_user_counts(
+            project_ids,
+            group_ids,
+            environment_ids=self.environment_ids,
+        )
+
+        first_seen = {}
+        last_seen = {}
+        times_seen = {}
+        if self.environment_ids is None:
+            # use issue fields
+            for item in item_list:
+                first_seen[item.id] = item.first_seen
+                last_seen[item.id] = item.last_seen
+                times_seen[item.id] = item.times_seen
+        else:
+            seen_data = tagstore.get_group_seen_values_for_environments(
+                project_ids,
+                group_ids,
+                self.environment_ids,
+            )
+            for item_id, value in seen_data.items():
+                first_seen[item_id] = value['first_seen']
+                last_seen[item_id] = value['last_seen']
+                times_seen[item_id] = value['times_seen']
+
+        attrs = {}
+        for item in item_list:
+            attrs[item] = {
+                'times_seen': times_seen.get(item.id, 0),
+                'first_seen': first_seen.get(item.id),
+                'last_seen': last_seen.get(item.id),
+                'user_count': user_counts.get(item.id, 0),
+            }
+
+        return attrs
+
+
+class StreamGroupSerializerSnuba(GroupSerializerSnuba, GroupStatsMixin):
+    def __init__(self, environment_ids=None, stats_period=None):
+        super(StreamGroupSerializerSnuba, self).__init__(environment_ids)
+
+        if stats_period is not None:
+            assert stats_period in self.STATS_PERIOD_CHOICES
+
+        self.stats_period = stats_period
+
+    def query_tsdb(self, group_ids, query_params):
+        return snuba_tsdb.get_range(
+            model=snuba_tsdb.models.group,
+            keys=group_ids,
+            environment_ids=self.environment_ids,
+            **query_params
+        )
+
+    def get_attrs(self, item_list, user):
+        attrs = super(StreamGroupSerializerSnuba, self).get_attrs(item_list, user)
+
+        if self.stats_period:
+            stats = self.get_stats(item_list, user)
+            for item in item_list:
+                attrs[item].update({
+                    'stats': stats[item.id],
+                })
+
+        return attrs
+
+    def serialize(self, obj, attrs, user):
+        result = super(StreamGroupSerializerSnuba, self).serialize(obj, attrs, user)
+
+        if self.stats_period:
+            result['stats'] = {
+                self.stats_period: attrs['stats'],
+            }
+
         return result

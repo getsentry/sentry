@@ -46,6 +46,13 @@ class BaseChart extends React.Component {
     // Must be explicitly `null` to disable yAxis
     yAxis: SentryTypes.EChartsYAxis,
 
+    // Pass `true` to have 2 y-axes with default properties
+    // Can pass an array of 2 objects to customize yAxis properties
+    yAxes: PropTypes.oneOfType([
+      PropTypes.bool,
+      PropTypes.arrayOf(SentryTypes.EChartsYAxis),
+    ]),
+
     // Tooltip options
     tooltip: SentryTypes.EChartsTooltip,
 
@@ -161,6 +168,7 @@ class BaseChart extends React.Component {
       interval,
       previousPeriod,
       utc,
+      yAxes,
 
       devicePixelRatio,
       height,
@@ -173,6 +181,10 @@ class BaseChart extends React.Component {
       onEvents,
       forwardedRef,
     } = this.props;
+
+    const yAxisOrCustom = !yAxes
+      ? yAxis !== null ? YAxis(yAxis) : null
+      : Array.isArray(yAxes) ? yAxes.slice(0, 2).map(YAxis) : [YAxis(), YAxis()];
 
     return (
       <ReactEchartsCore
@@ -204,7 +216,7 @@ class BaseChart extends React.Component {
               ? Tooltip({interval, isGroupedByDate, utc, ...tooltip})
               : null,
           legend: legend ? Legend({...legend}) : null,
-          yAxis: yAxis !== null ? YAxis(yAxis) : null,
+          yAxis: yAxisOrCustom,
           xAxis:
             xAxis !== null
               ? XAxis({

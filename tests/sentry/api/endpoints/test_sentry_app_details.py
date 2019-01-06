@@ -4,6 +4,7 @@ from __future__ import absolute_import
 from django.core.urlresolvers import reverse
 from sentry.testutils import APITestCase
 from sentry.testutils.helpers import with_feature
+from sentry.utils import json
 
 
 class SentryAppDetailsTest(APITestCase):
@@ -108,10 +109,11 @@ class UpdateSentryAppDetailsTest(SentryAppDetailsTest):
             },
             format='json',
         )
-        assert response.data == {
+        assert json.loads(response.content) == {
             'name': 'NewName',
             'slug': self.published_app.slug,
             'scopes': [],
+            'events': [],
             'status': self.published_app.get_status_display(),
             'uuid': self.published_app.uuid,
             'webhookUrl': 'https://newurl.com',
@@ -175,3 +177,28 @@ class UpdateSentryAppDetailsTest(SentryAppDetailsTest):
             format='json',
         )
         assert response.status_code == 404
+
+
+class DeleteSentryAppDetailsTest(SentryAppDetailsTest):
+    @with_feature('organizations:internal-catchall')
+    def test_delete_unpublished_app(self):
+        self.login_as(user=self.superuser)
+        url = reverse(
+            'sentry-api-0-sentry-app-details',
+            args=[self.unpublished_app.slug],
+        )
+        response = self.client.delete(url)
+        assert response.status_code == 204
+
+    @with_feature('organizations:internal-catchall')
+    def test_cannot_delete_published_app(self):
+        self.login_as(user=self.superuser)
+        url = reverse(
+            'sentry-api-0-sentry-app-details',
+            args=[self.published_app.slug],
+        )
+        response = self.client.delete(url)
+        assert response.status_code == 403
+        assert response.data == {
+            'detail': ['Published apps cannot be removed.'],
+        }

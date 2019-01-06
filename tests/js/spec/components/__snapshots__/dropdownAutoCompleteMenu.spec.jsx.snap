@@ -39,6 +39,8 @@ exports[`DropdownAutoCompleteMenu renders with a group 1`] = `
     itemToString={[Function]}
     onSelect={[Function]}
     resetInputOnClose={true}
+    shouldSelectWithEnter={true}
+    shouldSelectWithTab={false}
   >
     <DropdownMenu
       closeOnEscape={true}
@@ -88,7 +90,7 @@ exports[`DropdownAutoCompleteMenu renders with a group 1`] = `
                       >
                         <input
                           autoFocus={true}
-                          className="css-1kaml7o-Input-inputStyles-StyledInput ejumqxq2"
+                          className="css-o3kc4m-Input-inputStyles-StyledInput ejumqxq2"
                           onBlur={[Function]}
                           onChange={[Function]}
                           onFocus={[Function]}
@@ -214,6 +216,8 @@ exports[`DropdownAutoCompleteMenu renders without a group 1`] = `
     itemToString={[Function]}
     onSelect={[Function]}
     resetInputOnClose={true}
+    shouldSelectWithEnter={true}
+    shouldSelectWithTab={false}
   >
     <DropdownMenu
       closeOnEscape={true}
@@ -263,7 +267,7 @@ exports[`DropdownAutoCompleteMenu renders without a group 1`] = `
                       >
                         <input
                           autoFocus={true}
-                          className="css-1kaml7o-Input-inputStyles-StyledInput ejumqxq2"
+                          className="css-o3kc4m-Input-inputStyles-StyledInput ejumqxq2"
                           onBlur={[Function]}
                           onChange={[Function]}
                           onFocus={[Function]}

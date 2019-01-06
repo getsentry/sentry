@@ -71,6 +71,33 @@ exports[`InactivePlugins renders plugins list 1`] = `
           </Flex>
         </IntegrationButton>
       </Box>
+      <Box
+        key="hidden-plugin"
+        m={1}
+      >
+        <IntegrationButton
+          className="ref-plugin-enable-hidden-plugin"
+          onClick={[Function]}
+        >
+          <Flex
+            align="center"
+            justify="center"
+          >
+            <Flex
+              align="center"
+              mr={1}
+            >
+              <PluginIcon
+                pluginId="hidden-plugin"
+                size={20}
+              />
+            </Flex>
+            <TextOverflow>
+              Hidden Plugin
+            </TextOverflow>
+          </Flex>
+        </IntegrationButton>
+      </Box>
     </Flex>
   </PanelBody>
 </Panel>

@@ -31,12 +31,13 @@ from symbolic import ProcessMinidumpError, Unreal4Error
 from sentry import features, quotas, tsdb, options
 from sentry.attachments import CachedAttachment
 from sentry.coreapi import (
-    Auth, APIError, APIForbidden, APIRateLimited, ClientApiHelper, SecurityApiHelper, MinidumpApiHelper, safely_load_json_string, logger as api_logger
+    Auth, APIError, APIForbidden, APIRateLimited, ClientApiHelper, ClientAuthHelper,
+    SecurityAuthHelper, MinidumpAuthHelper, safely_load_json_string, logger as api_logger
 )
 from sentry.event_manager import EventManager
 from sentry.interfaces import schemas
 from sentry.interfaces.base import get_interface
-from sentry.lang.native.unreal import process_unreal_crash, unreal_attachment_type, merge_unreal_context_event
+from sentry.lang.native.unreal import process_unreal_crash, unreal_attachment_type, merge_unreal_context_event, merge_unreal_logs_event
 from sentry.lang.native.minidump import merge_process_state_event, process_minidump, MINIDUMP_ATTACHMENT_TYPE
 from sentry.models import Project, OrganizationOption, Organization
 from sentry.signals import (
@@ -91,10 +92,8 @@ def api(func):
     return wrapped
 
 
-def process_event(event_type, event_manager, project, key, remote_addr, helper, attachments):
-    sender = type_name_to_view[event_type]
-
-    event_received.send_robust(ip=remote_addr, project=project, sender=sender)
+def process_event(event_manager, project, key, remote_addr, helper, attachments):
+    event_received.send_robust(ip=remote_addr, project=project, sender=process_event)
 
     start_time = time()
     tsdb_start_time = to_datetime(start_time)
@@ -123,12 +122,12 @@ def process_event(event_type, event_manager, project, key, remote_addr, helper, 
         )
 
         metrics.incr(
-            'events.blacklisted', tags={'reason': filter_reason}
+            'events.blacklisted', tags={'reason': filter_reason}, skip_internal=False
         )
         event_filtered.send_robust(
             ip=remote_addr,
             project=project,
-            sender=sender,
+            sender=process_event,
         )
         raise APIForbidden('Event dropped due to filter: %s' % (filter_reason,))
 
@@ -161,13 +160,14 @@ def process_event(event_type, event_manager, project, key, remote_addr, helper, 
             'events.dropped',
             tags={
                 'reason': rate_limit.reason_code if rate_limit else 'unknown',
-            }
+            },
+            skip_internal=False,
         )
         event_dropped.send_robust(
             ip=remote_addr,
             project=project,
             reason_code=rate_limit.reason_code if rate_limit else None,
-            sender=sender,
+            sender=process_event,
         )
         if rate_limit is not None:
             raise APIRateLimited(rate_limit.retry_after)
@@ -241,14 +241,14 @@ def process_event(event_type, event_manager, project, key, remote_addr, helper, 
         ip=remote_addr,
         data=data,
         project=project,
-        sender=sender,
+        sender=process_event,
     )
 
     return event_id
 
 
 class APIView(BaseView):
-    helper_cls = ClientApiHelper
+    auth_helper_cls = ClientAuthHelper
 
     def _get_project_from_id(self, project_id):
         if not project_id:
@@ -261,7 +261,7 @@ class APIView(BaseView):
             raise APIError('Invalid project_id: %r' % project_id)
 
     def _parse_header(self, request, helper, project):
-        auth = helper.auth_from_request(request)
+        auth = self.auth_helper_cls.auth_from_request(request)
 
         if auth.version not in PROTOCOL_VERSIONS:
             raise APIError(
@@ -310,7 +310,7 @@ class APIView(BaseView):
     @csrf_exempt
     @never_cache
     def dispatch(self, request, project_id=None, *args, **kwargs):
-        helper = self.helper_cls(
+        helper = ClientApiHelper(
             agent=request.META.get('HTTP_USER_AGENT'),
             project_id=project_id,
             ip_address=request.META['REMOTE_ADDR'],
@@ -321,7 +321,7 @@ class APIView(BaseView):
             self._publish_to_kafka(request)
 
         try:
-            origin = helper.origin_from_request(request)
+            origin = self.auth_helper_cls.origin_from_request(request)
 
             response = self._dispatch(
                 request, helper, project_id=project_id, origin=origin, *args, **kwargs
@@ -355,25 +355,27 @@ class APIView(BaseView):
 
         # TODO(dcramer): it'd be nice if we had an incr_multi method so
         # tsdb could optimize this
-        metrics.incr('client-api.all-versions.requests')
+        metrics.incr('client-api.all-versions.requests', skip_internal=False)
         metrics.incr('client-api.all-versions.responses.%s' %
-                     (response.status_code, ))
+                     (response.status_code, ), skip_internal=False)
         metrics.incr(
-            'client-api.all-versions.responses.%sxx' % (
-                six.text_type(response.status_code)[0], )
+            'client-api.all-versions.responses.%sxx' % (six.text_type(response.status_code)[0],),
+            skip_internal=False,
         )
 
         if helper.context.version:
-            metrics.incr('client-api.v%s.requests' %
-                         (helper.context.version, ))
             metrics.incr(
-                'client-api.v%s.responses.%s' % (
-                    helper.context.version, response.status_code)
+                'client-api.v%s.requests' % (helper.context.version, ),
+                skip_internal=False,
             )
             metrics.incr(
-                'client-api.v%s.responses.%sxx' %
-                (helper.context.version, six.text_type(
-                    response.status_code)[0])
+                'client-api.v%s.responses.%s' % (helper.context.version, response.status_code),
+                skip_internal=False,
+            )
+            metrics.incr(
+                'client-api.v%s.responses.%sxx' % (helper.context.version,
+                                                   six.text_type(response.status_code)[0]),
+                skip_internal=False,
             )
 
         if response.status_code != 200 and origin:
@@ -528,7 +530,7 @@ class StoreView(APIView):
         pass
 
     def process(self, request, project, key, auth, helper, data, attachments=None, **kwargs):
-        metrics.incr('events.total')
+        metrics.incr('events.total', skip_internal=False)
 
         if not data:
             raise APIError('No JSON data was found')
@@ -550,7 +552,7 @@ class StoreView(APIView):
         self.pre_normalize(event_manager, helper)
         event_manager.normalize()
 
-        event_type = type(self).type_name
+        agent = request.META.get('HTTP_USER_AGENT')
 
         # TODO: Some form of coordination between the Kafka consumer
         # and this method (the 'relay') to decide whether a 429 should
@@ -579,8 +581,7 @@ class StoreView(APIView):
                             'is_public': auth.is_public,
                         },
                         'remote_addr': remote_addr,
-                        'agent': request.META.get('HTTP_USER_AGENT'),
-                        'type': event_type,
+                        'agent': agent,
                         # Whether or not the Kafka consumer is in charge
                         # of actually processing this event.
                         'should_process': process_in_kafka,
@@ -595,13 +596,12 @@ class StoreView(APIView):
                     return event_manager.get_data()['event_id']
 
         # Everything after this will eventually be done in a Kafka consumer.
-        return process_event(event_type, event_manager, project,
+        return process_event(event_manager, project,
                              key, remote_addr, helper, attachments)
 
 
 class MinidumpView(StoreView):
-    type_name = 'minidump'
-    helper_cls = MinidumpApiHelper
+    auth_helper_cls = MinidumpAuthHelper
     content_types = ('multipart/form-data', )
 
     def _dispatch(self, request, helper, project_id=None, origin=None, *args, **kwargs):
@@ -629,7 +629,7 @@ class MinidumpView(StoreView):
         # This is yanking the auth from the querystring since it's not
         # in the POST body. This means we expect a `sentry_key` and
         # `sentry_version` to be set in querystring
-        auth = helper.auth_from_request(request)
+        auth = self.auth_helper_cls.auth_from_request(request)
 
         key = helper.project_key_from_auth(auth)
         if key.project_id != project.id:
@@ -768,7 +768,6 @@ class MinidumpView(StoreView):
 
 # Endpoint used by the Unreal Engine 4 (UE4) Crash Reporter.
 class UnrealView(StoreView):
-    type_name = 'unreal'
     content_types = ('application/octet-stream', )
 
     def _dispatch(self, request, helper, sentry_key, project_id=None, origin=None, *args, **kwargs):
@@ -832,6 +831,14 @@ class UnrealView(StoreView):
             # we'll continue without the context data
             minidumps_logger.exception(e)
 
+        try:
+            unreal_logs = unreal.get_logs()
+            if unreal_logs is not None:
+                merge_unreal_logs_event(unreal_logs, data)
+        except Unreal4Error as e:
+            # we'll continue without the breadcrumbs
+            minidumps_logger.exception(e)
+
         for file in unreal.files():
             # Always store the minidump in attachments so we can access it during
             # processing, regardless of the event-attachments feature. This will
@@ -867,8 +874,7 @@ class StoreSchemaView(BaseView):
 
 
 class SecurityReportView(StoreView):
-    type_name = 'security'
-    helper_cls = SecurityApiHelper
+    auth_helper_cls = SecurityAuthHelper
     content_types = (
         'application/csp-report',
         'application/json',
@@ -898,7 +904,7 @@ class SecurityReportView(StoreView):
         # This is yanking the auth from the querystring since it's not
         # in the POST body. This means we expect a `sentry_key` and
         # `sentry_version` to be set in querystring
-        auth = helper.auth_from_request(request)
+        auth = self.auth_helper_cls.auth_from_request(request)
 
         key = helper.project_key_from_auth(auth)
         if key.project_id != project.id:
@@ -981,10 +987,3 @@ def crossdomain_xml(request, project_id):
     response['Content-Type'] = 'application/xml'
 
     return response
-
-
-type_name_to_view = {
-    v.type_name: v for v in [
-        StoreView, SecurityReportView, UnrealView, MinidumpView
-    ]
-}

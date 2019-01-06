@@ -730,7 +730,7 @@ class Stacktrace(Interface):
     .. note:: This interface can be passed as the 'stacktrace' key in addition
               to the full interface path.
     """
-    score = 2000
+    score = 1950
 
     def __iter__(self):
         return iter(self.frames)

@@ -350,6 +350,17 @@ export const SentryApplication = PropTypes.shape({
   status: PropTypes.string,
 });
 
+export const GlobalSelection = PropTypes.shape({
+  projects: PropTypes.arrayOf(PropTypes.number),
+  environments: PropTypes.arrayOf(PropTypes.string),
+  datetime: PropTypes.shape({
+    period: PropTypes.string,
+    start: PropTypes.oneOfType([PropTypes.string, PropTypes.instanceOf(Date)]),
+    end: PropTypes.oneOfType([PropTypes.string, PropTypes.instanceOf(Date)]),
+    utc: PropTypes.bool,
+  }),
+});
+
 export const EChartsData = PropTypes.arrayOf(
   PropTypes.oneOfType([
     // `PercentageBarChart` has a fixed dataset of 0, 25, 50, 100
@@ -367,7 +378,7 @@ export const EChartsData = PropTypes.arrayOf(
 );
 
 export const EChartsSeriesUnit = PropTypes.shape({
-  type: PropTypes.oneOf(['line', 'bar', 'pie']),
+  type: PropTypes.oneOf(['line', 'bar', 'pie', 'map']),
   showSymbol: PropTypes.bool,
   name: PropTypes.string,
   data: EChartsData,
@@ -857,6 +868,7 @@ let SentryTypes = {
   Organization: PropTypes.shape({
     id: PropTypes.string.isRequired,
   }),
+  GlobalSelection,
   Group,
   Tag,
   PageLinks,

@@ -16,9 +16,11 @@ const CHART_KEY = '__CHART_KEY__';
  *
  * @param {Array} data Data returned from Snuba
  * @param {Object} query Query state corresponding to data
+ * @param {Object} [options] Options object
+ * @param {Boolean} [options.hideFieldName] (default: false) Hide field name in results set
  * @returns {Array}
  */
-export function getChartData(data, query) {
+export function getChartData(data, query, options = {}) {
   const {fields} = query;
 
   return query.aggregations.map(aggregation => {
@@ -27,7 +29,9 @@ export function getChartData(data, query) {
       data: data.map(res => {
         return {
           value: res[aggregation[2]],
-          name: fields.map(field => `${field} ${res[field]}`).join(' '),
+          name: fields
+            .map(field => `${options.hideFieldName ? '' : `${field} `}${res[field]}`)
+            .join(options.separator || ' '),
         };
       }),
     };
@@ -38,32 +42,48 @@ export function getChartData(data, query) {
  * Returns time series data formatted for line and bar charts, with each day
  * along the x-axis
  *
+ * TODO(billy): Investigate making `useTimestamps` the default behavior and remove the option
+ *
  * @param {Array} data Data returned from Snuba
  * @param {Object} query Query state corresponding to data
+ * @param {Object} [options] Options object
+ * @param {Boolean} [options.useTimestamps] (default: false) Return raw timestamps instead of formatting dates
+ * @param {Boolean} [options.assumeNullAsZero] (default: false) Assume null values as 0
+ * @param {Boolean} [options.allSeries] (default: false) Return all series instead of top 10
+ * @param {Object} [options.fieldLabelMap] (default: false) Maps value from Snuba to a defined label
  * @returns {Array}
  */
-export function getChartDataByDay(rawData, query) {
+export function getChartDataByDay(rawData, query, options = {}) {
   // We only chart the first aggregation for now
   const aggregate = query.aggregations[0][2];
 
-  const data = getDataWithKeys(rawData, query);
+  const data = getDataWithKeys(rawData, query, options);
 
   // We only want to show the top 10 series
-  const top10Series = getTopSeries(data, aggregate);
+  const top10Series = getTopSeries(
+    data,
+    aggregate,
+    options.allSeries ? -1 : options.allSeries
+  );
 
-  const dates = [...new Set(rawData.map(entry => formatDate(entry.time)))];
+  // Reverse to get ascending dates - we request descending to ensure latest
+  // day data is compplete in the case of limits being hit
+  const dates = [
+    ...new Set(rawData.map(entry => formatDate(entry.time, !options.useTimestamps))),
+  ].reverse();
 
   // Temporarily store series as object with series names as keys
-  const seriesHash = getEmptySeriesHash(top10Series, dates);
+  const seriesHash = getEmptySeriesHash(top10Series, dates, options);
 
   // Insert data into series if it's in a top 10 series
   data.forEach(row => {
     const key = row[CHART_KEY];
 
-    const dateIdx = dates.indexOf(formatDate(row.time));
+    const dateIdx = dates.indexOf(formatDate(row.time, !options.useTimestamps));
 
     if (top10Series.has(key)) {
-      seriesHash[key][dateIdx].value = row[aggregate];
+      seriesHash[key][dateIdx].value =
+        options.assumeNullAsZero && row[aggregate] === null ? 0 : row[aggregate];
     }
   });
 
@@ -96,42 +116,42 @@ export function getRowsPageRange(baseQuery) {
 
 // Return placeholder empty series object with all series and dates listed and
 // all values set to null
-function getEmptySeriesHash(seriesSet, dates) {
+function getEmptySeriesHash(seriesSet, dates, options = {}) {
   const output = {};
 
   [...seriesSet].forEach(series => {
-    output[series] = getEmptySeries(dates);
+    output[series] = getEmptySeries(dates, options);
   });
 
   return output;
 }
 
-function getEmptySeries(dates) {
+function getEmptySeries(dates, options) {
   return dates.map(date => {
     return {
-      value: null,
+      value: options.assumeNullAsZero ? 0 : null,
       name: date,
     };
   });
 }
 
 // Get the top series ranked by latest time / largest aggregate
-function getTopSeries(data, aggregate) {
+function getTopSeries(data, aggregate, limit = NUMBER_OF_SERIES_BY_DAY) {
   const allData = orderBy(data, ['time', aggregate], ['desc', 'desc']);
 
-  return new Set(
-    [...new Set(allData.map(row => row[CHART_KEY]))].slice(0, NUMBER_OF_SERIES_BY_DAY)
-  );
+  const orderedData = [...new Set(allData.map(row => row[CHART_KEY]))];
+
+  return new Set(limit <= 0 ? orderedData : orderedData.slice(0, limit));
 }
 
-function getDataWithKeys(data, query) {
+function getDataWithKeys(data, query, options = {}) {
   const {aggregations, fields} = query;
   // We only chart the first aggregation for now
   const aggregate = aggregations[0][2];
 
   return data.map(row => {
     const key = fields.length
-      ? fields.map(field => getLabel(row[field])).join(',')
+      ? fields.map(field => getLabel(row[field], options)).join(',')
       : aggregate;
 
     return {
@@ -141,14 +161,20 @@ function getDataWithKeys(data, query) {
   });
 }
 
-function formatDate(datetime) {
-  return moment.utc(datetime * 1000).format('MMM Do');
+function formatDate(datetime, enabled = true) {
+  const timestamp = datetime * 1000;
+
+  if (!enabled) {
+    return timestamp;
+  }
+
+  return moment.utc(timestamp).format('MMM Do');
 }
 
 // Converts a value to a string for the chart label. This could
 // potentially cause incorrect grouping, e.g. if the value null and string
 // 'null' are both present in the same series they will be merged into 1 value
-function getLabel(value) {
+function getLabel(value, options) {
   if (typeof value === 'object') {
     try {
       value = JSON.stringify(value);
@@ -156,6 +182,10 @@ function getLabel(value) {
       // eslint-disable-next-line no-console
       console.error(err);
     }
+  }
+
+  if (options.fieldLabelMap && options.fieldLabelMap.hasOwnProperty(value)) {
+    return options.fieldLabelMap[value];
   }
 
   return value;

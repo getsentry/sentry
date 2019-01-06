@@ -4,6 +4,7 @@ import six
 
 from django.core.urlresolvers import reverse
 
+from sentry.utils import json
 from sentry.testutils import APITestCase
 from sentry.testutils.helpers import with_feature
 
@@ -60,6 +61,7 @@ class GetSentryAppsTest(SentryAppsTest):
             'name': self.published_app.name,
             'slug': self.published_app.slug,
             'scopes': [],
+            'events': [],
             'status': self.published_app.get_status_display(),
             'uuid': self.published_app.uuid,
             'webhookUrl': self.published_app.webhook_url,
@@ -68,7 +70,7 @@ class GetSentryAppsTest(SentryAppsTest):
             'clientId': self.published_app.application.client_id,
             'clientSecret': self.published_app.application.client_secret,
             'overview': self.published_app.overview,
-        } in response.data
+        } in json.loads(response.content)
 
     @with_feature('organizations:internal-catchall')
     def test_users_see_unpublished_apps_their_org_owns(self):
@@ -81,6 +83,7 @@ class GetSentryAppsTest(SentryAppsTest):
             'name': self.unpublished_app.name,
             'slug': self.unpublished_app.slug,
             'scopes': [],
+            'events': [],
             'status': self.unpublished_app.get_status_display(),
             'uuid': self.unpublished_app.uuid,
             'webhookUrl': self.unpublished_app.webhook_url,
@@ -89,7 +92,7 @@ class GetSentryAppsTest(SentryAppsTest):
             'clientId': self.unpublished_app.application.client_id,
             'clientSecret': self.unpublished_app.application.client_secret,
             'overview': self.unpublished_app.overview,
-        } in response.data
+        } in json.loads(response.content)
 
     @with_feature('organizations:internal-catchall')
     def test_users_dont_see_unpublished_apps_outside_their_orgs(self):
@@ -118,11 +121,12 @@ class PostSentryAppsTest(SentryAppsTest):
         expected = {
             'name': 'MyApp',
             'scopes': ['project:read', 'project:write'],
+            'events': ['issue'],
             'webhookUrl': 'https://example.com',
         }
 
         assert response.status_code == 201, response.content
-        assert six.viewitems(expected) <= six.viewitems(response.data)
+        assert six.viewitems(expected) <= six.viewitems(json.loads(response.content))
 
     @with_feature('organizations:internal-catchall')
     def test_missing_name(self):
@@ -139,6 +143,14 @@ class PostSentryAppsTest(SentryAppsTest):
 
         assert response.status_code == 422, response.content
         assert 'scopes' in response.data['errors']
+
+    @with_feature('organizations:internal-catchall')
+    def test_invalid_events(self):
+        self.login_as(self.user)
+        response = self._post(events=['project'])
+
+        assert response.status_code == 422, response.content
+        assert 'events' in response.data['errors']
 
     @with_feature('organizations:internal-catchall')
     def test_invalid_scope(self):
@@ -161,6 +173,7 @@ class PostSentryAppsTest(SentryAppsTest):
             'name': 'MyApp',
             'organization': self.org.slug,
             'scopes': ('project:read', 'project:write'),
+            'events': ('issue',),
             'webhookUrl': 'https://example.com',
             'isAlertable': False,
         }

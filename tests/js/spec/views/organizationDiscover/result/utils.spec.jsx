@@ -9,45 +9,120 @@ import {
 } from 'app/views/organizationDiscover/result/utils';
 
 describe('Utils', function() {
-  it('getChartData()', function() {
+  describe('getChartData()', function() {
     const raw = [
       {count: 2, uniq_id: 1, 'project.id': 5, environment: null},
       {count: 2, uniq_id: 3, 'project.id': 5, environment: 'staging'},
       {count: 2, uniq_id: 4, 'project.id': 5, environment: 'alpha'},
       {count: 6, uniq_id: 10, 'project.id': 5, environment: 'production'},
     ];
-
     const query = {
       aggregations: [['count()', null, 'count'], ['uniq', 'id', 'uniq_id']],
       fields: ['project.id', 'environment'],
     };
 
-    const expected = [
-      {
-        seriesName: 'count',
-        data: [
-          {value: 2, name: 'project.id 5 environment null'},
-          {value: 2, name: 'project.id 5 environment staging'},
-          {value: 2, name: 'project.id 5 environment alpha'},
-          {value: 6, name: 'project.id 5 environment production'},
-        ],
-      },
-      {
-        seriesName: 'uniq_id',
-        data: [
-          {value: 1, name: 'project.id 5 environment null'},
-          {value: 3, name: 'project.id 5 environment staging'},
-          {value: 4, name: 'project.id 5 environment alpha'},
-          {value: 10, name: 'project.id 5 environment production'},
-        ],
-      },
-    ];
+    it('returns chart data', function() {
+      const expected = [
+        {
+          seriesName: 'count',
+          data: [
+            {value: 2, name: 'project.id 5 environment null'},
+            {value: 2, name: 'project.id 5 environment staging'},
+            {value: 2, name: 'project.id 5 environment alpha'},
+            {value: 6, name: 'project.id 5 environment production'},
+          ],
+        },
+        {
+          seriesName: 'uniq_id',
+          data: [
+            {value: 1, name: 'project.id 5 environment null'},
+            {value: 3, name: 'project.id 5 environment staging'},
+            {value: 4, name: 'project.id 5 environment alpha'},
+            {value: 10, name: 'project.id 5 environment production'},
+          ],
+        },
+      ];
 
-    expect(getChartData(raw, query)).toEqual(expected);
+      expect(getChartData(raw, query)).toEqual(expected);
+    });
+
+    it('customizes separator', function() {
+      const expected = [
+        {
+          seriesName: 'count',
+          data: [
+            {value: 2, name: 'project.id 5, environment null'},
+            {value: 2, name: 'project.id 5, environment staging'},
+            {value: 2, name: 'project.id 5, environment alpha'},
+            {value: 6, name: 'project.id 5, environment production'},
+          ],
+        },
+        {
+          seriesName: 'uniq_id',
+          data: [
+            {value: 1, name: 'project.id 5, environment null'},
+            {value: 3, name: 'project.id 5, environment staging'},
+            {value: 4, name: 'project.id 5, environment alpha'},
+            {value: 10, name: 'project.id 5, environment production'},
+          ],
+        },
+      ];
+
+      expect(getChartData(raw, query, {separator: ', '})).toEqual(expected);
+    });
+
+    it('hides field name for series label', function() {
+      const expected = [
+        {
+          seriesName: 'count',
+          data: [
+            {value: 2, name: '5 null'},
+            {value: 2, name: '5 staging'},
+            {value: 2, name: '5 alpha'},
+            {value: 6, name: '5 production'},
+          ],
+        },
+        {
+          seriesName: 'uniq_id',
+          data: [
+            {value: 1, name: '5 null'},
+            {value: 3, name: '5 staging'},
+            {value: 4, name: '5 alpha'},
+            {value: 10, name: '5 production'},
+          ],
+        },
+      ];
+
+      expect(getChartData(raw, query, {hideFieldName: true})).toEqual(expected);
+    });
   });
 
-  it('getChartDataByDay()', function() {
+  describe('getChartDataByDay()', function() {
     const raw = [
+      {
+        'error.type': 'Type Error',
+        platform: 'javascript',
+        count: 5,
+        time: 1532070000,
+      },
+      {
+        'error.type': 'Exception',
+        platform: 'php',
+        count: 8,
+        time: 1532070000,
+      },
+      {
+        'error.type': 'SnubaError',
+        platform: 'python',
+        count: 30,
+        time: 1532070000,
+      },
+      {
+        'error.type': 'ZeroDivisionError',
+        platform: 'python',
+        count: 20,
+        time: 1531180800,
+      },
       {
         'error.type': 'ZeroDivisionError',
         platform: 'python',
@@ -72,30 +147,6 @@ describe('Utils', function() {
         count: 14,
         time: 1531094400,
       },
-      {
-        'error.type': 'ZeroDivisionError',
-        platform: 'python',
-        count: 20,
-        time: 1531180800,
-      },
-      {
-        'error.type': 'Type Error',
-        platform: 'javascript',
-        count: 5,
-        time: 1532070000,
-      },
-      {
-        'error.type': 'Exception',
-        platform: 'php',
-        count: 8,
-        time: 1532070000,
-      },
-      {
-        'error.type': 'SnubaError',
-        platform: 'python',
-        count: 30,
-        time: 1532070000,
-      },
     ];
 
     const query = {
@@ -103,42 +154,197 @@ describe('Utils', function() {
       fields: ['platform', 'error.type'],
     };
 
-    const expected = [
-      {
-        data: [
-          {name: 'Jul 9th', value: 14},
-          {name: 'Jul 10th', value: null},
-          {name: 'Jul 20th', value: 30},
-        ],
-        seriesName: 'python,SnubaError',
-      },
-      {
-        data: [
-          {name: 'Jul 9th', value: 6},
-          {name: 'Jul 10th', value: null},
-          {name: 'Jul 20th', value: 8},
-        ],
-        seriesName: 'php,Exception',
-      },
-      {
-        data: [
-          {name: 'Jul 9th', value: 6},
-          {name: 'Jul 10th', value: null},
-          {name: 'Jul 20th', value: 5},
-        ],
-        seriesName: 'javascript,Type Error',
-      },
-      {
-        data: [
-          {name: 'Jul 9th', value: 6},
-          {name: 'Jul 10th', value: 20},
-          {name: 'Jul 20th', value: null},
-        ],
-        seriesName: 'python,ZeroDivisionError',
-      },
-    ];
+    it('returns chart data grouped by day', function() {
+      const expected = [
+        {
+          data: [
+            {name: 'Jul 9th', value: 14},
+            {name: 'Jul 10th', value: null},
+            {name: 'Jul 20th', value: 30},
+          ],
+          seriesName: 'python,SnubaError',
+        },
+        {
+          data: [
+            {name: 'Jul 9th', value: 6},
+            {name: 'Jul 10th', value: null},
+            {name: 'Jul 20th', value: 8},
+          ],
+          seriesName: 'php,Exception',
+        },
+        {
+          data: [
+            {name: 'Jul 9th', value: 6},
+            {name: 'Jul 10th', value: null},
+            {name: 'Jul 20th', value: 5},
+          ],
+          seriesName: 'javascript,Type Error',
+        },
+        {
+          data: [
+            {name: 'Jul 9th', value: 6},
+            {name: 'Jul 10th', value: 20},
+            {name: 'Jul 20th', value: null},
+          ],
+          seriesName: 'python,ZeroDivisionError',
+        },
+      ];
 
-    expect(getChartDataByDay(raw, query)).toEqual(expected);
+      expect(getChartDataByDay(raw, query)).toEqual(expected);
+    });
+
+    it('returns chart data grouped by timestamp', function() {
+      const expected = [
+        {
+          data: [
+            {name: 1531094400000, value: 14},
+            {name: 1531180800000, value: null},
+            {name: 1532070000000, value: 30},
+          ],
+          seriesName: 'python,SnubaError',
+        },
+        {
+          data: [
+            {name: 1531094400000, value: 6},
+            {name: 1531180800000, value: null},
+            {name: 1532070000000, value: 8},
+          ],
+          seriesName: 'php,Exception',
+        },
+        {
+          data: [
+            {name: 1531094400000, value: 6},
+            {name: 1531180800000, value: null},
+            {name: 1532070000000, value: 5},
+          ],
+          seriesName: 'javascript,Type Error',
+        },
+        {
+          data: [
+            {name: 1531094400000, value: 6},
+            {name: 1531180800000, value: 20},
+            {name: 1532070000000, value: null},
+          ],
+          seriesName: 'python,ZeroDivisionError',
+        },
+      ];
+      expect(getChartDataByDay(raw, query, {useTimestamps: true})).toEqual(expected);
+    });
+
+    it('assumes null value as 0', function() {
+      const expected = [
+        {
+          data: [
+            {name: 'Jul 9th', value: 14},
+            {name: 'Jul 10th', value: 0},
+            {name: 'Jul 20th', value: 30},
+          ],
+          seriesName: 'python,SnubaError',
+        },
+        {
+          data: [
+            {name: 'Jul 9th', value: 6},
+            {name: 'Jul 10th', value: 0},
+            {name: 'Jul 20th', value: 8},
+          ],
+          seriesName: 'php,Exception',
+        },
+        {
+          data: [
+            {name: 'Jul 9th', value: 6},
+            {name: 'Jul 10th', value: 0},
+            {name: 'Jul 20th', value: 5},
+          ],
+          seriesName: 'javascript,Type Error',
+        },
+        {
+          data: [
+            {name: 'Jul 9th', value: 6},
+            {name: 'Jul 10th', value: 20},
+            {name: 'Jul 20th', value: 0},
+          ],
+          seriesName: 'python,ZeroDivisionError',
+        },
+      ];
+      expect(getChartDataByDay(raw, query, {assumeNullAsZero: true})).toEqual(expected);
+    });
+
+    it('shows only top 10 series by default', function() {
+      expect(
+        getChartDataByDay(
+          [
+            ...raw,
+            ...[...new Array(10)].map(() => ({
+              'error.type': 'Exeption',
+              platform: `${Math.random()}`,
+              count: 10,
+              time: 1532070000,
+            })),
+          ],
+          query
+        )
+      ).toHaveLength(10);
+    });
+
+    it('shows all series', function() {
+      expect(
+        getChartDataByDay(
+          [
+            ...raw,
+            ...[...new Array(10)].map(() => ({
+              'error.type': 'Exeption',
+              platform: `${Math.random()}`,
+              count: 10,
+              time: 1532070000,
+            })),
+          ],
+          query,
+          {allSeries: true}
+        )
+      ).toHaveLength(14);
+    });
+
+    it('maps field value to label', function() {
+      const expected = [
+        {
+          data: [
+            {name: 'Jul 9th', value: 14},
+            {name: 'Jul 10th', value: null},
+            {name: 'Jul 20th', value: 30},
+          ],
+          seriesName: 'SNAKES,SnubaError',
+        },
+        {
+          data: [
+            {name: 'Jul 9th', value: 6},
+            {name: 'Jul 10th', value: null},
+            {name: 'Jul 20th', value: 8},
+          ],
+          seriesName: 'PHP,Exception',
+        },
+        {
+          data: [
+            {name: 'Jul 9th', value: 6},
+            {name: 'Jul 10th', value: null},
+            {name: 'Jul 20th', value: 5},
+          ],
+          seriesName: 'NOT JAVA,Type Error',
+        },
+        {
+          data: [
+            {name: 'Jul 9th', value: 6},
+            {name: 'Jul 10th', value: 20},
+            {name: 'Jul 20th', value: null},
+          ],
+          seriesName: 'SNAKES,ZeroDivisionError',
+        },
+      ];
+      expect(
+        getChartDataByDay(raw, query, {
+          fieldLabelMap: {python: 'SNAKES', php: 'PHP', javascript: 'NOT JAVA'},
+        })
+      ).toEqual(expected);
+    });
   });
 
   it('getDisplayValue()', function() {

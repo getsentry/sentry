@@ -1,8 +1,8 @@
 import PropTypes from 'prop-types';
 import React from 'react';
 import Avatar from 'app/components/avatar';
-import IconFileGeneric from 'app/icons/icon-file-generic';
 import Tooltip from 'app/components/tooltip';
+import InlineSvg from 'app/components/inlineSvg';
 
 class FileChange extends React.PureComponent {
   static propTypes = {
@@ -23,7 +23,7 @@ class FileChange extends React.PureComponent {
       <li className="list-group-item list-group-item-sm release-file-change">
         <div className="row row-flex row-center-vertically">
           <div className="col-sm-10 truncate file-name">
-            <IconFileGeneric className="icon-file-generic" size={15} />
+            <InlineSvg src="icon-file" className="icon-file-generic" size={15} />
             {filename}
           </div>
           <div className="col-sm-2 avatar-grid align-right">

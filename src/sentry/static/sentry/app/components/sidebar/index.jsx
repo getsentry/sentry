@@ -51,7 +51,7 @@ class Sidebar extends React.Component {
   }
 
   componentDidMount() {
-    let {organization, router} = this.props;
+    let {router} = this.props;
     jQuery(document.body).addClass('body-sidebar');
     jQuery(document).on('click', this.documentClickHandler);
 
@@ -66,9 +66,7 @@ class Sidebar extends React.Component {
         $('.tooltip').tooltip('hide');
       });
 
-    // If there is no organization (i.e. no org in context, or error loading org)
-    // then sidebar should default to collapsed state
-    this.doCollapse(!!organization ? this.props.collapsed : true);
+    this.doCollapse(this.props.collapsed);
   }
 
   componentWillReceiveProps(nextProps) {
@@ -190,10 +188,7 @@ class Sidebar extends React.Component {
     let hasOrganization = !!organization;
 
     return (
-      <StyledSidebar
-        innerRef={ref => (this.sidebar = ref)}
-        collapsed={hasOrganization ? collapsed : true}
-      >
+      <StyledSidebar innerRef={ref => (this.sidebar = ref)} collapsed={collapsed}>
         <SidebarSectionGroup>
           <SidebarSection>
             <SidebarDropdown
@@ -217,7 +212,22 @@ class Sidebar extends React.Component {
                   label={t('Projects')}
                   to={`/${organization.slug}/`}
                 />
-
+                <Feature features={['sentry10']}>
+                  <SidebarItem
+                    {...sidebarItemProps}
+                    onClick={this.hidePanel}
+                    icon={<InlineSvg src="icon-releases" />}
+                    label={t('Releases')}
+                    to={`/organizations/${organization.slug}/releases/`}
+                  />
+                  <SidebarItem
+                    {...sidebarItemProps}
+                    onClick={this.hidePanel}
+                    icon={<InlineSvg src="icon-support" />}
+                    label={t('User Feedback')}
+                    to={`/organizations/${organization.slug}/user-feedback/`}
+                  />
+                </Feature>
                 <Feature features={['global-views']}>
                   <SidebarItem
                     {...sidebarItemProps}

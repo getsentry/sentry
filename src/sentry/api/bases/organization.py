@@ -2,7 +2,6 @@ from __future__ import absolute_import
 
 from rest_framework.exceptions import PermissionDenied
 
-from sentry import roles
 from sentry.api.base import Endpoint
 from sentry.api.exceptions import ResourceDoesNotExist
 from sentry.api.permissions import SentryPermission
@@ -10,8 +9,9 @@ from sentry.api.utils import (
     get_date_range_from_params,
     InvalidParams,
 )
+from sentry.auth.superuser import is_active_superuser
 from sentry.models import (
-    ApiKey, Authenticator, Environment, Organization, OrganizationMember, OrganizationMemberTeam, Project,
+    ApiKey, Authenticator, Environment, Organization, OrganizationMemberTeam, Project,
     ProjectStatus, ReleaseProject,
 )
 from sentry.utils import auth
@@ -103,6 +103,12 @@ class OrganizationDiscoverSavedQueryPermission(OrganizationPermission):
     }
 
 
+class OrganizationUserReportsPermission(OrganizationPermission):
+    scope_map = {
+        'GET': ['project:read', 'project:write', 'project:admin'],
+    }
+
+
 class OrganizationEndpoint(Endpoint):
     permission_classes = (OrganizationPermission, )
 
@@ -137,20 +143,10 @@ class OrganizationEndpoint(Endpoint):
 
         requested_projects = project_ids.copy()
 
-        om_role = None
         user = getattr(request, 'user', None)
-        if user and user.is_authenticated():
-            try:
-                om_role = OrganizationMember.objects.filter(
-                    user=request.user,
-                    organization=organization,
-                ).values_list('role', flat=True).get()
-            except OrganizationMember.DoesNotExist:
-                pass
 
         if (
-            user and user.is_superuser
-            or (om_role and roles.get(om_role).is_global)
+            user and is_active_superuser(request)
             or include_allow_joinleave and organization.flags.allow_joinleave
             or force_global_perms
         ):

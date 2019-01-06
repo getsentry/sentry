@@ -148,7 +148,7 @@ class BaseTSDB(Service):
         models.users_affected_by_project,
     ])
 
-    def __init__(self, rollups=None, legacy_rollups=None):
+    def __init__(self, rollups=None, legacy_rollups=None, **options):
         if rollups is None:
             rollups = settings.SENTRY_TSDB_ROLLUPS
 
@@ -323,7 +323,7 @@ class BaseTSDB(Service):
         """
         raise NotImplementedError
 
-    def get_range(self, model, keys, start, end, rollup=None, environment_id=None):
+    def get_range(self, model, keys, start, end, rollup=None, environment_ids=None):
         """
         To get a range of data for group ID=[1, 2, 3]:
 
@@ -337,7 +337,10 @@ class BaseTSDB(Service):
         raise NotImplementedError
 
     def get_sums(self, model, keys, start, end, rollup=None, environment_id=None):
-        range_set = self.get_range(model, keys, start, end, rollup, environment_id)
+        range_set = self.get_range(
+            model, keys, start, end, rollup,
+            environment_ids=[environment_id] if environment_id is not None else None
+        )
         sum_set = dict(
             (key, sum(p for _, p in points)) for (key, points) in six.iteritems(range_set)
         )

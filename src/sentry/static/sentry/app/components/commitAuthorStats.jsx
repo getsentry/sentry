@@ -32,7 +32,8 @@ const CommitAuthorStats = createReactClass({
 
   propTypes: {
     orgId: PropTypes.string.isRequired,
-    projectId: PropTypes.string.isRequired,
+    // Provided in project release views, not in org release views
+    projectId: PropTypes.string,
     version: PropTypes.string.isRequired,
   },
 
@@ -46,11 +47,7 @@ const CommitAuthorStats = createReactClass({
   },
 
   componentDidMount() {
-    let {orgId, projectId, version} = this.props;
-    let path = `/projects/${orgId}/${projectId}/releases/${encodeURIComponent(
-      version
-    )}/commits/`;
-    this.api.request(path, {
+    this.api.request(this.getPath(), {
       method: 'GET',
       success: (data, _, jqXHR) => {
         this.setState({
@@ -67,6 +64,15 @@ const CommitAuthorStats = createReactClass({
         });
       },
     });
+  },
+
+  getPath() {
+    const {orgId, projectId, version} = this.props;
+    const encodedVersion = encodeURIComponent(version);
+
+    return this.props.projectId
+      ? `/projects/${orgId}/${projectId}/releases/${encodedVersion}/commits/`
+      : `/organizations/${orgId}/releases/${encodedVersion}/commits/`;
   },
 
   renderEmpty() {

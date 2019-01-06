@@ -3,6 +3,8 @@ export function SentryApp(params = {}) {
     name: 'Sample App',
     slug: 'sample-app',
     scopes: ['project:read'],
+    events: [],
+    status: 'unpublished',
     uuid: '123456123456123456123456',
     webhookUrl: 'https://example.com/webhook',
     redirectUrl: 'https://example/com/setup',

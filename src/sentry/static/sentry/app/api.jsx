@@ -1,6 +1,7 @@
 import $ from 'jquery';
 import {isUndefined, isNil} from 'lodash';
 import idx from 'idx';
+import * as Sentry from '@sentry/browser';
 
 import {
   PROJECT_MOVED,
@@ -10,7 +11,6 @@ import {
 import {metric} from 'app/utils/analytics';
 import {openSudo, redirectToProject} from 'app/actionCreators/modal';
 import GroupActions from 'app/actions/groupActions';
-import sdk from 'app/utils/sdk';
 import {uniqueId} from 'app/utils/guid';
 import * as tracing from 'app/utils/tracing';
 
@@ -142,13 +142,11 @@ export class Client {
     try {
       query = $.param(options.query || '', true);
     } catch (err) {
-      sdk.captureException(err, {
-        extra: {
-          path,
-          query: options.query,
-        },
+      Sentry.withScope(scope => {
+        scope.setExtra('path', path);
+        scope.setExtra('query', options.query);
+        Sentry.captureException(err);
       });
-
       throw err;
     }
     let method = options.method || (options.data ? 'POST' : 'GET');

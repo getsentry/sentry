@@ -11,6 +11,13 @@ export function Plugins(params = []) {
       canDisable: false,
       hasConfiguration: false,
     }),
+    Plugin({
+      enabled: false,
+      isHidden: true,
+      name: 'Hidden Plugin',
+      slug: 'hidden-plugin',
+      id: 'hidden-plugin',
+    }),
     ...params,
   ];
 }

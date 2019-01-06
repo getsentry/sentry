@@ -192,7 +192,7 @@ def process_timestamp(value, meta, current_datetime=None):
         except Exception:
             meta.add_error(EventError.INVALID_DATA, original_value)
             return None
-    elif not isinstance(value, datetime):
+    elif isinstance(value, six.string_types):
         # all timestamps are in UTC, but the marker is optional
         if value.endswith('Z'):
             value = value[:-1]
@@ -209,6 +209,9 @@ def process_timestamp(value, meta, current_datetime=None):
         except Exception:
             meta.add_error(EventError.INVALID_DATA, original_value)
             return None
+    elif not isinstance(value, datetime):
+        meta.add_error(EventError.INVALID_DATA, original_value)
+        return None
 
     if current_datetime is None:
         current_datetime = datetime.now()

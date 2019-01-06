@@ -68,6 +68,7 @@ from .endpoints.organization_environments import OrganizationEnvironmentsEndpoin
 from .endpoints.organization_eventid import EventIdLookupEndpoint
 from .endpoints.organization_slugs import SlugsUpdateEndpoint
 from .endpoints.organization_issues_new import OrganizationIssuesNewEndpoint
+from .endpoints.organization_issues_resolved_in_release import OrganizationIssuesResolvedInReleaseEndpoint
 from .endpoints.organization_member_details import OrganizationMemberDetailsEndpoint
 from .endpoints.organization_member_index import OrganizationMemberIndexEndpoint
 from .endpoints.organization_member_issues_assigned import OrganizationMemberIssuesAssignedEndpoint
@@ -95,6 +96,7 @@ from .endpoints.organization_repository_details import OrganizationRepositoryDet
 from .endpoints.organization_sentry_apps import OrganizationSentryAppsEndpoint
 from .endpoints.organization_tagkey_values import OrganizationTagKeyValuesEndpoint
 from .endpoints.organization_tags import OrganizationTagsEndpoint
+from .endpoints.organization_user_reports import OrganizationUserReportsEndpoint
 from .endpoints.sentry_app_installations import SentryAppInstallationsEndpoint
 from .endpoints.sentry_app_installation_details import SentryAppInstallationDetailsEndpoint
 from .endpoints.organization_stats import OrganizationStatsEndpoint
@@ -117,6 +119,7 @@ from .endpoints.project_filter_details import ProjectFilterDetailsEndpoint
 from .endpoints.project_group_index import ProjectGroupIndexEndpoint
 from .endpoints.project_group_stats import ProjectGroupStatsEndpoint
 from .endpoints.project_index import ProjectIndexEndpoint
+from .endpoints.project_issues_resolved_in_release import ProjectIssuesResolvedInReleaseEndpoint
 from .endpoints.project_keys import ProjectKeysEndpoint
 from .endpoints.project_key_details import ProjectKeyDetailsEndpoint
 from .endpoints.project_key_stats import ProjectKeyStatsEndpoint
@@ -154,7 +157,6 @@ from .endpoints.project_user_stats import ProjectUserStatsEndpoint
 from .endpoints.project_users import ProjectUsersEndpoint
 from .endpoints.prompts_activity import PromptsActivityEndpoint
 from .endpoints.filechange import CommitFileChangeEndpoint
-from .endpoints.issues_resolved_in_release import IssuesResolvedInReleaseEndpoint
 from .endpoints.release_deploys import ReleaseDeploysEndpoint
 from .endpoints.debug_files import DebugFilesEndpoint, DifAssembleEndpoint, \
     UnknownDebugFilesEndpoint, AssociateDSymFilesEndpoint
@@ -539,6 +541,11 @@ urlpatterns = patterns(
         name='sentry-api-0-organization-user-issues'
     ),
     url(
+        r'^organizations/(?P<organization_slug>[^\/]+)/releases/(?P<version>[^/]+)/resolved/$',
+        OrganizationIssuesResolvedInReleaseEndpoint.as_view(),
+        name='sentry-api-0-organization-release-resolved'
+    ),
+    url(
         r'^organizations/(?P<organization_slug>[^\/]+)/members/(?P<member_id>[^\/]+)/$',
         OrganizationMemberDetailsEndpoint.as_view(),
         name='sentry-api-0-organization-member-details'
@@ -627,6 +634,11 @@ urlpatterns = patterns(
         r'^organizations/(?P<organization_slug>[^\/]+)/releases/(?P<version>[^/]+)/commits/$',
         OrganizationReleaseCommitsEndpoint.as_view(),
         name='sentry-api-0-organization-release-commits'
+    ),
+    url(
+        r'^organizations/(?P<organization_slug>[^\/]+)/user-feedback/$',
+        OrganizationUserReportsEndpoint.as_view(),
+        name='sentry-api-0-organization-user-feedback'
     ),
     url(
         r'^organizations/(?P<organization_slug>[^\/]+)/sentry-app-installations/$',
@@ -882,8 +894,8 @@ urlpatterns = patterns(
     ),
     url(
         r'^projects/(?P<organization_slug>[^\/]+)/(?P<project_slug>[^\/]+)/releases/(?P<version>[^/]+)/resolved/$',
-        IssuesResolvedInReleaseEndpoint.as_view(),
-        name='sentry-api-0-release-resolved'
+        ProjectIssuesResolvedInReleaseEndpoint.as_view(),
+        name='sentry-api-0-project-release-resolved'
     ),
     url(
         r'^projects/(?P<organization_slug>[^\/]+)/(?P<project_slug>[^\/]+)/releases/(?P<version>[^/]+)/files/$',

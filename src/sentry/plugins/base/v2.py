@@ -15,6 +15,7 @@ import six
 from django.http import HttpResponseRedirect
 from threading import local
 
+from sentry.plugins import HIDDEN_PLUGINS
 from sentry.plugins.config import PluginConfigMixin
 from sentry.plugins.status import PluginStatusMixin
 from sentry.plugins.base.response import Response
@@ -107,6 +108,14 @@ class IPlugin2(local, PluginConfigMixin, PluginStatusMixin):
                 return self.project_default_enabled
 
         return True
+
+    def is_hidden(self):
+        """
+        Should this plugin be hidden in the UI
+
+        We use this to hide plugins as they are replaced with integrations.
+        """
+        return self.slug in HIDDEN_PLUGINS
 
     def reset_options(self, project=None, user=None):
         from sentry.plugins.helpers import reset_options
