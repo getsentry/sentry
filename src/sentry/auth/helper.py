@@ -859,10 +859,13 @@ class AuthHelper(object):
 
     def disable_2fa_required(self):
         require_2fa = self.organization.flags.require_2fa
-        if require_2fa and require_2fa.is_set:
-            self.organization.update(
-                flags=F('flags').bitand(~Organization.flags.require_2fa)
-            )
+
+        if not require_2fa or not require_2fa.is_set:
+            return
+
+        self.organization.update(
+            flags=F('flags').bitand(~Organization.flags.require_2fa)
+        )
 
         logger.info(
             'Require 2fa disabled during sso setup',

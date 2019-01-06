@@ -139,12 +139,21 @@ class OrganizationAuthSettingsTest(AuthProviderTestCase):
         assert resp.status_code == 200
         assert resp.content.decode('utf-8') == self.provider.TEMPLATE
 
-    def test_basic_flow(self):
+    @patch('sentry.auth.helper.logger')
+    def test_basic_flow(self, logger):
         user = self.create_user('bar@example.com')
         organization = self.create_organization(name='foo', owner=user)
 
         self.login_as(user)
         self.assert_basic_flow(user, organization)
+
+        # disable require 2fa logs not called
+        assert not AuditLogEntry.objects.filter(
+            target_object=organization.id,
+            event=AuditLogEntryEvent.ORG_EDIT,
+            actor=user
+        ).exists()
+        assert not logger.info.called
 
     @patch('sentry.auth.helper.logger')
     def test_basic_flow__disable_require_2fa(self, logger):
