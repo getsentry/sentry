@@ -1111,10 +1111,21 @@ class EventManagerTest(TransactionTestCase):
 
         assert event.message == 'hello world'
 
+    def test_stringified_message(self):
+        manager = EventManager(make_event(**{
+            'message': 1234,
+        }))
+        manager.normalize()
+        event = manager.save(self.project.id)
+
+        assert event.data['logentry'] == {
+            'formatted': '1234',
+        }
+
     def test_bad_message(self):
         # test that invalid messages are rejected
         manager = EventManager(make_event(**{
-            'message': 1234,
+            'message': ['asdf'],
         }))
         manager.normalize()
         event = manager.save(self.project.id)
