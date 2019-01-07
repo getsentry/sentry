@@ -1,6 +1,6 @@
 from __future__ import absolute_import
 
-# from django.utils import timezone
+from django.utils import timezone
 
 from sentry.testutils import AcceptanceTestCase
 
@@ -21,7 +21,7 @@ class OrganizationUserFeedbackTest(AcceptanceTestCase):
         self.login_as(self.user)
         self.path = u'/organizations/{}/user-feedback/'.format(
             self.org.slug)
-        # self.project.update(first_event=timezone.now())
+        self.project.update(first_event=timezone.now())
 
     def test(self):
         with self.feature('organizations:sentry10'):
