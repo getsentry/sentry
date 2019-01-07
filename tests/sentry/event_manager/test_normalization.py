@@ -176,8 +176,15 @@ def test_long_message():
     )
     manager.normalize()
     data = manager.get_data()
-    assert len(data['logentry']['message']) == \
+    assert len(data['logentry']['formatted']) == \
         settings.SENTRY_MAX_MESSAGE_LENGTH
+
+
+def test_empty_message():
+    manager = EventManager(make_event(message=''))
+    manager.normalize()
+    data = manager.get_data()
+    assert 'logentry' not in data
 
 
 def test_default_version():

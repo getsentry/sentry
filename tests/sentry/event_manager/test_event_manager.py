@@ -1111,18 +1111,27 @@ class EventManagerTest(TransactionTestCase):
 
         assert event.message == 'hello world'
 
-    def test_bad_message(self):
-        # test that the message is handled gracefully
+    def test_stringified_message(self):
         manager = EventManager(make_event(**{
             'message': 1234,
         }))
         manager.normalize()
         event = manager.save(self.project.id)
 
-        assert event.message == '1234'
         assert event.data['logentry'] == {
-            'message': '1234',
+            'formatted': '1234',
         }
+
+    def test_bad_message(self):
+        # test that invalid messages are rejected
+        manager = EventManager(make_event(**{
+            'message': ['asdf'],
+        }))
+        manager.normalize()
+        event = manager.save(self.project.id)
+
+        assert event.message == '<unlabeled event>'
+        assert 'logentry' not in event.data
 
     def test_message_attribute_goes_to_interface(self):
         manager = EventManager(make_event(**{
@@ -1131,13 +1140,11 @@ class EventManagerTest(TransactionTestCase):
         manager.normalize()
         event = manager.save(self.project.id)
         assert event.data['logentry'] == {
-            'message': 'hello world',
+            'formatted': 'hello world',
         }
 
-    def test_message_attribute_goes_to_formatted(self):
-        # The combining of 'message' and 'logentry' is a bit
-        # of a compatibility hack, and ideally we would just enforce a stricter
-        # schema instead of combining them like this.
+    def test_message_attribute_shadowing(self):
+        # Logentry shadows the legacy message attribute.
         manager = EventManager(
             make_event(
                 **{
@@ -1151,8 +1158,7 @@ class EventManagerTest(TransactionTestCase):
         manager.normalize()
         event = manager.save(self.project.id)
         assert event.data['logentry'] == {
-            'message': 'hello world',
-            'formatted': 'world hello',
+            'formatted': 'hello world',
         }
 
     def test_message_attribute_interface_both_strings(self):
@@ -1167,8 +1173,7 @@ class EventManagerTest(TransactionTestCase):
         manager.normalize()
         event = manager.save(self.project.id)
         assert event.data['logentry'] == {
-            'message': 'a plain string',
-            'formatted': 'another string',
+            'formatted': 'a plain string',
         }
 
     def test_throws_when_matches_discarded_hash(self):

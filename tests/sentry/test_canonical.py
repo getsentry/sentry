@@ -163,3 +163,70 @@ class LegacyCanonicalKeyDictTests(TestCase):
         d['sentry.interfaces.User'] = {'id': 'other'}
         assert d['user'] == {'id': 'other'}
         assert d['sentry.interfaces.User'] == {'id': 'other'}
+
+
+class DoubleAliasingTests(TestCase):
+    def test_canonical(self):
+        view = CanonicalKeyView({'logentry': 'foo'})
+        assert len(view) == 1
+        assert view.keys() == ['logentry']
+
+        assert 'logentry' in view
+        assert 'sentry.interfaces.Message' in view
+        assert 'message' in view
+
+        assert view['logentry'] == 'foo'
+        assert view['sentry.interfaces.Message'] == 'foo'
+        assert view['message'] == 'foo'
+
+    def test_legacy_first(self):
+        view = CanonicalKeyView({'sentry.interfaces.Message': 'foo'})
+        assert len(view) == 1
+        assert view.keys() == ['logentry']
+
+        assert 'logentry' in view
+        assert 'sentry.interfaces.Message' in view
+        assert 'message' in view
+
+        assert view['logentry'] == 'foo'
+        assert view['sentry.interfaces.Message'] == 'foo'
+        assert view['message'] == 'foo'
+
+    def test_legacy_second(self):
+        view = CanonicalKeyView({'message': 'foo'})
+        assert len(view) == 1
+        assert view.keys() == ['logentry']
+
+        assert 'logentry' in view
+        assert 'sentry.interfaces.Message' in view
+        assert 'message' in view
+
+        assert view['logentry'] == 'foo'
+        assert view['sentry.interfaces.Message'] == 'foo'
+        assert view['message'] == 'foo'
+
+    def test_override(self):
+        view = CanonicalKeyView({'logentry': 'foo', 'sentry.interfaces.Message': 'bar'})
+        assert len(view) == 1
+        assert view.keys() == ['logentry']
+
+        assert 'logentry' in view
+        assert 'sentry.interfaces.Message' in view
+        assert 'message' in view
+
+        assert view['logentry'] == 'foo'
+        assert view['sentry.interfaces.Message'] == 'foo'
+        assert view['message'] == 'foo'
+
+    def test_two_legacy(self):
+        view = CanonicalKeyView({'message': 'bar', 'sentry.interfaces.Message': 'foo'})
+        assert len(view) == 1
+        assert view.keys() == ['logentry']
+
+        assert 'logentry' in view
+        assert 'sentry.interfaces.Message' in view
+        assert 'message' in view
+
+        assert view['logentry'] == 'foo'
+        assert view['sentry.interfaces.Message'] == 'foo'
+        assert view['message'] == 'foo'

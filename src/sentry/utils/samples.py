@@ -143,7 +143,9 @@ def load_data(platform, default=None, sample_name=None):
         return data
 
     data['platform'] = platform
-    data['message'] = 'This is an example %s exception' % (sample_name or platform, )
+    # XXX: Message is a legacy alias for logentry. Do not overwrite if set.
+    if 'message' not in data:
+        data['message'] = 'This is an example %s exception' % (sample_name or platform, )
     data['user'] = generate_user(
         ip_address='127.0.0.1',
         username='sentry',

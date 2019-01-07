@@ -87,7 +87,9 @@
         ]
     },
     "logentry": {
-        "formatted": "without message attribute"
+        "params": [
+            "missing message or formatted"
+        ]
     },
     "request": {
         "method": "unknown"

@@ -16,29 +16,44 @@ import six
 
 __all__ = ('CanonicalKeyDict', 'CanonicalKeyView', 'get_canonical_name')
 
-CANONICAL_KEY_MAPPING = {
-    'sentry.interfaces.Exception': 'exception',
-    'sentry.interfaces.Message': 'logentry',
-    'sentry.interfaces.Stacktrace': 'stacktrace',
-    'sentry.interfaces.Template': 'template',
-    'sentry.interfaces.Http': 'request',
-    'sentry.interfaces.User': 'user',
-    'sentry.interfaces.Csp': 'csp',
-    'sentry.interfaces.Breadcrumbs': 'breadcrumbs',
-    'sentry.interfaces.Contexts': 'contexts',
-    'sentry.interfaces.Threads': 'threads',
-    'sentry.interfaces.DebugMeta': 'debug_meta',
+
+LEGACY_KEY_MAPPING = {
+    'exception': ('sentry.interfaces.Exception',),
+    'logentry': ('sentry.interfaces.Message', 'message',),
+    'stacktrace': ('sentry.interfaces.Stacktrace',),
+    'template': ('sentry.interfaces.Template',),
+    'request': ('sentry.interfaces.Http',),
+    'user': ('sentry.interfaces.User',),
+    'csp': ('sentry.interfaces.Csp',),
+    'breadcrumbs': ('sentry.interfaces.Breadcrumbs',),
+    'contexts': ('sentry.interfaces.Contexts',),
+    'threads': ('sentry.interfaces.Threads',),
+    'debug_meta': ('sentry.interfaces.DebugMeta',),
 }
 
-LEGACY_KEY_MAPPING = {CANONICAL_KEY_MAPPING[k]: k for k in CANONICAL_KEY_MAPPING}
+
+CANONICAL_KEY_MAPPING = {
+    'message': ('logentry', 'sentry.interfaces.Message',),
+    'sentry.interfaces.Exception': ('exception',),
+    'sentry.interfaces.Message': ('logentry',),
+    'sentry.interfaces.Stacktrace': ('stacktrace',),
+    'sentry.interfaces.Template': ('template',),
+    'sentry.interfaces.Http': ('request',),
+    'sentry.interfaces.User': ('user',),
+    'sentry.interfaces.Csp': ('csp',),
+    'sentry.interfaces.Breadcrumbs': ('breadcrumbs',),
+    'sentry.interfaces.Contexts': ('contexts',),
+    'sentry.interfaces.Threads': ('threads',),
+    'sentry.interfaces.DebugMeta': ('debug_meta',),
+}
 
 
 def get_canonical_name(key):
-    return CANONICAL_KEY_MAPPING.get(key, key)
+    return CANONICAL_KEY_MAPPING.get(key, (key,))[0]
 
 
 def get_legacy_name(key):
-    return LEGACY_KEY_MAPPING.get(key, key)
+    return LEGACY_KEY_MAPPING.get(key, (key,))[0]
 
 
 class CanonicalKeyView(collections.Mapping):
@@ -58,18 +73,17 @@ class CanonicalKeyView(collections.Mapping):
         # Preserve the order of iteration while prioritizing canonical keys
         keys = list(self.data)
         for key in keys:
-            canonical = get_canonical_name(key)
-            if canonical == key or canonical not in keys:
-                yield canonical
+            canonicals = CANONICAL_KEY_MAPPING.get(key, ())
+            if not canonicals:
+                yield key
+            elif all(k not in keys for k in canonicals):
+                yield canonicals[0]
 
     def __getitem__(self, key):
         canonical = get_canonical_name(key)
-        if canonical in self.data:
-            return self.data[canonical]
-
-        legacy = get_legacy_name(key)
-        if legacy in self.data:
-            return self.data[legacy]
+        for k in (canonical,) + LEGACY_KEY_MAPPING.get(canonical, ()):
+            if k in self.data:
+                return self.data[k]
 
         raise KeyError(key)
 
