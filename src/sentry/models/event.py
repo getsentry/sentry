@@ -150,6 +150,11 @@ class Event(Model):
         return et.to_string(self.get_event_metadata())
 
     @property
+    def location(self):
+        et = eventtypes.get(self.get_event_type())(self.data)
+        return et.get_location(self.get_event_metadata())
+
+    @property
     def real_message(self):
         # XXX(mitsuhiko): this is a transitional attribute that should be
         # removed.  `message` will be renamed to `search_message` and this

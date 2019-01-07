@@ -24,6 +24,9 @@ class CspEvent(BaseEvent):
     def to_string(self, metadata):
         return metadata['message']
 
+    def get_location(self, metadata):
+        return metadata.get('uri')
+
 
 class HpkpEvent(BaseEvent):
     key = 'hpkp'
@@ -41,6 +44,9 @@ class HpkpEvent(BaseEvent):
 
     def to_string(self, metadata):
         return metadata['message']
+
+    def get_location(self, metadata):
+        return metadata.get('origin')
 
 
 class ExpectCTEvent(BaseEvent):
@@ -60,6 +66,9 @@ class ExpectCTEvent(BaseEvent):
     def to_string(self, metadata):
         return metadata['message']
 
+    def get_location(self, metadata):
+        return metadata.get('origin')
+
 
 class ExpectStapleEvent(BaseEvent):
     key = 'expectstaple'
@@ -77,3 +86,6 @@ class ExpectStapleEvent(BaseEvent):
 
     def to_string(self, metadata):
         return metadata['message']
+
+    def get_location(self, metadata):
+        return metadata.get('origin')

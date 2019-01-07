@@ -19,6 +19,9 @@ class BaseEvent(object):
     def to_string(self, metadata):
         raise NotImplementedError
 
+    def get_location(self, metadata):
+        return None
+
 
 class DefaultEvent(BaseEvent):
     key = 'default'
