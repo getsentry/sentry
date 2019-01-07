@@ -233,6 +233,7 @@ MIDDLEWARE_CLASSES = (
     # TODO(dcramer): kill this once we verify its safe
     # 'sentry.middleware.social_auth.SentrySocialAuthExceptionMiddleware',
     'django.contrib.messages.middleware.MessageMiddleware',
+    'sentry.middleware.tracing.SentryTracingMiddleware',
     'sentry.debug.middleware.DebugMiddleware',
 )
 
@@ -453,6 +454,7 @@ CELERY_IMPORTS = (
 CELERY_QUEUES = [
     Queue('activity.notify', routing_key='activity.notify'),
     Queue('alerts', routing_key='alerts'),
+    Queue('app_platform', routing_key='app_platform'),
     Queue('auth', routing_key='auth'),
     Queue('assemble', routing_key='assemble'),
     Queue('buffers.process_pending', routing_key='buffers.process_pending'),
@@ -683,6 +685,10 @@ LOGGING = {
             'handlers': ['internal'],
             'propagate': False,
         },
+        'sentry.interfaces': {
+            'handlers': ['internal'],
+            'propagate': False,
+        },
         # This only needs to go to Sentry for now.
         'sentry.similarity': {
             'handlers': ['internal'],
@@ -787,8 +793,6 @@ SENTRY_FEATURES = {
     'organizations:global-views': False,
     # Enable the interface and functionality for unmerging event groups.
     'organizations:group-unmerge': False,
-    # Enable the 'health' interface.
-    'organizations:health': False,
     # Enable integration functionality to create and link groups to issues on
     # external services.
     'organizations:integrations-issue-basic': False,
@@ -800,8 +804,6 @@ SENTRY_FEATURES = {
     'organizations:internal-catchall': False,
     # Enable inviting members to organizations.
     'organizations:invite-members': True,
-    # Enable gitlab integration currently available to early adopters only.
-    'organizations:gitlab-integration': False,
     # Enable jira server integration currently available to internal users only.
     'organizations:jira-server-integration': False,
 
@@ -816,6 +818,8 @@ SENTRY_FEATURES = {
     'organizations:repos': True,
     # DEPCREATED: pending removal.
     'organizations:require-2fa': False,
+    # Sentry 10 - multi project interfaces.
+    'organizations:sentry10': False,
     # Enable basic SSO functionality, providing configurable single signon
     # using services like GitHub / Google. This is *not* the same as the signup
     # and login with Github / Azure DevOps that sentry.io provides.
@@ -838,8 +842,6 @@ SENTRY_FEATURES = {
     'projects:discard-groups': False,
     # DEPRECATED: pending removal
     'projects:dsym': False,
-    # DEPRECATED: pending removal.
-    'projects:global-events': False,
     # Enable functionality for attaching  minidumps to events and displaying
     # then in the group UI.
     'projects:minidump': True,
@@ -1191,7 +1193,7 @@ SENTRY_ROLES = (
     }, {
         'id': 'admin',
         'name': 'Admin',
-        'desc': 'Admin privileges on any teams of which they\'re a member. They can create new teams and projects, as well as remove teams and projects which they already hold membership on.',
+        'desc': 'Admin privileges on any teams of which they\'re a member. They can create new teams and projects, as well as remove teams and projects which they already hold membership on (or all teams, if open membership is on).',
         'scopes': set(
             [
                 'event:read',

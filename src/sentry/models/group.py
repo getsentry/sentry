@@ -423,7 +423,7 @@ class Group(Model):
 
     def count_users_seen(self):
         return tagstore.get_groups_user_counts(
-            self.project_id, [self.id], environment_id=None)[self.id]
+            [self.project_id], [self.id], environment_ids=None)[self.id]
 
     @classmethod
     def calculate_score(cls, times_seen, last_seen):

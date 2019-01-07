@@ -102,7 +102,7 @@ export default class OrganizationMemberRow extends React.PureComponent {
     let detailsUrl = recreateRoute(id, {routes, params});
     let isInviteSuccessful = status === 'success';
     let isInviting = status === 'loading';
-    let canResend = (!expired && canAddMembers && (pending || needsSso));
+    let canResend = !expired && canAddMembers && (pending || needsSso);
 
     return (
       <PanelItem align="center" p={0} py={2}>
@@ -127,8 +127,7 @@ export default class OrganizationMemberRow extends React.PureComponent {
                 <div>
                   {expired ? (
                     <strong>{t('Expired')}</strong>
-                  ) :
-                  pending ? (
+                  ) : pending ? (
                     <strong>{t('Invited')}</strong>
                   ) : (
                     <strong>{t('Missing SSO Link')}</strong>

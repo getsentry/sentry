@@ -9,6 +9,7 @@ import Button from 'app/components/button';
 import EmptyMessage from 'app/views/settings/components/emptyMessage';
 import ExternalLink from 'app/components/externalLink';
 import LinkWithConfirmation from 'app/components/linkWithConfirmation';
+import PermissionAlert from 'app/views/settings/project/permissionAlert';
 import SettingsPageHeader from 'app/views/settings/components/settingsPageHeader';
 import TextBlock from 'app/views/settings/components/text/textBlock';
 import Tooltip from 'app/components/tooltip';
@@ -45,6 +46,8 @@ export default class ProjectTags extends AsyncView {
     return (
       <React.Fragment>
         <SettingsPageHeader title={t('Tags')} />
+        <PermissionAlert />
+
         <TextBlock>
           {tct(
             `Each event in Sentry may be annotated with various tags (key and value pairs).

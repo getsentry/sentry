@@ -3,8 +3,8 @@ import PropTypes from 'prop-types';
 import React from 'react';
 import classNames from 'classnames';
 import createReactClass from 'create-react-class';
+import * as Sentry from '@sentry/browser';
 
-import sdk from 'app/utils/sdk';
 import {addErrorMessage, addSuccessMessage} from 'app/actionCreators/indicator';
 import {t, tct} from 'app/locale';
 import ApiMixin from 'app/mixins/apiMixin';
@@ -32,7 +32,7 @@ const STATIC_ROLE_LIST = [
     id: 'admin',
     name: 'Admin',
     desc:
-      "Admin privileges on any teams of which they're a member. They can create new teams and projects, as well as remove teams and projects which they already hold membership on.",
+      "Admin privileges on any teams of which they're a member. They can create new teams and projects, as well as remove teams and projects which they already hold membership on (or all teams, if open membership is on).",
   },
   {
     id: 'manager',
@@ -89,8 +89,10 @@ const InviteMember = createReactClass({
             },
           });
 
-          sdk.captureException(new Error('[members]: data fetch invalid response'), {
-            extra: {resp, state: this.state},
+          Sentry.withScope(scope => {
+            scope.setExtra('resp', resp);
+            scope.setExtra('state', this.state);
+            Sentry.captureException(new Error('[members]: data fetch invalid response'));
           });
         } else {
           this.setState({roleList: roles, loading: false});
@@ -106,8 +108,10 @@ const InviteMember = createReactClass({
           // use the static list
           this.setState({roleList: STATIC_ROLE_LIST, loading: false});
         } else if (error.status !== 0) {
-          sdk.captureException(new Error('[members]: data fetch error'), {
-            extra: {error, state: this.state},
+          Sentry.withScope(scope => {
+            scope.setExtra('error', error);
+            scope.setExtra('state', this.state);
+            Sentry.captureException(new Error('[members]: data fetch error'));
           });
         }
 
@@ -181,8 +185,10 @@ const InviteMember = createReactClass({
       .then(() => this.redirectToMemberPage())
       .catch(error => {
         if (error && !error.email && !error.role) {
-          sdk.captureException(new Error('Unknown invite member api response'), {
-            extra: {error, state: this.state},
+          Sentry.withScope(scope => {
+            scope.setExtra('error', error);
+            scope.setExtra('state', this.state);
+            Sentry.captureException(new Error('Unknown invite member api response'));
           });
         }
         this.setState({error, busy: false});

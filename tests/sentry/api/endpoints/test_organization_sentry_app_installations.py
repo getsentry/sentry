@@ -26,13 +26,13 @@ class SentryAppInstallationsTest(APITestCase):
             organization=self.org,
         )
 
-        self.installation, _ = Creator.run(
+        self.installation = Creator.run(
             slug=self.published_app.slug,
             organization=self.super_org,
             user=self.superuser,
         )
 
-        self.installation2, _ = Creator.run(
+        self.installation2 = Creator.run(
             slug=self.unpublished_app.slug,
             organization=self.org,
             user=self.user,

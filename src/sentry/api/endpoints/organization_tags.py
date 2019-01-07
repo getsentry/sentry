@@ -1,39 +1,29 @@
 from __future__ import absolute_import
 
-from functools32 import partial
-
 from rest_framework.response import Response
 
-from sentry.api.bases import OrganizationEventsEndpointBase, OrganizationEventsError
-from sentry.api.paginator import GenericOffsetPaginator
-from sentry.utils.snuba import raw_query
+from sentry.api.bases import OrganizationEventsEndpointBase, OrganizationEventsError, NoProjects
+from sentry.api.serializers import serialize
+from sentry.tagstore.snuba.backend import SnubaTagStorage
 
 
 class OrganizationTagsEndpoint(OrganizationEventsEndpointBase):
 
     def get(self, request, organization):
         try:
-            snuba_args = self.get_snuba_query_args(request, organization)
+            filter_params = self.get_filter_params(request, organization)
         except OrganizationEventsError as exc:
             return Response({'detail': exc.message}, status=400)
+        except NoProjects:
+            return Response([])
 
-        data_fn = partial(
-            # extract 'data' from raw_query result
-            lambda *args, **kwargs: raw_query(*args, **kwargs)['data'],
-            aggregations=[
-                ('count()', '', 'count'),
-            ],
-            orderby='-count',
-            groupby=['tags_key'],
-            referrer='api.organization-tags',
-            **snuba_args
-        )
+        # TODO(jess): update this when snuba tagstore is the primary backend for us
+        tagstore = SnubaTagStorage()
 
-        return self.paginate(
-            request=request,
-            on_results=lambda results: [{
-                'tag': row['tags_key'],
-                'count': row['count'],
-            } for row in results],
-            paginator=GenericOffsetPaginator(data_fn=data_fn),
+        results = tagstore.get_tag_keys_for_projects(
+            filter_params['project_id'],
+            filter_params.get('environment'),
+            filter_params['start'],
+            filter_params['end'],
         )
+        return Response(serialize(results, request.user))

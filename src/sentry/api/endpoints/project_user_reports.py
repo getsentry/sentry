@@ -9,7 +9,10 @@ from uuid import uuid4
 from sentry.api.authentication import DSNAuthentication
 from sentry.api.base import DocSection, EnvironmentMixin
 from sentry.api.bases.project import ProjectEndpoint
-from sentry.api.serializers import serialize, ProjectUserReportSerializer
+from sentry.api.serializers import (
+    serialize,
+    UserReportWithGroupSerializer,
+)
 from sentry.api.paginator import DateTimePaginator
 from sentry.models import (
     Environment,
@@ -92,7 +95,7 @@ class ProjectUserReportsEndpoint(ProjectEndpoint, EnvironmentMixin):
             request=request,
             queryset=queryset,
             order_by='-date_added',
-            on_results=lambda x: serialize(x, request.user, ProjectUserReportSerializer(
+            on_results=lambda x: serialize(x, request.user, UserReportWithGroupSerializer(
                 environment_func=self._get_environment_func(
                     request, project.organization_id)
             )),
@@ -197,7 +200,7 @@ class ProjectUserReportsEndpoint(ProjectEndpoint, EnvironmentMixin):
 
         user_feedback_received.send(project=report.project, group=report.group, sender=self)
 
-        return self.respond(serialize(report, request.user, ProjectUserReportSerializer(
+        return self.respond(serialize(report, request.user, UserReportWithGroupSerializer(
             environment_func=self._get_environment_func(
                 request, project.organization_id)
         )))

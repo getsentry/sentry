@@ -4,7 +4,9 @@ from collections import OrderedDict
 from contextlib import contextmanager
 from datetime import datetime, timedelta
 from dateutil.parser import parse as parse_datetime
+import os
 import pytz
+import re
 import six
 import time
 import urllib3
@@ -16,12 +18,20 @@ from sentry.models import (
     Environment, Group, GroupRelease,
     Organization, Project, Release, ReleaseProject
 )
+from sentry.net.http import connection_from_url
 from sentry.utils import metrics, json
 from sentry.utils.dates import to_timestamp
 
 # TODO remove this when Snuba accepts more than 500 issues
 MAX_ISSUES = 500
 MAX_HASHES = 5000
+
+# Global Snuba request option override dictionary. Only intended
+# to be used with the `options_override` contextmanager below.
+# NOT THREAD SAFE!
+OVERRIDE_OPTIONS = {
+    'consistent': os.environ.get('SENTRY_SNUBA_CONSISTENT', 'false').lower() in ('true', '1')
+}
 
 SENTRY_SNUBA_MAP = {
     # general
@@ -67,8 +77,8 @@ SENTRY_SNUBA_MAP = {
     # error, stack
     'error.type': 'exception_stacks.type',
     'error.value': 'exception_stacks.value',
-    'error.mechanism_type': 'exception_stacks.mechanism_type',
-    'error.mechanism_handled': 'exception_stacks.mechanism_handled',
+    'error.mechanism': 'exception_stacks.mechanism_type',
+    'error.handled': 'exception_stacks.mechanism_handled',
     'stack.abs_path': 'exception_frames.abs_path',
     'stack.filename': 'exception_frames.filename',
     'stack.package': 'exception_frames.package',
@@ -139,6 +149,20 @@ class QueryIllegalTypeOfArgument(QueryExecutionError):
     """
 
 
+class QueryTooManySimultaneous(QueryExecutionError):
+    """
+    Exception raised when a query is rejected due to too many simultaneous
+    queries being performed on the database.
+    """
+
+
+clickhouse_error_codes_map = {
+    43: QueryIllegalTypeOfArgument,
+    241: QueryMemoryLimitExceeded,
+    202: QueryTooManySimultaneous,
+}
+
+
 class QueryOutsideRetentionError(Exception):
     pass
 
@@ -156,16 +180,37 @@ def timer(name, prefix='snuba.client'):
         metrics.timing(u'{}.{}'.format(prefix, name), time.time() - t)
 
 
-def connection_from_url(url, **kw):
-    if url[:1] == '/':
-        from sentry.net.http import UnixHTTPConnectionPool
-        return UnixHTTPConnectionPool(url, **kw)
-    return urllib3.connectionpool.connection_from_url(url, **kw)
+@contextmanager
+def options_override(overrides):
+    """\
+    NOT THREAD SAFE!
+
+    Adds to OVERRIDE_OPTIONS, restoring previous values and removing
+    keys that didn't previously exist on exit, so that calls to this
+    can be nested.
+    """
+    previous = {}
+    delete = []
+
+    for k, v in overrides.items():
+        try:
+            previous[k] = OVERRIDE_OPTIONS[k]
+        except KeyError:
+            delete.append(k)
+        OVERRIDE_OPTIONS[k] = v
+
+    try:
+        yield
+    finally:
+        for k, v in previous.items():
+            OVERRIDE_OPTIONS[k] = v
+        for k in delete:
+            OVERRIDE_OPTIONS.pop(k)
 
 
 _snuba_pool = connection_from_url(
     settings.SENTRY_SNUBA,
-    retries=False,
+    retries=5,
     timeout=30,
     maxsize=10,
 )
@@ -179,6 +224,12 @@ def get_snuba_column_name(name):
     if not name:
         return name
     return SENTRY_SNUBA_MAP.get(name, u'tags[{}]'.format(name))
+
+
+def get_arrayjoin(column):
+    match = re.match(r'^(exception_stacks|exception_frames|contexts)\..+$', column)
+    if match:
+        return match.groups()[0]
 
 
 def transform_aliases_and_query(**kwargs):
@@ -329,7 +380,7 @@ def raw_query(start, end, groupby=None, conditions=None, filter_keys=None,
         if start > end:
             raise QueryOutsideRetentionError
 
-    start, end = shrink_time_window(filter_keys.get('issue'), start, end)
+    start = shrink_time_window(filter_keys.get('issue'), start)
 
     # if `shrink_time_window` pushed `start` after `end` it means the user queried
     # a Group for T1 to T2 when the group was only active for T3 to T4, so the query
@@ -356,6 +407,8 @@ def raw_query(start, end, groupby=None, conditions=None, filter_keys=None,
         'turbo': turbo
     }) if v is not None}
 
+    request.update(OVERRIDE_OPTIONS)
+
     headers = {}
     if referrer:
         headers['referer'] = referrer
@@ -380,12 +433,10 @@ def raw_query(start, end, groupby=None, conditions=None, filter_keys=None,
             elif error['type'] == 'schema':
                 raise SchemaValidationError(error['message'])
             elif error['type'] == 'clickhouse':
-                if error['code'] == 43:
-                    raise QueryIllegalTypeOfArgument(error['message'])
-                elif error['code'] == 241:
-                    raise QueryMemoryLimitExceeded(error['message'])
-                else:
-                    raise QueryExecutionError(error['message'])
+                raise clickhouse_error_codes_map.get(
+                    error['code'],
+                    QueryExecutionError,
+                )(error['message'])
             else:
                 raise SnubaError(error['message'])
         else:
@@ -596,13 +647,20 @@ def insert_raw(data):
         raise SnubaError(err)
 
 
-def shrink_time_window(issues, start, end):
-    if issues and len(issues) == 1:
-        group = Group.objects.get(pk=issues[0])
-        start = max(start, naiveify_datetime(group.first_seen) - timedelta(minutes=5))
-        end = min(end, naiveify_datetime(group.last_seen) + timedelta(minutes=5))
+def shrink_time_window(issues, start):
+    """\
+    If a single issue is passed in, shrink the `start` parameter to be briefly before
+    the `first_seen` in order to hopefully eliminate a large percentage of rows scanned.
 
-    return start, end
+    Note that we don't shrink `end` based on `last_seen` because that value is updated
+    asynchronously by buffers, and will cause queries to skip recently seen data on
+    stale groups.
+    """
+    if issues and len(issues) == 1:
+        group = Group.objects.get(pk=list(issues)[0])
+        start = max(start, naiveify_datetime(group.first_seen) - timedelta(minutes=5))
+
+    return start
 
 
 def naiveify_datetime(dt):

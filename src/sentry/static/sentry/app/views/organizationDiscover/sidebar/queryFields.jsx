@@ -1,17 +1,31 @@
 import PropTypes from 'prop-types';
 import React from 'react';
+import {Flex} from 'grid-emotion';
 
 import SentryTypes from 'app/sentryTypes';
 import {t} from 'app/locale';
 import TextField from 'app/components/forms/textField';
 import NumberField from 'app/components/forms/numberField';
 import SelectControl from 'app/components/forms/selectControl';
+import Badge from 'app/components/badge';
 
 import Aggregations from '../aggregations';
 import Conditions from '../conditions';
-import {getOrderByOptions} from '../utils';
-import {Fieldset, PlaceholderText, SidebarLabel} from '../styles';
+import {
+  Fieldset,
+  PlaceholderText,
+  SidebarLabel,
+  QueryFieldsSidebar,
+  DocsSeparator,
+  StyledInlineSvg,
+  DiscoverDocs,
+  DocsLabel,
+  DocsIcon,
+  DocsLink,
+} from '../styles';
+import Orderby from './orderby';
 import {NON_CONDITIONS_FIELDS} from '../data';
+import {getOrderbyFields} from '../utils';
 
 export default class QueryFields extends React.Component {
   static propTypes = {
@@ -35,6 +49,15 @@ export default class QueryFields extends React.Component {
     return <PlaceholderText>{text}</PlaceholderText>;
   };
 
+  optionRenderer = ({label, isTag}) => {
+    return (
+      <Flex align="center">
+        {label}
+        {isTag && <Badge text="tag" />}
+      </Flex>
+    );
+  };
+
   render() {
     const {
       queryBuilder,
@@ -53,13 +76,14 @@ export default class QueryFields extends React.Component {
       ({name}) => !NON_CONDITIONS_FIELDS.includes(name)
     );
 
-    const fieldOptions = columns.map(({name}) => ({
+    const fieldOptions = columns.map(({name, isTag}) => ({
       value: name,
       label: name,
+      isTag,
     }));
 
     return (
-      <div>
+      <QueryFieldsSidebar>
         {savedQuery && (
           <Fieldset>
             <React.Fragment>
@@ -84,6 +108,7 @@ export default class QueryFields extends React.Component {
             multiple={true}
             placeholder={this.getSummarizePlaceholder()}
             options={fieldOptions}
+            optionRenderer={this.optionRenderer}
             value={currentQuery.fields}
             onChange={val => onUpdateField('fields', val.map(({value}) => value))}
             clearable={true}
@@ -107,16 +132,10 @@ export default class QueryFields extends React.Component {
           />
         </Fieldset>
         <Fieldset>
-          <SidebarLabel htmlFor="orderby" className="control-label">
-            {t('Order by')}
-          </SidebarLabel>
-          <SelectControl
-            name="orderby"
-            label={t('Order By')}
-            placeholder={<PlaceholderText>{t('Order by...')}</PlaceholderText>}
-            options={getOrderByOptions(queryBuilder)}
+          <Orderby
             value={currentQuery.orderby}
-            onChange={val => onUpdateField('orderby', val.value)}
+            columns={getOrderbyFields(queryBuilder)}
+            onChange={val => onUpdateField('orderby', val)}
             disabled={isLoading}
           />
         </Fieldset>
@@ -131,7 +150,15 @@ export default class QueryFields extends React.Component {
           />
         </Fieldset>
         <Fieldset>{actions}</Fieldset>
-      </div>
+        <DocsSeparator />
+        <DocsLink href="https://docs.sentry.io/product/discover/">
+          <DiscoverDocs>
+            <DocsIcon src="icon-docs" />
+            <DocsLabel>{t('Discover Documentation')}</DocsLabel>
+            <StyledInlineSvg src="icon-chevron-right" size="1em" />
+          </DiscoverDocs>
+        </DocsLink>
+      </QueryFieldsSidebar>
     );
   }
 }

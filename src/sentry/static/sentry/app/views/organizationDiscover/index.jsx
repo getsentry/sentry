@@ -1,9 +1,13 @@
 import React from 'react';
+import PropTypes from 'prop-types';
 import {Flex} from 'grid-emotion';
 import {browserHistory} from 'react-router';
 import DocumentTitle from 'react-document-title';
 import jQuery from 'jquery';
 import SentryTypes from 'app/sentryTypes';
+
+import {updateProjects, updateDateTime} from 'app/actionCreators/globalSelection';
+import withGlobalSelection from 'app/utils/withGlobalSelection';
 
 import Discover from './discover';
 import createQueryBuilder from './queryBuilder';
@@ -17,9 +21,13 @@ import {
 
 import {DiscoverWrapper} from './styles';
 
-export default class OrganizationDiscoverContainer extends React.Component {
+class OrganizationDiscoverContainer extends React.Component {
   static contextTypes = {
     organization: SentryTypes.Organization,
+  };
+
+  static propTypes = {
+    selection: PropTypes.object.isRequired,
   };
 
   constructor(props, context) {
@@ -34,7 +42,30 @@ export default class OrganizationDiscoverContainer extends React.Component {
     const {search} = props.location;
     const {organization} = context;
 
-    this.queryBuilder = createQueryBuilder(getQueryFromQueryString(search), organization);
+    const query = getQueryFromQueryString(search);
+    if (query.hasOwnProperty('projects')) {
+      // Update global store with projects from querystring
+      updateProjects(query.projects);
+    } else {
+      // Update query with global projects
+      query.projects = props.selection.projects;
+    }
+
+    if (['range', 'start', 'end'].some(key => query.hasOwnProperty(key))) {
+      // Update global store with datetime from querystring
+      updateDateTime({
+        start: query.start || null,
+        end: query.end || null,
+        period: query.range || null,
+      });
+    } else {
+      // Update query with global projects
+      query.start = props.selection.datetime.start;
+      query.end = props.selection.datetime.end;
+      query.range = props.selection.datetime.period;
+    }
+
+    this.queryBuilder = createQueryBuilder(query, organization);
   }
 
   componentDidMount() {
@@ -52,6 +83,11 @@ export default class OrganizationDiscoverContainer extends React.Component {
   componentWillReceiveProps(nextProps) {
     if (!nextProps.params.savedQueryId) {
       this.setState({savedQuery: null});
+      // Reset querybuilder if we're switching from a saved query
+      if (this.props.params.savedQueryId) {
+        const projects = nextProps.selection.projects;
+        this.queryBuilder.reset({projects});
+      }
       return;
     }
 
@@ -156,3 +192,6 @@ export default class OrganizationDiscoverContainer extends React.Component {
     );
   }
 }
+
+export default withGlobalSelection(OrganizationDiscoverContainer);
+export {OrganizationDiscoverContainer};

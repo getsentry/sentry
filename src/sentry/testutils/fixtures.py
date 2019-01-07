@@ -26,11 +26,10 @@ from uuid import uuid4
 
 from sentry.event_manager import EventManager
 from sentry.constants import SentryAppStatus
-from sentry.mediators.sentry_apps import Creator as SentryAppCreator
-from sentry.mediators.service_hooks import Creator as ServiceHookCreator
+from sentry.mediators import sentry_apps, sentry_app_installations, service_hooks
 from sentry.models import (
     Activity, Environment, Event, EventError, EventMapping, Group, Organization, OrganizationMember,
-    OrganizationMemberTeam, Project, Team, User, UserEmail, Release, Commit, ReleaseCommit,
+    OrganizationMemberTeam, Project, ProjectBookmark, Team, User, UserEmail, Release, Commit, ReleaseCommit,
     CommitAuthor, Repository, CommitFileChange, ProjectDebugFile, File, UserPermission, EventAttachment
 )
 from sentry.utils.canonical import CanonicalKeyDict
@@ -326,6 +325,9 @@ class Fixtures(object):
             project.add_team(team)
         return project
 
+    def create_project_bookmark(self, project, user):
+        return ProjectBookmark.objects.create(project_id=project.id, user=user)
+
     def create_project_key(self, project):
         return project.key_set.get_or_create()[0]
 
@@ -351,7 +353,7 @@ class Fixtures(object):
 
         # add commits
         if user:
-            author = self.create_commit_author(project, user)
+            author = self.create_commit_author(project=project, user=user)
             repo = self.create_repo(project, name='organization-{}'.format(project.slug))
             commit = self.create_commit(
                 project=project,
@@ -378,46 +380,47 @@ class Fixtures(object):
         )
         return repo
 
-    def create_commit(self, project, repo, author=None, release=None,
+    def create_commit(self, repo, project=None, author=None, release=None,
                       message=None, key=None, date_added=None):
         commit = Commit.objects.get_or_create(
-            organization_id=project.organization_id,
+            organization_id=repo.organization_id,
             repository_id=repo.id,
             key=key or sha1(uuid4().hex).hexdigest(),
             defaults={
                 'message': message or make_sentence(),
-                'author': author or self.create_commit_author(project),
+                'author': author or self.create_commit_author(organization_id=repo.organization_id),
                 'date_added': date_added or timezone.now(),
             }
         )[0]
 
         if release:
+            assert project
             ReleaseCommit.objects.create(
-                organization_id=project.organization_id,
+                organization_id=repo.organization_id,
                 project_id=project.id,
                 release=release,
                 commit=commit,
                 order=1,
             )
 
-        self.create_commit_file_change(commit, project, '/models/foo.py')
-        self.create_commit_file_change(commit, project, '/worsematch/foo.py')
-        self.create_commit_file_change(commit, project, '/models/other.py')
+        self.create_commit_file_change(commit=commit, filename='/models/foo.py')
+        self.create_commit_file_change(commit=commit, filename='/worsematch/foo.py')
+        self.create_commit_file_change(commit=commit, filename='/models/other.py')
 
         return commit
 
-    def create_commit_author(self, project, user=None):
+    def create_commit_author(self, organization_id=None, project=None, user=None):
         return CommitAuthor.objects.get_or_create(
-            organization_id=project.organization_id,
+            organization_id=organization_id or project.organization_id,
             email=user.email if user else '{}@example.com'.format(make_word()),
             defaults={
                 'name': user.name if user else make_word(),
             }
         )[0]
 
-    def create_commit_file_change(self, commit, project, filename):
+    def create_commit_file_change(self, commit, filename):
         commit_file_change = CommitFileChange.objects.get_or_create(
-            organization_id=project.organization_id,
+            organization_id=commit.organization_id,
             commit=commit,
             filename=filename,
             type='M',
@@ -715,23 +718,35 @@ class Fixtures(object):
     def create_sentry_app(self, name=None, organization=None, published=False, scopes=(),
                           webhook_url=None, **kwargs):
         if not name:
-            name = 'Test App'
+            name = petname.Generate(2, ' ', letters=10).title()
         if not organization:
             organization = self.create_organization()
         if not webhook_url:
             webhook_url = 'https://example.com/webhook'
 
-        app = SentryAppCreator.run(
-            name=name,
-            organization=organization,
-            scopes=scopes,
-            webhook_url=webhook_url,
-            **kwargs
-        )
+        _kwargs = {
+            'name': name,
+            'organization': organization,
+            'scopes': scopes,
+            'webhook_url': webhook_url,
+            'events': [],
+        }
+
+        _kwargs.update(kwargs)
+
+        app = sentry_apps.Creator.run(**_kwargs)
+
         if published:
             app.update(status=SentryAppStatus.PUBLISHED)
 
         return app
+
+    def create_sentry_app_installation(self, organization=None, slug=None, user=None):
+        return sentry_app_installations.Creator.run(
+            slug=(slug or self.create_sentry_app().slug),
+            organization=(organization or self.create_organization()),
+            user=(user or self.create_user()),
+        )
 
     def create_service_hook(self, actor=None, project=None, events=None, url=None, **kwargs):
         if not actor:
@@ -744,10 +759,13 @@ class Fixtures(object):
         if not url:
             url = 'https://example/sentry/webhook'
 
-        return ServiceHookCreator.run(
-            actor=actor,
-            project=project,
-            events=events,
-            url=url,
-            **kwargs
-        )
+        _kwargs = {
+            'actor': actor,
+            'project': project,
+            'events': events,
+            'url': url,
+        }
+
+        _kwargs.update(kwargs)
+
+        return service_hooks.Creator.run(**_kwargs)

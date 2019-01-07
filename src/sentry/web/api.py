@@ -31,12 +31,13 @@ from symbolic import ProcessMinidumpError, Unreal4Error
 from sentry import features, quotas, tsdb, options
 from sentry.attachments import CachedAttachment
 from sentry.coreapi import (
-    Auth, APIError, APIForbidden, APIRateLimited, ClientApiHelper, SecurityApiHelper, MinidumpApiHelper, safely_load_json_string, logger as api_logger
+    Auth, APIError, APIForbidden, APIRateLimited, ClientApiHelper, ClientAuthHelper,
+    SecurityAuthHelper, MinidumpAuthHelper, safely_load_json_string, logger as api_logger
 )
 from sentry.event_manager import EventManager
 from sentry.interfaces import schemas
 from sentry.interfaces.base import get_interface
-from sentry.lang.native.unreal import process_unreal_crash, unreal_attachment_type
+from sentry.lang.native.unreal import process_unreal_crash, unreal_attachment_type, merge_unreal_context_event, merge_unreal_logs_event
 from sentry.lang.native.minidump import merge_process_state_event, process_minidump, MINIDUMP_ATTACHMENT_TYPE
 from sentry.models import Project, OrganizationOption, Organization
 from sentry.signals import (
@@ -91,8 +92,163 @@ def api(func):
     return wrapped
 
 
+def process_event(event_manager, project, key, remote_addr, helper, attachments):
+    event_received.send_robust(ip=remote_addr, project=project, sender=process_event)
+
+    start_time = time()
+    tsdb_start_time = to_datetime(start_time)
+    should_filter, filter_reason = event_manager.should_filter()
+    if should_filter:
+        increment_list = [
+            (tsdb.models.project_total_received, project.id),
+            (tsdb.models.project_total_blacklisted, project.id),
+            (tsdb.models.organization_total_received,
+                project.organization_id),
+            (tsdb.models.organization_total_blacklisted,
+                project.organization_id),
+            (tsdb.models.key_total_received, key.id),
+            (tsdb.models.key_total_blacklisted, key.id),
+        ]
+        try:
+            increment_list.append(
+                (FILTER_STAT_KEYS_TO_VALUES[filter_reason], project.id))
+        # should error when filter_reason does not match a key in FILTER_STAT_KEYS_TO_VALUES
+        except KeyError:
+            pass
+
+        tsdb.incr_multi(
+            increment_list,
+            timestamp=tsdb_start_time,
+        )
+
+        metrics.incr(
+            'events.blacklisted', tags={'reason': filter_reason}, skip_internal=False
+        )
+        event_filtered.send_robust(
+            ip=remote_addr,
+            project=project,
+            sender=process_event,
+        )
+        raise APIForbidden('Event dropped due to filter: %s' % (filter_reason,))
+
+    # TODO: improve this API (e.g. make RateLimit act on __ne__)
+    rate_limit = safe_execute(
+        quotas.is_rate_limited, project=project, key=key, _with_transaction=False
+    )
+    if isinstance(rate_limit, bool):
+        rate_limit = RateLimit(is_limited=rate_limit, retry_after=None)
+
+    # XXX(dcramer): when the rate limiter fails we drop events to ensure
+    # it cannot cascade
+    if rate_limit is None or rate_limit.is_limited:
+        if rate_limit is None:
+            api_logger.debug('Dropped event due to error with rate limiter')
+        tsdb.incr_multi(
+            [
+                (tsdb.models.project_total_received, project.id),
+                (tsdb.models.project_total_rejected, project.id),
+                (tsdb.models.organization_total_received,
+                    project.organization_id),
+                (tsdb.models.organization_total_rejected,
+                    project.organization_id),
+                (tsdb.models.key_total_received, key.id),
+                (tsdb.models.key_total_rejected, key.id),
+            ],
+            timestamp=tsdb_start_time,
+        )
+        metrics.incr(
+            'events.dropped',
+            tags={
+                'reason': rate_limit.reason_code if rate_limit else 'unknown',
+            },
+            skip_internal=False,
+        )
+        event_dropped.send_robust(
+            ip=remote_addr,
+            project=project,
+            reason_code=rate_limit.reason_code if rate_limit else None,
+            sender=process_event,
+        )
+        if rate_limit is not None:
+            raise APIRateLimited(rate_limit.retry_after)
+    else:
+        tsdb.incr_multi(
+            [
+                (tsdb.models.project_total_received, project.id),
+                (tsdb.models.organization_total_received,
+                    project.organization_id),
+                (tsdb.models.key_total_received, key.id),
+            ],
+            timestamp=tsdb_start_time,
+        )
+
+    org_options = OrganizationOption.objects.get_all_values(
+        project.organization_id)
+
+    data = event_manager.get_data()
+    del event_manager
+
+    event_id = data['event_id']
+
+    # TODO(dcramer): ideally we'd only validate this if the event_id was
+    # supplied by the user
+    cache_key = 'ev:%s:%s' % (project.id, event_id, )
+
+    if cache.get(cache_key) is not None:
+        raise APIForbidden(
+            'An event with the same ID already exists (%s)' % (event_id, ))
+
+    scrub_ip_address = (org_options.get('sentry:require_scrub_ip_address', False) or
+                        project.get_option('sentry:scrub_ip_address', False))
+    scrub_data = (org_options.get('sentry:require_scrub_data', False) or
+                  project.get_option('sentry:scrub_data', True))
+
+    if scrub_data:
+        # We filter data immediately before it ever gets into the queue
+        sensitive_fields_key = 'sentry:sensitive_fields'
+        sensitive_fields = (
+            org_options.get(sensitive_fields_key, []) +
+            project.get_option(sensitive_fields_key, [])
+        )
+
+        exclude_fields_key = 'sentry:safe_fields'
+        exclude_fields = (
+            org_options.get(exclude_fields_key, []) +
+            project.get_option(exclude_fields_key, [])
+        )
+
+        scrub_defaults = (org_options.get('sentry:require_scrub_defaults', False) or
+                          project.get_option('sentry:scrub_defaults', True))
+
+        SensitiveDataFilter(
+            fields=sensitive_fields,
+            include_defaults=scrub_defaults,
+            exclude_fields=exclude_fields,
+        ).apply(data)
+
+    if scrub_ip_address:
+        # We filter data immediately before it ever gets into the queue
+        helper.ensure_does_not_have_ip(data)
+
+    # mutates data (strips a lot of context if not queued)
+    helper.insert_data_to_database(data, start_time=start_time, attachments=attachments)
+
+    cache.set(cache_key, '', 60 * 5)
+
+    api_logger.debug('New event received (%s)', event_id)
+
+    event_accepted.send_robust(
+        ip=remote_addr,
+        data=data,
+        project=project,
+        sender=process_event,
+    )
+
+    return event_id
+
+
 class APIView(BaseView):
-    helper_cls = ClientApiHelper
+    auth_helper_cls = ClientAuthHelper
 
     def _get_project_from_id(self, project_id):
         if not project_id:
@@ -105,7 +261,7 @@ class APIView(BaseView):
             raise APIError('Invalid project_id: %r' % project_id)
 
     def _parse_header(self, request, helper, project):
-        auth = helper.auth_from_request(request)
+        auth = self.auth_helper_cls.auth_from_request(request)
 
         if auth.version not in PROTOCOL_VERSIONS:
             raise APIError(
@@ -154,7 +310,7 @@ class APIView(BaseView):
     @csrf_exempt
     @never_cache
     def dispatch(self, request, project_id=None, *args, **kwargs):
-        helper = self.helper_cls(
+        helper = ClientApiHelper(
             agent=request.META.get('HTTP_USER_AGENT'),
             project_id=project_id,
             ip_address=request.META['REMOTE_ADDR'],
@@ -165,7 +321,7 @@ class APIView(BaseView):
             self._publish_to_kafka(request)
 
         try:
-            origin = helper.origin_from_request(request)
+            origin = self.auth_helper_cls.origin_from_request(request)
 
             response = self._dispatch(
                 request, helper, project_id=project_id, origin=origin, *args, **kwargs
@@ -199,25 +355,27 @@ class APIView(BaseView):
 
         # TODO(dcramer): it'd be nice if we had an incr_multi method so
         # tsdb could optimize this
-        metrics.incr('client-api.all-versions.requests')
+        metrics.incr('client-api.all-versions.requests', skip_internal=False)
         metrics.incr('client-api.all-versions.responses.%s' %
-                     (response.status_code, ))
+                     (response.status_code, ), skip_internal=False)
         metrics.incr(
-            'client-api.all-versions.responses.%sxx' % (
-                six.text_type(response.status_code)[0], )
+            'client-api.all-versions.responses.%sxx' % (six.text_type(response.status_code)[0],),
+            skip_internal=False,
         )
 
         if helper.context.version:
-            metrics.incr('client-api.v%s.requests' %
-                         (helper.context.version, ))
             metrics.incr(
-                'client-api.v%s.responses.%s' % (
-                    helper.context.version, response.status_code)
+                'client-api.v%s.requests' % (helper.context.version, ),
+                skip_internal=False,
             )
             metrics.incr(
-                'client-api.v%s.responses.%sxx' %
-                (helper.context.version, six.text_type(
-                    response.status_code)[0])
+                'client-api.v%s.responses.%s' % (helper.context.version, response.status_code),
+                skip_internal=False,
+            )
+            metrics.incr(
+                'client-api.v%s.responses.%sxx' % (helper.context.version,
+                                                   six.text_type(response.status_code)[0]),
+                skip_internal=False,
             )
 
         if response.status_code != 200 and origin:
@@ -333,6 +491,7 @@ class StoreView(APIView):
        the user be authenticated, and a project_id be sent in the GET variables.
 
     """
+    type_name = 'store'
 
     def post(self, request, **kwargs):
         try:
@@ -371,14 +530,14 @@ class StoreView(APIView):
         pass
 
     def process(self, request, project, key, auth, helper, data, attachments=None, **kwargs):
-        metrics.incr('events.total')
+        metrics.incr('events.total', skip_internal=False)
 
         if not data:
             raise APIError('No JSON data was found')
 
         remote_addr = request.META['REMOTE_ADDR']
 
-        event_mgr = EventManager(
+        event_manager = EventManager(
             data,
             project=project,
             key=key,
@@ -390,163 +549,59 @@ class StoreView(APIView):
         )
         del data
 
-        self.pre_normalize(event_mgr, helper)
-        event_mgr.normalize()
+        self.pre_normalize(event_manager, helper)
+        event_manager.normalize()
 
-        event_received.send_robust(ip=remote_addr, project=project, sender=type(self))
+        agent = request.META.get('HTTP_USER_AGENT')
 
-        start_time = time()
-        tsdb_start_time = to_datetime(start_time)
-        should_filter, filter_reason = event_mgr.should_filter()
-        if should_filter:
-            increment_list = [
-                (tsdb.models.project_total_received, project.id),
-                (tsdb.models.project_total_blacklisted, project.id),
-                (tsdb.models.organization_total_received,
-                 project.organization_id),
-                (tsdb.models.organization_total_blacklisted,
-                 project.organization_id),
-                (tsdb.models.key_total_received, key.id),
-                (tsdb.models.key_total_blacklisted, key.id),
-            ]
+        # TODO: Some form of coordination between the Kafka consumer
+        # and this method (the 'relay') to decide whether a 429 should
+        # be returned here.
+
+        # Everything before this will eventually be done in the relay.
+        if (kafka_publisher is not None
+                and not attachments
+                and random.random() < options.get('store.kafka-sample-rate')):
+
+            process_in_kafka = options.get('store.process-in-kafka')
+
             try:
-                increment_list.append(
-                    (FILTER_STAT_KEYS_TO_VALUES[filter_reason], project.id))
-            # should error when filter_reason does not match a key in FILTER_STAT_KEYS_TO_VALUES
-            except KeyError:
-                pass
+                kafka_publisher.publish(
+                    channel=getattr(settings, 'KAFKA_EVENTS_PUBLISHER_TOPIC', 'store-events'),
+                    # Relay will (eventually) need to produce a Kafka message
+                    # with this JSON format.
+                    value=json.dumps({
+                        'data': event_manager.get_data(),
+                        'project_id': project.id,
+                        'auth': {
+                            'sentry_client': auth.client,
+                            'sentry_version': auth.version,
+                            'sentry_secret': auth.secret_key,
+                            'sentry_key': auth.public_key,
+                            'is_public': auth.is_public,
+                        },
+                        'remote_addr': remote_addr,
+                        'agent': agent,
+                        # Whether or not the Kafka consumer is in charge
+                        # of actually processing this event.
+                        'should_process': process_in_kafka,
+                    })
+                )
+            except Exception as e:
+                logger.exception("Cannot publish event to Kafka: {}".format(e.message))
+            else:
+                if process_in_kafka:
+                    # This event will be processed by the Kafka consumer, so we
+                    # shouldn't double process it here.
+                    return event_manager.get_data()['event_id']
 
-            tsdb.incr_multi(
-                increment_list,
-                timestamp=tsdb_start_time,
-            )
-
-            metrics.incr('events.blacklisted', tags={
-                         'reason': filter_reason})
-            event_filtered.send_robust(
-                ip=remote_addr,
-                project=project,
-                sender=type(self),
-            )
-            raise APIForbidden('Event dropped due to filter: %s' % (filter_reason,))
-
-        # TODO: improve this API (e.g. make RateLimit act on __ne__)
-        rate_limit = safe_execute(
-            quotas.is_rate_limited, project=project, key=key, _with_transaction=False
-        )
-        if isinstance(rate_limit, bool):
-            rate_limit = RateLimit(is_limited=rate_limit, retry_after=None)
-
-        # XXX(dcramer): when the rate limiter fails we drop events to ensure
-        # it cannot cascade
-        if rate_limit is None or rate_limit.is_limited:
-            if rate_limit is None:
-                api_logger.debug('Dropped event due to error with rate limiter')
-            tsdb.incr_multi(
-                [
-                    (tsdb.models.project_total_received, project.id),
-                    (tsdb.models.project_total_rejected, project.id),
-                    (tsdb.models.organization_total_received,
-                     project.organization_id),
-                    (tsdb.models.organization_total_rejected,
-                     project.organization_id),
-                    (tsdb.models.key_total_received, key.id),
-                    (tsdb.models.key_total_rejected, key.id),
-                ],
-                timestamp=tsdb_start_time,
-            )
-            metrics.incr(
-                'events.dropped',
-                tags={
-                    'reason': rate_limit.reason_code if rate_limit else 'unknown',
-                }
-            )
-            event_dropped.send_robust(
-                ip=remote_addr,
-                project=project,
-                sender=type(self),
-                reason_code=rate_limit.reason_code if rate_limit else None,
-            )
-            if rate_limit is not None:
-                raise APIRateLimited(rate_limit.retry_after)
-        else:
-            tsdb.incr_multi(
-                [
-                    (tsdb.models.project_total_received, project.id),
-                    (tsdb.models.organization_total_received,
-                     project.organization_id),
-                    (tsdb.models.key_total_received, key.id),
-                ],
-                timestamp=tsdb_start_time,
-            )
-
-        org_options = OrganizationOption.objects.get_all_values(
-            project.organization_id)
-
-        data = event_mgr.get_data()
-        del event_mgr
-
-        event_id = data['event_id']
-
-        # TODO(dcramer): ideally we'd only validate this if the event_id was
-        # supplied by the user
-        cache_key = 'ev:%s:%s' % (project.id, event_id, )
-
-        if cache.get(cache_key) is not None:
-            raise APIForbidden(
-                'An event with the same ID already exists (%s)' % (event_id, ))
-
-        scrub_ip_address = (org_options.get('sentry:require_scrub_ip_address', False) or
-                            project.get_option('sentry:scrub_ip_address', False))
-        scrub_data = (org_options.get('sentry:require_scrub_data', False) or
-                      project.get_option('sentry:scrub_data', True))
-
-        if scrub_data:
-            # We filter data immediately before it ever gets into the queue
-            sensitive_fields_key = 'sentry:sensitive_fields'
-            sensitive_fields = (
-                org_options.get(sensitive_fields_key, []) +
-                project.get_option(sensitive_fields_key, [])
-            )
-
-            exclude_fields_key = 'sentry:safe_fields'
-            exclude_fields = (
-                org_options.get(exclude_fields_key, []) +
-                project.get_option(exclude_fields_key, [])
-            )
-
-            scrub_defaults = (org_options.get('sentry:require_scrub_defaults', False) or
-                              project.get_option('sentry:scrub_defaults', True))
-
-            SensitiveDataFilter(
-                fields=sensitive_fields,
-                include_defaults=scrub_defaults,
-                exclude_fields=exclude_fields,
-            ).apply(data)
-
-        if scrub_ip_address:
-            # We filter data immediately before it ever gets into the queue
-            helper.ensure_does_not_have_ip(data)
-
-        # mutates data (strips a lot of context if not queued)
-        helper.insert_data_to_database(data, start_time=start_time, attachments=attachments)
-
-        cache.set(cache_key, '', 60 * 5)
-
-        api_logger.debug('New event received (%s)', event_id)
-
-        event_accepted.send_robust(
-            ip=remote_addr,
-            data=data,
-            project=project,
-            sender=type(self),
-        )
-
-        return event_id
+        # Everything after this will eventually be done in a Kafka consumer.
+        return process_event(event_manager, project,
+                             key, remote_addr, helper, attachments)
 
 
 class MinidumpView(StoreView):
-    helper_cls = MinidumpApiHelper
+    auth_helper_cls = MinidumpAuthHelper
     content_types = ('multipart/form-data', )
 
     def _dispatch(self, request, helper, project_id=None, origin=None, *args, **kwargs):
@@ -574,7 +629,7 @@ class MinidumpView(StoreView):
         # This is yanking the auth from the querystring since it's not
         # in the POST body. This means we expect a `sentry_key` and
         # `sentry_version` to be set in querystring
-        auth = helper.auth_from_request(request)
+        auth = self.auth_helper_cls.auth_from_request(request)
 
         key = helper.project_key_from_auth(auth)
         if key.project_id != project.id:
@@ -744,9 +799,16 @@ class UnrealView(StoreView):
         attachments_enabled = features.has('organizations:event-attachments',
                                            project.organization, actor=request.user)
 
-        data = {}
         event_id = uuid.uuid4().hex
-        data['event_id'] = event_id
+        data = {
+            'event_id': event_id,
+            'environment': request.GET.get('AppEnvironment'),
+        }
+        user_id = request.GET.get('UserID')
+        if user_id:
+            data['user'] = {
+                'id': user_id
+            }
 
         attachments = []
         try:
@@ -760,6 +822,22 @@ class UnrealView(StoreView):
             merge_process_state_event(data, process_state)
         else:
             raise APIError("missing minidump in unreal crash report")
+
+        try:
+            unreal_context = unreal.get_context()
+            if unreal_context is not None:
+                merge_unreal_context_event(unreal_context, data, project)
+        except Unreal4Error as e:
+            # we'll continue without the context data
+            minidumps_logger.exception(e)
+
+        try:
+            unreal_logs = unreal.get_logs()
+            if unreal_logs is not None:
+                merge_unreal_logs_event(unreal_logs, data)
+        except Unreal4Error as e:
+            # we'll continue without the breadcrumbs
+            minidumps_logger.exception(e)
 
         for file in unreal.files():
             # Always store the minidump in attachments so we can access it during
@@ -796,7 +874,7 @@ class StoreSchemaView(BaseView):
 
 
 class SecurityReportView(StoreView):
-    helper_cls = SecurityApiHelper
+    auth_helper_cls = SecurityAuthHelper
     content_types = (
         'application/csp-report',
         'application/json',
@@ -826,7 +904,7 @@ class SecurityReportView(StoreView):
         # This is yanking the auth from the querystring since it's not
         # in the POST body. This means we expect a `sentry_key` and
         # `sentry_version` to be set in querystring
-        auth = helper.auth_from_request(request)
+        auth = self.auth_helper_cls.auth_from_request(request)
 
         key = helper.project_key_from_auth(auth)
         if key.project_id != project.id:

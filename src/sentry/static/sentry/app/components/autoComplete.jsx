@@ -8,13 +8,11 @@
  * This component handles logic like when the dropdown menu should be displayed, as well as handling keyboard input, how
  * it is rendered should be left to the child.
  */
-import React from 'react';
 import PropTypes from 'prop-types';
+import React from 'react';
 
+import {callIfFunction} from 'app/utils/callIfFunction';
 import DropdownMenu from 'app/components/dropdownMenu';
-
-// Checks if `fn` is a function and calls it with `args`
-const callIfFunction = (fn, ...args) => typeof fn === 'function' && fn(...args);
 
 class AutoComplete extends React.Component {
   static propTypes = {
@@ -39,6 +37,17 @@ class AutoComplete extends React.Component {
      * e.g. You have a button that opens this <AutoComplete> in a dropdown.
      */
     inputIsActor: PropTypes.bool,
+
+    /**
+     * Can select autocomplete item with "Enter" key
+     */
+    shouldSelectWithEnter: PropTypes.bool,
+
+    /**
+     * Can select autocomplete item with "Tab" key
+     */
+    shouldSelectWithTab: PropTypes.bool,
+
     onSelect: PropTypes.func,
     onOpen: PropTypes.func,
     onClose: PropTypes.func,
@@ -51,6 +60,8 @@ class AutoComplete extends React.Component {
     inputIsActor: true,
     disabled: false,
     closeOnSelect: true,
+    shouldSelectWithEnter: true,
+    shouldSelectWithTab: false,
   };
 
   constructor(props) {
@@ -148,10 +159,12 @@ class AutoComplete extends React.Component {
   };
 
   handleInputKeyDown = ({onKeyDown} = {}, e) => {
-    let shouldSelectWithEnter =
-      e.key === 'Enter' && this.items.size && this.items.has(this.state.highlightedIndex);
+    let hasHighlightedItem =
+      this.items.size && this.items.has(this.state.highlightedIndex);
+    let canSelectWithEnter = this.props.shouldSelectWithEnter && e.key === 'Enter';
+    let canSelectWithTab = this.props.shouldSelectWithTab && e.key === 'Tab';
 
-    if (shouldSelectWithEnter) {
+    if (hasHighlightedItem && (canSelectWithEnter || canSelectWithTab)) {
       this.handleSelect(this.items.get(this.state.highlightedIndex), e);
       e.preventDefault();
     }

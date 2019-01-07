@@ -12,6 +12,7 @@ class Creator(Mediator):
     name = Param(six.string_types)
     organization = Param('sentry.models.Organization')
     scopes = Param(Iterable)
+    events = Param(Iterable, default=lambda self: [])
     webhook_url = Param(six.string_types)
     redirect_url = Param(six.string_types, required=False)
     is_alertable = Param(bool, default=False)
@@ -31,16 +32,19 @@ class Creator(Mediator):
 
     def _create_api_application(self):
         return ApiApplication.objects.create(
-            owner=self.proxy,
+            owner_id=self.proxy.id,
         )
 
     def _create_sentry_app(self):
+        from sentry.mediators.service_hooks.creator import expand_events
+
         return SentryApp.objects.create(
             name=self.name,
-            application=self.api_app,
-            owner=self.organization,
-            proxy_user=self.proxy,
+            application_id=self.api_app.id,
+            owner_id=self.organization.id,
+            proxy_user_id=self.proxy.id,
             scope_list=self.scopes,
+            events=expand_events(self.events),
             webhook_url=self.webhook_url,
             redirect_url=self.redirect_url,
             is_alertable=self.is_alertable,

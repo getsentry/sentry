@@ -60,11 +60,11 @@ search_term     = space? (time_filter / has_filter / basic_filter) space?
 raw_search      = ~r".+$"
 
 # standard key:val filter
-basic_filter    = search_key sep search_value
+basic_filter    = negation? search_key sep search_value
 # filter specifically for the timestamp
 time_filter     = "timestamp" operator date_format
 # has filter for not null type checks
-has_filter      = "has" sep (search_key / search_value)
+has_filter      = negation? "has" sep (search_key / search_value)
 
 search_key      = key / quoted_key
 search_value    = quoted_value / value
@@ -82,6 +82,7 @@ date_format    = ~r"\d{4}-\d{2}-\d{2}(T\d{2}:\d{2}:\d{2}(\.\d{1,6})?)?"
 operator        = ">=" / "<=" / ">" / "<" / "=" / "!="
 sep             = ":"
 space           = " "
+negation        = "!"
 """)
 
 
@@ -170,14 +171,23 @@ class SearchVisitor(NodeVisitor):
     def visit_date_format(self, node, children):
         return node.text
 
-    def visit_basic_filter(self, node, children):
-        search_key, _, search_value = children
+    def is_negated(self, node):
+        # Because negations are always optional, parsimonious returns a list of nodes
+        # containing one node when a negation exists, and a single node when it doesn't.
+        if isinstance(node, list):
+            node = node[0]
 
-        return SearchFilter(search_key, "=", search_value)
+        return node.text == '!'
+
+    def visit_basic_filter(self, node, children):
+        negation, search_key, _, search_value = children
+        operator = '!=' if self.is_negated(negation) else '='
+
+        return SearchFilter(search_key, operator, search_value)
 
     def visit_has_filter(self, node, children):
         # the key is has here, which we don't need
-        _, _, (search_key,) = children
+        negation, _, _, (search_key,) = children
 
         # if it matched search value instead, it's not a valid key
         if isinstance(search_key, SearchValue):
@@ -185,9 +195,11 @@ class SearchVisitor(NodeVisitor):
                 'Invalid format for "has" search: %s' %
                 (search_key.raw_value,))
 
+        operator = '=' if self.is_negated(negation) else '!='
+
         return SearchFilter(
             search_key,
-            '!=',
+            operator,
             SearchValue(''),
         )
 
@@ -229,7 +241,7 @@ def convert_endpoint_params(params):
 
 
 def get_snuba_query_args(query=None, params=None):
-    # NOTE: this function assumes project permisions check already happened
+    # NOTE: this function assumes project permissions check already happened
     parsed_filters = []
     if query is not None:
         try:
@@ -277,15 +289,20 @@ def get_snuba_query_args(query=None, params=None):
             )
 
         else:
+            if _filter.operator == '!=' or _filter.operator == '=' and _filter.value.value == '':
+                # Handle null columns on (in)equality comparisons. Any comparison between a value
+                # and a null will result to null. There are two cases we handle here:
+                # - A column doesn't equal a value. In this case, we need to convert the column to
+                # an empty string so that we don't exclude rows that have it set to null
+                # - Checking that a value isn't present. In some cases the column will be null,
+                # and in other cases an empty string. To generalize this we convert values in the
+                # column to an empty string and just check for that.
+                snuba_name = ['ifNull', [snuba_name, "''"]]
+
             if _filter.value.is_wildcard():
                 kwargs['conditions'].append(
-                    [['match', [snuba_name, "'%s'" % (value,)]], '=', 1]
+                    [['match', [snuba_name, "'%s'" % (value,)]], _filter.operator, 1]
                 )
             else:
-                kwargs['conditions'].append([
-                    snuba_name,
-                    _filter.operator,
-                    value,
-                ])
-
+                kwargs['conditions'].append([snuba_name, _filter.operator, value])
     return kwargs

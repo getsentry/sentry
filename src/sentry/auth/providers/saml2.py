@@ -162,6 +162,7 @@ class SAML2ACSView(AuthView):
 
 
 class SAML2SLSView(BaseView):
+    @method_decorator(csrf_exempt)
     def dispatch(self, request, organization_slug):
         provider = get_provider(organization_slug)
         if provider is None:

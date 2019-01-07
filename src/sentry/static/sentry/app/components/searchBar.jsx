@@ -21,6 +21,7 @@ class SearchBar extends React.PureComponent {
     this.state = {
       query: this.props.query || this.props.defaultQuery,
     };
+    this.searchInputRef = React.createRef();
   }
 
   componentWillReceiveProps(nextProps) {
@@ -32,7 +33,7 @@ class SearchBar extends React.PureComponent {
   }
 
   blur = () => {
-    this.searchInput.blur();
+    this.searchInputRef.current.blur();
   };
 
   onSubmit = evt => {
@@ -72,7 +73,7 @@ class SearchBar extends React.PureComponent {
               className="search-input form-control"
               placeholder={this.props.placeholder}
               name="query"
-              ref={el => (this.searchInput = el)}
+              ref={this.searchInputRef}
               autoComplete="off"
               value={this.state.query}
               onBlur={this.onQueryBlur}

@@ -491,6 +491,42 @@ describe('AutoComplete', function() {
     });
   });
 
+  it('selects using enter key', function() {
+    wrapper = createWrapper({isOpen: true, shouldSelectWithEnter: false});
+    input.simulate('change', {target: {value: 'pine'}});
+    input.simulate('keyDown', {key: 'Enter'});
+    expect(mocks.onSelect).not.toHaveBeenCalled();
+
+    wrapper = createWrapper({isOpen: true, shouldSelectWithEnter: true});
+    input.simulate('change', {target: {value: 'pine'}});
+    input.simulate('keyDown', {key: 'Enter'});
+    expect(mocks.onSelect).toHaveBeenCalledWith(
+      items[1],
+      expect.objectContaining({inputValue: 'pine', highlightedIndex: 0}),
+      expect.anything()
+    );
+    expect(mocks.onClose).toHaveBeenCalledTimes(1);
+    expect(wrapper.state('inputValue')).toBe('Pineapple');
+  });
+
+  it('selects using tab key', function() {
+    wrapper = createWrapper({isOpen: true, shouldSelectWithTab: false});
+    input.simulate('change', {target: {value: 'pine'}});
+    input.simulate('keyDown', {key: 'Tab'});
+    expect(mocks.onSelect).not.toHaveBeenCalled();
+
+    wrapper = createWrapper({isOpen: true, shouldSelectWithTab: true});
+    input.simulate('change', {target: {value: 'pine'}});
+    input.simulate('keyDown', {key: 'Tab'});
+    expect(mocks.onSelect).toHaveBeenCalledWith(
+      items[1],
+      expect.objectContaining({inputValue: 'pine', highlightedIndex: 0}),
+      expect.anything()
+    );
+    expect(mocks.onClose).toHaveBeenCalledTimes(1);
+    expect(wrapper.state('inputValue')).toBe('Pineapple');
+  });
+
   it('does not reset highlight state if `closeOnSelect` is false and we select a new item', function() {
     wrapper = createWrapper({closeOnSelect: false});
     jest.useFakeTimers();

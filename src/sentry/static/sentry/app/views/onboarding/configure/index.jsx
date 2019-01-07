@@ -1,9 +1,9 @@
 import React from 'react';
 import createReactClass from 'create-react-class';
 import {browserHistory} from 'react-router';
+import * as Sentry from '@sentry/browser';
 
-import sdk from 'app/utils/sdk';
-import {analytics} from 'app/utils/analytics';
+import {analytics, amplitude} from 'app/utils/analytics';
 import ApiMixin from 'app/mixins/apiMixin';
 import Hook from 'app/components/hook';
 import ProjectContext from 'app/views/projects/projectContext';
@@ -36,6 +36,24 @@ const Configure = createReactClass({
     this.timer = setInterval(() => {
       this.fetchEventData();
     }, 2000);
+  },
+
+  componentDidMount() {
+    let {organization} = this.context;
+    let {params} = this.props;
+    let data = {
+      project: params.projectId,
+      platform: params.platform,
+    };
+
+    amplitude(
+      'Viewed Onboarding Installation Instructions',
+      parseInt(organization.id, 10),
+      data
+    );
+
+    data.org_id = parseInt(organization.id, 10);
+    analytics('onboarding.configure_viewed', data);
   },
 
   componentWillUpdate(nextProps, nextState) {
@@ -81,15 +99,23 @@ const Configure = createReactClass({
       },
 
       error: err => {
-        sdk.captureMessage('Polling for events in onboarding configure failed', {
-          extra: err,
+        Sentry.withScope(scope => {
+          scope.setExtra('err', err);
+          Sentry.captureMessage('Polling for events in onboarding configure failed');
         });
       },
     });
   },
 
   submit() {
-    analytics('onboarding.complete', {project: this.props.params.projectId});
+    let {projectId} = this.props.params;
+    let {organization} = this.context;
+    analytics('onboarding.complete', {project: projectId});
+    amplitude(
+      'Completed Onboarding Installation Instructions',
+      parseInt(organization.id, 10),
+      {projectId}
+    );
     this.redirectUrl();
   },
 

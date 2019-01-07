@@ -3,6 +3,7 @@ import PropTypes from 'prop-types';
 import React from 'react';
 import createReactClass from 'create-react-class';
 
+import {analytics} from 'app/utils/analytics';
 import {openModal} from 'app/actionCreators/modal';
 import {t} from 'app/locale';
 import ApiMixin from 'app/mixins/apiMixin';
@@ -21,6 +22,7 @@ import ResolveActions from 'app/components/actions/resolve';
 import SentryTypes from 'app/sentryTypes';
 import ShareIssue from 'app/components/shareIssue';
 import space from 'app/styles/space';
+import {uniqueId} from 'app/utils/guid';
 
 class DeleteActions extends React.Component {
   static propTypes = {
@@ -72,7 +74,12 @@ class DeleteActions extends React.Component {
     </Feature>
   );
 
-  openDiscardModal = () => openModal(this.renderDiscardModal);
+  openDiscardModal = () => {
+    openModal(this.renderDiscardModal);
+    analytics('feature.discard_group.modal_opened', {
+      org_id: parseInt(this.props.organization.id, 10),
+    });
+  };
 
   render() {
     return (
@@ -202,7 +209,7 @@ const GroupDetailsActions = createReactClass({
     let group = this.getGroup();
     let project = this.getProject();
     let org = this.getOrganization();
-    let id = this.api.uniqueId();
+    let id = uniqueId();
     let loadingIndicator = IndicatorStore.add(t('Discarding event..'));
 
     GroupActions.discard(id, group.id);

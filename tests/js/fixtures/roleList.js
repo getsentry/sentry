@@ -39,7 +39,7 @@ export function RoleList(params = [], fullAccess = false) {
       allowed: fullAccess,
       id: 'admin',
       desc:
-        "Admin privileges on any teams of which they're a member. They can create new teams and projects, as well as remove teams and projects which they already hold membership on.",
+        "Admin privileges on any teams of which they're a member. They can create new teams and projects, as well as remove teams and projects which they already hold membership on (or all teams, if open membership is on).",
     },
     {
       scopes: [

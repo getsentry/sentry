@@ -9,6 +9,7 @@ import createReactClass from 'create-react-class';
 import qs from 'query-string';
 
 import {Panel, PanelBody} from 'app/components/panels';
+import {analytics} from 'app/utils/analytics';
 import {logAjaxError} from 'app/utils/logging';
 import {
   setActiveEnvironment,
@@ -30,7 +31,6 @@ import StreamFilters from 'app/views/stream/filters';
 import StreamGroup from 'app/components/stream/group';
 import StreamSidebar from 'app/views/stream/sidebar';
 import TimeSince from 'app/components/timeSince';
-import {analytics} from 'app/utils/analytics';
 import parseApiError from 'app/utils/parseApiError';
 import parseLinkHeader from 'app/utils/parseLinkHeader';
 import queryString from 'app/utils/queryString';
@@ -524,8 +524,12 @@ const Stream = createReactClass({
   },
 
   onSidebarToggle() {
+    let org = this.getOrganization();
     this.setState({
       isSidebarVisible: !this.state.isSidebarVisible,
+    });
+    analytics('issue.search_sidebar_clicked', {
+      org_id: parseInt(org.id, 10),
     });
   },
 
@@ -710,10 +714,10 @@ const Stream = createReactClass({
       body = this.renderLoading();
     } else if (this.state.error) {
       body = <LoadingError message={this.state.error} onRetry={this.fetchData} />;
-    } else if (!project.firstEvent) {
-      body = this.renderAwaitingEvents();
     } else if (this.state.groupIds.length > 0) {
       body = this.renderGroupNodes(this.state.groupIds, this.state.statsPeriod);
+    } else if (!project.firstEvent) {
+      body = this.renderAwaitingEvents();
     } else {
       body = this.renderEmpty();
     }

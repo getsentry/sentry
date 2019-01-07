@@ -16,7 +16,8 @@ from sentry_sdk.consts import VERSION as SDK_VERSION
 from sentry_sdk.utils import Auth, capture_internal_exceptions
 from sentry_sdk.utils import logger as sdk_logger
 
-from . import metrics
+from sentry.utils import metrics
+from sentry.utils.rust import RustInfoIntegration
 
 UNSAFE_FILES = ('sentry/event_manager.py', 'sentry/tasks/process_buffer.py', )
 
@@ -69,7 +70,7 @@ def get_project_key():
 class SentryInternalFilter(logging.Filter):
     def filter(self, record):
         # TODO(mattrobenolt): handle an upstream Sentry
-        metrics.incr('internal.uncaptured.logs')
+        metrics.incr('internal.uncaptured.logs', skip_internal=False)
         return is_current_event_safe()
 
 
@@ -100,7 +101,8 @@ def configure_sdk():
         integrations=[
             DjangoIntegration(),
             CeleryIntegration(),
-            LoggingIntegration(event_level=None)
+            LoggingIntegration(event_level=None),
+            RustInfoIntegration(),
         ],
         transport=capture_event,
         **options
@@ -127,7 +129,7 @@ class InternalTransport(Transport):
                 return
 
             if not is_current_event_safe():
-                metrics.incr('internal.uncaptured.events')
+                metrics.incr('internal.uncaptured.events', skip_internal=False)
                 sdk_logger.warn('internal-error.unsafe-stacktrace')
                 return
 

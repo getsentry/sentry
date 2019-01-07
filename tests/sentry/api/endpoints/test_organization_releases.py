@@ -3,14 +3,30 @@ from __future__ import absolute_import
 from mock import patch
 
 from base64 import b64encode
-from datetime import datetime
+from datetime import (
+    datetime,
+    timedelta,
+)
 from django.core.urlresolvers import reverse
+from exam import fixture
 
 from sentry.models import (
-    Activity, ApiKey, ApiToken, Environment, Release, ReleaseCommit, ReleaseEnvironment, ReleaseProject, Repository
+    Activity,
+    ApiKey,
+    ApiToken,
+    Commit,
+    CommitAuthor,
+    CommitFileChange,
+    Environment,
+    Release,
+    ReleaseCommit,
+    ReleaseHeadCommit,
+    ReleaseProjectEnvironment,
+    ReleaseProject,
+    Repository,
 )
 from sentry.plugins.providers.dummy.repository import DummyRepositoryProvider
-from sentry.testutils import APITestCase
+from sentry.testutils import APITestCase, ReleaseCommitPatchTest, SetRefsTestCase
 
 
 class OrganizationReleaseListTest(APITestCase):
@@ -635,7 +651,8 @@ class OrganizationReleaseCreateTest(APITestCase):
                     },
                 ],
                 'projects': [project.slug]
-            }
+            },
+            format='json',
         )
 
         mock_fetch_commits.apply_async.assert_called_with(
@@ -897,6 +914,132 @@ class OrganizationReleaseCreateTest(APITestCase):
         assert response.data == {'refs': [u'Invalid repository names: not_a_repo']}
 
 
+class OrganizationReleaseCommitRangesTest(SetRefsTestCase):
+    def setUp(self):
+        super(OrganizationReleaseCommitRangesTest, self).setUp()
+        self.url = reverse('sentry-api-0-organization-releases',
+                           kwargs={'organization_slug': self.org.slug})
+
+    @patch('sentry.tasks.commits.fetch_commits')
+    def test_simple(self, mock_fetch_commits):
+        refs = [
+            {
+                'repository': 'test/repo',
+                'previousCommit': None,
+                'commit': 'previous-commit-id..current-commit-id',
+            },
+            {
+                'repository': 'test/repo',
+                'previousCommit': 'previous-commit-will-be-ignored',
+                'commit': 'previous-commit-id-2..current-commit-id-2',
+            },
+            {
+                'repository': 'test/repo',
+                'commit': 'previous-commit-id-3..current-commit-id-3',
+            },
+        ]
+
+        response = self.client.post(
+            self.url,
+            data={
+                'version': '1',
+                'refs': refs,
+                'projects': [self.project.slug]
+            },
+        )
+
+        assert response.status_code == 201
+
+        release = Release.objects.get(version='1', organization=self.org)
+
+        commits = Commit.objects.all().order_by('id')
+        self.assert_commit(commits[0], 'current-commit-id')
+        self.assert_commit(commits[1], 'current-commit-id-2')
+        self.assert_commit(commits[2], 'current-commit-id-3')
+
+        head_commits = ReleaseHeadCommit.objects.all()
+        self.assert_head_commit(head_commits[0], 'current-commit-id-3', release_id=release.id)
+
+        refs_expected = [
+            {
+                'repository': 'test/repo',
+                'previousCommit': 'previous-commit-id',
+                'commit': 'current-commit-id',
+            },
+            {
+                'repository': 'test/repo',
+                'previousCommit': 'previous-commit-id-2',
+                'commit': 'current-commit-id-2',
+            },
+            {
+                'repository': 'test/repo',
+                'previousCommit': 'previous-commit-id-3',
+                'commit': 'current-commit-id-3',
+            },
+        ]
+        self.assert_fetch_commits(mock_fetch_commits, None, release.id, refs_expected)
+
+    @patch('sentry.tasks.commits.fetch_commits')
+    def test_head_commit(self, mock_fetch_commits):
+        headCommits = [
+            {
+                'currentId': 'current-commit-id',
+                'previousId': 'previous-commit-id',
+                'repository': self.repo.name
+            },
+            {
+                'currentId': 'current-commit-id-2',
+                'previousId': 'previous-commit-id-2',
+                'repository': self.repo.name
+            },
+            {
+                'currentId': 'current-commit-id-3',
+                'previousId': 'previous-commit-id-3',
+                'repository': self.repo.name
+            },
+        ]
+
+        response = self.client.post(
+            self.url,
+            data={
+                'version': '1',
+                'headCommits': headCommits,
+                'projects': [self.project.slug]
+            },
+        )
+
+        assert response.status_code == 201
+
+        release = Release.objects.get(version='1', organization=self.org)
+
+        commits = Commit.objects.all().order_by('id')
+        self.assert_commit(commits[0], 'current-commit-id')
+        self.assert_commit(commits[1], 'current-commit-id-2')
+        self.assert_commit(commits[2], 'current-commit-id-3')
+
+        head_commits = ReleaseHeadCommit.objects.all()
+        self.assert_head_commit(head_commits[0], 'current-commit-id-3', release_id=release.id)
+
+        refs_expected = [
+            {
+                'repository': 'test/repo',
+                'previousCommit': 'previous-commit-id',
+                'commit': 'current-commit-id',
+            },
+            {
+                'repository': 'test/repo',
+                'previousCommit': 'previous-commit-id-2',
+                'commit': 'current-commit-id-2',
+            },
+            {
+                'repository': 'test/repo',
+                'previousCommit': 'previous-commit-id-3',
+                'commit': 'current-commit-id-3',
+            },
+        ]
+        self.assert_fetch_commits(mock_fetch_commits, None, release.id, refs_expected)
+
+
 class OrganizationReleaseListEnvironmentsTest(APITestCase):
     def setUp(self):
         self.login_as(user=self.user)
@@ -914,8 +1057,7 @@ class OrganizationReleaseListEnvironmentsTest(APITestCase):
             date_added=datetime(2013, 8, 13, 3, 8, 24, 880386),
         )
         release1.add_project(project1)
-        ReleaseEnvironment.objects.create(
-            organization_id=org.id,
+        ReleaseProjectEnvironment.objects.create(
             project_id=project1.id,
             release_id=release1.id,
             environment_id=env1.id,
@@ -927,8 +1069,7 @@ class OrganizationReleaseListEnvironmentsTest(APITestCase):
             date_added=datetime(2013, 8, 14, 3, 8, 24, 880386),
         )
         release2.add_project(project2)
-        ReleaseEnvironment.objects.create(
-            organization_id=org.id,
+        ReleaseProjectEnvironment.objects.create(
             project_id=project2.id,
             release_id=release2.id,
             environment_id=env2.id,
@@ -941,8 +1082,7 @@ class OrganizationReleaseListEnvironmentsTest(APITestCase):
             date_released=datetime(2013, 8, 15, 3, 8, 24, 880386),
         )
         release3.add_project(project1)
-        ReleaseEnvironment.objects.create(
-            organization_id=org.id,
+        ReleaseProjectEnvironment.objects.create(
             project_id=project1.id,
             release_id=release3.id,
             environment_id=env2.id,
@@ -954,6 +1094,23 @@ class OrganizationReleaseListEnvironmentsTest(APITestCase):
         )
         release4.add_project(project2)
 
+        release5 = Release.objects.create(
+            organization_id=org.id,
+            version='5',
+        )
+        release5.add_project(project1)
+        release5.add_project(project2)
+        ReleaseProjectEnvironment.objects.create(
+            project_id=project1.id,
+            release_id=release5.id,
+            environment_id=env1.id,
+        )
+        ReleaseProjectEnvironment.objects.create(
+            project_id=project2.id,
+            release_id=release5.id,
+            environment_id=env2.id,
+        )
+
         self.project1 = project1
         self.project2 = project2
 
@@ -961,6 +1118,7 @@ class OrganizationReleaseListEnvironmentsTest(APITestCase):
         self.release2 = release2
         self.release3 = release3
         self.release4 = release4
+        self.release5 = release5
 
         self.env1 = env1
         self.env2 = env2
@@ -991,10 +1149,10 @@ class OrganizationReleaseListEnvironmentsTest(APITestCase):
             }
         )
         response = self.client.get(url + '?environment=' + self.env1.name, format='json')
-        self.assert_releases(response, [self.release1])
+        self.assert_releases(response, [self.release1, self.release5])
 
         response = self.client.get(url + '?environment=' + self.env2.name, format='json')
-        self.assert_releases(response, [self.release2, self.release3])
+        self.assert_releases(response, [self.release2, self.release3, self.release5])
 
     def test_empty_environment(self):
         url = reverse(
@@ -1004,8 +1162,7 @@ class OrganizationReleaseListEnvironmentsTest(APITestCase):
             }
         )
         env = self.make_environment('', self.project2)
-        ReleaseEnvironment.objects.create(
-            organization_id=self.org.id,
+        ReleaseProjectEnvironment.objects.create(
             project_id=self.project2.id,
             release_id=self.release4.id,
             environment_id=env.id,
@@ -1021,7 +1178,10 @@ class OrganizationReleaseListEnvironmentsTest(APITestCase):
             }
         )
         response = self.client.get(url, format='json')
-        self.assert_releases(response, [self.release1, self.release2, self.release3, self.release4])
+        self.assert_releases(
+            response,
+            [self.release1, self.release2, self.release3, self.release4, self.release5],
+        )
 
     def test_invalid_environment(self):
         url = reverse(
@@ -1031,4 +1191,130 @@ class OrganizationReleaseListEnvironmentsTest(APITestCase):
             }
         )
         response = self.client.get(url + '?environment=' + 'invalid_environment', format='json')
-        self.assert_releases(response, [])
+        assert response.status_code == 404
+
+    def test_specify_project_ids(self):
+        url = reverse(
+            'sentry-api-0-organization-releases',
+            kwargs={'organization_slug': self.org.slug},
+        )
+        response = self.client.get(url, format='json', data={'project': self.project1.id})
+        self.assert_releases(response, [self.release1, self.release3, self.release5])
+        response = self.client.get(url, format='json', data={'project': self.project2.id})
+        self.assert_releases(response, [self.release2, self.release4, self.release5])
+        response = self.client.get(
+            url,
+            format='json',
+            data={'project': [self.project1.id, self.project2.id]},
+        )
+        self.assert_releases(
+            response,
+            [self.release1, self.release2, self.release3, self.release4, self.release5],
+        )
+
+    def test_date_range(self):
+        url = reverse('sentry-api-0-organization-releases',
+                      kwargs={'organization_slug': self.org.slug})
+        response = self.client.get(
+            url,
+            format='json',
+            data={
+                'start': (datetime.now() - timedelta(days=1)).isoformat() + 'Z',
+                'end': datetime.now().isoformat() + 'Z',
+            },
+        )
+        self.assert_releases(response, [self.release4, self.release5])
+
+
+class OrganizationReleaseCreateCommitPatch(ReleaseCommitPatchTest):
+    @fixture
+    def url(self):
+        return reverse(
+            'sentry-api-0-organization-releases',
+            kwargs={'organization_slug': self.org.slug}
+        )
+
+    def test_commits_with_patch_set(self):
+        response = self.client.post(
+            self.url,
+            data={
+                "version": "2d1ab93fe4bb42db80890f01f8358fc9f8fbff3b",
+                "projects": [self.project.slug],
+                "commits": [
+                    {
+                        "patch_set": [{"path": "hello.py", "type": "M"}, {"path": "templates/hola.html", "type": "D"}],
+                        "repository": "laurynsentry/helloworld",
+                        "author_email": "lauryndbrown@gmail.com",
+                        "timestamp": "2018-11-29T18:50:28+03:00",
+                        "author_name": "Lauryn Brown",
+                        "message": "made changes to hello.",
+                        "id": "2d1ab93fe4bb42db80890f01f8358fc9f8fbff3b"
+                    }, {
+                        "patch_set": [{"path": "templates/hello.html", "type": "M"}, {"path": "templates/goodbye.html", "type": "A"}],
+                        "repository": "laurynsentry/helloworld",
+                        "author_email": "lauryndbrown@gmail.com",
+                        "timestamp": "2018-11-30T22:51:14+03:00",
+                        "author_name": "Lauryn Brown",
+                        "message": "Changed release",
+                        "id": "be2fe070f6d1b8a572b67defc87af2582f9b0d78"
+                    }
+                ]
+            }
+        )
+
+        assert response.status_code == 201, (response.status_code, response.content)
+        assert response.data['version']
+
+        release = Release.objects.get(
+            organization_id=self.org.id,
+            version=response.data['version'],
+        )
+
+        repo = Repository.objects.get(
+            organization_id=self.org.id,
+            name='laurynsentry/helloworld',
+        )
+        assert repo.provider is None
+
+        rc_list = list(
+            ReleaseCommit.objects.filter(
+                release=release,
+            ).select_related('commit', 'commit__author').order_by('order')
+        )
+        assert len(rc_list) == 2
+        for rc in rc_list:
+            assert rc.organization_id
+
+        author = CommitAuthor.objects.get(
+            organization_id=self.org.id,
+            email='lauryndbrown@gmail.com'
+        )
+        assert author.name == 'Lauryn Brown'
+
+        commits = [rc.commit for rc in rc_list]
+        commits.sort(key=lambda c: c.date_added)
+
+        self.assert_commit(
+            commit=commits[0],
+            repo_id=repo.id,
+            key='2d1ab93fe4bb42db80890f01f8358fc9f8fbff3b',
+            author_id=author.id,
+            message='made changes to hello.',
+        )
+
+        self.assert_commit(
+            commit=commits[1],
+            repo_id=repo.id,
+            key='be2fe070f6d1b8a572b67defc87af2582f9b0d78',
+            author_id=author.id,
+            message='Changed release',
+        )
+
+        file_changes = CommitFileChange.objects.filter(
+            organization_id=self.org.id
+        ).order_by('filename')
+
+        self.assert_file_change(file_changes[0], 'M', 'hello.py', commits[0].id)
+        self.assert_file_change(file_changes[1], 'A', 'templates/goodbye.html', commits[1].id)
+        self.assert_file_change(file_changes[2], 'M', 'templates/hello.html', commits[1].id)
+        self.assert_file_change(file_changes[3], 'D', 'templates/hola.html', commits[0].id)

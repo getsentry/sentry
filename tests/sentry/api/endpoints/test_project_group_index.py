@@ -13,7 +13,7 @@ from sentry import tagstore
 from sentry.models import (
     Activity, ApiToken, EventMapping, Group, GroupAssignee, GroupBookmark, GroupHash,
     GroupLink, GroupResolution, GroupSeen, GroupShare, GroupSnooze, GroupStatus, GroupSubscription,
-    GroupTombstone, ExternalIssue, Integration, Release, UserOption, OrganizationIntegration
+    GroupTombstone, ExternalIssue, Integration, Release, OrganizationIntegration, UserOption
 )
 from sentry.models.event import Event
 from sentry.testutils import APITestCase
@@ -266,6 +266,41 @@ class GroupListTest(APITestCase):
 
         self.login_as(user=self.user)
         response = self.client.get(u'{}?query={}'.format(self.path, 'c' * 32), format='json')
+        assert response.status_code == 200
+        assert len(response.data) == 0
+
+    def test_lookup_by_short_id(self):
+        group = self.group
+        short_id = group.qualified_short_id
+
+        self.login_as(user=self.user)
+        response = self.client.get(
+            u'{}?query={}&shortIdLookup=1'.format(
+                self.path, short_id), format='json')
+        assert response.status_code == 200
+        assert len(response.data) == 1
+
+    def test_lookup_by_short_id_no_perms(self):
+        organization = self.create_organization()
+        project = self.create_project(organization=organization)
+        project2 = self.create_project(organization=organization)
+        team = self.create_team(organization=organization)
+        project2.add_team(team)
+        group = self.create_group(project=project)
+        user = self.create_user()
+        self.create_member(organization=organization, user=user, teams=[team])
+
+        short_id = group.qualified_short_id
+
+        self.login_as(user=user)
+
+        path = u'/api/0/projects/{}/{}/issues/'.format(
+            organization.slug,
+            project2.slug,
+        )
+        response = self.client.get(
+            u'{}?query={}&shortIdLookup=1'.format(
+                path, short_id), format='json')
         assert response.status_code == 200
         assert len(response.data) == 0
 
@@ -957,6 +992,166 @@ class GroupUpdateTest(APITestCase):
             type=Activity.SET_RESOLVED_IN_RELEASE,
         )
         assert activity.data['version'] == ''
+
+    def test_set_resolved_in_explicit_commit_unreleased(self):
+        repo = self.create_repo(
+            project=self.project,
+            name=self.project.name,
+        )
+        commit = self.create_commit(
+            project=self.project,
+            repo=repo,
+        )
+        group = self.create_group(
+            checksum='a' * 32,
+            status=GroupStatus.UNRESOLVED,
+        )
+
+        self.login_as(user=self.user)
+
+        url = u'{url}?id={group.id}'.format(
+            url=self.path,
+            group=group,
+        )
+        response = self.client.put(
+            url,
+            data={
+                'status': 'resolved',
+                'statusDetails': {
+                    'inCommit': {
+                        'commit': commit.key,
+                        'repository': repo.name,
+                    },
+                },
+            },
+            format='json'
+        )
+        assert response.status_code == 200
+        assert response.data['status'] == 'resolved'
+        assert response.data['statusDetails']['inCommit']['id'] == commit.key
+        assert response.data['statusDetails']['actor']['id'] == six.text_type(self.user.id)
+
+        group = Group.objects.get(id=group.id)
+        assert group.status == GroupStatus.RESOLVED
+
+        link = GroupLink.objects.get(group_id=group.id)
+        assert link.linked_type == GroupLink.LinkedType.commit
+        assert link.relationship == GroupLink.Relationship.resolves
+        assert link.linked_id == commit.id
+
+        assert GroupSubscription.objects.filter(
+            user=self.user,
+            group=group,
+            is_active=True,
+        ).exists()
+
+        activity = Activity.objects.get(
+            group=group,
+            type=Activity.SET_RESOLVED_IN_COMMIT,
+        )
+        assert activity.data['commit'] == commit.id
+
+    def test_set_resolved_in_explicit_commit_released(self):
+        release = self.create_release(
+            project=self.project,
+        )
+        repo = self.create_repo(
+            project=self.project,
+            name=self.project.name,
+        )
+        commit = self.create_commit(
+            project=self.project,
+            repo=repo,
+            release=release,
+        )
+
+        group = self.create_group(
+            checksum='a' * 32,
+            status=GroupStatus.UNRESOLVED,
+        )
+
+        self.login_as(user=self.user)
+
+        url = u'{url}?id={group.id}'.format(
+            url=self.path,
+            group=group,
+        )
+        response = self.client.put(
+            url,
+            data={
+                'status': 'resolved',
+                'statusDetails': {
+                    'inCommit': {
+                        'commit': commit.key,
+                        'repository': repo.name,
+                    },
+                },
+            },
+            format='json'
+        )
+        assert response.status_code == 200
+        assert response.data['status'] == 'resolved'
+        assert response.data['statusDetails']['inCommit']['id'] == commit.key
+        assert response.data['statusDetails']['actor']['id'] == six.text_type(self.user.id)
+
+        group = Group.objects.get(id=group.id)
+        assert group.status == GroupStatus.RESOLVED
+
+        link = GroupLink.objects.get(group_id=group.id)
+        assert link.project_id == self.project.id
+        assert link.linked_type == GroupLink.LinkedType.commit
+        assert link.relationship == GroupLink.Relationship.resolves
+        assert link.linked_id == commit.id
+
+        assert GroupSubscription.objects.filter(
+            user=self.user,
+            group=group,
+            is_active=True,
+        ).exists()
+
+        activity = Activity.objects.get(
+            group=group,
+            type=Activity.SET_RESOLVED_IN_COMMIT,
+        )
+        assert activity.data['commit'] == commit.id
+
+        resolution = GroupResolution.objects.get(
+            group=group,
+        )
+        assert resolution.type == GroupResolution.Type.in_release
+        assert resolution.status == GroupResolution.Status.resolved
+
+    def test_set_resolved_in_explicit_commit_missing(self):
+        repo = self.create_repo(
+            project=self.project,
+            name=self.project.name,
+        )
+        group = self.create_group(
+            checksum='a' * 32,
+            status=GroupStatus.UNRESOLVED,
+        )
+
+        self.login_as(user=self.user)
+
+        url = u'{url}?id={group.id}'.format(
+            url=self.path,
+            group=group,
+        )
+        response = self.client.put(
+            url,
+            data={
+                'status': 'resolved',
+                'statusDetails': {
+                    'inCommit': {
+                        'commit': 'a' * 40,
+                        'repository': repo.name,
+                    },
+                },
+            },
+            format='json'
+        )
+        assert response.status_code == 400
+        assert response.data['statusDetails'][0]['inCommit'][0]['commit']
 
     def test_set_unresolved(self):
         release = self.create_release(project=self.project, version='abc')

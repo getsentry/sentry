@@ -31,7 +31,8 @@ class WebHooksPluginTest(TestCase):
         notification = Notification(event=event, rule=rule)
         self.project.update_option('webhooks:urls', 'http://example.com')
 
-        self.plugin.notify(notification)
+        with self.feature('organizations:legacy-event-id'):
+            self.plugin.notify(notification)
 
         assert len(responses.calls) == 1
 

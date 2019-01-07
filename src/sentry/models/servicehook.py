@@ -18,10 +18,13 @@ from sentry.db.models import (
     FlexibleForeignKey,
     sane_repr,
 )
+from sentry.models import SentryApp
 
 SERVICE_HOOK_EVENTS = [
     'event.alert',
     'event.created',
+    # 'issue.created', This is only allowed for Sentry Apps, but listing it
+    #                  here for discoverability purposes.
 ]
 
 
@@ -57,6 +60,13 @@ class ServiceHook(Model):
         db_table = 'sentry_servicehook'
 
     __repr__ = sane_repr('guid', 'project_id')
+
+    @property
+    def created_by_sentry_app(self):
+        return self.application_id and \
+            SentryApp.objects.filter(
+                application_id=self.application_id,
+            ).exists()
 
     def __init__(self, *args, **kwargs):
         super(ServiceHook, self).__init__(*args, **kwargs)

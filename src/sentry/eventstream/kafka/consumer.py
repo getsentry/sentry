@@ -6,7 +6,7 @@ import threading
 import uuid
 
 from concurrent.futures import TimeoutError
-from confluent_kafka import Consumer, OFFSET_BEGINNING, TopicPartition
+from confluent_kafka import Consumer, OFFSET_BEGINNING, OFFSET_END, OFFSET_STORED, OFFSET_INVALID, TopicPartition
 
 from sentry.eventstream.kafka.state import SynchronizedPartitionState, SynchronizedPartitionStateManager
 from sentry.utils.concurrent import execute
@@ -20,6 +20,12 @@ def get_commit_data(message):
     partition = int(partition)
     offset = int(message.value().decode('utf-8'))
     return group, topic, partition, offset
+
+
+# Set of logical (not literal) offsets that don't follow normal numeric
+# comparison rules and should be ignored.
+# https://github.com/confluentinc/confluent-kafka-python/blob/443177e1c83d9b66ce30f5eb8775e062453a738b/tests/test_enums.py#L22-L25
+LOGICAL_OFFSETS = frozenset([OFFSET_BEGINNING, OFFSET_END, OFFSET_STORED, OFFSET_INVALID])
 
 
 def run_commit_log_consumer(bootstrap_servers, consumer_group, commit_log_topic,
@@ -82,6 +88,20 @@ def run_commit_log_consumer(bootstrap_servers, consumer_group, commit_log_topic,
         if group != synchronize_commit_group:
             logger.debug('Received consumer offsets update from %r, ignoring...', group)
             continue
+
+        if offset in LOGICAL_OFFSETS:
+            logger.debug(
+                'Skipping invalid logical offset (%r) from %s/%s...',
+                offset,
+                topic,
+                partition)
+            continue
+        elif offset < 0:
+            logger.warning(
+                'Received unexpected negative offset (%r) from %s/%s!',
+                offset,
+                topic,
+                partition)
 
         partition_state_manager.set_remote_offset(topic, partition, offset)
 
@@ -254,6 +274,10 @@ class SynchronizedConsumer(object):
                                  for topic, partition in assignment.keys()])
 
         def revocation_callback(consumer, assignment):
+            for item in assignment:
+                # TODO: This should probably also be removed from the state manager.
+                self.__positions.pop((item.topic, item.partition))
+
             if on_revoke is not None:
                 on_revoke(self, assignment)
 

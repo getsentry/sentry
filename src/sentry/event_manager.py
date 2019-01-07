@@ -31,13 +31,13 @@ from sentry.coreapi import (
     decode_data,
     safely_load_json_string,
 )
-from sentry.interfaces.base import get_interface, prune_empty_keys, InterfaceValidationError
+from sentry.interfaces.base import get_interface, prune_empty_keys
 from sentry.interfaces.exception import normalize_mechanism_meta
 from sentry.interfaces.schemas import validate_and_default_interface
 from sentry.lang.native.utils import get_sdk_from_event
 from sentry.models import (
     Activity, Environment, Event, EventError, EventMapping, EventUser, Group,
-    GroupEnvironment, GroupHash, GroupRelease, GroupResolution, GroupStatus,
+    GroupEnvironment, GroupHash, GroupLink, GroupRelease, GroupResolution, GroupStatus,
     Project, Release, ReleaseEnvironment, ReleaseProject,
     ReleaseProjectEnvironment, UserReport
 )
@@ -180,13 +180,18 @@ def plugin_is_regression(group, event):
     return True
 
 
-def process_timestamp(value, current_datetime=None):
+def process_timestamp(value, meta, current_datetime=None):
+    original_value = value
+    if value is None:
+        return None
+
     if is_float(value):
         try:
             value = datetime.fromtimestamp(float(value))
         except Exception:
-            raise InvalidTimestamp(EventError.INVALID_DATA)
-    elif not isinstance(value, datetime):
+            meta.add_error(EventError.INVALID_DATA, original_value)
+            return None
+    elif isinstance(value, six.string_types):
         # all timestamps are in UTC, but the marker is optional
         if value.endswith('Z'):
             value = value[:-1]
@@ -201,18 +206,35 @@ def process_timestamp(value, current_datetime=None):
         try:
             value = datetime.strptime(value, fmt)
         except Exception:
-            raise InvalidTimestamp(EventError.INVALID_DATA)
+            meta.add_error(EventError.INVALID_DATA, original_value)
+            return None
+    elif not isinstance(value, datetime):
+        meta.add_error(EventError.INVALID_DATA, original_value)
+        return None
 
     if current_datetime is None:
         current_datetime = datetime.now()
 
     if value > current_datetime + ALLOWED_FUTURE_DELTA:
-        raise InvalidTimestamp(EventError.FUTURE_TIMESTAMP)
+        meta.add_error(EventError.FUTURE_TIMESTAMP, original_value)
+        return None
 
     if value < current_datetime - timedelta(days=30):
-        raise InvalidTimestamp(EventError.PAST_TIMESTAMP)
+        meta.add_error(EventError.PAST_TIMESTAMP, original_value)
+        return None
 
     return float(value.strftime('%s'))
+
+
+def has_pending_commit_resolution(group):
+    return GroupLink.objects.filter(
+        group_id=group.id,
+        linked_type=GroupLink.LinkedType.commit,
+        relationship=GroupLink.Relationship.resolves,
+    ).extra(
+        where=[
+            "NOT EXISTS(SELECT 1 FROM sentry_releasecommit where commit_id = sentry_grouplink.linked_id)"]
+    ).exists()
 
 
 class HashDiscarded(Exception):
@@ -288,8 +310,18 @@ else:
             return scoreclause_sql(self, connection)
 
 
-class InvalidTimestamp(Exception):
-    pass
+def add_meta_errors(errors, meta):
+    for field_meta in meta:
+        original_value = field_meta.get().get('val')
+
+        for i, (err_type, err_data) in enumerate(field_meta.iter_errors()):
+            error = dict(err_data)
+            error['type'] = err_type
+            if field_meta.path:
+                error['name'] = field_meta.path
+            if i == 0 and original_value is not None:
+                error['value'] = original_value
+            errors.append(error)
 
 
 def _decode_event(data, content_encoding):
@@ -420,11 +452,6 @@ class EventManager(object):
             if self._auth is not None:
                 data['sdk'] = data.get('sdk') or parse_client_as_sdk(self._auth.client)
 
-        # permit the client to transmit errors as well.
-        errors = data.get('errors')
-        if not errors:
-            errors = data['errors'] = []
-
         # Before validating with a schema, attempt to cast values to their desired types
         # so that the schema doesn't have to take every type variation into account.
         text = six.text_type
@@ -446,7 +473,6 @@ class EventManager(object):
             'dist': lambda v: text(v).strip() if v is not None else v,
             'time_spent': lambda v: int(v) if v is not None else v,
             'tags': lambda v: [(text(v_k).replace(' ', '-').strip(), text(v_v).strip()) for (v_k, v_v) in dict(v).items()],
-            'timestamp': lambda v: process_timestamp(v),
             'platform': lambda v: v if v in VALID_PLATFORMS else 'other',
             'logentry': lambda v: v if isinstance(v, dict) else {'message': v},
 
@@ -459,17 +485,17 @@ class EventManager(object):
         meta = Meta(data.get('_meta'))
 
         for c in casts:
-            if data.get(c) is not None:
+            value = data.pop(c, None)
+            if value is not None:
                 try:
-                    data[c] = casts[c](data[c])
-                except InvalidTimestamp as it:
-                    errors.append({'type': it.args[0], 'name': c, 'value': data[c]})
-                    meta.enter(c).add_error(it, data[c])
-                    del data[c]
+                    data[c] = casts[c](value)
                 except Exception as e:
-                    errors.append({'type': EventError.INVALID_DATA, 'name': c, 'value': data[c]})
-                    meta.enter(c).add_error(e, data[c])
-                    del data[c]
+                    meta.enter(c).add_error(EventError.INVALID_DATA, value, {
+                        'reason': six.text_type(e),
+                    })
+
+        data['timestamp'] = process_timestamp(data.get('timestamp'),
+                                              meta.enter('timestamp'))
 
         # raw 'message' is coerced to the Message interface.  Longer term
         # we want to treat 'message' as a pure alias for 'logentry' but
@@ -505,11 +531,10 @@ class EventManager(object):
         # Validate main event body and tags against schema.
         # XXX(ja): jsonschema does not like CanonicalKeyDict, so we need to pass
         #          in the inner data dict.
-        is_valid, event_errors = validate_and_default_interface(data.data, 'event')
-        errors.extend(event_errors)
+        validate_and_default_interface(data.data, 'event', meta=meta)
         if data.get('tags') is not None:
-            is_valid, tag_errors = validate_and_default_interface(data['tags'], 'tags', name='tags')
-            errors.extend(tag_errors)
+            validate_and_default_interface(
+                data['tags'], 'tags', name='tags', meta=meta.enter('tags'))
 
         # Validate interfaces
         for k in list(iter(data)):
@@ -518,26 +543,22 @@ class EventManager(object):
 
             value = data.pop(k)
 
+            # Ignore all top-level None and empty values, regardless whether
+            # they are interfaces or not. For all other unrecognized attributes,
+            # we emit an explicit error.
             if not value:
-                logger.debug('Ignored empty interface value: %s', k)
                 continue
 
             try:
                 interface = get_interface(k)
             except ValueError:
                 logger.debug('Ignored unknown attribute: %s', k)
-                errors.append({'type': EventError.INVALID_ATTRIBUTE, 'name': k})
+                meta.enter(k).add_error(EventError.INVALID_ATTRIBUTE)
                 continue
 
-            try:
-                inst = interface.to_python(value)
-                data[inst.path] = inst.to_json()
-            except Exception as e:
-                log = logger.debug if isinstance(
-                    e, InterfaceValidationError) else logger.error
-                log('Discarded invalid value for interface: %s (%r)', k, value, exc_info=True)
-                errors.append({'type': EventError.INVALID_DATA, 'name': k, 'value': value})
-                meta.enter(k).add_error(e, value)
+            normalized = interface.normalize(value, meta.enter(k))
+            if normalized:
+                data[interface.path] = normalized
 
         # Additional data coercion and defaulting we only do for store.
         if self._for_store:
@@ -649,9 +670,20 @@ class EventManager(object):
         if server_name is not None:
             set_tag(data, 'server_name', server_name)
 
-        for key in ('errors', 'tags', 'extra', 'fingerprint'):
+        for key in ('fingerprint', 'modules', 'tags', 'extra'):
             if not data.get(key):
                 data.pop(key, None)
+
+        # Merge meta errors into the errors array. We need to iterate over the
+        # raw meta instead of data due to pruned null values.
+        errors = data.get('errors') or []
+        add_meta_errors(errors, meta)
+        add_meta_errors(errors, meta.enter('tags'))
+
+        if errors:
+            data['errors'] = errors
+        elif 'errors' in data:
+            del data['errors']
 
         if meta.raw():
             data['_meta'] = meta.raw()
@@ -712,6 +744,8 @@ class EventManager(object):
         date = datetime.fromtimestamp(recorded_timestamp)
         date = date.replace(tzinfo=timezone.utc)
         time_spent = data.get('time_spent')
+
+        data['node_id'] = Event.generate_node_id(project_id, event_id)
 
         return Event(
             project_id=project_id or self._project.id,
@@ -1319,6 +1353,9 @@ class EventManager(object):
         # we only mark it as a regression if the event's release is newer than
         # the release which we originally marked this as resolved
         elif GroupResolution.has_resolution(group, release):
+            return
+
+        elif has_pending_commit_resolution(group):
             return
 
         if not plugin_is_regression(group, event):

@@ -42,6 +42,7 @@ export default function createQueryBuilder(initial = {}, organization) {
   const defaultProjects = organization.projects
     .filter(projects => projects.isMember)
     .map(project => parseInt(project.id, 10));
+  const columns = COLUMNS.map(col => ({...col, isTag: false}));
   let tags = [];
 
   return {
@@ -74,13 +75,13 @@ export default function createQueryBuilder(initial = {}, organization) {
       .then(res => {
         tags = res.data.map(tag => {
           const type = SPECIAL_TAGS[tags.tags_key] || 'string';
-          return {name: tag.tags_key, type};
+          return {name: tag.tags_key, type, isTag: true};
         });
       })
       .catch(err => {
         tags = PROMOTED_TAGS.map(tag => {
           const type = SPECIAL_TAGS[tag] || 'string';
-          return {name: tag, type};
+          return {name: tag, type, isTag: true};
         });
       });
   }
@@ -173,12 +174,10 @@ export default function createQueryBuilder(initial = {}, organization) {
    * @param {Object} [data] Optional field to provide data to fetch
    * @returns {Promise<Object|Error>}
    */
-  function fetch(data, cursor = '0:0:1') {
+  function fetch(data = getExternal(), cursor = '0:0:1') {
     const api = new Client();
     const limit = data.limit || 1000;
     const endpoint = `/organizations/${organization.slug}/discover/query/?per_page=${limit}&cursor=${cursor}`;
-
-    data = data || getExternal();
 
     // Reject immediately if no projects are available
     if (!data.projects.length) {
@@ -219,18 +218,18 @@ export default function createQueryBuilder(initial = {}, organization) {
         ...originalQuery,
         groupby: ['time'],
         rollup: 60 * 60 * 24,
-        orderby: 'time',
+        orderby: '-time',
         limit: 1000,
       };
     }
 
-    // If there are no aggregations, always ensure we fetch event ID and
-    // project ID so we can display the link to event
+    // If id or issue.id is present in query fields, always fetch the project.id
+    // so we can generate links
     if (type === 'baseQuery') {
-      return !originalQuery.aggregations.length && originalQuery.fields.length
+      return originalQuery.fields.some(field => field === 'id' || field === 'issue.id')
         ? {
             ...originalQuery,
-            fields: uniq([...originalQuery.fields, 'id', 'project.id']),
+            fields: uniq([...originalQuery.fields, 'project.id']),
           }
         : originalQuery;
     }
@@ -244,7 +243,7 @@ export default function createQueryBuilder(initial = {}, organization) {
    * @returns {Array<{name: String, type: String}>}
    */
   function getColumns() {
-    return [...COLUMNS, ...tags];
+    return [...columns, ...tags];
   }
 
   /**

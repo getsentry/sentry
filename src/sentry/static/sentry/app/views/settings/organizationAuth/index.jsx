@@ -1,8 +1,8 @@
 import React from 'react';
 
 import {t} from 'app/locale';
-import IndicatorStore from 'app/stores/indicatorStore';
 import AsyncView from 'app/views/asyncView';
+import IndicatorStore from 'app/stores/indicatorStore';
 import SentryTypes from 'app/sentryTypes';
 
 import OrganizationAuthList from './organizationAuthList';
@@ -13,8 +13,11 @@ class OrganizationAuth extends AsyncView {
   };
 
   componentWillUpdate(nextProps, nextState) {
-    if (nextState.provider) {
-      // If SSO provider is configured, keep showing loading while we redirect to django configuration view
+    const access = this.context.organization.access;
+
+    if (nextState.provider && access.includes('org:admin')) {
+      // If SSO provider is configured, keep showing loading while we redirect
+      // to django configuration view
       window.location.assign(`/organizations/${this.props.params.orgId}/auth/configure/`);
     }
   }
@@ -90,33 +93,25 @@ class OrganizationAuth extends AsyncView {
 
   renderBody() {
     let {providerList, provider} = this.state;
+    let access = this.context.organization.access;
 
-    if (!provider) {
-      return (
-        <OrganizationAuthList
-          providerList={providerList}
-          onConfigure={this.handleConfigure}
-        />
-      );
+    if (access.includes('org:admin') && provider) {
+      // If SSO provider is configured, keep showing loading while we redirect
+      // to django configuration view
+      return this.renderLoading();
     }
 
-    // If SSO provider is configured, keep showing loading while we redirect to django configuration view
-    return this.renderLoading();
+    let activeProvider = providerList.find(
+      p => provider && p.key === provider.provider_name
+    );
 
-    /* For now this is in django
-    if (provider) {
-      return (
-        <OrganizationAuthProvider
-          orgId={orgId}
-          onDisableProvider={this.handleDisableProvider}
-          onSendReminders={this.handleSendReminders}
-          sendRemindersBusy={sendRemindersBusy}
-          disableBusy={disableBusy}
-          provider={provider}
-        />
-      );
-    }
-  */
+    return (
+      <OrganizationAuthList
+        activeProvider={activeProvider}
+        providerList={providerList}
+        onConfigure={this.handleConfigure}
+      />
+    );
   }
 }
 

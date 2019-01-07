@@ -1,37 +1,70 @@
 /* global module */
-import {AppContainer} from 'react-hot-loader';
+import 'babel-polyfill';
+import 'bootstrap/js/alert';
+import 'bootstrap/js/tab';
+import 'bootstrap/js/dropdown';
+
+import 'app/utils/emotion-setup';
+
 import {renderToStaticMarkup} from 'react-dom/server';
 import * as Emotion from 'emotion';
 import * as EmotionTheming from 'emotion-theming';
 import * as GridEmotion from 'grid-emotion';
 import JsCookie from 'js-cookie';
 import PropTypes from 'prop-types';
-import Raven from 'raven-js';
 import React from 'react';
 import ReactBootstrapModal from 'react-bootstrap/lib/Modal';
 import ReactDOM from 'react-dom';
 import * as ReactEmotion from 'react-emotion';
 import Reflux from 'reflux';
 import * as Router from 'react-router';
+import * as Sentry from '@sentry/browser';
 import createReactClass from 'create-react-class';
 import jQuery from 'jquery';
 import moment from 'moment';
 
-import 'app/utils/emotion-setup';
-
+import {metric} from 'app/utils/analytics';
+import ConfigStore from 'app/stores/configStore';
 import Main from 'app/main';
-import * as api from 'app/api';
 import ajaxCsrfSetup from 'app/utils/ajaxCsrfSetup';
+import * as api from 'app/api';
 import * as il8n from 'app/locale';
 import plugins from 'app/plugins';
 
+// SDK INIT  --------------------------------------------------------
+// window.__SENTRY__OPTIONS will be emmited by sdk-config.html before loading this script
+Sentry.init(window.__SENTRY__OPTIONS);
+
+Sentry.configureScope(scope => {
+  if (window.__SENTRY__USER) {
+    scope.setUser(window.__SENTRY__USER);
+  }
+  if (window.__SENTRY__VERSION) {
+    scope.setTag('sentry_version', window.__SENTRY__VERSION);
+  }
+});
+
+function __raven_deprecated() {
+  const message = '[DEPRECATED]: Please no longer use Raven, use Sentry instead';
+  // eslint-disable-next-line no-console
+  console.error(message);
+  Sentry.captureMessage(message);
+}
+
+const Raven = {
+  captureMessage: () => __raven_deprecated(),
+  captureException: () => __raven_deprecated(),
+  captureBreadcrumb: () => __raven_deprecated(),
+  showReportDialog: () => __raven_deprecated(),
+  setTagsContext: () => __raven_deprecated(),
+  setExtraContext: () => __raven_deprecated(),
+  setUserContext: () => __raven_deprecated(),
+};
+// -----------------------------------------------------------------
+
 // Used for operational metrics to determine that the application js
 // bundle was loaded by browser.
-//
-// JSDOM implements window.performance but not window.performance.mark
-if (window.performance && typeof window.performance.mark === 'function') {
-  window.performance.mark('sentry-app-init');
-}
+metric.mark('sentry-app-init');
 
 // setup jquery for CSRF tokens
 jQuery.ajaxSetup({
@@ -39,31 +72,26 @@ jQuery.ajaxSetup({
   beforeSend: ajaxCsrfSetup,
 });
 
+// App setup
+if (window.__initialData) {
+  ConfigStore.loadInitialData(window.__initialData, window.__languageCode);
+}
+
 // these get exported to a global variable, which is important as its the only
 // way we can call into scoped objects
 
 let render = Component => {
   let rootEl = document.getElementById('blk_router');
-  ReactDOM.render(
-    <AppContainer>
-      <Component />
-    </AppContainer>,
-    rootEl
-  );
+  ReactDOM.render(<Component />, rootEl);
 };
 
-if (module.hot) {
-  // webpack 2 has built in support for es2015 modules, so don't have to re-require
-  module.hot.accept('./main', () => {
-    render(Main);
-  });
-}
-
-export default {
+const globals = {
+  $: jQuery,
   jQuery,
   moment,
-  Raven,
+  Sentry,
   React,
+  Raven,
   ReactDOM: {
     findDOMNode: ReactDOM.findDOMNode,
     render: ReactDOM.render,
@@ -122,7 +150,6 @@ export default {
     Button: require('app/components/button').default,
     mixins: {
       ApiMixin: require('app/mixins/apiMixin').default,
-      TooltipMixin: require('app/mixins/tooltip').default,
     },
     BarChart: require('app/components/barChart').default,
     i18n: il8n,
@@ -164,8 +191,6 @@ export default {
     Pagination: require('app/components/pagination').default,
     PluginConfig: require('app/components/pluginConfig').default,
     ProjectSelector: require('app/components/projectHeader/projectSelector').default,
-    ReleaseLanding: require('app/views/projectReleases/releaseLanding').default,
-    ReleaseProgress: require('app/views/projectReleases/releaseProgress').default,
     CreateSampleEvent: require('app/components/createSampleEvent').default,
     InstallPromptBanner: require('app/components/installPromptBanner').default,
     SentryTypes: require('app/sentryTypes').default,
@@ -194,6 +219,13 @@ export default {
       ajaxCsrfSetup: require('app/utils/ajaxCsrfSetup').default,
       logging: require('app/utils/logging'),
       descopeFeatureName: require('app/utils').descopeFeatureName,
+      onboardingSteps: require('app/views/onboarding/utils').onboardingSteps,
+      stepDescriptions: require('app/views/onboarding/utils').stepDescriptions,
     },
   },
 };
+
+// Make globals available on the window object
+Object.keys(globals).forEach(name => (window[name] = globals[name]));
+
+export default globals;

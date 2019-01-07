@@ -104,12 +104,26 @@ class EventSearchTest(TestCase):
                 value=SearchValue(raw_value='a release'),
             ),
         ]
+        assert parse_search_query('!release:"a release"') == [
+            SearchFilter(
+                key=SearchKey(name='release'),
+                operator='!=',
+                value=SearchValue('a release'),
+            ),
+        ]
 
     def test_parse_search_query_quoted_key(self):
         assert parse_search_query('"hi:there":value') == [
             SearchFilter(
                 key=SearchKey(name='hi:there'),
                 operator='=',
+                value=SearchValue(raw_value='value'),
+            ),
+        ]
+        assert parse_search_query('!"hi:there":value') == [
+            SearchFilter(
+                key=SearchKey(name='hi:there'),
+                operator='!=',
                 value=SearchValue(raw_value='value'),
             ),
         ]
@@ -227,6 +241,25 @@ class EventSearchTest(TestCase):
         with self.assertRaises(InvalidSearchQuery):
             parse_search_query('has:"hi there"')
 
+    def test_parse_search_query_not_has_tag(self):
+        # unquoted key
+        assert parse_search_query('!has:release') == [
+            SearchFilter(
+                key=SearchKey(name='release'),
+                operator='=',
+                value=SearchValue(''),
+            ),
+        ]
+
+        # quoted key
+        assert parse_search_query('!has:"hi:there"') == [
+            SearchFilter(
+                key=SearchKey(name='hi:there'),
+                operator='=',
+                value=SearchValue(''),
+            ),
+        ]
+
     def test_get_snuba_query_args(self):
         assert get_snuba_query_args('user.email:foo@example.com release:1.2.1 fruit:apple hello', {
             'project_id': [1, 2, 3],
@@ -242,6 +275,14 @@ class EventSearchTest(TestCase):
             'filter_keys': {'project_id': [1, 2, 3]},
             'start': datetime.datetime(2015, 5, 18, 10, 15, 1, tzinfo=timezone.utc),
             'end': datetime.datetime(2015, 5, 19, 10, 15, 1, tzinfo=timezone.utc),
+        }
+
+    def test_negation_get_snuba_query_args(self):
+        assert get_snuba_query_args('!user.email:foo@example.com') == {
+            'conditions': [
+                [['ifNull', ['email', "''"]], '!=', 'foo@example.com'],
+            ],
+            'filter_keys': {},
         }
 
     def test_get_snuba_query_args_no_search(self):
@@ -265,10 +306,25 @@ class EventSearchTest(TestCase):
             'filter_keys': {},
         }
 
+    def test_get_snuba_query_args_negated_wildcard(self):
+        assert get_snuba_query_args('!release:3.1.* user.email:*@example.com') == {
+            'conditions': [
+                [['match', [['ifNull', ['tags[sentry:release]', "''"]], "'^3\\.1\\..*$'"]], '!=', 1],
+                [['match', ['email', "'^.*\\@example\\.com$'"]], '=', 1],
+            ],
+            'filter_keys': {},
+        }
+
     def test_get_snuba_query_args_has(self):
         assert get_snuba_query_args('has:release') == {
             'filter_keys': {},
-            'conditions': [['tags[sentry:release]', '!=', '']]
+            'conditions': [[['ifNull', ['tags[sentry:release]', "''"]], '!=', '']]
+        }
+
+    def test_get_snuba_query_args_not_has(self):
+        assert get_snuba_query_args('!has:release') == {
+            'filter_keys': {},
+            'conditions': [[['ifNull', ['tags[sentry:release]', "''"]], '=', '']]
         }
 
     def test_convert_endpoint_params(self):

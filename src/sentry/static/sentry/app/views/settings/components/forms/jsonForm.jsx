@@ -205,6 +205,7 @@ class FormPanel extends React.Component {
             // disabled prop, with fallback to the fields disabled state.
             if (disabled === true) {
               fieldWithoutDefaultValue.disabled = true;
+              fieldWithoutDefaultValue.disabledReason = undefined;
             }
 
             return (

@@ -285,3 +285,19 @@ def test_event_id_lowercase():
     data = manager.get_data()
 
     assert data['event_id'] == '1234abcd' * 4
+
+
+@pytest.mark.parametrize('key', [
+    'fingerprint', 'modules', 'user', 'request', 'contexts',
+    'breadcrumbs', 'exception', 'stacktrace', 'threads', 'tags',
+    'extra', 'debug_meta', 'sdk'
+])
+@pytest.mark.parametrize('value', [{}, []])
+def test_removes_some_empty_containers(key, value):
+    event = make_event()
+    event[key] = value
+
+    manager = EventManager(event)
+    manager.normalize()
+    data = manager.get_data()
+    assert key not in data

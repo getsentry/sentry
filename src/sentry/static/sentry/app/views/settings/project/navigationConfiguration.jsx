@@ -39,7 +39,6 @@ export default function getConfiguration({project}) {
           path: `${pathPrefix}/ownership/`,
           title: t('Issue Owners'),
           description: t('Manage issue ownership rules for a project'),
-          badge: () => 'new',
         },
         {
           path: `${pathPrefix}/data-forwarding/`,
@@ -110,6 +109,7 @@ export default function getConfiguration({project}) {
         ...plugins.map(plugin => ({
           path: `${pathPrefix}/plugins/${plugin.id}/`,
           title: plugin.name,
+          show: ({access}) => access.has('project:write'),
         })),
       ],
     },

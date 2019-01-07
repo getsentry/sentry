@@ -36,7 +36,7 @@ describe('OnboardingWizard', function() {
       };
 
       let wrapper = shallow(<OnboardingWizard {...props} />, {
-        organization: {id: '1337', slug: 'testOrg'},
+        organization: {id: '1337', slug: 'testOrg', experiments: {}},
       });
       expect(wrapper).toMatchSnapshot();
     });
@@ -57,12 +57,14 @@ describe('OnboardingWizard', function() {
 
       let wrapper = mount(<OnboardingWizard {...props} />, {
         context: {
-          organization: {id: '1337', slug: 'testOrg'},
+          organization: {id: '1337', slug: 'testOrg', experiments: {}},
           router: TestStubs.router(),
+          location: {pathname: 'http://lol/', query: {}},
         },
         childContextTypes: {
           router: PropTypes.object,
           organization: PropTypes.object,
+          location: PropTypes.object,
         },
       });
 

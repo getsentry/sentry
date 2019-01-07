@@ -3,7 +3,7 @@ import 'echarts/lib/component/tooltip';
 import {getFormattedDate} from 'app/utils/dates';
 import {truncationFormatter} from '../utils';
 
-function formatAxisLabel(value, isTimestamp, utc) {
+function defaultFormatAxisLabel(value, isTimestamp, utc) {
   if (!isTimestamp) {
     return value;
   }
@@ -11,7 +11,15 @@ function formatAxisLabel(value, isTimestamp, utc) {
   return getFormattedDate(value, 'MMM D, YYYY', utc);
 }
 
-function getFormatter({filter, isGroupedByDate, truncate, utc}) {
+function valueFormatter(value) {
+  if (typeof value === 'number') {
+    return value.toLocaleString();
+  }
+
+  return value;
+}
+
+function getFormatter({filter, isGroupedByDate, truncate, formatAxisLabel, utc}) {
   const getFilter = seriesParam => {
     const value = seriesParam.data[1];
     if (typeof filter === 'function') {
@@ -24,15 +32,21 @@ function getFormatter({filter, isGroupedByDate, truncate, utc}) {
   return seriesParams => {
     const label =
       seriesParams.length &&
-      formatAxisLabel(seriesParams[0].axisValueLabel, isGroupedByDate, utc);
+      (formatAxisLabel || defaultFormatAxisLabel)(
+        seriesParams[0].axisValueLabel,
+        isGroupedByDate,
+        utc
+      );
     return [
       `<div>${truncationFormatter(label, truncate)}</div>`,
       seriesParams
         .filter(getFilter)
         .map(
           s =>
-            `<div>${s.marker} ${truncationFormatter(s.seriesName, truncate)}:  ${s
-              .data[1]}</div>`
+            `<div>${s.marker} ${truncationFormatter(
+              s.seriesName,
+              truncate
+            )}:  ${valueFormatter(s.data[1])}</div>`
         )
         .join(''),
     ].join('');
@@ -40,9 +54,10 @@ function getFormatter({filter, isGroupedByDate, truncate, utc}) {
 }
 
 export default function Tooltip(
-  {filter, isGroupedByDate, formatter, truncate, utc, ...props} = {}
+  {filter, isGroupedByDate, formatter, truncate, utc, formatAxisLabel, ...props} = {}
 ) {
-  formatter = formatter || getFormatter({filter, isGroupedByDate, truncate, utc});
+  formatter =
+    formatter || getFormatter({filter, isGroupedByDate, truncate, utc, formatAxisLabel});
 
   return {
     show: true,

@@ -55,6 +55,7 @@ from sentry.web.frontend.setup_wizard import SetupWizardView
 from sentry.web.frontend.vsts_extension_configuration import \
     VstsExtensionConfigurationView
 from sentry.web.frontend.js_sdk_loader import JavaScriptSdkLoader
+from sentry.web.frontend.project_event import ProjectEventRedirect
 
 
 __all__ = ('urlpatterns', )
@@ -226,7 +227,7 @@ urlpatterns += patterns(
         RedirectView.as_view(pattern_name="sentry-account-settings", permanent=False),
         ),
     url(
-        r'^account/settings/2fa/$',
+        r'^account/settings/2fa/',
         RedirectView.as_view(pattern_name="sentry-account-settings-security", permanent=False),
     ),
     url(
@@ -346,7 +347,7 @@ urlpatterns += patterns(
     url(r'^api/new-token/$',
         RedirectView.as_view(pattern_name="sentry-api-new-auth-token", permanent=False)),
     url(r'^api/[^0]+/',
-        RedirectView.as_view(pattern_name="sentry-api-details", permanent=False),
+        RedirectView.as_view(pattern_name="sentry-api", permanent=False),
         ),
     url(r'^out/$', OutView.as_view()),
 
@@ -367,12 +368,11 @@ urlpatterns += patterns(
     url(r'^settings/account/notifications/', generic_react_page_view,
         name='sentry-account-settings-notifications'),
     url(r'^settings/account/emails/$', generic_react_page_view, name='sentry-account-settings-emails'),
-    url(r'^settings/account/api/$', generic_react_page_view, name='sentry-api'),
     url(r'^settings/account/api/applications/$',
         generic_react_page_view, name='sentry-api-applications'),
     url(r'^settings/account/api/auth-tokens/new-token/$',
         generic_react_page_view, name='sentry-api-new-auth-token'),
-    url(r'^settings/account/api/[^0]+/$', generic_react_page_view, name='sentry-api-details'),
+    url(r'^settings/account/api/', generic_react_page_view, name='sentry-api'),
     url(r'^settings/account/close-account/$', generic_react_page_view, name='sentry-remove-account'),
     url(r'^settings/account/', generic_react_page_view),
 
@@ -550,6 +550,11 @@ urlpatterns += patterns(
         name='sentry-group'
     ),
     url(
+        r'^(?P<organization_slug>[\w_-]+)/(?P<project_slug>[\w_-]+)/issues/(?P<group_id>\d+)/events/(?P<event_id>\d+)/$',
+        react_page_view,
+        name='sentry-group-event'
+    ),
+    url(
         r'^(?P<organization_slug>[\w_-]+)/(?P<project_id>[\w_-]+)/$',
         react_page_view,
         name='sentry-stream'
@@ -568,6 +573,12 @@ urlpatterns += patterns(
         r'^(?P<organization_slug>[\w_-]+)/(?P<project_slug>[\w_-]+)/issues/(?P<group_id>\d+)/actions/(?P<slug>[\w_-]+)/',
         GroupPluginActionView.as_view(),
         name='sentry-group-plugin-action'
+    ),
+
+    url(
+        r'^(?P<organization_slug>[\w_-]+)/(?P<project_slug>[\w_-]+)/events/(?P<client_event_id>[\w_-]+)/$',
+        ProjectEventRedirect.as_view(),
+        name='sentry-project-event-redirect'
     ),
 
     # Legacy

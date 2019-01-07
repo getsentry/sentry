@@ -2,6 +2,8 @@ import {Link} from 'react-router';
 import PropTypes from 'prop-types';
 import React from 'react';
 import createReactClass from 'create-react-class';
+import styled from 'react-emotion';
+import isPropValid from '@emotion/is-prop-valid';
 
 import {escape, percent} from 'app/utils';
 import {t} from 'app/locale';
@@ -100,11 +102,10 @@ const TagDistributionMeter = createReactClass({
     let otherPctLabel = Math.floor(otherPct);
 
     return (
-      <div className="segments">
+      <React.Fragment>
         {topValues.map((value, index) => {
           const pct = percent(value.count, totalValues);
           const pctLabel = Math.floor(pct);
-          const className = 'segment segment-' + index;
 
           const tooltipHtml =
             '<div class="truncate">' +
@@ -115,37 +116,41 @@ const TagDistributionMeter = createReactClass({
 
           return (
             <Tooltip key={value.value} title={tooltipHtml} tooltipOptions={{html: true}}>
-              <Link
-                className={className}
+              <Segment
                 style={{width: pct + '%'}}
                 to={`/${orgId}/${projectId}/issues/${group.id}/tags/${tag}/`}
+                index={index}
+                first={index == 0}
+                last={!hasOther && index == topValues.length - 1}
               >
-                <span className="tag-description">
-                  <span className="tag-percentage">{pctLabel}%</span>
-                  <span className="tag-label">
+                <Description first={index == 0}>
+                  <Percentage>{pctLabel}%</Percentage>
+                  <Label>
                     <DeviceName>{value.name}</DeviceName>
-                  </span>
-                </span>
-              </Link>
+                  </Label>
+                </Description>
+              </Segment>
             </Tooltip>
           );
         })}
         {hasOther && (
-          <Link
+          <Segment
             key="other"
-            className="segment segment-9"
-            style={{width: otherPct + '%'}}
+            index={9}
+            first={!topValues.length}
+            last={true}
+            css={{width: otherPct + '%'}}
             to={`/${orgId}/${projectId}/issues/${this.props.group.id}/tags/${this.props
               .tag}/`}
             title={'Other<br/>' + otherPctLabel + '%'}
           >
-            <span className="tag-description">
-              <span className="tag-percentage">{otherPctLabel}%</span>
-              <span className="tag-label">{t('Other')}</span>
-            </span>
-          </Link>
+            <Description first={!topValues.length}>
+              <Percentage>{otherPctLabel}%</Percentage>
+              <Label>{t('Other')}</Label>
+            </Description>
+          </Segment>
         )}
-      </div>
+      </React.Fragment>
     );
   },
 
@@ -159,15 +164,94 @@ const TagDistributionMeter = createReactClass({
 
   render() {
     return (
-      <div className="distribution-graph">
-        <h6>
-          <span>{this.props.tag}</span>
-        </h6>
+      <DistributionGraph>
+        <Tag>{this.props.tag}</Tag>
         {this.renderBody()}
-      </div>
+      </DistributionGraph>
     );
   },
 });
+
+const DistributionGraph = styled('div')`
+  position: relative;
+  font-size: 13px;
+  margin-bottom: 10px;
+`;
+
+const Tag = styled('div')`
+  position: relative;
+  font-size: 13px;
+  margin: 10px 0 8px;
+  font-weight: bold;
+  z-index: 5;
+  line-height: 1;
+`;
+
+const Description = styled('span', {shouldForwardProp: isPropValid})`
+  background-color: #fff;
+  position: absolute;
+  text-align: right;
+  top: -1px;
+  right: 0;
+  line-height: 1;
+  z-index: 1;
+  width: 100%;
+  display: ${p => (p.first ? 'block' : 'none')};
+
+  &:hover {
+    display: block;
+    z-index: 2;
+  }
+`;
+
+const Percentage = styled('span')`
+  margin-right: 6px;
+  color: ${p => p.theme.gray2};
+  display: inline-block;
+  vertical-align: middle;
+`;
+
+const Label = styled('span')`
+  display: inline-block;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 45%;
+  vertical-align: middle;
+`;
+
+const getColor = p => {
+  return [
+    '#7c7484',
+    '#867f90',
+    '#918a9b',
+    '#9b96a7',
+    '#a6a1b3',
+    '#b0acbe',
+    '#bbb7ca',
+    '#c5c3d6',
+    '#d0cee1',
+    '#dad9ed',
+  ][p.index];
+};
+
+const Segment = styled(Link, {shouldForwardProp: isPropValid})`
+  height: 16px;
+  display: inline-block;
+  color: inherit;
+
+  &:hover {
+    background: ${p => p.theme.purple};
+  }
+
+  border-top-left-radius: ${p => p.first && p.theme.borderRadius};
+  border-bottom-left-radius: ${p => p.first && p.theme.borderRadius};
+
+  border-top-right-radius: ${p => p.last && p.theme.borderRadius};
+  border-bottom-right-radius: ${p => p.last && p.theme.borderRadius};
+
+  background-color: ${getColor};
+`;
 
 export {TagDistributionMeter};
 export default withEnvironment(TagDistributionMeter);
