@@ -245,7 +245,7 @@ class ProjectSelector extends React.Component {
 class ProjectSelectorItem extends React.PureComponent {
   static propTypes = {
     project: SentryTypes.Project,
-    organization: SentryTypes.organization,
+    organization: PropTypes.object.isRequired,
     multi: PropTypes.bool,
     inputValue: PropTypes.string,
     isChecked: PropTypes.bool,
