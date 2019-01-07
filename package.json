@@ -15,6 +15,7 @@
     "babel-plugin-emotion": "9.1.2",
     "babel-plugin-idx": "^1.5.1",
     "babel-plugin-lodash": "^3.2.11",
+    "babel-plugin-react-remove-properties": "^0.2.5",
     "babel-plugin-syntax-dynamic-import": "^6.18.0",
     "babel-plugin-transform-builtin-extend": "^1.1.0",
     "babel-plugin-transform-class-properties": "^6.24.1",

@@ -28,7 +28,8 @@
   "env": {
     "production": {
       "plugins": [
-        "idx"
+        "idx",
+        ["react-remove-properties", {"properties": ["data-test-id"]}]
       ]
     },
     "development": {
