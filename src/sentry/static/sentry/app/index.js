@@ -85,6 +85,14 @@ let render = Component => {
   ReactDOM.render(<Component />, rootEl);
 };
 
+// The password strength component is very heavyweight as it includes the
+// zxcvbn, a relatively byte-heavy password strength estimation library. Load
+// it on demand.
+async function loadPasswordStrength(callback) {
+  let module = await import(/* webpackChunkName: "passwordStrength" */ 'app/components/passwordStrength');
+  callback(module);
+}
+
 const globals = {
   $: jQuery,
   jQuery,
@@ -222,6 +230,7 @@ const globals = {
       onboardingSteps: require('app/views/onboarding/utils').onboardingSteps,
       stepDescriptions: require('app/views/onboarding/utils').stepDescriptions,
     },
+    passwordStrength: {load: loadPasswordStrength},
   },
 };
 
