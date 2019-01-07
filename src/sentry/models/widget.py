@@ -10,12 +10,17 @@ from sentry.db.models import BoundedPositiveIntegerField, FlexibleForeignKey, Mo
 
 
 class WidgetDisplayTypes(Enum):
-    BASIC_LINE_CHART = 'basic-line-chart'
-    TWO_QUERY_LINE_CHART = 'two-query-line-chart'
+    BASIC_LINE_CHART = 'basic_line_chart'
+    TWO_QUERY_LINE_CHART = 'two_query_line_chart'
     MAP = 'map'
-    HORIZONATAL_BAR_CHART = 'horizontal-bar-chart'
+    HORIZONATAL_BAR_CHART = 'horizontal_bar_chart'
     TIMELINE = 'timeline'
-    STACKED_AREA = 'stacked-area'
+    STACKED_AREA = 'stacked_area'
+
+
+class WidgetDataSourceTypes(Enum):
+    DISCOVER_SAVED_SEARCH = 'discover_saved_search'
+    API_QUERY = 'api_query'  # ehhhh.....
 
 
 class WidgetDataSource(Model):
@@ -24,8 +29,8 @@ class WidgetDataSource(Model):
     """
     __core__ = True
 
-    widget_id = FlexibleForeignKey('sentry.Widget')
-    type = BoundedPositiveIntegerField()
+    widget = FlexibleForeignKey('sentry.Widget')
+    type = BoundedPositiveIntegerField(choices=WidgetDataSourceTypes)
     name = models.CharField(max_length=128)
     data = JSONField(default={})
     date_added = models.DateTimeField(default=timezone.now)
@@ -49,11 +54,11 @@ class Widget(Model):
     """
     __core__ = True
 
-    dashboard_id = FlexibleForeignKey('sentry.Dashboard')
+    dashboard = FlexibleForeignKey('sentry.Dashboard')
     dashboard_order = BoundedPositiveIntegerField()
     title = models.CharField(max_length=128)
     display_type = BoundedPositiveIntegerField(choices=WidgetDisplayTypes)
-    organization_id = FlexibleForeignKey('sentry.Organization')
+    organization = FlexibleForeignKey('sentry.Organization')
     data = JSONField(default={})
     date_added = models.DateTimeField(default=timezone.now)
     status = BoundedPositiveIntegerField(
