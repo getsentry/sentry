@@ -18,14 +18,6 @@ from sentry.interfaces.base import Interface, InterfaceValidationError, prune_em
 from sentry.utils.safe import trim
 
 
-def is_primitive(value):
-    return isinstance(value, bool) or \
-        isinstance(value, int) or \
-        isinstance(value, float) or \
-        isinstance(value, six.string_types) or \
-        value is None
-
-
 class Message(Interface):
     """
     A message consisting of either a ``formatted`` arg, or an optional
@@ -59,9 +51,9 @@ class Message(Interface):
 
         params = data.get('params')
         if isinstance(params, (list, tuple)):
-            params = tuple(p for p in params if is_primitive(p))
+            params = tuple(p for p in params)
         elif isinstance(params, dict):
-            params = {k: v for k, v in six.iteritems(params) if is_primitive(v)}
+            params = {k: v for k, v in six.iteritems(params)}
         else:
             params = ()
 
