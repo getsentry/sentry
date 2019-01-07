@@ -226,6 +226,28 @@ def process_timestamp(value, meta, current_datetime=None):
     return float(value.strftime('%s'))
 
 
+def sanitize_fingerprint(value):
+    # Special case floating point values: Only permit floats that have an exact
+    # integer representation in JSON to avoid rounding issues.
+    if isinstance(value, float):
+        return six.text_type(int(value)) if abs(value) < (1 << 53) else None
+
+    # Stringify known types
+    if isinstance(value, six.string_types + six.integer_types):
+        return six.text_type(value)
+
+    # Silently skip all other values
+    return None
+
+
+def cast_fingerprint(value):
+    # Return incompatible values so that schema validation can emit errors
+    if not isinstance(value, list):
+        return value
+
+    return list(f for f in map(sanitize_fingerprint, value) if f is not None)
+
+
 def has_pending_commit_resolution(group):
     return GroupLink.objects.filter(
         group_id=group.id,
@@ -455,20 +477,14 @@ class EventManager(object):
         # Before validating with a schema, attempt to cast values to their desired types
         # so that the schema doesn't have to take every type variation into account.
         text = six.text_type
-        fp_types = six.string_types + six.integer_types + (float, )
 
         def to_values(v):
             return {'values': v} if v and isinstance(v, (tuple, list)) else v
 
-        def stringify(f):
-            if isinstance(f, float):
-                return text(int(f)) if abs(f) < (1 << 53) else None
-            return text(f)
-
         casts = {
             'environment': lambda v: text(v) if v is not None else v,
             'event_id': lambda v: v.lower(),
-            'fingerprint': lambda v: list(x for x in map(stringify, v) if x is not None) if isinstance(v, list) and all(isinstance(f, fp_types) for f in v) else v,
+            'fingerprint': cast_fingerprint,
             'release': lambda v: text(v) if v is not None else v,
             'dist': lambda v: text(v).strip() if v is not None else v,
             'time_spent': lambda v: int(v) if v is not None else v,
