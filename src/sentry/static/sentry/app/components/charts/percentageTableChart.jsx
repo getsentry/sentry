@@ -1,4 +1,3 @@
-import {Flex} from 'grid-emotion';
 import PropTypes from 'prop-types';
 import React from 'react';
 import styled from 'react-emotion';
@@ -35,7 +34,8 @@ const DeltaCaret = styled(InlineSvg)`
   height: 10px;
 `;
 
-const StyledDelta = styled(Flex)`
+const StyledDelta = styled('div')`
+  display: flex;
   align-items: center;
   padding: 0 ${space(0.25)};
   margin-right: ${space(0.5)};
@@ -96,9 +96,7 @@ class PercentageTableChart extends React.Component {
               <div>{items[1]}</div>
             </NameAndCountContainer>
             <PercentageContainer justify="space-between" align="center">
-              <Flex w={[1]} align="center">
-                {items[2]}
-              </Flex>
+              <PercentageLabel>{items[2]}</PercentageLabel>
             </PercentageContainer>
           </Row>
         )}
@@ -126,14 +124,21 @@ const StyledPercentageTableChart = styled(PercentageTableChart)`
   width: 100%;
 `;
 
-const NameAndCountContainer = styled(Flex)`
+const NameAndCountContainer = styled('div')`
+  display: flex;
   flex-shrink: 0;
   margin-right: ${space(2)};
   width: 50%;
 `;
 
-const PercentageContainer = styled(Flex)`
+const PercentageContainer = styled('div')`
+  display: flex;
   width: 50%;
+`;
+
+const PercentageLabel = styled('div')`
+  flex: 1;
+  align-items: center;
 `;
 
 const BarWrapper = styled('div')`
