@@ -227,6 +227,24 @@ class CspTest(TestCase):
         )
         assert result.get_message() == "Blocked 'script' from 'data:'"
 
+        result = Csp.to_python(
+            dict(
+                document_uri='http://example.com/foo',
+                effective_directive='style-src-elem',
+                blocked_uri='http://fonts.google.com/foo',
+            )
+        )
+        assert result.get_message() == "Blocked 'style' from 'fonts.google.com'"
+
+        result = Csp.to_python(
+            dict(
+                document_uri='http://example.com/foo',
+                effective_directive='script-src-elem',
+                blocked_uri='http://cdn.ajaxapis.com/foo',
+            )
+        )
+        assert result.get_message() == "Blocked 'script' from 'cdn.ajaxapis.com'"
+
     def test_real_report(self):
         raw_report = {
             "csp-report": {
