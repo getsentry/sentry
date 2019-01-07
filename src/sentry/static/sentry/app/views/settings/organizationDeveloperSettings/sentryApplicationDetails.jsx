@@ -2,27 +2,57 @@ import PropTypes from 'prop-types';
 import React from 'react';
 import {browserHistory} from 'react-router';
 
+import {addErrorMessage, addSuccessMessage} from 'app/actionCreators/indicator';
 import {defined} from 'app/utils';
 import {Panel, PanelBody, PanelHeader} from 'app/components/panels';
-import {addErrorMessage} from 'app/actionCreators/indicator';
 import {t} from 'app/locale';
 import AsyncView from 'app/views/asyncView';
 import Form from 'app/views/settings/components/forms/form';
+import FormModel from 'app/views/settings/components/forms/model';
 import FormField from 'app/views/settings/components/forms/formField';
 import MultipleCheckbox from 'app/views/settings/components/forms/controls/multipleCheckbox';
 import JsonForm from 'app/views/settings/components/forms/jsonForm';
 import SettingsPageHeader from 'app/views/settings/components/settingsPageHeader';
+import PermissionSelection from 'app/views/settings/organizationDeveloperSettings/permissionSelection';
 import TextCopyInput from 'app/views/settings/components/forms/textCopyInput';
 import sentryApplicationForm from 'app/data/forms/sentryApplication';
 import getDynamicText from 'app/utils/getDynamicText';
-import ApplicationScopes from './applicationScopes';
 
 const EVENT_CHOICES = [['issue', 'Issue events']];
 
-class SentryApplicationDetails extends AsyncView {
+class SentryAppFormModel extends FormModel {
+  /**
+   * Filter out Permission input field values.
+   *
+   * Permissions (API Scopes) are presented as a list of SelectFields.
+   * Instead of them being submitted individually, we want them rolled
+   * up into a single list of scopes (this is done in `PermissionSelection`).
+   *
+   * Because they are all individual inputs, we end up with attributes
+   * in the JSON we send to the API that we don't want.
+   *
+   * This function filters those attributes out of the data that is
+   * ultimately sent to the API.
+   */
+  getData() {
+    return Object.entries(this.fields.toJSON()).reduce((data, [k, v]) => {
+      if (!k.endsWith('--permission')) {
+        data[k] = v;
+      }
+      return data;
+    }, {});
+  }
+}
+
+export default class SentryApplicationDetails extends AsyncView {
   static contextTypes = {
     router: PropTypes.object.isRequired,
   };
+
+  constructor(...args) {
+    super(...args);
+    this.form = new SentryAppFormModel();
+  }
 
   getDefaultState() {
     return {
@@ -54,19 +84,17 @@ class SentryApplicationDetails extends AsyncView {
     return events.map(e => e.split('.').shift());
   }
 
-  handleScopeChange = (onChange, onBlur, scope, scopes, e) => {
-    onChange(scopes, e);
-    onBlur(scopes, e);
-  };
-
   onSubmitSuccess = data => {
     const {orgId} = this.props.params;
+    addSuccessMessage(t(`${this.state.app.name} successfully saved.`));
     browserHistory.push(`/settings/${orgId}/developer-settings/`);
   };
 
   renderBody() {
     const {orgId} = this.props.params;
     const {app} = this.state;
+    const scopes = (app && [...app.scopes]) || [];
+
     let method = app ? 'PUT' : 'POST';
     let endpoint = app ? `/sentry-apps/${app.slug}/` : '/sentry-apps/';
 
@@ -78,27 +106,16 @@ class SentryApplicationDetails extends AsyncView {
           apiEndpoint={endpoint}
           allowUndo
           initialData={{organization: orgId, isAlertable: false, ...app}}
+          model={this.form}
           onSubmitSuccess={this.onSubmitSuccess}
           onSubmitError={err => addErrorMessage(t('Unable to save change'))}
         >
           <JsonForm location={this.props.location} forms={sentryApplicationForm} />
+
           <Panel>
-            <PanelHeader>{t('API Scopes')}</PanelHeader>
+            <PanelHeader>{t('Permissions')}</PanelHeader>
             <PanelBody>
-              <FormField
-                name="scopes"
-                inline={false}
-                flexibleControlStateSize={true}
-                getData={data => ({scopes: data})}
-                required
-              >
-                {({onChange, onBlur}) => (
-                  <ApplicationScopes
-                    onToggle={this.handleScopeChange.bind(this, onChange, onBlur)}
-                    scopes={app && app.scopes ? app.scopes : []}
-                  />
-                )}
-              </FormField>
+              <PermissionSelection scopes={scopes} />
             </PanelBody>
           </Panel>
 
@@ -155,5 +172,3 @@ class SentryApplicationDetails extends AsyncView {
     );
   }
 }
-
-export default SentryApplicationDetails;

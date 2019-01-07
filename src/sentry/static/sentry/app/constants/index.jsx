@@ -32,6 +32,71 @@ export const DEFAULT_API_SCOPES = [
   'member:read',
 ];
 
+// We expose permissions for Sentry Apps in a more resource-centric way.
+// All of the API_SCOPES from above should be represented in a more
+// User-friendly way here.
+export const SENTRY_APP_PERMISSIONS = [
+  {
+    resource: 'Project',
+    help: 'Projects, Tags, Debug Files, and Feedback',
+    choices: {
+      'no-access': {label: 'No Access', scopes: []},
+      read: {label: 'Read', scopes: ['project:read']},
+      write: {label: 'Read & Write', scopes: ['project:read', 'project:write']},
+      admin: {label: 'Admin', scopes: ['project:read', 'project:write', 'project:admin']},
+    },
+  },
+  {
+    resource: 'Team',
+    help: 'Teams of members',
+    choices: {
+      'no-access': {label: 'No Access', scopes: []},
+      read: {label: 'Read', scopes: ['team:read']},
+      write: {label: 'Read & Write', scopes: ['team:read', 'team:write']},
+      admin: {label: 'Admin', scopes: ['team:read', 'team:write', 'team:admin']},
+    },
+  },
+  {
+    resource: 'Release',
+    help: 'Releases, Commits, and related Files',
+    choices: {
+      'no-access': {label: 'No Access', scopes: []},
+      admin: {label: 'Admin', scopes: ['project:releases']},
+    },
+  },
+  {
+    resource: 'Event',
+    label: 'Issue & Event',
+    help: 'Issues, Events, and workflow statuses',
+    choices: {
+      'no-access': {label: 'No Access', scopes: []},
+      read: {label: 'Read', scopes: ['event:read']},
+      write: {label: 'Read & Write', scopes: ['event:read', 'event:write']},
+      admin: {label: 'Admin', scopes: ['event:read', 'event:write', 'event:admin']},
+    },
+  },
+  {
+    resource: 'Organization',
+    help: 'Manage Organizations, resolve IDs, retrieve Repositories and Commits',
+    choices: {
+      'no-access': {label: 'No Access', scopes: []},
+      read: {label: 'Read', scopes: ['org:read']},
+      write: {label: 'Read & Write', scopes: ['org:read', 'org:write']},
+      admin: {label: 'Admin', scopes: ['org:read', 'org:write', 'org:admin']},
+    },
+  },
+  {
+    resource: 'Member',
+    help: 'Manage Members within Teams',
+    choices: {
+      'no-access': {label: 'No Access', scopes: []},
+      read: {label: 'Read', scopes: ['member:read']},
+      write: {label: 'Read & Write', scopes: ['member:read', 'member:write']},
+      admin: {label: 'Admin', scopes: ['member:read', 'member:write', 'member:admin']},
+    },
+  },
+];
+
 export const DEFAULT_TOAST_DURATION = 6000;
 
 export const CSRF_COOKIE_NAME = window.csrfCookieName || 'sc';

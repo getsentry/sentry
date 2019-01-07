@@ -75,7 +75,7 @@ describe('SentryAppPermissionsModal', function() {
           .find('PanelItem')
           .at(2)
           .text()
-      ).toEqual('Admin access to Team, Org');
+      ).toEqual('Admin access to Team, Organization');
     });
 
     it('matches releases with admin', function() {
@@ -94,7 +94,7 @@ describe('SentryAppPermissionsModal', function() {
         />,
         routerContext
       );
-      expect(wrapper.find('PanelItem').text()).toEqual('Admin access to Releases');
+      expect(wrapper.find('PanelItem').text()).toEqual('Admin access to Release');
     });
   });
 

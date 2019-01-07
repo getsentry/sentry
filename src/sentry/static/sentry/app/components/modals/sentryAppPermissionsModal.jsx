@@ -2,12 +2,12 @@ import PropTypes from 'prop-types';
 import React from 'react';
 
 import Button from 'app/components/button';
-import {capitalize} from 'lodash';
 import {t} from 'app/locale';
 import {Panel, PanelItem} from 'app/components/panels';
 import SentryTypes from 'app/sentryTypes';
 import space from 'app/styles/space';
 import styled from 'react-emotion';
+import ConsolidatedScopes from 'app/utils/consolidatedScopes';
 
 class SentryAppPermissionsModal extends React.Component {
   static propTypes = {
@@ -25,69 +25,15 @@ class SentryAppPermissionsModal extends React.Component {
     closeModal();
   }
 
-  get topScopes() {
-    // this finds the highest scope permission (read < write < admin)
-    // for each resource (org, project, team, member, event) and returns
-    // a map with the resource as the key and scope as the value.
-    //
-    // project:releases is a weird one off scope where either you
-    // have it or you don't, so that's set to 'true' when in the scope list
-    // and not set at all if it's not.
-    //
-    // i.e ['project:read', 'project:releases', project:'write', 'org:read']
-    // becomes {'project': 'write', 'releases': true, 'org': 'read'}
-
-    let resources = {};
-    const LEVELS = {
-      read: 0,
-      write: 1,
-      admin: 2,
-    };
-    this.props.app.scopes.forEach(scope => {
-      let [item, level] = scope.split(':');
-      if (level === 'releases') {
-        resources.releases = true;
-        return;
-      }
-      const currentLevel = resources[item];
-      if (currentLevel && LEVELS[currentLevel] < LEVELS[level]) {
-        resources[item] = level;
-      } else if (!currentLevel) {
-        resources[item] = level;
-      }
-    });
-    return resources;
-  }
-
   get permissions() {
-    let permissions = {};
-    const topScopes = this.topScopes;
-    Object.entries(topScopes).forEach(([resource, scope]) => {
-      // releases are a weird one off permission scope, either you
-      // have project:releases or you don't so we'll add it to Admin
-      // if that scope is present
-      if (resource === 'releases') {
-        if (permissions.admin) {
-          permissions.admin.push('Releases');
-        } else {
-          permissions.admin = ['Releases'];
-        }
-        return;
-      }
-      if (!permissions[scope]) {
-        permissions[scope] = [capitalize(resource)];
-        return;
-      }
-      permissions[scope].push(capitalize(resource));
-    });
-    return permissions;
+    return new ConsolidatedScopes(this.props.app.scopes).toPermissions();
   }
 
   renderPermissions() {
     const permissions = this.permissions;
     return (
       <React.Fragment>
-        {permissions.read && (
+        {permissions.read.length > 0 && (
           <PanelItem key="read">
             <p>
               <strong>{t('Read')}</strong>
@@ -95,7 +41,7 @@ class SentryAppPermissionsModal extends React.Component {
             </p>
           </PanelItem>
         )}
-        {permissions.write && (
+        {permissions.write.length > 0 && (
           <PanelItem key="write">
             <p>
               <strong>{t('Read')}</strong>
@@ -105,7 +51,7 @@ class SentryAppPermissionsModal extends React.Component {
             </p>
           </PanelItem>
         )}
-        {permissions.admin && (
+        {permissions.admin.length > 0 && (
           <PanelItem key="admin">
             <p>
               <strong>{t('Admin')}</strong>
