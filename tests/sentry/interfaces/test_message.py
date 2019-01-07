@@ -39,9 +39,19 @@ class MessageTest(TestCase):
 
     def test_format_kwargs(self):
         interface = Message.to_python(dict(
-            message='Hello there %(name)!',
+            message='Hello there %(name)s!',
             params={'name': 'world'},
-            formatted='Hello there world!',
+        ))
+        assert interface.to_json() == {
+            'message': interface.message,
+            'params': interface.params,
+            'formatted': 'Hello there world!'
+        }
+
+    def test_format_braces(self):
+        interface = Message.to_python(dict(
+            message='Hello there {}!',
+            params=('world', ),
         ))
         assert interface.to_json() == {
             'message': interface.message,

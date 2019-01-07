@@ -65,9 +65,13 @@ class Message(Interface):
         else:
             params = ()
 
-        if formatted is None and params and '%' in message:
+        if formatted is None and params:
             try:
-                formatted = message % params
+                if '%' in message:
+                    formatted = message % params
+                elif '{}' in message and isinstance(params, tuple):
+                    formatted = message.format(*params)
+                # NB: Named newstyle arguments were never supported
             except Exception:
                 pass
 
