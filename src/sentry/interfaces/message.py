@@ -15,7 +15,18 @@ import six
 from django.conf import settings
 
 from sentry.interfaces.base import Interface, InterfaceValidationError, prune_empty_keys
+from sentry.utils import json
 from sentry.utils.safe import trim
+
+
+def stringify(value):
+    if isinstance(value, six.string_types):
+        return value
+
+    if isinstance(value, (int, float, bool)):
+        return json.dumps(value)
+
+    return None
 
 
 class Message(Interface):
@@ -38,14 +49,8 @@ class Message(Interface):
 
     @classmethod
     def to_python(cls, data):
-        formatted = data.get('formatted')
-        if not isinstance(formatted, six.string_types):
-            formatted = None
-
-        message = data.get('message')
-        if not isinstance(message, six.string_types):
-            message = None
-
+        formatted = stringify(data.get('formatted'))
+        message = stringify(data.get('message'))
         if formatted is None and message is None:
             raise InterfaceValidationError("No message present")
 

@@ -59,6 +59,11 @@ class MessageTest(TestCase):
             'formatted': 'Hello there world!'
         }
 
+    def test_stringify_primitives(self):
+        assert Message.to_python({'formatted': 42}).formatted == '42'
+        assert Message.to_python({'formatted': True}).formatted == 'true'
+        assert Message.to_python({'formatted': 4.2}).formatted == '4.2'
+
     def test_serialize_unserialize_behavior(self):
         result = type(self.interface).to_python(self.interface.to_json())
         assert result.to_json() == self.interface.to_json()
