@@ -62,7 +62,7 @@ def test_get_numeric_field_value_invalid():
 
 class ParseQueryTest(TestCase):
     def parse_query(self, query):
-        return parse_query(self.project, query, self.user)
+        return parse_query([self.project], query, self.user)
 
     def test_simple(self):
         result = self.parse_query('foo bar')

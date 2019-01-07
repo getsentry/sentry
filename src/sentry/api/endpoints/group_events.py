@@ -62,7 +62,7 @@ class GroupEventsEndpoint(GroupEndpoint, EnvironmentMixin):
 
         if raw_query:
             try:
-                query_kwargs = parse_query(group.project, raw_query, request.user)
+                query_kwargs = parse_query([group.project], raw_query, request.user)
             except InvalidQuery as exc:
                 return Response({'detail': six.text_type(exc)}, status=400)
             else:
