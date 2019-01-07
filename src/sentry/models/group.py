@@ -159,6 +159,7 @@ class GroupManager(BaseManager):
                 model.objects.filter(
                     project_id__in=project_ids,
                     event_id=event_id,
+                    group_id__isnull=False,
                 ).values_list('group_id', flat=True)
             )
 

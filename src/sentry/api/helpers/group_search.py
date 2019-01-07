@@ -43,9 +43,6 @@ def build_query_params_from_request(request, projects):
 
 
 def get_by_short_id(organization_id, is_short_id_lookup, query):
-    # If the query looks like a short id, we want to provide some
-    # information about where that is.  Note that this can return
-    # results for another project.  The UI deals with this.
     if is_short_id_lookup == '1' and \
             looks_like_short_id(query):
         try:
