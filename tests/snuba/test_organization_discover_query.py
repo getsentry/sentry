@@ -231,7 +231,7 @@ class OrganizationDiscoverQueryTest(APITestCase, SnubaTestCase):
             })
         assert response.status_code == 200, response.content
         assert len(response.data['data']) == 7
-        assert(response.data['data'][6]['time']) == 'bar'
+        assert(response.data['data'][6]['time']) > response.data['data'][5]['time']
         assert(response.data['data'][6]['project.name']) == 'bar'
         assert(response.data['data'][6]['count']) == 1
 
@@ -244,15 +244,16 @@ class OrganizationDiscoverQueryTest(APITestCase, SnubaTestCase):
                 'fields': ['project.name'],
                 'groupby': ['time'],
                 'orderby': '-time',
-                'start': (datetime.now() - timedelta(seconds=5)).strftime('%Y-%m-%dT%H:%M:%S'),
+                'start': (datetime.now() - timedelta(seconds=60)).strftime('%Y-%m-%dT%H:%M:%S'),
                 'end': (datetime.now()).strftime('%Y-%m-%dT%H:%M:%S'),
-                'rollup': 1,
+                'rollup': 10,
             })
+
         assert response.status_code == 200, response.content
-        assert len(response.data['data']) == 7
-        assert(response.data['data'][6]['time']) == 'bar'
-        assert(response.data['data'][6]['project.name']) == 'bar'
-        assert(response.data['data'][6]['count']) == 1
+        assert len(response.data['data']) == 8
+        assert(response.data['data'][1]['time']) > response.data['data'][2]['time']
+        assert(response.data['data'][1]['project.name']) == 'bar'
+        assert(response.data['data'][1]['count']) == 1
 
     def test_uniq_project_name(self):
         with self.feature('organizations:discover'):
