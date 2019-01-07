@@ -369,7 +369,11 @@ class Csp(SecurityReport):
             'media-src': (u"Blocked 'media' from '{uri}'", "Blocked inline 'media'"),
             'object-src': (u"Blocked 'object' from '{uri}'", "Blocked inline 'object'"),
             'script-src': (u"Blocked 'script' from '{uri}'", "Blocked unsafe (eval() or inline) 'script'"),
+            'script-src-elem': (u"Blocked 'script' from '{uri}'", "Blocked unsafe 'script' element"),
+            'script-src-attr': (u"Blocked inline script attribute from '{uri}'", "Blocked inline script attribute"),
             'style-src': (u"Blocked 'style' from '{uri}'", "Blocked inline 'style'"),
+            'style-src-elem': (u"Blocked 'style' from '{uri}'", "Blocked 'style' or 'link' element"),
+            'style-src-attr': (u"Blocked style attribute from '{uri}'", "Blocked style attribute"),
             'unsafe-inline': (None, u"Blocked unsafe inline 'script'"),
             'unsafe-eval': (None, u"Blocked unsafe eval() 'script'"),
         }
