@@ -774,7 +774,7 @@ class Fixtures(object):
             project=kwargs['project'],
             name='Jane Doe',
             email='jane@example.com',
-            comments=make_sentence()
+            comments="the application crashed"
         )
 
         return userreport
