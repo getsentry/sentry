@@ -276,7 +276,7 @@ class ProjectSelectorItem extends React.PureComponent {
               avatarProps={{consistentWidth: true}}
             />
           </BadgeWrapper>
-          {project.isBookmarked && <BookmarkIcon multi={multi} />}
+          {project.isBookmarked && <BookmarkIcon src="icon-star-small-filled" />}
           <SettingsIconLink to={`/settings/${organization.slug}/${project.slug}/`}>
             <InlineSvg src="icon-settings" />
           </SettingsIconLink>
@@ -292,21 +292,15 @@ class ProjectSelectorItem extends React.PureComponent {
   }
 }
 
-const BookmarkIcon = styled(({multi, ...props}) => (
-  <div {...props}>
-    <span className="icon-star-solid bookmark" />
-  </div>
-))`
-  display: flex;
-  font-size: 12px;
-  ${p => p.multi && `margin-left: ${space(0.5)}`};
+const BookmarkIcon = styled(InlineSvg)`
+  margin-left: ${space(0.5)};
+  margin-top: -2px; /* trivial alignment bump */
 `;
 
 const SettingsIconLink = styled(Link)`
   color: ${p => p.theme.gray2};
   display: flex;
   padding: ${space(0.5)};
-  margin: -${space(0.5)}; /* for a larger click target */
   opacity: 0;
   transform: translateX(-${space(0.5)});
   transition: 0.2s all;
@@ -352,6 +346,7 @@ const BadgeAndBookmark = styled('div')`
   display: flex;
   flex: 1;
   overflow: hidden;
+  align-items: center;
 `;
 
 const IdBadgeMenuItem = styled(IdBadge)`
