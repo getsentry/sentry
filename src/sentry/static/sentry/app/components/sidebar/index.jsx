@@ -204,6 +204,17 @@ class Sidebar extends React.Component {
           {hasOrganization && (
             <React.Fragment>
               <SidebarSection>
+                <Feature features={['sentry10']}>
+                  <SidebarItem
+                    {...sidebarItemProps}
+                    index
+                    onClick={this.hidePanel}
+                    icon={<InlineSvg src="icon-health" />}
+                    label={t('Dashboard')}
+                    to={`/organizations/${organization.slug}/dashboards/`}
+                  />
+                </Feature>
+
                 <SidebarItem
                   {...sidebarItemProps}
                   index
