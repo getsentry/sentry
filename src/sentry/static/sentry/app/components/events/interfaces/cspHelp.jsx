@@ -46,6 +46,10 @@ may embed a page using the <code>&lt;frame&gt;</code> and
 The <code>img-src</code> directive specifies valid sources of images and
 favicons.`
   ),
+  'prefetch-src': t(
+    `The <code>prefetch-src</code> directive restricts the URLs
+    from which resources may be prefetched or prerendered.`
+  ),
   'manifest-src': t(
     `
 The <code>manifest-src</code> directive specifies which manifest can be
@@ -81,6 +85,14 @@ for JavaScript. When either the <code>script-src</code> or the
 <code>eval()</code> are disabled unless you specify 'unsafe-inline'
 and 'unsafe-eval', respectively.`
   ),
+  'script-src-elem': t(
+    `The <code>script-src-elem</code> directive applies to all script requests
+    and element contents. It does not apply to scripts defined in attributes.`
+  ),
+  'script-src-attr': t(
+    `The <code>script-src-attr</code> directive applies to event handlers and, if present,
+    it will override the <code>script-src</code> directive for relevant checks.`
+  ),
   'style-src': t(
     `
 The <code>style-src</code> directive specifies valid sources for
@@ -92,9 +104,16 @@ requested or loaded. When either the <code>style-src</code> or the
 <code>&lt;style&gt;</code> element and HTML style attributes are disabled
 unless you specify 'unsafe-inline'.`
   ),
+  'style-src-elem': t(
+    `The <code>style-src-elem</code> directive applies to all styles except
+    those defined in inline attributes.`
+  ),
+  'style-src-attr': t(
+    `The <code>style-src-attr</code> directive applies to inline style attributes and, if present,
+    it will override the <code>style-src</code> directive for relevant checks.`
+  ),
   'frame-src': t(
-    `
-The <code>frame-src</code> directive specifies valid sources for nested
+    `The <code>frame-src</code> directive specifies valid sources for nested
 browsing contexts loading using elements such as
 <code>&lt;frame&gt;</code> and <code>&lt;iframe&gt;</code>.`
   ),
