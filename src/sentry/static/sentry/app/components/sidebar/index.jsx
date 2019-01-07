@@ -1,12 +1,11 @@
 import {isEqual, pick} from 'lodash';
-import {withRouter} from 'react-router';
+import {withRouter, browserHistory} from 'react-router';
 import {ThemeProvider} from 'emotion-theming';
 import PropTypes from 'prop-types';
 import React from 'react';
 import Reflux from 'reflux';
 import createReactClass from 'create-react-class';
 import styled, {css, cx} from 'react-emotion';
-import qs from 'query-string';
 
 import {hideSidebar, showSidebar} from 'app/actionCreators/preferences';
 import {load as loadIncidents} from 'app/actionCreators/incidents';
@@ -30,10 +29,10 @@ import OnboardingStatus from './onboardingStatus';
 
 class Sidebar extends React.Component {
   static propTypes = {
+    router: PropTypes.object,
     organization: SentryTypes.Organization,
     collapsed: PropTypes.bool,
     location: PropTypes.object,
-    router: PropTypes.object,
   };
 
   constructor(props) {
@@ -52,7 +51,7 @@ class Sidebar extends React.Component {
   }
 
   componentDidMount() {
-    let {organization, router} = this.props;
+    let {router} = this.props;
     jQuery(document.body).addClass('body-sidebar');
     jQuery(document).on('click', this.documentClickHandler);
 
@@ -67,19 +66,16 @@ class Sidebar extends React.Component {
         $('.tooltip').tooltip('hide');
       });
 
-    // If there is no organization (i.e. no org in context, or error loading org)
-    // then sidebar should default to collapsed state
-    this.doCollapse(!!organization ? this.props.collapsed : true);
+    this.doCollapse(this.props.collapsed);
   }
 
   componentWillReceiveProps(nextProps) {
     let {collapsed, location} = this.props;
     let nextLocation = nextProps.location;
 
-    // Close active panel and tooltips if we navigated anywhere
+    // Close active panel if we navigated anywhere
     if (nextLocation && location && location.pathname !== nextLocation.pathname) {
       this.hidePanel();
-      $('.tooltip').tooltip('hide');
     }
 
     if (collapsed === nextProps.collapsed) return;
@@ -88,9 +84,11 @@ class Sidebar extends React.Component {
   }
 
   // Sidebar doesn't use children, so don't use it to compare
-  shouldComponentUpdate({children, ...nextPropsToCompare}, nextState) {
+  // Also ignore location, will re-render when routes change (instead of query params)
+  shouldComponentUpdate({children, location, ...nextPropsToCompare}, nextState) {
     const {
       children: _children, // eslint-disable-line no-unused-vars
+      location: _location, // eslint-disable-line no-unused-vars
       ...currentPropsToCompare
     } = this.props;
 
@@ -155,6 +153,14 @@ class Sidebar extends React.Component {
     });
   };
 
+  // Keep the global selection querystring values in the path
+  navigateWithGlobalSelection = (pathname, evt) => {
+    evt.preventDefault();
+    const query = pick(this.props.location.query, Object.values(URL_PARAM));
+    browserHistory.push({pathname, query});
+    this.hidePanel();
+  };
+
   // Show slideout panel
   showPanel = panel => {
     this.setState({
@@ -173,13 +179,6 @@ class Sidebar extends React.Component {
     if (this.sidebar && !this.sidebar.contains(evt.target)) {
       this.hidePanel();
     }
-  };
-
-  // Get link that preserves global selection values in path
-  withGlobalSelectionInPath = path => {
-    const query = pick(this.props.location.query, Object.values(URL_PARAM));
-
-    return `${path}?${qs.stringify(query)}`;
   };
 
   render() {
@@ -224,32 +223,38 @@ class Sidebar extends React.Component {
                 <Feature features={['sentry10']}>
                   <SidebarItem
                     {...sidebarItemProps}
-                    onClick={this.hidePanel}
+                    onClick={(_id, evt) =>
+                      this.navigateWithGlobalSelection(
+                        `/organizations/${organization.slug}/releases/`,
+                        evt
+                      )}
                     icon={<InlineSvg src="icon-releases" />}
                     label={t('Releases')}
-                    to={this.withGlobalSelectionInPath(
-                      `/organizations/${organization.slug}/releases/`
-                    )}
+                    to={`/organizations/${organization.slug}/releases/`}
                   />
                   <SidebarItem
                     {...sidebarItemProps}
-                    onClick={this.hidePanel}
+                    onClick={(_id, evt) =>
+                      this.navigateWithGlobalSelection(
+                        `/organizations/${organization.slug}/user-feedback/`,
+                        evt
+                      )}
                     icon={<InlineSvg src="icon-support" />}
                     label={t('User Feedback')}
-                    to={this.withGlobalSelectionInPath(
-                      `/organizations/${organization.slug}/user-feedback/`
-                    )}
+                    to={`/organizations/${organization.slug}/user-feedback/`}
                   />
                 </Feature>
                 <Feature features={['global-views']}>
                   <SidebarItem
                     {...sidebarItemProps}
-                    onClick={this.hidePanel}
+                    onClick={(_id, evt) =>
+                      this.navigateWithGlobalSelection(
+                        `/organizations/${organization.slug}/events/`,
+                        evt
+                      )}
                     icon={<InlineSvg src="icon-stack" />}
                     label={t('Events')}
-                    to={this.withGlobalSelectionInPath(
-                      `/organizations/${organization.slug}/events/`
-                    )}
+                    to={`/organizations/${organization.slug}/events/`}
                   />
                 </Feature>
 

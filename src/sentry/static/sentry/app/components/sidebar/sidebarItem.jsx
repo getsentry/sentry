@@ -69,7 +69,7 @@ class SidebarItem extends React.Component {
       to &&
       router.isActive(
         {
-          pathname: to.split('?')[0],
+          pathname: to,
         },
         index
       );

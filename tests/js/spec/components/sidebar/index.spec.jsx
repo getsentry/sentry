@@ -37,7 +37,7 @@ describe('Sidebar', function() {
 
   it('renders', function() {
     wrapper = shallow(
-      <Sidebar organization={organization} user={user} router={router} location={{}} />,
+      <Sidebar organization={organization} user={user} router={router} />,
       TestStubs.routerContext()
     );
 
