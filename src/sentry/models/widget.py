@@ -5,6 +5,7 @@ from django.utils import timezone
 from enum import Enum
 from jsonfield import JSONField
 
+from sentry.constants import ObjectStatus
 from sentry.db.models import BoundedPositiveIntegerField, FlexibleForeignKey, Model, sane_repr
 
 
@@ -27,6 +28,11 @@ class WidgetDataSource(Model):
     name = models.CharField(max_length=128)
     data = JSONField(default={})
     date_added = models.DateTimeField(default=timezone.now)
+    # hmmm do I need this one?
+    status = BoundedPositiveIntegerField(
+        default=ObjectStatus.VISIBLE,
+        choices=ObjectStatus.as_choices(),
+    )
 
     class Meta:
         app_label = 'sentry'
@@ -49,6 +55,10 @@ class Widget(Model):
     organization_id = FlexibleForeignKey('sentry.Organization')
     data = JSONField(default={})
     date_added = models.DateTimeField(default=timezone.now)
+    status = BoundedPositiveIntegerField(
+        default=ObjectStatus.VISIBLE,
+        choices=ObjectStatus.as_choices(),
+    )
 
     class Meta:
         app_label = 'sentry'
