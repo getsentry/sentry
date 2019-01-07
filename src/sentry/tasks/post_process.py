@@ -51,6 +51,7 @@ def _capture_stats(event, is_new):
         metrics.incr('events.unique', tags=tags, skip_internal=False)
 
     metrics.incr('events.processed', tags=tags, skip_internal=False)
+    metrics.incr(u'events.processed.{platform}'.format(platform=platform), skip_internal=False)
     metrics.timing('events.size.data', event.size, tags=tags)
 
 
