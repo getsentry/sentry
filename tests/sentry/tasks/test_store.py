@@ -48,7 +48,9 @@ class StoreTasksTest(PluginTestCase):
         data = {
             'project': project.id,
             'platform': 'mattlang',
-            'message': 'test',
+            'logentry': {
+                'formatted': 'test',
+            },
             'extra': {
                 'foo': 'bar'
             },
@@ -67,7 +69,9 @@ class StoreTasksTest(PluginTestCase):
         data = {
             'project': project.id,
             'platform': 'NOTMATTLANG',
-            'message': 'test',
+            'logentry': {
+                'formatted': 'test',
+            },
             'extra': {
                 'foo': 'bar'
             },
@@ -86,7 +90,9 @@ class StoreTasksTest(PluginTestCase):
         data = {
             'project': project.id,
             'platform': 'mattlang',
-            'message': 'test',
+            'logentry': {
+                'formatted': 'test',
+            },
             'extra': {
                 'foo': 'bar'
             },
@@ -102,7 +108,9 @@ class StoreTasksTest(PluginTestCase):
             {
                 'project': project.id,
                 'platform': 'mattlang',
-                'message': 'test',
+                'logentry': {
+                    'formatted': 'test',
+                },
             },
             3600,
         )
@@ -120,7 +128,9 @@ class StoreTasksTest(PluginTestCase):
         data = {
             'project': project.id,
             'platform': 'noop',
-            'message': 'test',
+            'logentry': {
+                'formatted': 'test',
+            },
             'extra': {
                 'foo': 'bar'
             },
@@ -146,7 +156,9 @@ class StoreTasksTest(PluginTestCase):
         data = {
             'project': project.id,
             'platform': 'holdmeclose',
-            'message': 'test',
+            'logentry': {
+                'formatted': 'test',
+            },
             'extra': {
                 'foo': 'bar'
             },
@@ -160,7 +172,9 @@ class StoreTasksTest(PluginTestCase):
             'e:1', {
                 'project': project.id,
                 'platform': 'holdmeclose',
-                'message': 'test',
+                'logentry': {
+                    'formatted': 'test',
+                },
                 'extra': {
                     'foo': 'bar'
                 },
@@ -181,7 +195,9 @@ class StoreTasksTest(PluginTestCase):
         data = {
             'project': project.id,
             'platform': 'NOTMATTLANG',
-            'message': 'test',
+            'logentry': {
+                'formatted': 'test',
+            },
             'event_id': uuid.uuid4().hex,
             'extra': {
                 'foo': 'bar'
