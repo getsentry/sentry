@@ -88,7 +88,7 @@ def fix_broken_encoding(value):
 
 
 def jsonify(value):
-    return value if isinstance(value, six.string_types) else json.dumps(value)
+    return to_bytes(value) if isinstance(value, six.string_types) else json.dumps(value)
 
 
 class Http(Interface):
