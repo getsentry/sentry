@@ -3,7 +3,7 @@ import createReactClass from 'create-react-class';
 import styled from 'react-emotion';
 
 import OrganizationState from 'app/mixins/organizationState';
-import ProjectNav from 'app/views/organizationDashboard/projectNav';
+import ProjectNav from 'app/views/organizationProjectsDashboard/projectNav';
 import space from 'app/styles/space';
 
 const HomeContainer = createReactClass({
