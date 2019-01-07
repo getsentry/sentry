@@ -10,7 +10,8 @@ from sentry.db.models import BoundedPositiveIntegerField, FlexibleForeignKey, Mo
 
 
 class WidgetDisplayTypes(Enum):
-    LINE_CHART = 'line-chart'
+    BASIC_LINE_CHART = 'basic-line-chart'
+    TWO_QUERY_LINE_CHART = 'two-query-line-chart'
     MAP = 'map'
     HORIZONATAL_BAR_CHART = 'horizontal-bar-chart'
     TIMELINE = 'timeline'
