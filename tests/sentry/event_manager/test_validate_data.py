@@ -337,9 +337,12 @@ def test_fingerprints():
     assert data["errors"][0]["name"] == "fingerprint"
 
     data = validate_and_normalize({"fingerprint": ["foo", ["bar"]]})
-    assert not data.get("fingerprint")
-    assert data["errors"][0]["type"] == "invalid_data"
-    assert data["errors"][0]["name"] == "fingerprint"
+    assert data.get("fingerprint") == ["foo"]
+    # With rust, there will be errors emitted
+
+    data = validate_and_normalize({"fingerprint": ["foo", None, "bar"]})
+    assert data.get("fingerprint") == ["foo", "bar"]
+    # With rust, there will be errors emitted
 
     data = validate_and_normalize(
         {"fingerprint": ["{{default}}", 1, "bar", 4.5, -2.7, True]}
