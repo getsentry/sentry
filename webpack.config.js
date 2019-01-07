@@ -292,31 +292,6 @@ const appConfig = {
 };
 
 /**
- * Webpack entry for password strength checker
- */
-const pwConfig = {
-  mode: WEBPACK_MODE,
-  entry: {
-    pwstrength: './index',
-  },
-  context: path.resolve(path.join(__dirname, staticPrefix), 'js', 'pwstrength'),
-  module: {},
-  plugins: [],
-  resolve: {
-    modules: [path.join(__dirname, staticPrefix), 'node_modules'],
-    extensions: ['.js'],
-  },
-  output: {
-    path: distPath,
-    filename: '[name].js',
-    libraryTarget: 'window',
-    library: 'sentrypw',
-    sourceMapFilename: '[name].js.map',
-  },
-  devtool: IS_PRODUCTION ? 'source-map' : 'cheap-source-map',
-};
-
-/**
  * Legacy CSS Webpack appConfig for Django-powered views.
  * This generates a single "sentry.css" file that imports ALL component styles
  * for use on Django-powered pages.
@@ -401,9 +376,8 @@ if (IS_PRODUCTION) {
   // NOTE: can't do plugins.push(Array) because webpack/webpack#2217
   minificationPlugins.forEach(function(plugin) {
     appConfig.plugins.push(plugin);
-    pwConfig.plugins.push(plugin);
     legacyCssConfig.plugins.push(plugin);
   });
 }
 
-module.exports = [appConfig, pwConfig, legacyCssConfig];
+module.exports = [appConfig, legacyCssConfig];
