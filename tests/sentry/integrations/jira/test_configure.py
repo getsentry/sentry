@@ -18,10 +18,10 @@ ORGANIZATIONS_FORM = 'Enabled Sentry Organizations'
 COMPLETED = 'Saved!'
 
 
-class JiraConfigureViewErrorsTest(APITestCase):
+class JiraConfigureViewTestCase(APITestCase):
     def setUp(self):
-        super(JiraConfigureViewGetTest, self).setUp()
-        self.path = absolute_uri('extensions/jira/configure/')
+        super(JiraConfigureViewTestCase, self).setUp()
+        self.path = absolute_uri('extensions/jira/configure/') + '?xdm_e=base_url'
         org = self.organization
 
         self.user.name = 'Sentry Admin'
@@ -34,33 +34,28 @@ class JiraConfigureViewErrorsTest(APITestCase):
         integration.add_organization(org, self.user)
         self.installation = integration.get_installation(org.id)
 
+
+class JiraConfigureViewErrorsTest(JiraConfigureViewTestCase):
+
     @patch('sentry.integrations.jira.configure.get_integration_from_request',
            side_effect=AtlassianConnectValidationError())
     def test_atlassian_connect_validation_error_get(self, mock_get_integration_from_request):
-        response = self.client.get(
-            self.path,
-            data={'xdm_e': 'base_url'}
-        )
+        response = self.client.get(self.path)
         assert response.status_code == 200
         assert PERMISSIONS_WARNING in response.content
 
     @patch('sentry.integrations.jira.configure.get_integration_from_request',
            side_effect=ExpiredSignatureError())
     def test_expired_signature_error_get(self, mock_get_integration_from_request):
-        response = self.client.get(
-            self.path,
-            data={'xdm_e': 'base_url'}
-        )
+        response = self.client.get(self.path)
         assert response.status_code == 200
         assert REFRESH_REQUIRED in response.content
 
     @patch('sentry.integrations.jira.configure.get_integration_from_request')
     def test_user_not_logged_in_get(self, mock_get_integration_from_request):
         mock_get_integration_from_request.return_value = self.installation.model
-        response = self.client.get(
-            self.path,
-            data={'xdm_e': 'base_url'}
-        )
+        response = self.client.get(self.path)
+
         assert response.status_code == 200
         assert LOGIN_REQUIRED in response.content
         assert absolute_uri(reverse('sentry-login')) in response.content
@@ -68,77 +63,49 @@ class JiraConfigureViewErrorsTest(APITestCase):
     @patch('sentry.integrations.jira.configure.get_integration_from_request',
            side_effect=AtlassianConnectValidationError())
     def test_atlassian_connect_validation_error_post(self, mock_get_integration_from_request):
-        response = self.client.post(
-            self.path,
-            data={'xdm_e': 'base_url'}
-        )
+        response = self.client.post(self.path)
         assert response.status_code == 200
         assert PERMISSIONS_WARNING in response.content
 
     @patch('sentry.integrations.jira.configure.get_integration_from_request',
            side_effect=ExpiredSignatureError())
     def test_expired_signature_error_post(self, mock_get_integration_from_request):
-        response = self.client.post(
-            self.path,
-            data={'xdm_e': 'base_url'}
-        )
+        response = self.client.post(self.path)
         assert response.status_code == 200
         assert REFRESH_REQUIRED in response.content
 
     @patch('sentry.integrations.jira.configure.get_integration_from_request')
     def test_user_not_logged_in_post(self, mock_get_integration_from_request):
         mock_get_integration_from_request.return_value = self.installation.model
-        response = self.client.post(
-            self.path,
-            data={'xdm_e': 'base_url'}
-        )
+        response = self.client.post(self.path)
         assert response.status_code == 200
         assert LOGIN_REQUIRED in response.content
         assert absolute_uri(reverse('sentry-login')) in response.content
 
 
-class JiraConfigureViewTestCase(APITestCase):
+class JiraConfigureViewTest(JiraConfigureViewTestCase):
     def setUp(self):
-        super(JiraConfigureViewTestCase, self).setUp()
-        self.path = absolute_uri('extensions/jira/configure/')
-        org = self.organization
-
-        self.user.name = 'Sentry Admin'
-        self.user.save()
+        super(JiraConfigureViewTest, self).setUp()
         self.login_as(self.user)
-
-        integration = Integration.objects.create(
-            provider='jira',
-            name='Example Jira',
-        )
-        integration.add_organization(org, self.user)
-        self.installation = integration.get_installation(org.id)
 
     def assert_no_errors(self, response):
         assert PERMISSIONS_WARNING not in response.content
         assert REFRESH_REQUIRED not in response.content
         assert LOGIN_REQUIRED not in response.content
 
-
-class JiraConfigureViewGetTest(JiraConfigureViewTestCase):
     @patch('sentry.integrations.jira.configure.get_integration_from_request')
-    def test_simple(self, mock_get_integration_from_request):
+    def test_simple_get(self, mock_get_integration_from_request):
         mock_get_integration_from_request.return_value = self.installation.model
-        response = self.client.get(
-            self.path,
-            data={'xdm_e': 'base_url'}
-        )
+        response = self.client.get(self.path)
         assert response.status_code == 200
         self.assert_no_errors(response)
         assert ORGANIZATIONS_FORM in response.content
 
-
-class JiraConfigureViewPostTest(JiraConfigureViewTestCase):
     @patch('sentry.integrations.jira.configure.get_integration_from_request')
-    def test_simple(self, mock_get_integration_from_request):
+    def test_simple_post(self, mock_get_integration_from_request):
         mock_get_integration_from_request.return_value = self.installation.model
         response = self.client.post(
-            self.path + '?xdm_e=base_url',
+            self.path,
             data={
                 'organizations': [self.organization.id]
             }
