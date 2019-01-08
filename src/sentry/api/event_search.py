@@ -285,7 +285,8 @@ def get_snuba_query_args(query=None, params=None):
         elif snuba_name == 'message':
             # make message search case insensitive
             kwargs['conditions'].append(
-                [['positionCaseInsensitive', ['message', "'%s'" % (value,)]], '!=', 0]
+                [['positionCaseInsensitive', [
+                    ['coalesce', ['search_message', 'message']], "'%s'" % (value,)]], '!=', 0]
             )
 
         else:

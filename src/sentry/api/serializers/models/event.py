@@ -204,9 +204,7 @@ class EventSerializer(Serializer):
             'size': obj.size,
             'entries': attrs['entries'],
             'dist': obj.dist,
-            # See GH-3248
             'message': message,
-            'searchMessage': obj.search_message,
             'title': obj.title,
             'location': obj.location,
             'user': attrs['user'],
@@ -280,6 +278,8 @@ class SnubaEvent(object):
         'event_id',
         'project_id',
         'message',
+        'title',
+        'location',
         'user_id',
         'username',
         'ip_address',
@@ -305,6 +305,10 @@ class SnubaEventSerializer(Serializer):
             'eventID': six.text_type(obj.event_id),
             'projectID': six.text_type(obj.project_id),
             'message': obj.message,
+            # XXX(mitsuhiko): This is a temporary legacy code path
+            # remove by merge date of GH-10740 + 90 days
+            'title': obj.title or obj.message,
+            'location': obj.location,
             'dateCreated': obj.timestamp,
             'user': {
                 'id': obj.user_id,

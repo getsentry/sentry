@@ -432,6 +432,8 @@ class Group(Model):
         et = eventtypes.get(self.get_event_type())(self.data)
         return et.get_location(self.get_event_metadata())
 
+    # TODO(mitsuhiko): how to get real_message
+
     @property
     def organization(self):
         return self.project.organization

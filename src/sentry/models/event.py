@@ -317,7 +317,7 @@ class Event(Model):
         warnings.warn(
             'Event.message is deprecated. Use Event.search_message instead.',
             DeprecationWarning)
-        return self.search_message
+        return self.real_message
 
     @property
     def message_short(self):
