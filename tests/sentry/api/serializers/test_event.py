@@ -56,10 +56,10 @@ class EventSerializerTest(TestCase):
     def test_message_interface(self):
         event = self.create_event(
             data={
-                'logentry': {'message': 'bar'},
+                'logentry': {'formatted': 'bar'},
                 '_meta': {
                     'logentry': {
-                        'message': {'': {'err': ['some error']}},
+                        'formatted': {'': {'err': ['some error']}},
                     },
                 },
             }

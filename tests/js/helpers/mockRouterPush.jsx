@@ -1,3 +1,5 @@
+import qs from 'query-string';
+
 // More closely mocks a router push -- updates wrapper's props/context
 // with updated `router` and calls `wrapper.update()`
 export function mockRouterPush(wrapper, router) {
@@ -5,6 +7,7 @@ export function mockRouterPush(wrapper, router) {
     const location = {
       ...router.location,
       query,
+      search: qs.stringify(query),
     };
     let newRouter = {
       router: {

@@ -226,6 +226,28 @@ def process_timestamp(value, meta, current_datetime=None):
     return float(value.strftime('%s'))
 
 
+def sanitize_fingerprint(value):
+    # Special case floating point values: Only permit floats that have an exact
+    # integer representation in JSON to avoid rounding issues.
+    if isinstance(value, float):
+        return six.text_type(int(value)) if abs(value) < (1 << 53) else None
+
+    # Stringify known types
+    if isinstance(value, six.string_types + six.integer_types):
+        return six.text_type(value)
+
+    # Silently skip all other values
+    return None
+
+
+def cast_fingerprint(value):
+    # Return incompatible values so that schema validation can emit errors
+    if not isinstance(value, list):
+        return value
+
+    return list(f for f in map(sanitize_fingerprint, value) if f is not None)
+
+
 def has_pending_commit_resolution(group):
     return GroupLink.objects.filter(
         group_id=group.id,
@@ -455,26 +477,20 @@ class EventManager(object):
         # Before validating with a schema, attempt to cast values to their desired types
         # so that the schema doesn't have to take every type variation into account.
         text = six.text_type
-        fp_types = six.string_types + six.integer_types + (float, )
 
         def to_values(v):
             return {'values': v} if v and isinstance(v, (tuple, list)) else v
 
-        def stringify(f):
-            if isinstance(f, float):
-                return text(int(f)) if abs(f) < (1 << 53) else None
-            return text(f)
-
         casts = {
             'environment': lambda v: text(v) if v is not None else v,
             'event_id': lambda v: v.lower(),
-            'fingerprint': lambda v: list(x for x in map(stringify, v) if x is not None) if isinstance(v, list) and all(isinstance(f, fp_types) for f in v) else v,
+            'fingerprint': cast_fingerprint,
             'release': lambda v: text(v) if v is not None else v,
             'dist': lambda v: text(v).strip() if v is not None else v,
             'time_spent': lambda v: int(v) if v is not None else v,
             'tags': lambda v: [(text(v_k).replace(' ', '-').strip(), text(v_v).strip()) for (v_k, v_v) in dict(v).items()],
             'platform': lambda v: v if v in VALID_PLATFORMS else 'other',
-            'logentry': lambda v: v if isinstance(v, dict) else {'message': v},
+            'logentry': lambda v: {'message': v} if (v and not isinstance(v, dict)) else (v or None),
 
             # These can be sent as lists and need to be converted to {'values': [...]}
             'exception': to_values,
@@ -496,29 +512,6 @@ class EventManager(object):
 
         data['timestamp'] = process_timestamp(data.get('timestamp'),
                                               meta.enter('timestamp'))
-
-        # raw 'message' is coerced to the Message interface.  Longer term
-        # we want to treat 'message' as a pure alias for 'logentry' but
-        # for now that won't be the case.
-        #
-        # TODO(mitsuhiko): the logic we want to apply here long term is
-        # to
-        #
-        # 1. make logentry.message optional
-        # 2. make logentry.formatted the primary value
-        # 3. always treat a string as an alias for `logentry.formatted`
-        # 4. remove the custom coercion logic here
-        msg_str = data.pop('message', None)
-        if msg_str:
-            msg_if = data.get('logentry')
-
-            if not msg_if:
-                msg_if = data['logentry'] = {'message': msg_str}
-                meta.enter('logentry', 'message').merge(meta.enter('message'))
-
-            if msg_if.get('message') != msg_str and not msg_if.get('formatted'):
-                msg_if['formatted'] = msg_str
-                meta.enter('logentry', 'formatted').merge(meta.enter('message'))
 
         # Fill in ip addresses marked as {{auto}}
         if self._client_ip:
