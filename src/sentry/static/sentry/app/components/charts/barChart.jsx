@@ -1,6 +1,6 @@
 import React from 'react';
 
-import BarSeries from './series/barSeries.jsx';
+import BarSeries from './series/barSeries';
 import BaseChart from './baseChart';
 
 export default class BarChart extends React.Component {

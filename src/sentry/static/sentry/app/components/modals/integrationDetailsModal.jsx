@@ -14,7 +14,7 @@ import HookStore from 'app/stores/hookStore';
 import InlineSvg from 'app/components/inlineSvg';
 import PluginIcon from 'app/plugins/components/pluginIcon';
 import SentryTypes from 'app/sentryTypes';
-import Tag from 'app/views/settings/components/tag.jsx';
+import Tag from 'app/views/settings/components/tag';
 import Tooltip from 'app/components/tooltip';
 import marked, {singleLineRenderer} from 'app/utils/marked';
 import space from 'app/styles/space';
