@@ -91,11 +91,11 @@ class PercentageTableChart extends React.Component {
         ])}
         renderRow={({items, rowIndex, ...other}) => (
           <Row onClick={this.handleRowClick} data={data} rowIndex={rowIndex}>
-            <NameAndCountContainer justify="space-between" align="center">
+            <NameAndCountContainer>
               {items[0]}
               <div>{items[1]}</div>
             </NameAndCountContainer>
-            <PercentageContainer justify="space-between" align="center">
+            <PercentageContainer>
               <PercentageLabel>{items[2]}</PercentageLabel>
             </PercentageContainer>
           </Row>
@@ -124,19 +124,24 @@ const StyledPercentageTableChart = styled(PercentageTableChart)`
   width: 100%;
 `;
 
-const NameAndCountContainer = styled('div')`
+const FlexContainers = styled('div')`
   display: flex;
+  justify-content: space-between;
+  align-items: center;
+`;
+
+const NameAndCountContainer = styled(FlexContainers)`
   flex-shrink: 0;
   margin-right: ${space(2)};
   width: 50%;
 `;
 
-const PercentageContainer = styled('div')`
-  display: flex;
+const PercentageContainer = styled(FlexContainers)`
   width: 50%;
 `;
 
 const PercentageLabel = styled('div')`
+  display: flex;
   flex: 1;
   align-items: center;
 `;
