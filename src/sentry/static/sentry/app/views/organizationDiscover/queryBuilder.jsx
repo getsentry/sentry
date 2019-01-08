@@ -13,7 +13,7 @@ import MissingProjectWarningModal from './missingProjectWarningModal';
 import {COLUMNS, PROMOTED_TAGS, SPECIAL_TAGS} from './data';
 import {isValidAggregation} from './aggregations/utils';
 
-const DEFAULTS = {
+export const DEFAULTS = {
   projects: [],
   fields: ['id', 'issue.id', 'project.name', 'platform', 'timestamp'],
   conditions: [],

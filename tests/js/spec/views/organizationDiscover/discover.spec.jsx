@@ -52,7 +52,28 @@ describe('Discover', function() {
       );
     });
 
-    it('does not auto run non-saved query', async function() {
+    it('auto-runs non-saved, non-default query', async function() {
+      const newQueryBuilder = createQueryBuilder({fields: ['id']}, organization);
+      newQueryBuilder.fetch = jest.fn(() => Promise.resolve(mockResponse));
+
+      wrapper = mount(
+        <Discover
+          queryBuilder={newQueryBuilder}
+          organization={organization}
+          updateSavedQueryData={jest.fn()}
+          toggleEditMode={jest.fn()}
+          isLoading={false}
+        />,
+        TestStubs.routerContext([{organization}])
+      );
+      await tick();
+      expect(wrapper.state().data.baseQuery.query).toEqual(newQueryBuilder.getExternal());
+      expect(wrapper.state().data.baseQuery.data).toEqual(
+        expect.objectContaining({data: mockResponse.data})
+      );
+    });
+
+    it('does not auto run non-saved, default query', async function() {
       wrapper = mount(
         <Discover
           queryBuilder={queryBuilder}
