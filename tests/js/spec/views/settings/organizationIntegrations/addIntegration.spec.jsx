@@ -30,7 +30,7 @@ describe('AddIntegration', function() {
 
     const newIntegration = {
       source: null,
-      origin: 'null',
+      origin: 'http://localhost',
       data: {
         success: true,
         data: Object.assign({}, integration, {
