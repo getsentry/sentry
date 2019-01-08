@@ -26,7 +26,7 @@ class Dashboard(Model):
 
     class Meta:
         app_label = 'sentry'
-        db_table = 'sentry_widget'
-        unique_together = (('organization_id', 'title'), )
+        db_table = 'sentry_dashboard'
+        unique_together = (('organization', 'title'), )
 
-    __repr__ = sane_repr('organization_id', 'title')
+    __repr__ = sane_repr('organization', 'title')
