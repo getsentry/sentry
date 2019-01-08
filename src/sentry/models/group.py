@@ -420,12 +420,17 @@ class Group(Model):
         See ``sentry.eventtypes``.
         """
         from sentry.event_manager import get_event_metadata_compat
-        return get_event_metadata_compat(self.data, self.search_message)
+        return get_event_metadata_compat(self.data)
 
     @property
     def title(self):
         et = eventtypes.get(self.get_event_type())(self.data)
         return et.to_string(self.get_event_metadata())
+
+    @property
+    def location(self):
+        et = eventtypes.get(self.get_event_type())(self.data)
+        return et.get_location(self.get_event_metadata())
 
     @property
     def organization(self):

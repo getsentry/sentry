@@ -137,7 +137,7 @@ class Event(Model):
         See ``sentry.eventtypes``.
         """
         from sentry.event_manager import get_event_metadata_compat
-        return get_event_metadata_compat(self.data, self.search_message)
+        return get_event_metadata_compat(self.data)
 
     def get_hashes(self):
         """
@@ -248,6 +248,8 @@ class Event(Model):
         # the culprit in from the group.
         if data.get('culprit') is None:
             data['culprit'] = self.group.culprit
+        data['title'] = self.title
+        data['location'] = self.location
 
         return data
 

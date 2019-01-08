@@ -85,7 +85,7 @@ def set_tag(data, key, value):
     data['tags'].append((key, value))
 
 
-def get_event_metadata_compat(data, fallback_message):
+def get_event_metadata_compat(data):
     """This is a fallback path to getting the event metadata.  This is used
     by some code paths that could potentially deal with old sentry events that
     do not have metadata yet.  This does not happen in practice any more but
