@@ -649,7 +649,7 @@ const Stream = createReactClass({
 
     let topIssue = ids[0];
 
-    let {orgId, projectId} = this.props.params;
+    let {orgId} = this.props.params;
     let groupNodes = ids.map(id => {
       let hasGuideAnchor = userDateJoined > dateCutoff && id === topIssue;
       return (
@@ -657,7 +657,6 @@ const Stream = createReactClass({
           key={id}
           id={id}
           orgId={orgId}
-          projectId={projectId}
           statsPeriod={statsPeriod}
           query={this.state.query}
           hasGuideAnchor={hasGuideAnchor}

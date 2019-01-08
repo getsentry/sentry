@@ -25,7 +25,6 @@ const StreamGroup = createReactClass({
   propTypes: {
     id: PropTypes.string.isRequired,
     orgId: PropTypes.string.isRequired,
-    projectId: PropTypes.string.isRequired,
     statsPeriod: PropTypes.string.isRequired,
     canSelect: PropTypes.bool,
     query: PropTypes.string,
@@ -87,7 +86,8 @@ const StreamGroup = createReactClass({
 
   render() {
     const {data} = this.state;
-    const {id, orgId, projectId, query, hasGuideAnchor, canSelect} = this.props;
+    const {id, orgId, query, hasGuideAnchor, canSelect} = this.props;
+    const projectId = data.project.slug;
 
     return (
       <Group onClick={this.toggleSelect} py={1} px={0} align="center">

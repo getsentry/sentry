@@ -23,6 +23,7 @@ import LoadingError from 'app/components/loadingError';
 import LoadingIndicator from 'app/components/loadingIndicator';
 import Pagination from 'app/components/pagination';
 import SentryTypes from 'app/sentryTypes';
+import StreamGroup from 'app/components/stream/group';
 import parseApiError from 'app/utils/parseApiError';
 import parseLinkHeader from 'app/utils/parseLinkHeader';
 import queryString from 'app/utils/queryString';
@@ -527,11 +528,6 @@ const OrganizationStream = createReactClass({
 const StreamFilters = props => <p>Stream filters are coming soon</p>;
 const StreamActions = props => <p>Stream actions are coming soon</p>;
 const StreamSidebar = props => <p>Stream sidebar is coming soon</p>;
-
-const StreamGroup = ({id}) => <p>Issue {id}</p>;
-StreamGroup.propTypes = {
-  id: PropTypes.string,
-};
 
 export default withOrganization(OrganizationStream);
 export {OrganizationStream};
