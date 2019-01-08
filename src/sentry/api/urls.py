@@ -3,6 +3,7 @@ from __future__ import absolute_import, print_function
 from django.conf.urls import include, patterns, url
 
 from .endpoints.accept_project_transfer import AcceptProjectTransferEndpoint
+from .endpoints.dashboards import OrganizationDashboardEndpoint
 from .endpoints.relay_heartbeat import RelayHeartbeatEndpoint
 from .endpoints.relay_projectconfigs import RelayProjectConfigsEndpoint
 from .endpoints.relay_publickeys import RelayPublicKeysEndpoint
@@ -416,6 +417,11 @@ urlpatterns = patterns(
         r'^organizations/(?P<organization_slug>[^\/]+)/dashboards/(?P<dashboard_id>[^\/]+)/$',
         OrganizationDashboardDetailsEndpoint.as_view(),
         name='sentry-api-0-organization-dashboard-details',
+    ),
+    url(
+        r'^organizations/(?P<organization_slug>[^\/]+)/dashboard/$',
+        OrganizationDashboardEndpoint.as_view(),
+        name='sentry-api-0-organization-dashboard'
     ),
     url(
         r'^organizations/(?P<organization_slug>[^\/]+)/health/top/$',

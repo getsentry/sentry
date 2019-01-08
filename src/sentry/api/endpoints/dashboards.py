@@ -10,7 +10,7 @@ from sentry.models import Dashboard
 from rest_framework.response import Response
 
 
-class DashboardsEndpoint(OrganizationEndpoint):
+class OrganizationDashboardsEndpoint(OrganizationEndpoint):
     doc_section = DocSection.ORGANIZATIONS
 
     def get(self, request, organization):
