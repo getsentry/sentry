@@ -803,8 +803,8 @@ function routes() {
               component={errorHandler(LazyLoad)}
             />
           </Route>
-          /* Once org issues is complete, these routes can be nested under
-          /organizations/:orgId/issues */
+          {/* Once org issues is complete, these routes can be nested under
+          /organizations/:orgId/issues */}
           <Route
             path="/organizations/:orgId/issues/assigned/"
             component={errorHandler(MyIssuesAssignedToMe)}
