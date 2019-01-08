@@ -1,6 +1,5 @@
 import React from 'react';
 import {Link} from 'react-router';
-import styled from 'react-emotion';
 import PropTypes from 'prop-types';
 import {omit} from 'lodash';
 import {t} from 'app/locale';
