@@ -98,11 +98,11 @@ const ProjectDashboard = createReactClass({
 
     return (
       <div>
-        <div className="row">
+        <div className="row" style={{marginBottom: '5px'}}>
           <div className="col-sm-9">
             <PageHeading withMargins>{t('Overview')}</PageHeading>
           </div>
-          <div className="col-sm-3" style={{textAlign: 'right'}}>
+          <div className="col-sm-3" style={{textAlign: 'right', marginTop: '4px'}}>
             <div className="btn-group">
               <Link
                 to={{

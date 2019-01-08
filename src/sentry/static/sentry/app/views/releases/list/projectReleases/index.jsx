@@ -204,11 +204,11 @@ const ProjectReleases = createReactClass({
     return (
       <div className="ref-project-releases">
         <GuideAnchor target="releases" type="invisible" />
-        <div className="row">
+        <div className="row" style={{marginBottom: '5px'}}>
           <div className="col-sm-7">
             <PageHeading withMargins>{t('Releases')}</PageHeading>
           </div>
-          <div className="col-sm-5 release-search">
+          <div className="col-sm-5 release-search" style={{marginTop: '5px'}}>
             <SearchBar
               defaultQuery=""
               placeholder={t('Search for a release')}

@@ -24,14 +24,14 @@ export default class UserFeedbackContainer extends React.Component {
     return (
       <div>
         <div className="row">
-          <div className="col-sm-9">
+          <div className="col-sm-9" style={{marginBottom: '5px'}}>
             {params.projectId ? (
               <PageHeading withMargins>{t('User Feedback')}</PageHeading>
             ) : (
               <PageHeading withMargins>{t('User Feedback')}</PageHeading>
             )}
           </div>
-          <div className="col-sm-3" style={{textAlign: 'right'}}>
+          <div className="col-sm-3" style={{textAlign: 'right', marginTop: '4px'}}>
             <div className="btn-group">
               <Link
                 to={{pathname, query: unresolvedQuery}}

@@ -1576,6 +1576,11 @@ exports[`OrganizationUserFeedback renders 1`] = `
                   >
                     <div
                       className="col-sm-9"
+                      style={
+                        Object {
+                          "marginBottom": "5px",
+                        }
+                      }
                     >
                       <PageHeading
                         withMargins={true}
@@ -1595,6 +1600,7 @@ exports[`OrganizationUserFeedback renders 1`] = `
                       className="col-sm-3"
                       style={
                         Object {
+                          "marginTop": "4px",
                           "textAlign": "right",
                         }
                       }
