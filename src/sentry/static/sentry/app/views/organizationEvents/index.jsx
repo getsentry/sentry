@@ -10,7 +10,6 @@ import Feature from 'app/components/acl/feature';
 import GlobalSelectionHeader from 'app/components/organizations/globalSelectionHeader';
 import SentryTypes from 'app/sentryTypes';
 import PageHeading from 'app/components/pageHeading';
-import space from 'app/styles/space';
 import withGlobalSelection from 'app/utils/withGlobalSelection';
 import withOrganization from 'app/utils/withOrganization';
 import {PageContent, PageHeader} from 'app/styles/organization';
@@ -90,8 +89,6 @@ const Body = styled('div')`
   background-color: ${p => p.theme.whiteDark};
   flex-direction: column;
   flex: 1;
-  overflow: hidden;
-  padding: ${space(3)} ${space(4)};
 `;
 
 const HeaderTitle = styled(PageHeading)`
