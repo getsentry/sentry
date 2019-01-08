@@ -234,6 +234,7 @@ export default class Result extends React.Component {
                 tooltip={tooltipOptions}
                 legend={legendData}
                 renderer="canvas"
+                isGroupedByDate={true}
               />
               {this.renderNote()}
             </ChartWrapper>
@@ -247,6 +248,7 @@ export default class Result extends React.Component {
                 tooltip={tooltipOptions}
                 legend={legendData}
                 renderer="canvas"
+                isGroupedByDate={true}
               />
               {this.renderNote()}
             </ChartWrapper>
