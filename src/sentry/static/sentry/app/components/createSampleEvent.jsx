@@ -16,7 +16,6 @@ const CreateSampleEvent = createReactClass({
 
   propTypes: {
     params: PropTypes.object.isRequired,
-    source: PropTypes.string.isRequired,
   },
 
   contextTypes: {
@@ -26,21 +25,8 @@ const CreateSampleEvent = createReactClass({
   mixins: [ApiMixin],
 
   componentDidMount() {
-    let {projectId} = this.props.params;
     let {organization} = this.context;
-    let project = organization.projects.find(proj => proj.slug === projectId);
-    let data = {
-      org_id: parseInt(organization.id, 10),
-      source: this.props.source,
-    };
-
-    if (!project) {
-      data.project_slug = projectId;
-      analytics('sample_event.button_viewed2', data);
-    } else {
-      data.project_id = parseInt(project.id, 10);
-      analytics('sample_event.button_viewed', data);
-    }
+    analytics('sample_event.button_viewed', parseInt(organization.id, 10));
   },
 
   createSampleEvent() {
@@ -75,13 +61,7 @@ const CreateSampleEvent = createReactClass({
   },
 
   render() {
-    let {source} = this.props;
-
-    return source === 'waiting' ? (
-      <StyledButton priority="link" onClick={this.createSampleEvent}>
-        Or See Sample Event
-      </StyledButton>
-    ) : (
+    return (
       <div className="pull-right">
         <StyledButton priority="primary" onClick={this.createSampleEvent}>
           Or See Sample Event
