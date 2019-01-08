@@ -4,18 +4,32 @@ from south.db import db
 from south.v2 import SchemaMigration
 from django.db import models
 
+from sentry.utils.db import is_postgres
+
 
 class Migration(SchemaMigration):
 
     # Flag to indicate if this migration is too risky
     # to run online and needs to be coordinated for offline
-    is_dangerous = False
+    is_dangerous = True
 
     def forwards(self, orm):
         # Adding field 'GroupEnvironment.first_seen'
-        db.add_column('sentry_groupenvironment', 'first_seen',
-                      self.gf('django.db.models.fields.DateTimeField')(null=True, db_index=True),
-                      keep_default=False)
+        if is_postgres():
+            db.commit_transaction()
+            db.execute('ALTER TABLE sentry_groupenvironment ADD COLUMN first_seen timestamp with time zone')
+            db.execute(
+                "CREATE INDEX CONCURRENTLY {} ON sentry_groupenvironment (first_seen)".
+                format(
+                    db.create_index_name('sentry_groupenvironment', ['first_seen']),
+                )
+            )
+            db.start_transaction()
+        else:
+            db.add_column('sentry_groupenvironment', 'first_seen',
+                          self.gf('django.db.models.fields.DateTimeField')(
+                              null=True, db_index=True),
+                          keep_default=False)
 
     def backwards(self, orm):
         # Deleting field 'GroupEnvironment.first_seen'
