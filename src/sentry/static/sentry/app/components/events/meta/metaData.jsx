@@ -3,6 +3,7 @@ import React from 'react';
 import _ from 'lodash';
 
 import {getMeta} from 'app/components/events/meta/metaProxy';
+import ErrorBoundary from 'app/components/errorBoundary';
 
 /**
  * Retrieves metadata from an object (object should be a proxy that
@@ -26,6 +27,11 @@ export default class MetaData extends React.Component {
 
     let value = object[prop];
     let meta = getMeta(object, prop);
-    return required && _.isNil(value) && !meta ? null : children(value, meta);
+
+    return (
+      <ErrorBoundary mini>
+        {required && _.isNil(value) && !meta ? null : children(value, meta)}
+      </ErrorBoundary>
+    );
   }
 }

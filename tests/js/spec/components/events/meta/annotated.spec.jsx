@@ -39,6 +39,13 @@ describe('Annotated', () => {
       expect(mock).toHaveBeenCalledWith('foo');
     });
 
+    it('does not error if prop does not exist on object', () => {
+      let obj = {
+        value: 'foo',
+      };
+      mount(<Annotated object={obj} prop="invalid" />);
+    });
+
     it('renders a number', () => {
       let obj = {
         value: 0,
