@@ -104,6 +104,8 @@ export default PasswordStrength;
  * registration pages aren't in the react app.
  */
 export const attachTo = ({input, element}) =>
+  element &&
+  input &&
   input.addEventListener(
     'input',
     throttle(e => {
