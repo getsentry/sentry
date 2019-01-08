@@ -442,3 +442,17 @@ class SensitiveDataFilterTest(TestCase):
         assert 'csp' in data
         csp = data['csp']
         assert csp['blocked_uri'] == 'https://example.com/?foo=[Filtered]&bar=baz'
+
+    def test_breadcrumb_message(self):
+        data = {
+            'breadcrumbs': {
+                'values': [{
+                    'message': "SELECT session_key FROM django_session WHERE session_key = 'abcdefg'",
+                }],
+            },
+        }
+
+        proc = SensitiveDataFilter(fields=['session_key'])
+        proc.apply(data)
+
+        assert data['breadcrumbs']['values'][0]['message'] == FILTER_MASK
