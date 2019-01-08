@@ -22,7 +22,7 @@ export default class OrganizationReleaseNewEvents extends React.Component {
               query: {query: 'first-release:' + this.context.release.version},
             }}
           >
-            {t('View new events seen in this release in the stream')}
+            {t('View new issues seen in this release in the stream')}
           </Link>
         </Alert>
         <GroupList

@@ -22,7 +22,7 @@ export default class ReleaseAllEvents extends React.Component {
               query: {query: 'release:' + this.context.release.version},
             }}
           >
-            {t('View all events seen in this release in the stream')}
+            {t('View all issues seen in this release in the stream')}
           </Link>
         </Alert>
         <GroupList
