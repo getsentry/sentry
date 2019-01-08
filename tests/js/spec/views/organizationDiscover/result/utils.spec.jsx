@@ -158,45 +158,6 @@ describe('Utils', function() {
       const expected = [
         {
           data: [
-            {name: 'Jul 9th', value: 14},
-            {name: 'Jul 10th', value: null},
-            {name: 'Jul 20th', value: 30},
-          ],
-          seriesName: 'python,SnubaError',
-        },
-        {
-          data: [
-            {name: 'Jul 9th', value: 6},
-            {name: 'Jul 10th', value: null},
-            {name: 'Jul 20th', value: 8},
-          ],
-          seriesName: 'php,Exception',
-        },
-        {
-          data: [
-            {name: 'Jul 9th', value: 6},
-            {name: 'Jul 10th', value: null},
-            {name: 'Jul 20th', value: 5},
-          ],
-          seriesName: 'javascript,Type Error',
-        },
-        {
-          data: [
-            {name: 'Jul 9th', value: 6},
-            {name: 'Jul 10th', value: 20},
-            {name: 'Jul 20th', value: null},
-          ],
-          seriesName: 'python,ZeroDivisionError',
-        },
-      ];
-
-      expect(getChartDataByDay(raw, query)).toEqual(expected);
-    });
-
-    it('returns chart data grouped by timestamp', function() {
-      const expected = [
-        {
-          data: [
             {name: 1531094400000, value: 14},
             {name: 1531180800000, value: null},
             {name: 1532070000000, value: 30},
@@ -228,40 +189,41 @@ describe('Utils', function() {
           seriesName: 'python,ZeroDivisionError',
         },
       ];
-      expect(getChartDataByDay(raw, query, {useTimestamps: true})).toEqual(expected);
+
+      expect(getChartDataByDay(raw, query)).toEqual(expected);
     });
 
     it('assumes null value as 0', function() {
       const expected = [
         {
           data: [
-            {name: 'Jul 9th', value: 14},
-            {name: 'Jul 10th', value: 0},
-            {name: 'Jul 20th', value: 30},
+            {name: 1531094400000, value: 14},
+            {name: 1531180800000, value: 0},
+            {name: 1532070000000, value: 30},
           ],
           seriesName: 'python,SnubaError',
         },
         {
           data: [
-            {name: 'Jul 9th', value: 6},
-            {name: 'Jul 10th', value: 0},
-            {name: 'Jul 20th', value: 8},
+            {name: 1531094400000, value: 6},
+            {name: 1531180800000, value: 0},
+            {name: 1532070000000, value: 8},
           ],
           seriesName: 'php,Exception',
         },
         {
           data: [
-            {name: 'Jul 9th', value: 6},
-            {name: 'Jul 10th', value: 0},
-            {name: 'Jul 20th', value: 5},
+            {name: 1531094400000, value: 6},
+            {name: 1531180800000, value: 0},
+            {name: 1532070000000, value: 5},
           ],
           seriesName: 'javascript,Type Error',
         },
         {
           data: [
-            {name: 'Jul 9th', value: 6},
-            {name: 'Jul 10th', value: 20},
-            {name: 'Jul 20th', value: 0},
+            {name: 1531094400000, value: 6},
+            {name: 1531180800000, value: 20},
+            {name: 1532070000000, value: 0},
           ],
           seriesName: 'python,ZeroDivisionError',
         },
@@ -308,33 +270,33 @@ describe('Utils', function() {
       const expected = [
         {
           data: [
-            {name: 'Jul 9th', value: 14},
-            {name: 'Jul 10th', value: null},
-            {name: 'Jul 20th', value: 30},
+            {name: 1531094400000, value: 14},
+            {name: 1531180800000, value: null},
+            {name: 1532070000000, value: 30},
           ],
           seriesName: 'SNAKES,SnubaError',
         },
         {
           data: [
-            {name: 'Jul 9th', value: 6},
-            {name: 'Jul 10th', value: null},
-            {name: 'Jul 20th', value: 8},
+            {name: 1531094400000, value: 6},
+            {name: 1531180800000, value: null},
+            {name: 1532070000000, value: 8},
           ],
           seriesName: 'PHP,Exception',
         },
         {
           data: [
-            {name: 'Jul 9th', value: 6},
-            {name: 'Jul 10th', value: null},
-            {name: 'Jul 20th', value: 5},
+            {name: 1531094400000, value: 6},
+            {name: 1531180800000, value: null},
+            {name: 1532070000000, value: 5},
           ],
           seriesName: 'NOT JAVA,Type Error',
         },
         {
           data: [
-            {name: 'Jul 9th', value: 6},
-            {name: 'Jul 10th', value: 20},
-            {name: 'Jul 20th', value: null},
+            {name: 1531094400000, value: 6},
+            {name: 1531180800000, value: 20},
+            {name: 1532070000000, value: null},
           ],
           seriesName: 'SNAKES,ZeroDivisionError',
         },

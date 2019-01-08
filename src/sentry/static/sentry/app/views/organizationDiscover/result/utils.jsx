@@ -1,8 +1,6 @@
 /*eslint no-use-before-define: ["error", { "functions": false }]*/
-
 import React from 'react';
 import styled from 'react-emotion';
-import moment from 'moment';
 import {orderBy} from 'lodash';
 import Papa from 'papaparse';
 
@@ -42,12 +40,9 @@ export function getChartData(data, query, options = {}) {
  * Returns time series data formatted for line and bar charts, with each day
  * along the x-axis
  *
- * TODO(billy): Investigate making `useTimestamps` the default behavior and remove the option
- *
  * @param {Array} data Data returned from Snuba
  * @param {Object} query Query state corresponding to data
  * @param {Object} [options] Options object
- * @param {Boolean} [options.useTimestamps] (default: false) Return raw timestamps instead of formatting dates
  * @param {Boolean} [options.assumeNullAsZero] (default: false) Assume null values as 0
  * @param {Boolean} [options.allSeries] (default: false) Return all series instead of top 10
  * @param {Object} [options.fieldLabelMap] (default: false) Maps value from Snuba to a defined label
@@ -68,9 +63,7 @@ export function getChartDataByDay(rawData, query, options = {}) {
 
   // Reverse to get ascending dates - we request descending to ensure latest
   // day data is compplete in the case of limits being hit
-  const dates = [
-    ...new Set(rawData.map(entry => formatDate(entry.time, !options.useTimestamps))),
-  ].reverse();
+  const dates = [...new Set(rawData.map(entry => formatDate(entry.time)))].reverse();
 
   // Temporarily store series as object with series names as keys
   const seriesHash = getEmptySeriesHash(top10Series, dates, options);
@@ -79,7 +72,7 @@ export function getChartDataByDay(rawData, query, options = {}) {
   data.forEach(row => {
     const key = row[CHART_KEY];
 
-    const dateIdx = dates.indexOf(formatDate(row.time, !options.useTimestamps));
+    const dateIdx = dates.indexOf(formatDate(row.time));
 
     if (top10Series.has(key)) {
       seriesHash[key][dateIdx].value =
@@ -161,14 +154,8 @@ function getDataWithKeys(data, query, options = {}) {
   });
 }
 
-function formatDate(datetime, enabled = true) {
-  const timestamp = datetime * 1000;
-
-  if (!enabled) {
-    return timestamp;
-  }
-
-  return moment.utc(timestamp).format('MMM Do');
+function formatDate(datetime) {
+  return datetime * 1000;
 }
 
 // Converts a value to a string for the chart label. This could
