@@ -1,6 +1,9 @@
 from __future__ import absolute_import
 
+from django.db.models import DateTimeField
 from django.db.models.signals import post_delete
+from django.utils import timezone
+
 from sentry.db.models import BoundedPositiveIntegerField, Model, sane_repr
 from sentry.utils.cache import cache
 
@@ -11,6 +14,7 @@ class GroupEnvironment(Model):
     group_id = BoundedPositiveIntegerField()
     environment_id = BoundedPositiveIntegerField()
     first_release_id = BoundedPositiveIntegerField(null=True)
+    first_seen = DateTimeField(default=timezone.now, db_index=True, null=True)
 
     class Meta:
         app_label = 'sentry'
