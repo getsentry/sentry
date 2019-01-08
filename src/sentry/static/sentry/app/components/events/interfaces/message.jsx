@@ -20,7 +20,12 @@ class MessageInterface extends React.Component {
       <EventDataSection group={group} event={event} type="message" title={t('Message')}>
         <pre className="plain">
           <Annotated object={data} prop="formatted">
-            {formatted => formatted || <Annotated object={data} prop="message" />}
+            {formatted =>
+              typeof formatted !== 'undefined' ? (
+                formatted
+              ) : (
+                <Annotated object={data} prop="message" />
+              )}
           </Annotated>
         </pre>
 
