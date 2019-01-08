@@ -2,6 +2,7 @@ import {mount} from 'enzyme';
 
 import {
   getChartData,
+  getChartDataWithPercentages,
   getChartDataByDay,
   getDisplayValue,
   getDisplayText,
@@ -95,6 +96,19 @@ describe('Utils', function() {
 
       expect(getChartData(raw, query, {hideFieldName: true})).toEqual(expected);
     });
+  });
+
+  describe('getChartDataWithPercentages()', function() {
+    const raw = [
+      {count: 2, uniq_id: 1, 'project.id': 5, environment: null},
+      {count: 2, uniq_id: 3, 'project.id': 5, environment: 'staging'},
+      {count: 2, uniq_id: 4, 'project.id': 5, environment: 'alpha'},
+      {count: 6, uniq_id: 10, 'project.id': 5, environment: 'production'},
+    ];
+    const query = {
+      aggregations: [['count()', null, 'count'], ['uniq', 'id', 'uniq_id']],
+      fields: ['project.id', 'environment'],
+    };
 
     it('returns chart data with percentages', function() {
       const expected = [
@@ -118,7 +132,7 @@ describe('Utils', function() {
         },
       ];
 
-      expect(getChartData(raw, query, {includePercentages: true})).toEqual(expected);
+      expect(getChartDataWithPercentages(raw, query)).toEqual(expected);
     });
   });
 

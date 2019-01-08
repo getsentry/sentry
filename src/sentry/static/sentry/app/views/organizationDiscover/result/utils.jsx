@@ -16,28 +16,53 @@ const CHART_KEY = '__CHART_KEY__';
  * @param {Object} query Query state corresponding to data
  * @param {Object} [options] Options object
  * @param {Boolean} [options.hideFieldName] (default: false) Hide field name in results set
- * @param {Boolean} [options.includePercentages] (default: false) Include aggregation's percentages
  * @returns {Array}
  */
 export function getChartData(data, query, options = {}) {
   const {fields} = query;
 
+  return query.aggregations.map(aggregation => {
+    return {
+      seriesName: aggregation[2],
+      data: data.map(res => {
+        return {
+          value: res[aggregation[2]],
+          name: fields
+            .map(field => `${options.hideFieldName ? '' : `${field} `}${res[field]}`)
+            .join(options.separator || ' '),
+        };
+      }),
+    };
+  });
+}
+
+/**
+ * Returns data formatted for charts, with each aggregation representing a series.
+ * Includes each aggregation's series relative percentage to total within that aggregation.
+ *
+ * @param {Array} data Data returned from Snuba
+ * @param {Object} query Query state corresponding to data
+ * @param {Object} [options] Options object
+ * @param {Boolean} [options.hideFieldName] (default: false) Hide field name in results set
+ * @returns {Array}
+ */
+export function getChartDataWithPercentages(data, query, options = {}) {
+  const {fields} = query;
+
   const totalsBySeries = new Map();
 
-  if (options.includePercentages) {
-    query.aggregations.forEach(aggregation => {
-      totalsBySeries.set(
-        aggregation[2],
-        data.reduce((acc, res) => {
-          acc += res[aggregation[2]];
-          return acc;
-        }, 0)
-      );
-    });
-  }
+  query.aggregations.forEach(aggregation => {
+    totalsBySeries.set(
+      aggregation[2],
+      data.reduce((acc, res) => {
+        acc += res[aggregation[2]];
+        return acc;
+      }, 0)
+    );
+  });
 
   return query.aggregations.map(aggregation => {
-    const total = options.includePercentages && totalsBySeries.get(aggregation[2]);
+    const total = totalsBySeries.get(aggregation[2]);
     return {
       seriesName: aggregation[2],
       data: data.map(res => {
@@ -48,7 +73,7 @@ export function getChartData(data, query, options = {}) {
             .join(options.separator || ' '),
         };
 
-        if (options.includePercentages && total) {
+        if (total) {
           obj.percentage = Math.round(res[aggregation[2]] / total * 10000) / 100;
         }
 
