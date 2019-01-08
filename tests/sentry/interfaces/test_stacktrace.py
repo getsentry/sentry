@@ -392,6 +392,31 @@ class StacktraceTest(TestCase):
             ]
         )
 
+    def test_get_hash_ignores_sun_java_generated_constructors(self):
+        interface = Frame.to_python(
+            {
+                'module': 'sun.reflect.GeneratedSerializationConstructorAccessor1',
+                'function': 'invoke',
+            }
+        )
+        result = interface.get_hash(platform='java')
+        self.assertEquals(result, [
+            'sun.reflect.GeneratedSerializationConstructorAccessor<auto>',
+            'invoke',
+        ])
+
+        interface = Frame.to_python(
+            {
+                'module': 'sun.reflect.GeneratedConstructorAccessor2',
+                'function': 'invoke',
+            }
+        )
+        result = interface.get_hash(platform='java')
+        self.assertEquals(result, [
+            'sun.reflect.GeneratedConstructorAccessor<auto>',
+            'invoke',
+        ])
+
     def test_get_hash_ignores_sun_java_generated_methods(self):
         interface = Frame.to_python(
             {
