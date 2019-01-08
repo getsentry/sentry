@@ -1,17 +1,18 @@
 from __future__ import absolute_import
 
-
 from django.http import Http404
+from rest_framework.response import Response
 
 from sentry.api.base import DocSection
 from sentry.api.bases.organization import (
     OrganizationEndpoint
 )
+from sentry.api.bases.dashboard import DashboardSerializer
 from sentry.api.serializers import serialize
 from sentry.models import Dashboard, ObjectStatus
 
 
-class DashboardDetailsEndpoint(OrganizationEndpoint):
+class OrganizationDashboardDetailsEndpoint(OrganizationEndpoint):
 
     doc_section = DocSection.ORGANIZATIONS
 
@@ -29,7 +30,7 @@ class DashboardDetailsEndpoint(OrganizationEndpoint):
         try:
             dashboard = Dashboard.objects.get(
                 id=dashboard_id,
-                organization=organization,
+                organization_id=organization.id,
             )
         except Dashboard.DoesNotExist:
             raise Http404
@@ -56,10 +57,16 @@ class DashboardDetailsEndpoint(OrganizationEndpoint):
         try:
             Dashboard.objects.get(
                 id=dashboard_id,
-                organization=organization,
+                organization_id=organization.id,
             )
         except Dashboard.DoesNotExist:
             raise Http404
 
-        # update needs a serializer
-        return self.respond(status=200)
+        serializer = DashboardSerializer(data=request.DATA, context={'organization': organization})
+
+        if not serializer.is_valid():
+            return Response(serializer.errors, status=400)
+
+        dashboard, changed_data = serializer.save()
+
+        return self.respond(serialize(dashboard, request.user, DashboardSerializer()))
