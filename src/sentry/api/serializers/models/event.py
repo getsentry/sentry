@@ -207,8 +207,8 @@ class EventSerializer(Serializer):
             # See GH-3248
             'message': message,
             'searchMessage': obj.search_message,
-            'title': self.title,
-            'location': self.location,
+            'title': obj.title,
+            'location': obj.location,
             'user': attrs['user'],
             'contexts': attrs['contexts'],
             'crashFile': attrs['crash_file'],
