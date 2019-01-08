@@ -2,7 +2,7 @@ import React from 'react';
 
 import {EventsChart} from 'app/views/organizationEvents/eventsChart';
 import {EventsTable} from 'app/views/organizationEvents/eventsTable';
-import {OrganizationEvents, parseRowFromLinks} from 'app/views/organizationEvents/events';
+import OrganizationEvents, {parseRowFromLinks} from 'app/views/organizationEvents/events';
 import {chart, doZoom} from 'app-test/helpers/charts';
 import {initializeOrg} from 'app-test/helpers/initializeOrg';
 import {getLocalDateObject} from 'app/utils/dates';
@@ -132,13 +132,18 @@ describe('OrganizationEventsErrors', function() {
 
     eventsMock.mockClear();
 
-    wrapper.setProps({
-      location: {
-        query: {
-          start: '2017-10-01T04:00:00',
-          end: '2017-10-02T03:59:59',
-        },
-        search: '?start=2017-10-01T04:00:00&end=2017-10-02T03:59:59',
+    const location = {
+      query: {
+        start: '2017-10-01T04:00:00',
+        end: '2017-10-02T03:59:59',
+      },
+      search: '?start=2017-10-01T04:00:00&end=2017-10-02T03:59:59',
+    };
+
+    wrapper.setContext({
+      router: {
+        ...router,
+        location,
       },
     });
     wrapper.update();
@@ -155,32 +160,53 @@ describe('OrganizationEventsErrors', function() {
   });
 
   describe('Events Integration', function() {
-    let chartRender = jest.spyOn(EventsChart.prototype, 'render');
-    let tableRender = jest.spyOn(EventsTable.prototype, 'render');
+    let chartRender;
+    let tableRender;
     let wrapper;
     let newParams;
+
+    beforeAll(function() {
+      chartRender = jest.spyOn(EventsChart.prototype, 'render');
+      tableRender = jest.spyOn(EventsTable.prototype, 'render');
+    });
 
     beforeEach(function() {
       chartRender.mockClear();
       tableRender.mockClear();
-      router.location.query.zoom = '1';
+      const newLocation = {
+        ...router.location,
+        query: {
+          ...router.location.query,
+          zoom: '1',
+        },
+      };
+
+      const newRouter = {
+        ...router,
+        location: newLocation,
+      };
+
+      const newRouterContext = {
+        ...routerContext,
+        context: {
+          ...routerContext.context,
+          router: newRouter,
+          location: newLocation,
+        },
+      };
 
       wrapper = mount(
-        <OrganizationEventsContainer
-          router={router}
-          organization={org}
-          location={router.location}
-        >
-          <OrganizationEvents location={router.location} organization={org} />
+        <OrganizationEventsContainer organization={org}>
+          <OrganizationEvents organization={org} />
         </OrganizationEventsContainer>,
-        routerContext
+        newRouterContext
       );
       mockRouterPush(wrapper, router);
     });
 
-    it('renders', function() {
-      expect(chartRender).toHaveBeenCalledTimes(1);
-      expect(tableRender).toHaveBeenCalledTimes(1);
+    afterAll(function() {
+      chartRender.mockRestore();
+      tableRender.mockRestore();
     });
 
     it('zooms using chart', async function() {
@@ -196,10 +222,7 @@ describe('OrganizationEventsErrors', function() {
 
       // After zooming, chart should not re-render, but table does
       expect(chartRender).toHaveBeenCalledTimes(1);
-
-      // Table should be in loading state
-      expect(tableRender).toHaveBeenCalledTimes(2);
-      expect(wrapper.find('EventsTable').prop('zoomChanged')).toBe(true);
+      expect(tableRender).toHaveBeenCalledTimes(4);
 
       newParams = {
         zoom: '1',
@@ -220,6 +243,67 @@ describe('OrganizationEventsErrors', function() {
       );
       expect(wrapper.find('TimeRangeSelector').prop('end')).toEqual(
         getLocalDateObject('2018-12-02T00:00:00')
+      );
+    });
+  });
+
+  describe('OrganizationEventsContainer', function() {
+    let wrapper;
+
+    beforeEach(function() {
+      // GlobalSelectionStore.reset();
+
+      router.location = {
+        pathname: '/organizations/org-slug/events/',
+        query: {},
+      };
+      wrapper = mount(
+        <OrganizationEventsContainer
+          router={router}
+          organization={organization}
+          location={router.location}
+        >
+          <OrganizationEvents location={router.location} organization={org} />
+        </OrganizationEventsContainer>,
+        routerContext
+      );
+
+      mockRouterPush(wrapper, router);
+    });
+
+    it('performs the correct queries when there is a search query', async function() {
+      wrapper.find('SmartSearchBar input').simulate('change', {target: {value: 'http'}});
+      wrapper.find('SmartSearchBar input').simulate('submit');
+
+      expect(router.push).toHaveBeenLastCalledWith({
+        pathname: '/organizations/org-slug/events/',
+        query: {query: 'http', statsPeriod: '14d'},
+      });
+
+      await tick();
+      await tick();
+      wrapper.update();
+
+      expect(eventsMock).toHaveBeenLastCalledWith(
+        '/organizations/org-slug/events/',
+        expect.objectContaining({
+          query: {query: 'http', statsPeriod: '14d'},
+        })
+      );
+
+      // 28d because of previous period
+      expect(eventsStatsMock).toHaveBeenLastCalledWith(
+        '/organizations/org-slug/events-stats/',
+        expect.objectContaining({
+          query: expect.objectContaining({query: 'http', statsPeriod: '28d'}),
+        })
+      );
+
+      expect(eventsMetaMock).toHaveBeenLastCalledWith(
+        '/organizations/org-slug/events-meta/',
+        expect.objectContaining({
+          query: {query: 'http', statsPeriod: '14d'},
+        })
       );
     });
   });

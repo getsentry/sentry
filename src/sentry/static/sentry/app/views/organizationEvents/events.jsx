@@ -1,5 +1,6 @@
 import {Flex} from 'grid-emotion';
 import {isEqual} from 'lodash';
+import {withRouter} from 'react-router';
 import PropTypes from 'prop-types';
 import React from 'react';
 import styled from 'react-emotion';
@@ -150,6 +151,7 @@ class OrganizationEvents extends AsyncView {
         {error && super.renderError(new Error('Unable to load all required endpoints'))}
         <Panel>
           <EventsChart
+            query={location.query.query}
             zoom={!!location.query.zoom}
             organization={organization}
             onZoom={this.handleZoom}
@@ -193,5 +195,5 @@ const RowDisplay = styled('div')`
   color: ${p => p.theme.gray6};
 `;
 
-export default withOrganization(OrganizationEvents);
+export default withRouter(withOrganization(OrganizationEvents));
 export {OrganizationEvents, parseRowFromLinks};
