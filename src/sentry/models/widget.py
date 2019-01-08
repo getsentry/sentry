@@ -9,28 +9,32 @@ from sentry.db.models import BoundedPositiveIntegerField, FlexibleForeignKey, Mo
 
 
 class WidgetDisplayTypes(object):
-    BASIC_LINE_CHART = 1
-    TWO_QUERY_LINE_CHART = 2
-    MAP = 3
-    HORIZONATAL_BAR_CHART = 4
-    TIMELINE = 5
-    STACKED_AREA = 6
+    LINE_CHART = 0
+    AREA_CHART = 1
+    STACKED_AREA_CHART = 2
+    BAR_CHART = 3
+    PIE_CHART = 4
+    TABLE = 5
+    WORLD_MAP = 6
+    PERCENTAGE_AREA_CHART = 7
 
     @classmethod
     def as_choices(cls):
         return [
-            (cls.BASIC_LINE_CHART, 'basic_line_chart'),
-            (cls.TWO_QUERY_LINE_CHART, 'two_query_line_chart'),
-            (cls.MAP, 'map'),
-            (cls.HORIZONATAL_BAR_CHART, 'horizontal_bar_chart'),
-            (cls.TIMELINE, 'timeline'),
-            (cls.STACKED_AREA, 'stacked_area')
+            (cls.LINE_CHART, 'line'),
+            (cls.AREA_CHART, 'area'),
+            (cls.STACKED_AREA_CHART, 'stacked_area'),
+            (cls.BAR_CHART, 'bar'),
+            (cls.PIE_CHART, 'pie'),
+            (cls.TABLE, 'table'),
+            (cls.WORLD_MAP, 'world_map'),
+            (cls.PERCENTAGE_AREA_CHART, 'percentage_area_chart')
         ]
 
 
 class WidgetDataSourceTypes(object):
-    DISCOVER_SAVED_SEARCH = 1
-    API_QUERY = 2  # ehhhh.....
+    DISCOVER_SAVED_SEARCH = 0
+    API_QUERY = 1  # ehhhh.....
 
     @classmethod
     def as_choices(cls):
