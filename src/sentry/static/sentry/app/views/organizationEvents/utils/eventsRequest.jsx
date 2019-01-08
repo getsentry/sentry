@@ -270,7 +270,7 @@ class EventsRequest extends React.PureComponent {
     const loading = this.props.loading || reloading || timeseriesData === null;
 
     if (showLoading && loading) {
-      return <LoadingPanel />;
+      return <LoadingPanel data-test-id="events-request-loading" />;
     }
 
     const {
