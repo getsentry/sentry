@@ -1,11 +1,27 @@
 from __future__ import absolute_import
 from rest_framework import serializers
-from sentry.models import WidgetDisplayTypes
+from sentry.models import WidgetDisplayTypes, WidgetDataSourceTypes
 from sentry.api.serializers.rest_framework.json import JSONField, ListField
+from sentry.api.bases.discoversavedquery import DicsoverSavedQuerySerializer
 
 
 class WidgetDataSource(serializers.Serializer):
-    pass
+    name = serializers.CharField(required=False)
+    data = JSONField(required=True)
+    type = serializers.CharField(required=True)
+
+    def validate_type(self, attrs, source):
+        type = attrs[source]
+        if type not in WidgetDataSourceTypes.__members__:
+            raise ValueError('Widget data source type %s not recognized.' % type)
+        return attrs
+
+    def validate(self, data):
+        if data['type'] == WidgetDataSourceTypes.DISCOVER_SAVED_SEARCH:
+            serializer = DicsoverSavedQuerySerializer(data=data['data'])
+            if not serializer.is_valid():
+                raise ValueError('Error validating DiscoverSavedQuery: %s' % serializer.errors)
+        return data
 
 
 class WidgetSerializer(serializers.Serializer):
