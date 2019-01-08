@@ -3,6 +3,7 @@
 exports[`OrganizationRepositories renders with a repository 1`] = `
 <div>
   <SettingsPageHeading
+    noTitleStyles={false}
     title="Repositories"
   />
   <AlertLink
@@ -54,6 +55,7 @@ exports[`OrganizationRepositories renders with a repository 1`] = `
 exports[`OrganizationRepositories renders with github provider 1`] = `
 <div>
   <SettingsPageHeading
+    noTitleStyles={false}
     title="Repositories"
   />
   <AlertLink
@@ -128,6 +130,7 @@ exports[`OrganizationRepositories renders with github provider 1`] = `
 exports[`OrganizationRepositories renders without providers 1`] = `
 <div>
   <SettingsPageHeading
+    noTitleStyles={false}
     title="Repositories"
   />
   <AlertLink
