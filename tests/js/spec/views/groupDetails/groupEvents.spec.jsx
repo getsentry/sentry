@@ -3,7 +3,7 @@ import PropTypes from 'prop-types';
 import {shallow} from 'enzyme';
 import {browserHistory} from 'react-router';
 
-import {GroupEvents} from 'app/views/groupEvents';
+import {GroupEvents} from 'app/views/groupDetails/project/groupEvents';
 
 describe('groupEvents', function() {
   beforeEach(function() {
