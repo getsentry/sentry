@@ -90,6 +90,6 @@ class Widget(Model):
     class Meta:
         app_label = 'sentry'
         db_table = 'sentry_widget'
-        unique_together = (('organization', 'dashboard', 'dashboard_order', 'title'), )
+        unique_together = (('organization', 'dashboard', 'order', 'title'), )
 
     __repr__ = sane_repr('organization', 'dashboard', 'title')
