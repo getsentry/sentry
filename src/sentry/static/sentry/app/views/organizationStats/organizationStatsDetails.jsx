@@ -10,6 +10,7 @@ import Pagination from 'app/components/pagination';
 import ProjectTable from 'app/views/organizationStats/projectTable';
 import StackedBarChart from 'app/components/stackedBarChart';
 import TextBlock from 'app/views/settings/components/text/textBlock';
+import PageHeading from 'app/components/pageHeading';
 import {
   ProjectTableLayout,
   ProjectTableDataElement,
@@ -65,7 +66,7 @@ class OrganizationStats extends React.Component {
 
     return (
       <div>
-        <h4>{t('Organization Stats')}</h4>
+        <PageHeading withMargins>{t('Organization Stats')}</PageHeading>
         <div className="row">
           <div className="col-md-9">
             <TextBlock>

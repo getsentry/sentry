@@ -1,11 +1,11 @@
 import React from 'react';
 import {Link} from 'react-router';
-import styled from 'react-emotion';
 import PropTypes from 'prop-types';
 import {omit} from 'lodash';
 import {t} from 'app/locale';
 import Pagination from 'app/components/pagination';
 import {Panel, PanelBody} from 'app/components/panels';
+import PageHeading from 'app/components/pageHeading';
 
 export default class UserFeedbackContainer extends React.Component {
   static propTypes = {
@@ -23,15 +23,15 @@ export default class UserFeedbackContainer extends React.Component {
 
     return (
       <div>
-        <div className="row release-list-header">
-          <div className="col-sm-9">
+        <div className="row">
+          <div className="col-sm-9" style={{marginBottom: '5px'}}>
             {params.projectId ? (
-              <h3>{t('User Feedback')}</h3>
+              <PageHeading withMargins>{t('User Feedback')}</PageHeading>
             ) : (
-              <Header>{t('User Feedback')}</Header>
+              <PageHeading withMargins>{t('User Feedback')}</PageHeading>
             )}
           </div>
-          <div className="col-sm-3" style={{textAlign: 'right'}}>
+          <div className="col-sm-3" style={{textAlign: 'right', marginTop: '4px'}}>
             <div className="btn-group">
               <Link
                 to={{pathname, query: unresolvedQuery}}
@@ -58,7 +58,3 @@ export default class UserFeedbackContainer extends React.Component {
     );
   }
 }
-
-const Header = styled('h4')`
-  font-weight: normal;
-`;

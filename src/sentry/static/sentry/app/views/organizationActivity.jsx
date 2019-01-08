@@ -3,6 +3,7 @@ import React from 'react';
 import AsyncView from 'app/views/asyncView';
 import ActivityFeed from 'app/components/activity/feed';
 import OrganizationHomeContainer from 'app/components/organizations/homeContainer';
+import PageHeading from 'app/components/pageHeading';
 
 import {t} from 'app/locale';
 
@@ -18,7 +19,7 @@ export default class OrganizationActivity extends AsyncView {
   render() {
     return (
       <OrganizationHomeContainer>
-        <h4>{t('Activity')}</h4>
+        <PageHeading withMargins>{t('Activity')}</PageHeading>
         <ActivityFeed
           endpoint={this.getEndpoint()}
           query={{

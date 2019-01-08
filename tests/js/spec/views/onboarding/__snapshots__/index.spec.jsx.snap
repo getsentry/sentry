@@ -129,9 +129,19 @@ exports[`OnboardingWizard render() should render and respond to click events 1`]
           <div
             className="onboarding-info"
           >
-            <h4>
-              Choose a language or framework:
-            </h4>
+            <PageHeading
+              withMargins={true}
+            >
+              <Wrapper
+                withMargins={true}
+              >
+                <h1
+                  className="css-wxef79-Wrapper e1f8hk460"
+                >
+                  Choose a language or framework:
+                </h1>
+              </Wrapper>
+            </PageHeading>
             <PlatformPicker
               name=""
               next={[MockFunction]}
@@ -824,9 +834,19 @@ exports[`OnboardingWizard render() should render and respond to click events 1`]
               <div
                 className="new-project-name client-platform"
               >
-                <h4>
-                  Give your project a name:
-                </h4>
+                <PageHeading
+                  withMargins={true}
+                >
+                  <Wrapper
+                    withMargins={true}
+                  >
+                    <h1
+                      className="css-wxef79-Wrapper e1f8hk460"
+                    >
+                      Give your project a name:
+                    </h1>
+                  </Wrapper>
+                </PageHeading>
                 <div
                   className="project-name-wrapper"
                 >
@@ -855,9 +875,19 @@ exports[`OnboardingWizard render() should render and respond to click events 1`]
               <div
                 className="new-project-team"
               >
-                <h4>
-                  Team:
-                </h4>
+                <PageHeading
+                  withMargins={true}
+                >
+                  <Wrapper
+                    withMargins={true}
+                  >
+                    <h1
+                      className="css-wxef79-Wrapper e1f8hk460"
+                    >
+                      Team:
+                    </h1>
+                  </Wrapper>
+                </PageHeading>
                 <div>
                   <SelectField
                     clearable={false}
@@ -1255,9 +1285,19 @@ exports[`OnboardingWizard render() should render and respond to click events 2`]
           <div
             className="onboarding-info"
           >
-            <h4>
-              Choose a language or framework:
-            </h4>
+            <PageHeading
+              withMargins={true}
+            >
+              <Wrapper
+                withMargins={true}
+              >
+                <h1
+                  className="css-wxef79-Wrapper e1f8hk460"
+                >
+                  Choose a language or framework:
+                </h1>
+              </Wrapper>
+            </PageHeading>
             <PlatformPicker
               name=""
               next={[MockFunction]}
@@ -1964,9 +2004,19 @@ exports[`OnboardingWizard render() should render and respond to click events 2`]
               <div
                 className="new-project-name client-platform"
               >
-                <h4>
-                  Give your project a name:
-                </h4>
+                <PageHeading
+                  withMargins={true}
+                >
+                  <Wrapper
+                    withMargins={true}
+                  >
+                    <h1
+                      className="css-wxef79-Wrapper e1f8hk460"
+                    >
+                      Give your project a name:
+                    </h1>
+                  </Wrapper>
+                </PageHeading>
                 <div
                   className="project-name-wrapper"
                 >
@@ -1995,9 +2045,19 @@ exports[`OnboardingWizard render() should render and respond to click events 2`]
               <div
                 className="new-project-team"
               >
-                <h4>
-                  Team:
-                </h4>
+                <PageHeading
+                  withMargins={true}
+                >
+                  <Wrapper
+                    withMargins={true}
+                  >
+                    <h1
+                      className="css-wxef79-Wrapper e1f8hk460"
+                    >
+                      Team:
+                    </h1>
+                  </Wrapper>
+                </PageHeading>
                 <div>
                   <SelectField
                     clearable={false}

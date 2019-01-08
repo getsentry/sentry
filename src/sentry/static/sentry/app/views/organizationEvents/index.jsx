@@ -9,9 +9,10 @@ import BetaTag from 'app/components/betaTag';
 import Feature from 'app/components/acl/feature';
 import GlobalSelectionHeader from 'app/components/organizations/globalSelectionHeader';
 import SentryTypes from 'app/sentryTypes';
+import PageHeading from 'app/components/pageHeading';
 import withGlobalSelection from 'app/utils/withGlobalSelection';
 import withOrganization from 'app/utils/withOrganization';
-import {PageContent, PageHeader, HeaderTitle} from 'app/styles/organization';
+import {PageContent, PageHeader} from 'app/styles/organization';
 
 import EventsContext from './utils/eventsContext';
 import SearchBar from './searchBar';
@@ -85,8 +86,12 @@ export default withRouter(
 export {OrganizationEventsContainer};
 
 const Body = styled('div')`
-  display: flex;
+  background-color: ${p => p.theme.whiteDark};
   flex-direction: column;
+  flex: 1;
+`;
+
+const HeaderTitle = styled(PageHeading)`
   flex: 1;
 `;
 

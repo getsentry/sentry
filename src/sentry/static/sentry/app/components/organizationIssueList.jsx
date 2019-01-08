@@ -4,6 +4,7 @@ import {Link} from 'react-router';
 
 import GroupStore from 'app/stores/groupStore';
 import IssueList from 'app/components/issueList';
+import PageHeading from 'app/components/pageHeading';
 import OrganizationHomeContainer from 'app/components/organizations/homeContainer';
 import {t} from 'app/locale';
 
@@ -61,7 +62,7 @@ class OrganizationIssueList extends React.Component {
             </Link>
           </div>
         </div>
-        <h4>{this.props.title}</h4>
+        <PageHeading withMargins>{this.props.title}</PageHeading>
         <IssueList
           endpoint={this.props.endpoint}
           emptyText={this.props.emptyText}

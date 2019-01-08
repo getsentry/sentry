@@ -1612,23 +1612,35 @@ exports[`OrganizationUserFeedback renders 1`] = `
               >
                 <div>
                   <div
-                    className="row release-list-header"
+                    className="row"
                   >
                     <div
                       className="col-sm-9"
+                      style={
+                        Object {
+                          "marginBottom": "5px",
+                        }
+                      }
                     >
-                      <Header>
-                        <h4
-                          className="css-149epof-Header en9t8ev0"
+                      <PageHeading
+                        withMargins={true}
+                      >
+                        <Wrapper
+                          withMargins={true}
                         >
-                          User Feedback
-                        </h4>
-                      </Header>
+                          <h1
+                            className="css-13ev48w-Wrapper e1f8hk460"
+                          >
+                            User Feedback
+                          </h1>
+                        </Wrapper>
+                      </PageHeading>
                     </div>
                     <div
                       className="col-sm-3"
                       style={
                         Object {
+                          "marginTop": "4px",
                           "textAlign": "right",
                         }
                       }

@@ -1,9 +1,7 @@
 // Jest Snapshot v1, https://goo.gl/fbAQLP
 
 exports[`NewProjectPlatform render() should render 1`] = `
-<Box
-  flex={1}
->
+<Container>
   <div
     className="sub-header flex flex-container flex-vertically-centered"
   >
@@ -28,16 +26,14 @@ exports[`NewProjectPlatform render() should render 1`] = `
   <div
     className="container"
   >
-    <div
-      className="content"
-    >
+    <Content>
       <SideEffect(DocumentTitle)
         title="Sentry"
       />
       <CreateProject
         getDocsUrl={[Function]}
       />
-    </div>
+    </Content>
   </div>
-</Box>
+</Container>
 `;
