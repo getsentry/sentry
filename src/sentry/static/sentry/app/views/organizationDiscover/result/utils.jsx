@@ -83,7 +83,6 @@ export function getChartDataWithPercentages(data, query) {
  * @param {Object} query Query state corresponding to data
  * @param {Object} [options] Options object
  * @param {Boolean} [options.allSeries] (default: false) Return all series instead of top 10
- * @param {Boolean} [options.assumeEmptyAsZero] (default: false) Assume null values as 0
  * @param {Object} [options.fieldLabelMap] (default: false) Maps value from Snuba to a defined label
  * @returns {Array}
  */
@@ -114,8 +113,7 @@ export function getChartDataByDay(rawData, query, options = {}) {
     const dateIdx = dates.indexOf(formatDate(row.time));
 
     if (top10Series.has(key)) {
-      seriesHash[key][dateIdx].value =
-        options.assumeEmptyAsZero && row[aggregate] === null ? 0 : row[aggregate];
+      seriesHash[key][dateIdx].value = row[aggregate] === null ? 0 : row[aggregate];
     }
   });
 
@@ -161,7 +159,7 @@ function getEmptySeriesHash(seriesSet, dates, options = {}) {
 function getEmptySeries(dates, options) {
   return dates.map(date => {
     return {
-      value: options.assumeEmptyAsZero ? 0 : null,
+      value: 0,
       name: date,
     };
   });

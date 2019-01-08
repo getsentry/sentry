@@ -148,7 +148,7 @@ describe('Utils', function() {
         {
           data: [
             {name: 1531094400000, value: 14},
-            {name: 1531180800000, value: null},
+            {name: 1531180800000, value: 0},
             {name: 1532070000000, value: 30},
           ],
           seriesName: 'python,SnubaError',
@@ -156,7 +156,7 @@ describe('Utils', function() {
         {
           data: [
             {name: 1531094400000, value: 6},
-            {name: 1531180800000, value: null},
+            {name: 1531180800000, value: 0},
             {name: 1532070000000, value: 8},
           ],
           seriesName: 'php,Exception',
@@ -164,7 +164,7 @@ describe('Utils', function() {
         {
           data: [
             {name: 1531094400000, value: 6},
-            {name: 1531180800000, value: null},
+            {name: 1531180800000, value: 0},
             {name: 1532070000000, value: 5},
           ],
           seriesName: 'javascript,Type Error',
@@ -173,7 +173,7 @@ describe('Utils', function() {
           data: [
             {name: 1531094400000, value: 6},
             {name: 1531180800000, value: 20},
-            {name: 1532070000000, value: null},
+            {name: 1532070000000, value: 0},
           ],
           seriesName: 'python,ZeroDivisionError',
         },
@@ -333,7 +333,7 @@ describe('Utils', function() {
         {
           data: [
             {name: 1531094400000, value: 14},
-            {name: 1531180800000, value: null},
+            {name: 1531180800000, value: 0},
             {name: 1532070000000, value: 30},
           ],
           seriesName: 'SNAKES,SnubaError',
@@ -341,7 +341,7 @@ describe('Utils', function() {
         {
           data: [
             {name: 1531094400000, value: 6},
-            {name: 1531180800000, value: null},
+            {name: 1531180800000, value: 0},
             {name: 1532070000000, value: 8},
           ],
           seriesName: 'PHP,Exception',
@@ -349,7 +349,7 @@ describe('Utils', function() {
         {
           data: [
             {name: 1531094400000, value: 6},
-            {name: 1531180800000, value: null},
+            {name: 1531180800000, value: 0},
             {name: 1532070000000, value: 5},
           ],
           seriesName: 'NOT JAVA,Type Error',
@@ -358,7 +358,7 @@ describe('Utils', function() {
           data: [
             {name: 1531094400000, value: 6},
             {name: 1531180800000, value: 20},
-            {name: 1532070000000, value: null},
+            {name: 1532070000000, value: 0},
           ],
           seriesName: 'SNAKES,ZeroDivisionError',
         },
