@@ -2,19 +2,10 @@ from __future__ import absolute_import, print_function
 
 from django.db import models
 from django.utils import timezone
-from enum import Enum
 from jsonfield import JSONField
 
 from sentry.constants import ObjectStatus
 from sentry.db.models import BoundedPositiveIntegerField, FlexibleForeignKey, Model, sane_repr
-
-
-class WidgetDisplayTypes(Enum):
-    LINE_CHART = 'line-chart'
-    MAP = 'map'
-    HORIZONATAL_BAR_CHART = 'horizontal-bar-chart'
-    TIMELINE = 'timeline'
-    STACKED_AREA = 'stacked-area'
 
 
 class Dashboard(Model):
