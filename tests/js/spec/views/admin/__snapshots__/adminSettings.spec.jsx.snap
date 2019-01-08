@@ -43,7 +43,7 @@ exports[`AdminSettings render() renders 1`] = `
       <TextField
         allowEmpty={true}
         default=""
-        defaultValue="about://"
+        defaultValue="http://localhost"
         disabled={true}
         disabledReason="This setting is defined in config.yml and may not be changed via the web UI."
         help="The root web address which is used to communicate with the Sentry backend."

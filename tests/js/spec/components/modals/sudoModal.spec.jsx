@@ -153,6 +153,6 @@ describe('Sudo Modal', function() {
 
     // Should have Modal + input
     expect(wrapper.find('ModalDialog input')).toHaveLength(0);
-    expect(wrapper.find('Button').prop('href')).toMatch('/auth/login/?next=blank');
+    expect(wrapper.find('Button').prop('href')).toMatch('/auth/login/?next=%2F');
   });
 });

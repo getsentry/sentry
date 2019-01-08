@@ -111,7 +111,7 @@
     "enzyme-to-json": "3.3.1",
     "eslint": "4.4.1",
     "eslint-config-sentry-app": "1.4.3",
-    "jest": "23.4.0",
+    "jest": "23.6.0",
     "jest-junit": "^3.4.1",
     "mockdate": "2.0.2",
     "prettier": "1.7.4",
