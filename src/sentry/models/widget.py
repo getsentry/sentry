@@ -76,7 +76,7 @@ class Widget(Model):
     __core__ = True
 
     dashboard = FlexibleForeignKey('sentry.Dashboard')
-    dashboard_order = BoundedPositiveIntegerField()
+    order = BoundedPositiveIntegerField()
     title = models.CharField(max_length=128)
     display_type = BoundedPositiveIntegerField(choices=WidgetDisplayTypes.as_choices())
     organization = FlexibleForeignKey('sentry.Organization')
