@@ -6,14 +6,14 @@ import Button from 'app/components/button';
 import InlineSvg from 'app/components/inlineSvg';
 import HeroIcon from 'app/components/heroIcon';
 import LastCommit from 'app/components/lastCommit';
-// import IssueList from 'app/components/issueList';
+import IssueList from 'app/components/issueList';
 import CommitAuthorStats from 'app/components/commitAuthorStats';
 import ReleaseProjectStatSparkline from 'app/components/releaseProjectStatSparkline';
 import RepositoryFileSummary from 'app/components/repositoryFileSummary';
 import TimeSince from 'app/components/timeSince';
 import AsyncView from 'app/views/asyncView';
 import {t} from 'app/locale';
-// import {Panel, PanelBody, PanelItem} from 'app/components/panels';
+import {Panel, PanelBody, PanelItem} from 'app/components/panels';
 import Well from 'app/components/well';
 
 export default class OrganizationReleaseOverview extends AsyncView {
@@ -67,14 +67,16 @@ export default class OrganizationReleaseOverview extends AsyncView {
 
     const deploys = this.state.deploys;
 
-    // TODO: Issue lists depend on organization issues endpoint
-    // const query = {};
+    // Unlike project releases) which filter issue lists on environment, we
+    // do not apply any of the global selection filters (project, environment,
+    // or time) to the organization release
+    const query = {};
 
     return (
       <div>
         <div className="row" style={{paddingTop: 10}}>
           <div className="col-sm-8">
-            {/**<h5>{t('Issues Resolved in this Release')}</h5>
+            <h5>{t('Issues Resolved in this Release')}</h5>
             <IssueList
               endpoint={`/organizations/${orgId}/releases/${encodeURIComponent(
                 version
@@ -114,7 +116,7 @@ export default class OrganizationReleaseOverview extends AsyncView {
               showActions={false}
               params={{orgId}}
               className="m-b-2"
-              />**/}
+            />
             {hasRepos && (
               <div>
                 {Object.keys(filesByRepository).map((repository, i) => {
