@@ -55,6 +55,7 @@ const AlertWrapper = styled(Flex)`
   border-radius: ${p => p.theme.borderRadius};
   background: ${p => p.theme.whiteDark};
   border: 1px solid ${p => p.theme.borderDark};
+  align-items: center;
 
   ${p =>
     p.system
