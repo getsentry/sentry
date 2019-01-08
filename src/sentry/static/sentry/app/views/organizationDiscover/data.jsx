@@ -38,7 +38,6 @@ export const COLUMNS = [
   {name: 'project.name', type: TYPES.STRING},
   {name: 'platform', type: TYPES.STRING},
   {name: 'message', type: TYPES.STRING},
-  {name: 'primary_hash', type: TYPES.STRING},
   {name: 'timestamp', type: TYPES.DATETIME},
 
   {name: 'user.id', type: TYPES.STRING},
