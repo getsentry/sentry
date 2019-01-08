@@ -2,13 +2,9 @@
 
 exports[`SettingsLayout renders 1`] = `
 <Fragment>
-  <SettingsHeader>
-    <SettingsSubheader>
-      <Container>
-        <withOrganizations(withLatestContext(BackButton)) />
-      </Container>
-    </SettingsSubheader>
-    <Container>
+  <withOrganizations(withLatestContext(withRouter(SidebarContainer))) />
+  <SettingsColumn>
+    <SettingsHeader>
       <Flex
         align="center"
         width={1}
@@ -25,13 +21,11 @@ exports[`SettingsLayout renders 1`] = `
           routes={Array []}
         />
       </Flex>
-    </Container>
-  </SettingsHeader>
-  <ContentContainerWrapper>
-    <Container>
+    </SettingsHeader>
+    <MaxWidthContainer>
       <Content />
-    </Container>
-  </ContentContainerWrapper>
-  <Footer />
+    </MaxWidthContainer>
+    <Footer />
+  </SettingsColumn>
 </Fragment>
 `;
