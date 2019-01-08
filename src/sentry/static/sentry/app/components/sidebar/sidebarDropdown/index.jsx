@@ -15,7 +15,7 @@ import ConfigStore from 'app/stores/configStore';
 import SidebarOrgSummary from 'app/components/sidebar/sidebarOrgSummary';
 import SidebarMenuItem from 'app/components/sidebar/sidebarMenuItem';
 import SidebarDropdownMenu from 'app/components/sidebar/sidebarDropdownMenu.styled';
-import withApi from 'app/utils/withApi.jsx';
+import withApi from 'app/utils/withApi';
 import {logout} from 'app/actionCreators/account';
 
 import SwitchOrganization from './switchOrganization';

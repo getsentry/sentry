@@ -13,7 +13,7 @@ import Input from 'app/views/settings/components/forms/controls/input';
 import SentryTypes from 'app/sentryTypes';
 import {addErrorMessage} from 'app/actionCreators/indicator';
 import SelectOwners from 'app/views/settings/project/projectOwnership/selectOwners';
-import space from 'app/styles/space.jsx';
+import space from 'app/styles/space';
 
 const initialState = {
   text: '',
