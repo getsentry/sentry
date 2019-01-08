@@ -2,6 +2,7 @@ import React from 'react';
 import {Link} from 'react-router';
 
 import SentryTypes from 'app/sentryTypes';
+import Alert from 'app/components/alert';
 import GroupList from 'app/components/groupList';
 import {t} from 'app/locale';
 
@@ -14,17 +15,16 @@ export default class ReleaseAllEvents extends React.Component {
     let {orgId} = this.props.params;
     return (
       <div>
-        <div className="alert alert-block">
+        <Alert icon="icon-open" iconSize="14px" type="warning">
           <Link
             to={{
               pathname: `/organizations/${orgId}/issues/`,
               query: {query: 'release:' + this.context.release.version},
             }}
           >
-            <span className="icon icon-open" />
             {t('View all events seen in this release in the stream')}
           </Link>
-        </div>
+        </Alert>
         <GroupList
           orgId={orgId}
           query={'release:"' + this.context.release.version + '"'}
