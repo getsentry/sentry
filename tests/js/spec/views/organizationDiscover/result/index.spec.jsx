@@ -212,7 +212,7 @@ describe('Result', function() {
     });
 
     it('renders query name', function() {
-      expect(wrapper.find('Heading').text()).toBe('Saved query #1');
+      expect(wrapper.find('PageHeading').text()).toBe('Saved query #1');
     });
   });
 });

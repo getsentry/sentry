@@ -2,13 +2,9 @@ import React from 'react';
 import PropTypes from 'prop-types';
 
 import InlineSvg from 'app/components/inlineSvg';
+import PageHeading from 'app/components/pageHeading';
 
-import {
-  QueryPanelContainer,
-  QueryPanelTitle,
-  QueryPanelCloseLink,
-  Heading,
-} from '../styles';
+import {QueryPanelContainer, QueryPanelTitle, QueryPanelCloseLink} from '../styles';
 
 export default class QueryPanel extends React.Component {
   static propTypes = {
@@ -20,7 +16,7 @@ export default class QueryPanel extends React.Component {
     return (
       <QueryPanelContainer>
         <QueryPanelTitle>
-          <Heading>{title}</Heading>
+          <PageHeading>{title}</PageHeading>
 
           <QueryPanelCloseLink onClick={onClose}>
             <InlineSvg src="icon-close" height="38px" />

@@ -20,6 +20,8 @@ import withEnvironmentInQueryString from 'app/utils/withEnvironmentInQueryString
 
 import ReleaseLanding from 'app/views/releases/list/projectReleases/releaseLanding';
 import ReleaseProgress from 'app/views/releases/list/projectReleases/releaseProgress';
+import PageHeading from 'app/components/pageHeading';
+
 import ReleaseEmptyState from './releaseEmptyState';
 import ReleaseList from '../shared/releaseList';
 import ReleaseListHeader from '../shared/releaseListHeader';
@@ -202,11 +204,11 @@ const ProjectReleases = createReactClass({
     return (
       <div className="ref-project-releases">
         <GuideAnchor target="releases" type="invisible" />
-        <div className="row release-list-header">
+        <div className="row" style={{marginBottom: '5px'}}>
           <div className="col-sm-7">
-            <h3>{t('Releases')}</h3>
+            <PageHeading withMargins>{t('Releases')}</PageHeading>
           </div>
-          <div className="col-sm-5 release-search">
+          <div className="col-sm-5 release-search" style={{marginTop: '5px'}}>
             <SearchBar
               defaultQuery=""
               placeholder={t('Search for a release')}

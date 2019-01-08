@@ -88,6 +88,7 @@ export const Sidebar = styled(props => (
   <Flex {...props} direction="column" w={[300, 300, 300, 360]} />
 ))`
   border-right: 1px solid ${p => p.theme.borderDark};
+  background: #fff;
   min-width: 320px;
   position: relative;
   padding-top: ${HEADER_HEIGHT}px;
@@ -170,14 +171,6 @@ export const HeadingContainer = styled(Flex)`
   min-width: 70px;
   margin: ${space(1)} 0 ${space(2)};
   align-items: center;
-`;
-
-export const Heading = styled.h2`
-  font-size: ${p => p.theme.headerFontSize};
-  line-height: ${p => p.theme.headerFontSize};
-  font-weight: normal;
-  color: ${p => p.theme.gray4};
-  margin: 0;
 `;
 
 export const Fieldset = styled.fieldset`
