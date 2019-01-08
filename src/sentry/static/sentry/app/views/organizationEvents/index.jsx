@@ -13,7 +13,7 @@ import PageHeading from 'app/components/pageHeading';
 import space from 'app/styles/space';
 import withGlobalSelection from 'app/utils/withGlobalSelection';
 import withOrganization from 'app/utils/withOrganization';
-import {PageContent, PageHeader, HeaderTitle} from 'app/styles/organization';
+import {PageContent, PageHeader} from 'app/styles/organization';
 
 import EventsContext from './utils/eventsContext';
 import SearchBar from './searchBar';
