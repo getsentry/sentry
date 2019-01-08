@@ -45,13 +45,14 @@ def _capture_stats(event, is_new):
     if not platform:
         return
     platform = platform.split('-', 1)[0].split('_', 1)[0]
+    tags = {'platform': platform}
 
     if is_new:
-        metrics.incr('events.unique', skip_internal=False)
+        metrics.incr('events.unique', tags=tags, skip_internal=False)
 
-    metrics.incr('events.processed', skip_internal=False)
+    metrics.incr('events.processed', tags=tags, skip_internal=False)
     metrics.incr(u'events.processed.{platform}'.format(platform=platform), skip_internal=False)
-    metrics.timing('events.size.data', event.size, tags={'platform': platform})
+    metrics.timing('events.size.data', event.size, tags=tags)
 
 
 def check_event_already_post_processed(event):
