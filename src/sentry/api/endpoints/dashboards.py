@@ -34,7 +34,7 @@ class OrganizationDashboardsEndpoint(OrganizationEndpoint):
                 title=query,
             )
 
-        context = serialize(dashboards, request.user)
+        context = serialize(list(dashboards), request.user)
         return Response(context)
 
     def post(self, request, organization):

@@ -3,7 +3,7 @@ from __future__ import absolute_import, print_function
 from django.conf.urls import include, patterns, url
 
 from .endpoints.accept_project_transfer import AcceptProjectTransferEndpoint
-from .endpoints.dashboards import OrganizationDashboardEndpoint
+from .endpoints.dashboards import OrganizationDashboardsEndpoint
 from .endpoints.relay_heartbeat import RelayHeartbeatEndpoint
 from .endpoints.relay_projectconfigs import RelayProjectConfigsEndpoint
 from .endpoints.relay_publickeys import RelayPublicKeysEndpoint
@@ -420,7 +420,7 @@ urlpatterns = patterns(
     ),
     url(
         r'^organizations/(?P<organization_slug>[^\/]+)/dashboard/$',
-        OrganizationDashboardEndpoint.as_view(),
+        OrganizationDashboardsEndpoint.as_view(),
         name='sentry-api-0-organization-dashboard'
     ),
     url(
