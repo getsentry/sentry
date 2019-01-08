@@ -206,7 +206,7 @@ class EventSerializer(Serializer):
             'dist': obj.dist,
             # See GH-3248
             'message': message,
-            'searchMessage': self.search_message,
+            'searchMessage': obj.search_message,
             'title': self.title,
             'location': self.location,
             'user': attrs['user'],
