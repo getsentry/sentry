@@ -14,11 +14,9 @@ const CHART_KEY = '__CHART_KEY__';
  *
  * @param {Array} data Data returned from Snuba
  * @param {Object} query Query state corresponding to data
- * @param {Object} [options] Options object
- * @param {Boolean} [options.hideFieldName] (default: false) Hide field name in results set
  * @returns {Array}
  */
-export function getChartData(data, query, options = {}) {
+export function getChartData(data, query) {
   const {fields} = query;
 
   return query.aggregations.map(aggregation => {
@@ -27,9 +25,7 @@ export function getChartData(data, query, options = {}) {
       data: data.map(res => {
         return {
           value: res[aggregation[2]],
-          name: fields
-            .map(field => `${options.hideFieldName ? '' : `${field} `}${res[field]}`)
-            .join(options.separator || ' '),
+          name: fields.map(field => `${field} ${res[field]}`).join(' '),
         };
       }),
     };
@@ -42,11 +38,9 @@ export function getChartData(data, query, options = {}) {
  *
  * @param {Array} data Data returned from Snuba
  * @param {Object} query Query state corresponding to data
- * @param {Object} [options] Options object
- * @param {Boolean} [options.hideFieldName] (default: false) Hide field name in results set
  * @returns {Array}
  */
-export function getChartDataWithPercentages(data, query, options = {}) {
+export function getChartDataWithPercentages(data, query) {
   const {fields} = query;
 
   const totalsBySeries = new Map();
@@ -68,9 +62,7 @@ export function getChartDataWithPercentages(data, query, options = {}) {
       data: data.map(res => {
         const obj = {
           value: res[aggregation[2]],
-          name: fields
-            .map(field => `${options.hideFieldName ? '' : `${field} `}${res[field]}`)
-            .join(options.separator || ' '),
+          name: fields.map(field => `${res[field]}`).join(' '),
         };
 
         if (total) {

@@ -46,56 +46,6 @@ describe('Utils', function() {
 
       expect(getChartData(raw, query)).toEqual(expected);
     });
-
-    it('customizes separator', function() {
-      const expected = [
-        {
-          seriesName: 'count',
-          data: [
-            {value: 2, name: 'project.id 5, environment null'},
-            {value: 2, name: 'project.id 5, environment staging'},
-            {value: 2, name: 'project.id 5, environment alpha'},
-            {value: 6, name: 'project.id 5, environment production'},
-          ],
-        },
-        {
-          seriesName: 'uniq_id',
-          data: [
-            {value: 1, name: 'project.id 5, environment null'},
-            {value: 3, name: 'project.id 5, environment staging'},
-            {value: 4, name: 'project.id 5, environment alpha'},
-            {value: 10, name: 'project.id 5, environment production'},
-          ],
-        },
-      ];
-
-      expect(getChartData(raw, query, {separator: ', '})).toEqual(expected);
-    });
-
-    it('hides field name for series label', function() {
-      const expected = [
-        {
-          seriesName: 'count',
-          data: [
-            {value: 2, name: '5 null'},
-            {value: 2, name: '5 staging'},
-            {value: 2, name: '5 alpha'},
-            {value: 6, name: '5 production'},
-          ],
-        },
-        {
-          seriesName: 'uniq_id',
-          data: [
-            {value: 1, name: '5 null'},
-            {value: 3, name: '5 staging'},
-            {value: 4, name: '5 alpha'},
-            {value: 10, name: '5 production'},
-          ],
-        },
-      ];
-
-      expect(getChartData(raw, query, {hideFieldName: true})).toEqual(expected);
-    });
   });
 
   describe('getChartDataWithPercentages()', function() {
@@ -115,19 +65,19 @@ describe('Utils', function() {
         {
           seriesName: 'count',
           data: [
-            {value: 2, percentage: 16.67, name: 'project.id 5 environment null'},
-            {value: 2, percentage: 16.67, name: 'project.id 5 environment staging'},
-            {value: 2, percentage: 16.67, name: 'project.id 5 environment alpha'},
-            {value: 6, percentage: 50, name: 'project.id 5 environment production'},
+            {value: 2, percentage: 16.67, name: '5 null'},
+            {value: 2, percentage: 16.67, name: '5 staging'},
+            {value: 2, percentage: 16.67, name: '5 alpha'},
+            {value: 6, percentage: 50, name: '5 production'},
           ],
         },
         {
           seriesName: 'uniq_id',
           data: [
-            {value: 1, percentage: 5.56, name: 'project.id 5 environment null'},
-            {value: 3, percentage: 16.67, name: 'project.id 5 environment staging'},
-            {value: 4, percentage: 22.22, name: 'project.id 5 environment alpha'},
-            {value: 10, percentage: 55.56, name: 'project.id 5 environment production'},
+            {value: 1, percentage: 5.56, name: '5 null'},
+            {value: 3, percentage: 16.67, name: '5 staging'},
+            {value: 4, percentage: 22.22, name: '5 alpha'},
+            {value: 10, percentage: 55.56, name: '5 production'},
           ],
         },
       ];
