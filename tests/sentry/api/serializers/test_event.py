@@ -90,7 +90,8 @@ class EventSerializerTest(TestCase):
         event.search_message = 'search message'
 
         result = serialize(event)
-        assert result['message'] == 'search message'
+        assert result['message'] is None
+        assert result['searchMessage'] == 'search message'
 
     def test_tags_tuples(self):
         event = self.create_event(
