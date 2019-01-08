@@ -1,4 +1,4 @@
-export function TagValues(params = {}) {
+export function TagValues(params = []) {
   return [
     {
       key: 'browser',
