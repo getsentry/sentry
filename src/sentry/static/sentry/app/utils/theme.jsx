@@ -128,7 +128,7 @@ const theme = {
 
     containerWidth: '1440px',
     headerHeight: '115px',
-    sidebarWidth: '240px',
+    sidebarWidth: '220px',
   },
 
   sidebar: {
