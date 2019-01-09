@@ -1,3 +1,4 @@
+import $ from 'jquery';
 import {debounce} from 'lodash';
 import {withRouter} from 'react-router';
 import PropTypes from 'prop-types';

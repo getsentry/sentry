@@ -1,3 +1,4 @@
+import $ from 'jquery';
 import {Box, Flex} from 'grid-emotion';
 import PropTypes from 'prop-types';
 import React from 'react';
