@@ -10,6 +10,8 @@ from sentry.api.serializers import Serializer, register
 from sentry.models import (
     AuthIdentity,
     Authenticator,
+    OrganizationMember,
+    OrganizationStatus,
     User,
     UserAvatar,
     UserOption,
@@ -150,9 +152,17 @@ class DetailedUserSerializer(UserSerializer):
             user__in=item_list,
         ), 'user_id')
 
+        memberships = manytoone_to_dict(OrganizationMember.objects.filter(
+            user__in=item_list,
+            organization__status=OrganizationStatus.VISIBLE,
+        ), 'user_id')
+
         for item in item_list:
             attrs[item]['authenticators'] = authenticators[item.id]
             attrs[item]['permissions'] = permissions[item.id]
+
+            # org can reset 2FA if the user is only in one org
+            attrs[item]['canReset2fa'] = len(memberships[item.id]) == 1
 
         return attrs
 
@@ -174,4 +184,5 @@ class DetailedUserSerializer(UserSerializer):
                 'dateUsed': a.last_used_at,
             } for a in attrs['authenticators']
         ]
+        d['canReset2fa'] = attrs['canReset2fa']
         return d
