@@ -12,6 +12,7 @@ __all__ = ('Breadcrumbs', )
 
 import six
 
+from sentry.constants import LOG_LEVELS_MAP
 from sentry.interfaces.base import Interface, InterfaceValidationError, prune_empty_keys
 from sentry.utils.safe import get_path, trim
 from sentry.utils.dates import to_timestamp, to_datetime, parse_timestamp
@@ -69,8 +70,8 @@ class Breadcrumbs(Interface):
     @classmethod
     def normalize_crumb(cls, crumb):
         ty = crumb.get('type') or 'default'
-        level = crumb.get('level') or 'info'
-        if level == 'log':
+        level = crumb.get('level')
+        if level not in LOG_LEVELS_MAP or level == 'log':
             level = 'info'
 
         ts = parse_timestamp(crumb.get('timestamp'))
