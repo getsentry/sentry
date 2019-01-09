@@ -34,8 +34,9 @@ class ReleaseEmptyState extends React.Component {
 }
 
 const StyledWell = styled(Well)`
+  margin-top: ${space(4)};
   padding-top: ${space(2)};
-  padding-bottom: ${space(3)};
+  padding-bottom: ${space(4)};
 `;
 
 export default withOrganization(ReleaseEmptyState);
