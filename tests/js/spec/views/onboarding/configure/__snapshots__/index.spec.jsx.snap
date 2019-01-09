@@ -21,6 +21,7 @@ exports[`Configure should render correctly render() should redirect to if no mat
             "projectId": "project-slug",
           }
         }
+        source="header"
       />
     </h2>
     <withProjects(withRouter(ProjectContext))
@@ -89,6 +90,7 @@ exports[`Configure should render correctly render() should render platform docs 
               "projectId": "project-slug",
             }
           }
+          source="header"
         >
           <div
             className="pull-right"
@@ -665,6 +667,7 @@ exports[`Configure should render correctly render() shouldn't redirect for a fou
             "projectId": "project-slug",
           }
         }
+        source="header"
       />
     </h2>
     <withProjects(withRouter(ProjectContext))

@@ -135,7 +135,9 @@ const Configure = createReactClass({
         <div className="onboarding-Configure">
           <h2 style={{marginBottom: 30}}>
             Configure your application
-            {!hasSentRealEvent && <CreateSampleEvent params={this.props.params} />}
+            {!hasSentRealEvent && (
+              <CreateSampleEvent params={this.props.params} source="header" />
+            )}
           </h2>
           <ProjectContext projectId={projectId} orgId={orgId} style={{marginBottom: 30}}>
             <ProjectDocsContext>

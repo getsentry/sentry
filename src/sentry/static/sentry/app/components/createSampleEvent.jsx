@@ -16,6 +16,7 @@ const CreateSampleEvent = createReactClass({
 
   propTypes: {
     params: PropTypes.object.isRequired,
+    source: PropTypes.string.isRequired,
   },
 
   contextTypes: {
@@ -25,8 +26,18 @@ const CreateSampleEvent = createReactClass({
   mixins: [ApiMixin],
 
   componentDidMount() {
+    let {projectId} = this.props.params;
     let {organization} = this.context;
-    analytics('sample_event.button_viewed', parseInt(organization.id, 10));
+    let project = organization.projects.find(proj => proj.slug === projectId);
+
+    if (!project) return;
+
+    let data = {
+      org_id: parseInt(organization.id, 10),
+      source: this.props.source,
+      project_id: parseInt(project.id, 10),
+    };
+    analytics('sample_event.button_viewed', data);
   },
 
   createSampleEvent() {
