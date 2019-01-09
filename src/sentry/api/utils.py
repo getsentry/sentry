@@ -9,6 +9,8 @@ from sentry.utils.dates import parse_stats_period
 
 MIN_STATS_PERIOD = timedelta(hours=1)
 MAX_STATS_PERIOD = timedelta(days=90)
+# make sure to update this message if you are changing the min/max period
+INVALID_PERIOD_ERROR = 'Time window must be greater than an hour and less than or equal to 90 days'
 
 
 class InvalidParams(Exception):
@@ -78,7 +80,6 @@ def get_date_range_from_params(params, optional=False):
 
     delta = end - start
     if delta < MIN_STATS_PERIOD or delta > MAX_STATS_PERIOD:
-        raise InvalidParams(
-            'Time window must be greater than an hour and less than or equal to 90 days')
+        raise InvalidParams(INVALID_PERIOD_ERROR)
 
     return start, end

@@ -61,3 +61,11 @@ class GetDateRangeFromParamsTest(TestCase):
 
         assert start == datetime.datetime(2018, 11, 27, 3, 21, 34, tzinfo=timezone.utc)
         assert end == datetime.datetime(2018, 12, 4, 3, 21, 34, tzinfo=timezone.utc)
+
+    @freeze_time('2018-12-11 03:21:34')
+    def test_relative_date_range_incomplete(self):
+
+        with self.assertRaises(InvalidParams):
+            start, end = get_date_range_from_params({
+                'statsPeriodStart': '14d',
+            })
