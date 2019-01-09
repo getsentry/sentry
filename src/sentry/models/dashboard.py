@@ -13,7 +13,7 @@ class Dashboard(Model):
     """
     __core__ = True
 
-    title = models.CharField(max_length=128)
+    title = models.CharField(max_length=255)
     owner = FlexibleForeignKey('sentry.User')
     organization = FlexibleForeignKey('sentry.Organization')
     date_added = models.DateTimeField(default=timezone.now)
