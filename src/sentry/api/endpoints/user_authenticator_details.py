@@ -4,7 +4,7 @@ from django.db import transaction
 from rest_framework import status
 from rest_framework.response import Response
 
-from sentry.api.bases.user import UserEndpoint
+from sentry.api.bases.user import UserEndpoint, OrganizationUserPermission
 from sentry.api.decorators import sudo_required
 from sentry.api.serializers import serialize
 from sentry.models import Authenticator
@@ -12,6 +12,8 @@ from sentry.security import capture_security_activity
 
 
 class UserAuthenticatorDetailsEndpoint(UserEndpoint):
+    permission_classes = (OrganizationUserPermission, )
+
     @sudo_required
     def get(self, request, user, auth_id):
         """
