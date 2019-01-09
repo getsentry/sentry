@@ -2,7 +2,6 @@ from __future__ import absolute_import, print_function
 
 from django.db import models
 from django.utils import timezone
-from jsonfield import JSONField
 
 from sentry.constants import ObjectStatus
 from sentry.db.models import BoundedPositiveIntegerField, FlexibleForeignKey, Model, sane_repr
@@ -17,7 +16,6 @@ class Dashboard(Model):
     title = models.CharField(max_length=128)
     owner = FlexibleForeignKey('sentry.User')
     organization = FlexibleForeignKey('sentry.Organization')
-    data = JSONField(default={})
     date_added = models.DateTimeField(default=timezone.now)
     status = BoundedPositiveIntegerField(
         default=ObjectStatus.VISIBLE,

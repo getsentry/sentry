@@ -34,13 +34,11 @@ class WidgetDisplayTypes(object):
 
 class WidgetDataSourceTypes(object):
     DISCOVER_SAVED_SEARCH = 0
-    API_QUERY = 1  # ehhhh.....
 
     @classmethod
     def as_choices(cls):
         return [
             (cls.DISCOVER_SAVED_SEARCH, 'discover_saved_search'),
-            (cls.API_QUERY, 'api_query')
         ]
 
 
@@ -52,10 +50,9 @@ class WidgetDataSource(Model):
 
     widget = FlexibleForeignKey('sentry.Widget')
     type = BoundedPositiveIntegerField(choices=WidgetDataSourceTypes.as_choices())
-    name = models.CharField(max_length=128)
-    data = JSONField(default={})
+    name = models.CharField(max_length=255)
+    data = JSONField(default={})  # i.e. saved discover query
     date_added = models.DateTimeField(default=timezone.now)
-    # hmmm do I need this one?
     status = BoundedPositiveIntegerField(
         default=ObjectStatus.VISIBLE,
         choices=ObjectStatus.as_choices(),
@@ -77,10 +74,9 @@ class Widget(Model):
 
     dashboard = FlexibleForeignKey('sentry.Dashboard')
     order = BoundedPositiveIntegerField()
-    title = models.CharField(max_length=128)
+    title = models.CharField(max_length=255)
     display_type = BoundedPositiveIntegerField(choices=WidgetDisplayTypes.as_choices())
     organization = FlexibleForeignKey('sentry.Organization')
-    data = JSONField(default={})
     date_added = models.DateTimeField(default=timezone.now)
     status = BoundedPositiveIntegerField(
         default=ObjectStatus.VISIBLE,
