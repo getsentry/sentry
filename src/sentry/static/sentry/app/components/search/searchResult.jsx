@@ -64,20 +64,27 @@ class SearchResult extends React.Component {
     let {highlighted, item, matches, params} = this.props;
     let {sourceType, title, description, model} = item;
 
-    if (['organization', 'member', 'project', 'team'].includes(sourceType)) {
+    if (matches) {
+      const HighlightedMarker = p => <HighlightMarker highlighted={highlighted} {...p} />;
+
       let matchedTitle = matches && matches.find(({key}) => key === 'title');
       let matchedDescription = matches && matches.find(({key}) => key === 'description');
-      let highlightedTitle = matchedTitle ? highlightFuseMatches(matchedTitle) : title;
-      let highlightedDescription = matchedDescription
-        ? highlightFuseMatches(matchedDescription)
-        : description;
 
+      title = matchedTitle
+        ? highlightFuseMatches(matchedTitle, HighlightedMarker)
+        : title;
+      description = matchedDescription
+        ? highlightFuseMatches(matchedDescription, HighlightedMarker)
+        : description;
+    }
+
+    if (['organization', 'member', 'project', 'team'].includes(sourceType)) {
       let DescriptionNode = (
-        <BadgeDetail highlighted={highlighted}>{highlightedDescription}</BadgeDetail>
+        <BadgeDetail highlighted={highlighted}>{description}</BadgeDetail>
       );
 
       let badgeProps = {
-        displayName: highlightedTitle,
+        displayName: title,
         displayEmail: DescriptionNode,
         description: DescriptionNode,
         useLink: false,
@@ -173,4 +180,11 @@ const ResultTypeIcon = styled(InlineSvg)`
 
 const StyledPluginIcon = styled(PluginIcon)`
   flex-shrink: 0;
+`;
+
+const HighlightMarker = styled('mark')`
+  padding: 0;
+  background: transparent;
+  font-weight: bold;
+  color: inherit;
 `;
