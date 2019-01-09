@@ -1,8 +1,6 @@
 import React from 'react';
 import PropTypes from 'prop-types';
 
-import theme from 'app/utils/theme';
-
 import AreaSeries from './series/areaSeries';
 import BaseChart from './baseChart';
 
@@ -14,25 +12,17 @@ class AreaChart extends React.Component {
 
   render() {
     const {series, stacked, ...props} = this.props;
-    const colors =
-      (series && series.length && theme.charts.getColorPalette(series.length)) || {};
 
     return (
       <BaseChart
         {...props}
-        series={series.map((s, i) =>
+        series={series.map(({seriesName, data, ...otherSeriesProps}, i) =>
           AreaSeries({
             stack: stacked ? 'area' : false,
-            name: s.seriesName,
-            data: s.data.map(({name, value}) => [name, value]),
-            lineStyle: {
-              color: '#fff',
-              width: 2,
-            },
-            areaStyle: {
-              color: colors[i],
-              opacity: 1.0,
-            },
+            areaStyle: {opacity: 1.0},
+            ...otherSeriesProps,
+            name: seriesName,
+            data: data.map(({name, value}) => [name, value]),
           })
         )}
       />
