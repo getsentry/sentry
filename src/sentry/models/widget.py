@@ -76,6 +76,7 @@ class Widget(Model):
     order = BoundedPositiveIntegerField()
     title = models.CharField(max_length=255)
     display_type = BoundedPositiveIntegerField(choices=WidgetDisplayTypes.as_choices())
+    display_options = JSONField(default={})
     organization = FlexibleForeignKey('sentry.Organization')
     date_added = models.DateTimeField(default=timezone.now)
     status = BoundedPositiveIntegerField(
