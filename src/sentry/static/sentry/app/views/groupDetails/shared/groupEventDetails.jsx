@@ -1,5 +1,4 @@
 import React from 'react';
-import createReactClass from 'create-react-class';
 
 import SentryTypes from 'app/sentryTypes';
 import {withMeta} from 'app/components/events/meta/metaProxy';
@@ -14,33 +13,26 @@ import withOrganization from 'app/utils/withOrganization';
 import GroupEventToolbar from './eventToolbar';
 import {fetchGroupEventAndMarkSeen} from './utils';
 
-const GroupEventDetails = createReactClass({
-  displayName: 'GroupEventDetails',
-
-  propTypes: {
+class GroupEventDetails extends React.Component {
+  static propTypes = {
     group: SentryTypes.Group.isRequired,
     project: SentryTypes.Project.isRequired,
     organization: SentryTypes.Organization.isRequired,
-  },
+  };
 
-  getInitialState() {
-    return {
+  constructor(props) {
+    super(props);
+    this.state = {
       loading: true,
       error: false,
       event: null,
       eventNavLinks: '',
     };
-  },
+  }
 
-  componentWillMount() {
+  componentDidMount() {
     this.fetchData();
-  },
-
-  componentDidUpdate(prevProps) {
-    if (prevProps.params.eventId !== this.props.params.eventId) {
-      this.fetchData();
-    }
-  },
+  }
 
   fetchData() {
     const {group, project, organization, params} = this.props;
@@ -68,8 +60,7 @@ const GroupEventDetails = createReactClass({
           loading: false,
         });
       });
-  },
-
+  }
   render() {
     const {group, project, organization} = this.props;
     const evt = withMeta(this.state.event);
@@ -119,7 +110,7 @@ const GroupEventDetails = createReactClass({
         </div>
       </div>
     );
-  },
-});
+  }
+}
 
 export default withOrganization(GroupEventDetails);
