@@ -3,22 +3,22 @@ import React from 'react';
 import {storiesOf} from '@storybook/react';
 import {withInfo} from '@storybook/addon-info';
 
-import PercentageBarChart from 'app/components/charts/percentageBarChart';
+import PercentageAreaChart from 'app/components/charts/percentageAreaChart';
 
 const TOTAL = 6;
 
-storiesOf('Charts|PercentageBarChart', module).add(
-  'PercentageBarChart',
-  withInfo('Stacked PercentageBar')(() => {
+storiesOf('Charts|PercentageAreaChart', module).add(
+  'PercentageAreaChart',
+  withInfo('Stacked PercentageArea')(() => {
     const NOW = new Date().getTime();
     const getValue = () => Math.round(Math.random() * 1000);
     const getDate = num => NOW - (TOTAL - num) * 86400000;
 
     return (
       <div style={{padding: 20, backgroundColor: 'white'}}>
-        <h2>Percentage Bar Charts Over Time</h2>
+        <h2>Percentage Area Charts Over Time</h2>
 
-        <PercentageBarChart
+        <PercentageAreaChart
           style={{height: 400}}
           series={[
             {
