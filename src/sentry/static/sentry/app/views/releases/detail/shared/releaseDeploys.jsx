@@ -21,6 +21,10 @@ export default class ReleaseDeploys extends React.Component {
     return projectId ? `/${orgId}/${projectId}/` : `/organizations/${orgId}/issues/`;
   }
 
+  renderEmpty() {
+    return <div className="box empty">{t('None')}</div>;
+  }
+
   render() {
     const {deploys, version} = this.props;
 
