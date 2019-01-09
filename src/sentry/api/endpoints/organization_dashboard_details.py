@@ -9,6 +9,7 @@ from sentry.api.bases.organization import (
 )
 from sentry.api.bases.dashboard import DashboardSerializer
 from sentry.api.serializers import serialize
+from sentry.api.serializers.models.organization_dashboard import DashboardWithWidgetsSerializer
 from sentry.models import Dashboard, ObjectStatus
 
 
@@ -35,7 +36,7 @@ class OrganizationDashboardDetailsEndpoint(OrganizationEndpoint):
         except Dashboard.DoesNotExist:
             raise Http404
 
-        return self.respond(serialize(dashboard, request.user))
+        return self.respond(serialize(dashboard, request.user, DashboardWithWidgetsSerializer()))
 
     def delete(self, request, organization, dashboard_id):
         try:
@@ -62,7 +63,13 @@ class OrganizationDashboardDetailsEndpoint(OrganizationEndpoint):
         except Dashboard.DoesNotExist:
             raise Http404
 
-        serializer = DashboardSerializer(data=request.DATA, context={'organization': organization})
+        serializer = DashboardSerializer(
+            data=request.DATA,
+            context={
+                'organization': organization,
+                'dashboard_id': dashboard_id,
+            }
+        )
 
         if not serializer.is_valid():
             return Response(serializer.errors, status=400)
