@@ -1,6 +1,6 @@
 from __future__ import absolute_import
 from rest_framework import serializers
-from sentry.models import Dashboard, Widget, WidgetDisplayTypes, WidgetDataSourceTypes
+from sentry.models import Dashboard, Widget, WidgetDisplayTypes, WidgetDataSource, WidgetDataSourceTypes
 
 from sentry.api.serializers.rest_framework.json import JSONField
 from sentry.api.serializers.rest_framework.list import ListField
@@ -8,10 +8,14 @@ from sentry.api.fields.user import UserField
 from sentry.api.bases.discoversavedquery import DiscoverSavedQuerySerializer
 
 
-class WidgetDataSource(serializers.WritableField):
+class WidgetDataSourceSerializer(serializers.ModelSerializer):
     name = serializers.CharField(required=False)
     data = JSONField(required=True)
     type = serializers.CharField(required=True)
+
+    class Meta:
+        model = WidgetDataSource
+        fields = ('name', 'data', 'type')
 
     def validate_type(self, attrs, source):
         type = attrs[source]
@@ -27,20 +31,14 @@ class WidgetDataSource(serializers.WritableField):
         return data
 
 
-class WidgetSerializer(serializers.WritableField):
+class WidgetSerializer(serializers.ModelSerializer):
     order = serializers.IntegerField(min_value=0, required=True)
     display_type = serializers.CharField(required=True)
-    data = JSONField(
-        required=True,
-    )
-    data_sources = ListField(
-        child=WidgetDataSource(),
-        required=True,
-        default=[],
-    )
-    data = JSONField(
-        required=False,
-    )
+    display_options = JSONField(required=False)
+
+    class Meta:
+        model = Widget
+        fields = ('order', 'display_type', 'display_options')
 
     def validate_display_type(self, attrs, source):
         display_type = attrs[source]
@@ -49,12 +47,30 @@ class WidgetSerializer(serializers.WritableField):
         return attrs
 
 
-class DashboardSerializer(serializers.Serializer):
+class WidgetSerializerWithDataSourcesSerializer(WidgetSerializer):
+    data_sources = ListField(
+        child=WidgetDataSource(),
+        required=True,
+        default=[],
+    )
+
+    def save(self):
+        super(WidgetSerializerWithDataSourcesSerializer, self).save()
+        serializer = WidgetDataSourceSerializer(data=self.data)
+        serializer.save()
+
+
+class DashboardSerializer(serializers.ModelSerializer):
     title = serializers.CharField(required=True)
     owner = UserField(required=True)
-    data = JSONField(
-        required=False,
-    )
+    data = JSONField(required=False)
+
+    class Meta:
+        model = Dashboard
+        fields = ('title', 'owner', 'data')
+
+
+class DashboardWithWidgetsSerializer(DashboardSerializer):
     widgets = ListField(
         child=WidgetSerializer(),
         required=False,
@@ -62,37 +78,6 @@ class DashboardSerializer(serializers.Serializer):
     )
 
     def save(self):
-        dashboard_id = self.context.get('dashboard_id')
-        organization_id = self.context['organization'].id
-        if dashboard_id:
-            dashboard = Dashboard.objects.update(
-                id=dashboard_id,
-                organization_id=organization_id,
-                values={
-                    'title': self.data['title'],
-                    'owner': self.data['owner'],
-                    'data': self.data['data'],
-                }
-            )
-        else:
-            dashboard = Dashboard.objects.create(
-                organization_id=organization_id,
-                title=self.data['title'],
-                owner=self.data['owner'],
-                data=self.data['data'],
-            )
-
-        for widget_data in self.data['widgets']:
-            widget = Widget.objects.create_or_update(
-                dashboad_id=dashboard.id,
-                order=widget_data['order'],
-                display_type=widget_data['display_type'],
-                title=widget_data['title'],
-            )
-            for data_source in widget_data['data_sources']:
-                WidgetDataSource.objects.create_or_update(
-                    widget_id=widget.id,
-                    data=data_source['data'],
-                    name=data_source['name'],
-                    type=data_source['type'],
-                )
+        super(DashboardWithWidgetsSerializer, self).save()
+        serializer = WidgetSerializer(data=self.data)
+        serializer.save()
