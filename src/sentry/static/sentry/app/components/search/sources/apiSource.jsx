@@ -4,9 +4,10 @@ import PropTypes from 'prop-types';
 import React from 'react';
 import * as Sentry from '@sentry/browser';
 
-import {t} from 'app/locale';
 import {Client} from 'app/api';
 import {createFuzzySearch} from 'app/utils/createFuzzySearch';
+import {singleLineRenderer as markedSingleLine} from 'app/utils/marked';
+import {t} from 'app/locale';
 import withLatestContext from 'app/utils/withLatestContext';
 
 // event ids must have string length of 32
@@ -104,7 +105,13 @@ async function createIntegrationResults(integrationsPromise, orgId) {
     (providers &&
       providers.map(provider => ({
         title: provider.name,
-        description: provider.metadata.description,
+        description: (
+          <span
+            dangerouslySetInnerHTML={{
+              __html: markedSingleLine(provider.metadata.description),
+            }}
+          />
+        ),
         model: provider,
         sourceType: 'integration',
         resultType: 'integration',
