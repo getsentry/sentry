@@ -1,3 +1,4 @@
+import {max} from 'lodash';
 import PropTypes from 'prop-types';
 import React from 'react';
 
@@ -43,13 +44,18 @@ export default class WorldMapChart extends React.Component {
       });
     });
 
+    // TODO(billy):
+    // For absolute values, we want min/max to based on min/max of series
+    // Otherwise it should be 0-100
+    const maxValue = max(series.map(({data}) => max(data.map(({value}) => value))));
+
     return (
       <BaseChart
         options={{
           visualMap: {
             left: 'right',
             min: 0,
-            max: 20,
+            max: maxValue,
             inRange: {
               color: [
                 '#313695',
