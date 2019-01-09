@@ -5,12 +5,13 @@ import {Group} from 'app/sentryTypes';
 import {t} from 'app/locale';
 import Pagination from 'app/components/pagination';
 import QueryCount from 'app/components/queryCount';
-import SimilarItem from 'app/views/groupSimilar/similarItem';
 import SimilarSpectrum from 'app/components/similarSpectrum';
-import SimilarToolbar from 'app/views/groupSimilar/similarToolbar';
 import SpreadLayout from 'app/components/spreadLayout';
 import EmptyStateWarning from 'app/components/emptyStateWarning';
 import {Panel} from 'app/components/panels';
+
+import SimilarItem from './similarItem';
+import SimilarToolbar from './similarToolbar';
 
 const SimilarItemPropType = PropTypes.shape({
   issue: Group,

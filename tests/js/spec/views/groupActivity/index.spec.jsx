@@ -1,7 +1,7 @@
 import React from 'react';
 import {shallow} from 'enzyme';
 
-import GroupActivity from 'app/views/groupActivity';
+import GroupActivity from 'app/views/groupDetails/project/groupActivity';
 import NoteInput from 'app/components/activity/noteInput';
 import ConfigStore from 'app/stores/configStore';
 import GroupStore from 'app/stores/groupStore';

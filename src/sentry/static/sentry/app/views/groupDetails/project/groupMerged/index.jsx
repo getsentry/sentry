@@ -4,11 +4,12 @@ import Reflux from 'reflux';
 
 import {t} from 'app/locale';
 import ApiMixin from 'app/mixins/apiMixin';
-import MergedList from 'app/views/groupMerged/mergedList';
 import GroupingActions from 'app/actions/groupingActions';
 import GroupingStore from 'app/stores/groupingStore';
 import LoadingError from 'app/components/loadingError';
 import LoadingIndicator from 'app/components/loadingIndicator';
+
+import MergedList from './mergedList';
 
 const GroupMergedView = createReactClass({
   displayName: 'GroupMergedView',

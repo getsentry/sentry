@@ -3,9 +3,9 @@ import {browserHistory} from 'react-router';
 import React from 'react';
 
 import {mount, shallow} from 'enzyme';
-import GroupSimilarView from 'app/views/groupSimilar/groupSimilarView';
+import GroupSimilarView from 'app/views/groupDetails/project/groupSimilar';
 
-import issues from '../../mocks/issues';
+import issues from 'app-test/mocks/issues';
 
 jest.mock('app/mixins/projectState', () => {
   return {

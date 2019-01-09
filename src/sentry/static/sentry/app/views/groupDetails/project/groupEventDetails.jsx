@@ -5,13 +5,14 @@ import {withMeta} from 'app/components/events/meta/metaProxy';
 import ApiMixin from 'app/mixins/apiMixin';
 import EventEntries from 'app/components/events/eventEntries';
 import GroupEventDetailsLoadingError from 'app/components/errors/groupEventDetailsLoadingError';
-import GroupEventToolbar from 'app/views/groupDetails/eventToolbar';
 import GroupSidebar from 'app/components/group/sidebar';
 import GroupState from 'app/mixins/groupState';
 import LoadingIndicator from 'app/components/loadingIndicator';
 import MutedBox from 'app/components/mutedBox';
 import ResolutionBox from 'app/components/resolutionBox';
 import withEnvironmentInQueryString from 'app/utils/withEnvironmentInQueryString';
+
+import GroupEventToolbar from './eventToolbar';
 
 const GroupEventDetails = createReactClass({
   displayName: 'GroupEventDetails',

@@ -5,8 +5,7 @@ import {Link} from 'react-router';
 import ApiMixin from 'app/mixins/apiMixin';
 import AssigneeSelector from 'app/components/assigneeSelector';
 import Count from 'app/components/count';
-import GroupActions from 'app/views/groupDetails/actions';
-import GroupSeenBy from 'app/views/groupDetails/seenBy';
+import GroupActions from 'app/views/groupDetails/project/actions';
 import IndicatorStore from 'app/stores/indicatorStore';
 import ListLink from 'app/components/listLink';
 import NavTabs from 'app/components/navTabs';
@@ -16,6 +15,8 @@ import GuideAnchor from 'app/components/assistant/guideAnchor';
 import ProjectState from 'app/mixins/projectState';
 import Tooltip from 'app/components/tooltip';
 import {t} from 'app/locale';
+
+import GroupSeenBy from '../project/seenBy';
 
 const GroupHeader = createReactClass({
   displayName: 'GroupHeader',

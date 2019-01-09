@@ -3,9 +3,9 @@ import PropTypes from 'prop-types';
 
 import {shallow} from 'enzyme';
 
-import GroupMergedView from 'app/views/groupMerged/groupMergedView';
+import GroupMergedView from 'app/views/groupDetails/project/groupMerged';
 import {Client} from 'app/api';
-import events from '../../mocks/events';
+import events from 'app-test/mocks/events';
 
 jest.mock('app/api');
 jest.mock('app/mixins/projectState', () => {

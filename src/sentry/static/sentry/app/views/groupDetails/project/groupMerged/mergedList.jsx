@@ -5,11 +5,12 @@ import styled from 'react-emotion';
 import {Panel} from 'app/components/panels';
 import {t} from 'app/locale';
 import EmptyStateWarning from 'app/components/emptyStateWarning';
-import MergedItem from 'app/views/groupMerged/mergedItem';
-import MergedToolbar from 'app/views/groupMerged/mergedToolbar';
 import Pagination from 'app/components/pagination';
 import QueryCount from 'app/components/queryCount';
 import SentryTypes from 'app/sentryTypes';
+
+import MergedItem from './mergedItem';
+import MergedToolbar from './mergedToolbar';
 
 class MergedList extends React.Component {
   static propTypes = {
