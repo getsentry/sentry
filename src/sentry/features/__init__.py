@@ -55,7 +55,6 @@ default_manager.add('organizations:api-keys', OrganizationFeature)  # NOQA
 default_manager.add('organizations:discover', OrganizationFeature)  # NOQA
 default_manager.add('organizations:event-attachments', OrganizationFeature)  # NOQA
 default_manager.add('organizations:global-views', OrganizationFeature)  # NOQA
-default_manager.add('organizations:group-unmerge', OrganizationFeature)  # NOQA
 default_manager.add('organizations:integrations-issue-basic', OrganizationFeature)  # NOQA
 default_manager.add('organizations:integrations-issue-sync', OrganizationFeature)  # NOQA
 default_manager.add('organizations:internal-catchall', OrganizationFeature)  # NOQA
