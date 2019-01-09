@@ -1,6 +1,6 @@
 batching-kafka-consumer==0.0.3
 confluent-kafka==0.11.5
-GeoIP==1.3.2
+maxminddb==1.4.1
 google-cloud-bigtable>=0.32.1,<0.33.0
 google-cloud-pubsub>=0.35.4,<0.36.0
 google-cloud-storage>=1.13.2,<1.14
