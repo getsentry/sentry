@@ -12,6 +12,7 @@ def resource_changed(sender, instance, created, **kwargs):
         from sentry.tasks.servicehooks import process_resource_change
 
         process_resource_change.delay(
+            action='created',
             sender=sender.__name__,
             instance_id=instance.id,
         )

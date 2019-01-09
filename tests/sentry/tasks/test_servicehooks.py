@@ -47,15 +47,16 @@ class TestServiceHooks(TestCase):
         with self.tasks():
             issue = self.create_group(project=self.project)
 
-        data = json.loads(faux(safe_urlopen).kwargs['data'])
-        assert data['action'] == 'issue.created'
+        data = faux(safe_urlopen).kwargs['data']
+        assert data['action'] == 'created'
         assert data['installation']['uuid'] == self.install.uuid
         assert data['data']['id'] == six.text_type(issue.id)
         assert faux(safe_urlopen).kwarg_equals('headers', DictContaining(
             'Content-Type',
-            'X-ServiceHook-Timestamp',
-            'X-ServiceHook-GUID',
-            'X-ServiceHook-Signature',
+            'Request-ID',
+            'Sentry-Hook-Event',
+            'Sentry-Hook-Timestamp',
+            'Sentry-Hook-Signature',
         ))
 
     @patch('sentry.tasks.servicehooks.safe_urlopen')
@@ -103,9 +104,9 @@ class TestServiceHooks(TestCase):
         group.update(last_seen=datetime.now())
 
         # Only called once for the create, not also for the update.
-        delay.assert_called_once_with(sender='Group', instance_id=group.id)
+        delay.assert_called_once_with(action='created', sender='Group', instance_id=group.id)
 
     @patch('sentry.tasks.servicehooks.safe_urlopen')
     def test_handles_previous_method_signature(self, safe_urlopen):
         group = self.create_group(project=self.project)
-        process_resource_change(Group, group.id, True)  # Doesn't raise
+        process_resource_change('created', Group, group.id, True)  # Doesn't raise

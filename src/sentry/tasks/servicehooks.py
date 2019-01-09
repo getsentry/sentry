@@ -6,7 +6,7 @@ import inspect
 from time import time
 from celery.task import current
 
-from sentry.api.serializers import serialize, app_platform_event
+from sentry.api.serializers import serialize, AppPlatformEvent
 from sentry.http import safe_urlopen
 from sentry.models import Group, SentryAppInstallation, ServiceHook
 from sentry.tasks.base import instrumented_task, retry
@@ -15,7 +15,7 @@ from sentry.utils.http import absolute_uri
 
 # This is an extra, explicit, measure to ensure we only send events for
 # resource changes we deem necessary.
-ALLOWED_ACTIONS = (
+ALLOWED_EVENTS = (
     'issue.created',
 )
 
@@ -38,7 +38,7 @@ TYPES = {
     max_retries=5,
 )
 @retry()
-def process_resource_change(sender, instance_id, *args, **kwargs):
+def process_resource_change(action, sender, instance_id, *args, **kwargs):
     model = None
     name = None
 
@@ -59,9 +59,9 @@ def process_resource_change(sender, instance_id, *args, **kwargs):
         # we hit the max number of retries.
         return current.retry(exc=e)
 
-    action = u'{}.created'.format(name)
+    event = '{}.{}'.format(name, action)
 
-    if action not in ALLOWED_ACTIONS:
+    if event not in ALLOWED_EVENTS:
         return
 
     project = None
@@ -76,19 +76,25 @@ def process_resource_change(sender, instance_id, *args, **kwargs):
         project_id=project.id,
     )
 
-    for servicehook in filter(lambda s: action in s.events, servicehooks):
+    for servicehook in filter(lambda s: event in s.events, servicehooks):
         # For now, these ``post_save`` callbacks are only valid for service
         # hooks created by a Sentry App.
         if not servicehook.created_by_sentry_app:
             continue
 
-        payload = app_platform_event(
-            action,
-            SentryAppInstallation.objects.get(id=servicehook.actor_id),
-            serialize(instance),
+        request_data = AppPlatformEvent(
+            resource=name,
+            action=action,
+            install=SentryAppInstallation.objects.get(id=servicehook.actor_id),
+            data=serialize(instance),
         )
 
-        send_request(servicehook, payload, verify_ssl=True)
+        safe_urlopen(
+            url=servicehook.url,
+            data=request_data.body,
+            headers=request_data.headers,
+            timeout=5,
+        )
 
 
 def send_request(servicehook, payload, verify_ssl=None):
