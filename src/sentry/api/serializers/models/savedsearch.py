@@ -29,10 +29,12 @@ class SavedSearchSerializer(Serializer):
     def serialize(self, obj, attrs, user):
         return {
             'id': six.text_type(obj.id),
+            'projectId': six.text_type(obj.project_id) if obj.project_id else None,
             'name': obj.name,
             'query': obj.query,
             'isDefault': obj.is_default,
             'isUserDefault': attrs['isUserDefault'],
             'dateCreated': obj.date_added,
             'isPrivate': bool(obj.owner),
+            'isGlobal': obj.is_global,
         }
