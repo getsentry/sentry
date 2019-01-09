@@ -754,6 +754,20 @@ function routes() {
       <Route path="/:orgId/" component={errorHandler(OrganizationDetails)}>
         <Route component={errorHandler(OrganizationRoot)}>
           <IndexRoute component={errorHandler(OrganizationDashboard)} />
+
+          <Route
+            path="/organizations/:orgId/dashboards/"
+            componentPromise={() =>
+              import(/* webpackChunkName: "OrganizationDashboardContainer" */ './views/organizationDashboard')}
+            component={errorHandler(LazyLoad)}
+          >
+            <IndexRoute
+              componentPromise={() =>
+                import(/* webpackChunkName: "OverviewDashboard" */ './views/organizationDashboard/overviewDashboard')}
+              component={errorHandler(LazyLoad)}
+            />
+          </Route>
+
           <Route
             path="/organizations/:orgId/discover/"
             componentPromise={() =>
@@ -803,7 +817,31 @@ function routes() {
           >
             <IndexRoute
               componentPromise={() =>
-                import(/*webpackChunkName:"OrganizationReleaseOverview"*/ './views/releases/detail/organization/releaseOverview')}
+                import(/*webpackChunkName: "OrganizationReleaseOverview"*/ './views/releases/detail/organization/releaseOverview')}
+              component={errorHandler(LazyLoad)}
+            />
+            <Route
+              path="new-events/"
+              componentPromise={() =>
+                import(/*webpackChunkName: "OrganizationReleaseNewEvents"*/ './views/releases/detail/organization/releaseNewEvents')}
+              component={errorHandler(LazyLoad)}
+            />
+            <Route
+              path="all-events/"
+              componentPromise={() =>
+                import(/*webpackChunkName: "OrganizationReleaseAllEvents"*/ './views/releases/detail/organization/releaseAllEvents')}
+              component={errorHandler(LazyLoad)}
+            />
+            <Route
+              path="artifacts/"
+              componentPromise={() =>
+                import(/*webpackChunkName: "ReleaseArtifacts"*/ './views/releases/detail/shared/releaseArtifacts')}
+              component={errorHandler(LazyLoad)}
+            />
+            <Route
+              path="commits/"
+              componentPromise={() =>
+                import(/*webpackChunkName: "ReleaseCommits"*/ './views/releases/detail/shared/releaseCommits')}
               component={errorHandler(LazyLoad)}
             />
           </Route>

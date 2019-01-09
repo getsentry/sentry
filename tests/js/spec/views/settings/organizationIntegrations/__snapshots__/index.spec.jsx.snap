@@ -148,11 +148,11 @@ exports[`OrganizationIntegrations render() with installed integrations Displays 
             type="warning"
           >
             <Base
-              className="ref-warning css-qx534z-AlertWrapper e1xb5l7j1"
+              className="ref-warning css-rofbwt-AlertWrapper e1xb5l7j1"
               type="warning"
             >
               <div
-                className="ref-warning css-qx534z-AlertWrapper e1xb5l7j1"
+                className="ref-warning css-rofbwt-AlertWrapper e1xb5l7j1"
                 is={null}
                 type="warning"
               >
@@ -3334,11 +3334,11 @@ exports[`OrganizationIntegrations render() without integrations Displays integra
             type="warning"
           >
             <Base
-              className="ref-warning css-qx534z-AlertWrapper e1xb5l7j1"
+              className="ref-warning css-rofbwt-AlertWrapper e1xb5l7j1"
               type="warning"
             >
               <div
-                className="ref-warning css-qx534z-AlertWrapper e1xb5l7j1"
+                className="ref-warning css-rofbwt-AlertWrapper e1xb5l7j1"
                 is={null}
                 type="warning"
               >

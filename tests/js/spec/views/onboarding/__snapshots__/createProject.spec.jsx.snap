@@ -65,9 +65,19 @@ exports[`CreateProject should deal with incorrect platform name if its provided 
       <div
         className="onboarding-info"
       >
-        <h4>
-          Choose a language or framework:
-        </h4>
+        <PageHeading
+          withMargins={true}
+        >
+          <Wrapper
+            withMargins={true}
+          >
+            <h1
+              className="css-13ev48w-Wrapper e1f8hk460"
+            >
+              Choose a language or framework:
+            </h1>
+          </Wrapper>
+        </PageHeading>
         <PlatformPicker
           name=""
           next={[Function]}
@@ -769,9 +779,19 @@ exports[`CreateProject should deal with incorrect platform name if its provided 
           <div
             className="new-project-name client-platform"
           >
-            <h4>
-              Give your project a name:
-            </h4>
+            <PageHeading
+              withMargins={true}
+            >
+              <Wrapper
+                withMargins={true}
+              >
+                <h1
+                  className="css-13ev48w-Wrapper e1f8hk460"
+                >
+                  Give your project a name:
+                </h1>
+              </Wrapper>
+            </PageHeading>
             <div
               className="project-name-wrapper"
             >
@@ -800,9 +820,19 @@ exports[`CreateProject should deal with incorrect platform name if its provided 
           <div
             className="new-project-team"
           >
-            <h4>
-              Team:
-            </h4>
+            <PageHeading
+              withMargins={true}
+            >
+              <Wrapper
+                withMargins={true}
+              >
+                <h1
+                  className="css-13ev48w-Wrapper e1f8hk460"
+                >
+                  Team:
+                </h1>
+              </Wrapper>
+            </PageHeading>
             <div>
               <SelectField
                 clearable={false}
@@ -1192,9 +1222,19 @@ exports[`CreateProject should fill in platform name if its provided by url 1`] =
       <div
         className="onboarding-info"
       >
-        <h4>
-          Choose a language or framework:
-        </h4>
+        <PageHeading
+          withMargins={true}
+        >
+          <Wrapper
+            withMargins={true}
+          >
+            <h1
+              className="css-13ev48w-Wrapper e1f8hk460"
+            >
+              Choose a language or framework:
+            </h1>
+          </Wrapper>
+        </PageHeading>
         <PlatformPicker
           name="Ruby"
           next={[Function]}
@@ -1506,9 +1546,19 @@ exports[`CreateProject should fill in platform name if its provided by url 1`] =
           <div
             className="new-project-name client-platform"
           >
-            <h4>
-              Give your project a name:
-            </h4>
+            <PageHeading
+              withMargins={true}
+            >
+              <Wrapper
+                withMargins={true}
+              >
+                <h1
+                  className="css-13ev48w-Wrapper e1f8hk460"
+                >
+                  Give your project a name:
+                </h1>
+              </Wrapper>
+            </PageHeading>
             <div
               className="project-name-wrapper"
             >
@@ -1537,9 +1587,19 @@ exports[`CreateProject should fill in platform name if its provided by url 1`] =
           <div
             className="new-project-team"
           >
-            <h4>
-              Team:
-            </h4>
+            <PageHeading
+              withMargins={true}
+            >
+              <Wrapper
+                withMargins={true}
+              >
+                <h1
+                  className="css-13ev48w-Wrapper e1f8hk460"
+                >
+                  Team:
+                </h1>
+              </Wrapper>
+            </PageHeading>
             <div>
               <SelectField
                 clearable={false}
@@ -1929,9 +1989,19 @@ exports[`CreateProject should fill in project name if its empty when platform is
       <div
         className="onboarding-info"
       >
-        <h4>
-          Choose a language or framework:
-        </h4>
+        <PageHeading
+          withMargins={true}
+        >
+          <Wrapper
+            withMargins={true}
+          >
+            <h1
+              className="css-13ev48w-Wrapper e1f8hk460"
+            >
+              Choose a language or framework:
+            </h1>
+          </Wrapper>
+        </PageHeading>
         <PlatformPicker
           name="another"
           next={[Function]}
@@ -2633,9 +2703,19 @@ exports[`CreateProject should fill in project name if its empty when platform is
           <div
             className="new-project-name client-platform"
           >
-            <h4>
-              Give your project a name:
-            </h4>
+            <PageHeading
+              withMargins={true}
+            >
+              <Wrapper
+                withMargins={true}
+              >
+                <h1
+                  className="css-13ev48w-Wrapper e1f8hk460"
+                >
+                  Give your project a name:
+                </h1>
+              </Wrapper>
+            </PageHeading>
             <div
               className="project-name-wrapper"
             >
@@ -2664,9 +2744,19 @@ exports[`CreateProject should fill in project name if its empty when platform is
           <div
             className="new-project-team"
           >
-            <h4>
-              Team:
-            </h4>
+            <PageHeading
+              withMargins={true}
+            >
+              <Wrapper
+                withMargins={true}
+              >
+                <h1
+                  className="css-13ev48w-Wrapper e1f8hk460"
+                >
+                  Team:
+                </h1>
+              </Wrapper>
+            </PageHeading>
             <div>
               <SelectField
                 clearable={false}

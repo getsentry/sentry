@@ -36,6 +36,17 @@ _filename_version_re = re.compile(
 )/""", re.X | re.I
 )
 
+# OpenJDK auto-generated classes for reflection access:
+#   sun.reflect.GeneratedSerializationConstructorAccessor123
+#   sun.reflect.GeneratedConstructorAccessor456
+# Note that this doesn't cover the following pattern for the sake of
+# backward compatibility (to not to change the existing grouping):
+#   sun.reflect.GeneratedMethodAccessor789
+_java_reflect_enhancer_re = re.compile(
+    r'''(sun\.reflect\.Generated(?:Serialization)?ConstructorAccessor)\d+''',
+    re.X
+)
+
 # Java Spring specific anonymous classes.
 # see: http://mydailyjava.blogspot.co.at/2013/11/cglib-missing-manual.html
 _java_cglib_enhancer_re = re.compile(r'''(\$\$[\w_]+?CGLIB\$\$)[a-fA-F0-9]+(_[0-9]+)?''', re.X)
@@ -198,6 +209,7 @@ def remove_module_outliers(module, platform=None):
     if platform == 'java':
         if module[:35] == 'sun.reflect.GeneratedMethodAccessor':
             return 'sun.reflect.GeneratedMethodAccessor'
+        module = _java_reflect_enhancer_re.sub(r'\1<auto>', module)
         module = _java_cglib_enhancer_re.sub(r'\1<auto>', module)
         module = _java_assist_enhancer_re.sub(r'\1<auto>', module)
         module = _clojure_enhancer_re.sub(r'\1<auto>', module)

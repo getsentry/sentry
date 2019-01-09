@@ -1328,10 +1328,6 @@ SENTRY_DEFAULT_INTEGRATIONS = (
     'sentry.integrations.vsts_extension.VstsExtensionIntegrationProvider',
 )
 
-SENTRY_INTERNAL_INTEGRATIONS = (
-    'jira_server',
-)
-
 
 def get_sentry_sdk_config():
     return {
