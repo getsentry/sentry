@@ -468,14 +468,6 @@ class EventManager(object):
 
         data = self._data
 
-        if self._for_store:
-            if self._project is not None:
-                data['project'] = self._project.id
-            if self._key is not None:
-                data['key_id'] = self._key.id
-            if self._auth is not None:
-                data['sdk'] = data.get('sdk') or parse_client_as_sdk(self._auth.client)
-
         # Before validating with a schema, attempt to cast values to their desired types
         # so that the schema doesn't have to take every type variation into account.
         text = six.text_type
@@ -557,6 +549,13 @@ class EventManager(object):
 
         # Additional data coercion and defaulting we only do for store.
         if self._for_store:
+            if self._project is not None:
+                data['project'] = self._project.id
+            if self._key is not None:
+                data['key_id'] = self._key.id
+            if self._auth is not None:
+                data['sdk'] = data.get('sdk') or parse_client_as_sdk(self._auth.client)
+
             level = data.get('level') or DEFAULT_LOG_LEVEL
             if isinstance(level, int) or (isinstance(level, six.string_types) and level.isdigit()):
                 level = LOG_LEVELS.get(int(level), DEFAULT_LOG_LEVEL)

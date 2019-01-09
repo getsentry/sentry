@@ -166,12 +166,14 @@ HTTP_METHODS = ('GET', 'POST', 'PUT', 'OPTIONS', 'HEAD',
 CLIENT_RESERVED_ATTRS = (
     'project', 'errors', 'event_id', 'message', 'checksum', 'culprit', 'fingerprint', 'level',
     'time_spent', 'logger', 'server_name', 'site', 'received', 'timestamp', 'extra', 'modules',
-    'tags', 'platform', 'release', 'dist', 'environment', 'transaction', 'key_id', '_meta',
-    'type', 'hashes',
+    'tags', 'platform', 'release', 'dist', 'environment', 'transaction', '_meta',
 )
 
-# Deprecated attributes sent by old SDKs that are now dropped silently
+# Deprecated or internal attributes that should be dropped silently
 CLIENT_IGNORED_ATTRS = (
+    # Internal attributes
+    'hashes', 'metadata', 'type', 'key_id', 'project', 'received'
+    # Deprecated attributes
     'applecrashreport', 'device', 'repos', 'query',
 )
 
