@@ -21,7 +21,11 @@ const GroupDetails = createReactClass({
   displayName: 'GroupDetails',
 
   propTypes: {
+<<<<<<< HEAD
     // Provided in the project version of group details
+=======
+    // provided in the project version of group details
+>>>>>>> ref(issues): Refactor group event details
     project: SentryTypes.Project,
     environment: SentryTypes.Environment,
   },
@@ -202,6 +206,7 @@ const GroupDetails = createReactClass({
           <GroupHeader orgId={params.orgId} project={project} group={group} />
           {React.cloneElement(this.props.children, {
             group,
+            project,
           })}
         </div>
       </DocumentTitle>
