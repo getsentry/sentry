@@ -276,8 +276,6 @@ const appConfig = {
   output: {
     path: distPath,
     filename: '[name].js',
-    libraryTarget: 'var',
-    library: 'exports',
     sourceMapFilename: '[name].js.map',
   },
   optimization: {
