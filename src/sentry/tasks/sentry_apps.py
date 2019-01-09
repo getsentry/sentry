@@ -23,7 +23,7 @@ def notify_sentry_app(event, futures):
         group.id,
         event.id,
     )
-    event_context['html_url'] = u'{}/issues/{}/events/{}/'.format(
+    event_context['web_url'] = u'{}/issues/{}/events/{}/'.format(
         project_url_base,
         group.id,
         event.id,

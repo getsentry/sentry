@@ -56,7 +56,7 @@ class AppPlatformEvent(object):
         return {
             'Content-Type': 'application/json',
             'Request-ID': request_uuid,
-            'Sentry-Hook-Event': self.resource,
+            'Sentry-Hook-Resource': self.resource,
             'Sentry-Hook-Timestamp': six.text_type(int(time())),
             'Sentry-Hook-Signature': self.install.sentry_app.build_signature(body)
         }

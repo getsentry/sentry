@@ -54,10 +54,27 @@ class TestServiceHooks(TestCase):
         assert faux(safe_urlopen).kwarg_equals('headers', DictContaining(
             'Content-Type',
             'Request-ID',
-            'Sentry-Hook-Event',
+            'Sentry-Hook-Resource',
             'Sentry-Hook-Timestamp',
             'Sentry-Hook-Signature',
         ))
+
+    @patch('sentry.tasks.servicehooks.safe_urlopen')
+    def test_verify_sentry_hook_signature(self, safe_urlopen):
+        import hmac
+        from hashlib import sha256
+
+        with self.tasks():
+            self.create_group(project=self.project)
+
+        secret = self.install.sentry_app.application.client_secret
+        body = json.dumps(faux(safe_urlopen).kwargs['data'])
+        expected = hmac.new(
+            key=secret.encode('utf-8'),
+            msg=body,
+            digestmod=sha256,
+        ).hexdigest()
+        assert expected == faux(safe_urlopen).kwargs['headers']['Sentry-Hook-Signature']
 
     @patch('sentry.tasks.servicehooks.safe_urlopen')
     def test_non_group_events_dont_send_service_hooks(self, safe_urlopen):

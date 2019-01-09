@@ -71,7 +71,7 @@ class TestInstallationNotifier(TestCase):
         assert faux(safe_urlopen).kwarg_equals('headers', DictContaining(
             'Content-Type',
             'Request-ID',
-            'Sentry-Hook-Event',
+            'Sentry-Hook-Resource',
             'Sentry-Hook-Timestamp',
             'Sentry-Hook-Signature',
         ))
