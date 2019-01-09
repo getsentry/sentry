@@ -56,6 +56,7 @@ class SettingsLayout extends React.Component {
 
 const MaxWidthContainer = styled(Flex)`
   max-width: ${p => p.theme.settings.containerWidth};
+  flex: 1;
 `;
 
 const SidebarWrapper = styled(Box)`
@@ -67,6 +68,8 @@ const SidebarWrapper = styled(Box)`
 `;
 
 const SettingsColumn = styled('div')`
+  display: flex;
+  flex-direction: column;
   flex: 1; /* so this stretches vertically so that footer is fixed at bottom */
   footer {
     margin-top: 0;
