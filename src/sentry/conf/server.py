@@ -1643,9 +1643,6 @@ SENTRY_RELAY_OPEN_REGISTRATION = False
 
 # GeoIP
 # Used for looking up IP addresses.
-# For example /usr/local/share/GeoIP/GeoIPCity.dat
-GEOIP_PATH = None
-# Same file but in the newer format. Both are required.
 # For example /usr/local/share/GeoIP/GeoIPCity.mmdb
 GEOIP_PATH_MMDB = None
 
