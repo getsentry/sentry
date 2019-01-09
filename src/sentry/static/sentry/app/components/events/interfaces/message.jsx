@@ -21,9 +21,10 @@ class MessageInterface extends React.Component {
       return null;
     }
 
-    // NB: Always render params, regardless whether they appear in the formatted
-    // string or not. The reason is for structured logging frameworks, like
-    // serilog. They only format some parameters into the formatted string.
+    // NB: Always render params, regardless of whether they appear in the
+    // formatted string due to structured logging frameworks, like Serilog. They
+    // only format some parameters into the formatted string, but we want to
+    // display all of them.
 
     if (Array.isArray(params)) {
       params = params.map((value, i) => [`#${i}`, value]);
@@ -38,14 +39,12 @@ class MessageInterface extends React.Component {
     let {data, group, event} = this.props;
 
     return (
-      <React.Fragment>
-        <EventDataSection group={group} event={event} type="message" title={t('Message')}>
-          <pre className="plain">
-            <Annotated object={data} prop="formatted" />
-          </pre>
-          {this.renderParams()}
-        </EventDataSection>
-      </React.Fragment>
+      <EventDataSection group={group} event={event} type="message" title={t('Message')}>
+        <pre className="plain">
+          <Annotated object={data} prop="formatted" />
+        </pre>
+        {this.renderParams()}
+      </EventDataSection>
     );
   }
 }
