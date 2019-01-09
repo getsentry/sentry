@@ -68,7 +68,6 @@ const GroupHeader = createReactClass({
 
   render() {
     let group = this.props.group,
-      orgFeatures = new Set(this.getOrganization().features),
       projectFeatures = this.getProjectFeatures(),
       userCount = group.userCount;
 
@@ -93,7 +92,6 @@ const GroupHeader = createReactClass({
     let message = this.getMessage();
 
     let hasSimilarView = projectFeatures.has('similarity-view');
-    let hasMergeView = orgFeatures.has('group-unmerge');
 
     return (
       <div className={className}>
@@ -201,11 +199,9 @@ const GroupHeader = createReactClass({
           <ListLink to={`/${orgId}/${projectId}/issues/${groupId}/events/`}>
             {t('Events')}
           </ListLink>
-          {hasMergeView && (
-            <ListLink to={`/${orgId}/${projectId}/issues/${groupId}/merged/`}>
-              {t('Merged')}
-            </ListLink>
-          )}
+          <ListLink to={`/${orgId}/${projectId}/issues/${groupId}/merged/`}>
+            {t('Merged')}
+          </ListLink>
           {hasSimilarView && (
             <ListLink to={`/${orgId}/${projectId}/issues/${groupId}/similar/`}>
               {t('Similar Issues')}
