@@ -16,7 +16,7 @@ class MessageInterface extends React.Component {
   };
 
   renderParams() {
-    let { params } = this.props.data;
+    let {params} = this.props.data;
     if (objectIsEmpty(params)) {
       return null;
     }
@@ -30,9 +30,7 @@ class MessageInterface extends React.Component {
       params = params.map((value, i) => [`#${i}`, value]);
     }
 
-    return (
-      <KeyValueList data={params} isSorted={false} isContextData />
-    );
+    return <KeyValueList data={params} isSorted={false} isContextData />;
   }
 
   render() {
