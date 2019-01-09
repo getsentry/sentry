@@ -226,9 +226,10 @@ class OrganizationDiscoverQueryEndpoint(OrganizationEndpoint):
                 ]
 
             for result in snuba_results['data']:
-                result['project.name'] = projects[result['project.id']]
-                if 'project.id' not in requested_query['selected_columns']:
-                    del result['project.id']
+                if 'project.id' in result:
+                    result['project.name'] = projects[result['project.id']]
+                    if 'project.id' not in requested_query['selected_columns']:
+                        del result['project.id']
 
         if 'project.name' in requested_query['groupby']:
             project_name_index = requested_query['groupby'].index('project.name')
@@ -241,9 +242,10 @@ class OrganizationDiscoverQueryEndpoint(OrganizationEndpoint):
                 ]
 
             for result in snuba_results['data']:
-                result['project.name'] = projects[result['project.id']]
-                if 'project.id' not in requested_query['groupby']:
-                    del result['project.id']
+                if 'project.id' in result:
+                    result['project.name'] = projects[result['project.id']]
+                    if 'project.id' not in requested_query['groupby']:
+                        del result['project.id']
 
         # Convert snuba types to json types
         for col in snuba_results['meta']:
