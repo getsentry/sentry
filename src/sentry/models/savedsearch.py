@@ -12,11 +12,12 @@ class SavedSearch(Model):
     """
     __core__ = True
 
-    project = FlexibleForeignKey('sentry.Project')
+    project = FlexibleForeignKey('sentry.Project', null=True)
     name = models.CharField(max_length=128)
     query = models.TextField()
     date_added = models.DateTimeField(default=timezone.now)
     is_default = models.BooleanField(default=False)
+    is_global = models.NullBooleanField(null=True, default=False, db_index=True)
     owner = FlexibleForeignKey('sentry.User', null=True)
 
     class Meta:
