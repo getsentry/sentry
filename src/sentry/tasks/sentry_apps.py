@@ -1,5 +1,7 @@
 from __future__ import absolute_import, print_function
 
+import logging
+
 from requests.exceptions import RequestException
 
 from sentry.http import safe_urlopen
@@ -7,6 +9,8 @@ from sentry.tasks.base import instrumented_task, retry
 from sentry.utils.http import absolute_uri
 from sentry.models import SentryAppInstallation, SentryApp
 from sentry.api.serializers import AppPlatformEvent
+
+logger = logging.Logger('sentry.tasks.sentry_apps')
 
 
 def notify_sentry_app(event, futures):
@@ -25,9 +29,22 @@ def notify_sentry_app(event, futures):
 )
 @retry(on=(RequestException, ))
 def send_alert_event(event, rule, sentry_app_id):
+
+    group = event.group
+    project = group.project
+
     try:
         sentry_app = SentryApp.objects.get(id=sentry_app_id)
     except SentryApp.DoesNotExist:
+        logger.info(
+            'event_alert_webhook.missing_sentry_app',
+            extra={
+                'sentry_app_id': sentry_app_id,
+                'project': project.slug,
+                'organization': project.organization.slug,
+                'rule': rule,
+            },
+        )
         return
 
     try:
@@ -36,10 +53,17 @@ def send_alert_event(event, rule, sentry_app_id):
             sentry_app=sentry_app,
         )
     except SentryAppInstallation.DoesNotExist:
+        logger.info(
+            'event_alert_webhook.missing_installation',
+            extra={
+                'sentry_app': sentry_app.slug,
+                'project': project.slug,
+                'organization': project.organization.slug,
+                'rule': rule,
+            },
+        )
         return
 
-    group = event.group
-    project = group.project
     project_url_base = absolute_uri(u'/{}/{}'.format(
         project.organization.slug,
         project.slug,
