@@ -96,6 +96,7 @@ from .endpoints.organization_config_integrations import OrganizationConfigIntegr
 from .endpoints.organization_config_repositories import OrganizationConfigRepositoriesEndpoint
 from .endpoints.organization_repository_commits import OrganizationRepositoryCommitsEndpoint
 from .endpoints.organization_repository_details import OrganizationRepositoryDetailsEndpoint
+from .endpoints.organization_searches import OrganizationSearchesEndpoint
 from .endpoints.organization_sentry_apps import OrganizationSentryAppsEndpoint
 from .endpoints.organization_tagkey_values import OrganizationTagKeyValuesEndpoint
 from .endpoints.organization_tags import OrganizationTagsEndpoint
@@ -543,6 +544,11 @@ urlpatterns = patterns(
         r'^organizations/(?P<organization_slug>[^\/]+)/members/$',
         OrganizationMemberIndexEndpoint.as_view(),
         name='sentry-api-0-organization-member-index'
+    ),
+    url(
+        r'^organizations/(?P<organization_slug>[^\/]+)/searches/$',
+        OrganizationSearchesEndpoint.as_view(),
+        name='sentry-api-0-organization-searches'
     ),
     url(
         r'^organizations/(?P<organization_slug>[^\/]+)/users/issues/$',

@@ -28,7 +28,7 @@ from sentry.models import (
     Release, UserOption, User
 )
 from sentry.models.event import Event
-from sentry.receivers import DEFAULT_SAVED_SEARCHES
+from sentry.models.savedsearch import DEFAULT_SAVED_SEARCH_QUERIES
 from sentry.signals import advanced_search, issue_ignored, issue_resolved_in_release, resolved_with_commit
 from sentry.tasks.integrations import kick_off_status_syncs
 from sentry.tasks.merge import merge_groups
@@ -39,7 +39,6 @@ from sentry.utils.functional import extract_lazy_object
 
 
 ERR_INVALID_STATS_PERIOD = "Invalid stats_period. Valid choices are '', '24h', and '14d'"
-SAVED_SEARCH_QUERIES = set([s['query'] for s in DEFAULT_SAVED_SEARCHES])
 
 
 @scenario('BulkUpdateIssues')
@@ -228,7 +227,7 @@ class ProjectGroupIndexEndpoint(ProjectEndpoint, EnvironmentMixin):
 
         self.add_cursor_headers(request, response, cursor_result)
 
-        if results and query not in SAVED_SEARCH_QUERIES:
+        if results and query not in DEFAULT_SAVED_SEARCH_QUERIES:
             advanced_search.send(project=project, sender=request.user)
             analytics.record('project_issue.searched', user_id=request.user.id,
                              organization_id=project.organization_id, project_id=project.id,
