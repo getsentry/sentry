@@ -182,44 +182,6 @@ describe('Utils', function() {
       expect(getChartDataByDay(raw, query)).toEqual(expected);
     });
 
-    it('assumes null or defined value as 0', function() {
-      const expected = [
-        {
-          data: [
-            {name: 1531094400000, value: 14},
-            {name: 1531180800000, value: 0},
-            {name: 1532070000000, value: 30},
-          ],
-          seriesName: 'python,SnubaError',
-        },
-        {
-          data: [
-            {name: 1531094400000, value: 6},
-            {name: 1531180800000, value: 0},
-            {name: 1532070000000, value: 8},
-          ],
-          seriesName: 'php,Exception',
-        },
-        {
-          data: [
-            {name: 1531094400000, value: 6},
-            {name: 1531180800000, value: 0},
-            {name: 1532070000000, value: 5},
-          ],
-          seriesName: 'javascript,Type Error',
-        },
-        {
-          data: [
-            {name: 1531094400000, value: 6},
-            {name: 1531180800000, value: 20},
-            {name: 1532070000000, value: 0},
-          ],
-          seriesName: 'python,ZeroDivisionError',
-        },
-      ];
-      expect(getChartDataByDay(raw, query, {assumeEmptyAsZero: true})).toEqual(expected);
-    });
-
     it('returns chart data with zero filled dates', function() {
       const zeroFilledRaw = [
         {
@@ -288,9 +250,7 @@ describe('Utils', function() {
         },
       ];
 
-      expect(getChartDataByDay(zeroFilledRaw, query, {assumeEmptyAsZero: true})).toEqual(
-        expected
-      );
+      expect(getChartDataByDay(zeroFilledRaw, query)).toEqual(expected);
     });
 
     it('shows only top 10 series by default', function() {
