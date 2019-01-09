@@ -1,7 +1,9 @@
-import React from 'react';
 import {mount, shallow} from 'enzyme';
+import React from 'react';
 
-import Result from 'app/views/organizationDiscover/result';
+import {mockRouterPush} from 'app-test/helpers/mockRouterPush';
+import {initializeOrg} from 'app-test/helpers/initializeOrg';
+import Result, {Result as ResultShallow} from 'app/views/organizationDiscover/result';
 import createQueryBuilder from 'app/views/organizationDiscover/queryBuilder';
 
 describe('Result', function() {
@@ -25,7 +27,12 @@ describe('Result', function() {
         },
       };
       wrapper = shallow(
-        <Result data={data} organization={organization} onFetchPage={jest.fn()} />,
+        <ResultShallow
+          location={{query: {}}}
+          data={data}
+          organization={organization}
+          onFetchPage={jest.fn()}
+        />,
         {
           context: {organization},
           disableLifecycleMethods: false,
@@ -140,11 +147,23 @@ describe('Result', function() {
     });
 
     describe('Toggles Visualizations', function() {
+      organization = TestStubs.Organization();
+      const {routerContext, router} = initializeOrg({
+        organization,
+        router: {
+          location: {
+            pathname: `/organizations/${organization.slug}/discover/`,
+            query: {},
+          },
+        },
+      });
+
       beforeEach(function() {
         wrapper = mount(
           <Result data={data} organization={organization} onFetchPage={jest.fn()} />,
-          TestStubs.routerContext([{organization}])
+          routerContext
         );
+        mockRouterPush(wrapper, router);
       });
 
       it('displays options', function() {
@@ -158,9 +177,14 @@ describe('Result', function() {
 
         wrapper
           .find('ResultViewButtons')
-          .find('a')
+          .find('Link a')
           .at(1)
-          .simulate('click');
+          .simulate('click', {button: 0});
+
+        expect(router.push).toHaveBeenCalledWith({
+          pathname: '/organizations/org-slug/discover/',
+          query: {visual: 'line'},
+        });
         wrapper.update();
 
         expect(wrapper.find('ResultTable')).toHaveLength(0);
@@ -175,7 +199,7 @@ describe('Result', function() {
           .find('ul.dropdown-menu')
           .find('a')
           .at(1)
-          .simulate('click');
+          .simulate('click', {button: 0});
 
         expect(wrapper.find('ResultTable')).toHaveLength(0);
         expect(wrapper.find('LineChart')).toHaveLength(1);

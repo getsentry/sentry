@@ -67,7 +67,7 @@ export default class OrganizationDiscover extends React.Component {
 
   componentDidMount() {
     if (this.props.savedQuery) {
-      this.runQuery();
+      this.runQuery({keepVisual: true});
     }
   }
 
@@ -92,7 +92,14 @@ export default class OrganizationDiscover extends React.Component {
       return;
     }
 
-    if (currentSearch === search) {
+    // Don't compare `visual` since there is no need to re-query if queries are equal
+    // but views are changing
+    const visualRegex = /&?visual=[^&]+/;
+    if (
+      currentSearch &&
+      search &&
+      currentSearch.replace(visualRegex, '') === search.replace(visualRegex, '')
+    ) {
       return;
     }
 
@@ -177,8 +184,11 @@ export default class OrganizationDiscover extends React.Component {
     this.runQuery();
   };
 
-  runQuery = () => {
-    const {queryBuilder, organization} = this.props;
+  // runQuery can get called from many different paths - only keep visual in URL params
+  // when the option is passed. We want it to reset in most cases (but not when running query
+  // when initially mounted)
+  runQuery = ({keepVisual} = {}) => {
+    const {queryBuilder, organization, location} = this.props;
     const {resultManager} = this.state;
 
     // Track query for analytics
@@ -210,9 +220,11 @@ export default class OrganizationDiscover extends React.Component {
         const shouldRedirect = !this.props.params.savedQueryId;
 
         if (shouldRedirect) {
+          const visual =
+            keepVisual && location.query.visual ? `&visual=${location.query.visual}` : '';
           browserHistory.push({
             pathname: `/organizations/${organization.slug}/discover/`,
-            search: getQueryStringFromQuery(queryBuilder.getInternal()),
+            search: `${getQueryStringFromQuery(queryBuilder.getInternal())}${visual}`,
           });
         }
 

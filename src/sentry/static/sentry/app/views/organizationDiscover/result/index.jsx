@@ -1,19 +1,16 @@
-import React from 'react';
-import PropTypes from 'prop-types';
 import {throttle} from 'lodash';
+import {withRouter} from 'react-router';
+import PropTypes from 'prop-types';
+import React from 'react';
 
-import SentryTypes from 'app/sentryTypes';
 import {t} from 'app/locale';
-import getDynamicText from 'app/utils/getDynamicText';
 import BarChart from 'app/components/charts/barChart';
-import LineChart from 'app/components/charts/lineChart';
 import InlineSvg from 'app/components/inlineSvg';
+import LineChart from 'app/components/charts/lineChart';
 import PageHeading from 'app/components/pageHeading';
+import SentryTypes from 'app/sentryTypes';
+import getDynamicText from 'app/utils/getDynamicText';
 
-import {getChartData, getChartDataByDay, getRowsPageRange, downloadAsCsv} from './utils';
-import Table from './table';
-import Pagination from './pagination';
-import VisualizationsToggle from './visualizationsToggle';
 import {
   HeadingContainer,
   ResultSummary,
@@ -25,19 +22,26 @@ import {
   ResultSummaryAndButtons,
 } from '../styles';
 import {NUMBER_OF_SERIES_BY_DAY} from '../data';
+import {getChartData, getChartDataByDay, getRowsPageRange, downloadAsCsv} from './utils';
+import Pagination from './pagination';
+import Table from './table';
+import VisualizationsToggle from './visualizationsToggle';
 
-export default class Result extends React.Component {
+const DEFAULT_VIEW = 'table';
+
+class Result extends React.Component {
   static propTypes = {
+    location: PropTypes.object,
     data: PropTypes.object.isRequired,
     savedQuery: SentryTypes.DiscoverSavedQuery, // Provided if it's a saved search
     onFetchPage: PropTypes.func.isRequired,
     onToggleEdit: PropTypes.func,
   };
 
-  constructor() {
-    super();
+  constructor(props) {
+    super(props);
     this.state = {
-      view: 'table',
+      view: props.location.query.visual || DEFAULT_VIEW,
       height: null,
       width: null,
     };
@@ -49,6 +53,17 @@ export default class Result extends React.Component {
 
   componentWillReceiveProps(nextProps) {
     const {baseQuery, byDayQuery} = nextProps.data;
+
+    if (nextProps.location.query.visual) {
+      this.setState({
+        view: nextProps.location.query.visual,
+      });
+    } else if (this.props.location.query.visual) {
+      // Going from selected -> none (e.g. clicking back), should show default
+      this.setState({
+        view: DEFAULT_VIEW,
+      });
+    }
 
     if (!byDayQuery.data && ['line-by-day', 'bar-by-day'].includes(this.state.view)) {
       this.setState({
@@ -88,12 +103,6 @@ export default class Result extends React.Component {
 
   throttledUpdateDimensions = throttle(this.updateDimensions, 200, {trailing: true});
 
-  handleToggleVisualizations = opt => {
-    this.setState({
-      view: opt,
-    });
-  };
-
   renderToggle() {
     const {baseQuery, byDayQuery} = this.props.data;
 
@@ -116,7 +125,6 @@ export default class Result extends React.Component {
       <div>
         <VisualizationsToggle
           options={options}
-          handleChange={this.handleToggleVisualizations}
           handleCsvDownload={handleCsvDownload}
           visualization={this.state.view}
         />
@@ -269,3 +277,6 @@ export default class Result extends React.Component {
     );
   }
 }
+
+export default withRouter(Result);
+export {Result};

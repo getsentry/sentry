@@ -123,6 +123,46 @@ describe('Discover', function() {
 
       // TODO: check that query is run with correct params
     });
+
+    it('does not runquery if queries are equal and visual changes in url params', async function() {
+      queryBuilder.fetch = jest.fn(() =>
+        Promise.resolve({
+          timing: {},
+          data: [{foo: 'bar', 'project.id': project.id}],
+          meta: [{name: 'foo'}],
+        })
+      );
+      const wrapper = mount(
+        <Discover
+          queryBuilder={queryBuilder}
+          organization={organization}
+          updateSavedQueryData={jest.fn()}
+          location={{search: ''}}
+          params={{}}
+          toggleEditMode={jest.fn()}
+          isLoading={false}
+        />,
+        TestStubs.routerContext([{organization}])
+      );
+      wrapper.setProps({
+        location: {
+          search:
+            'projects=%5B%5D&fields=%5B%22id%22%2C%22issue.id%22%2C%22project.name%22%2C%22platform%22%2C%22timestamp%22%5D&conditions=%5B%5D&aggregations=%5B%5D&range=%2214d%22&orderby=%22-timestamp%22&limit=1000&start=null&end=null',
+        },
+      });
+      await tick();
+      wrapper.update();
+      queryBuilder.fetch.mockClear();
+      wrapper.setProps({
+        location: {
+          search:
+            'projects=%5B%5D&fields=%5B%22id%22%2C%22issue.id%22%2C%22project.name%22%2C%22platform%22%2C%22timestamp%22%5D&conditions=%5B%5D&aggregations=%5B%5D&range=%2214d%22&orderby=%22-timestamp%22&limit=1000&start=null&end=null&visual=bar',
+        },
+      });
+      await tick();
+      wrapper.update();
+      expect(queryBuilder.fetch).not.toHaveBeenCalled();
+    });
   });
 
   describe('Pagination', function() {

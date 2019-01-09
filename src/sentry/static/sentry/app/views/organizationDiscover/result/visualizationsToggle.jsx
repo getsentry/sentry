@@ -1,9 +1,11 @@
+import {Link, withRouter} from 'react-router';
 import PropTypes from 'prop-types';
 import React from 'react';
 import classNames from 'classnames';
+
+import {t} from 'app/locale';
 import DropdownLink from 'app/components/dropdownLink';
 import MenuItem from 'app/components/menuItem';
-import {t} from 'app/locale';
 
 import {
   ResultViewActions,
@@ -20,18 +22,31 @@ class VisualizationsToggle extends React.Component {
         name: PropTypes.string,
       })
     ).isRequired,
-    handleChange: PropTypes.func.isRequired,
     handleCsvDownload: PropTypes.func.isRequired,
     visualization: PropTypes.string.isRequired,
   };
 
+  getUrl = id => {
+    const {location} = this.props;
+
+    return {
+      ...location,
+      query: {
+        ...location.query,
+        visual: id,
+      },
+    };
+  };
+
   getMenuItem = opt => {
+    const {location, visualization} = this.props;
     return (
       <MenuItem
         key={opt.id}
-        onSelect={this.props.handleChange}
+        to={location.pathname}
+        query={{...location.query, visual: opt.id}}
         eventKey={opt.id}
-        isActive={opt.id === this.props.visualization}
+        isActive={opt.id === visualization}
       >
         {opt.name}
       </MenuItem>
@@ -42,7 +57,7 @@ class VisualizationsToggle extends React.Component {
     const active = opt.id === this.props.visualization;
     return (
       <li key={opt.id} className={classNames({active})}>
-        <a onClick={() => this.props.handleChange(opt.id)}>{opt.name}</a>
+        <Link to={this.getUrl(opt.id)}>{opt.name}</Link>
       </li>
     );
   };
@@ -81,4 +96,4 @@ class VisualizationsToggle extends React.Component {
   }
 }
 
-export default VisualizationsToggle;
+export default withRouter(VisualizationsToggle);
