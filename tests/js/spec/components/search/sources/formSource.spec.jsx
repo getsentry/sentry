@@ -9,6 +9,8 @@ describe('FormSource', function() {
   let wrapper;
   let searchMap = [
     {
+      title: 'Test Field',
+      description: 'test-help',
       route: '/route/',
       field: {
         name: 'test-field',
@@ -17,6 +19,8 @@ describe('FormSource', function() {
       },
     },
     {
+      title: 'Foo Field',
+      description: 'foo-help',
       route: '/foo/',
       field: {
         name: 'foo-field',
@@ -50,6 +54,8 @@ describe('FormSource', function() {
         name: 'test-field',
         help: 'test-help',
       },
+      title: 'Test Field',
+      description: 'test-help',
       route: '/route/',
       resultType: 'field',
       sourceType: 'field',
