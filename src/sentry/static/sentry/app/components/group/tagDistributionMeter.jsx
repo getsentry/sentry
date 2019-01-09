@@ -134,21 +134,24 @@ const TagDistributionMeter = createReactClass({
           );
         })}
         {hasOther && (
-          <Segment
+          <Tooltip
             key="other"
-            index={9}
-            first={!topValues.length}
-            last={true}
-            css={{width: otherPct + '%'}}
-            to={`/${orgId}/${projectId}/issues/${this.props.group.id}/tags/${this.props
-              .tag}/`}
-            title={'Other<br/>' + otherPctLabel + '%'}
+            title={`Other<br/>${otherPctLabel}%`}
+            tooltipOptions={{html: true}}
           >
-            <Description first={!topValues.length}>
-              <Percentage>{otherPctLabel}%</Percentage>
-              <Label>{t('Other')}</Label>
-            </Description>
-          </Segment>
+            <Segment
+              index={9}
+              first={!topValues.length}
+              last={true}
+              css={{width: otherPct + '%'}}
+              to={`/${orgId}/${projectId}/issues/${group.id}/tags/${tag}/`}
+            >
+              <Description first={!topValues.length}>
+                <Percentage>{otherPctLabel}%</Percentage>
+                <Label>{t('Other')}</Label>
+              </Description>
+            </Segment>
+          </Tooltip>
         )}
       </React.Fragment>
     );
