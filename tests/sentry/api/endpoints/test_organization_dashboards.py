@@ -6,9 +6,9 @@ from sentry.models import Dashboard
 from sentry.testutils import APITestCase
 
 
-class DashboardsTest(APITestCase):
+class OrganizationDashboardsTest(APITestCase):
     def setUp(self):
-        super(DashboardsTest, self).setUp()
+        super(OrganizationDashboardsTest, self).setUp()
         self.login_as(self.user)
         self.url = reverse(
             'sentry-api-0-organization-dashboard',
@@ -49,12 +49,15 @@ class DashboardsTest(APITestCase):
             self.url,
             data={
                 'title': 'Dashboard from Post',
-                'data': {'data': 'data'}
+                'data': {'data': 'data'},
+                'owner': self.user.id,
+                'organization': self.organization.id,
             }
         )
         assert response.status_code == 201
-        Dashboard.objects.get(
+        dashboard = Dashboard.objects.get(
             organization=self.organization,
             title='Dashboard from Post'
         )
-        # assert dashboard.data == {'data': 'data'}
+        assert dashboard.data == {'data': 'data'}
+        assert dashboard.owner == self.user

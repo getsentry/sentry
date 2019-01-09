@@ -1,6 +1,5 @@
 from __future__ import absolute_import
 
-
 from django.db import IntegrityError, transaction
 from sentry.api.base import DocSection
 from sentry.api.bases.organization import OrganizationEndpoint
@@ -17,10 +16,8 @@ class OrganizationDashboardsEndpoint(OrganizationEndpoint):
         """
         Retrieve an Organizations Dashboards
         `````````````````````````````````````
-
-        Retrieve a list of dashboards that are associated with the given organization.
-
-        :pparam string organization_slug: the slug of the organization the
+         Retrieve a list of dashboards that are associated with the given organization.
+         :pparam string organization_slug: the slug of the organization the
                                           dashboards belongs to.
         :qparam string query: the title of the dashboard being searched for.
         :auth: required
@@ -50,15 +47,10 @@ class OrganizationDashboardsEndpoint(OrganizationEndpoint):
                 dashboard = Dashboard.objects.create(
                     organization_id=organization.id,
                     title=result['title'],
-                    owner=result.get('owner') or request.user,
+                    owner=result['owner'],
                     data=result.get('data'),
-                    date_added=result.get('dateAdded'),
                 )
-        except IntegrityError:
-            # dashboard, created = Dashboard.objects.get(
-            #     organization_id=organization.id,
-            #     version=result['title'],
-            # ), False
-            pass  # hmm what to do here?
+        except IntegrityError as e:
+            return Response(e.message, status=208)
 
         return Response(serialize(dashboard, request.user), status=201)
