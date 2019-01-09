@@ -817,7 +817,31 @@ function routes() {
           >
             <IndexRoute
               componentPromise={() =>
-                import(/*webpackChunkName:"OrganizationReleaseOverview"*/ './views/releases/detail/organization/releaseOverview')}
+                import(/*webpackChunkName: "OrganizationReleaseOverview"*/ './views/releases/detail/organization/releaseOverview')}
+              component={errorHandler(LazyLoad)}
+            />
+            <Route
+              path="new-events/"
+              componentPromise={() =>
+                import(/*webpackChunkName: "OrganizationReleaseNewEvents"*/ './views/releases/detail/organization/releaseNewEvents')}
+              component={errorHandler(LazyLoad)}
+            />
+            <Route
+              path="all-events/"
+              componentPromise={() =>
+                import(/*webpackChunkName: "OrganizationReleaseAllEvents"*/ './views/releases/detail/organization/releaseAllEvents')}
+              component={errorHandler(LazyLoad)}
+            />
+            <Route
+              path="artifacts/"
+              componentPromise={() =>
+                import(/*webpackChunkName: "ReleaseArtifacts"*/ './views/releases/detail/shared/releaseArtifacts')}
+              component={errorHandler(LazyLoad)}
+            />
+            <Route
+              path="commits/"
+              componentPromise={() =>
+                import(/*webpackChunkName: "ReleaseCommits"*/ './views/releases/detail/shared/releaseCommits')}
               component={errorHandler(LazyLoad)}
             />
           </Route>
