@@ -82,7 +82,6 @@ export function getChartDataWithPercentages(data, query) {
  * @param {Array} data Data returned from Snuba
  * @param {Object} query Query state corresponding to data
  * @param {Object} [options] Options object
- * @param {Boolean} [options.assumeNullAsZero] (default: false) Assume null values as 0
  * @param {Boolean} [options.allSeries] (default: false) Return all series instead of top 10
  * @param {Object} [options.fieldLabelMap] (default: false) Maps value from Snuba to a defined label
  * @returns {Array}
@@ -114,8 +113,7 @@ export function getChartDataByDay(rawData, query, options = {}) {
     const dateIdx = dates.indexOf(formatDate(row.time));
 
     if (top10Series.has(key)) {
-      seriesHash[key][dateIdx].value =
-        options.assumeNullAsZero && row[aggregate] === null ? 0 : row[aggregate];
+      seriesHash[key][dateIdx].value = row[aggregate] === null ? 0 : row[aggregate];
     }
   });
 
@@ -161,7 +159,7 @@ function getEmptySeriesHash(seriesSet, dates, options = {}) {
 function getEmptySeries(dates, options) {
   return dates.map(date => {
     return {
-      value: options.assumeNullAsZero ? 0 : null,
+      value: 0,
       name: date,
     };
   });
@@ -171,7 +169,14 @@ function getEmptySeries(dates, options) {
 function getTopSeries(data, aggregate, limit = NUMBER_OF_SERIES_BY_DAY) {
   const allData = orderBy(data, ['time', aggregate], ['desc', 'desc']);
 
-  const orderedData = [...new Set(allData.map(row => row[CHART_KEY]))];
+  const orderedData = [
+    ...new Set(
+      allData
+        // `row` can be an empty time bucket, in which case it will have no `CHART_KEY` property
+        .filter(row => typeof row[CHART_KEY] !== 'undefined')
+        .map(row => row[CHART_KEY])
+    ),
+  ];
 
   return new Set(limit <= 0 ? orderedData : orderedData.slice(0, limit));
 }
@@ -182,6 +187,12 @@ function getDataWithKeys(data, query, options = {}) {
   const aggregate = aggregations[0][2];
 
   return data.map(row => {
+    // `row` can be an empty time bucket, in which case it has no value
+    // for `aggregate`
+    if (!row.hasOwnProperty(aggregate)) {
+      return row;
+    }
+
     const key = fields.length
       ? fields.map(field => getLabel(row[field], options)).join(',')
       : aggregate;
