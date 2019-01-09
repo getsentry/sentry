@@ -12,7 +12,7 @@ import DropdownLink from 'app/components/dropdownLink';
 import Feature from 'app/components/acl/feature';
 import FeatureDisabled from 'app/components/acl/featureDisabled';
 import GroupActions from 'app/actions/groupActions';
-import GroupState from 'app/mixins/groupState';
+import OrganizationState from 'app/mixins/organizationState';
 import GuideAnchor from 'app/components/assistant/guideAnchor';
 import IgnoreActions from 'app/components/actions/ignore';
 import IndicatorStore from 'app/stores/indicatorStore';
@@ -109,7 +109,12 @@ class DeleteActions extends React.Component {
 const GroupDetailsActions = createReactClass({
   displayName: 'GroupDetailsActions',
 
-  mixins: [ApiMixin, GroupState],
+  propTypes: {
+    group: SentryTypes.Group.isRequired,
+    project: SentryTypes.Project,
+  },
+
+  mixins: [ApiMixin, OrganizationState],
 
   getInitialState() {
     return {ignoreModal: null, shareBusy: false};
@@ -127,8 +132,7 @@ const GroupDetailsActions = createReactClass({
   },
 
   onDelete() {
-    let group = this.getGroup();
-    let project = this.getProject();
+    let {group, project} = this.props;
     let org = this.getOrganization();
     let loadingIndicator = IndicatorStore.add(t('Delete event..'));
 
@@ -149,8 +153,7 @@ const GroupDetailsActions = createReactClass({
   },
 
   onUpdate(data) {
-    let group = this.getGroup();
-    let project = this.getProject();
+    let {group, project} = this.props;
     let org = this.getOrganization();
     let loadingIndicator = IndicatorStore.add(t('Saving changes..'));
 
@@ -170,8 +173,7 @@ const GroupDetailsActions = createReactClass({
   },
 
   onShare(shared) {
-    let group = this.getGroup();
-    let project = this.getProject();
+    let {group, project} = this.props;
     let org = this.getOrganization();
     this.setState({shareBusy: true});
 
@@ -197,17 +199,15 @@ const GroupDetailsActions = createReactClass({
   },
 
   onToggleShare() {
-    let group = this.getGroup();
-    this.onShare(!group.isPublic);
+    this.onShare(!this.props.group.isPublic);
   },
 
   onToggleBookmark() {
-    this.onUpdate({isBookmarked: !this.getGroup().isBookmarked});
+    this.onUpdate({isBookmarked: !this.props.group.isBookmarked});
   },
 
   onDiscard() {
-    let group = this.getGroup();
-    let project = this.getProject();
+    let {group, project} = this.props;
     let org = this.getOrganization();
     let id = uniqueId();
     let loadingIndicator = IndicatorStore.add(t('Discarding event..'));
@@ -231,17 +231,16 @@ const GroupDetailsActions = createReactClass({
   },
 
   render() {
-    let group = this.getGroup();
-    let project = this.getProject();
+    let {group, project} = this.props;
     let org = this.getOrganization();
-    let orgFeatures = new Set(this.getOrganization().features);
+    let orgFeatures = new Set(org.features);
 
     let bookmarkClassName = 'group-bookmark btn btn-default btn-sm';
     if (group.isBookmarked) {
       bookmarkClassName += ' active';
     }
 
-    let hasRelease = this.getProjectFeatures().has('releases');
+    let hasRelease = new Set(project.features).has('releases');
 
     let isResolved = group.status === 'resolved';
     let isIgnored = group.status === 'ignored';
