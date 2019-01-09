@@ -1,7 +1,6 @@
 import {browserHistory} from 'react-router';
-import {omit, isEqual} from 'lodash';
+import {isEqual} from 'lodash';
 import Cookies from 'js-cookie';
-import PropTypes from 'prop-types';
 import React from 'react';
 import Reflux from 'reflux';
 import classNames from 'classnames';
@@ -10,14 +9,9 @@ import qs from 'query-string';
 
 import {Panel, PanelBody} from 'app/components/panels';
 import {analytics} from 'app/utils/analytics';
-import {
-  setActiveEnvironment,
-  setActiveEnvironmentName,
-} from 'app/actionCreators/environments';
 import {t, tct} from 'app/locale';
 import ApiMixin from 'app/mixins/apiMixin';
 import ConfigStore from 'app/stores/configStore';
-import EnvironmentStore from 'app/stores/environmentStore';
 import GroupStore from 'app/stores/groupStore';
 import LoadingError from 'app/components/loadingError';
 import LoadingIndicator from 'app/components/loadingIndicator';
@@ -26,7 +20,6 @@ import SentryTypes from 'app/sentryTypes';
 import StreamGroup from 'app/components/stream/group';
 import parseApiError from 'app/utils/parseApiError';
 import parseLinkHeader from 'app/utils/parseLinkHeader';
-import queryString from 'app/utils/queryString';
 import utils from 'app/utils';
 import withOrganization from 'app/utils/withOrganization';
 
@@ -40,9 +33,6 @@ const OrganizationStream = createReactClass({
 
   propTypes: {
     organization: SentryTypes.Organization,
-    environment: SentryTypes.Environment,
-    tags: PropTypes.object,
-    tagsLoading: PropTypes.bool,
   },
 
   mixins: [Reflux.listenTo(GroupStore, 'onGroupChange'), ApiMixin],
@@ -75,9 +65,10 @@ const OrganizationStream = createReactClass({
       error: false,
       query: currentQuery.query || '',
       sort,
+      tagsLoading: true,
+      tags: [],
       isSidebarVisible: false,
       processingIssues: null,
-      environment: this.props.environment,
     };
   },
 
@@ -93,24 +84,12 @@ const OrganizationStream = createReactClass({
   },
 
   componentWillReceiveProps(nextProps) {
-    if (nextProps.environment !== this.props.environment) {
-      this.setState(
-        {
-          environment: nextProps.environment,
-        },
-        this.fetchData
-      );
-    }
-
     // We are using qs.parse with location.search since this.props.location.query
     // returns the same value as nextProps.location.query
     let currentSearchTerm = qs.parse(this.props.location.search);
     let nextSearchTerm = qs.parse(nextProps.location.search);
 
-    let searchTermChanged = !isEqual(
-      omit(currentSearchTerm, 'environment'),
-      omit(nextSearchTerm, 'environment')
-    );
+    let searchTermChanged = !isEqual(currentSearchTerm, nextSearchTerm);
 
     if (searchTermChanged) {
       this.setState(this.getQueryState(nextProps), this.fetchData);
@@ -172,29 +151,16 @@ const OrganizationStream = createReactClass({
     });
 
     let url = this.getGroupListEndpoint();
-
-    // Remove leading and trailing whitespace
-    let query = queryString.formatQueryString(this.state.query);
-
-    let {environment} = this.state;
+    let query = qs.parse(this.props.location.query);
 
     let requestParams = {
-      query,
+      ...query,
       limit: MAX_ITEMS,
       sort: this.state.sort,
       statsPeriod: this.state.statsPeriod,
       shortIdLookup: '1',
+      environment: this.state.environment,
     };
-
-    // Always keep the global active environment in sync with the queried environment
-    // The global environment wins unless there one is specified by the saved search
-    const queryEnvironment = queryString.getQueryEnvironment(query);
-
-    if (queryEnvironment !== null) {
-      requestParams.environment = queryEnvironment;
-    } else if (environment) {
-      requestParams.environment = environment.name;
-    }
 
     let currentQuery = this.props.location.query || {};
     if ('cursor' in currentQuery) {
@@ -217,18 +183,11 @@ const OrganizationStream = createReactClass({
         // different projects.
         if (jqXHR.getResponseHeader('X-Sentry-Direct-Hit') === '1') {
           if (data && data[0].matchingEventId) {
-            let {project, id, matchingEventId, matchingEventEnvironment} = data[0];
+            let {project, id, matchingEventId} = data[0];
             let redirect = `/${this.props.params
               .orgId}/${project.slug}/issues/${id}/events/${matchingEventId}/`;
-            // Also direct to the environment of this specific event if this
-            // key exists. We need to explicitly check against undefined becasue
-            // an environment name may be an empty string, which is perfectly valid.
-            if (typeof matchingEventEnvironment !== 'undefined') {
-              setActiveEnvironmentName(matchingEventEnvironment);
-              redirect = `${redirect}?${qs.stringify({
-                environment: matchingEventEnvironment,
-              })}`;
-            }
+
+            // TODO set environment for the requested issue.
             browserHistory.replace(redirect);
             return;
           }
@@ -325,16 +284,6 @@ const OrganizationStream = createReactClass({
       // if query is the same, just re-fetch data
       this.fetchData();
     } else {
-      // We no longer want to support environments specified in the querystring
-      // To keep this aligned with old behavior though we'll update the global environment
-      // and remove it from the query if someone does provide it this way
-      const queryEnvironment = queryString.getQueryEnvironment(query);
-      if (queryEnvironment !== null) {
-        const env = EnvironmentStore.getByName(queryEnvironment);
-        setActiveEnvironment(env);
-      }
-      query = queryString.getQueryStringWithoutEnvironment(query);
-
       this.setState(
         {
           query,
@@ -513,8 +462,8 @@ const OrganizationStream = createReactClass({
           <Pagination pageLinks={this.state.pageLinks} />
         </div>
         <StreamSidebar
-          loading={this.props.tagsLoading}
-          tags={this.props.tags}
+          loading={this.state.tagsLoading}
+          tags={this.state.tags}
           query={this.state.query}
           onQueryChange={this.onSearch}
           orgId={params.orgId}
