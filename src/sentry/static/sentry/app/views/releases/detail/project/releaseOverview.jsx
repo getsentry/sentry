@@ -3,27 +3,24 @@ import React from 'react';
 
 import createReactClass from 'create-react-class';
 
-import {Box} from 'grid-emotion';
-import Button from 'app/components/button';
 import withEnvironmentInQueryString from 'app/utils/withEnvironmentInQueryString';
 import LoadingIndicator from 'app/components/loadingIndicator';
 import LoadingError from 'app/components/loadingError';
-import InlineSvg from 'app/components/inlineSvg';
-import HeroIcon from 'app/components/heroIcon';
 import LastCommit from 'app/components/lastCommit';
-import IssueList from 'app/components/issueList';
 import CommitAuthorStats from 'app/components/commitAuthorStats';
 import ReleaseProjectStatSparkline from 'app/components/releaseProjectStatSparkline';
 import RepositoryFileSummary from 'app/components/repositoryFileSummary';
-import TimeSince from 'app/components/timeSince';
 
 import ApiMixin from 'app/mixins/apiMixin';
 
 import {t} from 'app/locale';
 import SentryTypes from 'app/sentryTypes';
 import OrganizationState from 'app/mixins/organizationState';
-import {Panel, PanelBody, PanelItem} from 'app/components/panels';
-import Well from 'app/components/well';
+
+import {getFilesByRepository} from '../shared/utils';
+import ReleaseDeploys from '../shared/releaseDeploys';
+import ReleaseEmptyState from '../shared/releaseEmptyState';
+import ReleaseIssues from '../shared/releaseIssues';
 
 const ReleaseOverview = createReactClass({
   displayName: 'ReleaseOverview',
@@ -170,29 +167,7 @@ const ReleaseOverview = createReactClass({
 
     let {fileList, projects, hasRepos} = this.state;
 
-    // convert list of individual file changes (can be
-    // multiple changes to a single file) into a per-file
-    // summary grouped by repository
-    let filesByRepository = fileList.reduce(function(fbr, file) {
-      let {filename, repoName, author, type} = file;
-      if (!fbr.hasOwnProperty(repoName)) {
-        fbr[repoName] = {};
-      }
-      if (!fbr[repoName].hasOwnProperty(filename)) {
-        fbr[repoName][filename] = {
-          authors: {},
-          types: new Set(),
-          repos: new Set(),
-        };
-      }
-
-      fbr[repoName][filename].authors[author.email] = author;
-      fbr[repoName][filename].types.add(type);
-
-      return fbr;
-    }, {});
-
-    let deploys = this.state.deploys;
+    let filesByRepository = getFilesByRepository(fileList);
 
     let query = this.props.environment ? {environment: this.props.environment.name} : {};
 
@@ -200,46 +175,11 @@ const ReleaseOverview = createReactClass({
       <div>
         <div className="row" style={{paddingTop: 10}}>
           <div className="col-sm-8">
-            <h5>{t('Issues Resolved in this Release')}</h5>
-            <IssueList
-              endpoint={`/projects/${orgId}/${projectId}/releases/${encodeURIComponent(
-                version
-              )}/resolved/`}
+            <ReleaseIssues
+              version={version}
               query={query}
-              pagination={false}
-              renderEmpty={() => (
-                <Panel>
-                  <PanelBody>
-                    <PanelItem key="none" justify="center">
-                      {t('No issues resolved')}
-                    </PanelItem>
-                  </PanelBody>
-                </Panel>
-              )}
-              showActions={false}
-              params={{orgId}}
-              className="m-b-2"
-            />
-            <h5>{t('New Issues in this Release')}</h5>
-            <IssueList
-              endpoint={`/projects/${orgId}/${projectId}/issues/`}
-              query={{
-                ...query,
-                query: 'first-release:"' + version + '"',
-                limit: 5,
-              }}
-              statsPeriod="0"
-              pagination={false}
-              renderEmpty={() => (
-                <Panel>
-                  <PanelBody>
-                    <PanelItem justify="center">{t('No new issues')}</PanelItem>
-                  </PanelBody>
-                </Panel>
-              )}
-              showActions={false}
-              params={{orgId}}
-              className="m-b-2"
+              orgId={orgId}
+              projectId={projectId}
             />
             {hasRepos && (
               <div>
@@ -286,57 +226,14 @@ const ReleaseOverview = createReactClass({
                 </ul>
               </div>
             ) : (
-              <Well centered className="m-t-2">
-                <HeroIcon src="icon-commit" />
-                <h5>Releases are better with commit data!</h5>
-                <p>
-                  Connect a repository to see commit info, files changed, and authors
-                  involved in future releases.
-                </p>
-                <Box mb={1}>
-                  <Button priority="primary" href={`/organizations/${orgId}/repos/`}>
-                    Connect a repository
-                  </Button>
-                </Box>
-              </Well>
+              <ReleaseEmptyState />
             )}
-            <h6 className="nav-header m-b-1">{t('Deploys')}</h6>
-            <ul className="nav nav-stacked">
-              {!deploys.length
-                ? this.renderEmpty()
-                : deploys.map(deploy => {
-                    let href = `/${orgId}/${projectId}/?query=release:${version}&environment=${encodeURIComponent(
-                      deploy.environment
-                    )}`;
-
-                    return (
-                      <li key={deploy.id}>
-                        <a href={href} title={t('View in stream')}>
-                          <div className="row row-flex row-center-vertically">
-                            <div className="col-xs-6">
-                              <span
-                                className="repo-label"
-                                style={{verticalAlign: 'bottom'}}
-                              >
-                                {deploy.environment}
-                                <InlineSvg
-                                  src="icon-open"
-                                  size={11}
-                                  style={{marginLeft: 6}}
-                                />
-                              </span>
-                            </div>
-                            <div className="col-xs-6 align-right">
-                              <small>
-                                <TimeSince date={deploy.dateFinished} />
-                              </small>
-                            </div>
-                          </div>
-                        </a>
-                      </li>
-                    );
-                  })}
-            </ul>
+            <ReleaseDeploys
+              deploys={this.state.deploys}
+              version={version}
+              orgId={orgId}
+              projectId={projectId}
+            />
           </div>
         </div>
       </div>
