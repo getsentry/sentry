@@ -9,12 +9,11 @@ import ApiMixin from 'app/mixins/apiMixin';
 import SuggestedOwners from 'app/components/group/suggestedOwners';
 import GroupParticipants from 'app/components/group/participants';
 import GroupReleaseStats from 'app/components/group/releaseStats';
-import ProjectState from 'app/mixins/projectState';
+import OrganizationState from 'app/mixins/organizationState';
 import IndicatorStore from 'app/stores/indicatorStore';
 import TagDistributionMeter from 'app/components/group/tagDistributionMeter';
 import LoadingError from 'app/components/loadingError';
 import {t, tct} from 'app/locale';
-import withEnvironment from 'app/utils/withEnvironment';
 
 import ExternalIssueList from 'app/components/group/externalIssuesList';
 
@@ -22,8 +21,10 @@ const GroupSidebar = createReactClass({
   displayName: 'GroupSidebar',
 
   propTypes: {
-    group: PropTypes.object.isRequired,
-    event: PropTypes.object,
+    project: SentryTypes.Project,
+    group: SentryTypes.Group,
+    event: SentryTypes.Event,
+    // Currently only provided in the project version of the issue page
     environment: SentryTypes.Environment,
   },
 
@@ -31,7 +32,7 @@ const GroupSidebar = createReactClass({
     location: PropTypes.object,
   },
 
-  mixins: [ApiMixin, ProjectState],
+  mixins: [ApiMixin, OrganizationState],
 
   getInitialState() {
     return {participants: [], environment: this.props.environment};
@@ -111,8 +112,7 @@ const GroupSidebar = createReactClass({
   },
 
   toggleSubscription() {
-    let group = this.props.group;
-    let project = this.getProject();
+    let {group, project} = this.props;
     let org = this.getOrganization();
     let loadingIndicator = IndicatorStore.add(t('Saving changes..'));
 
@@ -232,8 +232,7 @@ const GroupSidebar = createReactClass({
   },
 
   render() {
-    let {group} = this.props;
-    let project = this.getProject();
+    let {group, project} = this.props;
     let projectId = project.slug;
     let orgId = this.getOrganization().slug;
 
@@ -246,6 +245,7 @@ const GroupSidebar = createReactClass({
         <SuggestedOwners event={this.props.event} />
         <GroupReleaseStats
           group={this.props.group}
+          project={project}
           allEnvironments={this.state.allEnvironmentsGroupData}
         />
         <ExternalIssueList group={this.props.group} project={project} orgId={orgId} />
@@ -301,5 +301,4 @@ const GroupSidebar = createReactClass({
   },
 });
 
-export {GroupSidebar};
-export default withEnvironment(GroupSidebar);
+export default GroupSidebar;

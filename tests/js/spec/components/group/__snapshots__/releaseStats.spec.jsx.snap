@@ -74,6 +74,17 @@ exports[`GroupReleaseStats renders 1`] = `
       "query": Object {},
     }
   }
+  project={
+    Object {
+      "hasAccess": true,
+      "id": "2",
+      "isBookmarked": false,
+      "isMember": true,
+      "name": "Project Name",
+      "slug": "project-slug",
+      "teams": Array [],
+    }
+  }
 >
   <div
     className="env-stats"
