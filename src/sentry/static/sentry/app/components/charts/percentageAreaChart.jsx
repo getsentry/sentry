@@ -42,7 +42,7 @@ export default class PercentageAreaChart extends React.Component {
           barCategoryGap: 0,
           name: seriesName,
           lineStyle: {width: 1},
-          areaStyle: {opacity: 1.0},
+          areaStyle: {opacity: 1},
           smooth: true,
           stack: 'percentageAreaChartStack',
           data: data.map(dataObj => [
