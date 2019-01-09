@@ -237,6 +237,8 @@ def zerofill(data, start, end, rollup, orderby):
         (end, start) = (start, end)
         rollup = rollup * -1
 
+    start = start + rollup
+
     for obj in data:
         if obj['time'] in data_by_time:
             data_by_time[obj['time']].append(obj)
