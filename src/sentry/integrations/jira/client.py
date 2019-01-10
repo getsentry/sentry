@@ -132,9 +132,6 @@ class JiraApiClient(ApiClient):
     def update_comment(self, issue_key, comment_id, comment):
         return self.put(self.COMMENT_URL % (issue_key, comment_id), data={'body': comment})
 
-    def delete_comment(self, issue_key, comment_id):
-        return self.delete(self.COMMENT_URL % (issue_key, comment_id))
-
     def get_projects_list(self):
         return self.get_cached(self.PROJECT_URL)
 

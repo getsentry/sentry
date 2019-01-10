@@ -307,9 +307,6 @@ class JiraIntegration(IntegrationInstallation, IssueSyncMixin):
             issue_id, group_note.data['external_id'], quoted_comment,
         )
 
-    def delete_comment(self, issue_id, user_id, external_comment_id):
-        return self.get_client().delete_comment(issue_id, external_comment_id)
-
     def search_issues(self, query):
         try:
             return self.get_client().search_issues(query)

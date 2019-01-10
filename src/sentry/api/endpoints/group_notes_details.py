@@ -32,7 +32,6 @@ class GroupNotesDetailsEndpoint(GroupEndpoint):
 
         note.delete()
 
-        self.delete_external_comment(request, group, note)
         return Response(status=204)
 
     def put(self, request, group, note_id):

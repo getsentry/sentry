@@ -7,7 +7,7 @@ from sentry.api.bases.project import ProjectPermission
 from sentry.api.exceptions import ResourceDoesNotExist
 from sentry.utils.sdk import configure_scope
 from sentry.models import Group, GroupLink, GroupStatus, get_group_with_redirect
-from sentry.tasks.integrations import delete_comment, create_comment, update_comment
+from sentry.tasks.integrations import create_comment, update_comment
 
 logger = logging.getLogger(__name__)
 
@@ -88,16 +88,6 @@ class GroupEndpoint(Endpoint):
                 kwargs={
                     'external_issue_id': external_issue_id,
                     'group_note_id': group_note.id,
-                    'user_id': request.user.id,
-                }
-            )
-
-    def delete_external_comment(self, request, group, group_note):
-        for external_issue_id in self.get_external_issue_ids(group):
-            delete_comment.apply_async(
-                kwargs={
-                    'external_issue_id': external_issue_id,
-                    'external_comment_id': group_note.data['external_id'],
                     'user_id': request.user.id,
                 }
             )

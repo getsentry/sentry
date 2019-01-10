@@ -101,37 +101,6 @@ def update_comment(external_issue_id, user_id, group_note_id, **kwargs):
 
 
 @instrumented_task(
-    name='sentry.tasks.integrations.delete_comment',
-    queue='integrations',
-    default_retry_delay=60 * 5,
-    max_retries=5
-)
-# TODO(jess): Add more retry exclusions once ApiClients have better error handling
-@retry(exclude=(ExternalIssue.DoesNotExist, Integration.DoesNotExist))
-def delete_comment(external_issue_id, user_id, external_comment_id, **kwargs):
-    external_issue = ExternalIssue.objects.get(id=external_issue_id)
-    installation = Integration.objects.get(
-        id=external_issue.integration_id
-    ).get_installation(
-        organization_id=external_issue.organization_id,
-    )
-
-    if not should_comment_sync(installation, external_issue):
-        return
-
-    installation.delete_comment(external_issue.key, user_id, external_comment_id)
-
-    analytics.record(
-        # TODO(lb): this should be changed and/or specified?
-        'integration.issue.comments.synced',
-        provider=installation.model.provider,
-        id=installation.model.id,
-        organization_id=external_issue.organization_id,
-        user_id=user_id,
-    )
-
-
-@instrumented_task(
     name='sentry.tasks.integrations.jira.sync_metadata',
     queue='integrations',
     default_retry_delay=20,
