@@ -14,7 +14,6 @@ describe('GuideStore', function() {
       user: {
         isSuperuser: true,
       },
-      features: new Set(['assistant']),
     };
     GuideStore.init();
     sandbox = sinon.sandbox.create();
@@ -78,13 +77,6 @@ describe('GuideStore', function() {
     guide = GuideStore.state.currentGuide;
     // We don't have the alert reminder guide's data yet, so we can't show it.
     expect(guide).toEqual(null);
-  });
-
-  it('should not show a guide if the user is not in the experiment', async function() {
-    ConfigStore.get('features').delete('assistant');
-    GuideStore.onFetchSucceeded(data);
-    await tick();
-    expect(GuideStore.state.currentGuide).toEqual(null);
   });
 
   it('should force show a guide', async function() {

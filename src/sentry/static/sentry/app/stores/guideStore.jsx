@@ -250,12 +250,7 @@ const GuideStore = Reflux.createStore({
       });
 
     if (!this.state.forceShow) {
-      let features = ConfigStore.get('features');
-      if (features && features.has('assistant')) {
-        guideKeys = guideKeys.filter(key => !this.state.guides[key].seen);
-      } else {
-        guideKeys = [];
-      }
+      guideKeys = guideKeys.filter(key => !this.state.guides[key].seen);
     }
 
     // Pick the first guide that satisfies conditions.

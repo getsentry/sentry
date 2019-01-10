@@ -47,7 +47,6 @@ default_manager = FeatureManager()  # NOQA
 
 # Unscoped features
 default_manager.add('auth:register')
-default_manager.add('user:assistant')
 default_manager.add('organizations:create')
 
 # Organization scoped features
