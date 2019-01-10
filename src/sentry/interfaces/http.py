@@ -141,7 +141,16 @@ class Http(Interface):
             kwargs['method'] = None
 
         if data.get('url', None):
-            scheme, netloc, path, query_bit, fragment_bit = urlsplit(data['url'])
+            url = to_unicode(data['url'])
+            # The JavaScript SDK used to send an ellipsis character for
+            # truncated URLs. Canonical URLs do not contain UTF-8 characters in
+            # either the path, query string or fragment, so we replace it with
+            # three dots (which is the behavior of other SDKs). This effectively
+            # makes the string two characters longer, but it will be trimmed
+            # again down below.
+            if url.endswith("\u2026"):
+                url = url[:-1] + "..."
+            scheme, netloc, path, query_bit, fragment_bit = urlsplit(url)
         else:
             scheme = netloc = path = query_bit = fragment_bit = None
 
