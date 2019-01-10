@@ -8,7 +8,7 @@ ifneq "$(wildcard /usr/local/opt/openssl/lib)" ""
 endif
 
 PIP = LDFLAGS="$(LDFLAGS)" pip
-WEBPACK = NODE_ENV=production ./node_modules/.bin/webpack
+WEBPACK = NODE_ENV=production yarn webpack
 
 develop: setup-git develop-only
 develop-only: update-submodules install-system-pkgs install-yarn-pkgs install-sentry-dev
