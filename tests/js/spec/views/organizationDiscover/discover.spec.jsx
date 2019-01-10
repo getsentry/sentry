@@ -52,13 +52,14 @@ describe('Discover', function() {
       );
     });
 
-    it('auto-runs non-saved, non-default query', async function() {
-      const newQueryBuilder = createQueryBuilder({fields: ['id']}, organization);
-      newQueryBuilder.fetch = jest.fn(() => Promise.resolve(mockResponse));
-
+    it('auto-runs when there is a query string', async function() {
       wrapper = mount(
         <Discover
-          queryBuilder={newQueryBuilder}
+          location={{
+            search:
+              'projects=%5B%5D&fields=%5B%22id%22%2C%22issue.id%22%2C%22project.name%22%2C%22platform%22%2C%22timestamp%22%5D&conditions=%5B%5D&aggregations=%5B%5D&range=%227d%22&orderby=%22-timestamp%22&limit=1000&start=null&end=null',
+          }}
+          queryBuilder={queryBuilder}
           organization={organization}
           updateSavedQueryData={jest.fn()}
           toggleEditMode={jest.fn()}
@@ -67,15 +68,18 @@ describe('Discover', function() {
         TestStubs.routerContext([{organization}])
       );
       await tick();
-      expect(wrapper.state().data.baseQuery.query).toEqual(newQueryBuilder.getExternal());
+      expect(wrapper.state().data.baseQuery.query).toEqual(queryBuilder.getExternal());
       expect(wrapper.state().data.baseQuery.data).toEqual(
         expect.objectContaining({data: mockResponse.data})
       );
     });
 
-    it('does not auto run non-saved, default query', async function() {
+    it('does not auto run when there is no query string', async function() {
       wrapper = mount(
         <Discover
+          location={{
+            search: '',
+          }}
           queryBuilder={queryBuilder}
           organization={organization}
           updateSavedQueryData={jest.fn()}

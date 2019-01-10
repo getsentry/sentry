@@ -1,5 +1,4 @@
 import {browserHistory} from 'react-router';
-import {isEqual, pick} from 'lodash';
 import PropTypes from 'prop-types';
 import React from 'react';
 import moment from 'moment';
@@ -28,7 +27,6 @@ import {
   deleteSavedQuery,
   updateSavedQuery,
 } from './utils';
-import {DEFAULTS as DEFAULT_QUERY} from './queryBuilder';
 import {isValidAggregation} from './aggregations/utils';
 import {isValidCondition} from './conditions/utils';
 import {trackQuery} from './analytics';
@@ -68,15 +66,10 @@ export default class OrganizationDiscover extends React.Component {
   }
 
   componentDidMount() {
-    const {savedQuery, queryBuilder} = this.props;
+    const {savedQuery, location} = this.props;
 
-    const keys = ['fields', 'conditions', 'aggregations', 'orderby'];
-    const isDefaultQuery = isEqual(
-      pick(queryBuilder.getInternal(), keys),
-      pick(DEFAULT_QUERY, keys)
-    );
-
-    if (savedQuery || !isDefaultQuery) {
+    // Run query if there is *any* querystring
+    if (savedQuery || (location && !!location.search)) {
       this.runQuery();
     }
   }
