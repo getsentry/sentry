@@ -1,4 +1,3 @@
-import idx from 'idx';
 import PropTypes from 'prop-types';
 import React from 'react';
 import styled from 'react-emotion';
@@ -38,7 +37,7 @@ export default class CommitRow extends React.Component {
           <Message>{this.renderMessage(message)}</Message>
           <Meta>
             {tct('[author] committed [timeago]', {
-              author: <strong>{idx(author, _ => _.name) || t('Unknown author')}</strong>,
+              author: <strong>{author?.name || t('Unknown author')}</strong>,
               timeago: <TimeSince date={dateCreated} />,
             })}
           </Meta>
