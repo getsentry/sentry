@@ -13,6 +13,7 @@ import {t} from 'app/locale';
 class ExternalIssueList extends AsyncComponent {
   static propTypes = {
     group: SentryTypes.Group.isRequired,
+    project: SentryTypes.Project.isRequired,
     orgId: PropTypes.string,
   };
 
@@ -40,11 +41,13 @@ class ExternalIssueList extends AsyncComponent {
   }
 
   renderPluginIssues() {
-    const {group} = this.props;
+    const {group, project} = this.props;
 
     return group.pluginIssues && group.pluginIssues.length
       ? group.pluginIssues.map((plugin, i) => {
-          return <PluginActions group={group} plugin={plugin} key={i} />;
+          return (
+            <PluginActions group={group} project={project} plugin={plugin} key={i} />
+          );
         })
       : null;
   }
