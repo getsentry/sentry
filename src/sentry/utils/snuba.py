@@ -229,13 +229,9 @@ def to_naive_timestamp(value):
 
 def zerofill(data, start, end, rollup, orderby):
     rv = []
-    start = ((int(to_naive_timestamp(naiveify_datetime(start))) / rollup) * rollup) - rollup
-    end = ((int(to_naive_timestamp(naiveify_datetime(end))) / rollup) * rollup) + rollup
+    start = (int(to_naive_timestamp(naiveify_datetime(start)) / rollup) * rollup)
+    end = (int(to_naive_timestamp(naiveify_datetime(end)) / rollup) * rollup) + rollup
     data_by_time = {}
-
-    if orderby.startswith('-'):
-        (end, start) = (start, end)
-        rollup = rollup * -1
 
     for obj in data:
         if obj['time'] in data_by_time:
@@ -249,6 +245,9 @@ def zerofill(data, start, end, rollup, orderby):
             data_by_time[key] = []
         else:
             rv.append({'time': key})
+
+    if orderby.startswith('-'):
+        return list(reversed(rv))
 
     return rv
 
