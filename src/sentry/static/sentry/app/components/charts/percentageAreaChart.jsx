@@ -2,7 +2,7 @@ import PropTypes from 'prop-types';
 import React from 'react';
 import moment from 'moment';
 
-import BarSeries from './series/barSeries.jsx';
+import AreaSeries from './series/areaSeries';
 import BaseChart from './baseChart';
 
 const FILLER_NAME = '__filler';
@@ -12,7 +12,7 @@ const FILLER_NAME = '__filler';
  *
  * See https://exceljet.net/chart-type/100-stacked-bar-chart
  */
-export default class PercentageBarChart extends React.Component {
+export default class PercentageAreaChart extends React.Component {
   static propTypes = {
     ...BaseChart.propTypes,
 
@@ -38,33 +38,19 @@ export default class PercentageBarChart extends React.Component {
     const totals = new Map(totalsArray);
     return [
       ...series.map(({seriesName, data}) =>
-        BarSeries({
+        AreaSeries({
           barCategoryGap: 0,
           name: seriesName,
-          stack: 'percentageBarChartStack',
+          lineStyle: {width: 1},
+          areaStyle: {opacity: 1},
+          smooth: true,
+          stack: 'percentageAreaChartStack',
           data: data.map(dataObj => [
             getDataItemName(dataObj),
             getValue(dataObj, totals.get(dataObj.name)),
           ]),
         })
       ),
-      // Bar outline/filler if entire column is 0
-      BarSeries({
-        name: FILLER_NAME,
-        stack: 'percentageBarChartStack',
-        silent: true,
-        itemStyle: {
-          normal: {
-            color: '#eee',
-          },
-        },
-        emphasis: {
-          itemStyle: {
-            color: '#eee',
-          },
-        },
-        data: totalsArray.map(([name, total]) => [name, total === 0 ? 100 : 0]),
-      }),
     ];
   }
 

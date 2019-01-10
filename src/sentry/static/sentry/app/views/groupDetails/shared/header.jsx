@@ -5,8 +5,7 @@ import {Link} from 'react-router';
 import ApiMixin from 'app/mixins/apiMixin';
 import AssigneeSelector from 'app/components/assigneeSelector';
 import Count from 'app/components/count';
-import GroupActions from 'app/views/groupDetails/actions';
-import GroupSeenBy from 'app/views/groupDetails/seenBy';
+import GroupActions from 'app/views/groupDetails/project/actions';
 import IndicatorStore from 'app/stores/indicatorStore';
 import ListLink from 'app/components/listLink';
 import NavTabs from 'app/components/navTabs';
@@ -16,6 +15,8 @@ import GuideAnchor from 'app/components/assistant/guideAnchor';
 import ProjectState from 'app/mixins/projectState';
 import Tooltip from 'app/components/tooltip';
 import {t} from 'app/locale';
+
+import GroupSeenBy from '../project/seenBy';
 
 const GroupHeader = createReactClass({
   displayName: 'GroupHeader',
@@ -68,7 +69,6 @@ const GroupHeader = createReactClass({
 
   render() {
     let group = this.props.group,
-      orgFeatures = new Set(this.getOrganization().features),
       projectFeatures = this.getProjectFeatures(),
       userCount = group.userCount;
 
@@ -93,7 +93,6 @@ const GroupHeader = createReactClass({
     let message = this.getMessage();
 
     let hasSimilarView = projectFeatures.has('similarity-view');
-    let hasMergeView = orgFeatures.has('group-unmerge');
 
     return (
       <div className={className}>
@@ -201,11 +200,9 @@ const GroupHeader = createReactClass({
           <ListLink to={`/${orgId}/${projectId}/issues/${groupId}/events/`}>
             {t('Events')}
           </ListLink>
-          {hasMergeView && (
-            <ListLink to={`/${orgId}/${projectId}/issues/${groupId}/merged/`}>
-              {t('Merged')}
-            </ListLink>
-          )}
+          <ListLink to={`/${orgId}/${projectId}/issues/${groupId}/merged/`}>
+            {t('Merged')}
+          </ListLink>
           {hasSimilarView && (
             <ListLink to={`/${orgId}/${projectId}/issues/${groupId}/similar/`}>
               {t('Similar Issues')}

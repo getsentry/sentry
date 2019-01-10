@@ -236,6 +236,18 @@ class Sidebar extends React.Component {
                     {...sidebarItemProps}
                     onClick={(_id, evt) =>
                       this.navigateWithGlobalSelection(
+                        `/organizations/${organization.slug}/issues/`,
+                        evt
+                      )}
+                    icon={<InlineSvg src="icon-issues" />}
+                    label={t('Issues')}
+                    to={`/organizations/${organization.slug}/issues/`}
+                  />
+
+                  <SidebarItem
+                    {...sidebarItemProps}
+                    onClick={(_id, evt) =>
+                      this.navigateWithGlobalSelection(
                         `/organizations/${organization.slug}/releases/`,
                         evt
                       )}
