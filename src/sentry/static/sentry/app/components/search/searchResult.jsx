@@ -73,7 +73,7 @@ class SearchResult extends React.Component {
         : description;
 
       let DescriptionNode = (
-        <Description highlighted={highlighted}>{highlightedDescription}</Description>
+        <BadgeDetail highlighted={highlighted}>{highlightedDescription}</BadgeDetail>
       );
 
       let badgeProps = {
@@ -152,12 +152,16 @@ const SearchDetail = styled.div`
   opacity: 0.8;
 `;
 
+const BadgeDetail = styled.div`
+  line-height: 1.3;
+  color: ${p => (p.highlighted ? p.theme.purpleDarkest : null)};
+`;
+
 const Content = styled(props => <Flex direction="column" {...props} />)`
   /* stylelint-disable-next-line no-empty-block */
 `;
 
 const ResultTypeIcon = styled(InlineSvg)`
-  color: ${p => p.theme.offWhite};
   font-size: 1.2em;
   flex-shrink: 0;
 
@@ -169,8 +173,4 @@ const ResultTypeIcon = styled(InlineSvg)`
 
 const StyledPluginIcon = styled(PluginIcon)`
   flex-shrink: 0;
-`;
-
-const Description = styled('div')`
-  ${p => (p.highlighted ? `color: ${p.theme.offWhite};` : '')};
 `;

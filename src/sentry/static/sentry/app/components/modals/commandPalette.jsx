@@ -2,11 +2,10 @@ import PropTypes from 'prop-types';
 import React from 'react';
 import styled, {css} from 'react-emotion';
 
+import {analytics} from 'app/utils/analytics';
 import {t} from 'app/locale';
 import Search from 'app/components/search';
-import SearchResult from 'app/components/search/searchResult';
-import SearchResultWrapper from 'app/components/search/searchResultWrapper';
-import {analytics} from 'app/utils/analytics';
+import theme from 'app/utils/theme';
 
 const dropdownStyle = css`
   width: 100%;
@@ -15,6 +14,7 @@ const dropdownStyle = css`
   border-top-right-radius: 0;
   position: initial;
   box-shadow: none;
+  border-top: 1px solid ${p => theme.borderLight};
 `;
 
 class CommandPaletteModal extends React.Component {
@@ -59,11 +59,6 @@ class CommandPaletteModal extends React.Component {
               />
             </InputWrapper>
           )}
-          renderItem={({item, matches, itemProps, highlighted}) => (
-            <CommandPaletteSearchResultWrapper {...itemProps} highlighted={highlighted}>
-              <SearchResult highlighted={highlighted} item={item} matches={matches} />
-            </CommandPaletteSearchResultWrapper>
-          )}
         />
       </Body>
     );
@@ -86,18 +81,4 @@ const Input = styled('input')`
   &:focus {
     outline: none;
   }
-`;
-
-const CommandPaletteSearchResultWrapper = styled(SearchResultWrapper)`
-  &:first-child {
-    border-top-left-radius: 0;
-    border-top-right-radius: 0;
-  }
-
-  ${p =>
-    p.highlighted &&
-    css`
-      color: ${p.theme.whiteDark};
-      background: ${p.theme.purpleLight};
-    `};
 `;
