@@ -1,6 +1,7 @@
 from __future__ import absolute_import
 
 from sentry.testutils import AcceptanceTestCase
+from sentry.models import OrganizationOnboardingTask, OnboardingTask, OnboardingTaskStatus
 
 
 class ProjectReleasesTest(AcceptanceTestCase):
@@ -29,6 +30,11 @@ class ProjectReleasesTest(AcceptanceTestCase):
             first_release=release,
             project=self.project,
             message='Foo bar',
+        )
+        OrganizationOnboardingTask.objects.create_or_update(
+            organization_id=self.project.organization_id,
+            task=OnboardingTask.FIRST_EVENT,
+            status=OnboardingTaskStatus.COMPLETE,
         )
         self.browser.get(self.path)
         self.browser.wait_until_not('.loading')
@@ -63,6 +69,11 @@ class ProjectReleaseDetailsTest(AcceptanceTestCase):
             first_release=self.release,
             project=self.project,
             message='Foo bar',
+        )
+        OrganizationOnboardingTask.objects.create_or_update(
+            organization_id=self.project.organization_id,
+            task=OnboardingTask.FIRST_EVENT,
+            status=OnboardingTaskStatus.COMPLETE,
         )
         self.login_as(self.user)
         self.path = u'/{}/{}/releases/{}/'.format(
