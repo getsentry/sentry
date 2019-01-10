@@ -36,7 +36,7 @@ class RoutePanel(Panel):
         if hasattr(func, 'im_class'):
             return u'{}.{}.{}'.format(
                 func.__module__,
-                func.im_class.__name__,
+                func.__self__.__class__.__name__,
                 func.__name__,
             )
         return u'{}.{}'.format(func.__module__, func.__name__)

@@ -10,6 +10,7 @@ import zlib
 from calendar import Calendar
 from collections import OrderedDict, namedtuple
 from datetime import datetime, timedelta
+from functools import reduce
 
 import pytz
 from django.utils import dateformat, timezone
@@ -23,7 +24,6 @@ from sentry.utils import json, redis
 from sentry.utils.dates import floor_to_utc_day, to_datetime, to_timestamp
 from sentry.utils.email import MessageBuilder
 from sentry.utils.math import mean
-from six.moves import reduce
 
 date_format = functools.partial(
     dateformat.format,

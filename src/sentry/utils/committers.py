@@ -9,10 +9,9 @@ from sentry.api.serializers.models.commit import CommitSerializer, get_users_for
 from sentry.utils import metrics
 
 from django.db.models import Q
-
+from functools import reduce
 from itertools import izip
 from collections import defaultdict
-from six.moves import reduce
 
 PATH_SEPERATORS = frozenset(['/', '\\'])
 

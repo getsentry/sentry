@@ -10,7 +10,7 @@ from collections import (
     defaultdict,
     namedtuple,
 )
-from six.moves import reduce
+from functools import reduce
 
 from sentry.app import tsdb
 from sentry.digests import Record

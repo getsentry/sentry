@@ -17,8 +17,8 @@ from datetime import timedelta
 from django.db import connections, router, IntegrityError, transaction
 from django.db.models import F, Q, Sum
 from django.utils import timezone
+from functools import reduce
 from operator import or_
-from six.moves import reduce
 
 from sentry import buffer
 from sentry.tagstore import TagKeyStatus

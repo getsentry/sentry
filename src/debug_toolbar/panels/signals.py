@@ -83,7 +83,7 @@ class SignalsPanel(Panel):
                     receiver_class_name = getattr(receiver.__self__, '__class__', type).__name__
                     text = "%s.%s" % (receiver_class_name, receiver_name)
                 elif getattr(receiver, 'im_class', None) is not None:  # Python 2 only
-                    receiver_class_name = receiver.im_class.__name__
+                    receiver_class_name = receiver.__self__.__class__.__name__
                     text = "%s.%s" % (receiver_class_name, receiver_name)
                 else:
                     text = "%s" % receiver_name

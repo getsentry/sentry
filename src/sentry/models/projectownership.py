@@ -2,13 +2,11 @@ from __future__ import absolute_import
 
 import operator
 
-from jsonfield import JSONField
-
 from django.db import models
 from django.db.models import Q
 from django.utils import timezone
-
-from six.moves import reduce
+from jsonfield import JSONField
+from functools import reduce
 
 from sentry.db.models import Model, sane_repr
 from sentry.db.models.fields import FlexibleForeignKey

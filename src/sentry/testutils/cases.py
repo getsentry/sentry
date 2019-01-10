@@ -22,7 +22,6 @@ import os.path
 import pytest
 import requests
 import six
-import types
 import logging
 
 from sentry_sdk import Hub
@@ -731,7 +730,7 @@ class PluginTestCase(TestCase):
 
         # Old plugins, plugin is a class, new plugins, it's an instance
         # New plugins don't need to be registered
-        if isinstance(self.plugin, (type, types.ClassType)):
+        if isinstance(self.plugin, type):
             plugins.register(self.plugin)
             self.addCleanup(plugins.unregister, self.plugin)
 

@@ -1,4 +1,5 @@
 # -*- coding: utf-8 -*-
+from __future__ import print_function
 from south.utils import datetime_utils as datetime
 from south.db import db
 from south.v2 import DataMigration
