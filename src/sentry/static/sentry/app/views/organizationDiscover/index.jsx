@@ -3,7 +3,7 @@ import PropTypes from 'prop-types';
 import {Flex} from 'grid-emotion';
 import {browserHistory} from 'react-router';
 import DocumentTitle from 'react-document-title';
-import jQuery from 'jquery';
+import $ from 'jquery';
 import SentryTypes from 'app/sentryTypes';
 
 import {updateProjects, updateDateTime} from 'app/actionCreators/globalSelection';
@@ -69,7 +69,7 @@ class OrganizationDiscoverContainer extends React.Component {
   }
 
   componentDidMount() {
-    jQuery(document.body).addClass('body-discover');
+    $(document.body).addClass('body-discover');
 
     const {savedQueryId} = this.props.params;
 
@@ -101,7 +101,7 @@ class OrganizationDiscoverContainer extends React.Component {
   }
 
   componentWillUnmount() {
-    jQuery(document.body).removeClass('body-discover');
+    $(document.body).removeClass('body-discover');
   }
 
   loadTags = () => {

@@ -233,25 +233,39 @@ const appConfig = {
     ],
   },
   plugins: [
+    /**
+     * Used to make our lodash modules even smaller
+     */
     new LodashModuleReplacementPlugin({
       collections: true,
       currying: true, // these are enabled to support lodash/fp/ features
       flattening: true, // used by a dependency of react-mentions
       shorthands: true,
     }),
-    new webpack.ProvidePlugin({
-      $: 'jquery',
-      jQuery: 'jquery',
-      'window.jQuery': 'jquery',
-      'root.jQuery': 'jquery',
-    }),
+    /**
+     * jQuery must be provided in the global scope specifically and only for
+     * bootstrap, as it will not import jQuery itself.
+     *
+     * We discourage the use of global jQuery through eslint rules
+     */
+    new webpack.ProvidePlugin({jQuery: 'jquery'}),
+    /**
+     * Extract CSS into separate files.
+     */
     new ExtractTextPlugin(),
+    /**
+     * Defines environemnt specific flags.
+     */
     new webpack.DefinePlugin({
       'process.env': {
         NODE_ENV: JSON.stringify(env.NODE_ENV),
         IS_PERCY: JSON.stringify(env.CI && !!env.PERCY_TOKEN && !!env.TRAVIS),
       },
     }),
+    /**
+     * See above for locale chunks. These plugins help with that
+     * funcationality.
+     */
     new OptionalLocaleChunkPlugin(),
     ...localeRestrictionPlugins,
   ],
