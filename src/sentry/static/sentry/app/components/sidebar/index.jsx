@@ -340,17 +340,6 @@ class Sidebar extends React.Component {
                 hidePanel={this.hidePanel}
               />
             </SidebarSection>
-            <Feature features={['sentry10']}>
-              <SidebarSection>
-                <SidebarItem
-                  {...sidebarItemProps}
-                  onClick={this.hidePanel}
-                  icon={<InlineSvg src="icon-settings" />}
-                  label={t('Settings')}
-                  to={`/organizations/${organization.slug}/settings/`}
-                />
-              </SidebarSection>
-            </Feature>
 
             {!horizontal && (
               <SidebarSection noMargin>
