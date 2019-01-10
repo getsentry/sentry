@@ -21,11 +21,7 @@ const GroupDetails = createReactClass({
   displayName: 'GroupDetails',
 
   propTypes: {
-<<<<<<< HEAD
     // Provided in the project version of group details
-=======
-    // provided in the project version of group details
->>>>>>> ref(issues): Refactor group event details
     project: SentryTypes.Project,
     environment: SentryTypes.Environment,
   },
