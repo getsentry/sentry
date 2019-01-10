@@ -20,6 +20,7 @@ from six.moves.urllib.parse import parse_qsl, urlencode, urlsplit, urlunsplit
 from sentry.interfaces.base import Interface, InterfaceValidationError, prune_empty_keys
 from sentry.interfaces.schemas import validate_and_default_interface
 from sentry.utils import json
+from sentry.utils.strings import to_unicode
 from sentry.utils.safe import trim, trim_dict, trim_pairs
 from sentry.utils.http import heuristic_decode
 from sentry.utils.validators import validate_ip
@@ -28,12 +29,6 @@ from sentry.web.helpers import render_to_string
 # Instead of relying on a list of hardcoded methods, just loosly match
 # against a pattern.
 http_method_re = re.compile(r'^[A-Z\-_]{3,32}$')
-
-
-def to_bytes(value):
-    if isinstance(value, six.text_type):
-        return value.encode('utf-8')
-    return six.binary_type(value)
 
 
 def format_headers(value):
@@ -88,7 +83,7 @@ def fix_broken_encoding(value):
 
 
 def jsonify(value):
-    return to_bytes(value) if isinstance(value, six.string_types) else json.dumps(value)
+    return to_unicode(value) if isinstance(value, six.string_types) else json.dumps(value)
 
 
 class Http(Interface):
@@ -156,11 +151,11 @@ class Http(Interface):
                 if query_string[0] == '?':
                     query_string = query_string[1:]
                 query_string = [
-                    (to_bytes(k), jsonify(v))
+                    (to_unicode(k), jsonify(v))
                     for k, v in parse_qsl(query_string, keep_blank_values=True)
                 ]
             elif isinstance(query_string, dict):
-                query_string = [(to_bytes(k), jsonify(v)) for k, v in six.iteritems(query_string)]
+                query_string = [(to_unicode(k), jsonify(v)) for k, v in six.iteritems(query_string)]
             elif isinstance(query_string, list):
                 query_string = [
                     tuple(tup) for tup in query_string

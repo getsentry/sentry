@@ -70,24 +70,6 @@ class HttpTest(TestCase):
         ))
         assert result.query_string == [('foo', 'bar')]
 
-    def test_query_string_as_dict_unicode(self):
-        result = Http.to_python(
-            dict(
-                url='http://example.com',
-                query_string={'foo': u'\N{SNOWMAN}'},
-            )
-        )
-        assert result.query_string == [('foo', '\xe2\x98\x83')]
-
-    def test_query_string_as_string_unicode(self):
-        result = Http.to_python(
-            dict(
-                url='http://example.com',
-                query_string=u'foo=\N{SNOWMAN}',
-            )
-        )
-        assert result.query_string == [('foo', '\xe2\x98\x83')]
-
     def test_query_string_as_bytes(self):
         result = Http.to_python(
             dict(
