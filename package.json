@@ -25,7 +25,7 @@
     "babel-preset-latest": "^6.16.0",
     "babel-preset-react": "^6.16.0",
     "babel-runtime": "^6.26.0",
-    "bootstrap": "3.3.5",
+    "bootstrap": "3.4.0",
     "classnames": "2.2.0",
     "clipboard": "^1.7.1",
     "compression-webpack-plugin": "^2.0.0",
