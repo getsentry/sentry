@@ -754,7 +754,6 @@ function routes() {
       <Route path="/:orgId/" component={errorHandler(OrganizationDetails)}>
         <Route component={errorHandler(OrganizationRoot)}>
           <IndexRoute component={errorHandler(OrganizationDashboard)} />
-
           <Route
             path="/organizations/:orgId/dashboards/"
             componentPromise={() =>
@@ -767,7 +766,6 @@ function routes() {
               component={errorHandler(LazyLoad)}
             />
           </Route>
-
           <Route
             path="/organizations/:orgId/discover/"
             componentPromise={() =>
@@ -777,12 +775,10 @@ function routes() {
             <Redirect path="saved/" to="/organizations/:orgId/discover/" />
             <Route path="saved/:savedQueryId/" />
           </Route>
-
           <Route
             path="/organizations/:orgId/activity/"
             component={errorHandler(OrganizationActivity)}
           />
-
           <Route
             path="/organizations/:orgId/events/"
             componentPromise={() =>
@@ -795,14 +791,38 @@ function routes() {
               component={errorHandler(LazyLoad)}
             />
           </Route>
-
+          <Route
+            path="/organizations/:orgId/issues/"
+            componentPromise={() =>
+              import(/* webpackChunkName: "OrganizationStreamContainer" */ './views/organizationStream/container')}
+            component={errorHandler(LazyLoad)}
+          >
+            <IndexRoute
+              componentPromise={() =>
+                import(/* webpackChunkName: "OrganizationStreamOverview" */ './views/organizationStream/overview')}
+              component={errorHandler(LazyLoad)}
+            />
+          </Route>
+          {/* Once org issues is complete, these routes can be nested under
+          /organizations/:orgId/issues */}
+          <Route
+            path="/organizations/:orgId/issues/assigned/"
+            component={errorHandler(MyIssuesAssignedToMe)}
+          />
+          <Route
+            path="/organizations/:orgId/issues/bookmarks/"
+            component={errorHandler(MyIssuesBookmarked)}
+          />
+          <Route
+            path="/organizations/:orgId/issues/history/"
+            component={errorHandler(MyIssuesViewed)}
+          />
           <Route
             path="/organizations/:orgId/user-feedback/"
             componentPromise={() =>
               import(/* webpackChunkName: "OrganizationUserFeedback" */ './views/userFeedback/organizationUserFeedback')}
             component={errorHandler(LazyLoad)}
           />
-
           <Route
             path="/organizations/:orgId/releases/"
             componentPromise={() =>
@@ -845,14 +865,12 @@ function routes() {
               component={errorHandler(LazyLoad)}
             />
           </Route>
-
           <Route
             path="/organizations/:orgId/teams/new/"
             componentPromise={() =>
               import(/* webpackChunkName: "TeamCreate" */ './views/teamCreate')}
             component={errorHandler(LazyLoad)}
           />
-
           <Route path="/organizations/:orgId/" component={OrganizationHomeContainer}>
             <Redirect from="projects/" to="/:orgId/" />
             {hooksOrgRoutes}
@@ -885,25 +903,10 @@ function routes() {
             <Redirect path="repos/" to="/settings/:orgId/repos/" />
             <Route path="stats/" component={errorHandler(OrganizationStats)} />
           </Route>
-
-          <Route
-            path="/organizations/:orgId/issues/assigned/"
-            component={errorHandler(MyIssuesAssignedToMe)}
-          />
-          <Route
-            path="/organizations/:orgId/issues/bookmarks/"
-            component={errorHandler(MyIssuesBookmarked)}
-          />
-          <Route
-            path="/organizations/:orgId/issues/history/"
-            component={errorHandler(MyIssuesViewed)}
-          />
-
           <Route
             path="/organizations/:orgId/projects/new/"
             component={errorHandler(NewProject)}
           />
-
           <Route
             path="/organizations/:orgId/projects/choose/"
             component={errorHandler(ProjectChooser)}
