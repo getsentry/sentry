@@ -370,6 +370,9 @@ class MockJiraApiClient(object):
     def create_comment(self, issue_id, comment):
         return comment
 
+    def update_comment(self, issue_key, comment_id, comment):
+        return comment
+
     def create_issue(self, data):
         return {'key': 'APP-123'}
 
@@ -830,13 +833,16 @@ class JiraIntegrationTest(APITestCase):
         integration.add_organization(org, self.user)
         installation = integration.get_installation(org.id)
 
+        group_note = Mock()
         comment = 'hello world\nThis is a comment.\n\n\n    Glad it\'s quoted'
+        group_note.data = {}
+        group_note.data['text'] = comment
         with mock.patch.object(MockJiraApiClient, 'create_comment') as mock_create_comment:
             def get_client():
                 return MockJiraApiClient()
 
             with mock.patch.object(installation, 'get_client', get_client):
-                installation.create_comment(1, self.user.id, comment)
+                installation.create_comment(1, self.user.id, group_note)
                 assert mock_create_comment.call_args[0][1] == \
                     'Sentry Admin wrote:\n\n{quote}%s{quote}' % comment
 
@@ -856,6 +862,7 @@ class JiraIntegrationTest(APITestCase):
 
         group_note = Mock()
         comment = 'hello world\nThis is a comment.\n\n\n    I\'ve changed it'
+        group_note.data = {}
         group_note.data['text'] = comment
         group_note.data['external_id'] = '123'
         with mock.patch.object(MockJiraApiClient, 'update_comment') as mock_update_comment:
@@ -863,6 +870,6 @@ class JiraIntegrationTest(APITestCase):
                 return MockJiraApiClient()
 
             with mock.patch.object(installation, 'get_client', get_client):
-                installation.update_comment(1, self.user.id, comment)
+                installation.update_comment(1, self.user.id, group_note)
                 assert mock_update_comment.call_args[0] == \
-                    [1, '123', 'Sentry Admin wrote:\n\n{quote}%s{quote}' % comment]
+                    (1, '123', 'Sentry Admin wrote:\n\n{quote}%s{quote}' % comment)
