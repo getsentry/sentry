@@ -54,12 +54,22 @@ class OrganizationGroupIndexEndpoint(OrganizationEventsEndpointBase):
         with other statuses send an new query value (i.e. ``?query=`` for all
         results).
 
-        The ``statsPeriod`` parameter can be used to select the timeline
+        The ``groupStatsPeriod`` parameter can be used to select the timeline
         stats which should be present. Possible values are: '' (disable),
         '24h', '14d'
 
+        The ``statsPeriod`` parameter can be used to select a date window starting
+        from now. Ex. ``14d``.
+
+        The ``start`` and ``end`` parameters can be used to select an absolute
+        date period to fetch issues from.
+
         :qparam string statsPeriod: an optional stat period (can be one of
                                     ``"24h"``, ``"14d"``, and ``""``).
+        :qparam string groupStatsPeriod: an optional stat period (can be one of
+                                    ``"24h"``, ``"14d"``, and ``""``).
+        :qparam string start:       Beginning date. You must also provide ``end``.
+        :qparam string end:         End date. You must also provide ``start``.
         :qparam bool shortIdLookup: if this is set to true then short IDs are
                                     looked up by this function as well.  This
                                     can cause the return value of the function
@@ -73,7 +83,7 @@ class OrganizationGroupIndexEndpoint(OrganizationEventsEndpointBase):
                                           issues belong to.
         :auth: required
         """
-        stats_period = request.GET.get('statsPeriod')
+        stats_period = request.GET.get('groupStatsPeriod')
         if stats_period not in (None, '', '24h', '14d'):
             return Response({"detail": ERR_INVALID_STATS_PERIOD}, status=400)
         elif stats_period is None:
