@@ -2,11 +2,13 @@ from __future__ import absolute_import
 
 import six
 import uuid
+import hmac
 
 from django.db import models
 from django.db.models import Q
 from django.utils import timezone
 from django.template.defaultfilters import slugify
+from hashlib import sha256
 
 from sentry.constants import SentryAppStatus, SENTRY_APP_SLUG_MAX_LENGTH
 from sentry.models import Organization
@@ -127,3 +129,11 @@ class SentryApp(ParanoidModel, HasApiScopes):
         """
         if not self.slug:
             self.slug = slugify(self.name)
+
+    def build_signature(self, body):
+        secret = self.application.client_secret
+        return hmac.new(
+            key=secret.encode('utf-8'),
+            msg=body.encode('utf-8'),
+            digestmod=sha256,
+        ).hexdigest()

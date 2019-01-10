@@ -1,63 +1,104 @@
 from __future__ import absolute_import, print_function
 
-import six
-from time import time
+import logging
+
+from django.core.urlresolvers import reverse
 from requests.exceptions import RequestException
 
 from sentry.http import safe_urlopen
 from sentry.tasks.base import instrumented_task, retry
-from sentry.utils import json
 from sentry.utils.http import absolute_uri
-from sentry.models import SentryAppInstallation
-from sentry.api.serializers import serialize, app_platform_event
+from sentry.models import SentryAppInstallation, SentryApp
+from sentry.api.serializers import AppPlatformEvent
+
+logger = logging.Logger('sentry.tasks.sentry_apps')
 
 
 def notify_sentry_app(event, futures):
-    group = event.group
-    project = group.project
-    project_url_base = absolute_uri(u'/{}/{}'.format(
-        project.organization.slug,
-        project.slug,
-    ))
-
-    event_context = serialize(event)
-    event_context['url'] = u'{}/issues/{}/events/{}/'.format(
-        project_url_base,
-        group.id,
-        event.id,
-    )
-    data = {'event': event_context}
     for f in futures:
-        sentry_app = f.kwargs['sentry_app']
-        try:
-            install = SentryAppInstallation.objects.get(
-                organization=event.project.organization_id,
-                sentry_app=sentry_app,
-            )
-        except SentryAppInstallation.DoesNotExist:
+        if not f.kwargs.get('sentry_app'):
             continue
 
-        payload = app_platform_event('alert', install, data)
-        send_alert_event.delay(sentry_app=sentry_app, payload=payload)
+        sentry_app = f.kwargs['sentry_app']
+        send_alert_event.delay(
+            event=event,
+            rule=f.rule.label,
+            sentry_app_id=sentry_app.id,
+        )
 
 
 @instrumented_task(
     name='sentry.tasks.sentry_apps.send_alert_event', default_retry_delay=60 * 5, max_retries=5
 )
 @retry(on=(RequestException, ))
-def send_alert_event(sentry_app, payload):
+def send_alert_event(event, rule, sentry_app_id):
 
-    body = json.dumps(payload)
+    group = event.group
+    project = group.project
 
-    headers = {
-        'Content-Type': 'application/json',
-        'X-ServiceHook-Timestamp': six.text_type(int(time())),
-        'X-ServiceHook-GUID': sentry_app.uuid,
+    try:
+        sentry_app = SentryApp.objects.get(id=sentry_app_id)
+    except SentryApp.DoesNotExist:
+        logger.info(
+            'event_alert_webhook.missing_sentry_app',
+            extra={
+                'sentry_app_id': sentry_app_id,
+                'project': project.slug,
+                'organization': project.organization.slug,
+                'rule': rule,
+            },
+        )
+        return
+
+    try:
+        install = SentryAppInstallation.objects.get(
+            organization=event.project.organization_id,
+            sentry_app=sentry_app,
+        )
+    except SentryAppInstallation.DoesNotExist:
+        logger.info(
+            'event_alert_webhook.missing_installation',
+            extra={
+                'sentry_app': sentry_app.slug,
+                'project': project.slug,
+                'organization': project.organization.slug,
+                'rule': rule,
+            },
+        )
+        return
+
+    event_context = event.as_dict()
+    event_context['url'] = absolute_uri(reverse('sentry-api-0-project-event-details', args=[
+        project.organization.slug,
+        project.slug,
+        event.id,
+    ]))
+    event_context['web_url'] = absolute_uri(reverse('sentry-group-event', args=[
+        project.organization.slug,
+        project.slug,
+        group.id,
+        event.id,
+    ]))
+    event_context['issue_url'] = absolute_uri(
+        '/api/0/issues/{}/'.format(group.id),
+    )
+
+    data = {
+        'event': event_context,
     }
+
+    data['triggered_rule'] = rule
+
+    request_data = AppPlatformEvent(
+        resource='event_alert',
+        action='triggered',
+        install=install,
+        data=data,
+    )
 
     safe_urlopen(
         url=sentry_app.webhook_url,
-        data=body,
-        headers=headers,
+        data=request_data.body,
+        headers=request_data.headers,
         timeout=5,
     )
