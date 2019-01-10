@@ -9,7 +9,7 @@ import TagStore from 'app/stores/tagStore';
 class StreamFilters extends React.Component {
   static propTypes = {
     orgId: PropTypes.string.isRequired,
-    projectId: PropTypes.string.isRequired,
+    projectId: PropTypes.string,
     access: PropTypes.object.isRequired,
 
     searchId: PropTypes.string,
@@ -32,6 +32,7 @@ class StreamFilters extends React.Component {
   };
 
   static defaultProps = {
+    projectId: null,
     sort: '',
     query: null,
     onSortChange: function() {},
