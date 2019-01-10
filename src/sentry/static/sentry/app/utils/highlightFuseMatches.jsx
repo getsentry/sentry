@@ -22,7 +22,10 @@ import React from 'react';
  * @return {Array<{highlight: Boolean, text: String}>} Returns an array of {highlight, text} objects.
  */
 const getFuseMatches = ({value, indices}) => {
-  if (!indices.length) return [];
+  if (indices.length === 0) {
+    return [{highlight: false, text: value}];
+  }
+
   let strLength = value.length;
   let result = [];
   let prev = [0, -1];

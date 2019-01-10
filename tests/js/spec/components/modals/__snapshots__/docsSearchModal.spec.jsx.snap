@@ -5,7 +5,7 @@ exports[`Docs Search Modal can open docs search modal and search 1`] = `
   className="css-rrcdsm-dropdownStyle"
 >
   <div
-    className="css-1k2nl5d-DropdownBox-dropdownStyle ed7560h0"
+    className="css-1gdmenf-DropdownBox-dropdownStyle ed7560h0"
   >
     <a
       href="https://help.sentry.io/100"

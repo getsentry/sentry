@@ -220,6 +220,7 @@ const DropdownBox = styled.div`
   right: 0;
   width: 400px;
   border-radius: 5px;
+  overflow: hidden;
 `;
 
 const SearchWrapper = styled.div`
