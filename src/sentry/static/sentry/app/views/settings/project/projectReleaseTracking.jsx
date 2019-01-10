@@ -236,8 +236,8 @@ class ProjectReleaseTracking extends AsyncView {
             </p>
 
             <p>
-              {tct('See the [link:Releases documentation] for more information.', {
-                link: <a href="https://docs.sentry.io/learn/releases" />,
+              {tct('See the [link:releases documentation] for more information.', {
+                link: <a href="https://docs.sentry.io/workflow/releases/" />,
               })}
             </p>
           </PanelBody>

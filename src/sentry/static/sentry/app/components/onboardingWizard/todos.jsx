@@ -17,7 +17,7 @@ const TodoList = createReactClass({
         title: t('Create a project'),
         description: t('Create your first Sentry project'),
         detailedDescription: t(
-          'Follow our quick and easy steps to set up a project and start sending errors'
+          'Follow our quick and easy steps to set up a project and start sending errors.'
         ),
         skippable: false,
         prereq: [],
@@ -29,7 +29,7 @@ const TodoList = createReactClass({
         task: 2,
         title: t('Send your first event'),
         description: t("Install Sentry's client"),
-        detailedDescription: t('Choose your platform and send an event'),
+        detailedDescription: t('Choose your platform and send an event.'),
         skippable: false,
         prereq: [1],
         featureLocation: 'project',
@@ -42,7 +42,7 @@ const TodoList = createReactClass({
         description: t('Bring your team aboard'),
         detailedDescription: t(
           `Let Sentry help your team triage and assign issues. Improve your workflow
-          by unlocking suggested owners, mentions, and assignment`
+          by unlocking suggested owners, mentions, and assignment.`
         ),
         skippable: true,
         prereq: [],
@@ -74,7 +74,8 @@ const TodoList = createReactClass({
         skippable: true,
         prereq: [1, 2],
         featureLocation: 'absolute',
-        location: 'https://docs.sentry.io/hosted/learn/context/#capturing-the-user',
+        location:
+          'https://docs.sentry.io/enriching-error-data/context/#capturing-the-user',
         display: true,
       },
       {
@@ -83,7 +84,7 @@ const TodoList = createReactClass({
         description: t('See what releases are generating errors'),
         detailedDescription: t(
           `Set up commits for additional context when determining the cause of an issue
-          e.g. suggested owners and resolve issues via commit messages`
+          e.g. suggested owners and resolve issues via commit messages.`
         ),
         skippable: true,
         prereq: [1, 2],
@@ -93,22 +94,22 @@ const TodoList = createReactClass({
       },
       {
         task: 7,
-        title: t('Upload sourcemaps'),
-        description: t('Deminify javascript stacktraces'),
+        title: t('Upload source maps'),
+        description: t('Deminify JavaScript stack traces'),
         detailedDescription: t(
           `View source code context obtained from stack traces in their
-          original untransformed form, which is particularly useful for debugging minified code`
+          original untransformed form, which is particularly useful for debugging minified code.`
         ),
         skippable: true,
         prereq: [1, 2], // Is one of the platforms javascript?
         featureLocation: 'absolute',
-        location: 'https://docs.sentry.io/hosted/clients/javascript/sourcemaps/',
+        location: 'https://docs.sentry.io/platforms/javascript/sourcemaps/',
         display: true,
       },
       {
         task: 8,
         title: 'User crash reports',
-        description: t('Collect user feedback when your application crashes'),
+        description: t('Collect user feedback when your application crashes.'),
         skippable: true,
         prereq: [1, 2, 5],
         featureLocation: 'project',
