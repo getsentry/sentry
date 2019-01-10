@@ -155,7 +155,10 @@ class Http(Interface):
             if isinstance(query_string, six.string_types):
                 if query_string[0] == '?':
                     query_string = query_string[1:]
-                query_string = parse_qsl(query_string, keep_blank_values=True)
+                query_string = [
+                    (to_bytes(k), jsonify(v))
+                    for k, v in parse_qsl(query_string, keep_blank_values=True)
+                ]
             elif isinstance(query_string, dict):
                 query_string = [(to_bytes(k), jsonify(v)) for k, v in six.iteritems(query_string)]
             elif isinstance(query_string, list):
