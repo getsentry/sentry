@@ -1,0 +1,73 @@
+#!/usr/bin/env python
+from __future__ import absolute_import
+
+from sentry.runner import configure
+configure()
+
+from operator import or_
+
+from django.db.models import Q
+
+from sentry.tagstore.v2.models import GroupTagValue
+from sentry.models import Environment, Group, GroupEnvironment
+
+CHUNK_SIZE = 10000
+
+
+def backfill_group_env():
+    ENV_CACHE = dict(Environment.objects.values_list('id', 'name'))
+
+    last_pk = None
+    qs = GroupEnvironment.objects.filter(first_seen__isnull=True).order_by('pk')
+    group_environments = list(qs[0:CHUNK_SIZE])
+
+    while group_environments:
+        last_pk = group_environments[-1].id
+        env_names = {
+            ENV_CACHE[ge.environment_id] for ge in group_environments
+            if ge.environment_id in ENV_CACHE
+        }
+
+        missing_envs = {ge.environment_id for ge in group_environments if ge.environment_id in ENV_CACHE}
+        # update cache in case some envs have been created since cache was populated
+        # not sure if this is actually necessary?
+        if missing_envs:
+            env_names.update(list(
+                Environment.objects.filter(id__in=missing_envs).values_list('name', flat=True)
+            ))
+
+        project_by_group = dict(
+            Group.objects.filter(
+                id__in=[ge.group_id for ge in group_environments]
+            ).values_list('id', 'project_id')
+        )
+
+        group_tag_values = GroupTagValue.objects.filter(
+            reduce(or_, [Q(
+                group_id=ge.group_id,
+                _value__value=ENV_CACHE[ge.environment_id],
+                project_id=project_by_group[ge.group_id],
+                _key__key='environment',
+                first_seen__isnull=False,
+                _key__environment_id__gt=0,
+                _value__project_id=project_by_group[ge.group_id],
+            ) for ge in group_environments]),
+        ).exclude(_key__environment_id=0).extra(
+            where=['tagstore_grouptagvalue.project_id = tagstore_tagkey.project_id', 'tagstore_grouptagvalue.project_id = tagstore_tagvalue.project_id']
+        ).values_list('project_id', 'group_id', '_key__environment_id', 'first_seen')
+
+        gtv_lookup = {}
+        for project_id, group_id, env_id, first_seen in group_tag_values:
+            gtv_lookup[(group_id, env_id)] = first_seen
+
+        for ge in group_environments:
+            first_seen = gtv_lookup.get((ge.group_id, ge.environment_id))
+            if first_seen:
+                ge.first_seen = first_seen
+                ge.save()
+
+        group_environments = list(qs.filter(pk__gt=last_pk)[0:CHUNK_SIZE])
+
+
+if __name__ == '__main__':
+    backfill_group_env()
