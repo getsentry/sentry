@@ -66,7 +66,10 @@ export default class OrganizationDiscover extends React.Component {
   }
 
   componentDidMount() {
-    if (this.props.savedQuery) {
+    const {savedQuery, location} = this.props;
+
+    // Run query if there is *any* querystring
+    if (savedQuery || (location && !!location.search)) {
       this.runQuery();
     }
   }
