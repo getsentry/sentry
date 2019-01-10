@@ -65,30 +65,39 @@ class GroupEndpoint(Endpoint):
 
         return (args, kwargs)
 
-    def create_external_comment(self, request, group, group_note):
-        self._sync_comment(self, request, group, group_note, create_comment)
-
-    def update_external_comment(self, request, group, group_note):
-        self._sync_comment(self, request, group, group_note, update_comment)
-
-    def delete_external_comment(self, request, group, group_note):
-        self._sync_comment(self, request, group, group_note, delete_comment)
-
-    def _sync_comment(self, request, group, group_note, action):
-        """
-        Sync Sentry comments to external issues
-        """
-        external_issue_ids = GroupLink.objects.filter(
+    def get_external_issue_ids(self, group):
+        return GroupLink.objects.filter(
             project_id=group.project_id,
             group_id=group.id,
             linked_type=GroupLink.LinkedType.issue,
         ).values_list('linked_id', flat=True)
 
-        for external_issue_id in external_issue_ids:
-            action.apply_async(
+    def create_external_comment(self, request, group, group_note):
+        for external_issue_id in self.get_external_issue_ids(group):
+            create_comment.apply_async(
                 kwargs={
                     'external_issue_id': external_issue_id,
                     'group_note_id': group_note.id,
+                    'user_id': request.user.id,
+                }
+            )
+
+    def update_external_comment(self, request, group, group_note):
+        for external_issue_id in self.get_external_issue_ids(group):
+            update_comment.apply_async(
+                kwargs={
+                    'external_issue_id': external_issue_id,
+                    'group_note_id': group_note.id,
+                    'user_id': request.user.id,
+                }
+            )
+
+    def delete_external_comment(self, request, group, group_note):
+        for external_issue_id in self.get_external_issue_ids(group):
+            delete_comment.apply_async(
+                kwargs={
+                    'external_issue_id': external_issue_id,
+                    'external_comment_id': group_note.data['external_id'],
                     'user_id': request.user.id,
                 }
             )

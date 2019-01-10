@@ -265,7 +265,7 @@ class IssueBasicMixin(object):
     def update_comment(self, issue_id, user_id, group_note):
         pass
 
-    def delete_comment(self, issue_id, user_id, group_note):
+    def delete_comment(self, issue_id, user_id, external_comment_id):
         pass
 
 

@@ -19,53 +19,15 @@ from sentry.tasks.base import instrumented_task, retry
 logger = logging.getLogger('sentry.tasks.integrations')
 
 
-def change_comment(external_issue_id, user_id, group_note_id, action):
-    # sync Sentry comments to an external issue
-    external_issue = ExternalIssue.objects.get(id=external_issue_id)
-
+def should_comment_sync(installation, external_issue):
     organization = Organization.objects.get(id=external_issue.organization_id)
     has_issue_sync = features.has('organizations:integrations-issue-sync',
                                   organization)
-    if not has_issue_sync:
-        return
-
-    integration = Integration.objects.get(id=external_issue.integration_id)
-    installation = integration.get_installation(
-        organization_id=external_issue.organization_id,
-    )
-
-    if action != 'delete':
-        try:
-            note = Activity.objects.get(
-                type=Activity.NOTE,
-                id=group_note_id,
-            )
-        except Activity.DoesNotExist:
-            return  # TODO(lb)..... hmmm
-
-    if installation.should_sync('comment'):
-
-        if action == 'create':
-            comment = installation.create_comment(external_issue.key, user_id, note.data['text'])
-            note.data['external_id'] = installation.get_comment_id(comment)
-            note.save()
-        elif action == 'delete':
-            installation.delete_comment(external_issue.key, user_id, note.id)
-        elif action == 'update':
-            installation.update_comment(external_issue.key, user_id, note.id, note.data['text'])
-
-        analytics.record(
-            # TODO(lb): this should be changed and/or specified?
-            'integration.issue.comments.synced',
-            provider=integration.provider,
-            id=integration.id,
-            organization_id=external_issue.organization_id,
-            user_id=user_id,
-        )
+    return has_issue_sync and installation.should_sync('comment'), installation
 
 
 @instrumented_task(
-    name='sentry.tasks.integrations.post_comment',
+    name='sentry.tasks.integrations.create_comment',
     queue='integrations',
     default_retry_delay=60 * 5,
     max_retries=5
@@ -73,23 +35,73 @@ def change_comment(external_issue_id, user_id, group_note_id, action):
 # TODO(jess): Add more retry exclusions once ApiClients have better error handling
 @retry(exclude=(ExternalIssue.DoesNotExist, Integration.DoesNotExist))
 def create_comment(external_issue_id, user_id, group_note_id, **kwargs):
-    change_comment(external_issue_id, user_id, group_note_id, 'create')
+    external_issue = ExternalIssue.objects.get(id=external_issue_id)
+    installation = Integration.objects.get(
+        id=external_issue.integration_id
+    ).get_installation(
+        organization_id=external_issue.organization_id,
+    )
+
+    if not should_comment_sync(installation, external_issue):
+        return
+    try:
+        note = Activity.objects.get(
+            type=Activity.NOTE,
+            id=group_note_id,
+        )
+    except Activity.DoesNotExist:
+        return
+    comment = installation.create_comment(external_issue.key, user_id, note)
+    note.data['external_id'] = installation.get_comment_id(comment)
+    note.save()
+    analytics.record(
+        # TODO(lb): this should be changed and/or specified?
+        'integration.issue.comments.synced',
+        provider=installation.model.provider,
+        id=installation.model.id,
+        organization_id=external_issue.organization_id,
+        user_id=user_id,
+    )
 
 
 @instrumented_task(
-    name='sentry.tasks.integrations.post_comment',
+    name='sentry.tasks.integrations.update_comment',
     queue='integrations',
     default_retry_delay=60 * 5,
     max_retries=5
 )
 # TODO(jess): Add more retry exclusions once ApiClients have better error handling
 @retry(exclude=(ExternalIssue.DoesNotExist, Integration.DoesNotExist))
-def update_comment(external_issue_id, data, user_id, external_comment_id, **kwargs):
-    change_comment(external_issue_id, data, user_id, external_comment_id, 'update')
+def update_comment(external_issue_id, user_id, group_note_id, **kwargs):
+    external_issue = ExternalIssue.objects.get(id=external_issue_id)
+    installation = Integration.objects.get(
+        id=external_issue.integration_id
+    ).get_installation(
+        organization_id=external_issue.organization_id,
+    )
+
+    if not should_comment_sync(installation, external_issue):
+        return
+    try:
+        note = Activity.objects.get(
+            type=Activity.NOTE,
+            id=group_note_id,
+        )
+    except Activity.DoesNotExist:
+        return
+    installation.update_comment(external_issue.key, user_id, note)
+    analytics.record(
+        # TODO(lb): this should be changed and/or specified?
+        'integration.issue.comments.synced',
+        provider=installation.model.provider,
+        id=installation.model.id,
+        organization_id=external_issue.organization_id,
+        user_id=user_id,
+    )
 
 
 @instrumented_task(
-    name='sentry.tasks.integrations.post_comment',
+    name='sentry.tasks.integrations.delete_comment',
     queue='integrations',
     default_retry_delay=60 * 5,
     max_retries=5
@@ -97,7 +109,26 @@ def update_comment(external_issue_id, data, user_id, external_comment_id, **kwar
 # TODO(jess): Add more retry exclusions once ApiClients have better error handling
 @retry(exclude=(ExternalIssue.DoesNotExist, Integration.DoesNotExist))
 def delete_comment(external_issue_id, user_id, external_comment_id, **kwargs):
-    change_comment(external_issue_id, user_id, external_comment_id, 'delete')
+    external_issue = ExternalIssue.objects.get(id=external_issue_id)
+    installation = Integration.objects.get(
+        id=external_issue.integration_id
+    ).get_installation(
+        organization_id=external_issue.organization_id,
+    )
+
+    if not should_comment_sync(installation, external_issue):
+        return
+
+    installation.delete_comment(external_issue.key, user_id, external_comment_id)
+
+    analytics.record(
+        # TODO(lb): this should be changed and/or specified?
+        'integration.issue.comments.synced',
+        provider=installation.model.provider,
+        id=installation.model.id,
+        organization_id=external_issue.organization_id,
+        user_id=user_id,
+    )
 
 
 @instrumented_task(

@@ -304,10 +304,11 @@ class JiraIntegration(IntegrationInstallation, IssueSyncMixin):
     def update_comment(self, issue_id, user_id, group_note):
         quoted_comment = self.create_comment_attribution(user_id, group_note.data['text'])
         return self.get_client().update_comment(
-            issue_id, group_note.data['external_id'], quoted_comment)
+            issue_id, group_note.data['external_id'], quoted_comment,
+        )
 
-    def delete_comment(self, issue_id, user_id, group_note):
-        return self.get_client().delete_comment(issue_id, group_note.data['external_id'])
+    def delete_comment(self, issue_id, user_id, external_comment_id):
+        return self.get_client().delete_comment(issue_id, external_comment_id)
 
     def search_issues(self, query):
         try:

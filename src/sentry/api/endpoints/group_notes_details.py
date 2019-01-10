@@ -53,7 +53,9 @@ class GroupNotesDetailsEndpoint(GroupEndpoint):
 
         if serializer.is_valid():
             # Would be nice to have a last_modified timestamp we could bump here
+            external_id = note.data.get('external_id')
             note.data = dict(serializer.object)
+            note.data['external_id'] = external_id
             note.save()
 
             self.update_external_comment(request, group, note)
