@@ -1,4 +1,4 @@
-import jQuery from 'jquery';
+import $ from 'jquery';
 import Reflux from 'reflux';
 import _ from 'lodash';
 
@@ -37,7 +37,7 @@ const EventStore = Reflux.createStore({
 
     items.forEach((item, idx) => {
       if (itemsById[item.id]) {
-        this.items[idx] = jQuery.extend(true, {}, item, itemsById[item.id]);
+        this.items[idx] = $.extend(true, {}, item, itemsById[item.id]);
         delete itemsById[item.id];
       }
     });
