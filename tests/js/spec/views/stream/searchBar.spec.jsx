@@ -7,7 +7,8 @@ import TagStore from 'app/stores/tagStore';
 describe('SearchBar', function() {
   let sandbox;
   let options;
-  let urlTagValuesMock;
+  let projectTagValuesMock;
+  let orgTagValuesMock;
   let supportedTags;
   const clickInput = searchBar => searchBar.find('input[name="query"]').simulate('click');
 
@@ -22,8 +23,12 @@ describe('SearchBar', function() {
       context: {organization: {id: '123'}},
     };
 
-    urlTagValuesMock = MockApiClient.addMockResponse({
+    projectTagValuesMock = MockApiClient.addMockResponse({
       url: '/projects/123/456/tags/url/values/',
+      body: [],
+    });
+    orgTagValuesMock = MockApiClient.addMockResponse({
+      url: '/organizations/123/tags/url/values/',
       body: [],
     });
   });
@@ -55,9 +60,9 @@ describe('SearchBar', function() {
       clock.tick(301);
       expect(searchBar.find('SearchDropdown').prop('searchSubstring')).toEqual('"fu"');
       expect(searchBar.find('SearchDropdown').prop('items')).toEqual([]);
-      expect(urlTagValuesMock).toHaveBeenCalledWith(
+      expect(projectTagValuesMock).toHaveBeenCalledWith(
         '/projects/123/456/tags/url/values/',
-        expect.objectContaining({data: {query: 'fu'}})
+        expect.objectContaining({query: {query: 'fu'}})
       );
     });
 
@@ -78,10 +83,11 @@ describe('SearchBar', function() {
       expect(searchBar.find('SearchDropdown').prop('items')).toEqual([]);
       clock.tick(301);
 
-      expect(urlTagValuesMock).toHaveBeenCalledWith(
+      expect(projectTagValuesMock).toHaveBeenCalledWith(
         '/projects/123/456/tags/url/values/',
-        expect.objectContaining({data: {query: 'http://example.com'}})
+        expect.objectContaining({query: {query: 'http://example.com'}})
       );
+      expect(orgTagValuesMock).not.toHaveBeenCalled();
     });
 
     it('does not request values when tag is `timesSeen`', function() {
@@ -100,6 +106,25 @@ describe('SearchBar', function() {
       clickInput(searchBar);
       clock.tick(301);
       expect(mock).not.toHaveBeenCalled();
+    });
+
+    it('sets state with complete tag when there is no projectid', function() {
+      let props = {
+        orgId: '123',
+        query: 'url:"fu"',
+        supportedTags,
+      };
+      let searchBar = mount(<SearchBar {...props} />, options);
+      clickInput(searchBar);
+      clock.tick(301);
+      expect(searchBar.find('SearchDropdown').prop('searchSubstring')).toEqual('"fu"');
+      expect(searchBar.find('SearchDropdown').prop('items')).toEqual([]);
+
+      expect(projectTagValuesMock).not.toHaveBeenCalled();
+      expect(orgTagValuesMock).toHaveBeenCalledWith(
+        '/organizations/123/tags/url/values/',
+        expect.objectContaining({query: {query: 'fu'}})
+      );
     });
   });
 });
