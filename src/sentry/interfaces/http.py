@@ -191,7 +191,7 @@ class Http(Interface):
         inferred_content_type = data.get('inferred_content_type', content_type)
 
         if 'inferred_content_type' not in data and not isinstance(body, dict):
-            body, inferred_content_type = heuristic_decode(body, content_type)
+            inferred_content_type = heuristic_decode(body, content_type)
 
         if body:
             body = trim(body, settings.SENTRY_MAX_HTTP_BODY_SIZE)
