@@ -59,7 +59,7 @@ const ProjectDetailsLayout = createReactClass({
           activeEnvironment={this.props.environment}
         />
         <div className="container">
-          <div className="content">
+          <div className="content content-with-margin">
             {React.cloneElement(this.props.children, {
               setProjectNavSection: this.setProjectNavSection,
               memberList: this.state.memberList,

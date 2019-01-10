@@ -1,3 +1,4 @@
+import $ from 'jquery';
 import {Link} from 'react-router';
 import LazyLoad from 'react-lazyload';
 import React from 'react';

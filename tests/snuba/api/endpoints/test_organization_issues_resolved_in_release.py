@@ -12,10 +12,13 @@ from sentry.models import (
     Repository,
 )
 
-from sentry.testutils import APITestCase
+from sentry.testutils import (
+    APITestCase,
+    SnubaTestCase,
+)
 
 
-class OrganizationIssuesResolvedInReleaseEndpointTest(APITestCase):
+class OrganizationIssuesResolvedInReleaseEndpointTest(APITestCase, SnubaTestCase):
     endpoint = 'sentry-api-0-organization-release-resolved'
     method = 'get'
 
@@ -28,6 +31,9 @@ class OrganizationIssuesResolvedInReleaseEndpointTest(APITestCase):
         self.project = self.create_project(teams=[self.team])
         self.project_2 = self.create_project(teams=[self.team])
         self.release = self.create_release(project=self.project)
+        self.environment = self.create_environment(project=self.project)
+        self.environment.add_project(self.project_2)
+        self.environment_2 = self.create_environment(project=self.project)
         self.group = self.create_group(project=self.project)
         self.group_2 = self.create_group(project=self.project_2)
         self.login_as(self.user)
@@ -75,10 +81,12 @@ class OrganizationIssuesResolvedInReleaseEndpointTest(APITestCase):
             type=GroupResolution.Type.in_release,
         )
 
-    def run_test(self, expected_groups, project_ids=None):
+    def run_test(self, expected_groups, project_ids=None, environment_names=None):
         params = {}
         if project_ids:
             params['project'] = project_ids
+        if environment_names:
+            params['environment'] = environment_names
 
         response = self.get_valid_response(
             self.org.slug,
@@ -138,4 +146,16 @@ class OrganizationIssuesResolvedInReleaseEndpointTest(APITestCase):
         self.run_test(
             [self.group, self.group_2],
             project_ids=[self.group.project_id, self.group_2.project_id],
+        )
+
+    def test_multiple_envs_projects(self):
+        """
+        Test that the endpoint will work correctly if multiple envs are passed
+        """
+        self.build_grouplink()
+        self.build_grouplink(self.group_2)
+        self.run_test(
+            [self.group],
+            project_ids=[self.group.project_id],
+            environment_names=[self.environment.name, self.environment_2.name],
         )

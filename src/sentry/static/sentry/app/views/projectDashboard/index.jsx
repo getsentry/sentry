@@ -5,6 +5,7 @@ import {Link} from 'react-router';
 
 import SentryTypes from 'app/sentryTypes';
 import ProjectState from 'app/mixins/projectState';
+import PageHeading from 'app/components/pageHeading';
 import {t} from 'app/locale';
 import withEnvironmentInQueryString from 'app/utils/withEnvironmentInQueryString';
 
@@ -97,8 +98,11 @@ const ProjectDashboard = createReactClass({
 
     return (
       <div>
-        <div>
-          <div className="pull-right">
+        <div className="row" style={{marginBottom: '5px'}}>
+          <div className="col-sm-9">
+            <PageHeading withMargins>{t('Overview')}</PageHeading>
+          </div>
+          <div className="col-sm-3" style={{textAlign: 'right', marginTop: '4px'}}>
             <div className="btn-group">
               <Link
                 to={{
@@ -137,7 +141,6 @@ const ProjectDashboard = createReactClass({
               </Link>
             </div>
           </div>
-          <h3>{t('Overview')}</h3>
         </div>
         <ProjectChart
           dateSince={dateSince}

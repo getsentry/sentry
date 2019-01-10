@@ -791,8 +791,6 @@ SENTRY_FEATURES = {
     'organizations:event-attachments': False,
     # Enable the organization wide events stream interface.
     'organizations:global-views': False,
-    # Enable the interface and functionality for unmerging event groups.
-    'organizations:group-unmerge': False,
     # Enable integration functionality to create and link groups to issues on
     # external services.
     'organizations:integrations-issue-basic': False,
@@ -1326,10 +1324,6 @@ SENTRY_DEFAULT_INTEGRATIONS = (
     'sentry.integrations.jira_server.JiraServerIntegrationProvider',
     'sentry.integrations.vsts.VstsIntegrationProvider',
     'sentry.integrations.vsts_extension.VstsExtensionIntegrationProvider',
-)
-
-SENTRY_INTERNAL_INTEGRATIONS = (
-    'jira_server',
 )
 
 

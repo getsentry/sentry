@@ -180,14 +180,12 @@ class OrganizationEndpoint(Endpoint):
         if not requested_environments:
             return []
 
-        environments = set(
-            Environment.objects.filter(
-                organization_id=organization.id,
-                name__in=requested_environments,
-            ).values_list('name', flat=True),
+        environments = Environment.objects.filter(
+            organization_id=organization.id,
+            name__in=requested_environments,
         )
 
-        if requested_environments != environments:
+        if set(requested_environments) != set([e.name for e in environments]):
             raise ResourceDoesNotExist
 
         return list(environments)
@@ -226,7 +224,7 @@ class OrganizationEndpoint(Endpoint):
         if not project_ids:
             raise NoProjects
 
-        environments = self.get_environments(request, organization)
+        environments = [e.name for e in self.get_environments(request, organization)]
         params = {
             'start': start,
             'end': end,

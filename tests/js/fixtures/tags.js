@@ -1,4 +1,4 @@
-export function Tags(params = {}) {
+export function Tags(params = []) {
   return [
     {key: 'browser', name: 'Browser', canDelete: true, totalValues: 30},
     {key: 'device', name: 'Device', canDelete: true, totalValues: 5},

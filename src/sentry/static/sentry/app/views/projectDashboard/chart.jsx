@@ -1,5 +1,6 @@
 import PropTypes from 'prop-types';
 import React from 'react';
+import styled from 'react-emotion';
 import createReactClass from 'create-react-class';
 import moment from 'moment';
 import SentryTypes from 'app/sentryTypes';
@@ -123,7 +124,7 @@ const ProjectChart = createReactClass({
 
     return (
       <div className="chart-wrapper">
-        <BarChart
+        <StyledBarChart
           points={points}
           markers={markers}
           label="events"
@@ -151,5 +152,9 @@ const ProjectChart = createReactClass({
     );
   },
 });
+
+const StyledBarChart = styled(BarChart)`
+  background: #fff;
+`;
 
 export default ProjectChart;

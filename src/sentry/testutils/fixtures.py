@@ -30,7 +30,8 @@ from sentry.mediators import sentry_apps, sentry_app_installations, service_hook
 from sentry.models import (
     Activity, Environment, Event, EventError, EventMapping, Group, Organization, OrganizationMember,
     OrganizationMemberTeam, Project, ProjectBookmark, Team, User, UserEmail, Release, Commit, ReleaseCommit,
-    CommitAuthor, Repository, CommitFileChange, ProjectDebugFile, File, UserPermission, EventAttachment
+    CommitAuthor, Repository, CommitFileChange, ProjectDebugFile, File, UserPermission, EventAttachment,
+    UserReport
 )
 from sentry.utils.canonical import CanonicalKeyDict
 
@@ -765,3 +766,15 @@ class Fixtures(object):
         _kwargs.update(kwargs)
 
         return service_hooks.Creator.run(**_kwargs)
+
+    def create_userreport(self, **kwargs):
+        userreport = UserReport.objects.create(
+            group=kwargs['group'],
+            event_id='a' * 32,
+            project=kwargs['project'],
+            name='Jane Doe',
+            email='jane@example.com',
+            comments="the application crashed"
+        )
+
+        return userreport

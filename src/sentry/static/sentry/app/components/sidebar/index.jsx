@@ -1,7 +1,6 @@
-import {isEqual} from 'lodash';
-import {withRouter} from 'react-router';
+import {isEqual, pick} from 'lodash';
+import {withRouter, browserHistory} from 'react-router';
 import {ThemeProvider} from 'emotion-theming';
-import $ from 'jquery';
 import PropTypes from 'prop-types';
 import React from 'react';
 import Reflux from 'reflux';
@@ -19,6 +18,7 @@ import PreferencesStore from 'app/stores/preferencesStore';
 import theme from 'app/utils/theme';
 import space from 'app/styles/space';
 import withLatestContext from 'app/utils/withLatestContext';
+import {URL_PARAM} from 'app/components/organizations/globalSelectionHeader/constants';
 
 import Broadcasts from './broadcasts';
 import Incidents from './incidents';
@@ -153,6 +153,14 @@ class Sidebar extends React.Component {
     });
   };
 
+  // Keep the global selection querystring values in the path
+  navigateWithGlobalSelection = (pathname, evt) => {
+    evt.preventDefault();
+    const query = pick(this.props.location.query, Object.values(URL_PARAM));
+    browserHistory.push({pathname, query});
+    this.hidePanel();
+  };
+
   // Show slideout panel
   showPanel = panel => {
     this.setState({
@@ -204,6 +212,17 @@ class Sidebar extends React.Component {
           {hasOrganization && (
             <React.Fragment>
               <SidebarSection>
+                <Feature features={['sentry10']}>
+                  <SidebarItem
+                    {...sidebarItemProps}
+                    index
+                    onClick={this.hidePanel}
+                    icon={<InlineSvg src="icon-health" />}
+                    label={t('Dashboard')}
+                    to={`/organizations/${organization.slug}/dashboards/`}
+                  />
+                </Feature>
+
                 <SidebarItem
                   {...sidebarItemProps}
                   index
@@ -215,14 +234,34 @@ class Sidebar extends React.Component {
                 <Feature features={['sentry10']}>
                   <SidebarItem
                     {...sidebarItemProps}
-                    onClick={this.hidePanel}
+                    onClick={(_id, evt) =>
+                      this.navigateWithGlobalSelection(
+                        `/organizations/${organization.slug}/issues/`,
+                        evt
+                      )}
+                    icon={<InlineSvg src="icon-issues" />}
+                    label={t('Issues')}
+                    to={`/organizations/${organization.slug}/issues/`}
+                  />
+
+                  <SidebarItem
+                    {...sidebarItemProps}
+                    onClick={(_id, evt) =>
+                      this.navigateWithGlobalSelection(
+                        `/organizations/${organization.slug}/releases/`,
+                        evt
+                      )}
                     icon={<InlineSvg src="icon-releases" />}
                     label={t('Releases')}
                     to={`/organizations/${organization.slug}/releases/`}
                   />
                   <SidebarItem
                     {...sidebarItemProps}
-                    onClick={this.hidePanel}
+                    onClick={(_id, evt) =>
+                      this.navigateWithGlobalSelection(
+                        `/organizations/${organization.slug}/user-feedback/`,
+                        evt
+                      )}
                     icon={<InlineSvg src="icon-support" />}
                     label={t('User Feedback')}
                     to={`/organizations/${organization.slug}/user-feedback/`}
@@ -231,7 +270,11 @@ class Sidebar extends React.Component {
                 <Feature features={['global-views']}>
                   <SidebarItem
                     {...sidebarItemProps}
-                    onClick={this.hidePanel}
+                    onClick={(_id, evt) =>
+                      this.navigateWithGlobalSelection(
+                        `/organizations/${organization.slug}/events/`,
+                        evt
+                      )}
                     icon={<InlineSvg src="icon-stack" />}
                     label={t('Events')}
                     to={`/organizations/${organization.slug}/events/`}

@@ -1,8 +1,6 @@
 /*eslint no-use-before-define: ["error", { "functions": false }]*/
-
 import React from 'react';
 import styled from 'react-emotion';
-import moment from 'moment';
 import {orderBy} from 'lodash';
 import Papa from 'papaparse';
 
@@ -16,11 +14,9 @@ const CHART_KEY = '__CHART_KEY__';
  *
  * @param {Array} data Data returned from Snuba
  * @param {Object} query Query state corresponding to data
- * @param {Object} [options] Options object
- * @param {Boolean} [options.hideFieldName] (default: false) Hide field name in results set
  * @returns {Array}
  */
-export function getChartData(data, query, options = {}) {
+export function getChartData(data, query) {
   const {fields} = query;
 
   return query.aggregations.map(aggregation => {
@@ -29,10 +25,51 @@ export function getChartData(data, query, options = {}) {
       data: data.map(res => {
         return {
           value: res[aggregation[2]],
-          name: fields
-            .map(field => `${options.hideFieldName ? '' : `${field} `}${res[field]}`)
-            .join(options.separator || ' '),
+          name: fields.map(field => `${field} ${res[field]}`).join(' '),
         };
+      }),
+    };
+  });
+}
+
+/**
+ * Returns data formatted for charts, with each aggregation representing a series.
+ * Includes each aggregation's series relative percentage to total within that aggregation.
+ *
+ * @param {Array} data Data returned from Snuba
+ * @param {Object} query Query state corresponding to data
+ * @returns {Array}
+ */
+export function getChartDataWithPercentages(data, query) {
+  const {fields} = query;
+
+  const totalsBySeries = new Map();
+
+  query.aggregations.forEach(aggregation => {
+    totalsBySeries.set(
+      aggregation[2],
+      data.reduce((acc, res) => {
+        acc += res[aggregation[2]];
+        return acc;
+      }, 0)
+    );
+  });
+
+  return query.aggregations.map(aggregation => {
+    const total = totalsBySeries.get(aggregation[2]);
+    return {
+      seriesName: aggregation[2],
+      data: data.map(res => {
+        const obj = {
+          value: res[aggregation[2]],
+          name: fields.map(field => `${res[field]}`).join(' '),
+        };
+
+        if (total) {
+          obj.percentage = Math.round(res[aggregation[2]] / total * 10000) / 100;
+        }
+
+        return obj;
       }),
     };
   });
@@ -42,13 +79,9 @@ export function getChartData(data, query, options = {}) {
  * Returns time series data formatted for line and bar charts, with each day
  * along the x-axis
  *
- * TODO(billy): Investigate making `useTimestamps` the default behavior and remove the option
- *
  * @param {Array} data Data returned from Snuba
  * @param {Object} query Query state corresponding to data
  * @param {Object} [options] Options object
- * @param {Boolean} [options.useTimestamps] (default: false) Return raw timestamps instead of formatting dates
- * @param {Boolean} [options.assumeNullAsZero] (default: false) Assume null values as 0
  * @param {Boolean} [options.allSeries] (default: false) Return all series instead of top 10
  * @param {Object} [options.fieldLabelMap] (default: false) Maps value from Snuba to a defined label
  * @returns {Array}
@@ -68,9 +101,7 @@ export function getChartDataByDay(rawData, query, options = {}) {
 
   // Reverse to get ascending dates - we request descending to ensure latest
   // day data is compplete in the case of limits being hit
-  const dates = [
-    ...new Set(rawData.map(entry => formatDate(entry.time, !options.useTimestamps))),
-  ].reverse();
+  const dates = [...new Set(rawData.map(entry => formatDate(entry.time)))].reverse();
 
   // Temporarily store series as object with series names as keys
   const seriesHash = getEmptySeriesHash(top10Series, dates, options);
@@ -79,11 +110,10 @@ export function getChartDataByDay(rawData, query, options = {}) {
   data.forEach(row => {
     const key = row[CHART_KEY];
 
-    const dateIdx = dates.indexOf(formatDate(row.time, !options.useTimestamps));
+    const dateIdx = dates.indexOf(formatDate(row.time));
 
     if (top10Series.has(key)) {
-      seriesHash[key][dateIdx].value =
-        options.assumeNullAsZero && row[aggregate] === null ? 0 : row[aggregate];
+      seriesHash[key][dateIdx].value = row[aggregate] === null ? 0 : row[aggregate];
     }
   });
 
@@ -129,7 +159,7 @@ function getEmptySeriesHash(seriesSet, dates, options = {}) {
 function getEmptySeries(dates, options) {
   return dates.map(date => {
     return {
-      value: options.assumeNullAsZero ? 0 : null,
+      value: 0,
       name: date,
     };
   });
@@ -139,7 +169,14 @@ function getEmptySeries(dates, options) {
 function getTopSeries(data, aggregate, limit = NUMBER_OF_SERIES_BY_DAY) {
   const allData = orderBy(data, ['time', aggregate], ['desc', 'desc']);
 
-  const orderedData = [...new Set(allData.map(row => row[CHART_KEY]))];
+  const orderedData = [
+    ...new Set(
+      allData
+        // `row` can be an empty time bucket, in which case it will have no `CHART_KEY` property
+        .filter(row => typeof row[CHART_KEY] !== 'undefined')
+        .map(row => row[CHART_KEY])
+    ),
+  ];
 
   return new Set(limit <= 0 ? orderedData : orderedData.slice(0, limit));
 }
@@ -150,6 +187,12 @@ function getDataWithKeys(data, query, options = {}) {
   const aggregate = aggregations[0][2];
 
   return data.map(row => {
+    // `row` can be an empty time bucket, in which case it has no value
+    // for `aggregate`
+    if (!row.hasOwnProperty(aggregate)) {
+      return row;
+    }
+
     const key = fields.length
       ? fields.map(field => getLabel(row[field], options)).join(',')
       : aggregate;
@@ -161,14 +204,8 @@ function getDataWithKeys(data, query, options = {}) {
   });
 }
 
-function formatDate(datetime, enabled = true) {
-  const timestamp = datetime * 1000;
-
-  if (!enabled) {
-    return timestamp;
-  }
-
-  return moment.utc(timestamp).format('MMM Do');
+function formatDate(datetime) {
+  return datetime * 1000;
 }
 
 // Converts a value to a string for the chart label. This could

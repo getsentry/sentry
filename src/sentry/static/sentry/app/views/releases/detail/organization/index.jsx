@@ -7,6 +7,7 @@ import {t} from 'app/locale';
 import Alert from 'app/components/alert';
 import LoadingError from 'app/components/loadingError';
 import LoadingIndicator from 'app/components/loadingIndicator';
+import GlobalSelectionHeader from 'app/components/organizations/globalSelectionHeader';
 import withOrganization from 'app/utils/withOrganization';
 import AsyncView from 'app/views/asyncView';
 import {PageContent} from 'app/styles/organization';
@@ -61,6 +62,10 @@ class OrganizationReleaseDetails extends AsyncView {
         organization={this.props.organization}
         renderDisabled={this.renderNoAccess}
       >
+        <GlobalSelectionHeader
+          organization={this.props.organization}
+          hasCustomRouting={true}
+        />
         <PageContent>
           <ReleaseHeader release={release} orgId={orgId} />
           {React.cloneElement(this.props.children, {
