@@ -71,7 +71,7 @@ class Breadcrumbs(Interface):
     def normalize_crumb(cls, crumb):
         ty = crumb.get('type') or 'default'
         level = crumb.get('level')
-        if level not in LOG_LEVELS_MAP or level == 'log':
+        if level not in LOG_LEVELS_MAP:
             level = 'info'
 
         ts = parse_timestamp(crumb.get('timestamp'))
