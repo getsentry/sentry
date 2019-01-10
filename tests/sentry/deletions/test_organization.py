@@ -112,8 +112,9 @@ class DeleteOrganizationTest(TestCase):
         assert not PullRequest.objects.filter(id=pull_request.id).exists()
         assert not ExternalIssue.objects.filter(id=external_issue.id).exists()
         assert not Dashboard.objects.filter(id=dashboard.id).exists()
-        assert not Widget.objects.filter(id=widget_1.id).exists()
-        assert not Widget.objects.filter(id=widget_2.id).exists()
-        assert not WidgetDataSource.objects.filter(id=widget_1_data.id).exists()
-        assert not WidgetDataSource.objects.filter(id=widget_2_data_1.id).exists()
-        assert not WidgetDataSource.objects.filter(id=widget_2_data_2.id).exists()
+        assert not Widget.objects.filter(id__in=[widget_1.id, widget_2.id]).exists()
+        assert not WidgetDataSource.objects.filter(
+            id__in=[
+                widget_1_data.id,
+                widget_2_data_1.id,
+                widget_2_data_2.id]).exists()
