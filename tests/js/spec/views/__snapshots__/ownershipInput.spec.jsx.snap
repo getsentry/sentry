@@ -95,7 +95,7 @@ exports[`Project Ownership Input renders 1`] = `
   >
     <BuilderBar>
       <div
-        className="css-1kvuz3c-BuilderBar e1hyuoc75"
+        className="css-1kvuz3c-BuilderBar euqb7gv5"
       >
         <BuilderSelect
           clearable={false}
@@ -126,7 +126,7 @@ exports[`Project Ownership Input renders 1`] = `
           value="path"
         >
           <SelectField
-            className="css-1bclqmz-BuilderSelect e1hyuoc76"
+            className="css-1bclqmz-BuilderSelect euqb7gv6"
             clearable={false}
             disabled={false}
             hideErrorMessage={false}
@@ -155,7 +155,7 @@ exports[`Project Ownership Input renders 1`] = `
             value="path"
           >
             <div
-              className="css-1bclqmz-BuilderSelect e1hyuoc76"
+              className="css-1bclqmz-BuilderSelect euqb7gv6"
               style={
                 Object {
                   "width": 140,
@@ -189,7 +189,7 @@ exports[`Project Ownership Input renders 1`] = `
                   value="path"
                 >
                   <SelectControl
-                    className="css-j6zs66-StyledSelectControl e1qrhqd00"
+                    className="css-1yb4m7w-StyledSelectControl e17ygei0"
                     clearable={false}
                     disabled={false}
                     height={36}
@@ -215,7 +215,7 @@ exports[`Project Ownership Input renders 1`] = `
                     <StyledSelect
                       arrowRenderer={[Function]}
                       backspaceRemoves={false}
-                      className="css-j6zs66-StyledSelectControl e1qrhqd00"
+                      className="css-1yb4m7w-StyledSelectControl e17ygei0"
                       clearable={false}
                       deleteRemoves={false}
                       disabled={false}
@@ -242,7 +242,11 @@ exports[`Project Ownership Input renders 1`] = `
                       <ForwardRef(SelectPicker)
                         arrowRenderer={[Function]}
                         backspaceRemoves={false}
+<<<<<<< HEAD
                         className="e1qrhqd00 css-95hpmx-StyledSelect-StyledSelectControl eho28m20"
+=======
+                        className="e17ygei0 css-1p8p2hs-StyledSelect-StyledSelectControl e1rv3krr0"
+>>>>>>> build(travis): yarn --pnp [WIP]
                         clearable={false}
                         deleteRemoves={false}
                         disabled={false}
@@ -269,7 +273,11 @@ exports[`Project Ownership Input renders 1`] = `
                         <SelectPicker
                           arrowRenderer={[Function]}
                           backspaceRemoves={false}
+<<<<<<< HEAD
                           className="e1qrhqd00 css-95hpmx-StyledSelect-StyledSelectControl eho28m20"
+=======
+                          className="e17ygei0 css-1p8p2hs-StyledSelect-StyledSelectControl e1rv3krr0"
+>>>>>>> build(travis): yarn --pnp [WIP]
                           clearable={false}
                           deleteRemoves={false}
                           disabled={false}
@@ -299,7 +307,11 @@ exports[`Project Ownership Input renders 1`] = `
                             autosize={true}
                             backspaceRemoves={false}
                             backspaceToRemoveMessage="Press backspace to remove {label}"
+<<<<<<< HEAD
                             className="e1qrhqd00 css-95hpmx-StyledSelect-StyledSelectControl eho28m20"
+=======
+                            className="e17ygei0 css-1p8p2hs-StyledSelect-StyledSelectControl e1rv3krr0"
+>>>>>>> build(travis): yarn --pnp [WIP]
                             clearAllText="Clear all"
                             clearRenderer={[Function]}
                             clearValueText="Clear value"
@@ -359,7 +371,11 @@ exports[`Project Ownership Input renders 1`] = `
                             valueKey="value"
                           >
                             <div
+<<<<<<< HEAD
                               className="Select e1qrhqd00 css-95hpmx-StyledSelect-StyledSelectControl eho28m20 has-value is-searchable Select--single"
+=======
+                              className="Select e17ygei0 css-1p8p2hs-StyledSelect-StyledSelectControl e1rv3krr0 has-value is-searchable Select--single"
+>>>>>>> build(travis): yarn --pnp [WIP]
                             >
                               <input
                                 disabled={false}
@@ -492,7 +508,15 @@ exports[`Project Ownership Input renders 1`] = `
           value=""
         >
           <input
+<<<<<<< HEAD
             className="css-750a38-Input-inputStyles-BuilderInput e1hyuoc77"
+=======
+<<<<<<< HEAD
+            className="css-exo5e5-Input-inputStyles-BuilderInput e1hyuoc77"
+=======
+            className="css-1enrgn8-Input-inputStyles-BuilderInput euqb7gv7"
+>>>>>>> build(travis): yarn --pnp [WIP]
+>>>>>>> build(travis): yarn --pnp [WIP]
             onChange={[Function]}
             placeholder="src/example/*"
             value=""
@@ -501,22 +525,47 @@ exports[`Project Ownership Input renders 1`] = `
         <Divider
           src="icon-chevron-right"
         >
+<<<<<<< HEAD
           <ForwardRef
             className="css-1ambi4x-InlineSvg-Divider e1hyuoc78"
             src="icon-chevron-right"
           >
             <svg
               className="css-1ambi4x-InlineSvg-Divider e1hyuoc78"
+=======
+          <InlineSvg
+            className="css-a4tn6s-Divider euqb7gv8"
+            src="icon-chevron-right"
+          >
+            <StyledSvg
+              className="css-a4tn6s-Divider euqb7gv8"
+>>>>>>> build(travis): yarn --pnp [WIP]
               height="1em"
               viewBox={Object {}}
               width="1em"
             >
+<<<<<<< HEAD
               <use
                 href="#test"
                 xlinkHref="#test"
               />
             </svg>
           </ForwardRef>
+=======
+              <svg
+                className="euqb7gv8 css-1uv43pt-StyledSvg-Divider ebb48o80"
+                height="1em"
+                viewBox={Object {}}
+                width="1em"
+              >
+                <use
+                  href="#test"
+                  xlinkHref="#test"
+                />
+              </svg>
+            </StyledSvg>
+          </InlineSvg>
+>>>>>>> build(travis): yarn --pnp [WIP]
         </Divider>
         <Flex
           align="center"
@@ -632,7 +681,11 @@ exports[`Project Ownership Input renders 1`] = `
                         async={true}
                         backspaceRemoves={true}
                         cache={false}
+<<<<<<< HEAD
                         className="css-1dke465-StyledSelect eho28m20"
+=======
+                        className="css-11afz1b-StyledSelect e1rv3krr0"
+>>>>>>> build(travis): yarn --pnp [WIP]
                         clearable={true}
                         defaultOptions={true}
                         deleteRemoves={true}
@@ -652,7 +705,11 @@ exports[`Project Ownership Input renders 1`] = `
                           async={true}
                           backspaceRemoves={true}
                           cache={false}
+<<<<<<< HEAD
                           className="css-1dke465-StyledSelect eho28m20"
+=======
+                          className="css-11afz1b-StyledSelect e1rv3krr0"
+>>>>>>> build(travis): yarn --pnp [WIP]
                           clearable={true}
                           defaultOptions={true}
                           deleteRemoves={true}
@@ -673,7 +730,11 @@ exports[`Project Ownership Input renders 1`] = `
                             autoload={true}
                             backspaceRemoves={true}
                             cache={false}
+<<<<<<< HEAD
                             className="css-1dke465-StyledSelect eho28m20"
+=======
+                            className="css-11afz1b-StyledSelect e1rv3krr0"
+>>>>>>> build(travis): yarn --pnp [WIP]
                             clearable={true}
                             defaultOptions={true}
                             deleteRemoves={true}
@@ -700,7 +761,11 @@ exports[`Project Ownership Input renders 1`] = `
                               backspaceRemoves={true}
                               backspaceToRemoveMessage="Press backspace to remove {label}"
                               cache={false}
+<<<<<<< HEAD
                               className="css-1dke465-StyledSelect eho28m20"
+=======
+                              className="css-11afz1b-StyledSelect e1rv3krr0"
+>>>>>>> build(travis): yarn --pnp [WIP]
                               clearAllText="Clear all"
                               clearRenderer={[Function]}
                               clearValueText="Clear value"
@@ -752,7 +817,11 @@ exports[`Project Ownership Input renders 1`] = `
                               valueKey="value"
                             >
                               <div
+<<<<<<< HEAD
                                 className="Select css-1dke465-StyledSelect eho28m20 is-clearable is-loading is-searchable Select--multi"
+=======
+                                className="Select css-11afz1b-StyledSelect e1rv3krr0 is-clearable is-loading is-searchable Select--multi"
+>>>>>>> build(travis): yarn --pnp [WIP]
                               >
                                 <div
                                   className="Select-control"
@@ -866,8 +935,12 @@ exports[`Project Ownership Input renders 1`] = `
           size="small"
         >
           <Button
+<<<<<<< HEAD
             align="center"
             className="css-8nraqh-AddButton e1hyuoc79"
+=======
+            className="css-po7kq7-AddButton euqb7gv9"
+>>>>>>> build(travis): yarn --pnp [WIP]
             disabled={true}
             icon="icon-circle-add"
             onClick={[Function]}
@@ -876,7 +949,11 @@ exports[`Project Ownership Input renders 1`] = `
           >
             <StyledButton
               aria-disabled={true}
+<<<<<<< HEAD
               className="css-8nraqh-AddButton e1hyuoc79"
+=======
+              className="css-po7kq7-AddButton euqb7gv9"
+>>>>>>> build(travis): yarn --pnp [WIP]
               disabled={true}
               onClick={[Function]}
               priority="primary"
@@ -885,8 +962,18 @@ exports[`Project Ownership Input renders 1`] = `
             >
               <ForwardRef
                 aria-disabled={true}
+<<<<<<< HEAD
                 className="e1hyuoc79 css-4fecfm-StyledButton-getColors-AddButton edwq9my0"
                 disabled={true}
+=======
+<<<<<<< HEAD
+                className="e1hyuoc79 css-1hgfh2n-StyledButton-getColors-AddButton e12ma6z0"
+                disabled={true}
+=======
+                className="euqb7gv9 css-ogw40-StyledButton-getColors-AddButton e7bsqvz0"
+>>>>>>> build(travis): yarn --pnp [WIP]
+                href={null}
+>>>>>>> build(travis): yarn --pnp [WIP]
                 onClick={[Function]}
                 priority="primary"
                 role="button"
@@ -894,7 +981,16 @@ exports[`Project Ownership Input renders 1`] = `
               >
                 <button
                   aria-disabled={true}
+<<<<<<< HEAD
                   className="e1hyuoc79 css-4fecfm-StyledButton-getColors-AddButton edwq9my0"
+=======
+<<<<<<< HEAD
+                  className="e1hyuoc79 css-1hgfh2n-StyledButton-getColors-AddButton e12ma6z0"
+=======
+                  className="euqb7gv9 css-ogw40-StyledButton-getColors-AddButton e7bsqvz0"
+>>>>>>> build(travis): yarn --pnp [WIP]
+                  href={null}
+>>>>>>> build(travis): yarn --pnp [WIP]
                   onClick={[Function]}
                   role="button"
                   size="small"
@@ -905,31 +1001,64 @@ exports[`Project Ownership Input renders 1`] = `
                     size="small"
                   >
                     <Component
+<<<<<<< HEAD
                       align="center"
+<<<<<<< HEAD
                       className="css-1h693nz-ButtonLabel edwq9my1"
+=======
+                      className="css-1h693nz-ButtonLabel e12ma6z1"
+=======
+                      className="css-7ui8bl-ButtonLabel e7bsqvz1"
+>>>>>>> build(travis): yarn --pnp [WIP]
+>>>>>>> build(travis): yarn --pnp [WIP]
                       priority="primary"
                       size="small"
                     >
                       <span
+<<<<<<< HEAD
                         className="css-1h693nz-ButtonLabel edwq9my1"
+=======
+<<<<<<< HEAD
+                        className="css-1h693nz-ButtonLabel e12ma6z1"
+=======
+                        className="css-7ui8bl-ButtonLabel e7bsqvz1"
+>>>>>>> build(travis): yarn --pnp [WIP]
+>>>>>>> build(travis): yarn --pnp [WIP]
                       >
                         <Icon
                           hasChildren={false}
                           size="small"
                         >
                           <Component
+<<<<<<< HEAD
                             className="css-ljhpxy-Icon edwq9my2"
+=======
+<<<<<<< HEAD
+                            className="css-ljhpxy-Icon e12ma6z2"
+=======
+                            className="css-ljhpxy-Icon e7bsqvz2"
+>>>>>>> build(travis): yarn --pnp [WIP]
+>>>>>>> build(travis): yarn --pnp [WIP]
                             hasChildren={false}
                             size="small"
                           >
                             <span
+<<<<<<< HEAD
                               className="css-ljhpxy-Icon edwq9my2"
+=======
+<<<<<<< HEAD
+                              className="css-ljhpxy-Icon e12ma6z2"
+=======
+                              className="css-ljhpxy-Icon e7bsqvz2"
+>>>>>>> build(travis): yarn --pnp [WIP]
+>>>>>>> build(travis): yarn --pnp [WIP]
                               size="small"
                             >
                               <StyledInlineSvg
                                 size="12px"
                                 src="icon-circle-add"
                               >
+<<<<<<< HEAD
                                 <ForwardRef
                                   className="css-52zz4j-InlineSvg-StyledInlineSvg edwq9my3"
                                   size="12px"
@@ -937,16 +1066,53 @@ exports[`Project Ownership Input renders 1`] = `
                                 >
                                   <svg
                                     className="css-52zz4j-InlineSvg-StyledInlineSvg edwq9my3"
+=======
+                                <InlineSvg
+<<<<<<< HEAD
+                                  className="css-1ov3rcq-StyledInlineSvg e12ma6z3"
+=======
+                                  className="css-1ov3rcq-StyledInlineSvg e7bsqvz3"
+>>>>>>> build(travis): yarn --pnp [WIP]
+                                  size="12px"
+                                  src="icon-circle-add"
+                                >
+                                  <StyledSvg
+<<<<<<< HEAD
+                                    className="css-1ov3rcq-StyledInlineSvg e12ma6z3"
+=======
+                                    className="css-1ov3rcq-StyledInlineSvg e7bsqvz3"
+>>>>>>> build(travis): yarn --pnp [WIP]
+>>>>>>> build(travis): yarn --pnp [WIP]
                                     height="12px"
                                     viewBox={Object {}}
                                     width="12px"
                                   >
+<<<<<<< HEAD
                                     <use
                                       href="#test"
                                       xlinkHref="#test"
                                     />
                                   </svg>
                                 </ForwardRef>
+=======
+                                    <svg
+<<<<<<< HEAD
+                                      className="e12ma6z3 css-1jjmnki-StyledSvg-StyledInlineSvg e2idor0"
+=======
+                                      className="e7bsqvz3 css-1jjmnki-StyledSvg-StyledInlineSvg ebb48o80"
+>>>>>>> build(travis): yarn --pnp [WIP]
+                                      height="12px"
+                                      viewBox={Object {}}
+                                      width="12px"
+                                    >
+                                      <use
+                                        href="#test"
+                                        xlinkHref="#test"
+                                      />
+                                    </svg>
+                                  </StyledSvg>
+                                </InlineSvg>
+>>>>>>> build(travis): yarn --pnp [WIP]
                               </StyledInlineSvg>
                             </span>
                           </Component>
@@ -988,7 +1154,15 @@ url:http://example.com/settings/* #product"
         autoCapitalize="off"
         autoComplete="off"
         autoCorrect="off"
+<<<<<<< HEAD
         className="css-1qzvln2-StyledTextArea-inputStyles en3n9di2"
+=======
+<<<<<<< HEAD
+        className="css-2wuf31-StyledTextArea-inputStyles en3n9di2"
+=======
+        className="css-cqfvlz-StyledTextArea-inputStyles e1rt3v792"
+>>>>>>> build(travis): yarn --pnp [WIP]
+>>>>>>> build(travis): yarn --pnp [WIP]
         onChange={[Function]}
         placeholder="#example usage
 path:src/example/pipeline/* person@sentry.io #infra
@@ -1002,7 +1176,15 @@ url:http://example.com/settings/* #product"
           autoCapitalize="off"
           autoComplete="off"
           autoCorrect="off"
+<<<<<<< HEAD
           className="css-1qzvln2-StyledTextArea-inputStyles en3n9di2"
+=======
+<<<<<<< HEAD
+          className="css-2wuf31-StyledTextArea-inputStyles en3n9di2"
+=======
+          className="css-cqfvlz-StyledTextArea-inputStyles e1rt3v792"
+>>>>>>> build(travis): yarn --pnp [WIP]
+>>>>>>> build(travis): yarn --pnp [WIP]
           onChange={[Function]}
           placeholder="#example usage
 path:src/example/pipeline/* person@sentry.io #infra
@@ -1029,7 +1211,7 @@ url:http://example.com/settings/* #product"
           <div />
           <SaveButton>
             <div
-              className="css-5zvod-SaveButton en3n9di1"
+              className="css-5zvod-SaveButton e1rt3v791"
             >
               <Button
                 align="center"
@@ -1050,8 +1232,16 @@ url:http://example.com/settings/* #product"
                   <ForwardRef
                     aria-disabled={false}
                     aria-label="Save Changes"
+<<<<<<< HEAD
                     className="css-1lua553-StyledButton-getColors edwq9my0"
+=======
+<<<<<<< HEAD
+                    className="css-23553w-StyledButton-getColors e12ma6z0"
+>>>>>>> build(travis): yarn --pnp [WIP]
                     disabled={false}
+=======
+                    className="css-zvpqlo-StyledButton-getColors e7bsqvz0"
+>>>>>>> build(travis): yarn --pnp [WIP]
                     onClick={[Function]}
                     priority="primary"
                     role="button"
@@ -1060,7 +1250,15 @@ url:http://example.com/settings/* #product"
                     <button
                       aria-disabled={false}
                       aria-label="Save Changes"
+<<<<<<< HEAD
                       className="css-1lua553-StyledButton-getColors edwq9my0"
+=======
+<<<<<<< HEAD
+                      className="css-23553w-StyledButton-getColors e12ma6z0"
+=======
+                      className="css-zvpqlo-StyledButton-getColors e7bsqvz0"
+>>>>>>> build(travis): yarn --pnp [WIP]
+>>>>>>> build(travis): yarn --pnp [WIP]
                       onClick={[Function]}
                       role="button"
                       size="small"
@@ -1071,13 +1269,29 @@ url:http://example.com/settings/* #product"
                         size="small"
                       >
                         <Component
+<<<<<<< HEAD
                           align="center"
+<<<<<<< HEAD
                           className="css-1h693nz-ButtonLabel edwq9my1"
+=======
+                          className="css-1h693nz-ButtonLabel e12ma6z1"
+=======
+                          className="css-7ui8bl-ButtonLabel e7bsqvz1"
+>>>>>>> build(travis): yarn --pnp [WIP]
+>>>>>>> build(travis): yarn --pnp [WIP]
                           priority="primary"
                           size="small"
                         >
                           <span
+<<<<<<< HEAD
                             className="css-1h693nz-ButtonLabel edwq9my1"
+=======
+<<<<<<< HEAD
+                            className="css-1h693nz-ButtonLabel e12ma6z1"
+=======
+                            className="css-7ui8bl-ButtonLabel e7bsqvz1"
+>>>>>>> build(travis): yarn --pnp [WIP]
+>>>>>>> build(travis): yarn --pnp [WIP]
                           >
                             Save Changes
                           </span>

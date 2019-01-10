@@ -341,10 +341,10 @@ exports[`Issues Similar View renders with mocked data 1`] = `
             </h2>
             <StyledSimilarSpectrum>
               <SimilarSpectrum
-                className="css-j2x47e-StyledSimilarSpectrum e1hn3xkk0"
+                className="css-j2x47e-StyledSimilarSpectrum epwe1a30"
               >
                 <div
-                  className="css-j2x47e-StyledSimilarSpectrum e1hn3xkk0"
+                  className="css-j2x47e-StyledSimilarSpectrum epwe1a30"
                 >
                   <span>
                     Similar
@@ -353,35 +353,35 @@ exports[`Issues Similar View renders with mocked data 1`] = `
                     colorIndex={4}
                   >
                     <span
-                      className="css-1m9e7bp-SpectrumItem e1hn3xkk1"
+                      className="css-1m9e7bp-SpectrumItem epwe1a31"
                     />
                   </SpectrumItem>
                   <SpectrumItem
                     colorIndex={3}
                   >
                     <span
-                      className="css-1tn9u0a-SpectrumItem e1hn3xkk1"
+                      className="css-1tn9u0a-SpectrumItem epwe1a31"
                     />
                   </SpectrumItem>
                   <SpectrumItem
                     colorIndex={2}
                   >
                     <span
-                      className="css-zgizhk-SpectrumItem e1hn3xkk1"
+                      className="css-zgizhk-SpectrumItem epwe1a31"
                     />
                   </SpectrumItem>
                   <SpectrumItem
                     colorIndex={1}
                   >
                     <span
-                      className="css-1p9s53a-SpectrumItem e1hn3xkk1"
+                      className="css-1p9s53a-SpectrumItem epwe1a31"
                     />
                   </SpectrumItem>
                   <SpectrumItem
                     colorIndex={0}
                   >
                     <span
-                      className="css-pvajr0-SpectrumItem e1hn3xkk1"
+                      className="css-pvajr0-SpectrumItem epwe1a31"
                     />
                   </SpectrumItem>
                   <span>
@@ -399,7 +399,7 @@ exports[`Issues Similar View renders with mocked data 1`] = `
             className="similar-toolbar"
           >
             <div
-              className="similar-toolbar css-o93ry2-Toolbar ehkx0bi0"
+              className="similar-toolbar css-o93ry2-Toolbar e1rxv1nx0"
             >
               <SpreadLayout
                 center={true}
@@ -417,7 +417,7 @@ exports[`Issues Similar View renders with mocked data 1`] = `
                     truncate={true}
                   >
                     <div
-                      className="css-gmt0em-FlowLayout envzszi0"
+                      className="css-gmt0em-FlowLayout e51efj80"
                       style={
                         Object {
                           "flex": 1,
@@ -428,7 +428,7 @@ exports[`Issues Similar View renders with mocked data 1`] = `
                         truncate={true}
                       >
                         <div
-                          className="css-gmt0em-FlowLayout envzszi0"
+                          className="css-gmt0em-FlowLayout e51efj80"
                         >
                           <div
                             className="similar-toolbar-actions"
@@ -529,7 +529,7 @@ exports[`Issues Similar View renders with mocked data 1`] = `
                       className="similar-score-column event-count-header"
                     >
                       <div
-                        className="similar-score-column event-count-header css-j72n3c-ToolbarHeader eiwl27k0"
+                        className="similar-score-column event-count-header css-j72n3c-ToolbarHeader e1vdhtq50"
                       >
                         Events
                       </div>
@@ -538,7 +538,7 @@ exports[`Issues Similar View renders with mocked data 1`] = `
                       className="similar-score-column event-similar-header"
                     >
                       <div
-                        className="similar-score-column event-similar-header css-j72n3c-ToolbarHeader eiwl27k0"
+                        className="similar-score-column event-similar-header css-j72n3c-ToolbarHeader e1vdhtq50"
                       >
                         Exception
                       </div>
@@ -547,7 +547,7 @@ exports[`Issues Similar View renders with mocked data 1`] = `
                       className="similar-score-column event-similar-header"
                     >
                       <div
-                        className="similar-score-column event-similar-header css-j72n3c-ToolbarHeader eiwl27k0"
+                        className="similar-score-column event-similar-header css-j72n3c-ToolbarHeader e1vdhtq50"
                       >
                         Message
                       </div>
@@ -639,13 +639,13 @@ exports[`Issues Similar View renders with mocked data 1`] = `
                   truncate={true}
                 >
                   <div
-                    className="css-gmt0em-FlowLayout envzszi0"
+                    className="css-gmt0em-FlowLayout e51efj80"
                   >
                     <FlowLayout
                       truncate={true}
                     >
                       <div
-                        className="css-gmt0em-FlowLayout envzszi0"
+                        className="css-gmt0em-FlowLayout e51efj80"
                       >
                         <div
                           className="action-column"
@@ -840,8 +840,12 @@ exports[`Issues Similar View renders with mocked data 1`] = `
                                   size="normal"
                                 >
                                   <div
+<<<<<<< HEAD:tests/js/spec/views/organizationGroupDetails/__snapshots__/groupSimilar.spec.jsx.snap
                                     className="css-10b3zgy-Title-truncateStyles eex8od0"
                                     size="normal"
+=======
+                                    className="css-leroxf-Title-truncateStyles e1xts8yq0"
+>>>>>>> build(travis): yarn --pnp [WIP]:tests/js/spec/views/groupDetails/__snapshots__/groupSimilar.spec.jsx.snap
                                   >
                                     <Link
                                       data-test-id="resolved-issue"
@@ -878,6 +882,7 @@ exports[`Issues Similar View renders with mocked data 1`] = `
                                               position="top"
                                               title="Error level: Error"
                                             >
+<<<<<<< HEAD:tests/js/spec/views/organizationGroupDetails/__snapshots__/groupSimilar.spec.jsx.snap
                                               <Manager>
                                                 <Reference>
                                                   <InnerReference
@@ -931,6 +936,50 @@ exports[`Issues Similar View renders with mocked data 1`] = `
                                               "title": "TypeError: Cannot read property 'length' of undefined",
                                               "type": "error",
                                               "userCount": 3,
+=======
+                                              <div
+                                                className="tip css-hpn2f3-GroupLevel e1xts8yq5"
+                                                title="Error level: Error"
+                                              />
+                                            </GroupLevel>
+                                          </Tooltip>
+                                          <EventOrGroupTitle
+                                            data={
+                                              Object {
+                                                "annotations": Array [],
+                                                "assignedTo": null,
+                                                "count": "90",
+                                                "culprit": "length(app/views/groupSimilar/groupSimilarView)",
+                                                "firstSeen": "2017-07-10T18:32:43Z",
+                                                "hasSeen": false,
+                                                "id": "271",
+                                                "isBookmarked": false,
+                                                "isPublic": false,
+                                                "isSubscribed": true,
+                                                "lastSeen": "2017-07-24T23:41:44Z",
+                                                "level": "error",
+                                                "logger": "javascript",
+                                                "metadata": Object {
+                                                  "type": "TypeError",
+                                                  "value": "Cannot read property 'length' of undefined",
+                                                },
+                                                "numComments": 0,
+                                                "permalink": "http://localhost:8000/sentry/project-slug/issues/271/",
+                                                "project": Object {
+                                                  "id": "123",
+                                                  "name": "Internal",
+                                                  "slug": "project-slug",
+                                                },
+                                                "shareId": "312e323731",
+                                                "shortId": "INTERNAL-4G",
+                                                "status": "resolved",
+                                                "statusDetails": Object {},
+                                                "subscriptionDetails": null,
+                                                "title": "TypeError: Cannot read property 'length' of undefined",
+                                                "type": "error",
+                                                "userCount": 3,
+                                              }
+>>>>>>> build(travis): yarn --pnp [WIP]:tests/js/spec/views/groupDetails/__snapshots__/groupSimilar.spec.jsx.snap
                                             }
                                           }
                                           includeLink={true}
@@ -1055,8 +1104,12 @@ exports[`Issues Similar View renders with mocked data 1`] = `
                                   size="normal"
                                 >
                                   <div
+<<<<<<< HEAD:tests/js/spec/views/organizationGroupDetails/__snapshots__/groupSimilar.spec.jsx.snap
                                     className="css-brsp21-Message-truncateStyles eex8od2"
                                     size="normal"
+=======
+                                    className="css-y5cfdn-Message-truncateStyles e1xts8yq2"
+>>>>>>> build(travis): yarn --pnp [WIP]:tests/js/spec/views/groupDetails/__snapshots__/groupSimilar.spec.jsx.snap
                                   >
                                     Cannot read property 'length' of undefined
                                   </div>
@@ -1224,6 +1277,7 @@ exports[`Issues Similar View renders with mocked data 1`] = `
                               type="error"
                               userCount={3}
                             >
+<<<<<<< HEAD
                               <GroupExtra>
                                 <div
                                   className="css-5nsonj-GroupExtra eec9orn0"
@@ -1245,6 +1299,18 @@ exports[`Issues Similar View renders with mocked data 1`] = `
                                       />
                                     }
                                     shortId="INTERNAL-4G"
+=======
+                              <GroupExtra
+                                align="center"
+                              >
+                                <Base
+                                  align="center"
+                                  className="css-1iq5qji-GroupExtra eww5160"
+                                >
+                                  <div
+                                    className="css-1iq5qji-GroupExtra eww5160"
+                                    is={null}
+>>>>>>> build(travis): yarn --pnp [WIP]
                                   >
                                     <ShortId
                                       avatar={
@@ -1281,14 +1347,46 @@ exports[`Issues Similar View renders with mocked data 1`] = `
                                             }
                                           />
                                         }
+<<<<<<< HEAD
                                         className="css-1r3d0zi-GroupShortId eec9orn3"
                                         onClick={[Function]}
                                         shortId="INTERNAL-4G"
                                       >
                                         <div
                                           className="eec9orn3 css-h7na88-StyledShortId-GroupShortId ebuncw00"
+=======
+<<<<<<< HEAD:tests/js/spec/views/organizationGroupDetails/__snapshots__/groupSimilar.spec.jsx.snap
+                                        className="css-yd3bt1-GroupShortId eec9orn3"
+=======
+                                        className="css-yd3bt1-GroupShortId eww5164"
+>>>>>>> build(travis): yarn --pnp [WIP]:tests/js/spec/views/groupDetails/__snapshots__/groupSimilar.spec.jsx.snap
+                                        shortId="INTERNAL-4G"
+                                      >
+                                        <StyledShortId
+                                          avatar={
+                                            <ProjectBadge
+                                              avatarSize={14}
+                                              hideAvatar={false}
+                                              hideName={true}
+                                              hideOverflow={true}
+                                              project={
+                                                Object {
+                                                  "id": "123",
+                                                  "name": "Internal",
+                                                  "slug": "project-slug",
+                                                }
+                                              }
+                                            />
+                                          }
+<<<<<<< HEAD:tests/js/spec/views/organizationGroupDetails/__snapshots__/groupSimilar.spec.jsx.snap
+                                          className="css-yd3bt1-GroupShortId eec9orn3"
+=======
+                                          className="css-yd3bt1-GroupShortId eww5164"
+>>>>>>> build(travis): yarn --pnp [WIP]:tests/js/spec/views/groupDetails/__snapshots__/groupSimilar.spec.jsx.snap
+>>>>>>> build(travis): yarn --pnp [WIP]
                                           onClick={[Function]}
                                         >
+<<<<<<< HEAD
                                           <ProjectBadge
                                             avatarSize={14}
                                             hideAvatar={false}
@@ -1301,6 +1399,15 @@ exports[`Issues Similar View renders with mocked data 1`] = `
                                                 "slug": "project-slug",
                                               }
                                             }
+=======
+                                          <div
+<<<<<<< HEAD:tests/js/spec/views/organizationGroupDetails/__snapshots__/groupSimilar.spec.jsx.snap
+                                            className="eec9orn3 css-1p4nhlc-StyledShortId-GroupShortId ebuncw00"
+=======
+                                            className="eww5164 css-zds1k7-StyledShortId-GroupShortId e1i3oqd0"
+>>>>>>> build(travis): yarn --pnp [WIP]:tests/js/spec/views/groupDetails/__snapshots__/groupSimilar.spec.jsx.snap
+                                            onClick={[Function]}
+>>>>>>> build(travis): yarn --pnp [WIP]
                                           >
                                             <BaseBadge
                                               avatarProps={Object {}}
@@ -1359,8 +1466,13 @@ exports[`Issues Similar View renders with mocked data 1`] = `
                                                         }
                                                         size={14}
                                                       >
+<<<<<<< HEAD
                                                         <ProjectAvatar
                                                           className="css-f5iyic-StyledAvatar e165dl3i0"
+=======
+                                                        <Avatar
+                                                          className="css-f5iyic-StyledAvatar e1hs5ryj0"
+>>>>>>> build(travis): yarn --pnp [WIP]
                                                           hasTooltip={false}
                                                           hideName={true}
                                                           project={
@@ -1372,31 +1484,54 @@ exports[`Issues Similar View renders with mocked data 1`] = `
                                                           }
                                                           size={14}
                                                         >
+<<<<<<< HEAD
                                                           <PlatformList
                                                             className="css-f5iyic-StyledAvatar e165dl3i0"
                                                             consistentWidth={false}
                                                             direction="right"
+=======
+                                                          <ProjectAvatar
+                                                            className="css-f5iyic-StyledAvatar e1hs5ryj0"
+>>>>>>> build(travis): yarn --pnp [WIP]
                                                             hasTooltip={false}
                                                             hideName={true}
                                                             max={1}
                                                             platforms={Array []}
                                                             size={14}
                                                           >
+<<<<<<< HEAD
                                                             <PlatformIcons
                                                               className="css-f5iyic-StyledAvatar e165dl3i0"
+=======
+                                                            <PlatformList
+                                                              className="css-f5iyic-StyledAvatar e1hs5ryj0"
+>>>>>>> build(travis): yarn --pnp [WIP]
                                                               consistentWidth={false}
                                                               direction="right"
                                                               max={1}
                                                               size={14}
                                                             >
+<<<<<<< HEAD
                                                               <div
                                                                 className="e165dl3i0 css-7hp7lr-PlatformIcons-StyledAvatar ezvce7z0"
+=======
+                                                              <PlatformIcons
+                                                                className="css-f5iyic-StyledAvatar e1hs5ryj0"
+                                                                consistentWidth={false}
+>>>>>>> build(travis): yarn --pnp [WIP]
                                                                 direction="right"
                                                                 max={1}
                                                                 size={14}
                                                               >
+<<<<<<< HEAD
                                                                 <StyledPlatformIcon
                                                                   platform="default"
+=======
+                                                                <div
+                                                                  className="e1hs5ryj0 css-7hp7lr-PlatformIcons-StyledAvatar e1vcjkqa0"
+                                                                  direction="right"
+                                                                  max={1}
+>>>>>>> build(travis): yarn --pnp [WIP]
                                                                   size={14}
                                                                 >
                                                                   <Component
@@ -1404,11 +1539,17 @@ exports[`Issues Similar View renders with mocked data 1`] = `
                                                                     platform="default"
                                                                     size={14}
                                                                   >
+<<<<<<< HEAD
                                                                     <Platformicon
                                                                       className="css-15yyc0n-StyledPlatformIcon ezvce7z1"
+=======
+                                                                    <Component
+                                                                      className="css-15yyc0n-StyledPlatformIcon e1vcjkqa1"
+>>>>>>> build(travis): yarn --pnp [WIP]
                                                                       platform="default"
                                                                       size="14px"
                                                                     >
+<<<<<<< HEAD
                                                                       <img
                                                                         className="css-15yyc0n-StyledPlatformIcon ezvce7z1"
                                                                         height="14px"
@@ -1470,12 +1611,90 @@ exports[`Issues Similar View renders with mocked data 1`] = `
                                     firstSeen="2017-07-10T18:32:43Z"
                                     lastSeen={null}
                                   >
+=======
+                                                                      <Platformicon
+                                                                        className="css-15yyc0n-StyledPlatformIcon e1vcjkqa1"
+                                                                        platform="default"
+                                                                        size="14px"
+                                                                      >
+                                                                        <img
+                                                                          className="css-15yyc0n-StyledPlatformIcon e1vcjkqa1"
+                                                                          height="14px"
+                                                                          src={
+                                                                            Object {
+                                                                              "default": Object {
+                                                                                "id": "test",
+                                                                                "viewBox": Object {},
+                                                                              },
+                                                                            }
+                                                                          }
+                                                                          width="14px"
+                                                                        />
+                                                                      </Platformicon>
+                                                                    </Component>
+                                                                  </StyledPlatformIcon>
+                                                                </div>
+                                                              </PlatformIcons>
+                                                            </PlatformList>
+                                                          </ProjectAvatar>
+                                                        </Avatar>
+                                                      </StyledAvatar>
+                                                      <DisplayNameAndDescription>
+                                                        <Base
+                                                          className="css-1h9j57p-DisplayNameAndDescription e1hs5ryj1"
+                                                        >
+                                                          <div
+                                                            className="css-1h9j57p-DisplayNameAndDescription e1hs5ryj1"
+                                                            is={null}
+                                                          />
+                                                        </Base>
+                                                      </DisplayNameAndDescription>
+                                                    </div>
+                                                  </Base>
+                                                </Flex>
+                                              </BaseBadge>
+                                            </ProjectBadge>
+                                            <StyledAutoSelectText
+                                              avatar={true}
+                                            >
+                                              <AutoSelectText
+<<<<<<< HEAD:tests/js/spec/views/organizationGroupDetails/__snapshots__/groupSimilar.spec.jsx.snap
+                                                className="css-1m1w4wi-StyledAutoSelectText ebuncw01"
+                                              >
+                                                <div
+                                                  className="auto-select-text css-1m1w4wi-StyledAutoSelectText ebuncw01"
+=======
+                                                className="css-1iocdui-StyledAutoSelectText e1i3oqd1"
+                                              >
+                                                <div
+                                                  className="auto-select-text css-1iocdui-StyledAutoSelectText e1i3oqd1"
+>>>>>>> build(travis): yarn --pnp [WIP]:tests/js/spec/views/groupDetails/__snapshots__/groupSimilar.spec.jsx.snap
+                                                  onClick={[Function]}
+                                                >
+                                                  <span>
+                                                    INTERNAL-4G
+                                                  </span>
+                                                </div>
+                                              </AutoSelectText>
+                                            </StyledAutoSelectText>
+                                          </div>
+                                        </StyledShortId>
+                                      </ShortId>
+                                    </GroupShortId>
+<<<<<<< HEAD:tests/js/spec/views/organizationGroupDetails/__snapshots__/groupSimilar.spec.jsx.snap
+>>>>>>> build(travis): yarn --pnp [WIP]
                                     <Times
                                       className="css-fmy35b-StyledTimes eec9orn1"
                                       firstSeen="2017-07-10T18:32:43Z"
                                       lastSeen={null}
                                     >
                                       <Container>
+=======
+                                    <Times>
+                                      <div
+                                        className="css-139skj2-Times eww5163"
+                                      >
+>>>>>>> build(travis): yarn --pnp [WIP]:tests/js/spec/views/groupDetails/__snapshots__/groupSimilar.spec.jsx.snap
                                         <div
                                           className="css-46qufz-Container e1f1on0q0"
                                         >
@@ -1499,6 +1718,7 @@ exports[`Issues Similar View renders with mocked data 1`] = `
                                         </div>
                                       </Container>
                                     </Times>
+<<<<<<< HEAD
                                   </StyledTimes>
                                   <LoggerAnnotation>
                                     <span
@@ -1519,6 +1739,15 @@ exports[`Issues Similar View renders with mocked data 1`] = `
                                         <a
                                           onClick={[Function]}
                                           style={Object {}}
+=======
+                                    <GroupExtraCommentsAndLogger>
+                                      <Base
+                                        className="css-1ycmuq8-GroupExtraCommentsAndLogger eww5161"
+                                      >
+                                        <div
+                                          className="css-1ycmuq8-GroupExtraCommentsAndLogger eww5161"
+                                          is={null}
+>>>>>>> build(travis): yarn --pnp [WIP]
                                         >
                                           javascript
                                         </a>
@@ -1578,6 +1807,7 @@ exports[`Issues Similar View renders with mocked data 1`] = `
                       displayTimeout={100}
                       position="top"
                     >
+<<<<<<< HEAD:tests/js/spec/views/organizationGroupDetails/__snapshots__/groupSimilar.spec.jsx.snap
                       <Manager>
                         <Reference>
                           <InnerReference
@@ -1615,11 +1845,137 @@ exports[`Issues Similar View renders with mocked data 1`] = `
                                     ]
                                   }
                                   score={4}
+=======
+                      <Container
+                        innerRef={
+                          Object {
+                            "current": <span
+                              class="css-s35yzd-Container eexws2n1"
+                            >
+                              <div
+                                class="css-omtyju-StyledScoreBar e194yo6z0"
+                              >
+                                <div
+                                  class="css-1jrlewc-Bar e194yo6z1"
+                                  color="#98b480"
+                                  size="40"
+                                />
+                                <div
+                                  class="css-1jrlewc-Bar e194yo6z1"
+                                  color="#98b480"
+                                  size="40"
+                                />
+                                <div
+                                  class="css-1jrlewc-Bar e194yo6z1"
+                                  color="#98b480"
+                                  size="40"
+                                />
+                                <div
+                                  class="css-1jrlewc-Bar e194yo6z1"
+                                  color="#98b480"
+                                  size="40"
+                                />
+                                <div
+                                  class="css-15vxee-Bar e194yo6z1"
+                                  size="40"
+                                />
+                              </div>
+                            </span>,
+                          }
+                        }
+                        onMouseEnter={[Function]}
+                        onMouseLeave={[Function]}
+                      >
+                        <span
+                          className="css-s35yzd-Container eexws2n1"
+                          onMouseEnter={[Function]}
+                          onMouseLeave={[Function]}
+                        >
+                          <StyledScoreBar
+                            score={4}
+                            vertical={true}
+                          >
+                            <ScoreBar
+                              className="css-omtyju-StyledScoreBar e194yo6z0"
+                              palette={
+                                Array [
+                                  "#ec5e44",
+                                  "#f38259",
+                                  "#f9a66d",
+                                  "#98b480",
+                                  "#57be8c",
+                                ]
+                              }
+                              score={4}
+                              size={40}
+                              thickness={4}
+                              vertical={true}
+                            >
+                              <div
+                                className="css-omtyju-StyledScoreBar e194yo6z0"
+                              >
+                                <Bar
+                                  color="#98b480"
+                                  key="0"
                                   size={40}
                                   thickness={4}
                                   vertical={true}
                                 >
                                   <div
+                                    className="css-1jrlewc-Bar e194yo6z1"
+                                    color="#98b480"
+                                    size={40}
+                                  />
+                                </Bar>
+                                <Bar
+                                  color="#98b480"
+                                  key="1"
+                                  size={40}
+                                  thickness={4}
+                                  vertical={true}
+                                >
+                                  <div
+                                    className="css-1jrlewc-Bar e194yo6z1"
+                                    color="#98b480"
+                                    size={40}
+                                  />
+                                </Bar>
+                                <Bar
+                                  color="#98b480"
+                                  key="2"
+                                  size={40}
+                                  thickness={4}
+                                  vertical={true}
+                                >
+                                  <div
+                                    className="css-1jrlewc-Bar e194yo6z1"
+                                    color="#98b480"
+                                    size={40}
+                                  />
+                                </Bar>
+                                <Bar
+                                  color="#98b480"
+                                  key="3"
+                                  size={40}
+                                  thickness={4}
+                                  vertical={true}
+                                >
+                                  <div
+                                    className="css-1jrlewc-Bar e194yo6z1"
+                                    color="#98b480"
+                                    size={40}
+                                  />
+                                </Bar>
+                                <Bar
+                                  empty={true}
+                                  key="empty-0"
+>>>>>>> build(travis): yarn --pnp [WIP]:tests/js/spec/views/groupDetails/__snapshots__/groupSimilar.spec.jsx.snap
+                                  size={40}
+                                  thickness={4}
+                                  vertical={true}
+                                >
+                                  <div
+<<<<<<< HEAD:tests/js/spec/views/organizationGroupDetails/__snapshots__/groupSimilar.spec.jsx.snap
                                     className="css-omtyju-StyledScoreBar eecxaw40"
                                   >
                                     <Bar
@@ -1693,6 +2049,17 @@ exports[`Issues Similar View renders with mocked data 1`] = `
                           </InnerReference>
                         </Reference>
                       </Manager>
+=======
+                                    className="css-15vxee-Bar e194yo6z1"
+                                    size={40}
+                                  />
+                                </Bar>
+                              </div>
+                            </ScoreBar>
+                          </StyledScoreBar>
+                        </span>
+                      </Container>
+>>>>>>> build(travis): yarn --pnp [WIP]:tests/js/spec/views/groupDetails/__snapshots__/groupSimilar.spec.jsx.snap
                     </Hovercard>
                   </div>
                   <div
@@ -1704,6 +2071,7 @@ exports[`Issues Similar View renders with mocked data 1`] = `
                       displayTimeout={100}
                       position="top"
                     >
+<<<<<<< HEAD:tests/js/spec/views/organizationGroupDetails/__snapshots__/groupSimilar.spec.jsx.snap
                       <Manager>
                         <Reference>
                           <InnerReference
@@ -1741,11 +2109,129 @@ exports[`Issues Similar View renders with mocked data 1`] = `
                                     ]
                                   }
                                   score={0}
+=======
+                      <Container
+                        innerRef={
+                          Object {
+                            "current": <span
+                              class="css-s35yzd-Container eexws2n1"
+                            >
+                              <div
+                                class="css-omtyju-StyledScoreBar e194yo6z0"
+                              >
+                                <div
+                                  class="css-15vxee-Bar e194yo6z1"
+                                  size="40"
+                                />
+                                <div
+                                  class="css-15vxee-Bar e194yo6z1"
+                                  size="40"
+                                />
+                                <div
+                                  class="css-15vxee-Bar e194yo6z1"
+                                  size="40"
+                                />
+                                <div
+                                  class="css-15vxee-Bar e194yo6z1"
+                                  size="40"
+                                />
+                                <div
+                                  class="css-15vxee-Bar e194yo6z1"
+                                  size="40"
+                                />
+                              </div>
+                            </span>,
+                          }
+                        }
+                        onMouseEnter={[Function]}
+                        onMouseLeave={[Function]}
+                      >
+                        <span
+                          className="css-s35yzd-Container eexws2n1"
+                          onMouseEnter={[Function]}
+                          onMouseLeave={[Function]}
+                        >
+                          <StyledScoreBar
+                            score={0}
+                            vertical={true}
+                          >
+                            <ScoreBar
+                              className="css-omtyju-StyledScoreBar e194yo6z0"
+                              palette={
+                                Array [
+                                  "#ec5e44",
+                                  "#f38259",
+                                  "#f9a66d",
+                                  "#98b480",
+                                  "#57be8c",
+                                ]
+                              }
+                              score={0}
+                              size={40}
+                              thickness={4}
+                              vertical={true}
+                            >
+                              <div
+                                className="css-omtyju-StyledScoreBar e194yo6z0"
+                              >
+                                <Bar
+                                  empty={true}
+                                  key="empty-0"
                                   size={40}
                                   thickness={4}
                                   vertical={true}
                                 >
                                   <div
+                                    className="css-15vxee-Bar e194yo6z1"
+                                    size={40}
+                                  />
+                                </Bar>
+                                <Bar
+                                  empty={true}
+                                  key="empty-1"
+                                  size={40}
+                                  thickness={4}
+                                  vertical={true}
+                                >
+                                  <div
+                                    className="css-15vxee-Bar e194yo6z1"
+                                    size={40}
+                                  />
+                                </Bar>
+                                <Bar
+                                  empty={true}
+                                  key="empty-2"
+                                  size={40}
+                                  thickness={4}
+                                  vertical={true}
+                                >
+                                  <div
+                                    className="css-15vxee-Bar e194yo6z1"
+                                    size={40}
+                                  />
+                                </Bar>
+                                <Bar
+                                  empty={true}
+                                  key="empty-3"
+                                  size={40}
+                                  thickness={4}
+                                  vertical={true}
+                                >
+                                  <div
+                                    className="css-15vxee-Bar e194yo6z1"
+                                    size={40}
+                                  />
+                                </Bar>
+                                <Bar
+                                  empty={true}
+                                  key="empty-4"
+>>>>>>> build(travis): yarn --pnp [WIP]:tests/js/spec/views/groupDetails/__snapshots__/groupSimilar.spec.jsx.snap
+                                  size={40}
+                                  thickness={4}
+                                  vertical={true}
+                                >
+                                  <div
+<<<<<<< HEAD:tests/js/spec/views/organizationGroupDetails/__snapshots__/groupSimilar.spec.jsx.snap
                                     className="css-omtyju-StyledScoreBar eecxaw40"
                                   >
                                     <Bar
@@ -1815,6 +2301,17 @@ exports[`Issues Similar View renders with mocked data 1`] = `
                           </InnerReference>
                         </Reference>
                       </Manager>
+=======
+                                    className="css-15vxee-Bar e194yo6z1"
+                                    size={40}
+                                  />
+                                </Bar>
+                              </div>
+                            </ScoreBar>
+                          </StyledScoreBar>
+                        </span>
+                      </Container>
+>>>>>>> build(travis): yarn --pnp [WIP]:tests/js/spec/views/groupDetails/__snapshots__/groupSimilar.spec.jsx.snap
                     </Hovercard>
                   </div>
                 </div>

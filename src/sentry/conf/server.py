@@ -1341,7 +1341,8 @@ SENTRY_WATCHERS = (
     (
         "webpack",
         [
-            os.path.join(NODE_MODULES_ROOT, ".bin", "webpack"),
+            "./bin/yarn",
+            "webpack",
             "--output-pathinfo",
             "--watch",
             u"--config={}".format(

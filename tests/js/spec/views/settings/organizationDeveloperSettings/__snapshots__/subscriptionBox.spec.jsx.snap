@@ -40,7 +40,7 @@ exports[`SubscriptionBox renders resource checkbox 1`] = `
     key="issue"
   >
     <div
-      className="css-8xqq56-SubscriptionGridItemWrapper e139qogw2"
+      className="css-8xqq56-SubscriptionGridItemWrapper e1p4c21q2"
     >
       <Tooltip
         containerDisplayMode="inline-block"
@@ -52,27 +52,27 @@ exports[`SubscriptionBox renders resource checkbox 1`] = `
           disabled={false}
         >
           <div
-            className="css-6c04tk-SubscriptionGridItem e139qogw1"
+            className="css-6c04tk-SubscriptionGridItem e1p4c21q1"
             disabled={false}
           >
             <SubscriptionInfo>
               <Base
-                className="css-1fcst0e-SubscriptionInfo e139qogw0"
+                className="css-1fcst0e-SubscriptionInfo e1p4c21q0"
               >
                 <div
-                  className="css-1fcst0e-SubscriptionInfo e139qogw0"
+                  className="css-1fcst0e-SubscriptionInfo e1p4c21q0"
                   is={null}
                 >
                   <SubscriptionTitle>
                     <div
-                      className="css-17mtfmy-SubscriptionTitle e139qogw4"
+                      className="css-17mtfmy-SubscriptionTitle e1p4c21q4"
                     >
                       issue
                     </div>
                   </SubscriptionTitle>
                   <SubscriptionDescription>
                     <div
-                      className="css-1jp4ud-SubscriptionDescription e139qogw3"
+                      className="css-1jp4ud-SubscriptionDescription e1p4c21q3"
                     >
                       created, resolved, assigned
                     </div>

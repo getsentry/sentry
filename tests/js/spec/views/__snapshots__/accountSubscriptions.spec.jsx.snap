@@ -51,7 +51,7 @@ exports[`AccountSubscriptions renders list and can toggle 1`] = `
         >
           <Wrapper>
             <div
-              className="css-1r5ylk7-Wrapper e1kblvez2"
+              className="css-1r5ylk7-Wrapper e1ievzxl2"
             >
               <Flex
                 align="center"
@@ -68,15 +68,15 @@ exports[`AccountSubscriptions renders list and can toggle 1`] = `
                       styled={false}
                     >
                       <Base
-                        className="css-1ky52ze-Title e1kblvez0"
+                        className="css-1ky52ze-Title e1ievzxl0"
                       >
                         <div
-                          className="css-1ky52ze-Title e1kblvez0"
+                          className="css-1ky52ze-Title e1ievzxl0"
                           is={null}
                         >
                           <HeaderTitle>
                             <h4
-                              className="css-u1l4am-HeaderTitle e6lvex72"
+                              className="css-u1l4am-HeaderTitle elc10ae2"
                             >
                               Subscriptions
                             </h4>
@@ -92,10 +92,10 @@ exports[`AccountSubscriptions renders list and can toggle 1`] = `
         </SettingsPageHeading>
         <TextBlock>
           <Component
-            className="css-1geyb25-TextBlock ec8ep340"
+            className="css-1geyb25-TextBlock e12j2fov0"
           >
             <div
-              className="css-1geyb25-TextBlock ec8ep340"
+              className="css-1geyb25-TextBlock e12j2fov0"
             >
               Sentry is committed to respecting your inbox. Our goal is to provide useful content and resources that make fixing errors less painful. Enjoyable even.
             </div>
@@ -103,10 +103,10 @@ exports[`AccountSubscriptions renders list and can toggle 1`] = `
         </TextBlock>
         <TextBlock>
           <Component
-            className="css-1geyb25-TextBlock ec8ep340"
+            className="css-1geyb25-TextBlock e12j2fov0"
           >
             <div
-              className="css-1geyb25-TextBlock ec8ep340"
+              className="css-1geyb25-TextBlock e12j2fov0"
             >
               As part of our compliance with the EU’s General Data Protection Regulation (GDPR), starting on 25 May 2018, we’ll only email you according to the marketing categories to which you’ve explicitly opted-in.
             </div>
@@ -114,28 +114,58 @@ exports[`AccountSubscriptions renders list and can toggle 1`] = `
         </TextBlock>
         <Panel>
           <Component
+<<<<<<< HEAD
             className="css-1bjezgp-Panel e119nu470"
           >
             <div
               className="css-1bjezgp-Panel e119nu470"
+=======
+<<<<<<< HEAD
+            className="css-1bjezgp-Panel e1laxa7d0"
+          >
+            <div
+              className="css-1bjezgp-Panel e1laxa7d0"
+=======
+            className="css-1jn7ahh-Panel e16u4s2c0"
+          >
+            <div
+              className="css-1jn7ahh-Panel e16u4s2c0"
+>>>>>>> build(travis): yarn --pnp [WIP]
+>>>>>>> build(travis): yarn --pnp [WIP]
             >
               <div>
                 <PanelHeader>
                   <Component
+<<<<<<< HEAD
                     className="css-m9zvi1-PanelHeader-getPadding e1p8v8nv0"
                   >
                     <Flex
                       align="center"
                       className="css-m9zvi1-PanelHeader-getPadding e1p8v8nv0"
+=======
+                    className="css-snrzp3-PanelHeader-getPadding e1o9kety0"
+                  >
+                    <Flex
+                      align="center"
+                      className="css-snrzp3-PanelHeader-getPadding e1o9kety0"
+>>>>>>> build(travis): yarn --pnp [WIP]
                       justify="space-between"
                     >
                       <Base
                         align="center"
+<<<<<<< HEAD
                         className="e1p8v8nv0 css-sniutd-PanelHeader-getPadding"
                         justify="space-between"
                       >
                         <div
                           className="e1p8v8nv0 css-sniutd-PanelHeader-getPadding"
+=======
+                        className="e1o9kety0 css-1fll6iw-PanelHeader-getPadding"
+                        justify="space-between"
+                      >
+                        <div
+                          className="e1o9kety0 css-1fll6iw-PanelHeader-getPadding"
+>>>>>>> build(travis): yarn --pnp [WIP]
                           is={null}
                         >
                           Subscription
@@ -159,11 +189,11 @@ exports[`AccountSubscriptions renders list and can toggle 1`] = `
                     >
                       <Base
                         align="center"
-                        className="css-xfqgz4-PanelItem eo8n7lk0"
+                        className="css-xfqgz4-PanelItem egwqg5y0"
                         p={2}
                       >
                         <div
-                          className="css-xfqgz4-PanelItem eo8n7lk0"
+                          className="css-xfqgz4-PanelItem egwqg5y0"
                           is={null}
                         >
                           <Box
@@ -181,21 +211,21 @@ exports[`AccountSubscriptions renders list and can toggle 1`] = `
                               >
                                 <SubscriptionName>
                                   <div
-                                    className="css-tt56b0-SubscriptionName er83abj0"
+                                    className="css-tt56b0-SubscriptionName et0bkxd0"
                                   >
                                     Product & Feature Updates
                                   </div>
                                 </SubscriptionName>
                                 <Description>
                                   <div
-                                    className="css-781ki1-Description er83abj1"
+                                    className="css-781ki1-Description et0bkxd1"
                                   >
                                     Everything you need to know about Sentry features, integrations, partnerships, and launches.
                                   </div>
                                 </Description>
                                 <SubscribedDescription>
                                   <div
-                                    className="css-19frbfu-Description-SubscribedDescription er83abj2"
+                                    className="css-19frbfu-Description-SubscribedDescription et0bkxd2"
                                   >
                                     <div>
                                       test@sentry.io
@@ -240,7 +270,11 @@ exports[`AccountSubscriptions renders list and can toggle 1`] = `
                                   >
                                     <button
                                       aria-checked={true}
+<<<<<<< HEAD
                                       className="css-qiticg-SwitchButton e1wgeblw0"
+=======
+                                      className="css-tg8hnx-SwitchContainer e15l4ie20"
+>>>>>>> build(travis): yarn --pnp [WIP]
                                       data-test-id="switch"
                                       onClick={[Function]}
                                       role="checkbox"
@@ -252,7 +286,7 @@ exports[`AccountSubscriptions renders list and can toggle 1`] = `
                                         size="lg"
                                       >
                                         <span
-                                          className="css-s79gh4-Toggle e1wgeblw1"
+                                          className="css-s79gh4-Toggle e15l4ie21"
                                           size="lg"
                                         />
                                       </Toggle>
@@ -272,11 +306,11 @@ exports[`AccountSubscriptions renders list and can toggle 1`] = `
                     >
                       <Base
                         align="center"
-                        className="css-xfqgz4-PanelItem eo8n7lk0"
+                        className="css-xfqgz4-PanelItem egwqg5y0"
                         p={2}
                       >
                         <div
-                          className="css-xfqgz4-PanelItem eo8n7lk0"
+                          className="css-xfqgz4-PanelItem egwqg5y0"
                           is={null}
                         >
                           <Box
@@ -294,21 +328,21 @@ exports[`AccountSubscriptions renders list and can toggle 1`] = `
                               >
                                 <SubscriptionName>
                                   <div
-                                    className="css-tt56b0-SubscriptionName er83abj0"
+                                    className="css-tt56b0-SubscriptionName et0bkxd0"
                                   >
                                     Sentry Newsletter
                                   </div>
                                 </SubscriptionName>
                                 <Description>
                                   <div
-                                    className="css-781ki1-Description er83abj1"
+                                    className="css-781ki1-Description et0bkxd1"
                                   >
                                     Our monthly update on what's new with Sentry and the community.
                                   </div>
                                 </Description>
                                 <SubscribedDescription>
                                   <div
-                                    className="css-19frbfu-Description-SubscribedDescription er83abj2"
+                                    className="css-19frbfu-Description-SubscribedDescription et0bkxd2"
                                   >
                                     Not currently subscribed
                                   </div>
@@ -340,7 +374,11 @@ exports[`AccountSubscriptions renders list and can toggle 1`] = `
                                   >
                                     <button
                                       aria-checked={false}
+<<<<<<< HEAD
                                       className="css-qiticg-SwitchButton e1wgeblw0"
+=======
+                                      className="css-tg8hnx-SwitchContainer e15l4ie20"
+>>>>>>> build(travis): yarn --pnp [WIP]
                                       data-test-id="switch"
                                       onClick={[Function]}
                                       role="checkbox"
@@ -352,7 +390,7 @@ exports[`AccountSubscriptions renders list and can toggle 1`] = `
                                         size="lg"
                                       >
                                         <span
-                                          className="css-pa284f-Toggle e1wgeblw1"
+                                          className="css-pa284f-Toggle e15l4ie21"
                                           size="lg"
                                         />
                                       </Toggle>
@@ -374,10 +412,10 @@ exports[`AccountSubscriptions renders list and can toggle 1`] = `
         </Panel>
         <TextBlock>
           <Component
-            className="css-1geyb25-TextBlock ec8ep340"
+            className="css-1geyb25-TextBlock e12j2fov0"
           >
             <div
-              className="css-1geyb25-TextBlock ec8ep340"
+              className="css-1geyb25-TextBlock e12j2fov0"
             >
               We’re applying GDPR consent and privacy policies to all Sentry contacts, regardless of location. You’ll be able to manage your subscriptions here and from an Unsubscribe link in the footer of all marketing emails.
             </div>
@@ -385,10 +423,10 @@ exports[`AccountSubscriptions renders list and can toggle 1`] = `
         </TextBlock>
         <TextBlock>
           <Component
-            className="css-1geyb25-TextBlock ec8ep340"
+            className="css-1geyb25-TextBlock e12j2fov0"
           >
             <div
-              className="css-1geyb25-TextBlock ec8ep340"
+              className="css-1geyb25-TextBlock e12j2fov0"
             >
               Please contact 
               <a

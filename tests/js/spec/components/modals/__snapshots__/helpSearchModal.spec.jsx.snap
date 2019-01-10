@@ -5,7 +5,7 @@ exports[`Docs Search Modal can open help search modal and complete a search 1`] 
   className="css-1nf7i25-dropdownStyle"
 >
   <div
-    className="css-idf3ke-DropdownBox-dropdownStyle ed7560h0"
+    className="css-idf3ke-DropdownBox-dropdownStyle e7hmgqw0"
   >
     <SearchResultWrapper
       highlighted={true}
@@ -13,12 +13,12 @@ exports[`Docs Search Modal can open help search modal and complete a search 1`] 
       onClick={[Function]}
     >
       <Component
-        className="css-1a9oeco-SearchResultWrapper-SearchResultWrapper e12rx3zt0"
+        className="css-1a9oeco-SearchResultWrapper-SearchResultWrapper e2qmixw0"
         highlighted={true}
         onClick={[Function]}
       >
         <div
-          className="css-1a9oeco-SearchResultWrapper-SearchResultWrapper e12rx3zt0"
+          className="css-1a9oeco-SearchResultWrapper-SearchResultWrapper e2qmixw0"
           onClick={[Function]}
         >
           <withRouter(SearchResult)
@@ -119,6 +119,7 @@ exports[`Docs Search Modal can open help search modal and complete a search 1`] 
                   >
                     <Content>
                       <Component
+<<<<<<< HEAD
                         className="css-lo919j-Content e1deq8q73"
                       >
                         <Flex
@@ -131,12 +132,30 @@ exports[`Docs Search Modal can open help search modal and complete a search 1`] 
                           >
                             <div
                               className="e1deq8q73 css-12nl3av-Content"
+=======
+                        className="css-17yjk7u-Content ew3izuv3"
+                      >
+                        <Flex
+                          className="css-17yjk7u-Content ew3izuv3"
+                          direction="column"
+                        >
+                          <Base
+                            className="ew3izuv3 css-1j7ynie-Content"
+                            direction="column"
+                          >
+                            <div
+                              className="ew3izuv3 css-1j7ynie-Content"
+>>>>>>> build(travis): yarn --pnp [WIP]
                               is={null}
                             >
                               <div>
                                 <SearchTitle>
                                   <span
+<<<<<<< HEAD
                                     className="css-jyrvax-SearchTitle e1deq8q70"
+=======
+                                    className="css-1iu9oyn-SearchTitle ew3izuv0"
+>>>>>>> build(travis): yarn --pnp [WIP]
                                   >
                                     <span
                                       key="0"
@@ -148,7 +167,7 @@ exports[`Docs Search Modal can open help search modal and complete a search 1`] 
                               </div>
                               <SearchDetail>
                                 <div
-                                  className="css-17e2h30-SearchDetail e1deq8q71"
+                                  className="css-17e2h30-SearchDetail ew3izuv1"
                                 >
                                   <span
                                     key="0"
@@ -164,13 +183,13 @@ exports[`Docs Search Modal can open help search modal and complete a search 1`] 
                     </Content>
                     <DocsBadge>
                       <Component
-                        className="css-ekzoaq-DocsBadge ekxyuw11"
+                        className="css-ekzoaq-DocsBadge e1mm0aaq1"
                       >
                         <ResultIcon
-                          className="css-ekzoaq-DocsBadge ekxyuw11"
+                          className="css-ekzoaq-DocsBadge e1mm0aaq1"
                         >
                           <div
-                            className="ekxyuw11 css-f5te32-ResultIcon-DocsBadge ekxyuw10"
+                            className="e1mm0aaq1 css-f5te32-ResultIcon-DocsBadge e1mm0aaq0"
                           >
                             docs
                           </div>
@@ -191,12 +210,12 @@ exports[`Docs Search Modal can open help search modal and complete a search 1`] 
       onClick={[Function]}
     >
       <Component
-        className="css-hmbjwn-SearchResultWrapper e12rx3zt0"
+        className="css-hmbjwn-SearchResultWrapper e2qmixw0"
         highlighted={false}
         onClick={[Function]}
       >
         <div
-          className="css-hmbjwn-SearchResultWrapper e12rx3zt0"
+          className="css-hmbjwn-SearchResultWrapper e2qmixw0"
           onClick={[Function]}
         >
           <withRouter(SearchResult)
@@ -297,6 +316,7 @@ exports[`Docs Search Modal can open help search modal and complete a search 1`] 
                   >
                     <Content>
                       <Component
+<<<<<<< HEAD
                         className="css-lo919j-Content e1deq8q73"
                       >
                         <Flex
@@ -309,12 +329,30 @@ exports[`Docs Search Modal can open help search modal and complete a search 1`] 
                           >
                             <div
                               className="e1deq8q73 css-12nl3av-Content"
+=======
+                        className="css-17yjk7u-Content ew3izuv3"
+                      >
+                        <Flex
+                          className="css-17yjk7u-Content ew3izuv3"
+                          direction="column"
+                        >
+                          <Base
+                            className="ew3izuv3 css-1j7ynie-Content"
+                            direction="column"
+                          >
+                            <div
+                              className="ew3izuv3 css-1j7ynie-Content"
+>>>>>>> build(travis): yarn --pnp [WIP]
                               is={null}
                             >
                               <div>
                                 <SearchTitle>
                                   <span
+<<<<<<< HEAD
                                     className="css-jyrvax-SearchTitle e1deq8q70"
+=======
+                                    className="css-1iu9oyn-SearchTitle ew3izuv0"
+>>>>>>> build(travis): yarn --pnp [WIP]
                                   >
                                     <span
                                       key="0"
@@ -326,7 +364,7 @@ exports[`Docs Search Modal can open help search modal and complete a search 1`] 
                               </div>
                               <SearchDetail>
                                 <div
-                                  className="css-17e2h30-SearchDetail e1deq8q71"
+                                  className="css-17e2h30-SearchDetail ew3izuv1"
                                 >
                                   <span
                                     key="0"
@@ -342,13 +380,13 @@ exports[`Docs Search Modal can open help search modal and complete a search 1`] 
                     </Content>
                     <FaqsBadge>
                       <Component
-                        className="css-1ghhjdv-FaqsBadge ekxyuw12"
+                        className="css-1ghhjdv-FaqsBadge e1mm0aaq2"
                       >
                         <ResultIcon
-                          className="css-1ghhjdv-FaqsBadge ekxyuw12"
+                          className="css-1ghhjdv-FaqsBadge e1mm0aaq2"
                         >
                           <div
-                            className="ekxyuw12 css-1p74sld-ResultIcon-FaqsBadge ekxyuw10"
+                            className="e1mm0aaq2 css-1p74sld-ResultIcon-FaqsBadge e1mm0aaq0"
                           >
                             faqs
                           </div>

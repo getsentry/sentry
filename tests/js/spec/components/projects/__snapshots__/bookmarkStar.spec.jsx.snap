@@ -99,25 +99,52 @@ exports[`BookmarkStar renders 1`] = `
       onClick={[Function]}
       src="icon-star-small-filled"
     >
+<<<<<<< HEAD
       <ForwardRef
         className="css-1lg61nd-InlineSvg-Star e5ekdrk0"
+=======
+      <InlineSvg
+        className="css-fl9x15-Star euuv3ia0"
+>>>>>>> build(travis): yarn --pnp [WIP]
         isBookmarked={false}
         onClick={[Function]}
         src="icon-star-small-filled"
       >
+<<<<<<< HEAD
         <svg
           className="css-1lg61nd-InlineSvg-Star e5ekdrk0"
+=======
+        <StyledSvg
+          className="css-fl9x15-Star euuv3ia0"
+>>>>>>> build(travis): yarn --pnp [WIP]
           height="1em"
           onClick={[Function]}
           viewBox={Object {}}
           width="1em"
         >
+<<<<<<< HEAD
           <use
             href="#test"
             xlinkHref="#test"
           />
         </svg>
       </ForwardRef>
+=======
+          <svg
+            className="euuv3ia0 css-1b9wx8m-StyledSvg-Star ebb48o80"
+            height="1em"
+            onClick={[Function]}
+            viewBox={Object {}}
+            width="1em"
+          >
+            <use
+              href="#test"
+              xlinkHref="#test"
+            />
+          </svg>
+        </StyledSvg>
+      </InlineSvg>
+>>>>>>> build(travis): yarn --pnp [WIP]
     </Star>
   </BookmarkStar>
 </withApi(BookmarkStar)>

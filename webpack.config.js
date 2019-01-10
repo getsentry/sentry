@@ -13,6 +13,7 @@ const OptimizeCssAssetsPlugin = require('optimize-css-assets-webpack-plugin');
 const LodashModuleReplacementPlugin = require('lodash-webpack-plugin');
 const FixStyleOnlyEntriesPlugin = require('webpack-fix-style-only-entries');
 const CopyPlugin = require('copy-webpack-plugin');
+const PnpWebpackPlugin = require(`pnp-webpack-plugin`);
 
 const babelConfig = require('./babel.config');
 
@@ -345,6 +346,10 @@ const appConfig = {
 
     modules: ['node_modules'],
     extensions: ['.jsx', '.js', '.json', '.ts', '.tsx', '.less'],
+    plugins: [PnpWebpackPlugin],
+  },
+  resolveLoader: {
+    plugins: [PnpWebpackPlugin.moduleLoader(module)],
   },
   output: {
     path: distPath,

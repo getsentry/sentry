@@ -168,8 +168,16 @@ exports[`IssueListActions Bulk Total results < bulk limit bulk resolves 1`] = `
               <ForwardRef
                 aria-disabled={false}
                 aria-label="Cancel"
+<<<<<<< HEAD
                 className="css-4gvaqq-StyledButton-getColors edwq9my0"
+=======
+<<<<<<< HEAD:tests/js/spec/views/issueList/__snapshots__/actions.spec.jsx.snap
+                className="css-1i9cddn-StyledButton-getColors e12ma6z0"
+>>>>>>> build(travis): yarn --pnp [WIP]
                 disabled={false}
+=======
+                className="css-cmo08-StyledButton-getColors e7bsqvz0"
+>>>>>>> build(travis): yarn --pnp [WIP]:tests/js/spec/views/stream/__snapshots__/actions.spec.jsx.snap
                 onClick={[Function]}
                 role="button"
                 style={
@@ -181,7 +189,15 @@ exports[`IssueListActions Bulk Total results < bulk limit bulk resolves 1`] = `
                 <button
                   aria-disabled={false}
                   aria-label="Cancel"
+<<<<<<< HEAD
                   className="css-4gvaqq-StyledButton-getColors edwq9my0"
+=======
+<<<<<<< HEAD:tests/js/spec/views/issueList/__snapshots__/actions.spec.jsx.snap
+                  className="css-1i9cddn-StyledButton-getColors e12ma6z0"
+=======
+                  className="css-cmo08-StyledButton-getColors e7bsqvz0"
+>>>>>>> build(travis): yarn --pnp [WIP]:tests/js/spec/views/stream/__snapshots__/actions.spec.jsx.snap
+>>>>>>> build(travis): yarn --pnp [WIP]
                   onClick={[Function]}
                   role="button"
                   style={
@@ -194,11 +210,22 @@ exports[`IssueListActions Bulk Total results < bulk limit bulk resolves 1`] = `
                     align="center"
                   >
                     <Component
+<<<<<<< HEAD:tests/js/spec/views/issueList/__snapshots__/actions.spec.jsx.snap
                       align="center"
                       className="css-oo1m2a-ButtonLabel edwq9my1"
                     >
                       <span
+<<<<<<< HEAD
                         className="css-oo1m2a-ButtonLabel edwq9my1"
+=======
+                        className="css-oo1m2a-ButtonLabel e12ma6z1"
+=======
+                      className="css-ga4b18-ButtonLabel e7bsqvz1"
+                    >
+                      <span
+                        className="css-ga4b18-ButtonLabel e7bsqvz1"
+>>>>>>> build(travis): yarn --pnp [WIP]:tests/js/spec/views/stream/__snapshots__/actions.spec.jsx.snap
+>>>>>>> build(travis): yarn --pnp [WIP]
                       >
                         Cancel
                       </span>
@@ -230,7 +257,15 @@ exports[`IssueListActions Bulk Total results < bulk limit bulk resolves 1`] = `
                 aria-disabled={false}
                 aria-label="Bulk resolve issues"
                 autoFocus={true}
+<<<<<<< HEAD
                 className="css-xiynrq-StyledButton-getColors edwq9my0"
+=======
+<<<<<<< HEAD:tests/js/spec/views/issueList/__snapshots__/actions.spec.jsx.snap
+                className="css-1qchtmp-StyledButton-getColors e12ma6z0"
+=======
+                className="css-1msljz8-StyledButton-getColors e7bsqvz0"
+>>>>>>> build(travis): yarn --pnp [WIP]:tests/js/spec/views/stream/__snapshots__/actions.spec.jsx.snap
+>>>>>>> build(travis): yarn --pnp [WIP]
                 data-test-id="confirm-modal"
                 disabled={false}
                 onClick={[Function]}
@@ -241,7 +276,15 @@ exports[`IssueListActions Bulk Total results < bulk limit bulk resolves 1`] = `
                   aria-disabled={false}
                   aria-label="Bulk resolve issues"
                   autoFocus={true}
+<<<<<<< HEAD
                   className="css-xiynrq-StyledButton-getColors edwq9my0"
+=======
+<<<<<<< HEAD:tests/js/spec/views/issueList/__snapshots__/actions.spec.jsx.snap
+                  className="css-1qchtmp-StyledButton-getColors e12ma6z0"
+=======
+                  className="css-1msljz8-StyledButton-getColors e7bsqvz0"
+>>>>>>> build(travis): yarn --pnp [WIP]:tests/js/spec/views/stream/__snapshots__/actions.spec.jsx.snap
+>>>>>>> build(travis): yarn --pnp [WIP]
                   data-test-id="confirm-modal"
                   onClick={[Function]}
                   role="button"
@@ -251,12 +294,24 @@ exports[`IssueListActions Bulk Total results < bulk limit bulk resolves 1`] = `
                     priority="primary"
                   >
                     <Component
+<<<<<<< HEAD:tests/js/spec/views/issueList/__snapshots__/actions.spec.jsx.snap
                       align="center"
                       className="css-oo1m2a-ButtonLabel edwq9my1"
                       priority="primary"
                     >
                       <span
+<<<<<<< HEAD
                         className="css-oo1m2a-ButtonLabel edwq9my1"
+=======
+                        className="css-oo1m2a-ButtonLabel e12ma6z1"
+=======
+                      className="css-ga4b18-ButtonLabel e7bsqvz1"
+                      priority="primary"
+                    >
+                      <span
+                        className="css-ga4b18-ButtonLabel e7bsqvz1"
+>>>>>>> build(travis): yarn --pnp [WIP]:tests/js/spec/views/stream/__snapshots__/actions.spec.jsx.snap
+>>>>>>> build(travis): yarn --pnp [WIP]
                       >
                         Bulk resolve issues
                       </span>
@@ -473,8 +528,16 @@ exports[`IssueListActions Bulk Total results > bulk limit bulk resolves 1`] = `
               <ForwardRef
                 aria-disabled={false}
                 aria-label="Cancel"
+<<<<<<< HEAD
                 className="css-4gvaqq-StyledButton-getColors edwq9my0"
+=======
+<<<<<<< HEAD:tests/js/spec/views/issueList/__snapshots__/actions.spec.jsx.snap
+                className="css-1i9cddn-StyledButton-getColors e12ma6z0"
+>>>>>>> build(travis): yarn --pnp [WIP]
                 disabled={false}
+=======
+                className="css-cmo08-StyledButton-getColors e7bsqvz0"
+>>>>>>> build(travis): yarn --pnp [WIP]:tests/js/spec/views/stream/__snapshots__/actions.spec.jsx.snap
                 onClick={[Function]}
                 role="button"
                 style={
@@ -486,7 +549,15 @@ exports[`IssueListActions Bulk Total results > bulk limit bulk resolves 1`] = `
                 <button
                   aria-disabled={false}
                   aria-label="Cancel"
+<<<<<<< HEAD
                   className="css-4gvaqq-StyledButton-getColors edwq9my0"
+=======
+<<<<<<< HEAD:tests/js/spec/views/issueList/__snapshots__/actions.spec.jsx.snap
+                  className="css-1i9cddn-StyledButton-getColors e12ma6z0"
+=======
+                  className="css-cmo08-StyledButton-getColors e7bsqvz0"
+>>>>>>> build(travis): yarn --pnp [WIP]:tests/js/spec/views/stream/__snapshots__/actions.spec.jsx.snap
+>>>>>>> build(travis): yarn --pnp [WIP]
                   onClick={[Function]}
                   role="button"
                   style={
@@ -499,11 +570,22 @@ exports[`IssueListActions Bulk Total results > bulk limit bulk resolves 1`] = `
                     align="center"
                   >
                     <Component
+<<<<<<< HEAD:tests/js/spec/views/issueList/__snapshots__/actions.spec.jsx.snap
                       align="center"
                       className="css-oo1m2a-ButtonLabel edwq9my1"
                     >
                       <span
+<<<<<<< HEAD
                         className="css-oo1m2a-ButtonLabel edwq9my1"
+=======
+                        className="css-oo1m2a-ButtonLabel e12ma6z1"
+=======
+                      className="css-ga4b18-ButtonLabel e7bsqvz1"
+                    >
+                      <span
+                        className="css-ga4b18-ButtonLabel e7bsqvz1"
+>>>>>>> build(travis): yarn --pnp [WIP]:tests/js/spec/views/stream/__snapshots__/actions.spec.jsx.snap
+>>>>>>> build(travis): yarn --pnp [WIP]
                       >
                         Cancel
                       </span>
@@ -535,7 +617,15 @@ exports[`IssueListActions Bulk Total results > bulk limit bulk resolves 1`] = `
                 aria-disabled={false}
                 aria-label="Bulk resolve issues"
                 autoFocus={true}
+<<<<<<< HEAD
                 className="css-xiynrq-StyledButton-getColors edwq9my0"
+=======
+<<<<<<< HEAD:tests/js/spec/views/issueList/__snapshots__/actions.spec.jsx.snap
+                className="css-1qchtmp-StyledButton-getColors e12ma6z0"
+=======
+                className="css-1msljz8-StyledButton-getColors e7bsqvz0"
+>>>>>>> build(travis): yarn --pnp [WIP]:tests/js/spec/views/stream/__snapshots__/actions.spec.jsx.snap
+>>>>>>> build(travis): yarn --pnp [WIP]
                 data-test-id="confirm-modal"
                 disabled={false}
                 onClick={[Function]}
@@ -546,7 +636,15 @@ exports[`IssueListActions Bulk Total results > bulk limit bulk resolves 1`] = `
                   aria-disabled={false}
                   aria-label="Bulk resolve issues"
                   autoFocus={true}
+<<<<<<< HEAD
                   className="css-xiynrq-StyledButton-getColors edwq9my0"
+=======
+<<<<<<< HEAD:tests/js/spec/views/issueList/__snapshots__/actions.spec.jsx.snap
+                  className="css-1qchtmp-StyledButton-getColors e12ma6z0"
+=======
+                  className="css-1msljz8-StyledButton-getColors e7bsqvz0"
+>>>>>>> build(travis): yarn --pnp [WIP]:tests/js/spec/views/stream/__snapshots__/actions.spec.jsx.snap
+>>>>>>> build(travis): yarn --pnp [WIP]
                   data-test-id="confirm-modal"
                   onClick={[Function]}
                   role="button"
@@ -556,12 +654,24 @@ exports[`IssueListActions Bulk Total results > bulk limit bulk resolves 1`] = `
                     priority="primary"
                   >
                     <Component
+<<<<<<< HEAD:tests/js/spec/views/issueList/__snapshots__/actions.spec.jsx.snap
                       align="center"
                       className="css-oo1m2a-ButtonLabel edwq9my1"
                       priority="primary"
                     >
                       <span
+<<<<<<< HEAD
                         className="css-oo1m2a-ButtonLabel edwq9my1"
+=======
+                        className="css-oo1m2a-ButtonLabel e12ma6z1"
+=======
+                      className="css-ga4b18-ButtonLabel e7bsqvz1"
+                      priority="primary"
+                    >
+                      <span
+                        className="css-ga4b18-ButtonLabel e7bsqvz1"
+>>>>>>> build(travis): yarn --pnp [WIP]:tests/js/spec/views/stream/__snapshots__/actions.spec.jsx.snap
+>>>>>>> build(travis): yarn --pnp [WIP]
                       >
                         Bulk resolve issues
                       </span>

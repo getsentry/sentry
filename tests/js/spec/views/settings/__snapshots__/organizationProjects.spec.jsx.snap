@@ -56,6 +56,7 @@ exports[`OrganizationProjects Should render the projects in the store 1`] = `
     <SideEffect(DocumentTitle)
       title="Organization Name Projects - Sentry"
     >
+<<<<<<< HEAD
       <DocumentTitle
         title="Organization Name Projects - Sentry"
       >
@@ -63,6 +64,29 @@ exports[`OrganizationProjects Should render the projects in the store 1`] = `
           <SettingsPageHeading
             action={
               <Button
+=======
+      <div>
+        <SettingsPageHeading
+          action={
+            <Button
+              disabled={false}
+              icon="icon-circle-add"
+              priority="primary"
+              size="small"
+              to="/organizations/org-slug/projects/new/"
+            >
+              Create Project
+            </Button>
+          }
+          noTitleStyles={false}
+          title="Projects"
+        >
+          <Wrapper>
+            <div
+              className="css-1r5ylk7-Wrapper e1ievzxl2"
+            >
+              <Flex
+>>>>>>> build(travis): yarn --pnp [WIP]
                 align="center"
                 disabled={false}
                 icon="icon-circle-add"
@@ -91,6 +115,7 @@ exports[`OrganizationProjects Should render the projects in the store 1`] = `
                       className="css-5ipae5"
                       is={null}
                     >
+<<<<<<< HEAD
                       <Title
                         styled={false}
                       >
@@ -114,6 +139,35 @@ exports[`OrganizationProjects Should render the projects in the store 1`] = `
                       <Action>
                         <div
                           className="css-18luhfc-Action e1kblvez1"
+=======
+                      <Base
+                        className="css-1ky52ze-Title e1ievzxl0"
+                      >
+                        <div
+                          className="css-1ky52ze-Title e1ievzxl0"
+                          is={null}
+                        >
+                          <HeaderTitle>
+                            <h4
+                              className="css-1w8ttcn-HeaderTitle elc10ae2"
+                            >
+                              Projects
+                            </h4>
+                          </HeaderTitle>
+                        </div>
+                      </Base>
+                    </Title>
+                    <Action>
+                      <div
+                        className="css-18luhfc-Action e1ievzxl1"
+                      >
+                        <Button
+                          disabled={false}
+                          icon="icon-circle-add"
+                          priority="primary"
+                          size="small"
+                          to="/organizations/org-slug/projects/new/"
+>>>>>>> build(travis): yarn --pnp [WIP]
                         >
                           <Button
                             align="center"
@@ -126,7 +180,11 @@ exports[`OrganizationProjects Should render the projects in the store 1`] = `
                             <StyledButton
                               aria-disabled={false}
                               aria-label="Create Project"
+<<<<<<< HEAD
                               disabled={false}
+=======
+                              className="css-zvpqlo-StyledButton-getColors e7bsqvz0"
+>>>>>>> build(travis): yarn --pnp [WIP]
                               onClick={[Function]}
                               priority="primary"
                               role="button"
@@ -136,8 +194,16 @@ exports[`OrganizationProjects Should render the projects in the store 1`] = `
                               <ForwardRef
                                 aria-disabled={false}
                                 aria-label="Create Project"
+<<<<<<< HEAD
                                 className="css-1lua553-StyledButton-getColors edwq9my0"
+=======
+<<<<<<< HEAD
+                                className="css-23553w-StyledButton-getColors e12ma6z0"
+>>>>>>> build(travis): yarn --pnp [WIP]
                                 disabled={false}
+=======
+                                className="css-zvpqlo-StyledButton-getColors e7bsqvz0"
+>>>>>>> build(travis): yarn --pnp [WIP]
                                 onClick={[Function]}
                                 priority="primary"
                                 role="button"
@@ -147,7 +213,15 @@ exports[`OrganizationProjects Should render the projects in the store 1`] = `
                                 <Link
                                   aria-disabled={false}
                                   aria-label="Create Project"
+<<<<<<< HEAD
                                   className="css-1lua553-StyledButton-getColors edwq9my0"
+=======
+<<<<<<< HEAD
+                                  className="css-23553w-StyledButton-getColors e12ma6z0"
+=======
+                                  className="css-zvpqlo-StyledButton-getColors e7bsqvz0"
+>>>>>>> build(travis): yarn --pnp [WIP]
+>>>>>>> build(travis): yarn --pnp [WIP]
                                   onClick={[Function]}
                                   onlyActiveOnIndex={false}
                                   role="button"
@@ -164,6 +238,7 @@ exports[`OrganizationProjects Should render the projects in the store 1`] = `
                                     size="small"
                                     style={Object {}}
                                   >
+<<<<<<< HEAD
                                     <ButtonLabel
                                       align="center"
                                       priority="primary"
@@ -174,10 +249,20 @@ exports[`OrganizationProjects Should render the projects in the store 1`] = `
                                         className="css-1h693nz-ButtonLabel edwq9my1"
                                         priority="primary"
                                         size="small"
+=======
+                                    <Component
+                                      className="css-7ui8bl-ButtonLabel e7bsqvz1"
+                                      priority="primary"
+                                      size="small"
+                                    >
+                                      <span
+                                        className="css-7ui8bl-ButtonLabel e7bsqvz1"
+>>>>>>> build(travis): yarn --pnp [WIP]
                                       >
                                         <span
                                           className="css-1h693nz-ButtonLabel edwq9my1"
                                         >
+<<<<<<< HEAD
                                           <Icon
                                             hasChildren={true}
                                             size="small"
@@ -185,12 +270,22 @@ exports[`OrganizationProjects Should render the projects in the store 1`] = `
                                             <Component
                                               className="css-1vdnsie-Icon edwq9my2"
                                               hasChildren={true}
+=======
+                                          <Component
+                                            className="css-1vdnsie-Icon e7bsqvz2"
+                                            hasChildren={true}
+                                            size="small"
+                                          >
+                                            <span
+                                              className="css-1vdnsie-Icon e7bsqvz2"
+>>>>>>> build(travis): yarn --pnp [WIP]
                                               size="small"
                                             >
                                               <span
                                                 className="css-1vdnsie-Icon edwq9my2"
                                                 size="small"
                                               >
+<<<<<<< HEAD
                                                 <StyledInlineSvg
                                                   size="12px"
                                                   src="icon-circle-add"
@@ -200,18 +295,55 @@ exports[`OrganizationProjects Should render the projects in the store 1`] = `
                                                     size="12px"
                                                     src="icon-circle-add"
                                                   >
+<<<<<<< HEAD
                                                     <svg
                                                       className="css-52zz4j-InlineSvg-StyledInlineSvg edwq9my3"
+=======
+                                                    <StyledSvg
+                                                      className="css-1ov3rcq-StyledInlineSvg e12ma6z3"
+=======
+                                                <InlineSvg
+                                                  className="css-1ov3rcq-StyledInlineSvg e7bsqvz3"
+                                                  size="12px"
+                                                  src="icon-circle-add"
+                                                >
+                                                  <StyledSvg
+                                                    className="css-1ov3rcq-StyledInlineSvg e7bsqvz3"
+                                                    height="12px"
+                                                    viewBox={Object {}}
+                                                    width="12px"
+                                                  >
+                                                    <svg
+                                                      className="e7bsqvz3 css-1jjmnki-StyledSvg-StyledInlineSvg ebb48o80"
+>>>>>>> build(travis): yarn --pnp [WIP]
+>>>>>>> build(travis): yarn --pnp [WIP]
                                                       height="12px"
                                                       viewBox={Object {}}
                                                       width="12px"
                                                     >
+<<<<<<< HEAD
                                                       <use
                                                         href="#test"
                                                         xlinkHref="#test"
                                                       />
                                                     </svg>
                                                   </ForwardRef>
+=======
+<<<<<<< HEAD
+                                                      <svg
+                                                        className="e12ma6z3 css-1jjmnki-StyledSvg-StyledInlineSvg e2idor0"
+                                                        height="12px"
+                                                        viewBox={Object {}}
+                                                        width="12px"
+                                                      >
+                                                        <use
+                                                          href="#test"
+                                                          xlinkHref="#test"
+                                                        />
+                                                      </svg>
+                                                    </StyledSvg>
+                                                  </InlineSvg>
+>>>>>>> build(travis): yarn --pnp [WIP]
                                                 </StyledInlineSvg>
                                               </span>
                                             </Component>
@@ -235,20 +367,72 @@ exports[`OrganizationProjects Should render the projects in the store 1`] = `
           </SettingsPageHeading>
           <Panel>
             <Component
+<<<<<<< HEAD
               className="css-10qfvek-Panel e119nu470"
+=======
+              className="css-10qfvek-Panel e1laxa7d0"
+=======
+                                                      <use
+                                                        href="#test"
+                                                        xlinkHref="#test"
+                                                      />
+                                                    </svg>
+                                                  </StyledSvg>
+                                                </InlineSvg>
+                                              </StyledInlineSvg>
+                                            </span>
+                                          </Component>
+                                        </Icon>
+                                        Create Project
+                                      </span>
+                                    </Component>
+                                  </ButtonLabel>
+                                </a>
+                              </Link>
+                            </Component>
+                          </StyledButton>
+                        </Button>
+                      </div>
+                    </Action>
+                  </div>
+                </Base>
+              </Flex>
+            </div>
+          </Wrapper>
+        </SettingsPageHeading>
+        <Panel>
+          <Component
+            className="css-yahxlu-Panel e16u4s2c0"
+          >
+            <div
+              className="css-yahxlu-Panel e16u4s2c0"
+>>>>>>> build(travis): yarn --pnp [WIP]
+>>>>>>> build(travis): yarn --pnp [WIP]
             >
               <div
                 className="css-10qfvek-Panel e119nu470"
               >
+<<<<<<< HEAD
                 <PanelHeader
                   hasButtons={true}
                 >
                   <Component
                     className="css-1m2bast-PanelHeader-getPadding e1p8v8nv0"
                     hasButtons={true}
+=======
+                <Component
+                  className="css-jmvceg-PanelHeader-getPadding e1o9kety0"
+                  hasButtons={true}
+                >
+                  <Flex
+                    align="center"
+                    className="css-jmvceg-PanelHeader-getPadding e1o9kety0"
+                    justify="space-between"
+>>>>>>> build(travis): yarn --pnp [WIP]
                   >
                     <Flex
                       align="center"
+<<<<<<< HEAD
                       className="css-1m2bast-PanelHeader-getPadding e1p8v8nv0"
                       justify="space-between"
                     >
@@ -256,6 +440,14 @@ exports[`OrganizationProjects Should render the projects in the store 1`] = `
                         align="center"
                         className="e1p8v8nv0 css-yowjp-PanelHeader-getPadding"
                         justify="space-between"
+=======
+                      className="e1o9kety0 css-19i62qd-PanelHeader-getPadding"
+                      justify="space-between"
+                    >
+                      <div
+                        className="e1o9kety0 css-19i62qd-PanelHeader-getPadding"
+                        is={null}
+>>>>>>> build(travis): yarn --pnp [WIP]
                       >
                         <div
                           className="e1p8v8nv0 css-yowjp-PanelHeader-getPadding"
@@ -339,15 +531,25 @@ exports[`OrganizationProjects Should render the projects in the store 1`] = `
                               updateRoute={true}
                               url="/organizations/org-slug/projects/"
                             >
+<<<<<<< HEAD
                               <Form
+=======
+                              <form
+                                className="css-vfrmj7-Form eohhsvj1"
+>>>>>>> build(travis): yarn --pnp [WIP]
                                 onSubmit={[Function]}
                               >
                                 <form
                                   className="css-vfrmj7-Form et3a3ng1"
                                   onSubmit={[Function]}
                                 >
+<<<<<<< HEAD
                                   <Input
                                     className="search"
+=======
+                                  <input
+                                    className="search css-pzg7em-Input-inputStyles e1ebb8kf0"
+>>>>>>> build(travis): yarn --pnp [WIP]
                                     onChange={[Function]}
                                     placeholder="Search Projects"
                                     value=""
@@ -379,6 +581,7 @@ exports[`OrganizationProjects Should render the projects in the store 1`] = `
                   >
                     <PanelItem
                       align="center"
+<<<<<<< HEAD
                       key="2"
                       p={0}
                     >
@@ -386,6 +589,14 @@ exports[`OrganizationProjects Should render the projects in the store 1`] = `
                         align="center"
                         className="css-1jykl04-PanelItem eo8n7lk0"
                         p={0}
+=======
+                      className="css-1jykl04-PanelItem egwqg5y0"
+                      p={0}
+                    >
+                      <div
+                        className="css-1jykl04-PanelItem egwqg5y0"
+                        is={null}
+>>>>>>> build(travis): yarn --pnp [WIP]
                       >
                         <div
                           className="css-1jykl04-PanelItem eo8n7lk0"
@@ -446,13 +657,23 @@ exports[`OrganizationProjects Should render the projects in the store 1`] = `
                                     }
                                   }
                                 >
+<<<<<<< HEAD
                                   <Container
                                     key="2"
+=======
+                                  <div
+                                    className="css-9ku3o0-Container e11dd86m0"
+>>>>>>> build(travis): yarn --pnp [WIP]
                                   >
                                     <div
                                       className="css-9ku3o0-Container enngb6z0"
                                     >
+<<<<<<< HEAD
                                       <BookmarkLink
+=======
+                                      <withApi(BookmarkStar)
+                                        className="css-10z01iz-BookmarkLink e11dd86m1"
+>>>>>>> build(travis): yarn --pnp [WIP]
                                         isBookmarked={false}
                                         onToggle={[Function]}
                                         organization={
@@ -496,8 +717,14 @@ exports[`OrganizationProjects Should render the projects in the store 1`] = `
                                           }
                                         }
                                       >
+<<<<<<< HEAD
                                         <withApi(BookmarkStar)
                                           className="css-10z01iz-BookmarkLink enngb6z1"
+=======
+                                        <BookmarkStar
+                                          api={Client {}}
+                                          className="css-10z01iz-BookmarkLink e11dd86m1"
+>>>>>>> build(travis): yarn --pnp [WIP]
                                           isBookmarked={false}
                                           onToggle={[Function]}
                                           organization={
@@ -541,6 +768,7 @@ exports[`OrganizationProjects Should render the projects in the store 1`] = `
                                             }
                                           }
                                         >
+<<<<<<< HEAD
                                           <BookmarkStar
                                             api={
                                               Client {
@@ -552,6 +780,10 @@ exports[`OrganizationProjects Should render the projects in the store 1`] = `
                                               }
                                             }
                                             className="css-10z01iz-BookmarkLink enngb6z1"
+=======
+                                          <Star
+                                            className="css-10z01iz-BookmarkLink e11dd86m1"
+>>>>>>> build(travis): yarn --pnp [WIP]
                                             isBookmarked={false}
                                             onToggle={[Function]}
                                             organization={
@@ -595,20 +827,46 @@ exports[`OrganizationProjects Should render the projects in the store 1`] = `
                                               }
                                             }
                                           >
+<<<<<<< HEAD
                                             <Star
                                               className="css-10z01iz-BookmarkLink enngb6z1"
+=======
+                                            <InlineSvg
+                                              className="e11dd86m1 css-1j5sthu-Star-BookmarkLink e3oiqkq0"
+>>>>>>> build(travis): yarn --pnp [WIP]
                                               isBookmarked={false}
                                               onClick={[Function]}
                                               src="icon-star-small-filled"
                                             >
+<<<<<<< HEAD
                                               <ForwardRef
                                                 className="enngb6z1 css-judnc9-InlineSvg-Star-BookmarkLink e5ekdrk0"
+=======
+<<<<<<< HEAD
+                                              <InlineSvg
+                                                className="enngb6z1 css-1j5sthu-Star-BookmarkLink e5ekdrk0"
+=======
+                                              <StyledSvg
+                                                className="e11dd86m1 css-1j5sthu-Star-BookmarkLink e3oiqkq0"
+                                                height="1em"
+>>>>>>> build(travis): yarn --pnp [WIP]
+>>>>>>> build(travis): yarn --pnp [WIP]
                                                 isBookmarked={false}
                                                 onClick={[Function]}
                                                 src="icon-star-small-filled"
                                               >
+<<<<<<< HEAD
                                                 <svg
                                                   className="enngb6z1 css-judnc9-InlineSvg-Star-BookmarkLink e5ekdrk0"
+=======
+<<<<<<< HEAD
+                                                <StyledSvg
+                                                  className="enngb6z1 css-1j5sthu-Star-BookmarkLink e5ekdrk0"
+=======
+                                                <svg
+                                                  className="e11dd86m1 e3oiqkq0 css-85qks9-StyledSvg-Star-BookmarkLink ebb48o80"
+>>>>>>> build(travis): yarn --pnp [WIP]
+>>>>>>> build(travis): yarn --pnp [WIP]
                                                   height="1em"
                                                   onClick={[Function]}
                                                   viewBox={Object {}}
@@ -709,6 +967,7 @@ exports[`OrganizationProjects Should render the projects in the store 1`] = `
                                     }
                                   }
                                 >
+<<<<<<< HEAD
                                   <div />
                                 </ProjectStatsGraph>
                               </div>
@@ -727,4 +986,114 @@ exports[`OrganizationProjects Should render the projects in the store 1`] = `
     </SideEffect(DocumentTitle)>
   </OrganizationProjects>
 </WithOrganizationMockWrapper>
+=======
+                                  <Component
+                                    aria-disabled={false}
+                                    aria-label="Settings"
+                                    className="css-dkprmi-StyledButton-getColors e7bsqvz0"
+                                    onClick={[Function]}
+                                    role="button"
+                                    size="small"
+                                    to="/settings/org-slug/projects/project-slug/"
+                                  >
+                                    <Link
+                                      aria-disabled={false}
+                                      aria-label="Settings"
+                                      className="css-dkprmi-StyledButton-getColors e7bsqvz0"
+                                      onClick={[Function]}
+                                      onlyActiveOnIndex={false}
+                                      role="button"
+                                      size="small"
+                                      style={Object {}}
+                                      to="/settings/org-slug/projects/project-slug/"
+                                    >
+                                      <a
+                                        aria-disabled={false}
+                                        aria-label="Settings"
+                                        className="css-dkprmi-StyledButton-getColors e7bsqvz0"
+                                        onClick={[Function]}
+                                        role="button"
+                                        size="small"
+                                        style={Object {}}
+                                      >
+                                        <ButtonLabel
+                                          size="small"
+                                        >
+                                          <Component
+                                            className="css-7ui8bl-ButtonLabel e7bsqvz1"
+                                            size="small"
+                                          >
+                                            <span
+                                              className="css-7ui8bl-ButtonLabel e7bsqvz1"
+                                            >
+                                              <Icon
+                                                hasChildren={true}
+                                                size="small"
+                                              >
+                                                <Component
+                                                  className="css-1vdnsie-Icon e7bsqvz2"
+                                                  hasChildren={true}
+                                                  size="small"
+                                                >
+                                                  <span
+                                                    className="css-1vdnsie-Icon e7bsqvz2"
+                                                    size="small"
+                                                  >
+                                                    <StyledInlineSvg
+                                                      size="12px"
+                                                      src="icon-settings"
+                                                    >
+                                                      <InlineSvg
+                                                        className="css-1ov3rcq-StyledInlineSvg e7bsqvz3"
+                                                        size="12px"
+                                                        src="icon-settings"
+                                                      >
+                                                        <StyledSvg
+                                                          className="css-1ov3rcq-StyledInlineSvg e7bsqvz3"
+                                                          height="12px"
+                                                          viewBox={Object {}}
+                                                          width="12px"
+                                                        >
+                                                          <svg
+                                                            className="e7bsqvz3 css-1jjmnki-StyledSvg-StyledInlineSvg ebb48o80"
+                                                            height="12px"
+                                                            viewBox={Object {}}
+                                                            width="12px"
+                                                          >
+                                                            <use
+                                                              href="#test"
+                                                              xlinkHref="#test"
+                                                            />
+                                                          </svg>
+                                                        </StyledSvg>
+                                                      </InlineSvg>
+                                                    </StyledInlineSvg>
+                                                  </span>
+                                                </Component>
+                                              </Icon>
+                                              Settings
+                                            </span>
+                                          </Component>
+                                        </ButtonLabel>
+                                      </a>
+                                    </Link>
+                                  </Component>
+                                </StyledButton>
+                              </Button>
+                            </div>
+                          </Base>
+                        </Box>
+                      </div>
+                    </Base>
+                  </PanelItem>
+                </div>
+              </PanelBody>
+            </div>
+          </Component>
+        </Panel>
+      </div>
+    </DocumentTitle>
+  </SideEffect(DocumentTitle)>
+</OrganizationProjects>
+>>>>>>> build(travis): yarn --pnp [WIP]
 `;

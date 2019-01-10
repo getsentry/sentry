@@ -88,7 +88,20 @@ exports[`IntegrationDetailsModal renders simple integration 1`] = `
           <div
             className="css-6ynrd7-PluginIcon e7e65lm0"
             size={50}
+<<<<<<< HEAD
           />
+=======
+          >
+            <div
+<<<<<<< HEAD
+              className="css-1x3ikxe-IntegrationIcon e1bhjds90"
+=======
+              className="css-duaev8-IntegrationIcon e1ehkbfw0"
+>>>>>>> build(travis): yarn --pnp [WIP]
+              size={50}
+            />
+          </IntegrationIcon>
+>>>>>>> build(travis): yarn --pnp [WIP]
         </PluginIcon>
         <Flex
           align="flex-start"
@@ -111,6 +124,7 @@ exports[`IntegrationDetailsModal renders simple integration 1`] = `
                 data-test-id="provider-name"
               >
                 <Component
+<<<<<<< HEAD
                   className="css-1pygq0m-ProviderName e1rf4mlr1"
                   data-test-id="provider-name"
                 >
@@ -125,6 +139,18 @@ exports[`IntegrationDetailsModal renders simple integration 1`] = `
                       <div
                         className="e1rf4mlr1 css-cswdqk-ProviderName"
                         data-test-id="provider-name"
+=======
+                  className="css-1pygq0m-ProviderName e1p1obno1"
+                >
+                  <Box
+                    className="css-1pygq0m-ProviderName e1p1obno1"
+                  >
+                    <Base
+                      className="e1p1obno1 css-cswdqk-ProviderName"
+                    >
+                      <div
+                        className="e1p1obno1 css-cswdqk-ProviderName"
+>>>>>>> build(travis): yarn --pnp [WIP]
                         is={null}
                       >
                         GitHub Integration
@@ -160,7 +186,7 @@ exports[`IntegrationDetailsModal renders simple integration 1`] = `
     }
   >
     <div
-      className="css-zqji3g-Description e1rf4mlr2"
+      className="css-zqji3g-Description e1p1obno2"
       dangerouslySetInnerHTML={
         Object {
           "__html": "<p><em>markdown</em> formatted <em>description</em></p>
@@ -264,21 +290,21 @@ exports[`IntegrationDetailsModal renders simple integration 1`] = `
   </FeatureList>
   <Metadata>
     <Base
-      className="css-xm93tv-Metadata e1rf4mlr3"
+      className="css-xm93tv-Metadata e1p1obno3"
     >
       <div
-        className="css-xm93tv-Metadata e1rf4mlr3"
+        className="css-xm93tv-Metadata e1p1obno3"
         is={null}
       >
         <AuthorName
           flex={1}
         >
           <Base
-            className="css-1uwqb6n-AuthorName e1rf4mlr4"
+            className="css-1uwqb6n-AuthorName e1p1obno4"
             flex={1}
           >
             <div
-              className="css-1uwqb6n-AuthorName e1rf4mlr4"
+              className="css-1uwqb6n-AuthorName e1p1obno4"
               is={null}
             >
               By Morty
@@ -337,15 +363,19 @@ exports[`IntegrationDetailsModal renders simple integration 1`] = `
       type="warning"
     >
       <div
+<<<<<<< HEAD
         className="ref-warning css-osoqhl-AlertWrapper-alertStyles e1xb5l7j1"
+=======
+        className="ref-warning css-fcu40c-AlertWrapper ec2ue531"
+>>>>>>> build(travis): yarn --pnp [WIP]
         type="warning"
       >
         <StyledTextBlock>
           <Component
-            className="css-1h3n7tg-TextBlock-StyledTextBlock e1xb5l7j2"
+            className="css-1h3n7tg-TextBlock-StyledTextBlock ec2ue532"
           >
             <div
-              className="css-1h3n7tg-TextBlock-StyledTextBlock e1xb5l7j2"
+              className="css-1h3n7tg-TextBlock-StyledTextBlock ec2ue532"
             >
               <span
                 dangerouslySetInnerHTML={
@@ -426,9 +456,17 @@ exports[`IntegrationDetailsModal renders simple integration 1`] = `
           <ForwardRef
             aria-disabled={false}
             aria-label="Cancel"
+<<<<<<< HEAD
             className="css-z6hjis-StyledButton-getColors edwq9my0"
+=======
+<<<<<<< HEAD
+            className="css-1uhlusb-StyledButton-getColors e12ma6z0"
+>>>>>>> build(travis): yarn --pnp [WIP]
             data-test-id="cancel-button"
             disabled={false}
+=======
+            className="css-dkprmi-StyledButton-getColors e7bsqvz0"
+>>>>>>> build(travis): yarn --pnp [WIP]
             onClick={[Function]}
             role="button"
             size="small"
@@ -436,8 +474,16 @@ exports[`IntegrationDetailsModal renders simple integration 1`] = `
             <button
               aria-disabled={false}
               aria-label="Cancel"
+<<<<<<< HEAD
               className="css-z6hjis-StyledButton-getColors edwq9my0"
+=======
+<<<<<<< HEAD
+              className="css-1uhlusb-StyledButton-getColors e12ma6z0"
+>>>>>>> build(travis): yarn --pnp [WIP]
               data-test-id="cancel-button"
+=======
+              className="css-dkprmi-StyledButton-getColors e7bsqvz0"
+>>>>>>> build(travis): yarn --pnp [WIP]
               onClick={[Function]}
               role="button"
               size="small"
@@ -447,12 +493,24 @@ exports[`IntegrationDetailsModal renders simple integration 1`] = `
                 size="small"
               >
                 <Component
+<<<<<<< HEAD
                   align="center"
                   className="css-1h693nz-ButtonLabel edwq9my1"
                   size="small"
                 >
                   <span
+<<<<<<< HEAD
                     className="css-1h693nz-ButtonLabel edwq9my1"
+=======
+                    className="css-1h693nz-ButtonLabel e12ma6z1"
+=======
+                  className="css-7ui8bl-ButtonLabel e7bsqvz1"
+                  size="small"
+                >
+                  <span
+                    className="css-7ui8bl-ButtonLabel e7bsqvz1"
+>>>>>>> build(travis): yarn --pnp [WIP]
+>>>>>>> build(travis): yarn --pnp [WIP]
                   >
                     Cancel
                   </span>
@@ -760,9 +818,17 @@ exports[`IntegrationDetailsModal renders simple integration 1`] = `
                           <ForwardRef
                             aria-disabled={false}
                             aria-label="Add Installation"
+<<<<<<< HEAD
                             className="css-1lua553-StyledButton-getColors edwq9my0"
+=======
+<<<<<<< HEAD
+                            className="css-23553w-StyledButton-getColors e12ma6z0"
+>>>>>>> build(travis): yarn --pnp [WIP]
                             data-test-id="add-button"
                             disabled={false}
+=======
+                            className="css-zvpqlo-StyledButton-getColors e7bsqvz0"
+>>>>>>> build(travis): yarn --pnp [WIP]
                             onClick={[Function]}
                             priority="primary"
                             role="button"
@@ -776,8 +842,16 @@ exports[`IntegrationDetailsModal renders simple integration 1`] = `
                             <button
                               aria-disabled={false}
                               aria-label="Add Installation"
+<<<<<<< HEAD
                               className="css-1lua553-StyledButton-getColors edwq9my0"
+=======
+<<<<<<< HEAD
+                              className="css-23553w-StyledButton-getColors e12ma6z0"
+>>>>>>> build(travis): yarn --pnp [WIP]
                               data-test-id="add-button"
+=======
+                              className="css-zvpqlo-StyledButton-getColors e7bsqvz0"
+>>>>>>> build(travis): yarn --pnp [WIP]
                               onClick={[Function]}
                               role="button"
                               size="small"
@@ -793,13 +867,29 @@ exports[`IntegrationDetailsModal renders simple integration 1`] = `
                                 size="small"
                               >
                                 <Component
+<<<<<<< HEAD
                                   align="center"
+<<<<<<< HEAD
                                   className="css-1h693nz-ButtonLabel edwq9my1"
+=======
+                                  className="css-1h693nz-ButtonLabel e12ma6z1"
+=======
+                                  className="css-7ui8bl-ButtonLabel e7bsqvz1"
+>>>>>>> build(travis): yarn --pnp [WIP]
+>>>>>>> build(travis): yarn --pnp [WIP]
                                   priority="primary"
                                   size="small"
                                 >
                                   <span
+<<<<<<< HEAD
                                     className="css-1h693nz-ButtonLabel edwq9my1"
+=======
+<<<<<<< HEAD
+                                    className="css-1h693nz-ButtonLabel e12ma6z1"
+=======
+                                    className="css-7ui8bl-ButtonLabel e7bsqvz1"
+>>>>>>> build(travis): yarn --pnp [WIP]
+>>>>>>> build(travis): yarn --pnp [WIP]
                                   >
                                     Add Installation
                                   </span>

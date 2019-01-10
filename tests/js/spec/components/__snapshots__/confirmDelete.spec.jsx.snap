@@ -41,15 +41,19 @@ exports[`ConfirmDelete renders 1`] = `
               type="error"
             >
               <div
+<<<<<<< HEAD
                 className="ref-error css-1wei48e-AlertWrapper-alertStyles e1xb5l7j1"
+=======
+                className="ref-error css-2p634r-AlertWrapper ec2ue531"
+>>>>>>> build(travis): yarn --pnp [WIP]
                 type="error"
               >
                 <StyledTextBlock>
                   <Component
-                    className="css-1h3n7tg-TextBlock-StyledTextBlock e1xb5l7j2"
+                    className="css-1h3n7tg-TextBlock-StyledTextBlock ec2ue532"
                   >
                     <div
-                      className="css-1h3n7tg-TextBlock-StyledTextBlock e1xb5l7j2"
+                      className="css-1h3n7tg-TextBlock-StyledTextBlock ec2ue532"
                     >
                       Are you sure?
                     </div>
@@ -81,6 +85,7 @@ exports[`ConfirmDelete renders 1`] = `
               inline={false}
             >
               <Component
+<<<<<<< HEAD
                 className="css-1iv7wxj-FieldWrapper-getPadding-borderStyle-inlineStyle etqqcs20"
               >
                 <Flex
@@ -91,23 +96,35 @@ exports[`ConfirmDelete renders 1`] = `
                   >
                     <div
                       className="etqqcs20 css-k3lnij-FieldWrapper-getPadding-borderStyle-inlineStyle"
+=======
+                className="css-11ihpht-FieldWrapper-getPadding-borderStyle-inlineStyle eor2x1f0"
+              >
+                <Flex
+                  className="css-11ihpht-FieldWrapper-getPadding-borderStyle-inlineStyle eor2x1f0"
+                >
+                  <Base
+                    className="eor2x1f0 css-1uohzo7-FieldWrapper-getPadding-borderStyle-inlineStyle"
+                  >
+                    <div
+                      className="eor2x1f0 css-1uohzo7-FieldWrapper-getPadding-borderStyle-inlineStyle"
+>>>>>>> build(travis): yarn --pnp [WIP]
                       is={null}
                     >
                       <FieldDescription
                         inline={false}
                       >
                         <Component
-                          className="css-jq43rd-FieldDescription-inlineStyle e12jefmo0"
+                          className="css-jq43rd-FieldDescription-inlineStyle e1u3y7hh0"
                           inline={false}
                         >
                           <label
-                            className="css-jq43rd-FieldDescription-inlineStyle e12jefmo0"
+                            className="css-jq43rd-FieldDescription-inlineStyle e1u3y7hh0"
                           >
                             <FieldLabel
                               disabled={false}
                             >
                               <div
-                                className="css-qzvhly-FieldLabel ejkuyjq0"
+                                className="css-qzvhly-FieldLabel e64kz9v0"
                               >
                                 <div>
                                   Please enter 
@@ -132,31 +149,31 @@ exports[`ConfirmDelete renders 1`] = `
                           inline={false}
                         >
                           <Component
-                            className="css-1ge7tqf-FieldControlErrorWrapper e78b1iv0"
+                            className="css-1ge7tqf-FieldControlErrorWrapper e11oxwlm0"
                             inline={false}
                           >
                             <Box
-                              className="css-1ge7tqf-FieldControlErrorWrapper e78b1iv0"
+                              className="css-1ge7tqf-FieldControlErrorWrapper e11oxwlm0"
                             >
                               <Base
-                                className="e78b1iv0 css-nnn2ut-FieldControlErrorWrapper"
+                                className="e11oxwlm0 css-nnn2ut-FieldControlErrorWrapper"
                               >
                                 <div
-                                  className="e78b1iv0 css-nnn2ut-FieldControlErrorWrapper"
+                                  className="e11oxwlm0 css-nnn2ut-FieldControlErrorWrapper"
                                   is={null}
                                 >
                                   <FieldControlWrapper>
                                     <Component
-                                      className="css-1ke1xob-FieldControlWrapper e78b1iv2"
+                                      className="css-1ke1xob-FieldControlWrapper e11oxwlm2"
                                     >
                                       <Flex
-                                        className="css-1ke1xob-FieldControlWrapper e78b1iv2"
+                                        className="css-1ke1xob-FieldControlWrapper e11oxwlm2"
                                       >
                                         <Base
-                                          className="e78b1iv2 css-w4o1g8-FieldControlWrapper"
+                                          className="e11oxwlm2 css-w4o1g8-FieldControlWrapper"
                                         >
                                           <div
-                                            className="e78b1iv2 css-w4o1g8-FieldControlWrapper"
+                                            className="e11oxwlm2 css-w4o1g8-FieldControlWrapper"
                                             is={null}
                                           >
                                             <FieldControlStyled
@@ -164,16 +181,16 @@ exports[`ConfirmDelete renders 1`] = `
                                             >
                                               <Component
                                                 alignRight={false}
-                                                className="css-1pkvhmy-FieldControlStyled e78b1iv1"
+                                                className="css-1pkvhmy-FieldControlStyled e11oxwlm1"
                                               >
                                                 <Box
-                                                  className="css-1pkvhmy-FieldControlStyled e78b1iv1"
+                                                  className="css-1pkvhmy-FieldControlStyled e11oxwlm1"
                                                 >
                                                   <Base
-                                                    className="e78b1iv1 css-wkkbba-FieldControlStyled"
+                                                    className="e11oxwlm1 css-wkkbba-FieldControlStyled"
                                                   >
                                                     <div
-                                                      className="e78b1iv1 css-wkkbba-FieldControlStyled"
+                                                      className="e11oxwlm1 css-wkkbba-FieldControlStyled"
                                                       is={null}
                                                     >
                                                       <Input
@@ -183,7 +200,15 @@ exports[`ConfirmDelete renders 1`] = `
                                                         value=""
                                                       >
                                                         <input
+<<<<<<< HEAD
                                                           className="css-1b7nva7-Input-inputStyles e1xej46s0"
+=======
+<<<<<<< HEAD
+                                                          className="css-13yodx8-Input-inputStyles e1xej46s0"
+=======
+                                                          className="css-pzg7em-Input-inputStyles e1ebb8kf0"
+>>>>>>> build(travis): yarn --pnp [WIP]
+>>>>>>> build(travis): yarn --pnp [WIP]
                                                           onChange={[Function]}
                                                           placeholder="CoolOrg"
                                                           type="text"
@@ -199,17 +224,17 @@ exports[`ConfirmDelete renders 1`] = `
                                               flexibleControlStateSize={true}
                                             >
                                               <Component
-                                                className="css-1x60lk6-FieldControlState e1rziqw00"
+                                                className="css-1x60lk6-FieldControlState eydu7x30"
                                                 flexibleControlStateSize={true}
                                               >
                                                 <Flex
-                                                  className="css-1x60lk6-FieldControlState e1rziqw00"
+                                                  className="css-1x60lk6-FieldControlState eydu7x30"
                                                 >
                                                   <Base
-                                                    className="e1rziqw00 css-dgyrfj-FieldControlState"
+                                                    className="eydu7x30 css-dgyrfj-FieldControlState"
                                                   >
                                                     <div
-                                                      className="e1rziqw00 css-dgyrfj-FieldControlState"
+                                                      className="eydu7x30 css-dgyrfj-FieldControlState"
                                                       is={null}
                                                     />
                                                   </Base>
@@ -262,8 +287,16 @@ exports[`ConfirmDelete renders 1`] = `
               <ForwardRef
                 aria-disabled={false}
                 aria-label="Cancel"
+<<<<<<< HEAD
                 className="css-4gvaqq-StyledButton-getColors edwq9my0"
+=======
+<<<<<<< HEAD
+                className="css-1i9cddn-StyledButton-getColors e12ma6z0"
+>>>>>>> build(travis): yarn --pnp [WIP]
                 disabled={false}
+=======
+                className="css-cmo08-StyledButton-getColors e7bsqvz0"
+>>>>>>> build(travis): yarn --pnp [WIP]
                 onClick={[Function]}
                 role="button"
                 style={
@@ -275,7 +308,15 @@ exports[`ConfirmDelete renders 1`] = `
                 <button
                   aria-disabled={false}
                   aria-label="Cancel"
+<<<<<<< HEAD
                   className="css-4gvaqq-StyledButton-getColors edwq9my0"
+=======
+<<<<<<< HEAD
+                  className="css-1i9cddn-StyledButton-getColors e12ma6z0"
+=======
+                  className="css-cmo08-StyledButton-getColors e7bsqvz0"
+>>>>>>> build(travis): yarn --pnp [WIP]
+>>>>>>> build(travis): yarn --pnp [WIP]
                   onClick={[Function]}
                   role="button"
                   style={
@@ -288,11 +329,22 @@ exports[`ConfirmDelete renders 1`] = `
                     align="center"
                   >
                     <Component
+<<<<<<< HEAD
                       align="center"
                       className="css-oo1m2a-ButtonLabel edwq9my1"
                     >
                       <span
+<<<<<<< HEAD
                         className="css-oo1m2a-ButtonLabel edwq9my1"
+=======
+                        className="css-oo1m2a-ButtonLabel e12ma6z1"
+=======
+                      className="css-ga4b18-ButtonLabel e7bsqvz1"
+                    >
+                      <span
+                        className="css-ga4b18-ButtonLabel e7bsqvz1"
+>>>>>>> build(travis): yarn --pnp [WIP]
+>>>>>>> build(travis): yarn --pnp [WIP]
                       >
                         Cancel
                       </span>
@@ -324,7 +376,15 @@ exports[`ConfirmDelete renders 1`] = `
                 aria-disabled={true}
                 aria-label="Confirm"
                 autoFocus={true}
+<<<<<<< HEAD
                 className="css-pbzt2j-StyledButton-getColors edwq9my0"
+=======
+<<<<<<< HEAD
+                className="css-1y2tnyd-StyledButton-getColors e12ma6z0"
+=======
+                className="css-bo8dlg-StyledButton-getColors e7bsqvz0"
+>>>>>>> build(travis): yarn --pnp [WIP]
+>>>>>>> build(travis): yarn --pnp [WIP]
                 data-test-id="confirm-modal"
                 disabled={true}
                 onClick={[Function]}
@@ -335,7 +395,15 @@ exports[`ConfirmDelete renders 1`] = `
                   aria-disabled={true}
                   aria-label="Confirm"
                   autoFocus={true}
+<<<<<<< HEAD
                   className="css-pbzt2j-StyledButton-getColors edwq9my0"
+=======
+<<<<<<< HEAD
+                  className="css-1y2tnyd-StyledButton-getColors e12ma6z0"
+=======
+                  className="css-bo8dlg-StyledButton-getColors e7bsqvz0"
+>>>>>>> build(travis): yarn --pnp [WIP]
+>>>>>>> build(travis): yarn --pnp [WIP]
                   data-test-id="confirm-modal"
                   onClick={[Function]}
                   role="button"
@@ -345,12 +413,24 @@ exports[`ConfirmDelete renders 1`] = `
                     priority="primary"
                   >
                     <Component
+<<<<<<< HEAD
                       align="center"
                       className="css-oo1m2a-ButtonLabel edwq9my1"
                       priority="primary"
                     >
                       <span
+<<<<<<< HEAD
                         className="css-oo1m2a-ButtonLabel edwq9my1"
+=======
+                        className="css-oo1m2a-ButtonLabel e12ma6z1"
+=======
+                      className="css-ga4b18-ButtonLabel e7bsqvz1"
+                      priority="primary"
+                    >
+                      <span
+                        className="css-ga4b18-ButtonLabel e7bsqvz1"
+>>>>>>> build(travis): yarn --pnp [WIP]
+>>>>>>> build(travis): yarn --pnp [WIP]
                       >
                         Confirm
                       </span>

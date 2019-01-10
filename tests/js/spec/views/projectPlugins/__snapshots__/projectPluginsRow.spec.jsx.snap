@@ -138,16 +138,51 @@ exports[`ProjectPluginRow renders 1`] = `
             >
               <PluginInfo>
                 <div
+<<<<<<< HEAD
                   className="css-sm2hu2-PluginInfo e1y7j6vq0"
+=======
+                  className="css-sm2hu2-PluginInfo ensvjrv0"
+>>>>>>> build(travis): yarn --pnp [WIP]
                 >
                   <StyledPluginIcon
                     pluginId="amazon-sqs"
                     size={48}
                   >
+<<<<<<< HEAD
                     <div
                       className="css-188xbn-PluginIcon-StyledPluginIcon e1y7j6vq2"
                       size={48}
                     />
+=======
+                    <PluginIcon
+<<<<<<< HEAD
+                      className="css-228l0j-StyledPluginIcon e1y7j6vq2"
+=======
+                      className="css-228l0j-StyledPluginIcon ensvjrv2"
+>>>>>>> build(travis): yarn --pnp [WIP]
+                      pluginId="amazon-sqs"
+                      size={48}
+                    >
+                      <IntegrationIcon
+<<<<<<< HEAD
+                        className="css-228l0j-StyledPluginIcon e1y7j6vq2"
+=======
+                        className="css-228l0j-StyledPluginIcon ensvjrv2"
+>>>>>>> build(travis): yarn --pnp [WIP]
+                        image={Object {}}
+                        size={48}
+                      >
+                        <div
+<<<<<<< HEAD
+                          className="e1y7j6vq2 css-vzj3gb-IntegrationIcon-StyledPluginIcon e1bhjds90"
+=======
+                          className="ensvjrv2 css-lxugym-IntegrationIcon-StyledPluginIcon e1ehkbfw0"
+>>>>>>> build(travis): yarn --pnp [WIP]
+                          size={48}
+                        />
+                      </IntegrationIcon>
+                    </PluginIcon>
+>>>>>>> build(travis): yarn --pnp [WIP]
                   </StyledPluginIcon>
                   <Flex
                     direction="column"
@@ -164,14 +199,45 @@ exports[`ProjectPluginRow renders 1`] = `
                       >
                         <PluginName>
                           <div
+<<<<<<< HEAD
                             className="css-36lssg-PluginName e1y7j6vq1"
+=======
+                            className="css-36lssg-PluginName ensvjrv1"
+>>>>>>> build(travis): yarn --pnp [WIP]
                           >
                             Amazon SQS 
+<<<<<<< HEAD
                             <Version>
                               <span
                                 className="css-1det7j8-Version e1y7j6vq3"
                               >
                                 v8.23.0.dev0
+=======
+                            <DynamicWrapper
+                              fixed={
+                                <Version>
+                                  v10
+                                </Version>
+                              }
+                              value={
+                                <Version>
+                                  v8.23.0.dev0
+                                </Version>
+                              }
+                            >
+                              <span>
+                                <Version>
+                                  <span
+<<<<<<< HEAD
+                                    className="css-1det7j8-Version e1y7j6vq3"
+=======
+                                    className="css-1det7j8-Version ensvjrv3"
+>>>>>>> build(travis): yarn --pnp [WIP]
+                                  >
+                                    v8.23.0.dev0
+                                  </span>
+                                </Version>
+>>>>>>> build(travis): yarn --pnp [WIP]
                               </span>
                             </Version>
                           </div>
@@ -235,7 +301,11 @@ exports[`ProjectPluginRow renders 1`] = `
                 >
                   <button
                     aria-checked={false}
+<<<<<<< HEAD
                     className="css-1vudn4r-SwitchButton e1wgeblw0"
+=======
+                    className="css-eo6s8j-SwitchContainer e15l4ie20"
+>>>>>>> build(travis): yarn --pnp [WIP]
                     data-test-id="switch"
                     onClick={[Function]}
                     role="checkbox"
@@ -248,7 +318,7 @@ exports[`ProjectPluginRow renders 1`] = `
                       size="lg"
                     >
                       <span
-                        className="css-1uoqc08-Toggle e1wgeblw1"
+                        className="css-1uoqc08-Toggle e15l4ie21"
                         size="lg"
                       />
                     </Toggle>

@@ -71,7 +71,11 @@ exports[`ProjectCard renders 1`] = `
     }
   >
     <Base
+<<<<<<< HEAD
       className="css-3jemnr-ProjectCardWrapper e1o95it02"
+=======
+      className="css-3jemnr-ProjectCardWrapper e6oeohg2"
+>>>>>>> build(travis): yarn --pnp [WIP]
       data-test-id="project-slug"
       width={
         Array [
@@ -83,17 +87,29 @@ exports[`ProjectCard renders 1`] = `
       }
     >
       <div
+<<<<<<< HEAD
         className="css-3jemnr-ProjectCardWrapper e1o95it02"
+=======
+        className="css-3jemnr-ProjectCardWrapper e6oeohg2"
+>>>>>>> build(travis): yarn --pnp [WIP]
         data-test-id="project-slug"
         is={null}
       >
         <StyledProjectCard>
           <div
+<<<<<<< HEAD
             className="css-18be1td-StyledProjectCard e1o95it03"
           >
             <StyledProjectCardHeader>
               <div
                 className="css-v59cbs-StyledProjectCardHeader e1o95it01"
+=======
+            className="css-18be1td-StyledProjectCard e6oeohg3"
+          >
+            <StyledProjectCardHeader>
+              <div
+                className="css-v59cbs-StyledProjectCardHeader e6oeohg1"
+>>>>>>> build(travis): yarn --pnp [WIP]
               >
                 <StyledIdBadge
                   avatarSize={18}
@@ -127,8 +143,13 @@ exports[`ProjectCard renders 1`] = `
                   }
                 >
                   <IdBadge
+<<<<<<< HEAD
                     avatarSize={18}
                     className="css-1gy4gs4-StyledIdBadge e1o95it05"
+=======
+                    avatarSize={24}
+                    className="css-1gy4gs4-StyledIdBadge e6oeohg5"
+>>>>>>> build(travis): yarn --pnp [WIP]
                     displayName={
                       <span>
                         project-slug
@@ -162,12 +183,21 @@ exports[`ProjectCard renders 1`] = `
                       mini={true}
                     >
                       <ErrorBoundary
+<<<<<<< HEAD
                         className="css-e4um1y-InlineErrorBoundary e83vi020"
                         mini={true}
                       >
                         <ProjectBadge
                           avatarSize={18}
                           className="css-1gy4gs4-StyledIdBadge e1o95it05"
+=======
+                        className="css-otlbo1-InlineErrorBoundary el9753t0"
+                        mini={true}
+                      >
+                        <ProjectBadge
+                          avatarSize={24}
+                          className="css-1gy4gs4-StyledIdBadge e6oeohg5"
+>>>>>>> build(travis): yarn --pnp [WIP]
                           displayName={
                             <span>
                               project-slug
@@ -201,8 +231,13 @@ exports[`ProjectCard renders 1`] = `
                         >
                           <BaseBadge
                             avatarProps={Object {}}
+<<<<<<< HEAD
                             avatarSize={18}
                             className="css-1gy4gs4-StyledIdBadge e1o95it05"
+=======
+                            avatarSize={24}
+                            className="css-1gy4gs4-StyledIdBadge e6oeohg5"
+>>>>>>> build(travis): yarn --pnp [WIP]
                             displayName={
                               <span>
                                 project-slug
@@ -235,6 +270,7 @@ exports[`ProjectCard renders 1`] = `
                           >
                             <Flex
                               align="center"
+<<<<<<< HEAD
                               className="css-1gy4gs4-StyledIdBadge e1o95it05"
                             >
                               <Base
@@ -243,6 +279,16 @@ exports[`ProjectCard renders 1`] = `
                               >
                                 <div
                                   className="e1o95it05 css-v2wlq8-StyledIdBadge"
+=======
+                              className="css-1gy4gs4-StyledIdBadge e6oeohg5"
+                            >
+                              <Base
+                                align="center"
+                                className="e6oeohg5 css-v2wlq8-StyledIdBadge"
+                              >
+                                <div
+                                  className="e6oeohg5 css-v2wlq8-StyledIdBadge"
+>>>>>>> build(travis): yarn --pnp [WIP]
                                   is={null}
                                 >
                                   <StyledAvatar
@@ -274,7 +320,7 @@ exports[`ProjectCard renders 1`] = `
                                     size={18}
                                   >
                                     <Avatar
-                                      className="css-robds0-StyledAvatar e165dl3i0"
+                                      className="css-robds0-StyledAvatar e1hs5ryj0"
                                       hasTooltip={false}
                                       project={
                                         Object {
@@ -302,7 +348,7 @@ exports[`ProjectCard renders 1`] = `
                                       size={18}
                                     >
                                       <ProjectAvatar
-                                        className="css-robds0-StyledAvatar e165dl3i0"
+                                        className="css-robds0-StyledAvatar e1hs5ryj0"
                                         hasTooltip={false}
                                         project={
                                           Object {
@@ -330,7 +376,7 @@ exports[`ProjectCard renders 1`] = `
                                         size={18}
                                       >
                                         <PlatformList
-                                          className="css-robds0-StyledAvatar e165dl3i0"
+                                          className="css-robds0-StyledAvatar e1hs5ryj0"
                                           consistentWidth={false}
                                           direction="right"
                                           hasTooltip={false}
@@ -343,14 +389,14 @@ exports[`ProjectCard renders 1`] = `
                                           size={18}
                                         >
                                           <PlatformIcons
-                                            className="css-robds0-StyledAvatar e165dl3i0"
+                                            className="css-robds0-StyledAvatar e1hs5ryj0"
                                             consistentWidth={false}
                                             direction="right"
                                             max={1}
                                             size={18}
                                           >
                                             <div
-                                              className="e165dl3i0 css-1cou1l3-PlatformIcons-StyledAvatar ezvce7z0"
+                                              className="e1hs5ryj0 css-1cou1l3-PlatformIcons-StyledAvatar e1vcjkqa0"
                                               direction="right"
                                               max={1}
                                               size={18}
@@ -361,18 +407,31 @@ exports[`ProjectCard renders 1`] = `
                                                 size={18}
                                               >
                                                 <Component
+<<<<<<< HEAD
                                                   className="css-13qi1e0-StyledPlatformIcon ezvce7z1"
+=======
+                                                  className="css-1rk01z5-StyledPlatformIcon e1vcjkqa1"
+>>>>>>> build(travis): yarn --pnp [WIP]
                                                   platform="javascript"
                                                   size={18}
                                                 >
                                                   <Platformicon
+<<<<<<< HEAD
                                                     className="css-13qi1e0-StyledPlatformIcon ezvce7z1"
+=======
+                                                    className="css-1rk01z5-StyledPlatformIcon e1vcjkqa1"
+>>>>>>> build(travis): yarn --pnp [WIP]
                                                     platform="javascript"
                                                     size="18px"
                                                   >
                                                     <img
+<<<<<<< HEAD
                                                       className="css-13qi1e0-StyledPlatformIcon ezvce7z1"
                                                       height="18px"
+=======
+                                                      className="css-1rk01z5-StyledPlatformIcon e1vcjkqa1"
+                                                      height="24px"
+>>>>>>> build(travis): yarn --pnp [WIP]
                                                       src={
                                                         Object {
                                                           "default": Object {
@@ -394,17 +453,17 @@ exports[`ProjectCard renders 1`] = `
                                   </StyledAvatar>
                                   <DisplayNameAndDescription>
                                     <Base
-                                      className="css-1h9j57p-DisplayNameAndDescription e165dl3i1"
+                                      className="css-1h9j57p-DisplayNameAndDescription e1hs5ryj1"
                                     >
                                       <div
-                                        className="css-1h9j57p-DisplayNameAndDescription e165dl3i1"
+                                        className="css-1h9j57p-DisplayNameAndDescription e1hs5ryj1"
                                         is={null}
                                       >
                                         <DisplayName
                                           data-test-id="badge-display-name"
                                         >
                                           <span
-                                            className="css-d0rtl9-DisplayName e165dl3i2"
+                                            className="css-d0rtl9-DisplayName e1hs5ryj2"
                                             data-test-id="badge-display-name"
                                           >
                                             <span>
@@ -544,25 +603,64 @@ exports[`ProjectCard renders 1`] = `
                       onClick={[Function]}
                       src="icon-star-small-filled"
                     >
+<<<<<<< HEAD:tests/js/spec/views/projectsDashboard/__snapshots__/projectCard.spec.jsx.snap
                       <ForwardRef
                         className="css-1lg61nd-InlineSvg-Star e5ekdrk0"
+=======
+                      <InlineSvg
+<<<<<<< HEAD
+                        className="css-fl9x15-Star e5ekdrk0"
+=======
+                        className="css-fl9x15-Star e3oiqkq0"
+>>>>>>> build(travis): yarn --pnp [WIP]
+>>>>>>> build(travis): yarn --pnp [WIP]:tests/js/spec/views/organizationProjectsDashboard/__snapshots__/projectCard.spec.jsx.snap
                         isBookmarked={false}
                         onClick={[Function]}
                         src="icon-star-small-filled"
                       >
+<<<<<<< HEAD:tests/js/spec/views/projectsDashboard/__snapshots__/projectCard.spec.jsx.snap
                         <svg
                           className="css-1lg61nd-InlineSvg-Star e5ekdrk0"
+=======
+                        <StyledSvg
+<<<<<<< HEAD
+                          className="css-fl9x15-Star e5ekdrk0"
+=======
+                          className="css-fl9x15-Star e3oiqkq0"
+>>>>>>> build(travis): yarn --pnp [WIP]
+>>>>>>> build(travis): yarn --pnp [WIP]:tests/js/spec/views/organizationProjectsDashboard/__snapshots__/projectCard.spec.jsx.snap
                           height="1em"
                           onClick={[Function]}
                           viewBox={Object {}}
                           width="1em"
                         >
+<<<<<<< HEAD:tests/js/spec/views/projectsDashboard/__snapshots__/projectCard.spec.jsx.snap
                           <use
                             href="#test"
                             xlinkHref="#test"
                           />
                         </svg>
                       </ForwardRef>
+=======
+                          <svg
+<<<<<<< HEAD
+                            className="e5ekdrk0 css-1b9wx8m-StyledSvg-Star e2idor0"
+=======
+                            className="e3oiqkq0 css-1b9wx8m-StyledSvg-Star ebb48o80"
+>>>>>>> build(travis): yarn --pnp [WIP]
+                            height="1em"
+                            onClick={[Function]}
+                            viewBox={Object {}}
+                            width="1em"
+                          >
+                            <use
+                              href="#test"
+                              xlinkHref="#test"
+                            />
+                          </svg>
+                        </StyledSvg>
+                      </InlineSvg>
+>>>>>>> build(travis): yarn --pnp [WIP]:tests/js/spec/views/organizationProjectsDashboard/__snapshots__/projectCard.spec.jsx.snap
                     </Star>
                   </BookmarkStar>
                 </withApi(BookmarkStar)>
@@ -570,7 +668,11 @@ exports[`ProjectCard renders 1`] = `
             </StyledProjectCardHeader>
             <ChartContainer>
               <div
+<<<<<<< HEAD
                 className="css-1s8o1vf-ChartContainer e1o95it00"
+=======
+                className="css-1s8o1vf-ChartContainer e6oeohg0"
+>>>>>>> build(travis): yarn --pnp [WIP]
               >
                 <Chart
                   noEvents={true}
@@ -606,7 +708,11 @@ exports[`ProjectCard renders 1`] = `
                       }
                     >
                       <BarChart
+<<<<<<< HEAD
                         className="css-h6aoq0-StyledBarChart e1aigaye0"
+=======
+                        className="css-h6aoq0-StyledBarChart efl03kw0"
+>>>>>>> build(travis): yarn --pnp [WIP]
                         gap={1.5}
                         height={60}
                         label="events"
@@ -629,7 +735,11 @@ exports[`ProjectCard renders 1`] = `
                               "chart-bar",
                             ]
                           }
+<<<<<<< HEAD
                           className="css-h6aoq0-StyledBarChart e1aigaye0"
+=======
+                          className="css-h6aoq0-StyledBarChart efl03kw0"
+>>>>>>> build(travis): yarn --pnp [WIP]
                           gap={1.5}
                           height={60}
                           label="events"
@@ -654,7 +764,11 @@ exports[`ProjectCard renders 1`] = `
                           width={null}
                         >
                           <StyledFigure
+<<<<<<< HEAD
                             className="css-h6aoq0-StyledBarChart e1aigaye0 barchart"
+=======
+                            className="css-h6aoq0-StyledBarChart efl03kw0 barchart"
+>>>>>>> build(travis): yarn --pnp [WIP]
                             style={
                               Object {
                                 "height": 60,
@@ -663,7 +777,11 @@ exports[`ProjectCard renders 1`] = `
                             }
                           >
                             <figure
+<<<<<<< HEAD
                               className="e1aigaye0 barchart css-caakmb-StyledFigure-StyledBarChart e5t71581"
+=======
+                              className="efl03kw0 barchart css-caakmb-StyledFigure-StyledBarChart een85ac1"
+>>>>>>> build(travis): yarn --pnp [WIP]
                               style={
                                 Object {
                                   "height": 60,
@@ -689,7 +807,7 @@ exports[`ProjectCard renders 1`] = `
                               </span>
                               <SvgContainer>
                                 <div
-                                  className="css-1jg1opr-SvgContainer e5t71582"
+                                  className="css-1jg1opr-SvgContainer een85ac2"
                                 >
                                   <StyledSvg
                                     overflow="visible"
@@ -697,7 +815,11 @@ exports[`ProjectCard renders 1`] = `
                                     viewBox="0 0 100 400"
                                   >
                                     <svg
+<<<<<<< HEAD
                                       className="css-e6bn68-StyledSvg e5t71580"
+=======
+                                      className="css-1vaz76z-StyledSvg een85ac0"
+>>>>>>> build(travis): yarn --pnp [WIP]
                                       overflow="visible"
                                       preserveAspectRatio="none"
                                       viewBox="0 0 100 400"
@@ -854,7 +976,11 @@ exports[`ProjectCard renders 1`] = `
                 <NoEvents>
                   <Container>
                     <div
+<<<<<<< HEAD
                       className="css-1m9okvh-Container e1acggzn0"
+=======
+                      className="css-1m9okvh-Container e1693f850"
+>>>>>>> build(travis): yarn --pnp [WIP]
                     >
                       <EmptyText
                         align="center"
@@ -862,11 +988,19 @@ exports[`ProjectCard renders 1`] = `
                       >
                         <Base
                           align="center"
+<<<<<<< HEAD
                           className="css-k1bbsy-EmptyText e1acggzn1"
                           justify="center"
                         >
                           <div
                             className="css-k1bbsy-EmptyText e1acggzn1"
+=======
+                          className="css-k1bbsy-EmptyText e1693f851"
+                          justify="center"
+                        >
+                          <div
+                            className="css-k1bbsy-EmptyText e1693f851"
+>>>>>>> build(travis): yarn --pnp [WIP]
                             is={null}
                           >
                             No activity yet.
@@ -936,11 +1070,19 @@ exports[`ProjectCard renders 1`] = `
                   p={2}
                 >
                   <Base
+<<<<<<< HEAD
                     className="css-1y6xtyw-DeployBox elff1ar5"
                     p={2}
                   >
                     <div
                       className="css-1y6xtyw-DeployBox elff1ar5"
+=======
+                    className="css-1y6xtyw-DeployBox e18ggrgx5"
+                    p={2}
+                  >
+                    <div
+                      className="css-1y6xtyw-DeployBox e18ggrgx5"
+>>>>>>> build(travis): yarn --pnp [WIP]
                       is={null}
                     >
                       <Background
@@ -949,11 +1091,19 @@ exports[`ProjectCard renders 1`] = `
                       >
                         <Base
                           align="center"
+<<<<<<< HEAD
                           className="css-itelel-Background elff1ar6"
                           justify="center"
                         >
                           <div
                             className="css-itelel-Background elff1ar6"
+=======
+                          className="css-itelel-Background e18ggrgx6"
+                          justify="center"
+                        >
+                          <div
+                            className="css-itelel-Background e18ggrgx6"
+>>>>>>> build(travis): yarn --pnp [WIP]
                             is={null}
                           >
                             <Button
@@ -976,8 +1126,16 @@ exports[`ProjectCard renders 1`] = `
                                 <ForwardRef
                                   aria-disabled={false}
                                   aria-label="Track deploys"
+<<<<<<< HEAD:tests/js/spec/views/projectsDashboard/__snapshots__/projectCard.spec.jsx.snap
                                   className="css-z6hjis-StyledButton-getColors edwq9my0"
+=======
+<<<<<<< HEAD
+                                  className="css-1uhlusb-StyledButton-getColors e12ma6z0"
+>>>>>>> build(travis): yarn --pnp [WIP]:tests/js/spec/views/organizationProjectsDashboard/__snapshots__/projectCard.spec.jsx.snap
                                   disabled={false}
+=======
+                                  className="css-dkprmi-StyledButton-getColors e7bsqvz0"
+>>>>>>> build(travis): yarn --pnp [WIP]
                                   external={true}
                                   href="https://docs.sentry.io/learn/releases/"
                                   onClick={[Function]}
@@ -987,7 +1145,15 @@ exports[`ProjectCard renders 1`] = `
                                   <ForwardRef
                                     aria-disabled={false}
                                     aria-label="Track deploys"
+<<<<<<< HEAD:tests/js/spec/views/projectsDashboard/__snapshots__/projectCard.spec.jsx.snap
                                     className="css-z6hjis-StyledButton-getColors edwq9my0"
+=======
+<<<<<<< HEAD
+                                    className="css-1uhlusb-StyledButton-getColors e12ma6z0"
+=======
+                                    className="css-dkprmi-StyledButton-getColors e7bsqvz0"
+>>>>>>> build(travis): yarn --pnp [WIP]
+>>>>>>> build(travis): yarn --pnp [WIP]:tests/js/spec/views/organizationProjectsDashboard/__snapshots__/projectCard.spec.jsx.snap
                                     href="https://docs.sentry.io/learn/releases/"
                                     onClick={[Function]}
                                     rel="noreferrer noopener"
@@ -998,7 +1164,15 @@ exports[`ProjectCard renders 1`] = `
                                     <a
                                       aria-disabled={false}
                                       aria-label="Track deploys"
+<<<<<<< HEAD:tests/js/spec/views/projectsDashboard/__snapshots__/projectCard.spec.jsx.snap
                                       className="css-z6hjis-StyledButton-getColors edwq9my0"
+=======
+<<<<<<< HEAD
+                                      className="css-1uhlusb-StyledButton-getColors e12ma6z0"
+=======
+                                      className="css-dkprmi-StyledButton-getColors e7bsqvz0"
+>>>>>>> build(travis): yarn --pnp [WIP]
+>>>>>>> build(travis): yarn --pnp [WIP]:tests/js/spec/views/organizationProjectsDashboard/__snapshots__/projectCard.spec.jsx.snap
                                       href="https://docs.sentry.io/learn/releases/"
                                       onClick={[Function]}
                                       rel="noreferrer noopener"
@@ -1011,12 +1185,24 @@ exports[`ProjectCard renders 1`] = `
                                         size="xsmall"
                                       >
                                         <Component
+<<<<<<< HEAD
                                           align="center"
                                           className="css-1bqncjo-ButtonLabel edwq9my1"
                                           size="xsmall"
                                         >
                                           <span
+<<<<<<< HEAD:tests/js/spec/views/projectsDashboard/__snapshots__/projectCard.spec.jsx.snap
                                             className="css-1bqncjo-ButtonLabel edwq9my1"
+=======
+                                            className="css-1bqncjo-ButtonLabel e12ma6z1"
+=======
+                                          className="css-uthd1f-ButtonLabel e7bsqvz1"
+                                          size="xsmall"
+                                        >
+                                          <span
+                                            className="css-uthd1f-ButtonLabel e7bsqvz1"
+>>>>>>> build(travis): yarn --pnp [WIP]
+>>>>>>> build(travis): yarn --pnp [WIP]:tests/js/spec/views/organizationProjectsDashboard/__snapshots__/projectCard.spec.jsx.snap
                                           >
                                             Track deploys
                                           </span>

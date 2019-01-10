@@ -127,7 +127,11 @@ exports[`ExternalIssueActions with no external issues linked renders 1`] = `
   >
     <IssueSyncListElementContainer>
       <div
+<<<<<<< HEAD
         className="css-lh3vnw-IssueSyncListElementContainer euat0et0"
+=======
+        className="css-lh3vnw-IssueSyncListElementContainer e58g29m0"
+>>>>>>> build(travis): yarn --pnp [WIP]
       >
         <Hovercard
           body={
@@ -157,6 +161,7 @@ exports[`ExternalIssueActions with no external issues linked renders 1`] = `
           header="Linked GitHub Integration"
           position="top"
         >
+<<<<<<< HEAD
           <Manager>
             <Reference>
               <InnerReference
@@ -202,12 +207,90 @@ exports[`ExternalIssueActions with no external issues linked renders 1`] = `
               </InnerReference>
             </Reference>
           </Manager>
+=======
+          <Container
+            className="css-1kx7hlk-hoverCardContainer"
+            innerRef={
+              Object {
+                "current": <span
+                  class="css-86d5c-Container-hoverCardContainer eexws2n1"
+                >
+                  <svg
+                    class="e58g29m1 css-ihls3x-StyledSvg-IntegrationIcon ebb48o80"
+                    height="1em"
+                    viewBox="[object Object]"
+                    width="1em"
+                  >
+                    <use
+                      href="#test"
+                      xlink:href="#test"
+                    />
+                  </svg>
+                  <a
+                    class="css-1g8yzea-IntegrationLink e58g29m2"
+                  >
+                    Link GitHub Issue
+                  </a>
+                </span>,
+              }
+            }
+            onMouseEnter={[Function]}
+            onMouseLeave={[Function]}
+          >
+            <span
+              className="css-86d5c-Container-hoverCardContainer eexws2n1"
+              onMouseEnter={[Function]}
+              onMouseLeave={[Function]}
+            >
+              <IntegrationIcon
+                src="icon-github"
+              >
+                <InlineSvg
+                  className="css-jn9d7y-IntegrationIcon e58g29m1"
+                  src="icon-github"
+                >
+                  <StyledSvg
+                    className="css-jn9d7y-IntegrationIcon e58g29m1"
+                    height="1em"
+                    viewBox={Object {}}
+                    width="1em"
+                  >
+                    <svg
+                      className="e58g29m1 css-ihls3x-StyledSvg-IntegrationIcon ebb48o80"
+                      height="1em"
+                      viewBox={Object {}}
+                      width="1em"
+                    >
+                      <use
+                        href="#test"
+                        xlinkHref="#test"
+                      />
+                    </svg>
+                  </StyledSvg>
+                </InlineSvg>
+              </IntegrationIcon>
+              <IntegrationLink
+                href={null}
+                onClick={[Function]}
+              >
+                <a
+                  className="css-1g8yzea-IntegrationLink e58g29m2"
+                  href={null}
+                  onClick={[Function]}
+                >
+                  Link GitHub Issue
+                </a>
+              </IntegrationLink>
+            </span>
+          </Container>
+>>>>>>> build(travis): yarn --pnp [WIP]
         </Hovercard>
         <OpenCloseIcon
           isLinked={false}
           onClick={[Function]}
           src="icon-close"
         >
+<<<<<<< HEAD
           <ForwardRef
             className="css-6dwiog-InlineSvg-OpenCloseIcon euat0et3"
             isLinked={false}
@@ -216,17 +299,44 @@ exports[`ExternalIssueActions with no external issues linked renders 1`] = `
           >
             <svg
               className="css-6dwiog-InlineSvg-OpenCloseIcon euat0et3"
+=======
+          <InlineSvg
+            className="css-100fxiy-OpenCloseIcon e58g29m3"
+            isLinked={null}
+            onClick={[Function]}
+            src="icon-close"
+          >
+            <StyledSvg
+              className="css-100fxiy-OpenCloseIcon e58g29m3"
+>>>>>>> build(travis): yarn --pnp [WIP]
               height="1em"
               onClick={[Function]}
               viewBox={Object {}}
               width="1em"
             >
+<<<<<<< HEAD
               <use
                 href="#test"
                 xlinkHref="#test"
               />
             </svg>
           </ForwardRef>
+=======
+              <svg
+                className="e58g29m3 css-3kdvxo-StyledSvg-OpenCloseIcon ebb48o80"
+                height="1em"
+                onClick={[Function]}
+                viewBox={Object {}}
+                width="1em"
+              >
+                <use
+                  href="#test"
+                  xlinkHref="#test"
+                />
+              </svg>
+            </StyledSvg>
+          </InlineSvg>
+>>>>>>> build(travis): yarn --pnp [WIP]
         </OpenCloseIcon>
       </div>
     </IssueSyncListElementContainer>

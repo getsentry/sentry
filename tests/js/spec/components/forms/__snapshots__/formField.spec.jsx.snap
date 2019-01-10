@@ -91,6 +91,7 @@ exports[`FormField + model renders with Form 1`] = `
                 inline={true}
               >
                 <Component
+<<<<<<< HEAD
                   className="css-1715a37-FieldWrapper-getPadding-borderStyle-inlineStyle etqqcs20"
                 >
                   <Flex
@@ -101,6 +102,18 @@ exports[`FormField + model renders with Form 1`] = `
                     >
                       <div
                         className="etqqcs20 css-2j8o10-FieldWrapper-getPadding-borderStyle-inlineStyle"
+=======
+                  className="css-gf4a1r-FieldWrapper-getPadding-borderStyle-inlineStyle eor2x1f0"
+                >
+                  <Flex
+                    className="css-gf4a1r-FieldWrapper-getPadding-borderStyle-inlineStyle eor2x1f0"
+                  >
+                    <Base
+                      className="eor2x1f0 css-12j1xki-FieldWrapper-getPadding-borderStyle-inlineStyle"
+                    >
+                      <div
+                        className="eor2x1f0 css-12j1xki-FieldWrapper-getPadding-borderStyle-inlineStyle"
+>>>>>>> build(travis): yarn --pnp [WIP]
                         is={null}
                       >
                         <FieldControl
@@ -164,31 +177,31 @@ exports[`FormField + model renders with Form 1`] = `
                             inline={true}
                           >
                             <Component
-                              className="css-1xbxyck-FieldControlErrorWrapper e78b1iv0"
+                              className="css-1xbxyck-FieldControlErrorWrapper e11oxwlm0"
                               inline={true}
                             >
                               <Box
-                                className="css-1xbxyck-FieldControlErrorWrapper e78b1iv0"
+                                className="css-1xbxyck-FieldControlErrorWrapper e11oxwlm0"
                               >
                                 <Base
-                                  className="e78b1iv0 css-1kkovz0-FieldControlErrorWrapper"
+                                  className="e11oxwlm0 css-1kkovz0-FieldControlErrorWrapper"
                                 >
                                   <div
-                                    className="e78b1iv0 css-1kkovz0-FieldControlErrorWrapper"
+                                    className="e11oxwlm0 css-1kkovz0-FieldControlErrorWrapper"
                                     is={null}
                                   >
                                     <FieldControlWrapper>
                                       <Component
-                                        className="css-1ke1xob-FieldControlWrapper e78b1iv2"
+                                        className="css-1ke1xob-FieldControlWrapper e11oxwlm2"
                                       >
                                         <Flex
-                                          className="css-1ke1xob-FieldControlWrapper e78b1iv2"
+                                          className="css-1ke1xob-FieldControlWrapper e11oxwlm2"
                                         >
                                           <Base
-                                            className="e78b1iv2 css-w4o1g8-FieldControlWrapper"
+                                            className="e11oxwlm2 css-w4o1g8-FieldControlWrapper"
                                           >
                                             <div
-                                              className="e78b1iv2 css-w4o1g8-FieldControlWrapper"
+                                              className="e11oxwlm2 css-w4o1g8-FieldControlWrapper"
                                               is={null}
                                             >
                                               <FieldControlStyled
@@ -196,16 +209,16 @@ exports[`FormField + model renders with Form 1`] = `
                                               >
                                                 <Component
                                                   alignRight={false}
-                                                  className="css-1pkvhmy-FieldControlStyled e78b1iv1"
+                                                  className="css-1pkvhmy-FieldControlStyled e11oxwlm1"
                                                 >
                                                   <Box
-                                                    className="css-1pkvhmy-FieldControlStyled e78b1iv1"
+                                                    className="css-1pkvhmy-FieldControlStyled e11oxwlm1"
                                                   >
                                                     <Base
-                                                      className="e78b1iv1 css-wkkbba-FieldControlStyled"
+                                                      className="e11oxwlm1 css-wkkbba-FieldControlStyled"
                                                     >
                                                       <div
-                                                        className="e78b1iv1 css-wkkbba-FieldControlStyled"
+                                                        className="e11oxwlm1 css-wkkbba-FieldControlStyled"
                                                         is={null}
                                                       >
                                                         <Observer>
@@ -224,7 +237,15 @@ exports[`FormField + model renders with Form 1`] = `
                                                             value=""
                                                           >
                                                             <input
+<<<<<<< HEAD
                                                               className="css-1b7nva7-Input-inputStyles e1xej46s0"
+=======
+<<<<<<< HEAD
+                                                              className="css-13yodx8-Input-inputStyles e1xej46s0"
+=======
+                                                              className="css-pzg7em-Input-inputStyles e1ebb8kf0"
+>>>>>>> build(travis): yarn --pnp [WIP]
+>>>>>>> build(travis): yarn --pnp [WIP]
                                                               disabled={false}
                                                               id="fieldName"
                                                               name="fieldName"
@@ -245,17 +266,17 @@ exports[`FormField + model renders with Form 1`] = `
                                                 flexibleControlStateSize={false}
                                               >
                                                 <Component
-                                                  className="css-1j6hng-FieldControlState e1rziqw00"
+                                                  className="css-1j6hng-FieldControlState eydu7x30"
                                                   flexibleControlStateSize={false}
                                                 >
                                                   <Flex
-                                                    className="css-1j6hng-FieldControlState e1rziqw00"
+                                                    className="css-1j6hng-FieldControlState eydu7x30"
                                                   >
                                                     <Base
-                                                      className="e1rziqw00 css-1fqbh7r-FieldControlState"
+                                                      className="eydu7x30 css-1fqbh7r-FieldControlState"
                                                     >
                                                       <div
-                                                        className="e1rziqw00 css-1fqbh7r-FieldControlState"
+                                                        className="eydu7x30 css-1fqbh7r-FieldControlState"
                                                         is={null}
                                                       >
                                                         <ControlState
@@ -334,7 +355,11 @@ exports[`FormField + model renders with Form 1`] = `
     </div>
     <StyledFooter>
       <div
+<<<<<<< HEAD
         className="css-1g4ne7-StyledFooter e1jxgbzp0"
+=======
+        className="css-lvf625-StyledFooter e1qxu7hz0"
+>>>>>>> build(travis): yarn --pnp [WIP]
       >
         <Observer>
           <Button
@@ -357,7 +382,15 @@ exports[`FormField + model renders with Form 1`] = `
               <ForwardRef
                 aria-disabled={false}
                 aria-label="Save Changes"
+<<<<<<< HEAD
                 className="css-xiynrq-StyledButton-getColors edwq9my0"
+=======
+<<<<<<< HEAD
+                className="css-1qchtmp-StyledButton-getColors e12ma6z0"
+=======
+                className="css-1msljz8-StyledButton-getColors e7bsqvz0"
+>>>>>>> build(travis): yarn --pnp [WIP]
+>>>>>>> build(travis): yarn --pnp [WIP]
                 data-test-id="form-submit"
                 disabled={false}
                 onClick={[Function]}
@@ -368,7 +401,15 @@ exports[`FormField + model renders with Form 1`] = `
                 <button
                   aria-disabled={false}
                   aria-label="Save Changes"
+<<<<<<< HEAD
                   className="css-xiynrq-StyledButton-getColors edwq9my0"
+=======
+<<<<<<< HEAD
+                  className="css-1qchtmp-StyledButton-getColors e12ma6z0"
+=======
+                  className="css-1msljz8-StyledButton-getColors e7bsqvz0"
+>>>>>>> build(travis): yarn --pnp [WIP]
+>>>>>>> build(travis): yarn --pnp [WIP]
                   data-test-id="form-submit"
                   onClick={[Function]}
                   role="button"
@@ -379,12 +420,24 @@ exports[`FormField + model renders with Form 1`] = `
                     priority="primary"
                   >
                     <Component
+<<<<<<< HEAD
                       align="center"
                       className="css-oo1m2a-ButtonLabel edwq9my1"
                       priority="primary"
                     >
                       <span
+<<<<<<< HEAD
                         className="css-oo1m2a-ButtonLabel edwq9my1"
+=======
+                        className="css-oo1m2a-ButtonLabel e12ma6z1"
+=======
+                      className="css-ga4b18-ButtonLabel e7bsqvz1"
+                      priority="primary"
+                    >
+                      <span
+                        className="css-ga4b18-ButtonLabel e7bsqvz1"
+>>>>>>> build(travis): yarn --pnp [WIP]
+>>>>>>> build(travis): yarn --pnp [WIP]
                       >
                         Save Changes
                       </span>
