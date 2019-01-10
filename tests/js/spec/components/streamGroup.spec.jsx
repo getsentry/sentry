@@ -32,7 +32,6 @@ describe('StreamGroup', function() {
       <StreamGroup
         id="1L"
         orgId="orgId"
-        projectId="projectId"
         groupId="groupId"
         lastSeen="2017-07-25T22:56:12Z"
         firstSeen="2017-07-01T02:06:02Z"
