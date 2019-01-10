@@ -2,6 +2,7 @@ from __future__ import absolute_import, print_function
 
 import logging
 
+from django.core.urlresolvers import reverse
 from requests.exceptions import RequestException
 
 from sentry.http import safe_urlopen
@@ -15,8 +16,10 @@ logger = logging.Logger('sentry.tasks.sentry_apps')
 
 def notify_sentry_app(event, futures):
     for f in futures:
-        sentry_app = f.kwargs['sentry_app']
+        if not f.kwargs.get('sentry_app'):
+            continue
 
+        sentry_app = f.kwargs['sentry_app']
         send_alert_event.delay(
             event=event,
             rule=f.rule.label,
@@ -64,25 +67,20 @@ def send_alert_event(event, rule, sentry_app_id):
         )
         return
 
-    project_url_base = absolute_uri(u'/{}/{}'.format(
+    event_context = event.as_dict()
+    event_context['url'] = absolute_uri(reverse('sentry-api-0-project-event-details', args=[
         project.organization.slug,
         project.slug,
-    ))
-
-    event_context = event.as_dict()
-    event_context['url'] = u'/api/0{}/projects/{}/events/{}/'.format(
-        project_url_base,
+        event.id,
+    ]))
+    event_context['web_url'] = absolute_uri(reverse('sentry-group-event', args=[
+        project.organization.slug,
+        project.slug,
         group.id,
         event.id,
-    )
-    event_context['web_url'] = u'{}/issues/{}/events/{}/'.format(
-        project_url_base,
-        group.id,
-        event.id,
-    )
-    event_context['issue_url'] = u'/api/0{}/issues/{}/'.format(
-        project_url_base,
-        group.id,
+    ]))
+    event_context['issue_url'] = absolute_uri(
+        '/api/0/issues/{}/'.format(group.id),
     )
 
     data = {
