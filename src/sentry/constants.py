@@ -172,7 +172,7 @@ CLIENT_RESERVED_ATTRS = (
 # Deprecated or internal attributes that should be dropped silently
 CLIENT_IGNORED_ATTRS = (
     # Internal attributes
-    'hashes', 'metadata', 'type', 'key_id', 'project', 'received'
+    'hashes', 'metadata', 'type', 'key_id', 'project', 'received',
     # Deprecated attributes
     'applecrashreport', 'device', 'repos', 'query',
 )
