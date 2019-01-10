@@ -294,3 +294,24 @@ class OrganizationMemberListTest(APITestCase):
             })
 
         assert response.status_code == 400
+
+
+class OrganizationMemberListPostTest(APITestCase):
+    endpoint = 'sentry-api-0-organization-member-index'
+    method = 'post'
+
+    def setUp(self):
+        self.owner_user = self.create_user('foo@localhost', username='foo')
+        self.org = self.create_organization(owner=self.owner_user)
+        self.team = self.create_team(organization=self.org)
+        self.login_as(user=self.owner_user)
+
+    def test(self):
+        resp = self.get_response(
+            self.org.slug,
+            email='1234@qq.com',
+            role='member',
+            teams=[self.team.slug],
+        )
+        assert resp.status_code == 400
+        assert resp.data['email'][0] == 'Enter a valid email address.'

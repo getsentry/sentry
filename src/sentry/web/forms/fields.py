@@ -108,4 +108,4 @@ def email_address_validator(value):
 
 
 class AllowedEmailField(EmailField):
-    default_validators = EmailField.default_validators + [is_valid_email_address]
+    default_validators = EmailField.default_validators + [email_address_validator]
