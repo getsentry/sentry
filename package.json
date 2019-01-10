@@ -110,6 +110,7 @@
     "enzyme-to-json": "3.3.1",
     "eslint": "5.11.1",
     "eslint-config-sentry-app": "1.5.0",
+    "http-proxy": "^1.17.0",
     "jest": "23.6.0",
     "jest-junit": "^3.4.1",
     "mockdate": "2.0.2",

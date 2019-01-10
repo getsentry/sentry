@@ -1289,7 +1289,7 @@ SENTRY_API_RESPONSE_DELAY = 150 if IS_DEV else None
 SENTRY_WATCHERS = (
     (
         'webpack', [
-            os.path.join(NODE_MODULES_ROOT, '.bin', 'webpack'), '--output-pathinfo', '--watch',
+            'yarn webpack --output-pathinfo', '--watch',
             u"--config={}".format(
                 os.path.
                 normpath(os.path.join(PROJECT_ROOT, os.pardir, os.pardir, "webpack.config.js"))
