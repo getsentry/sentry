@@ -74,7 +74,8 @@ const TodoList = createReactClass({
         skippable: true,
         prereq: [1, 2],
         featureLocation: 'absolute',
-        location: 'https://docs.sentry.io/enriching-error-data/context/#capturing-the-user',
+        location:
+          'https://docs.sentry.io/enriching-error-data/context/#capturing-the-user',
         display: true,
       },
       {
