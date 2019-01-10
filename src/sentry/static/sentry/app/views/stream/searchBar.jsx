@@ -3,6 +3,7 @@ import React from 'react';
 
 import {t} from 'app/locale';
 import SmartSearchBar from 'app/components/smartSearchBar';
+import {fetchTagValues} from 'app/actionCreators/tags';
 import TagStore from 'app/stores/tagStore';
 import withApi from 'app/utils/withApi';
 
@@ -53,7 +54,8 @@ class SearchBar extends React.Component {
   static propTypes = {
     api: PropTypes.object,
     orgId: PropTypes.string.isRequired,
-    projectId: PropTypes.string.isRequired,
+    // Optional to enable project scope search
+    projectId: PropTypes.string,
   };
 
   /**
@@ -63,19 +65,12 @@ class SearchBar extends React.Component {
   getTagValues = (tag, query) => {
     let {api, orgId, projectId} = this.props;
 
-    return api
-      .requestPromise(`/projects/${orgId}/${projectId}/tags/${tag.key}/values/`, {
-        data: {
-          query,
-        },
-        method: 'GET',
-      })
-      .then(
-        values => values.map(({value}) => value),
-        () => {
-          throw new Error('Unable to fetch project tags');
-        }
-      );
+    return fetchTagValues(api, tag.key, orgId, projectId, query).then(
+      values => values.map(({value}) => value),
+      () => {
+        throw new Error('Unable to fetch project tags');
+      }
+    );
   };
 
   render() {

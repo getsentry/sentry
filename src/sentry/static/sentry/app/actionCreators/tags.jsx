@@ -6,11 +6,15 @@ import AlertActions from 'app/actions/alertActions';
 
 const MAX_TAGS = 500;
 
-export function fetchTags(orgId, projectId) {
+export function fetchTags(orgId, projectId = null) {
   TagStore.reset();
   TagActions.loadTags();
   const api = new Client();
-  api.request(`/projects/${orgId}/${projectId}/tags/`, {
+  let url = projectId
+    ? `/projects/${orgId}/${projectId}/tags/`
+    : `/organizations/${orgId}/tags/`;
+
+  api.request(url, {
     success: tags => {
       let trimmedTags = tags.slice(0, MAX_TAGS);
 
@@ -23,6 +27,21 @@ export function fetchTags(orgId, projectId) {
       TagActions.loadTagsSuccess(trimmedTags);
     },
     error: TagActions.loadTagsError,
+  });
+}
+
+export function fetchTagValues(api, tagKey, orgId, projectId = null, query = null) {
+  let url = projectId
+    ? `/projects/${orgId}/${projectId}/tags/${tagKey}/values/`
+    : `/organizations/${orgId}/tags/${tagKey}/values/`;
+
+  if (query) {
+    query = {query};
+  }
+
+  return api.requestPromise(url, {
+    method: 'GET',
+    query,
   });
 }
 

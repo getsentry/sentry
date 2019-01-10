@@ -4,6 +4,7 @@ import React from 'react';
 
 import {Client} from 'app/api';
 import {addErrorMessage} from 'app/actionCreators/indicator';
+import {fetchTagValues} from 'app/actionCreators/tags';
 import {t, tct} from 'app/locale';
 import SelectControl from 'app/components/forms/selectControl';
 
@@ -12,7 +13,7 @@ class StreamTagFilter extends React.Component {
   static propTypes = {
     tag: PropTypes.object.isRequired,
     orgId: PropTypes.string.isRequired,
-    projectId: PropTypes.string.isRequired,
+    projectId: PropTypes.string,
     value: PropTypes.string,
     onSelect: PropTypes.func,
   };
@@ -54,14 +55,8 @@ class StreamTagFilter extends React.Component {
     this.api.clear();
   }
 
-  getTagValuesAPIEndpoint = () => {
-    let {orgId, projectId, tag} = this.props;
-
-    return `/api/0/projects/${orgId}/${projectId}/tags/${tag.key}/values/`;
-  };
-
   handleLoadOptions = () => {
-    let {tag} = this.props;
+    let {orgId, projectId, tag} = this.props;
     let {textValue} = this.state;
     if (tag.isInput || tag.predefined) return;
     if (!this.api) return;
@@ -70,12 +65,7 @@ class StreamTagFilter extends React.Component {
       isLoading: true,
     });
 
-    this.api
-      .requestPromise(this.getTagValuesAPIEndpoint(), {
-        query: {
-          query: textValue,
-        },
-      })
+    fetchTagValues(this.api, tag.key, orgId, projectId, textValue)
       .then(resp => {
         this.setState({
           isLoading: false,
