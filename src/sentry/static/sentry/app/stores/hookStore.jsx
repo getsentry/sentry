@@ -23,8 +23,6 @@ const validHookNames = new Set([
   'utils:onboarding-survey-url',
   'component:org-auth-view',
   'component:org-members-view',
-  'component:create-sample-event',
-  'component:install-prompt-banner',
 
   // Additional settings
   'settings:organization-navigation',

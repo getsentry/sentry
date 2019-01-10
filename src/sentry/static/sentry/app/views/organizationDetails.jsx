@@ -8,7 +8,7 @@ import {Client} from 'app/api';
 import OrganizationContext from 'app/views/organizationContext';
 import NarrowLayout from 'app/components/narrowLayout';
 import Footer from 'app/components/footer';
-import Hook from 'app/components/hook';
+import InstallPromptBanner from 'app/components/installPromptBanner';
 import {t, tct} from 'app/locale';
 
 class DeletionInProgress extends Component {
@@ -135,11 +135,7 @@ class OrganizationDetailsBody extends Component {
       }
     return (
       <React.Fragment>
-        <Hook
-          name="component:install-prompt-banner"
-          params={{organization}}
-          key="banner"
-        />
+        <InstallPromptBanner organization={organization} />
         <ErrorBoundary>{this.props.children}</ErrorBoundary>
         <Footer />
       </React.Fragment>

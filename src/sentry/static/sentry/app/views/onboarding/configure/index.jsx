@@ -5,7 +5,7 @@ import * as Sentry from '@sentry/browser';
 
 import {analytics, amplitude} from 'app/utils/analytics';
 import ApiMixin from 'app/mixins/apiMixin';
-import Hook from 'app/components/hook';
+import CreateSampleEvent from 'app/components/createSampleEvent';
 import ProjectContext from 'app/views/projects/projectContext';
 import ProjectDocsContext from 'app/views/projectInstall/docsContext';
 import ProjectInstallPlatform from 'app/views/projectInstall/platform';
@@ -130,19 +130,13 @@ const Configure = createReactClass({
     let {orgId, projectId} = this.props.params;
     let {hasSentRealEvent} = this.state;
 
-    let data = {
-      params: this.props.params,
-      organization: this.context.organization,
-      source: 'header',
-    };
-
     return (
       <div>
         <div className="onboarding-Configure">
           <h2 style={{marginBottom: 30}}>
             Configure your application
             {!hasSentRealEvent && (
-              <Hook name="component:create-sample-event" params={data} key="header" />
+              <CreateSampleEvent params={this.props.params} source="header" />
             )}
           </h2>
           <ProjectContext projectId={projectId} orgId={orgId} style={{marginBottom: 30}}>
@@ -158,12 +152,7 @@ const Configure = createReactClass({
               />
             </ProjectDocsContext>
           </ProjectContext>
-          <Waiting
-            skip={this.submit}
-            hasEvent={this.state.hasSentRealEvent}
-            params={this.props.params}
-            organization={this.context.organization}
-          />
+          <Waiting skip={this.submit} hasEvent={hasSentRealEvent} />
         </div>
       </div>
     );
