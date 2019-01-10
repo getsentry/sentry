@@ -15,7 +15,7 @@ import six
 
 from django.conf import settings
 from django.utils.translation import ugettext as _
-from six.moves.urllib.parse import parse_qsl, urlencode, urlsplit, urlunsplit
+from six.moves.urllib.parse import parse_qsl, urlencode, urlsplit, urlunsplit, quote, unquote
 
 from sentry.interfaces.base import Interface, InterfaceValidationError, prune_empty_keys
 from sentry.interfaces.schemas import validate_and_default_interface
@@ -161,6 +161,7 @@ class Http(Interface):
             kwargs['query_string'] = ''
 
         fragment = data.get('fragment') or fragment_bit
+        fragment = quote(unquote(fragment))
 
         cookies = data.get('cookies')
         # if cookies were [also] included in headers we

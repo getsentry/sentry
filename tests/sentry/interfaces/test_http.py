@@ -127,6 +127,15 @@ class HttpTest(TestCase):
         assert result.url == 'http://example.com'
         assert result.full_url == 'http://example.com?foo=bar#fragment'
 
+    def test_fragment_with_unicode(self):
+        result = Http.to_python(
+            dict(
+                url="https://example.com/index.html#foo%5B1%5D%3Dbar…"
+            )
+        )
+
+        assert result.fragment == "foo%5B1%5D%3Dbar%E2%80%A6"
+
     def test_query_string_and_fragment_in_url(self):
         result = Http.to_python(dict(
             url='http://example.com?foo=bar#fragment',
