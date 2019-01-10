@@ -92,18 +92,6 @@ def backfill_group_env():
 
     while group_environments:
         last_pk = group_environments[-1].id
-        env_names = {
-            ENV_CACHE[ge.environment_id] for ge in group_environments
-            if ge.environment_id in ENV_CACHE
-        }
-
-        missing_envs = {ge.environment_id for ge in group_environments if ge.environment_id in ENV_CACHE}
-        # update cache in case some envs have been created since cache was populated
-        # not sure if this is actually necessary?
-        if missing_envs:
-            env_names.update(list(
-                Environment.objects.filter(id__in=missing_envs).values_list('name', flat=True)
-            ))
 
         project_by_group = dict(
             Group.objects.filter(
@@ -121,7 +109,7 @@ def backfill_group_env():
                 _key__environment_id__gt=0,
                 _value__project_id=project_by_group[ge.group_id],
             ) for ge in group_environments]),
-        ).exclude(_key__environment_id=0).extra(
+        ).extra(
             where=['tagstore_grouptagvalue.project_id = tagstore_tagkey.project_id', 'tagstore_grouptagvalue.project_id = tagstore_tagvalue.project_id']
         ).values_list('project_id', 'group_id', '_key__environment_id', 'first_seen')
 
