@@ -5,42 +5,44 @@ import {Link} from 'react-router';
 import ApiMixin from 'app/mixins/apiMixin';
 import AssigneeSelector from 'app/components/assigneeSelector';
 import Count from 'app/components/count';
-import GroupActions from 'app/views/groupDetails/project/actions';
 import IndicatorStore from 'app/stores/indicatorStore';
 import ListLink from 'app/components/listLink';
 import NavTabs from 'app/components/navTabs';
 import ShortId from 'app/components/shortId';
 import EventOrGroupTitle from 'app/components/eventOrGroupTitle';
 import GuideAnchor from 'app/components/assistant/guideAnchor';
-import ProjectState from 'app/mixins/projectState';
+import OrganizationState from 'app/mixins/organizationState';
 import Tooltip from 'app/components/tooltip';
 import {t} from 'app/locale';
+import SentryTypes from 'app/sentryTypes';
 
+import GroupActions from './actions';
 import GroupSeenBy from '../project/seenBy';
 
 const GroupHeader = createReactClass({
   displayName: 'GroupHeader',
 
   propTypes: {
-    group: PropTypes.object.isRequired,
+    group: SentryTypes.Group.isRequired,
+    project: SentryTypes.Project,
   },
 
   contextTypes: {
     location: PropTypes.object,
+    organization: SentryTypes.Organization,
   },
 
-  mixins: [ApiMixin, ProjectState],
+  mixins: [ApiMixin, OrganizationState],
 
   onToggleMute() {
     let group = this.props.group;
-    let project = this.getProject();
-    let org = this.getOrganization();
+    let org = this.context.organization;
     let loadingIndicator = IndicatorStore.add(t('Saving changes..'));
 
     this.api.bulkUpdate(
       {
         orgId: org.slug,
-        projectId: project.slug,
+        projectId: group.project.slug,
         itemIds: [group.id],
         data: {
           status: group.status === 'ignored' ? 'unresolved' : 'ignored',
@@ -68,9 +70,9 @@ const GroupHeader = createReactClass({
   },
 
   render() {
-    let group = this.props.group,
-      projectFeatures = this.getProjectFeatures(),
-      userCount = group.userCount;
+    let {project, group} = this.props;
+    let projectFeatures = new Set(project ? project.features : []);
+    let userCount = group.userCount;
 
     let className = 'group-detail';
 
@@ -87,9 +89,9 @@ const GroupHeader = createReactClass({
       className += ' isResolved';
     }
 
-    let groupId = group.id,
-      projectId = this.getProject().slug,
-      orgId = this.getOrganization().slug;
+    let groupId = group.id;
+    let projectId = group.project.slug;
+    let orgId = this.context.organization.slug;
     let message = this.getMessage();
 
     let hasSimilarView = projectFeatures.has('similarity-view');
@@ -173,7 +175,7 @@ const GroupHeader = createReactClass({
           </div>
         </div>
         <GroupSeenBy />
-        <GroupActions />
+        <GroupActions group={group} project={project} />
         <NavTabs>
           <ListLink
             to={`/${orgId}/${projectId}/issues/${groupId}/`}
