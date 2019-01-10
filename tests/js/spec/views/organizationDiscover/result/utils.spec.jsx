@@ -2,7 +2,7 @@ import {mount} from 'enzyme';
 
 import {
   getChartData,
-  getChartDataWithPercentages,
+  getChartDataForWidget,
   getChartDataByDay,
   getDisplayValue,
   getDisplayText,
@@ -48,7 +48,7 @@ describe('Utils', function() {
     });
   });
 
-  describe('getChartDataWithPercentages()', function() {
+  describe('getChartDataForWidget()', function() {
     const raw = [
       {count: 2, uniq_id: 1, 'project.id': 5, environment: null},
       {count: 2, uniq_id: 3, 'project.id': 5, environment: 'staging'},
@@ -82,7 +82,9 @@ describe('Utils', function() {
         },
       ];
 
-      expect(getChartDataWithPercentages(raw, query)).toEqual(expected);
+      expect(getChartDataForWidget(raw, query, {includePercentages: true})).toEqual(
+        expected
+      );
     });
   });
 
