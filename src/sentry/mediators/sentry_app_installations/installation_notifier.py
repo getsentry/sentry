@@ -1,6 +1,6 @@
 from __future__ import absolute_import
 
-from sentry.api.serializers import SentryAppInstallationSerializer, app_platform_event
+from sentry.api.serializers import SentryAppInstallationSerializer, AppPlatformEvent
 from sentry.http import safe_urlopen, safe_urlread
 from sentry.mediators import Mediator, Param
 from sentry.utils.cache import memoize
@@ -15,19 +15,25 @@ class InstallationNotifier(Mediator):
 
     def _send_webhook(self):
         safe_urlread(
-            safe_urlopen(self.sentry_app.webhook_url, json=self.body, timeout=5)
+            safe_urlopen(
+                url=self.sentry_app.webhook_url,
+                data=self.request.body,
+                headers=self.request.headers,
+                timeout=5,
+            )
         )
 
     @property
-    def body(self):
+    def request(self):
         data = SentryAppInstallationSerializer().serialize(
             self.install,
             attrs={'code': self.api_grant.code},
             user=self.user,
         )
 
-        return app_platform_event(
-            action='installation',
+        return AppPlatformEvent(
+            resource='installation',
+            action='created',
             install=self.install,
             data=data,
             actor=self.user,
