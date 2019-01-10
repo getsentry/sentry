@@ -2,6 +2,7 @@ import PropTypes from 'prop-types';
 import React from 'react';
 import styled from 'react-emotion';
 import {Flex, Box} from 'grid-emotion';
+
 import space from 'app/styles/space';
 import {HeaderTitle} from 'app/styles/organization';
 
@@ -51,10 +52,7 @@ const Title = styled(Flex, {shouldForwardProp: p => p !== 'styled'})`
 `;
 
 const Action = styled('div')`
-  ${p =>
-    p.tabs &&
-    `margin-top: ${space(2)};
-    `};
+  ${p => (p.tabs ? `margin-top: ${space(2)}` : null)};
 `;
 
 const Wrapper = styled.div`

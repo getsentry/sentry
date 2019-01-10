@@ -195,7 +195,7 @@ exports[`projectAlertRules renders 1`] = `
                     }
                   >
                     <div
-                      className="css-6mlfft-Action e1kblvez1"
+                      className="css-1lt2zte-Action e1kblvez1"
                     >
                       <Tooltip
                         disabled={true}

@@ -5,6 +5,7 @@ import styled from 'react-emotion';
 
 import Sidebar from 'app/components/sidebar';
 import Footer from 'app/components/footer';
+import space from 'app/styles/space';
 
 import SettingsBreadcrumb from './settingsBreadcrumb';
 import SettingsHeader from './settingsHeader';
@@ -64,7 +65,7 @@ const SidebarWrapper = styled(Box)`
   width: ${p => p.theme.settings.sidebarWidth};
   background: #fff;
   border-right: 1px solid ${p => p.theme.borderLight};
-  padding: 30px;
+  padding: ${space(4)};
 `;
 
 const SettingsColumn = styled('div')`
@@ -82,7 +83,7 @@ const SettingsColumn = styled('div')`
  */
 const Content = styled(Box)`
   flex: 1;
-  padding: 30px;
+  padding: ${space(4)};
   min-width: 0; /* keep children from stretching container */
 `;
 
