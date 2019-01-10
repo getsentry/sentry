@@ -33,30 +33,34 @@ export function getChartData(data, query) {
 }
 
 /**
- * Returns data formatted for charts, with each aggregation representing a series.
+ * Returns data formatted for widgets, with each aggregation representing a series.
  * Includes each aggregation's series relative percentage to total within that aggregation.
  *
  * @param {Array} data Data returned from Snuba
  * @param {Object} query Query state corresponding to data
+ * @param {Object} options Options object
+ * @param {Boolean} options.includePercentages Include percentages data
  * @returns {Array}
  */
-export function getChartDataWithPercentages(data, query) {
+export function getChartDataForWidget(data, query, options = {}) {
   const {fields} = query;
 
   const totalsBySeries = new Map();
 
-  query.aggregations.forEach(aggregation => {
-    totalsBySeries.set(
-      aggregation[2],
-      data.reduce((acc, res) => {
-        acc += res[aggregation[2]];
-        return acc;
-      }, 0)
-    );
-  });
+  if (options.includePercentages) {
+    query.aggregations.forEach(aggregation => {
+      totalsBySeries.set(
+        aggregation[2],
+        data.reduce((acc, res) => {
+          acc += res[aggregation[2]];
+          return acc;
+        }, 0)
+      );
+    });
+  }
 
   return query.aggregations.map(aggregation => {
-    const total = totalsBySeries.get(aggregation[2]);
+    const total = options.includePercentages && totalsBySeries.get(aggregation[2]);
     return {
       seriesName: aggregation[2],
       data: data.map(res => {
@@ -65,7 +69,7 @@ export function getChartDataWithPercentages(data, query) {
           name: fields.map(field => `${res[field]}`).join(' '),
         };
 
-        if (total) {
+        if (options.includePercentages && total) {
           obj.percentage = Math.round(res[aggregation[2]] / total * 10000) / 100;
         }
 
