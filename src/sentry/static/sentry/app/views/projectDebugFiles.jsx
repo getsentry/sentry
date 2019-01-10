@@ -1,6 +1,5 @@
 import {Box, Flex} from 'grid-emotion';
 import React from 'react';
-import idx from 'idx';
 import styled from 'react-emotion';
 
 import {Panel, PanelBody, PanelHeader, PanelItem} from 'app/components/panels';
@@ -63,7 +62,7 @@ class ProjectDebugSymbols extends AsyncComponent {
       [
         'debugFiles',
         `/projects/${orgId}/${projectId}/files/dsyms/`,
-        {query: {query: idx(this.props, p => p.location.query.query)}},
+        {query: {query: this.props?.location?.query?.query}},
       ],
     ];
   }
