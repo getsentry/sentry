@@ -5,19 +5,15 @@ import six
 from functools32 import partial
 from copy import deepcopy
 
-from django.utils import timezone
 from rest_framework import serializers
 from rest_framework.response import Response
 from rest_framework.exceptions import PermissionDenied
-
-from sentry.utils.dates import (
-    parse_stats_period,
-)
 
 from sentry.api.serializers.rest_framework import ListField
 from sentry.api.bases.organization import OrganizationPermission
 from sentry.api.bases import OrganizationEndpoint
 from sentry.api.paginator import GenericOffsetPaginator
+from sentry.api.utils import get_date_range_from_params, InvalidParams
 from sentry.models import Project, ProjectStatus, OrganizationMember, OrganizationMemberTeam
 from sentry.utils import snuba
 from sentry import roles
@@ -39,6 +35,9 @@ class DiscoverQuerySerializer(serializers.Serializer):
     start = serializers.DateTimeField(required=False)
     end = serializers.DateTimeField(required=False)
     range = serializers.CharField(required=False)
+    statsPeriod = serializers.CharField(required=False)
+    statsPeriodStart = serializers.CharField(required=False)
+    statsPeriodEnd = serializers.CharField(required=False)
     fields = ListField(
         child=serializers.CharField(),
         required=False,
@@ -88,27 +87,28 @@ class DiscoverQuerySerializer(serializers.Serializer):
     def validate(self, data):
         data['arrayjoin'] = self.arrayjoin
 
-        return data
+        if data.get('start') or data.get('end'):
+            if not all([data.get('start'), data.get('end')]):
+                raise InvalidParams('start and end are both required')
+            return data
 
-    def validate_range(self, attrs, source):
-        has_start = bool(attrs.get('start'))
-        has_end = bool(attrs.get('end'))
-        has_range = bool(attrs.get('range'))
+        # Populate start and end if they weren't directly provided
+        try:
+            start, end = get_date_range_from_params({
+                'statsPeriod': data.get('statsPeriod') or data.get('range'),
+                'statsPeriodStart': data.get('statsPeriodStart'),
+                'statsPeriodEnd': data.get('statsPeriodEnd'),
+            }, optional=True)
+        except InvalidParams as exc:
+            raise serializers.ValidationError(exc.message)
 
-        if has_start != has_end or has_range == has_start:
+        if start is None or end is None:
             raise serializers.ValidationError('Either start and end dates or range is required')
 
-        # Populate start and end if only range is provided
-        if (attrs.get(source)):
-            delta = parse_stats_period(attrs[source])
+        data['start'] = start
+        data['end'] = end
 
-            if (delta is None):
-                raise serializers.ValidationError('Invalid range')
-
-            attrs['start'] = timezone.now() - delta
-            attrs['end'] = timezone.now()
-
-        return attrs
+        return data
 
     def validate_projects(self, attrs, source):
         organization = self.context['organization']
