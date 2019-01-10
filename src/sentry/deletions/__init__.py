@@ -78,7 +78,7 @@ def load_defaults():
     default_manager.register(models.SavedSearchUserDefault, BulkModelDeletionTask)
     default_manager.register(models.Team, defaults.TeamDeletionTask)
     default_manager.register(models.UserReport, BulkModelDeletionTask)
-    default_manager.register(models.Widget, BulkModelDeletionTask)
+    default_manager.register(models.Widget, ModelDeletionTask)
     default_manager.register(models.WidgetDataSource, BulkModelDeletionTask)
 
 
