@@ -1,7 +1,7 @@
 import React from 'react';
 import {mount, shallow} from 'enzyme';
 
-import Result from 'app/views/organizationDiscover/result';
+import {Result} from 'app/views/organizationDiscover/result';
 import createQueryBuilder from 'app/views/organizationDiscover/queryBuilder';
 
 describe('Result', function() {
@@ -25,7 +25,12 @@ describe('Result', function() {
         },
       };
       wrapper = shallow(
-        <Result data={data} organization={organization} onFetchPage={jest.fn()} />,
+        <Result
+          data={data}
+          organization={organization}
+          onFetchPage={jest.fn()}
+          location={{query: {}}}
+        />,
         {
           context: {organization},
           disableLifecycleMethods: false,
@@ -142,7 +147,12 @@ describe('Result', function() {
     describe('Toggles Visualizations', function() {
       beforeEach(function() {
         wrapper = mount(
-          <Result data={data} organization={organization} onFetchPage={jest.fn()} />,
+          <Result
+            data={data}
+            organization={organization}
+            onFetchPage={jest.fn()}
+            location={{query: {}}}
+          />,
           TestStubs.routerContext([{organization}])
         );
       });
@@ -206,6 +216,7 @@ describe('Result', function() {
           organization={organization}
           savedQuery={TestStubs.DiscoverSavedQuery()}
           onFetchPage={jest.fn()}
+          location={{query: {}}}
         />,
         TestStubs.routerContext()
       );
