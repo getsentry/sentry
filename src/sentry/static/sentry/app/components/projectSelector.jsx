@@ -299,6 +299,7 @@ class ProjectSelectorItem extends React.PureComponent {
 
 const BookmarkIcon = styled(InlineSvg)`
   margin-left: ${space(0.5)};
+  color: ${p => p.theme.yellowOrange};
   margin-top: -2px; /* trivial alignment bump */
 `;
 
