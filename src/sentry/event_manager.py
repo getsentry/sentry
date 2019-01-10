@@ -57,7 +57,7 @@ from sentry.utils.data_filters import (
 from sentry.utils.dates import to_timestamp
 from sentry.utils.db import is_postgres, is_mysql
 from sentry.utils.meta import Meta
-from sentry.utils.safe import RUST_ENABLE_TRIMMING, safe_execute, trim, trim_dict, get_path, set_path, setdefault_path
+from sentry.utils.safe import ENABLE_TRIMMING, safe_execute, trim, trim_dict, get_path, set_path, setdefault_path
 from sentry.utils.strings import truncatechars
 from sentry.utils.geo import rust_geoip
 from sentry.utils.validators import is_float
@@ -460,7 +460,7 @@ class EventManager(object):
                 valid_platforms=list(VALID_PLATFORMS),
                 max_secs_in_future=MAX_SECS_IN_FUTURE,
                 max_secs_in_past=MAX_SECS_IN_PAST,
-                enable_trimming=RUST_ENABLE_TRIMMING,
+                enable_trimming=ENABLE_TRIMMING,
             )
 
             self._data = CanonicalKeyDict(rust_normalizer.normalize_event(dict(self._data)))
