@@ -32,8 +32,11 @@ const withLatestContext = WrappedComponent =>
         // of orgs but not full org details
         let latestOrganization =
           organization ||
-          ConfigStore.get('lastOrganization') ||
-          (organizations && organizations.length ? organizations[0] : null);
+          (organizations && organizations.length
+            ? organizations.find(
+                ({slug}) => slug === ConfigStore.get('lastOrganization')
+              ) || organizations[0]
+            : null);
 
         // TODO(billy): Below is going to be wrong if component is passed project, it will override
         // project from `latestContext`
