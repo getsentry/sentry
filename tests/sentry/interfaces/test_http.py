@@ -104,7 +104,7 @@ class HttpTest(TestCase):
         ))
         assert result.data == {'foo': 'bar'}
 
-    def test_form_encoded_data(self):
+    def test_urlencoded_data(self):
         result = Http.to_python(
             dict(
                 url='http://example.com',
@@ -112,7 +112,43 @@ class HttpTest(TestCase):
                 data='foo=bar',
             )
         )
+
         assert result.data == {'foo': ['bar']}
+        assert result.inferred_content_type == 'application/x-www-form-urlencoded'
+
+    def test_infer_urlencoded_content_type(self):
+        result = Http.to_python(
+            dict(
+                url='http://example.com',
+                data='foo=bar',
+            )
+        )
+
+        assert result.data == {'foo': ['bar']}
+        assert result.inferred_content_type == 'application/x-www-form-urlencoded'
+
+    def test_json_data(self):
+        result = Http.to_python(
+            dict(
+                url='http://example.com',
+                headers={'Content-Type': 'application/json'},
+                data='{"foo":"bar"}',
+            )
+        )
+
+        assert result.data == {'foo': 'bar'}
+        assert result.inferred_content_type == 'application/json'
+
+    def test_infer_json_content_type(self):
+        result = Http.to_python(
+            dict(
+                url='http://example.com',
+                data='{"foo":"bar"}',
+            )
+        )
+
+        assert result.data == {'foo': 'bar'}
+        assert result.inferred_content_type == 'application/json'
 
     def test_cookies_as_string(self):
         result = Http.to_python(dict(
