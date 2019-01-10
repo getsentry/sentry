@@ -1,5 +1,6 @@
 import {browserHistory} from 'react-router';
 import React from 'react';
+import qs from 'query-string';
 
 import {mount} from 'enzyme';
 import ConfigStore from 'app/stores/configStore';
@@ -69,7 +70,7 @@ describe('Discover', function() {
     });
   });
 
-  describe('componentWillRecieveProps()', function() {
+  describe('componentWillReceiveProps()', function() {
     it('handles navigating to saved query', function() {
       const wrapper = mount(
         <Discover
@@ -102,7 +103,7 @@ describe('Discover', function() {
           queryBuilder={queryBuilder}
           organization={organization}
           updateSavedQueryData={jest.fn()}
-          location={{search: ''}}
+          location={{search: '', query: {}}}
           params={{}}
           toggleEditMode={jest.fn()}
           isLoading={false}
@@ -111,10 +112,12 @@ describe('Discover', function() {
       );
 
       expect(wrapper.find('TimeRangeSelector').text()).toEqual('Last 14 days');
+      const search =
+        'projects=%5B%5D&fields=%5B%22id%22%2C%22issue.id%22%2C%22project.name%22%2C%22platform%22%2C%22timestamp%22%5D&conditions=%5B%5D&aggregations=%5B%5D&range=%227d%22&orderby=%22-timestamp%22&limit=1000&start=null&end=null';
       wrapper.setProps({
         location: {
-          search:
-            'projects=%5B%5D&fields=%5B%22id%22%2C%22issue.id%22%2C%22project.name%22%2C%22platform%22%2C%22timestamp%22%5D&conditions=%5B%5D&aggregations=%5B%5D&range=%227d%22&orderby=%22-timestamp%22&limit=1000&start=null&end=null',
+          query: qs.parse(search),
+          search,
         },
       });
       await tick();
@@ -346,10 +349,11 @@ describe('Discover', function() {
       let wrapper;
       beforeEach(function() {
         const mockResponse = {timing: {}, data: [], meta: []};
-        browserHistory.push.mockImplementation(function({search}) {
+        browserHistory.push.mockImplementation(function({search, query}) {
           wrapper.setProps({
             location: {
-              search: search || '',
+              search: search || qs.stringify(query),
+              query,
             },
           });
         });
@@ -361,7 +365,7 @@ describe('Discover', function() {
           <Discover
             queryBuilder={queryBuilder}
             organization={organization}
-            location={{location: '?fields=something'}}
+            location={{}}
             params={{}}
             updateSavedQueryData={jest.fn()}
             toggleEditMode={jest.fn()}
@@ -420,6 +424,9 @@ describe('Discover', function() {
         wrapper.setProps({
           location: {
             search: '?fields=[]',
+            query: {
+              fields: [],
+            },
           },
         });
         expect(queryBuilder.reset.mock.calls).toHaveLength(prevCallCount);

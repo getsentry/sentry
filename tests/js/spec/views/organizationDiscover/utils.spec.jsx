@@ -1,6 +1,6 @@
 import {
   getQueryFromQueryString,
-  getQueryStringFromQuery,
+  getQueryObjectFromQuery,
   getOrderbyFields,
   parseSavedQuery,
   generateQueryName,
@@ -40,9 +40,18 @@ describe('getQueryFromQueryString()', function() {
   });
 });
 
-describe('getQueryStringFromQuery()', function() {
+describe('getQueryObjectFromQuery()', function() {
   it('parses query from query string', function() {
-    expect(getQueryStringFromQuery(query)).toEqual(queryString);
+    expect(getQueryObjectFromQuery(query)).toEqual({
+      aggregations: '[["count()",null,"count"],["uniq","os_build","uniq_os_build"]]',
+      conditions: '[]',
+      end: '"2018-07-10T01:18:04"',
+      fields: '["id","timestamp"]',
+      limit: '1000',
+      orderby: '"-timestamp"',
+      projects: '[8]',
+      start: '"2018-06-26T01:18:04"',
+    });
   });
 });
 

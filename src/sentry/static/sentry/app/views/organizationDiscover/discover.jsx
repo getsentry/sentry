@@ -22,7 +22,8 @@ import {
   SavedQueryWrapper,
 } from './styles';
 import {
-  getQueryStringFromQuery,
+  areQueriesEqual,
+  getQueryObjectFromQuery,
   getQueryFromQueryString,
   deleteSavedQuery,
   updateSavedQuery,
@@ -74,12 +75,12 @@ export default class OrganizationDiscover extends React.Component {
   componentWillReceiveProps(nextProps) {
     const {
       queryBuilder,
-      location: {search},
+      location: {search, query},
       savedQuery,
       isEditingSavedQuery,
       params,
     } = nextProps;
-    const currentSearch = this.props.location.search;
+    const currentQuery = this.props.location.query;
     const {resultManager} = this.state;
 
     if (savedQuery && savedQuery !== this.props.savedQuery) {
@@ -94,12 +95,7 @@ export default class OrganizationDiscover extends React.Component {
 
     // Don't compare `visual` since there is no need to re-query if queries are equal
     // but views are changing
-    const visualRegex = /&?visual=[^&]+/;
-    if (
-      currentSearch &&
-      search &&
-      currentSearch.replace(visualRegex, '') === search.replace(visualRegex, '')
-    ) {
+    if (areQueriesEqual(currentQuery, query)) {
       return;
     }
 
@@ -220,11 +216,12 @@ export default class OrganizationDiscover extends React.Component {
         const shouldRedirect = !this.props.params.savedQueryId;
 
         if (shouldRedirect) {
-          const visual =
-            keepVisual && location.query.visual ? `&visual=${location.query.visual}` : '';
           browserHistory.push({
             pathname: `/organizations/${organization.slug}/discover/`,
-            search: `${getQueryStringFromQuery(queryBuilder.getInternal())}${visual}`,
+            query: {
+              ...getQueryObjectFromQuery(queryBuilder.getInternal()),
+              visual: keepVisual && location.query.visual,
+            },
           });
         }
 

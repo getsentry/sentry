@@ -1,21 +1,25 @@
+import {isEqual, pick} from 'lodash';
 import moment from 'moment';
+
 import {Client} from 'app/api';
-import {isValidAggregation} from './aggregations/utils';
+import {defined} from 'app/utils';
+
 import {NON_SNUBA_FIELDS} from './data';
+import {isValidAggregation} from './aggregations/utils';
+
+const validQueryKeys = new Set([
+  'projects',
+  'fields',
+  'conditions',
+  'aggregations',
+  'range',
+  'start',
+  'end',
+  'orderby',
+  'limit',
+]);
 
 export function getQueryFromQueryString(queryString) {
-  const validQueryKeys = new Set([
-    'projects',
-    'fields',
-    'conditions',
-    'aggregations',
-    'range',
-    'start',
-    'end',
-    'orderby',
-    'limit',
-  ]);
-
   const result = {};
   let parsedQuery = queryString;
   parsedQuery = parsedQuery.replace(/^\?|\/$/g, '').split('&');
@@ -31,12 +35,19 @@ export function getQueryFromQueryString(queryString) {
   return result;
 }
 
-export function getQueryStringFromQuery(query) {
-  const queryProperties = Object.entries(query).map(([key, value]) => {
-    return key + '=' + encodeURIComponent(JSON.stringify(value));
-  });
+export function getQueryObjectFromQuery(query) {
+  // Filter out undefined/null values
+  const queryProperties = Object.entries(query)
+    .filter(([key, value]) => defined(value))
+    .map(([key, value]) => {
+      return [key, JSON.stringify(value)];
+    })
+    .reduce((acc, [key, val]) => {
+      acc[key] = val;
+      return acc;
+    }, {});
 
-  return `?${queryProperties.join('&')}`;
+  return queryProperties;
 }
 
 export function getOrderbyFields(queryBuilder) {
@@ -97,6 +108,11 @@ export function getView(params, requestedView) {
     default:
       return 'query';
   }
+}
+
+export function areQueriesEqual(query, other) {
+  const validKeys = Array.from(validQueryKeys);
+  return isEqual(pick(query, validKeys), pick(other, validKeys));
 }
 
 /**
