@@ -5,32 +5,21 @@ import Reflux from 'reflux';
 import {browserHistory} from 'react-router';
 import DocumentTitle from 'react-document-title';
 
-import {analytics} from 'app/utils/analytics';
 import ApiMixin from 'app/mixins/apiMixin';
-import GroupHeader from 'app/views/groupDetails/header';
 import GroupStore from 'app/stores/groupStore';
 import LoadingError from 'app/components/loadingError';
 import LoadingIndicator from 'app/components/loadingIndicator';
 import SentryTypes from 'app/sentryTypes';
 import {t} from 'app/locale';
-import withEnvironment from 'app/utils/withEnvironment';
 
-let ERROR_TYPES = {
-  GROUP_NOT_FOUND: 'GROUP_NOT_FOUND',
-};
+import GroupHeader from '../shared/header';
+import {ERROR_TYPES} from '../shared/constants';
 
 const GroupDetails = createReactClass({
   displayName: 'GroupDetails',
 
   propTypes: {
-    setProjectNavSection: PropTypes.func,
-    memberList: PropTypes.array,
     environment: SentryTypes.Environment,
-  },
-
-  contextTypes: {
-    organization: SentryTypes.Organization,
-    project: SentryTypes.Project,
   },
 
   childContextTypes: {
@@ -39,12 +28,6 @@ const GroupDetails = createReactClass({
   },
 
   mixins: [ApiMixin, Reflux.listenTo(GroupStore, 'onGroupChange')],
-
-  getDefaultProps() {
-    return {
-      memberList: [],
-    };
-  },
 
   getInitialState() {
     return {
@@ -63,16 +46,7 @@ const GroupDetails = createReactClass({
   },
 
   componentWillMount() {
-    this.props.setProjectNavSection('stream');
     this.fetchData();
-  },
-
-  componentDidMount() {
-    analytics('issue_page.viewed', {
-      group_id: parseInt(this.props.params.groupId, 10),
-      org_id: parseInt(this.context.organization.id, 10),
-      project_id: parseInt(this.context.project.id, 10),
-    });
   },
 
   componentWillReceiveProps(nextProps) {
@@ -81,7 +55,7 @@ const GroupDetails = createReactClass({
     }
   },
 
-  componentDidUpdate(prevProps, prevState) {
+  componentDidUpdate(prevProps) {
     if (
       prevProps.params.groupId !== this.props.params.groupId ||
       prevProps.environment !== this.props.environment
@@ -212,14 +186,8 @@ const GroupDetails = createReactClass({
     return (
       <DocumentTitle title={this.getTitle()}>
         <div className={this.props.className}>
-          <GroupHeader
-            orgId={params.orgId}
-            projectId={params.projectId}
-            group={group}
-            memberList={this.props.memberList}
-          />
+          <GroupHeader orgId={params.orgId} projectId={group.project.id} group={group} />
           {React.cloneElement(this.props.children, {
-            memberList: this.props.memberList,
             group,
           })}
         </div>
@@ -228,4 +196,4 @@ const GroupDetails = createReactClass({
   },
 });
 
-export default withEnvironment(GroupDetails);
+export default GroupDetails;

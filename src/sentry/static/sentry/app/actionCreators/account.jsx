@@ -29,3 +29,9 @@ export function logout(api) {
     method: 'DELETE',
   });
 }
+
+export function removeAuthenticator(api, userId, authId) {
+  return api.requestPromise(`/users/${userId}/authenticators/${authId}/`, {
+    method: 'DELETE',
+  });
+}

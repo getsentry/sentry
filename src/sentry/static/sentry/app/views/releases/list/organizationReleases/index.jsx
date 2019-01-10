@@ -16,7 +16,8 @@ import AsyncView from 'app/views/asyncView';
 
 import withOrganization from 'app/utils/withOrganization';
 
-import {PageContent, PageHeader, HeaderTitle} from 'app/styles/organization';
+import {PageContent, PageHeader} from 'app/styles/organization';
+import PageHeading from 'app/components/pageHeading';
 
 import ReleaseList from '../shared/releaseList';
 import ReleaseListHeader from '../shared/releaseListHeader';
@@ -102,7 +103,7 @@ class OrganizationReleases extends AsyncView {
         <GlobalSelectionHeader organization={organization} />
         <PageContent>
           <PageHeader>
-            <HeaderTitle>{t('Releases')}</HeaderTitle>
+            <PageHeading>{t('Releases')}</PageHeading>
             <div>
               <SearchBar
                 defaultQuery=""

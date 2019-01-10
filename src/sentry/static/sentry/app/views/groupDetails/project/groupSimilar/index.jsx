@@ -10,7 +10,7 @@ import GroupingStore from 'app/stores/groupingStore';
 import LoadingError from 'app/components/loadingError';
 import LoadingIndicator from 'app/components/loadingIndicator';
 import ProjectState from 'app/mixins/projectState';
-import SimilarList from 'app/views/groupSimilar/similarList';
+import SimilarList from './similarList';
 
 const GroupGroupingView = createReactClass({
   displayName: 'GroupGroupingView',

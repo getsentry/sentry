@@ -1,20 +1,34 @@
+import * as Sentry from '@sentry/browser';
+
 import {browserHistory} from 'react-router';
 import React from 'react';
 
 import {resendMemberInvite, updateMember} from 'app/actionCreators/members';
-import {t} from 'app/locale';
+import {addErrorMessage, addSuccessMessage} from 'app/actionCreators/indicator';
+import {t, tct} from 'app/locale';
 import AsyncView from 'app/views/asyncView';
 import Button from 'app/components/button';
+import Confirm from 'app/components/confirm';
 import DateTime from 'app/components/dateTime';
+import Field from 'app/views/settings/components/forms/field';
 import IndicatorStore from 'app/stores/indicatorStore';
 import NotFound from 'app/components/errors/notFound';
 import {Panel, PanelBody, PanelHeader, PanelItem} from 'app/components/panels';
+import {removeAuthenticator} from 'app/actionCreators/account';
 import SentryTypes from 'app/sentryTypes';
 import SettingsPageHeader from 'app/views/settings/components/settingsPageHeader';
+import Tooltip from 'app/components/tooltip';
 import recreateRoute from 'app/utils/recreateRoute';
 
 import RoleSelect from './inviteMember/roleSelect';
 import TeamSelect from './inviteMember/teamSelect';
+
+const NOT_ENROLLED = t('Not enrolled in two-factor authentication');
+const NO_PERMISSION = t('You do not have permission to perform this action');
+const TWO_FACTOR_REQUIRED = t(
+  'Cannot be reset since two-factor is required for this organization'
+);
+const MULTIPLE_ORGS = t('Cannot be reset since user is in more than one organization');
 
 class OrganizationMemberDetail extends AsyncView {
   static contextTypes = {
@@ -142,16 +156,62 @@ class OrganizationMemberDetail extends AsyncView {
     });
   };
 
+  handle2faReset = () => {
+    let {user} = this.state.member;
+    let {slug} = this.getOrganization();
+
+    let requests = user.authenticators.map(auth =>
+      removeAuthenticator(this.api, user.id, auth.id)
+    );
+
+    Promise.all(requests)
+      .then(() => {
+        this.props.router.push(`/settings/${slug}/members/`);
+        addSuccessMessage(t('All authenticators have been removed'));
+      })
+      .catch(err => {
+        addErrorMessage(t('Error removing authenticators'));
+        Sentry.captureException(err);
+      });
+  };
+
+  showResetButton = () => {
+    let {member} = this.state;
+    let {require2FA} = this.getOrganization();
+    let {user} = member;
+
+    if (!user || !user.authenticators || require2FA) return false;
+    let hasAuth = user.authenticators.length >= 1;
+    return hasAuth && user.canReset2fa;
+  };
+
+  getTooltip = () => {
+    let {member} = this.state;
+    let {require2FA} = this.getOrganization();
+    let {user} = member;
+
+    if (!user) return '';
+
+    if (!user.authenticators) return NO_PERMISSION;
+    if (!user.authenticators.length) return NOT_ENROLLED;
+    if (!user.canReset2fa) return MULTIPLE_ORGS;
+    if (require2FA) return TWO_FACTOR_REQUIRED;
+
+    return '';
+  };
+
   renderBody() {
     let {error, member} = this.state;
     let {teams, access} = this.getOrganization();
 
     if (!member) return <NotFound />;
 
-    let email = member.email;
     let inviteLink = member.invite_link;
     let canEdit = access.includes('org:write');
-    let canResend = !member.expired;
+
+    let {email, expired, pending} = member;
+    let canResend = !expired;
+    let showAuth = !pending;
 
     return (
       <div>
@@ -245,6 +305,44 @@ class OrganizationMemberDetail extends AsyncView {
             </PanelItem>
           </PanelBody>
         </Panel>
+
+        {showAuth && (
+          <Panel>
+            <PanelHeader>{t('Authentication')}</PanelHeader>
+            <PanelBody>
+              <Field
+                alignRight={true}
+                flexibleControlStateSize={true}
+                label={t('Reset two-factor authentication')}
+                help={t(
+                  'Resetting two-factor authentication will remove all two-factor authentication methods for this member.'
+                )}
+              >
+                <Tooltip
+                  data-test-id="reset-2fa-tooltip"
+                  disabled={this.showResetButton()}
+                  title={this.getTooltip()}
+                >
+                  <span>
+                    <Confirm
+                      disabled={!this.showResetButton()}
+                      message={tct(
+                        'Are you sure you want to disable all two-factor authentication methods for [name]?',
+                        {name: member.name ? member.name : 'this member'}
+                      )}
+                      onConfirm={this.handle2faReset}
+                      data-test-id="reset-2fa-confirm"
+                    >
+                      <Button data-test-id="reset-2fa" priority="danger">
+                        {t('Reset two-factor authentication')}
+                      </Button>
+                    </Confirm>
+                  </span>
+                </Tooltip>
+              </Field>
+            </PanelBody>
+          </Panel>
+        )}
 
         <RoleSelect
           enforceAllowed={false}
