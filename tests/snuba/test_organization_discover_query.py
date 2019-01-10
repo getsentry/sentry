@@ -11,7 +11,8 @@ class OrganizationDiscoverQueryTest(APITestCase, SnubaTestCase):
     def setUp(self):
         super(OrganizationDiscoverQueryTest, self).setUp()
 
-        one_second_ago = datetime.now() - timedelta(seconds=1)
+        self.now = datetime.now()
+        one_second_ago = self.now - timedelta(seconds=1)
 
         self.login_as(user=self.user)
 
@@ -230,10 +231,10 @@ class OrganizationDiscoverQueryTest(APITestCase, SnubaTestCase):
                 'rollup': 86400,
             })
         assert response.status_code == 200, response.content
-        assert len(response.data['data']) == 7
-        assert(response.data['data'][6]['time']) > response.data['data'][5]['time']
-        assert(response.data['data'][6]['project.name']) == 'bar'
-        assert(response.data['data'][6]['count']) == 1
+        assert len(response.data['data']) == 6
+        assert(response.data['data'][5]['time']) > response.data['data'][4]['time']
+        assert(response.data['data'][5]['project.name']) == 'bar'
+        assert(response.data['data'][5]['count']) == 1
 
     def test_zerofilled_dates_when_rollup_absolute(self):
         with self.feature('organizations:discover'):
@@ -244,16 +245,16 @@ class OrganizationDiscoverQueryTest(APITestCase, SnubaTestCase):
                 'fields': ['project.name'],
                 'groupby': ['time'],
                 'orderby': '-time',
-                'start': (datetime.now() - timedelta(seconds=60)).strftime('%Y-%m-%dT%H:%M:%S'),
-                'end': (datetime.now()).strftime('%Y-%m-%dT%H:%M:%S'),
-                'rollup': 10,
+                'start': (self.now - timedelta(seconds=300)).strftime('%Y-%m-%dT%H:%M:%S'),
+                'end': self.now.strftime('%Y-%m-%dT%H:%M:%S'),
+                'rollup': 60,
             })
 
         assert response.status_code == 200, response.content
-        assert len(response.data['data']) == 8
-        assert(response.data['data'][1]['time']) > response.data['data'][2]['time']
-        assert(response.data['data'][1]['project.name']) == 'bar'
-        assert(response.data['data'][1]['count']) == 1
+        assert len(response.data['data']) == 6
+        assert(response.data['data'][0]['time']) > response.data['data'][2]['time']
+        assert(response.data['data'][0]['project.name']) == 'bar'
+        assert(response.data['data'][0]['count']) == 1
 
     def test_uniq_project_name(self):
         with self.feature('organizations:discover'):
