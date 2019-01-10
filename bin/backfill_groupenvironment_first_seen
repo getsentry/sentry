@@ -4,18 +4,87 @@ from __future__ import absolute_import
 from sentry.runner import configure
 configure()
 
+import functools
+from Queue import Queue
+from threading import Thread
 from operator import or_
 
 from django.db.models import Q
 
-from sentry.tagstore.v2.models import GroupTagValue
 from sentry.models import Environment, Group, GroupEnvironment
+from sentry.tagstore.v2.models import GroupTagValue
 
 CHUNK_SIZE = 10000
+POOL_SIZE = 20
+
+
+class SimpleThreadedWorkerPool(object):
+    """\
+    Manages a simple threaded worker pool. The pool will be started when the
+    first job is submitted, and will run to process completion.
+    """
+
+    END = object()
+
+    def __init__(self, size):
+        assert size > 0, 'pool must have at laest one worker thread'
+
+        self.__started = False
+        self.__size = size
+        self.__threads = []
+
+    def __start(self):
+        self.__tasks = tasks = Queue(maxsize=100)
+
+        def consumer():
+            while True:
+                try:
+                    task = tasks.get()
+                    if task is self.END:
+                        return
+                    task()
+                except Exception as e:
+                    print(e)  # NOQA
+                finally:
+                    tasks.task_done()
+
+        for _ in range(self.__size):
+            t = Thread(target=consumer)
+            t.setDaemon(True)
+            t.start()
+            self.__threads.append(t)
+
+        self.__started = True
+
+    def submit(self, task):
+        """\
+        Submit a task to the worker pool.
+        """
+        if not self.__started:
+            self.__start()
+
+        self.__tasks.put(task)
+
+    def drain(self):
+        if not self.__started:
+            return
+
+        for _ in range(self.__size):
+            self.__tasks.put(self.END)
+
+        for t in self.__threads:
+            t.join()
 
 
 def backfill_group_env():
+    def _update_groupenv(group_env_id, first_seen):
+        GroupEnvironment.objects.filter(
+            id=group_env_id,
+            first_seen__isnull=True,
+        ).update(first_seen=first_seen)
+
     ENV_CACHE = dict(Environment.objects.values_list('id', 'name'))
+    pool = SimpleThreadedWorkerPool(POOL_SIZE)
 
     last_pk = None
     qs = GroupEnvironment.objects.filter(first_seen__isnull=True).order_by('pk')
@@ -63,10 +132,10 @@ def backfill_group_env():
         for ge in group_environments:
             first_seen = gtv_lookup.get((ge.group_id, ge.environment_id))
             if first_seen:
-                ge.first_seen = first_seen
-                ge.save()
-
+                pool.submit(functools.partial(_update_groupenv, ge.id, first_seen))
         group_environments = list(qs.filter(pk__gt=last_pk)[0:CHUNK_SIZE])
+
+    pool.drain()
 
 
 if __name__ == '__main__':
