@@ -512,8 +512,3 @@ class GroupDeleteTest(APITestCase):
         # Now we killed everything with fire
         assert not Group.objects.filter(id=group.id).exists()
         assert not GroupHash.objects.filter(group_id=group.id).exists()
-
-
-class LinkedGroupTest(APITestCase):
-    def setUp(self):
-        pass
