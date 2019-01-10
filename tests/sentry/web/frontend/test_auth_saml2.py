@@ -131,7 +131,7 @@ class AuthSAML2Test(AuthProviderTestCase):
         assert auth.status_code == 200
         assert auth.context['existing_user'] == self.user
 
-    @mock.patch('sentry.auth.providers.saml2.logger')
+    @mock.patch('sentry.auth.helper.logger')
     def test_auth_setup(self, auth_log):
         self.auth_provider.delete()
         self.login_as(self.user)
@@ -162,9 +162,9 @@ class AuthSAML2Test(AuthProviderTestCase):
             event=AuditLogEntryEvent.ORG_EDIT,
             actor=self.user
         )
-        assert 'require_2fa to False when enabling SAML SSO' in event.get_note()
+        assert 'require_2fa to False when enabling SSO' in event.get_note()
         auth_log.info.assert_called_once_with(
-            'Require 2fa disabled during saml sso setup',
+            'Require 2fa disabled during sso setup',
             extra={
                 'organization_id': self.org.id
             }

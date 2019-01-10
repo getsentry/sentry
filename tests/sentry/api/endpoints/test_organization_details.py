@@ -9,6 +9,7 @@ from mock import patch
 from exam import fixture
 from pprint import pprint
 
+from sentry.api.endpoints.organization_details import ERR_NO_2FA, ERR_SSO_ENABLED
 from sentry.constants import RESERVED_ORGANIZATION_SLUGS
 from sentry.models import (
     AuditLogEntry,
@@ -579,18 +580,25 @@ class OrganizationDeleteTest(APITestCase):
 
 class OrganizationSettings2FATest(TwoFactorAPITestCase):
     def setUp(self):
+        # 2FA enforced org
         self.org_2fa = self.create_organization(owner=self.create_user())
         self.enable_org_2fa(self.org_2fa)
         self.no_2fa_user = self.create_user()
         self.create_member(organization=self.org_2fa, user=self.no_2fa_user, role="member")
 
-        # 2FA not enforced org and members
+        # 2FA not enforced org
         self.owner = self.create_user()
         self.organization = self.create_organization(owner=self.owner)
         self.manager = self.create_user()
         self.create_member(organization=self.organization, user=self.manager, role="manager")
         self.org_user = self.create_user()
         self.create_member(organization=self.organization, user=self.org_user, role="member")
+
+        # 2FA enrolled user
+        self.has_2fa = self.create_user()
+        TotpInterface().enroll(self.has_2fa)
+        self.create_member(organization=self.organization, user=self.has_2fa, role="manager")
+        assert Authenticator.objects.user_has_2fa(self.has_2fa)
 
     @fixture
     def path(self):
@@ -612,23 +620,29 @@ class OrganizationSettings2FATest(TwoFactorAPITestCase):
 
     def test_cannot_enforce_2fa_without_2fa_enabled(self):
         assert not Authenticator.objects.user_has_2fa(self.owner)
-        self.assert_cannot_enable_org_2fa(self.organization, self.owner, 400)
+        self.assert_cannot_enable_org_2fa(self.organization, self.owner, 400, ERR_NO_2FA)
+
+    def test_cannot_enforce_2fa_with_sso_enabled(self):
+        self.auth_provider = AuthProvider.objects.create(
+            provider='github',
+            organization=self.organization,
+        )
+        # bypass SSO login
+        self.auth_provider.flags.allow_unlinked = True
+        self.auth_provider.save()
+
+        self.assert_cannot_enable_org_2fa(self.organization, self.has_2fa, 400, ERR_SSO_ENABLED)
 
     def test_cannot_enforce_2fa_with_saml_enabled(self):
         self.auth_provider = AuthProvider.objects.create(
             provider='saml2',
-            organization=self.org_2fa,
+            organization=self.organization,
         )
-        self.assert_cannot_enable_org_2fa(self.organization, self.owner, 400)
+        # bypass SSO login
+        self.auth_provider.flags.allow_unlinked = True
+        self.auth_provider.save()
 
-    def test_can_enforce_2fa_with_non_saml_sso_enabled(self):
-        org = self.create_organization(owner=self.owner)
-        TotpInterface().enroll(self.owner)
-        self.auth_provider = AuthProvider.objects.create(
-            provider='github',
-            organization=org,
-        )
-        self.assert_can_enable_org_2fa(self.organization, self.owner)
+        self.assert_cannot_enable_org_2fa(self.organization, self.has_2fa, 400, ERR_SSO_ENABLED)
 
     def test_owner_can_set_2fa_single_member(self):
         org = self.create_organization(owner=self.owner)
