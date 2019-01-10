@@ -67,7 +67,7 @@ exports[`StreamGroup renders with anchors 1`] = `
       }
       includeLink={true}
       orgId="orgId"
-      projectId="projectId"
+      projectId="test"
     />
     <EventOrGroupExtraDetails
       assignedTo={null}
@@ -81,7 +81,7 @@ exports[`StreamGroup renders with anchors 1`] = `
           "slug": "test",
         }
       }
-      projectId="projectId"
+      projectId="test"
       stats={
         Object {
           "24h": Array [

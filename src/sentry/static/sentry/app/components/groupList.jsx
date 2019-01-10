@@ -163,7 +163,6 @@ const GroupList = createReactClass({
                 key={id}
                 id={id}
                 orgId={orgId}
-                projectId={project.slug}
                 canSelect={this.props.canSelectGroups}
               />
             );
