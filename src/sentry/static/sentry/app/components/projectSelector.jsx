@@ -277,9 +277,14 @@ class ProjectSelectorItem extends React.PureComponent {
             />
           </BadgeWrapper>
           {project.isBookmarked && <BookmarkIcon src="icon-star-small-filled" />}
-          <SettingsIconLink to={`/settings/${organization.slug}/${project.slug}/`}>
-            <InlineSvg src="icon-settings" />
-          </SettingsIconLink>
+          {multi && (
+            <SettingsIconLink
+              to={`/settings/${organization.slug}/${project.slug}/`}
+              onClick={e => e.stopPropagation()}
+            >
+              <InlineSvg src="icon-settings" />
+            </SettingsIconLink>
+          )}
         </BadgeAndBookmark>
 
         {multi && (
