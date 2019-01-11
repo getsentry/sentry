@@ -46,8 +46,19 @@ const StyledDelta = styled('div')`
 
 class PercentageTableChart extends React.Component {
   static propTypes = {
+    // Height of body
+    height: PropTypes.string,
+
+    // props to pass to PanelHeader
+    headerProps: PropTypes.object,
+
+    // Main title (left most column) should
     title: PropTypes.node,
+
+    // Label for the "count" title
     countTitle: PropTypes.node,
+
+    extraTitle: PropTypes.node,
     onRowClick: PropTypes.func,
     data: PropTypes.arrayOf(
       PropTypes.shape({
@@ -62,20 +73,23 @@ class PercentageTableChart extends React.Component {
   static defaultProps = {
     title: '',
     countTitle: t('Count'),
+    extraTitle: null,
     onRowClick: () => {},
   };
 
-  handleRowClick = ({specifier}, e) => {
+  handleRowClick = (obj, e) => {
     const {onRowClick} = this.props;
-    onRowClick(specifier, e);
+    onRowClick(obj, e);
   };
 
   render() {
-    const {title, countTitle, data} = this.props;
+    const {height, headerProps, title, countTitle, extraTitle, data} = this.props;
 
     return (
       <TableChart
-        headers={[title, countTitle, t('Percentage')]}
+        headerProps={headerProps}
+        bodyHeight={height}
+        headers={[title, countTitle, t('Percentage'), extraTitle]}
         data={data.map(({value, lastValue, name, percentage}) => [
           <Name key="name">{name}</Name>,
           <CountColumn key="count">
@@ -97,6 +111,7 @@ class PercentageTableChart extends React.Component {
             </NameAndCountContainer>
             <PercentageContainer>
               <PercentageLabel>{items[2]}</PercentageLabel>
+              {items[3]}
             </PercentageContainer>
           </Row>
         )}
