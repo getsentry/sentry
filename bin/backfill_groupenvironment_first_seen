@@ -5,6 +5,7 @@ from sentry.runner import configure
 configure()
 
 import functools
+import logging
 from Queue import Queue
 from threading import Thread
 from operator import or_
@@ -16,6 +17,8 @@ from sentry.tagstore.v2.models import GroupTagValue
 
 CHUNK_SIZE = 10000
 POOL_SIZE = 20
+
+logger = logging.getLogger('backfill_group_env')
 
 
 class SimpleThreadedWorkerPool(object):
@@ -44,7 +47,7 @@ class SimpleThreadedWorkerPool(object):
                         return
                     task()
                 except Exception as e:
-                    print(e)  # NOQA
+                    logger.exception(e)  # NOQA
                 finally:
                     tasks.task_done()
 
@@ -91,7 +94,7 @@ def backfill_group_env():
     remaining_count = qs.count()
     group_environments = list(qs[0:CHUNK_SIZE])
 
-    print('Backfilling %s GroupEnvironments' % (remaining_count,))  # NOQA
+    logger.info('Backfilling %s GroupEnvironments' % (remaining_count,))  # NOQA
 
     while group_environments:
         last_pk = group_environments[-1].id
@@ -102,7 +105,9 @@ def backfill_group_env():
             ).values_list('id', 'project_id')
         )
 
-        group_environments = [ge for ge in group_environments if ge.group_id in project_by_group]
+        group_environments = [
+            ge for ge in group_environments if ge.group_id in project_by_group and ge.environment_id in ENV_CACHE
+        ]
 
         group_tag_values = GroupTagValue.objects.filter(
             reduce(or_, [Q(
@@ -127,7 +132,7 @@ def backfill_group_env():
             if first_seen:
                 pool.submit(functools.partial(_update_groupenv, ge.id, first_seen))
         remaining_count = remaining_count - CHUNK_SIZE
-        print('%s GroupEnvironments remaining' % (remaining_count,))  # NOQA
+        logger.info('%s GroupEnvironments remaining' % (remaining_count,))  # NOQA
         group_environments = list(qs.filter(pk__gt=last_pk)[0:CHUNK_SIZE])
 
     pool.drain()
