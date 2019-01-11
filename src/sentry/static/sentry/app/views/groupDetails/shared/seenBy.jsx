@@ -1,24 +1,23 @@
 import React from 'react';
-import createReactClass from 'create-react-class';
 import moment from 'moment';
 import _ from 'lodash';
 import styled from 'react-emotion';
 
+import SentryTypes from 'app/sentryTypes';
 import ConfigStore from 'app/stores/configStore';
 import AvatarList from 'app/components/avatar/avatarList';
-import GroupState from 'app/mixins/groupState';
 import {userDisplayName} from 'app/utils/formatters';
 import Tooltip from 'app/components/tooltip';
 import {t} from 'app/locale';
 
-const GroupSeenBy = createReactClass({
-  displayName: 'GroupSeenBy',
-
-  mixins: [GroupState],
+export default class GroupSeenBy extends React.Component {
+  static propTypes = {
+    group: SentryTypes.Group.isRequired,
+  };
 
   render() {
-    let activeUser = ConfigStore.get('user');
-    let group = this.getGroup();
+    const activeUser = ConfigStore.get('user');
+    const group = this.props.group;
 
     // NOTE: Sometimes group.seenBy is undefined, even though the /groups/{id} API
     //       endpoint guarantees an array. We haven't figured out HOW GroupSeenBy
@@ -27,7 +26,7 @@ const GroupSeenBy = createReactClass({
     //
     // See: https://github.com/getsentry/sentry/issues/2387
 
-    let seenBy = group.seenBy || [];
+    const seenBy = group.seenBy || [];
     if (seenBy.length === 0) {
       return null;
     }
@@ -50,10 +49,8 @@ const GroupSeenBy = createReactClass({
         </IconWrapper>
       </SeenByWrapper>
     );
-  },
-});
-
-export default GroupSeenBy;
+  }
+}
 
 const SeenByWrapper = styled('div')`
   display: flex;

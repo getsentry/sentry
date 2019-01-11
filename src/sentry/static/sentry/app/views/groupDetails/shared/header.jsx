@@ -17,7 +17,7 @@ import {t} from 'app/locale';
 import SentryTypes from 'app/sentryTypes';
 
 import GroupActions from './actions';
-import GroupSeenBy from '../project/seenBy';
+import GroupSeenBy from './seenBy';
 
 const GroupHeader = createReactClass({
   displayName: 'GroupHeader',
@@ -174,7 +174,7 @@ const GroupHeader = createReactClass({
             </div>
           </div>
         </div>
-        <GroupSeenBy />
+        <GroupSeenBy group={group} />
         <GroupActions group={group} project={project} />
         <NavTabs>
           <ListLink
