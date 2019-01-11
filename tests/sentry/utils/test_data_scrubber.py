@@ -164,6 +164,32 @@ class SensitiveDataFilterTest(TestCase):
             }
         )
 
+    def test_querystring_as_pairlist(self):
+        data = {
+            'request': {
+                'query_string': [
+                    ['foo', 'bar'],
+                    ['password', 'hello'],
+                    ['the_secret', 'hello'],
+                    ['a_password_here', 'hello'],
+                    ['api_key', 'secret_key'],
+                ],
+            }
+        }
+
+        proc = SensitiveDataFilter()
+        proc.apply(data)
+
+        assert 'request' in data
+        http = data['request']
+        assert http['query_string'] == [
+            ['foo', 'bar'],
+            ['password', FILTER_MASK],
+            ['the_secret', FILTER_MASK],
+            ['a_password_here', FILTER_MASK],
+            ['api_key', FILTER_MASK],
+        ]
+
     def test_querystring_as_string_with_partials(self):
         data = {
             'request': {
@@ -177,6 +203,28 @@ class SensitiveDataFilterTest(TestCase):
         assert 'request' in data
         http = data['request']
         assert http['query_string'] == 'foo=bar&password&baz=bar'
+
+    def test_querystring_as_pairlist_with_partials(self):
+        data = {
+            'request': {
+                'query_string': [
+                    ['foo', 'bar'],
+                    ['password', ''],
+                    ['baz', 'bar'],
+                ]
+            }
+        }
+
+        proc = SensitiveDataFilter()
+        proc.apply(data)
+
+        assert 'request' in data
+        http = data['request']
+        assert http['query_string'] == [
+            ['foo', 'bar'],
+            ['password', ''],
+            ['baz', 'bar'],
+        ]
 
     def test_sanitize_additional_sensitive_fields(self):
         additional_sensitive_dict = {'fieldy_field': 'value', 'moar_other_field': 'another value'}
@@ -442,3 +490,17 @@ class SensitiveDataFilterTest(TestCase):
         assert 'csp' in data
         csp = data['csp']
         assert csp['blocked_uri'] == 'https://example.com/?foo=[Filtered]&bar=baz'
+
+    def test_breadcrumb_message(self):
+        data = {
+            'breadcrumbs': {
+                'values': [{
+                    'message': "SELECT session_key FROM django_session WHERE session_key = 'abcdefg'",
+                }],
+            },
+        }
+
+        proc = SensitiveDataFilter(fields=['session_key'])
+        proc.apply(data)
+
+        assert data['breadcrumbs']['values'][0]['message'] == FILTER_MASK

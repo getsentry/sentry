@@ -47,7 +47,6 @@ default_manager = FeatureManager()  # NOQA
 
 # Unscoped features
 default_manager.add('auth:register')
-default_manager.add('user:assistant')
 default_manager.add('organizations:create')
 
 # Organization scoped features
@@ -55,7 +54,6 @@ default_manager.add('organizations:api-keys', OrganizationFeature)  # NOQA
 default_manager.add('organizations:discover', OrganizationFeature)  # NOQA
 default_manager.add('organizations:event-attachments', OrganizationFeature)  # NOQA
 default_manager.add('organizations:global-views', OrganizationFeature)  # NOQA
-default_manager.add('organizations:group-unmerge', OrganizationFeature)  # NOQA
 default_manager.add('organizations:integrations-issue-basic', OrganizationFeature)  # NOQA
 default_manager.add('organizations:integrations-issue-sync', OrganizationFeature)  # NOQA
 default_manager.add('organizations:internal-catchall', OrganizationFeature)  # NOQA

@@ -1,11 +1,8 @@
 from __future__ import absolute_import, print_function
 
-import logging
-
 from django.contrib import messages
 from django.contrib.auth import logout
 from django.core.urlresolvers import reverse
-from django.db import models
 
 from django.http import HttpResponse, HttpResponseServerError
 from django.utils.decorators import method_decorator
@@ -18,14 +15,11 @@ from sentry import options
 from sentry.auth import Provider, AuthView
 from sentry.auth.exceptions import IdentityNotValid
 from sentry.models import (
-    AuditLogEntryEvent, AuthProvider, Organization, OrganizationStatus
+    AuthProvider, Organization, OrganizationStatus
 )
-from sentry.utils.audit import create_audit_entry
 from sentry.utils.auth import get_login_url
 from sentry.utils.http import absolute_uri
 from sentry.web.frontend.base import BaseView
-
-logger = logging.getLogger('sentry.auth')
 
 
 try:
@@ -82,11 +76,9 @@ class SAML2LoginView(AuthView):
         provider = helper.provider
 
         # During the setup pipeline, the provider will not have been configured yet,
-        # so build the config first from the state. Then disable require 2FA for the
-        # orgnization, since only SAML or require 2FA can be enabled.
+        # so build the config first from the state.
         if not provider.config:
             provider.config = provider.build_config(helper.fetch_state())
-            disable_2fa_required(request, helper.organization)
 
         saml_config = build_saml_config(provider.config, helper.organization.slug)
         auth = build_auth(request, saml_config)
@@ -399,27 +391,3 @@ def build_auth(request, saml_config):
     }
 
     return OneLogin_Saml2_Auth(saml_request, saml_config)
-
-
-def disable_2fa_required(request, organization):
-    require_2fa = organization.flags.require_2fa
-    if require_2fa and require_2fa.is_set:
-        organization.update(
-            flags=models.F('flags').bitand(~Organization.flags.require_2fa)
-        )
-
-        logger.info(
-            'Require 2fa disabled during saml sso setup',
-            extra={
-                'organization_id': organization.id,
-            }
-        )
-        create_audit_entry(
-            request=request,
-            organization=organization,
-            target_object=organization.id,
-            event=AuditLogEntryEvent.ORG_EDIT,
-            data={
-                'require_2fa': u'to False when enabling SAML SSO'
-            },
-        )

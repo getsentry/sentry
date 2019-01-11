@@ -1,7 +1,7 @@
 import React from 'react';
 import {shallow} from 'enzyme';
 
-import GroupSeenBy from 'app/views/groupDetails/seenBy';
+import GroupSeenBy from 'app/views/groupDetails/project/seenBy';
 import ConfigStore from 'app/stores/configStore';
 
 describe('GroupSeenBy', function() {

@@ -3,14 +3,14 @@ import React from 'react';
 
 import App from 'app/views/app';
 import CreateProject from 'app/views/onboarding/createProject';
-import GroupDetails from 'app/views/groupDetails';
-import GroupEvents from 'app/views/groupEvents';
-import GroupEventDetails from 'app/views/groupEventDetails';
-import GroupMergedView from 'app/views/groupMerged/groupMergedView';
-import GroupSimilarView from 'app/views/groupSimilar/groupSimilarView';
-import GroupTagValues from 'app/views/groupTagValues';
-import GroupTags from 'app/views/groupTags';
-import GroupUserFeedback from 'app/views/groupUserFeedback';
+import ProjectGroupDetails from 'app/views/groupDetails/project/index';
+import ProjectGroupEvents from 'app/views/groupDetails/project/groupEvents';
+import ProjectGroupEventDetails from 'app/views/groupDetails/project/groupEventDetails';
+import ProjectGroupMergedView from 'app/views/groupDetails/project/groupMerged';
+import ProjectGroupSimilarView from 'app/views/groupDetails/project/groupSimilar';
+import ProjectGroupTagValues from 'app/views/groupDetails/project/groupTagValues';
+import ProjectGroupTags from 'app/views/groupDetails/project/groupTags';
+import ProjectGroupUserFeedback from 'app/views/groupDetails/project/groupUserFeedback';
 import HookStore from 'app/stores/hookStore';
 import LazyLoad from 'app/components/lazyLoad';
 import MyIssuesAssignedToMe from 'app/views/myIssues/assignedToMe';
@@ -754,7 +754,6 @@ function routes() {
       <Route path="/:orgId/" component={errorHandler(OrganizationDetails)}>
         <Route component={errorHandler(OrganizationRoot)}>
           <IndexRoute component={errorHandler(OrganizationDashboard)} />
-
           <Route
             path="/organizations/:orgId/dashboards/"
             componentPromise={() =>
@@ -767,7 +766,6 @@ function routes() {
               component={errorHandler(LazyLoad)}
             />
           </Route>
-
           <Route
             path="/organizations/:orgId/discover/"
             componentPromise={() =>
@@ -777,12 +775,10 @@ function routes() {
             <Redirect path="saved/" to="/organizations/:orgId/discover/" />
             <Route path="saved/:savedQueryId/" />
           </Route>
-
           <Route
             path="/organizations/:orgId/activity/"
             component={errorHandler(OrganizationActivity)}
           />
-
           <Route
             path="/organizations/:orgId/events/"
             componentPromise={() =>
@@ -795,14 +791,38 @@ function routes() {
               component={errorHandler(LazyLoad)}
             />
           </Route>
-
+          <Route
+            path="/organizations/:orgId/issues/"
+            componentPromise={() =>
+              import(/* webpackChunkName: "OrganizationStreamContainer" */ './views/organizationStream/container')}
+            component={errorHandler(LazyLoad)}
+          >
+            <IndexRoute
+              componentPromise={() =>
+                import(/* webpackChunkName: "OrganizationStreamOverview" */ './views/organizationStream/overview')}
+              component={errorHandler(LazyLoad)}
+            />
+          </Route>
+          {/* Once org issues is complete, these routes can be nested under
+          /organizations/:orgId/issues */}
+          <Route
+            path="/organizations/:orgId/issues/assigned/"
+            component={errorHandler(MyIssuesAssignedToMe)}
+          />
+          <Route
+            path="/organizations/:orgId/issues/bookmarks/"
+            component={errorHandler(MyIssuesBookmarked)}
+          />
+          <Route
+            path="/organizations/:orgId/issues/history/"
+            component={errorHandler(MyIssuesViewed)}
+          />
           <Route
             path="/organizations/:orgId/user-feedback/"
             componentPromise={() =>
               import(/* webpackChunkName: "OrganizationUserFeedback" */ './views/userFeedback/organizationUserFeedback')}
             component={errorHandler(LazyLoad)}
           />
-
           <Route
             path="/organizations/:orgId/releases/"
             componentPromise={() =>
@@ -845,14 +865,12 @@ function routes() {
               component={errorHandler(LazyLoad)}
             />
           </Route>
-
           <Route
             path="/organizations/:orgId/teams/new/"
             componentPromise={() =>
               import(/* webpackChunkName: "TeamCreate" */ './views/teamCreate')}
             component={errorHandler(LazyLoad)}
           />
-
           <Route path="/organizations/:orgId/" component={OrganizationHomeContainer}>
             <Redirect from="projects/" to="/:orgId/" />
             {hooksOrgRoutes}
@@ -885,25 +903,10 @@ function routes() {
             <Redirect path="repos/" to="/settings/:orgId/repos/" />
             <Route path="stats/" component={errorHandler(OrganizationStats)} />
           </Route>
-
-          <Route
-            path="/organizations/:orgId/issues/assigned/"
-            component={errorHandler(MyIssuesAssignedToMe)}
-          />
-          <Route
-            path="/organizations/:orgId/issues/bookmarks/"
-            component={errorHandler(MyIssuesBookmarked)}
-          />
-          <Route
-            path="/organizations/:orgId/issues/history/"
-            component={errorHandler(MyIssuesViewed)}
-          />
-
           <Route
             path="/organizations/:orgId/projects/new/"
             component={errorHandler(NewProject)}
           />
-
           <Route
             path="/organizations/:orgId/projects/choose/"
             component={errorHandler(ProjectChooser)}
@@ -1072,25 +1075,28 @@ function routes() {
           <Redirect from="group/:groupId/" to="issues/:groupId/" />
           <Route
             path="issues/:groupId/"
-            component={errorHandler(GroupDetails)}
+            component={errorHandler(ProjectGroupDetails)}
             ignoreScrollBehavior
           >
-            <IndexRoute component={errorHandler(GroupEventDetails)} />
+            <IndexRoute component={errorHandler(ProjectGroupEventDetails)} />
 
             <Route
               path="activity/"
               componentPromise={() =>
-                import(/* webpackChunkName: "GroupActivity" */ './views/groupActivity')}
+                import(/* webpackChunkName: "GroupActivity" */ './views/groupDetails/project/groupActivity')}
               component={errorHandler(LazyLoad)}
             />
 
-            <Route path="events/:eventId/" component={errorHandler(GroupEventDetails)} />
-            <Route path="events/" component={errorHandler(GroupEvents)} />
-            <Route path="tags/" component={errorHandler(GroupTags)} />
-            <Route path="tags/:tagKey/" component={errorHandler(GroupTagValues)} />
-            <Route path="feedback/" component={errorHandler(GroupUserFeedback)} />
-            <Route path="similar/" component={errorHandler(GroupSimilarView)} />
-            <Route path="merged/" component={errorHandler(GroupMergedView)} />
+            <Route
+              path="events/:eventId/"
+              component={errorHandler(ProjectGroupEventDetails)}
+            />
+            <Route path="events/" component={errorHandler(ProjectGroupEvents)} />
+            <Route path="tags/" component={errorHandler(ProjectGroupTags)} />
+            <Route path="tags/:tagKey/" component={errorHandler(ProjectGroupTagValues)} />
+            <Route path="feedback/" component={errorHandler(ProjectGroupUserFeedback)} />
+            <Route path="similar/" component={errorHandler(ProjectGroupSimilarView)} />
+            <Route path="merged/" component={errorHandler(ProjectGroupMergedView)} />
           </Route>
 
           <Route path="events/:eventId/" component={errorHandler(ProjectEventRedirect)} />

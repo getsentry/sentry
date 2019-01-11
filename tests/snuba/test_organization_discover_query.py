@@ -11,7 +11,8 @@ class OrganizationDiscoverQueryTest(APITestCase, SnubaTestCase):
     def setUp(self):
         super(OrganizationDiscoverQueryTest, self).setUp()
 
-        one_second_ago = datetime.now() - timedelta(seconds=1)
+        self.now = datetime.now()
+        one_second_ago = self.now - timedelta(seconds=1)
 
         self.login_as(user=self.user)
 
@@ -214,6 +215,44 @@ class OrganizationDiscoverQueryTest(APITestCase, SnubaTestCase):
             })
         assert response.status_code == 200, response.content
         assert len(response.data['data']) == 1
+        assert(response.data['data'][0]['project.name']) == 'bar'
+        assert(response.data['data'][0]['count']) == 1
+
+    def test_zerofilled_dates_when_rollup_relative(self):
+        with self.feature('organizations:discover'):
+            url = reverse('sentry-api-0-organization-discover-query', args=[self.org.slug])
+            response = self.client.post(url, {
+                'projects': [self.project.id],
+                'aggregations': [['count()', '', 'count']],
+                'fields': ['project.name'],
+                'groupby': ['time'],
+                'orderby': 'time',
+                'range': '5d',
+                'rollup': 86400,
+            })
+        assert response.status_code == 200, response.content
+        assert len(response.data['data']) == 6
+        assert(response.data['data'][5]['time']) > response.data['data'][4]['time']
+        assert(response.data['data'][5]['project.name']) == 'bar'
+        assert(response.data['data'][5]['count']) == 1
+
+    def test_zerofilled_dates_when_rollup_absolute(self):
+        with self.feature('organizations:discover'):
+            url = reverse('sentry-api-0-organization-discover-query', args=[self.org.slug])
+            response = self.client.post(url, {
+                'projects': [self.project.id],
+                'aggregations': [['count()', '', 'count']],
+                'fields': ['project.name'],
+                'groupby': ['time'],
+                'orderby': '-time',
+                'start': (self.now - timedelta(seconds=300)).strftime('%Y-%m-%dT%H:%M:%S'),
+                'end': self.now.strftime('%Y-%m-%dT%H:%M:%S'),
+                'rollup': 60,
+            })
+
+        assert response.status_code == 200, response.content
+        assert len(response.data['data']) == 6
+        assert(response.data['data'][0]['time']) > response.data['data'][2]['time']
         assert(response.data['data'][0]['project.name']) == 'bar'
         assert(response.data['data'][0]['count']) == 1
 

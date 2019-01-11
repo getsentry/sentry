@@ -94,6 +94,8 @@ def trim(
             _size += len(force_text(trim_v))
             if _size >= max_size and ENABLE_TRIMMING:
                 break
+        if isinstance(value, tuple):
+            result = tuple(result)
 
     elif isinstance(value, six.string_types) and ENABLE_TRIMMING:
         result = truncatechars(value, max_size - _size)

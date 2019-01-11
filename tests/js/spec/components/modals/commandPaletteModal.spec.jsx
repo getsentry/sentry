@@ -95,14 +95,14 @@ describe('Command Palette Modal', function() {
 
     expect(
       wrapper
-        .find('ModalDialog CommandPaletteSearchResultWrapper')
+        .find('ModalDialog SearchResultWrapper')
         .first()
         .prop('highlighted')
     ).toBe(true);
 
     expect(
       wrapper
-        .find('ModalDialog CommandPaletteSearchResultWrapper')
+        .find('ModalDialog SearchResultWrapper')
         .at(1)
         .prop('highlighted')
     ).toBe(false);
