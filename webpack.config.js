@@ -9,23 +9,25 @@ const CompressionPlugin = require('compression-webpack-plugin');
 const OptimizeCssAssetsPlugin = require('optimize-css-assets-webpack-plugin');
 const LodashModuleReplacementPlugin = require('lodash-webpack-plugin');
 
-const IS_PRODUCTION = process.env.NODE_ENV === 'production';
-const IS_TEST = process.env.NODE_ENV === 'test' || process.env.TEST_SUITE;
-const IS_STORYBOOK = process.env.STORYBOOK_BUILD === '1';
-const WEBPACK_DEV_PORT = process.env.WEBPACK_DEV_PORT;
-const SENTRY_DEVSERVER_PORT = process.env.SENTRY_DEVSERVER_PORT;
+const {env} = process;
+
+const IS_PRODUCTION = env.NODE_ENV === 'production';
+const IS_TEST = env.NODE_ENV === 'test' || env.TEST_SUITE;
+const IS_STORYBOOK = env.STORYBOOK_BUILD === '1';
+const WEBPACK_DEV_PORT = env.WEBPACK_DEV_PORT;
+const SENTRY_DEVSERVER_PORT = env.SENTRY_DEVSERVER_PORT;
 const USE_HOT_MODULE_RELOAD = !IS_PRODUCTION && WEBPACK_DEV_PORT && SENTRY_DEVSERVER_PORT;
 const WEBPACK_MODE = IS_PRODUCTION ? 'production' : 'development';
 
 // this is set by setup.py sdist
 const staticPrefix = 'src/sentry/static/sentry';
 const distPath =
-  process.env.SENTRY_STATIC_DIST_PATH || path.join(__dirname, staticPrefix, 'dist');
+  env.SENTRY_STATIC_DIST_PATH || path.join(__dirname, staticPrefix, 'dist');
 
 /**
  * Locale file extraction build step
  */
-if (process.env.SENTRY_EXTRACT_TRANSLATIONS === '1') {
+if (env.SENTRY_EXTRACT_TRANSLATIONS === '1') {
   babelConfig.plugins.push([
     'babel-gettext-extractor',
     {
@@ -246,10 +248,8 @@ const appConfig = {
     new ExtractTextPlugin(),
     new webpack.DefinePlugin({
       'process.env': {
-        NODE_ENV: JSON.stringify(process.env.NODE_ENV),
-        IS_PERCY: JSON.stringify(
-          process.env.CI && !!process.env.PERCY_TOKEN && !!process.env.TRAVIS
-        ),
+        NODE_ENV: JSON.stringify(env.NODE_ENV),
+        IS_PERCY: JSON.stringify(env.CI && !!env.PERCY_TOKEN && !!env.TRAVIS),
       },
     }),
     new OptionalLocaleChunkPlugin(),
