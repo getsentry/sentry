@@ -370,3 +370,33 @@ class GroupListTest(APITestCase, SnubaTestCase):
             HTTP_AUTHORIZATION='Bearer %s' %
             token.token)
         assert response.status_code == 200, response.content
+
+    def test_date_range(self):
+        now = timezone.now()
+        with self.options({'system.event-retention-days': 2}):
+            group = self.create_group(
+                last_seen=now - timedelta(hours=5),
+                # first_seen needs to be accurate because of `shrink_time_window`
+                first_seen=now - timedelta(hours=5),
+                project=self.project,
+            )
+
+            self.create_event(
+                group=group,
+                datetime=now - timedelta(hours=5),
+            )
+            self.login_as(user=self.user)
+
+            response = self.client.get(
+                '%s?statsPeriod=6h' % (self.path,),
+                format='json',
+            )
+            assert len(response.data) == 1
+            assert response.data[0]['id'] == six.text_type(group.id)
+
+            response = self.client.get(
+                '%s?statsPeriod=1h' % (self.path,),
+                format='json',
+            )
+
+            assert len(response.data) == 0

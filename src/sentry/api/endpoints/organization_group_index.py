@@ -110,12 +110,7 @@ class OrganizationGroupIndexEndpoint(OrganizationEventsEndpointBase):
         if not project_ids:
             return Response([])
 
-        try:
-            start, end = get_date_range_from_params(request.GET)
-        except InvalidParams as exc:
-            return Response({'detail': exc.message}, status=400)
-
-        # TODO(jess): check these event / short id results against date filter
+        # we ignore date range for both short id and event ids
         query = request.GET.get('query', '').strip()
         if query:
             # check to see if we've got an event ID
@@ -141,6 +136,11 @@ class OrganizationGroupIndexEndpoint(OrganizationEventsEndpointBase):
                     )
                     response['X-Sentry-Direct-Hit'] = '1'
                     return response
+
+        try:
+            start, end = get_date_range_from_params(request.GET)
+        except InvalidParams as exc:
+            return Response({'detail': exc.message}, status=400)
 
         try:
             cursor_result, query_kwargs = self._search(
