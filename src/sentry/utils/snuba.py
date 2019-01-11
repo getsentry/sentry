@@ -514,17 +514,18 @@ def query(start, end, groupby, conditions=None, filter_keys=None,
             return OrderedDict()
 
     # Validate and scrub response, and translate snuba keys back to IDs
-    aggregate_cols = [a[2] for a in aggregations]
-    expected_cols = set(groupby + aggregate_cols + selected_columns)
+    aggregate_names = [a[2] for a in aggregations]
+    selected_names = [c[2] if isinstance(c, (list, tuple)) else c for c in selected_columns]
+    expected_cols = set(groupby + aggregate_names + selected_names)
     got_cols = set(c['name'] for c in body['meta'])
 
-    assert expected_cols == got_cols
+    assert expected_cols == got_cols, 'expected {}, got {}'.format(expected_cols, got_cols)
 
     with timer('process_result'):
         if totals:
-            return nest_groups(body['data'], groupby, aggregate_cols), body['totals']
+            return nest_groups(body['data'], groupby, aggregate_names + selected_names), body['totals']
         else:
-            return nest_groups(body['data'], groupby, aggregate_cols)
+            return nest_groups(body['data'], groupby, aggregate_names + selected_names)
 
 
 def nest_groups(data, groups, aggregate_cols):

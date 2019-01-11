@@ -55,6 +55,7 @@ aggregation_defs = {
     'last_seen': ['toUInt64(max(timestamp)) * 1000', ''],
     # https://github.com/getsentry/sentry/blob/804c85100d0003cfdda91701911f21ed5f66f67c/src/sentry/event_manager.py#L241-L271
     'priority': ['(toUInt64(log(times_seen) * 600)) + last_seen', ''],
+    'total': ['uniq', 'issue'], # Only makes sense with WITH TOTALS, returns 1 for an individual group.
 }
 
 
@@ -212,7 +213,8 @@ class SnubaSearchBackend(ds.DjangoSearchBackend):
                     ]):
                 group_queryset = group_queryset.order_by('-last_seen')
                 paginator = DateTimePaginator(group_queryset, '-last_seen', **paginator_options)
-                return paginator.get_result(limit, cursor, count_hits=False)
+                # When its a simple django-only search, we count_hits like normal
+                return paginator.get_result(limit, cursor, count_hits=True)
 
         # TODO: Presumably we only want to search back to the project's max
         # retention date, which may be closer than 90 days in the past, but
@@ -250,82 +252,30 @@ class SnubaSearchBackend(ds.DjangoSearchBackend):
             # is invalid.
             return EMPTY_RESULT
 
-        # num_candidates is the number of Group IDs to send down to Snuba, if
-        # more Group ID candidates are found, a "bare" Snuba search is performed
-        # and the result groups are then post-filtered via queries to the Sentry DB
-        optimizer_enabled = options.get('snuba.search.pre-snuba-candidates-optimizer')
-        if optimizer_enabled:
-            missed_projects = []
-            keys = [self._get_project_count_cache_key(p.id) for p in projects]
-
-            counts_by_projects = {
-                self._get_project_id_from_key(key): count for key, count in cache.get_many(keys).items()
-            }
-
-            missed_projects = {p.id for p in projects} - set(counts_by_projects.keys())
-
-            if missed_projects:
-                missing_counts = snuba.query(
-                    start=max(
-                        filter(None, [
-                            retention_window_start,
-                            now - timedelta(days=90)
-                        ])
-                    ),
-                    end=now,
-                    groupby=['project_id'],
-                    filter_keys={
-                        'project_id': list(missed_projects),
-                    },
-                    aggregations=[['uniq', 'group_id', 'group_count']],
-                    referrer='search',
-                )
-
-                cache.set_many({
-                    self._get_project_count_cache_key(project_id): count
-                    for project_id, count in missing_counts.items()
-                }, options.get('snuba.search.project-group-count-cache-time'))
-
-                counts_by_projects.update(missing_counts)
-
-            min_candidates = options.get('snuba.search.min-pre-snuba-candidates')
-            max_candidates = options.get('snuba.search.max-pre-snuba-candidates')
-            candidates_percentage = options.get('snuba.search.pre-snuba-candidates-percentage')
-
-            num_candidates = max(
-                min_candidates,
-                min(
-                    max_candidates,
-                    sum(counts_by_projects.values()) * candidates_percentage
-                )
-            )
-        else:
-            num_candidates = options.get('snuba.search.min-pre-snuba-candidates')
-
-        # pre-filter query
-        candidate_ids = None
-        if num_candidates and limit <= num_candidates:
-            candidate_ids = list(
-                group_queryset.values_list('id', flat=True)[:num_candidates + 1]
-            )
-            metrics.timing('snuba.search.num_candidates', len(candidate_ids))
-
-            if not candidate_ids:
-                # no matches could possibly be found from this point on
-                metrics.incr('snuba.search.no_candidates', skip_internal=False)
-                return EMPTY_RESULT
-            elif len(candidate_ids) > num_candidates:
-                # If the pre-filter query didn't include anything to significantly
-                # filter down the number of results (from 'first_release', 'query',
-                # 'status', 'bookmarked_by', 'assigned_to', 'unassigned',
-                # 'subscribed_by', 'active_at_from', or 'active_at_to') then it
-                # might have surpassed the `num_candidates`. In this case,
-                # we *don't* want to pass candidates down to Snuba, and instead we
-                # want Snuba to do all the filtering/sorting it can and *then* apply
-                # this queryset to the results from Snuba, which we call
-                # post-filtering.
-                metrics.incr('snuba.search.too_many_candidates', skip_internal=False)
-                candidate_ids = None
+        # Here we check if all the django filters reduce the set of groups down
+        # to something that we can send down to Snuba in a `group_id IN (...)`
+        # clause.
+        max_candidates = options.get('snuba.search.max-pre-snuba-candidates')
+        candidate_ids = list(
+            group_queryset.values_list('id', flat=True)[:max_candidates + 1]
+        )
+        metrics.timing('snuba.search.num_candidates', len(candidate_ids))
+        if not candidate_ids:
+            # no matches could possibly be found from this point on
+            metrics.incr('snuba.search.no_candidates', skip_internal=False)
+            return EMPTY_RESULT
+        elif len(candidate_ids) > max_candidates:
+            # If the pre-filter query didn't include anything to significantly
+            # filter down the number of results (from 'first_release', 'query',
+            # 'status', 'bookmarked_by', 'assigned_to', 'unassigned',
+            # 'subscribed_by', 'active_at_from', or 'active_at_to') then it
+            # might have surpassed the `max_candidates`. In this case,
+            # we *don't* want to pass candidates down to Snuba, and instead we
+            # want Snuba to do all the filtering/sorting it can and *then* apply
+            # this queryset to the results from Snuba, which we call
+            # post-filtering.
+            metrics.incr('snuba.search.too_many_candidates', skip_internal=False)
+            candidate_ids = None
 
         sort_field = sort_strategies[sort_by]
         chunk_growth = options.get('snuba.search.chunk-growth-rate')
@@ -340,6 +290,37 @@ class SnubaSearchBackend(ds.DjangoSearchBackend):
 
         max_time = options.get('snuba.search.max-total-chunk-time-seconds')
         time_start = time.time()
+
+        hits = 0
+
+        if candidate_ids is None:
+            # If we have no candidates, get a random sample of groups matching
+            # the snuba side of the query, and see how many of those pass the
+            # post-filter in postgres. This should give us an estimate of the
+            # total number of snuba matches that will be overall matches, which
+            # we can use to get an estimate for X-Hits. Note no cursor, so we
+            # are always estimating the total hits.
+            snuba_groups, snuba_total = snuba_search(
+                start=start,
+                end=end,
+                project_ids=[p.id for p in projects],
+                environment_ids=environments and [environment.id for environment in environments],
+                tags=tags,
+                sort_field=sort_field,
+                get_sample=True,
+                **parameters
+            )
+            snuba_count = len(snuba_groups)
+            if snuba_count == 0:
+                return EMPTY_RESULT
+            else:
+                filtered_count = group_queryset.filter(
+                    id__in=[gid for gid, _ in snuba_groups]
+                ).count()
+
+                hit_ratio = filtered_count / float(snuba_count)
+                hits = int(hit_ratio * snuba_total)
+
 
         # Do smaller searches in chunks until we have enough results
         # to answer the query (or hit the end of possible results). We do
@@ -357,7 +338,7 @@ class SnubaSearchBackend(ds.DjangoSearchBackend):
             chunk_limit = max(chunk_limit, len(candidate_ids) if candidate_ids else 0)
 
             # {group_id: group_score, ...}
-            snuba_groups, more_results = snuba_search(
+            snuba_groups, total = snuba_search(
                 start=start,
                 end=end,
                 project_ids=[p.id for p in projects],
@@ -371,16 +352,21 @@ class SnubaSearchBackend(ds.DjangoSearchBackend):
                 **parameters
             )
             metrics.timing('snuba.search.num_snuba_results', len(snuba_groups))
+            count = len(snuba_groups)
+            more_results = count >= limit and (offset + limit) < total
             offset += len(snuba_groups)
 
             if not snuba_groups:
                 break
 
             if candidate_ids:
-                # pre-filtered candidates were passed down to Snuba,
-                # so we're finished with filtering and these are the
-                # only results
+                # pre-filtered candidates were passed down to Snuba, so we're
+                # finished with filtering and these are the only results. Note
+                # that because we set the chunk size to at least the size of
+                # the candidate_ids, we know we got all of them (ie there are
+                # no more chunks after the first)
                 result_groups = snuba_groups
+                hits = len(snuba_groups)
             else:
                 # pre-filtered candidates were *not* passed down to Snuba,
                 # so we need to do post-filtering to verify Sentry DB predicates
@@ -401,11 +387,25 @@ class SnubaSearchBackend(ds.DjangoSearchBackend):
                     result_group_ids.add(group_id)
                     result_groups.append((group_id, group_score))
 
+                if not more_results:
+                    # We know we have got all possible groups from snuba and filtered
+                    # them all down, so we have all hits.
+                    # TODO this probably doesn't work because we could be on page N
+                    # and not be including hits from previous pages.
+                    hits = len(result_groups)
+                else:
+                    # We also could have underestimated hits from our sample and have
+                    # already seen more hits than the estimate, so make sure hits is
+                    # at least as big as what we have seen.
+                    hits = max(hits, len(result_groups))
+
+            # TODO do we actually have to rebuild this SequencePaginator every time
+            # or can we just make it after we've broken out of the loop?
             paginator_results = SequencePaginator(
                 [(score, id) for (id, score) in result_groups],
                 reverse=True,
                 **paginator_options
-            ).get_result(limit, cursor, count_hits=False)
+            ).get_result(limit, cursor, known_hits=hits)
 
             # break the query loop for one of three reasons:
             # * we started with Postgres candidates and so only do one Snuba query max
@@ -421,6 +421,7 @@ class SnubaSearchBackend(ds.DjangoSearchBackend):
         # because we're 'lying' to the SequencePaginator (it thinks it has the entire
         # result set in memory when it does not). For this reason we need to make some
         # best guesses as to whether the `prev` and `next` cursors have more results.
+
         if len(paginator_results.results) == limit and more_results:
             # Because we are going back and forth between DBs there is a small
             # chance that we will hand the SequencePaginator exactly `limit`
@@ -443,7 +444,8 @@ class SnubaSearchBackend(ds.DjangoSearchBackend):
 
 
 def snuba_search(start, end, project_ids, environment_ids, tags,
-                 sort_field, cursor, candidate_ids, limit, offset, **parameters):
+                 sort_field, cursor=None, candidate_ids=None, limit=None,
+                 offset=0, get_sample=False, **parameters):
     """
     This function doesn't strictly benefit from or require being pulled out of the main
     query method above, but the query method is already large and this function at least
@@ -487,7 +489,7 @@ def snuba_search(start, end, project_ids, environment_ids, tags,
             conditions.append((col, '=', val))
 
     extra_aggregations = dependency_aggregations.get(sort_field, [])
-    required_aggregations = set([sort_field] + extra_aggregations)
+    required_aggregations = set([sort_field, 'total'] + extra_aggregations)
     for h in having:
         alias = h[0]
         required_aggregations.add(alias)
@@ -499,49 +501,41 @@ def snuba_search(start, end, project_ids, environment_ids, tags,
     if cursor is not None:
         having.append((sort_field, '>=' if cursor.is_prev else '<=', cursor.value))
 
-    # {group_id -> {<agg_alias> -> <agg_value>,
-    #               <agg_alias> -> <agg_value>,
-    #               ...},
-    #  ...}
-    # _OR_ if there's only one <agg_alias> in use
-    # {group_id -> <agg_value>,
-    #  ...}
-    snuba_results = snuba.query(
+    selected_columns = []
+    if get_sample:
+        # Get a random sample of matching groups. Because we use any(rand()),
+        # we are testing against a single random value per group, and so the
+        # sample is independent of the number of events in a group.
+        limit = 100 # sample size
+        offset = 0
+        selected_columns.append(('any', ('rand', ()), 'sample'))
+        sort_field = 'sample'
+        orderby = [sort_field]
+        referrer='search_sample',
+    else:
+        # Get the top matching groups by score, i.e. the actual search results
+        # in the order that we want them.
+        orderby = ['-{}'.format(sort_field), 'issue']  # ensure stable sort within the same score
+        referrer = 'search',
+
+    snuba_results = snuba.raw_query(
         start=start,
         end=end,
+        selected_columns=selected_columns,
         groupby=['issue'],
         conditions=conditions,
         having=having,
         filter_keys=filters,
         aggregations=aggregations,
-        orderby=['-' + sort_field, 'issue'],  # ensure stable sort within the same score
-        referrer='search',
-        limit=limit + 1,
+        orderby=orderby,
+        referrer=referrer,
+        limit=limit,
         offset=offset,
+        totals=True, # needs to have totals_mode=after_having_exclusive so we get groups matching HAVING only
     )
-    metrics.timing('snuba.search.num_result_groups', len(snuba_results.keys()))
-    more_results = len(snuba_results) == limit + 1
+    rows = snuba_results['data']
+    total = snuba_results['totals']['total']
 
-    # {group_id -> score,
-    #  ...}
-    group_data = {}
-    for group_id, obj in snuba_results.items():
-        # NOTE: The Snuba utility code is trying to be helpful by collapsing
-        # results with only one aggregate down to the single value. It's a
-        # bit of a hack that we then immediately undo that work here, but
-        # many other callers get value out of that functionality. If we see
-        # this pattern again we should either add an option to opt-out of
-        # the 'help' here or remove it from the Snuba code altogether.
-        if len(required_aggregations) == 1:
-            group_data[group_id] = obj
-        else:
-            group_data[group_id] = obj[sort_field]
+    metrics.timing('snuba.search.num_result_groups', len(rows))
 
-    return (
-        list(
-            sorted(
-                ((gid, score) for gid, score in group_data.items()),
-                key=lambda t: t[1], reverse=True
-            )
-        )[:limit], more_results
-    )
+    return [(row['issue'], row[sort_field]) for row in rows], total
