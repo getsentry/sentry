@@ -49,7 +49,8 @@ const EmptyStreamWrapper = styled.div`
     }
   }
 
-  svg {
+  /* stylelint-disable-next-line no-duplicate-selectors */
+  ${HeroIcon} {
     margin-bottom: 20px;
   }
 `;
