@@ -40,6 +40,10 @@ class GroupListTest(APITestCase, SnubaTestCase):
             checksum='a' * 32,
             last_seen=now - timedelta(seconds=1),
         )
+        self.create_event(
+            group=group1,
+            datetime=now - timedelta(seconds=1),
+        )
         self.login_as(user=self.user)
 
         response = self.client.get(
@@ -69,20 +73,20 @@ class GroupListTest(APITestCase, SnubaTestCase):
         now = timezone.now().replace(microsecond=0)
         group1 = self.create_group(
             project=self.project,
-            last_seen=now - timedelta(seconds=1),
+            last_seen=now - timedelta(seconds=2),
         )
         self.create_event(
             group=group1,
-            datetime=now - timedelta(seconds=1),
+            datetime=now - timedelta(seconds=2),
         )
         group2 = self.create_group(
             project=self.project,
-            last_seen=now,
+            last_seen=now - timedelta(seconds=1),
         )
         self.create_event(
             stacktrace=[['foo.py']],
             group=group2,
-            datetime=now,
+            datetime=now - timedelta(seconds=1),
         )
         self.login_as(user=self.user)
         response = self.client.get(
@@ -151,13 +155,22 @@ class GroupListTest(APITestCase, SnubaTestCase):
         project = self.project
         project.update_option('sentry:resolve_age', 1)
         now = timezone.now()
-        self.create_group(
+        group = self.create_group(
             checksum='a' * 32,
             last_seen=now - timedelta(days=1),
         )
+        self.create_event(
+            group=group,
+            datetime=now - timedelta(days=1),
+        )
         group2 = self.create_group(
             checksum='b' * 32,
-            last_seen=now,
+            last_seen=now - timedelta(seconds=1),
+        )
+        self.create_event(
+            group=group2,
+            datetime=now - timedelta(seconds=1),
+            stacktrace=[['foo.py']],
         )
 
         self.login_as(user=self.user)
@@ -252,6 +265,7 @@ class GroupListTest(APITestCase, SnubaTestCase):
         assert len(response.data) == 0
 
     def test_lookup_by_first_release(self):
+        now = timezone.now()
         self.login_as(self.user)
         project = self.project
         project2 = self.create_project(name='baz', organization=project.organization)
@@ -259,7 +273,15 @@ class GroupListTest(APITestCase, SnubaTestCase):
         release.add_project(project)
         release.add_project(project2)
         group = self.create_group(checksum='a' * 32, project=project, first_release=release)
+        self.create_event(
+            group=group,
+            datetime=now - timedelta(seconds=1),
+        )
         group2 = self.create_group(checksum='b' * 32, project=project2, first_release=release)
+        self.create_event(
+            group=group2,
+            datetime=now - timedelta(seconds=1),
+        )
         url = '%s?query=%s' % (self.path, quote('first-release:"%s"' % release.version))
         response = self.client.get(url, format='json')
         issues = json.loads(response.content)
@@ -274,7 +296,7 @@ class GroupListTest(APITestCase, SnubaTestCase):
         release = Release.objects.create(organization=project.organization, version='12345')
         release.add_project(project)
         self.create_event(
-            group_id=self.group.id,
+            group=self.group,
             datetime=self.min_ago,
             tags={'sentry:release': release.version},
         )
@@ -287,27 +309,47 @@ class GroupListTest(APITestCase, SnubaTestCase):
         assert int(issues[0]['id']) == self.group.id
 
     def test_pending_delete_pending_merge_excluded(self):
-        self.create_group(
+        group = self.create_group(
             checksum='a' * 32,
             status=GroupStatus.PENDING_DELETION,
         )
-        group = self.create_group(
+        self.create_event(
+            group=group,
+            datetime=self.min_ago,
+            data={'checksum': 'a' * 32},
+        )
+        group2 = self.create_group(
             checksum='b' * 32,
         )
-        self.create_group(
+        self.create_event(
+            group=group2,
+            datetime=self.min_ago,
+            data={'checksum': 'b' * 32},
+        )
+        group3 = self.create_group(
             checksum='c' * 32,
             status=GroupStatus.DELETION_IN_PROGRESS,
         )
-        self.create_group(
+        self.create_event(
+            group=group3,
+            datetime=self.min_ago,
+            data={'checksum': 'c' * 32},
+        )
+        group4 = self.create_group(
             checksum='d' * 32,
             status=GroupStatus.PENDING_MERGE,
+        )
+        self.create_event(
+            group=group4,
+            datetime=self.min_ago,
+            data={'checksum': 'd' * 32},
         )
 
         self.login_as(user=self.user)
 
         response = self.client.get(self.path, format='json')
         assert len(response.data) == 1
-        assert response.data[0]['id'] == six.text_type(group.id)
+        assert response.data[0]['id'] == six.text_type(group2.id)
 
     def test_filters_based_on_retention(self):
         self.login_as(user=self.user)
