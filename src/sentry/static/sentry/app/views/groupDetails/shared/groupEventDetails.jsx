@@ -34,6 +34,12 @@ class GroupEventDetails extends React.Component {
     this.fetchData();
   }
 
+  componentDidUpdate(prevProps) {
+    if (prevProps.params.eventId !== this.props.params.eventId) {
+      this.fetchData();
+    }
+  }
+
   fetchData() {
     const {group, project, organization, params} = this.props;
     const eventId = params.eventId || 'latest';
