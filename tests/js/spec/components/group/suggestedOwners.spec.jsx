@@ -10,11 +10,10 @@ describe('SuggestedOwners', function() {
 
   const organization = TestStubs.Organization();
   const project = TestStubs.Project();
+  const group = TestStubs.Group();
 
   const routerContext = TestStubs.routerContext([
     {
-      group: TestStubs.Group(),
-      project,
       organization,
     },
   ]);
@@ -50,7 +49,10 @@ describe('SuggestedOwners', function() {
       },
     });
 
-    const wrapper = mount(<SuggestedOwners event={event} />, routerContext);
+    const wrapper = mount(
+      <SuggestedOwners project={project} group={group} event={event} />,
+      routerContext
+    );
 
     expect(wrapper.find('ActorAvatar')).toHaveLength(2);
 
@@ -87,7 +89,10 @@ describe('SuggestedOwners', function() {
       },
     });
 
-    const wrapper = mount(<SuggestedOwners event={event} />, routerContext);
+    const wrapper = mount(
+      <SuggestedOwners project={project} group={group} event={event} />,
+      routerContext
+    );
 
     expect(wrapper.find('ActorAvatar')).toHaveLength(1);
 

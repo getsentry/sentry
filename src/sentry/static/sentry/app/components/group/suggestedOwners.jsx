@@ -8,36 +8,21 @@ import Access from 'app/components/acl/access';
 import ActorAvatar from 'app/components/actorAvatar';
 import ApiMixin from 'app/mixins/apiMixin';
 import Button from 'app/components/button';
-import GroupState from 'app/mixins/groupState';
+import OrganizationState from 'app/mixins/organizationState';
 import GuideAnchor from 'app/components/assistant/guideAnchor';
 import SentryTypes from 'app/sentryTypes';
 import SuggestedOwnerHovercard from 'app/components/group/suggestedOwnerHovercard';
-
-/**
- * Given a list of rule objects returned from the API, locate the matching
- * rules for a specific owner.
- */
-function findMatchedRules(rules, owner) {
-  const matchOwner = (actorType, key) =>
-    (actorType == 'user' && key === owner.email) ||
-    (actorType == 'team' && key == owner.name);
-
-  const actorHasOwner = ([actorType, key]) =>
-    actorType === owner.type && matchOwner(actorType, key);
-
-  return rules
-    .filter(([_, ruleActors]) => ruleActors.find(actorHasOwner))
-    .map(([rule]) => rule);
-}
 
 const SuggestedOwners = createReactClass({
   displayName: 'SuggestedOwners',
 
   propTypes: {
+    project: SentryTypes.Project,
+    group: SentryTypes.Group,
     event: SentryTypes.Event,
   },
 
-  mixins: [ApiMixin, GroupState],
+  mixins: [ApiMixin, OrganizationState],
 
   getInitialState() {
     return {
@@ -65,8 +50,9 @@ const SuggestedOwners = createReactClass({
 
   fetchData(event) {
     if (!event) return;
-    let org = this.getOrganization();
-    let project = this.getProject();
+    const org = this.getOrganization();
+    const project = this.props.project;
+
     this.api.request(
       `/projects/${org.slug}/${project.slug}/events/${event.id}/committers/`,
       {
@@ -157,11 +143,9 @@ const SuggestedOwners = createReactClass({
   },
 
   render() {
+    const {group, project} = this.props;
     const owners = this.getOwnerList();
-
-    let group = this.getGroup();
-    let project = this.getProject();
-    let org = this.getOrganization();
+    const org = this.getOrganization();
 
     return (
       <React.Fragment>
@@ -218,3 +202,20 @@ const SuggestedOwners = createReactClass({
   },
 });
 export default SuggestedOwners;
+
+/**
+ * Given a list of rule objects returned from the API, locate the matching
+ * rules for a specific owner.
+ */
+function findMatchedRules(rules, owner) {
+  const matchOwner = (actorType, key) =>
+    (actorType == 'user' && key === owner.email) ||
+    (actorType == 'team' && key == owner.name);
+
+  const actorHasOwner = ([actorType, key]) =>
+    actorType === owner.type && matchOwner(actorType, key);
+
+  return rules
+    .filter(([_, ruleActors]) => ruleActors.find(actorHasOwner))
+    .map(([rule]) => rule);
+}
