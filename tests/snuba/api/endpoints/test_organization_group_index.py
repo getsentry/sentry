@@ -110,7 +110,7 @@ class GroupListTest(APITestCase, SnubaTestCase):
 
     def test_stats_period(self):
         # TODO(dcramer): this test really only checks if validation happens
-        # on statsPeriod
+        # on groupStatsPeriod
         now = timezone.now()
         self.create_group(
             checksum='a' * 32,
@@ -123,16 +123,16 @@ class GroupListTest(APITestCase, SnubaTestCase):
 
         self.login_as(user=self.user)
 
-        response = self.client.get(u'{}?statsPeriod=24h'.format(self.path), format='json')
+        response = self.client.get(u'{}?groupStatsPeriod=24h'.format(self.path), format='json')
         assert response.status_code == 200
 
-        response = self.client.get(u'{}?statsPeriod=14d'.format(self.path), format='json')
+        response = self.client.get(u'{}?groupStatsPeriod=14d'.format(self.path), format='json')
         assert response.status_code == 200
 
-        response = self.client.get(u'{}?statsPeriod='.format(self.path), format='json')
+        response = self.client.get(u'{}?groupStatsPeriod='.format(self.path), format='json')
         assert response.status_code == 200
 
-        response = self.client.get(u'{}?statsPeriod=48h'.format(self.path), format='json')
+        response = self.client.get(u'{}?groupStatsPeriod=48h'.format(self.path), format='json')
         assert response.status_code == 400
 
     def test_environment(self):

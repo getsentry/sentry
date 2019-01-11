@@ -1,5 +1,5 @@
 import {browserHistory} from 'react-router';
-import {isEqual} from 'lodash';
+import {omit, pickBy} from 'lodash';
 import Cookies from 'js-cookie';
 import React from 'react';
 import Reflux from 'reflux';
@@ -10,14 +10,19 @@ import qs from 'query-string';
 import {Panel, PanelBody} from 'app/components/panels';
 import {analytics} from 'app/utils/analytics';
 import {t, tct} from 'app/locale';
+import {fetchTags} from 'app/actionCreators/tags';
 import ApiMixin from 'app/mixins/apiMixin';
 import ConfigStore from 'app/stores/configStore';
+import GlobalSelectionStore from 'app/stores/globalSelectionStore';
 import GroupStore from 'app/stores/groupStore';
+import TagStore from 'app/stores/tagStore';
 import LoadingError from 'app/components/loadingError';
 import LoadingIndicator from 'app/components/loadingIndicator';
 import Pagination from 'app/components/pagination';
 import SentryTypes from 'app/sentryTypes';
 import StreamGroup from 'app/components/stream/group';
+import StreamFilters from 'app/views/stream/filters';
+import StreamSidebar from 'app/views/stream/sidebar';
 import parseApiError from 'app/utils/parseApiError';
 import parseLinkHeader from 'app/utils/parseLinkHeader';
 import utils from 'app/utils';
@@ -35,7 +40,12 @@ const OrganizationStream = createReactClass({
     organization: SentryTypes.Organization,
   },
 
-  mixins: [Reflux.listenTo(GroupStore, 'onGroupChange'), ApiMixin],
+  mixins: [
+    Reflux.listenTo(GlobalSelectionStore, 'onSelectionChange'),
+    Reflux.listenTo(GroupStore, 'onGroupChange'),
+    Reflux.listenTo(TagStore, 'onTagsChange'),
+    ApiMixin,
+  ],
 
   getInitialState() {
     let realtimeActiveCookie = Cookies.get('realtimeActive');
@@ -47,8 +57,8 @@ const OrganizationStream = createReactClass({
     let currentQuery = this.props.location.query || {};
     let sort = 'sort' in currentQuery ? currentQuery.sort : DEFAULT_SORT;
 
-    let statsPeriod = STATS_PERIODS.has(currentQuery.statsPeriod)
-      ? currentQuery.statsPeriod
+    let groupStatsPeriod = STATS_PERIODS.has(currentQuery.groupStatsPeriod)
+      ? currentQuery.groupStatsPeriod
       : DEFAULT_STATS_PERIOD;
 
     return {
@@ -58,17 +68,19 @@ const OrganizationStream = createReactClass({
       selectAllActive: false,
       multiSelected: false,
       anySelected: false,
-      statsPeriod,
+      groupStatsPeriod,
       realtimeActive,
       pageLinks: '',
       queryCount: null,
       error: false,
       query: currentQuery.query || '',
       sort,
-      tagsLoading: true,
-      tags: [],
+      selection: GlobalSelectionStore.get(),
       isSidebarVisible: false,
+      savedSearchList: [],
       processingIssues: null,
+      tagsLoading: true,
+      tags: TagStore.getAllTags(),
     };
   },
 
@@ -80,19 +92,7 @@ const OrganizationStream = createReactClass({
 
     if (!this.state.loading) {
       this.fetchData();
-    }
-  },
-
-  componentWillReceiveProps(nextProps) {
-    // We are using qs.parse with location.search since this.props.location.query
-    // returns the same value as nextProps.location.query
-    let currentSearchTerm = qs.parse(this.props.location.search);
-    let nextSearchTerm = qs.parse(nextProps.location.search);
-
-    let searchTermChanged = !isEqual(currentSearchTerm, nextSearchTerm);
-
-    if (searchTermChanged) {
-      this.setState(this.getQueryState(nextProps), this.fetchData);
+      fetchTags(this.props.organization.slug);
     }
   },
 
@@ -112,33 +112,33 @@ const OrganizationStream = createReactClass({
     GroupStore.reset();
   },
 
+  getQueryParams() {
+    let selection = this.state.selection;
+    let params = {
+      project: selection.projects,
+      environment: selection.environments,
+      query: this.state.query,
+      ...selection.datetime,
+    };
+    if (selection.datetime.period) {
+      delete params.period;
+      params.statsPeriod = selection.datetime.period;
+    }
+
+    if (this.state.sort !== DEFAULT_SORT) {
+      params.sort = this.state.sort;
+    }
+
+    if (this.state.groupStatsPeriod !== DEFAULT_STATS_PERIOD) {
+      params.groupStatsPeriod = this.state.groupStatsPeriod;
+    }
+
+    // only include defined values.
+    return pickBy(params, v => utils.defined(v));
+  },
+
   getAccess() {
     return new Set(this.props.organization.access);
-  },
-
-  getQueryState(props) {
-    let currentQuery = props.location.query || {};
-    let hasQuery = 'query' in currentQuery;
-    let sort = 'sort' in currentQuery ? currentQuery.sort : DEFAULT_SORT;
-    let statsPeriod = STATS_PERIODS.has(currentQuery.statsPeriod)
-      ? currentQuery.statsPeriod
-      : DEFAULT_STATS_PERIOD;
-
-    let newState = {
-      sort,
-      statsPeriod,
-      query: hasQuery ? currentQuery.query : '',
-      isDefaultSearch: false,
-    };
-    newState.loading = false;
-
-    return newState;
-  },
-
-  hasQuery(props) {
-    props = props || this.props;
-    let currentQuery = props.location.query || {};
-    return 'query' in currentQuery;
   },
 
   fetchData() {
@@ -151,15 +151,10 @@ const OrganizationStream = createReactClass({
     });
 
     let url = this.getGroupListEndpoint();
-    let query = qs.parse(this.props.location.query);
-
     let requestParams = {
-      ...query,
+      ...this.getQueryParams(),
       limit: MAX_ITEMS,
-      sort: this.state.sort,
-      statsPeriod: this.state.statsPeriod,
       shortIdLookup: '1',
-      environment: this.state.environment,
     };
 
     let currentQuery = this.props.location.query || {};
@@ -175,7 +170,7 @@ const OrganizationStream = createReactClass({
 
     this.lastRequest = this.api.request(url, {
       method: 'GET',
-      data: requestParams,
+      data: qs.stringify(requestParams),
       success: (data, ignore, jqXHR) => {
         // if this is a direct hit, we redirect to the intended result directly.
         // we have to use the project slug from the result data instead of the
@@ -201,7 +196,6 @@ const OrganizationStream = createReactClass({
         this.setState({
           error: false,
           loading: false,
-          query,
           queryCount:
             typeof queryCount !== 'undefined' ? parseInt(queryCount, 10) || 0 : 0,
           queryMaxCount:
@@ -237,7 +231,7 @@ const OrganizationStream = createReactClass({
   getGroupListEndpoint() {
     let params = this.props.params;
 
-    return '/organizations/' + params.orgId + '/issues/';
+    return `/organizations/${params.orgId}/issues/`;
   },
 
   onRealtimeChange(realtime) {
@@ -248,15 +242,13 @@ const OrganizationStream = createReactClass({
   },
 
   onSelectStatsPeriod(period) {
-    if (period != this.state.statsPeriod) {
+    if (period != this.state.groupStatsPeriod) {
       // TODO(dcramer): all charts should now suggest "loading"
       this.setState(
         {
-          statsPeriod: period,
+          groupStatsPeriod: period,
         },
-        function() {
-          this.transitionTo();
-        }
+        this.transitionTo
       );
     }
   },
@@ -277,6 +269,10 @@ const OrganizationStream = createReactClass({
         groupIds,
       });
     }
+  },
+
+  onSelectionChange(selection) {
+    this.setState({selection}, this.transitionTo);
   },
 
   onSearch(query) {
@@ -302,6 +298,14 @@ const OrganizationStream = createReactClass({
     );
   },
 
+  onTagsChange(tags) {
+    // Exclude the environment tag as it lives in global search.
+    this.setState({
+      tags: omit(tags, 'environment'),
+      tagsLoading: false,
+    });
+  },
+
   onSidebarToggle() {
     let {organization} = this.props;
     this.setState({
@@ -323,32 +327,21 @@ const OrganizationStream = createReactClass({
   },
 
   transitionTo() {
-    let queryParams = {};
+    let query = this.getQueryParams();
+    let {organization} = this.props;
 
-    if (this.props.location.query.environment) {
-      queryParams.environment = this.props.location.query.environment;
-    }
-
-    queryParams.query = this.state.query;
-
-    if (this.state.sort !== DEFAULT_SORT) {
-      queryParams.sort = this.state.sort;
-    }
-
-    if (this.state.statsPeriod !== DEFAULT_STATS_PERIOD) {
-      queryParams.statsPeriod = this.state.statsPeriod;
-    }
-
-    let params = this.props.params;
-
-    let path = `/${params.orgId}/issues/`;
+    let path = `/organizations/${organization.slug}/issues/`;
     browserHistory.push({
       pathname: path,
-      query: queryParams,
+      query,
     });
+
+    // After transitioning reload data. This is simpler and less
+    // error prone than examining router state in componentWillReceiveProps
+    this.fetchData();
   },
 
-  renderGroupNodes(ids, statsPeriod) {
+  renderGroupNodes(ids, groupStatsPeriod) {
     // Restrict this guide to only show for new users (joined<30 days) and add guide anhor only to the first issue
     let userDateJoined = new Date(ConfigStore.get('user').dateJoined);
     let dateCutoff = new Date();
@@ -364,7 +357,7 @@ const OrganizationStream = createReactClass({
           key={id}
           id={id}
           orgId={orgId}
-          statsPeriod={statsPeriod}
+          statsPeriod={groupStatsPeriod}
           query={this.state.query}
           hasGuideAnchor={hasGuideAnchor}
         />
@@ -402,11 +395,15 @@ const OrganizationStream = createReactClass({
     } else if (this.state.error) {
       body = <LoadingError message={this.state.error} onRetry={this.fetchData} />;
     } else if (this.state.groupIds.length > 0) {
-      body = this.renderGroupNodes(this.state.groupIds, this.state.statsPeriod);
+      body = this.renderGroupNodes(this.state.groupIds, this.state.groupStatsPeriod);
     } else {
       body = this.renderEmpty();
     }
     return body;
+  },
+
+  onSavedSearchCreate() {
+    // TODO implement
   },
 
   render() {
@@ -453,7 +450,7 @@ const OrganizationStream = createReactClass({
               onSelectStatsPeriod={this.onSelectStatsPeriod}
               onRealtimeChange={this.onRealtimeChange}
               realtimeActive={this.state.realtimeActive}
-              statsPeriod={this.state.statsPeriod}
+              statsPeriod={this.state.groupStatsPeriod}
               groupIds={this.state.groupIds}
               allResultsVisible={this.allResultsVisible()}
             />
@@ -474,9 +471,7 @@ const OrganizationStream = createReactClass({
 });
 
 // Placeholder components to keep pull requests manageable.
-const StreamFilters = props => <p>Stream filters are coming soon</p>;
 const StreamActions = props => <p>Stream actions are coming soon</p>;
-const StreamSidebar = props => <p>Stream sidebar is coming soon</p>;
 
 export default withOrganization(OrganizationStream);
 export {OrganizationStream};

@@ -1,8 +1,7 @@
 import {withRouter} from 'react-router';
 import React from 'react';
 
-import {HeaderTitle, PageContent, PageHeader} from 'app/styles/organization';
-import {t} from 'app/locale';
+import {PageContent} from 'app/styles/organization';
 import Feature from 'app/components/acl/feature';
 import GlobalSelectionHeader from 'app/components/organizations/globalSelectionHeader';
 import SentryTypes from 'app/sentryTypes';
@@ -20,13 +19,7 @@ class OrganizationStreamContainer extends React.Component {
       <Feature features={['sentry10']} renderDisabled>
         <GlobalSelectionHeader organization={organization} />
 
-        <PageContent>
-          <PageHeader>
-            <HeaderTitle>{t('Issues')}</HeaderTitle>
-          </PageHeader>
-
-          {children}
-        </PageContent>
+        <PageContent>{children}</PageContent>
       </Feature>
     );
   }

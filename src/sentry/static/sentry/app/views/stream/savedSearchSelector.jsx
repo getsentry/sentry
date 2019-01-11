@@ -17,7 +17,7 @@ const SaveSearchButton = createReactClass({
 
   propTypes: {
     orgId: PropTypes.string.isRequired,
-    projectId: PropTypes.string.isRequired,
+    projectId: PropTypes.string,
     access: PropTypes.object.isRequired,
     query: PropTypes.string.isRequired,
     disabled: PropTypes.bool,
@@ -194,7 +194,7 @@ const SavedSearchSelector = createReactClass({
 
   propTypes: {
     orgId: PropTypes.string.isRequired,
-    projectId: PropTypes.string.isRequired,
+    projectId: PropTypes.string,
     searchId: PropTypes.string,
     access: PropTypes.object.isRequired,
     savedSearchList: PropTypes.array.isRequired,
@@ -219,6 +219,8 @@ const SavedSearchSelector = createReactClass({
     let children = this.props.savedSearchList.map(search => {
       // TODO(dcramer): we want these to link directly to the saved
       // search ID, and pass that into the backend (probably)
+
+      // TODO(mark) Make links org/project aware.
       return (
         <MenuItem to={`/${orgId}/${projectId}/searches/${search.id}/`} key={search.id}>
           <strong>{search.name}</strong>

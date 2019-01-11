@@ -14,7 +14,7 @@ const StreamSidebar = createReactClass({
 
   propTypes: {
     orgId: PropTypes.string.isRequired,
-    projectId: PropTypes.string.isRequired,
+    projectId: PropTypes.string,
 
     tags: PropTypes.object.isRequired,
     query: PropTypes.string,
