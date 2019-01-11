@@ -9,7 +9,7 @@ import qs from 'query-string';
 
 import {Panel, PanelBody} from 'app/components/panels';
 import {analytics} from 'app/utils/analytics';
-import {t, tct} from 'app/locale';
+import {t} from 'app/locale';
 import {fetchTags} from 'app/actionCreators/tags';
 import ApiMixin from 'app/mixins/apiMixin';
 import ConfigStore from 'app/stores/configStore';
