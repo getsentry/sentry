@@ -33,15 +33,14 @@ export function getQueryFromQueryString(queryString) {
   return result;
 }
 
-export function getQueryStringFromQuery(query, locationQuery = {}) {
+export function getQueryStringFromQuery(query, queryParams = {}) {
   const queryProperties = Object.entries(query).map(([key, value]) => {
     return key + '=' + encodeURIComponent(JSON.stringify(value));
   });
 
-  // Don't drop "visualization" from querystring
-  if (locationQuery.visualization) {
-    queryProperties.push(`visualization=${locationQuery.visualization}`);
-  }
+  Object.entries(queryParams).forEach(([key, value]) => {
+    queryProperties.push(`${key}=${value}`);
+  });
 
   return `?${queryProperties.sort().join('&')}`;
 }

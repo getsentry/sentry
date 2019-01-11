@@ -212,7 +212,12 @@ export default class OrganizationDiscover extends React.Component {
         if (shouldRedirect) {
           browserHistory.push({
             pathname: `/organizations/${organization.slug}/discover/`,
-            search: getQueryStringFromQuery(queryBuilder.getInternal(), location.query),
+            // Don't drop "visualization" from querystring
+            search: getQueryStringFromQuery(queryBuilder.getInternal(), {
+              ...(location.query.visualization && {
+                visualization: location.query.visualization,
+              }),
+            }),
           });
         }
 

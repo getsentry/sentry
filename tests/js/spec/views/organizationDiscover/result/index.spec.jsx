@@ -29,7 +29,10 @@ describe('Result', function() {
           data={data}
           organization={organization}
           onFetchPage={jest.fn()}
-          location={{query: {}}}
+          location={{
+            query: {},
+            search: '',
+          }}
         />,
         {
           context: {organization},
@@ -151,7 +154,7 @@ describe('Result', function() {
             data={data}
             organization={organization}
             onFetchPage={jest.fn()}
-            location={{query: {}}}
+            location={{query: {}, search: ''}}
           />,
           TestStubs.routerContext([{organization}])
         );

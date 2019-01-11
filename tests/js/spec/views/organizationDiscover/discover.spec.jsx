@@ -321,7 +321,11 @@ describe('Discover', function() {
           <Discover
             queryBuilder={queryBuilder}
             organization={organization}
-            location={{location: '?fields=something'}}
+            location={{
+              location: '?fields=something',
+              query: {fields: 'something'},
+              search: '?fields=something',
+            }}
             params={{}}
             updateSavedQueryData={jest.fn()}
             toggleEditMode={jest.fn()}

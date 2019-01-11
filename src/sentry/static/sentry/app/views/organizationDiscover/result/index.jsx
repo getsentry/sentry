@@ -32,7 +32,11 @@ import {
   ResultSummaryAndButtons,
 } from '../styles';
 import {NUMBER_OF_SERIES_BY_DAY} from '../data';
-import {queryHasChanged} from '../utils';
+import {
+  queryHasChanged,
+  getQueryFromQueryString,
+  getQueryStringFromQuery,
+} from '../utils';
 
 class Result extends React.Component {
   static propTypes = {
@@ -60,10 +64,14 @@ class Result extends React.Component {
     const visualization = getVisualization(data, location.query.visualization);
 
     if (queryHasChanged(this.props.location.search, nextProps.location.search)) {
+      const search = getQueryStringFromQuery(getQueryFromQueryString(location.search), {
+        visualization,
+      });
+
       this.setState({view: visualization});
       browserHistory.replace({
         pathname: location.pathname,
-        query: {...location.query, visualization},
+        search,
       });
     }
   }
@@ -95,9 +103,14 @@ class Result extends React.Component {
     this.setState({
       view: opt,
     });
+
+    const search = getQueryStringFromQuery(getQueryFromQueryString(location.search), {
+      visualization: opt,
+    });
+
     browserHistory.push({
       pathname: location.pathname,
-      query: {...location.query, visualization: opt},
+      search,
     });
   };
 
