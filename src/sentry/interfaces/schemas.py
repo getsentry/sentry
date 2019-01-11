@@ -63,7 +63,16 @@ HTTP_INTERFACE_SCHEMA = {
             'minLength': 1,
         },
         'method': {'type': 'string'},
-        'query_string': {'type': ['string', 'object']},
+        'query_string': {
+            'anyOf': [
+                {'type': ['string', 'object']},
+                {'type': 'array', 'items': {
+                    'type': 'array',
+                    'maxItems': 2,
+                    'minItems': 2,
+                }},
+            ],
+        },
         'inferred_content_type': {'type': 'string'},
         'cookies': {
             'anyOf': [

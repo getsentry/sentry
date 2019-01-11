@@ -1,6 +1,5 @@
 import PropTypes from 'prop-types';
 import React from 'react';
-import queryString from 'query-string';
 
 import {objectIsEmpty} from 'app/utils';
 import {objectToSortedTupleArray} from 'app/components/events/interfaces/utils';
@@ -33,12 +32,7 @@ class RichHttpContent extends React.Component {
     try {
       // Sentry API abbreviates long query string values, sometimes resulting in
       // an un-parsable querystring ... stay safe kids
-      return (
-        <KeyValueList
-          data={objectToSortedTupleArray(queryString.parse(data))}
-          isContextData={true}
-        />
-      );
+      return <KeyValueList data={data} isContextData={true} />;
     } catch (e) {
       return <pre>{data}</pre>;
     }
@@ -48,7 +42,7 @@ class RichHttpContent extends React.Component {
     let data = this.props.data;
     return (
       <div>
-        {data.query && (
+        {!objectIsEmpty(data.query) && (
           <ClippedBox title={t('Query String')}>
             <ErrorBoundary mini>{this.getQueryStringOrRaw(data.query)}</ErrorBoundary>
           </ClippedBox>

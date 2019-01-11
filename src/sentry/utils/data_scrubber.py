@@ -104,8 +104,8 @@ class SensitiveDataFilter(object):
                 data['contexts'][key] = varmap(self.sanitize, value)
 
     def sanitize(self, key, value):
-        if value is None:
-            return
+        if value is None or value == '':
+            return value
 
         if isinstance(key, six.string_types):
             key = key.lower()
