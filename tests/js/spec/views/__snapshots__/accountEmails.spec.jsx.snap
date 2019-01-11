@@ -6,6 +6,7 @@ exports[`AccountEmails renders with emails 1`] = `
 >
   <div>
     <SettingsPageHeading
+      noTitleStyles={false}
       title="Emails"
     />
     <Panel>

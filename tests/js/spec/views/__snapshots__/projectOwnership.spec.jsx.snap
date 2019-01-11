@@ -6,6 +6,7 @@ exports[`ProjectTeamsSettings render() renders 1`] = `
 >
   <div>
     <SettingsPageHeading
+      noTitleStyles={false}
       title="Issue Owners"
     />
     <PermissionAlert

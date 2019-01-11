@@ -6,6 +6,7 @@ exports[`ProjectHpkpReports renders 1`] = `
 >
   <div>
     <SettingsPageHeading
+      noTitleStyles={false}
       title="HTTP Public Key Pinning"
     />
     <PreviewFeature

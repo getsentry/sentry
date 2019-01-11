@@ -5,6 +5,7 @@ exports[`OrganizationAuthList renders 1`] = `
   className="sso"
 >
   <SettingsPageHeading
+    noTitleStyles={false}
     title="Authentication"
   />
   <PermissionAlert
@@ -100,6 +101,7 @@ exports[`OrganizationAuthList renders with no providers 1`] = `
   className="sso"
 >
   <SettingsPageHeading
+    noTitleStyles={false}
     title="Authentication"
   />
   <PermissionAlert

@@ -6,6 +6,7 @@ exports[`ProjectSecurityHeaders renders 1`] = `
 >
   <div>
     <SettingsPageHeading
+      noTitleStyles={false}
       title="Security Header Reports"
     />
     <PreviewFeature

@@ -64,15 +64,18 @@ class SidebarItem extends React.Component {
 
     // If there is no active panel open and if path is active according to react-router
     let isActiveRouter =
-      !hasPanel &&
-      router &&
-      to &&
-      router.isActive(
-        {
-          pathname: to,
-        },
-        index
-      );
+      (!hasPanel &&
+        router &&
+        to &&
+        router.isActive(
+          {
+            pathname: to,
+          },
+          index
+        )) ||
+      // TODO: this won't be necessary once we remove settingsHome
+      (label === 'Settings' && location.pathname.startsWith('/settings/'));
+
     let isTop = orientation === 'top';
     let placement = isTop ? 'bottom' : 'right';
 

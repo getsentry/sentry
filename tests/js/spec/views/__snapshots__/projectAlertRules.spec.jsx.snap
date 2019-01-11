@@ -33,6 +33,7 @@ exports[`projectAlertRules renders 1`] = `
             </Button>
           </Tooltip>
         }
+        noTitleStyles={false}
         tabs={
           <NavTabs
             underlined={true}
@@ -78,7 +79,7 @@ exports[`projectAlertRules renders 1`] = `
           }
         >
           <div
-            className="css-1pnrn3o-Wrapper e1kblvez1"
+            className="css-1r5ylk7-Wrapper e1kblvez2"
           >
             <Flex
               align="center"
@@ -91,42 +92,124 @@ exports[`projectAlertRules renders 1`] = `
                   className="css-5ipae5"
                   is={null}
                 >
-                  <Title>
+                  <Title
+                    styled={false}
+                    tabs={
+                      <NavTabs
+                        underlined={true}
+                      >
+                        <ListLink
+                          activeClassName="active"
+                          index={false}
+                          to="alerts"
+                        >
+                          Settings
+                        </ListLink>
+                        <ListLink
+                          activeClassName="active"
+                          index={false}
+                          to=""
+                        >
+                          Rules
+                        </ListLink>
+                      </NavTabs>
+                    }
+                  >
                     <Base
-                      className="css-1mqcea-Title e1kblvez0"
+                      className="css-zs9eah-Title e1kblvez0"
+                      tabs={
+                        <NavTabs
+                          underlined={true}
+                        >
+                          <ListLink
+                            activeClassName="active"
+                            index={false}
+                            to="alerts"
+                          >
+                            Settings
+                          </ListLink>
+                          <ListLink
+                            activeClassName="active"
+                            index={false}
+                            to=""
+                          >
+                            Rules
+                          </ListLink>
+                        </NavTabs>
+                      }
                     >
                       <div
-                        className="css-1mqcea-Title e1kblvez0"
+                        className="css-zs9eah-Title e1kblvez0"
                         is={null}
+                        tabs={
+                          <NavTabs
+                            underlined={true}
+                          >
+                            <ListLink
+                              activeClassName="active"
+                              index={false}
+                              to="alerts"
+                            >
+                              Settings
+                            </ListLink>
+                            <ListLink
+                              activeClassName="active"
+                              index={false}
+                              to=""
+                            >
+                              Rules
+                            </ListLink>
+                          </NavTabs>
+                        }
                       >
-                        Alerts
+                        <HeaderTitle>
+                          <h4
+                            className="css-1w8ttcn-HeaderTitle e6lvex72"
+                          >
+                            Alerts
+                          </h4>
+                        </HeaderTitle>
                       </div>
                     </Base>
                   </Title>
-                  <div>
-                    <Tooltip
-                      disabled={true}
-                      title="You do not have permission to edit alert rules."
-                    >
-                      <Button
-                        disabled={false}
-                        icon="icon-circle-add"
-                        priority="primary"
-                        size="small"
-                        to="new/"
+                  <Action
+                    tabs={
+                      <NavTabs
+                        underlined={true}
                       >
-                        <StyledButton
-                          aria-label="New Alert Rule"
+                        <ListLink
+                          activeClassName="active"
+                          index={false}
+                          to="alerts"
+                        >
+                          Settings
+                        </ListLink>
+                        <ListLink
+                          activeClassName="active"
+                          index={false}
+                          to=""
+                        >
+                          Rules
+                        </ListLink>
+                      </NavTabs>
+                    }
+                  >
+                    <div
+                      className="css-1lt2zte-Action e1kblvez1"
+                    >
+                      <Tooltip
+                        disabled={true}
+                        title="You do not have permission to edit alert rules."
+                      >
+                        <Button
                           disabled={false}
-                          onClick={[Function]}
+                          icon="icon-circle-add"
                           priority="primary"
-                          role="button"
                           size="small"
                           to="new/"
                         >
-                          <Component
+                          <StyledButton
                             aria-label="New Alert Rule"
-                            className="css-zvpqlo-StyledButton-getColors eqrebog0"
                             disabled={false}
                             onClick={[Function]}
                             priority="primary"
@@ -134,96 +217,107 @@ exports[`projectAlertRules renders 1`] = `
                             size="small"
                             to="new/"
                           >
-                            <Link
+                            <Component
                               aria-label="New Alert Rule"
                               className="css-zvpqlo-StyledButton-getColors eqrebog0"
                               disabled={false}
                               onClick={[Function]}
-                              onlyActiveOnIndex={false}
                               priority="primary"
                               role="button"
                               size="small"
-                              style={Object {}}
                               to="new/"
                             >
-                              <a
+                              <Link
                                 aria-label="New Alert Rule"
                                 className="css-zvpqlo-StyledButton-getColors eqrebog0"
                                 disabled={false}
                                 onClick={[Function]}
+                                onlyActiveOnIndex={false}
                                 priority="primary"
                                 role="button"
                                 size="small"
                                 style={Object {}}
+                                to="new/"
                               >
-                                <ButtonLabel
+                                <a
+                                  aria-label="New Alert Rule"
+                                  className="css-zvpqlo-StyledButton-getColors eqrebog0"
+                                  disabled={false}
+                                  onClick={[Function]}
                                   priority="primary"
+                                  role="button"
                                   size="small"
+                                  style={Object {}}
                                 >
-                                  <Component
-                                    className="css-7ui8bl-ButtonLabel eqrebog1"
+                                  <ButtonLabel
                                     priority="primary"
                                     size="small"
                                   >
-                                    <span
+                                    <Component
                                       className="css-7ui8bl-ButtonLabel eqrebog1"
+                                      priority="primary"
+                                      size="small"
                                     >
-                                      <Icon
-                                        hasChildren={true}
-                                        size="small"
+                                      <span
+                                        className="css-7ui8bl-ButtonLabel eqrebog1"
                                       >
-                                        <Component
-                                          className="css-1vdnsie-Icon eqrebog2"
+                                        <Icon
                                           hasChildren={true}
                                           size="small"
                                         >
-                                          <span
+                                          <Component
                                             className="css-1vdnsie-Icon eqrebog2"
+                                            hasChildren={true}
                                             size="small"
                                           >
-                                            <StyledInlineSvg
-                                              size="12px"
-                                              src="icon-circle-add"
+                                            <span
+                                              className="css-1vdnsie-Icon eqrebog2"
+                                              size="small"
                                             >
-                                              <InlineSvg
-                                                className="css-1ov3rcq-StyledInlineSvg eqrebog3"
+                                              <StyledInlineSvg
                                                 size="12px"
                                                 src="icon-circle-add"
                                               >
-                                                <StyledSvg
+                                                <InlineSvg
                                                   className="css-1ov3rcq-StyledInlineSvg eqrebog3"
-                                                  height="12px"
-                                                  viewBox={Object {}}
-                                                  width="12px"
+                                                  size="12px"
+                                                  src="icon-circle-add"
                                                 >
-                                                  <svg
-                                                    className="eqrebog3 css-1jjmnki-StyledSvg-StyledInlineSvg e2idor0"
+                                                  <StyledSvg
+                                                    className="css-1ov3rcq-StyledInlineSvg eqrebog3"
                                                     height="12px"
                                                     viewBox={Object {}}
                                                     width="12px"
                                                   >
-                                                    <use
-                                                      href="#test"
-                                                      xlinkHref="#test"
-                                                    />
-                                                  </svg>
-                                                </StyledSvg>
-                                              </InlineSvg>
-                                            </StyledInlineSvg>
-                                          </span>
-                                        </Component>
-                                      </Icon>
-                                      New Alert Rule
-                                    </span>
-                                  </Component>
-                                </ButtonLabel>
-                              </a>
-                            </Link>
-                          </Component>
-                        </StyledButton>
-                      </Button>
-                    </Tooltip>
-                  </div>
+                                                    <svg
+                                                      className="eqrebog3 css-1jjmnki-StyledSvg-StyledInlineSvg e2idor0"
+                                                      height="12px"
+                                                      viewBox={Object {}}
+                                                      width="12px"
+                                                    >
+                                                      <use
+                                                        href="#test"
+                                                        xlinkHref="#test"
+                                                      />
+                                                    </svg>
+                                                  </StyledSvg>
+                                                </InlineSvg>
+                                              </StyledInlineSvg>
+                                            </span>
+                                          </Component>
+                                        </Icon>
+                                        New Alert Rule
+                                      </span>
+                                    </Component>
+                                  </ButtonLabel>
+                                </a>
+                              </Link>
+                            </Component>
+                          </StyledButton>
+                        </Button>
+                      </Tooltip>
+                    </div>
+                  </Action>
                 </div>
               </Base>
             </Flex>

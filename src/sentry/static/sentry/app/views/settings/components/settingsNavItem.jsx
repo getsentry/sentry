@@ -65,12 +65,12 @@ const StyledNavItem = styled(Link)`
     position: absolute;
     content: '';
     display: block;
-    top: 7px;
-    left: -22px;
-    height: 14px;
-    width: 2px;
+    top: 4px;
+    left: -30px;
+    height: 20px;
+    width: 4px;
     background: transparent;
-    border-radius: 1px;
+    border-radius: 0 2px 2px 0;
   }
 `;
 
