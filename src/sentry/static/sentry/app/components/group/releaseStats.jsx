@@ -2,11 +2,12 @@ import PropTypes from 'prop-types';
 import React from 'react';
 import Reflux from 'reflux';
 import createReactClass from 'create-react-class';
+import SentryTypes from 'app/sentryTypes';
 import ApiMixin from 'app/mixins/apiMixin';
 import EnvironmentStore from 'app/stores/environmentStore';
 import LatestContextStore from 'app/stores/latestContextStore';
 import LoadingIndicator from 'app/components/loadingIndicator';
-import GroupState from 'app/mixins/groupState';
+import OrganizationState from 'app/mixins/organizationState';
 import GroupReleaseChart from 'app/components/group/releaseChart';
 import SeenInfo from 'app/components/group/seenInfo';
 import {t} from 'app/locale';
@@ -15,7 +16,8 @@ const GroupReleaseStats = createReactClass({
   displayName: 'GroupReleaseStats',
 
   propTypes: {
-    group: PropTypes.object,
+    group: SentryTypes.Group,
+    project: SentryTypes.Project,
     allEnvironments: PropTypes.object,
   },
 
@@ -25,7 +27,7 @@ const GroupReleaseStats = createReactClass({
 
   mixins: [
     ApiMixin,
-    GroupState,
+    OrganizationState,
     Reflux.listenTo(LatestContextStore, 'onLatestContextChange'),
   ],
 
@@ -50,13 +52,13 @@ const GroupReleaseStats = createReactClass({
   },
 
   render() {
-    let {group, allEnvironments} = this.props;
+    let {group, project, allEnvironments} = this.props;
     let {environment} = this.state;
 
     let envName = environment ? environment.displayName : t('All Environments');
-    let projectId = this.getProject().slug;
+    let projectId = project.slug;
     let orgId = this.getOrganization().slug;
-    let hasRelease = this.getProjectFeatures().has('releases');
+    let hasRelease = new Set(project.features).has('releases');
     let isLoading = !group || !allEnvironments;
 
     return (

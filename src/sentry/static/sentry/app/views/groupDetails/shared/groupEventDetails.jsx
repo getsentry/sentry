@@ -9,6 +9,7 @@ import LoadingIndicator from 'app/components/loadingIndicator';
 import ResolutionBox from 'app/components/resolutionBox';
 import MutedBox from 'app/components/mutedBox';
 import withOrganization from 'app/utils/withOrganization';
+import withEnvironment from 'app/utils/withEnvironment';
 
 import GroupEventToolbar from './eventToolbar';
 import {fetchGroupEventAndMarkSeen} from './utils';
@@ -68,8 +69,14 @@ class GroupEventDetails extends React.Component {
       });
   }
   render() {
-    const {group, project, organization} = this.props;
+    const {group, project, organization, params} = this.props;
     const evt = withMeta(this.state.event);
+
+    // Sidebar doesn't support multiple environments yet so do not pass an
+    // environment in the org level variant of the sidebar
+    const SidebarWithEnvironment = params.projectId
+      ? withEnvironment(GroupSidebar)
+      : GroupSidebar;
 
     return (
       <div>
@@ -111,7 +118,7 @@ class GroupEventDetails extends React.Component {
             )}
           </div>
           <div className="secondary">
-            <GroupSidebar group={group} event={evt} />
+            <SidebarWithEnvironment project={project} group={group} event={evt} />
           </div>
         </div>
       </div>

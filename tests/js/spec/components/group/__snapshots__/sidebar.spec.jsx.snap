@@ -200,6 +200,17 @@ exports[`GroupSidebar renders with tags renders 1`] = `
         ],
       }
     }
+    project={
+      Object {
+        "hasAccess": true,
+        "id": "2",
+        "isBookmarked": false,
+        "isMember": true,
+        "name": "Project Name",
+        "slug": "project-slug",
+        "teams": Array [],
+      }
+    }
   />
   <ExternalIssueList
     group={
