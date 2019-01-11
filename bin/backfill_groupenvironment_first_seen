@@ -88,7 +88,10 @@ def backfill_group_env():
 
     last_pk = None
     qs = GroupEnvironment.objects.filter(first_seen__isnull=True).order_by('pk')
+    remaining_count = qs.count()
     group_environments = list(qs[0:CHUNK_SIZE])
+
+    print('Backfilling %s GroupEnvironments' % (remaining_count,))  # NOQA
 
     while group_environments:
         last_pk = group_environments[-1].id
@@ -121,6 +124,8 @@ def backfill_group_env():
             first_seen = gtv_lookup.get((ge.group_id, ge.environment_id))
             if first_seen:
                 pool.submit(functools.partial(_update_groupenv, ge.id, first_seen))
+        remaining_count = remaining_count - CHUNK_SIZE
+        print('%s GroupEnvironments remaining' % (remaining_count,))  # NOQA
         group_environments = list(qs.filter(pk__gt=last_pk)[0:CHUNK_SIZE])
 
     pool.drain()
