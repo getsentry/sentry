@@ -9,10 +9,12 @@ import {t, tct} from 'app/locale';
 export default class ResolutionBox extends React.Component {
   static propTypes = {
     statusDetails: PropTypes.object.isRequired,
+    orgId: PropTypes.string.isRequired,
+    projectId: PropTypes.string.isRequired,
   };
 
   renderReason = () => {
-    let {params, statusDetails} = this.props;
+    let {orgId, projectId, statusDetails} = this.props;
     let actor = statusDetails.actor ? (
       <strong>
         <Avatar user={statusDetails.actor} size={20} className="avatar" />
@@ -32,8 +34,8 @@ export default class ResolutionBox extends React.Component {
         version: (
           <Version
             version={statusDetails.inRelease}
-            orgId={params.orgId}
-            projectId={params.projectId}
+            orgId={orgId}
+            projectId={projectId}
           />
         ),
       });
@@ -42,8 +44,8 @@ export default class ResolutionBox extends React.Component {
         version: (
           <Version
             version={statusDetails.inRelease}
-            orgId={params.orgId}
-            projectId={params.projectId}
+            orgId={orgId}
+            projectId={projectId}
           />
         ),
       });
