@@ -43,7 +43,7 @@ export function getQueryStringFromQuery(query, locationQuery = {}) {
     queryProperties.push(`visualization=${locationQuery.visualization}`);
   }
 
-  return `?${queryProperties.join('&')}`;
+  return `?${queryProperties.sort().join('&')}`;
 }
 
 export function getOrderbyFields(queryBuilder) {

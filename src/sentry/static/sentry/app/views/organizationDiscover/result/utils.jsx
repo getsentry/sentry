@@ -143,7 +143,7 @@ export function getVisualization(data, current = 'table') {
     return 'table';
   }
 
-  return current in ['table', 'line', 'bar', 'line-by-day', 'bar-by-day']
+  return ['table', 'line', 'bar', 'line-by-day', 'bar-by-day'].includes(current)
     ? current
     : 'table';
 }
