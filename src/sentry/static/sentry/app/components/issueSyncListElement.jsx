@@ -12,11 +12,6 @@ const hoverCardContainer = css`
   min-width: 0; /* flex-box overflow workaround */
 `;
 
-const hoverCardStyles = css`
-  min-height: 0;
-  bottom: ${28 + 10}px; /* 28px is the current bottom value called in hovercard.less */
-`;
-
 class IssueSyncElement extends React.Component {
   static propTypes = {
     externalIssueLink: PropTypes.string,
@@ -108,7 +103,6 @@ class IssueSyncElement extends React.Component {
           containerClassName={hoverCardContainer}
           header={this.props.hoverCardHeader}
           body={this.props.hoverCardBody}
-          className={hoverCardStyles}
         >
           {this.getIcon()}
           {this.getLink()}

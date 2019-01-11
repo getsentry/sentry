@@ -72,7 +72,6 @@ exports[`ExternalIssueActions with an external issue linked renders 1`] = `
             }
           />
         }
-        className="css-17m6soy-hoverCardStyles"
         containerClassName="css-1kx7hlk-hoverCardContainer"
         displayTimeout={100}
         header="Linked GitHub Integration"
@@ -305,7 +304,6 @@ exports[`ExternalIssueActions with no external issues linked renders 1`] = `
               }
             />
           }
-          className="css-17m6soy-hoverCardStyles"
           containerClassName="css-1kx7hlk-hoverCardContainer"
           displayTimeout={100}
           header="Linked GitHub Integration"
