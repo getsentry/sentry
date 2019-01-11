@@ -464,6 +464,9 @@ class EventManager(object):
             )
 
             self._data = CanonicalKeyDict(rust_normalizer.normalize_event(dict(self._data)))
+
+            normalize_user_agent(self._data)
+
             return
 
         data = self._data
