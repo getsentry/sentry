@@ -16,6 +16,7 @@ import ConfigStore from 'app/stores/configStore';
 import GlobalSelectionStore from 'app/stores/globalSelectionStore';
 import GroupStore from 'app/stores/groupStore';
 import TagStore from 'app/stores/tagStore';
+import EmptyStateWarning from 'app/components/emptyStateWarning';
 import LoadingError from 'app/components/loadingError';
 import LoadingIndicator from 'app/components/loadingIndicator';
 import Pagination from 'app/components/pagination';
@@ -367,19 +368,10 @@ const OrganizationStream = createReactClass({
   },
 
   renderEmpty() {
-    const {environment} = this.state;
-    const message = environment
-      ? tct('Sorry no events match your filters in the [env] environment.', {
-          env: environment.displayName,
-        })
-      : t('Sorry, no events match your filters.');
-
-    // TODO(lyn): Extract empty state to a separate component
     return (
-      <div className="empty-stream" style={{border: 0}}>
-        <span className="icon icon-exclamation" />
-        <p>{message}</p>
-      </div>
+      <EmptyStateWarning>
+        <p>{t('Sorry, no issues match your filters.')}</p>
+      </EmptyStateWarning>
     );
   },
 
