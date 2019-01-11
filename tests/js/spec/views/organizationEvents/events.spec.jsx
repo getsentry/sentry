@@ -1,7 +1,5 @@
 import React from 'react';
 
-import {EventsChart} from 'app/views/organizationEvents/eventsChart';
-import {EventsTable} from 'app/views/organizationEvents/eventsTable';
 import OrganizationEvents, {parseRowFromLinks} from 'app/views/organizationEvents/events';
 import {chart, doZoom} from 'app-test/helpers/charts';
 import {initializeOrg} from 'app-test/helpers/initializeOrg';
@@ -165,14 +163,7 @@ describe('OrganizationEventsErrors', function() {
     let wrapper;
     let newParams;
 
-    beforeAll(function() {
-      chartRender = jest.spyOn(EventsChart.prototype, 'render');
-      tableRender = jest.spyOn(EventsTable.prototype, 'render');
-    });
-
     beforeEach(function() {
-      chartRender.mockClear();
-      tableRender.mockClear();
       const newLocation = {
         ...router.location,
         query: {
@@ -202,6 +193,10 @@ describe('OrganizationEventsErrors', function() {
         newRouterContext
       );
       mockRouterPush(wrapper, router);
+
+      // XXX: Note this spy happens AFTER initial render!
+      chartRender = jest.spyOn(wrapper.find('ChartZoom').instance(), 'render');
+      tableRender = jest.spyOn(wrapper.find('EventsTable').instance(), 'render');
     });
 
     afterAll(function() {
@@ -210,8 +205,8 @@ describe('OrganizationEventsErrors', function() {
     });
 
     it('zooms using chart', async function() {
-      expect(tableRender).toHaveBeenCalledTimes(1);
-      expect(chartRender).toHaveBeenCalledTimes(1);
+      expect(tableRender).toHaveBeenCalledTimes(0);
+      expect(chartRender).toHaveBeenCalledTimes(0);
 
       await tick();
       wrapper.update();
@@ -221,8 +216,8 @@ describe('OrganizationEventsErrors', function() {
       wrapper.update();
 
       // After zooming, chart should not re-render, but table does
-      expect(chartRender).toHaveBeenCalledTimes(1);
-      expect(tableRender).toHaveBeenCalledTimes(4);
+      expect(chartRender).toHaveBeenCalledTimes(0);
+      expect(tableRender).toHaveBeenCalledTimes(3);
 
       newParams = {
         zoom: '1',

@@ -28,8 +28,14 @@ export const chart = {
 
 // eslint-disable-next-line
 export const doZoom = (wrapper, chart = chart) => {
-  wrapper.instance().handleDataZoom({}, chart);
-  wrapper.instance().handleChartFinished();
+  wrapper
+    .find('ChartZoom')
+    .instance()
+    .handleDataZoom({}, chart);
+  wrapper
+    .find('ChartZoom')
+    .instance()
+    .handleChartFinished();
 };
 
 export const mockZoomRange = (rangeStart, rangeEnd) => {
