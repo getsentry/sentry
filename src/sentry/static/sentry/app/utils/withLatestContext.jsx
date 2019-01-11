@@ -3,9 +3,10 @@ import React from 'react';
 import Reflux from 'reflux';
 import createReactClass from 'create-react-class';
 
-import getDisplayName from 'app/utils/getDisplayName';
+import ConfigStore from 'app/stores/configStore';
 import LatestContextStore from 'app/stores/latestContextStore';
 import SentryTypes from 'app/sentryTypes';
+import getDisplayName from 'app/utils/getDisplayName';
 import withOrganizations from 'app/utils/withOrganizations';
 
 // HoC that returns most usable organization + project
@@ -31,7 +32,11 @@ const withLatestContext = WrappedComponent =>
         // of orgs but not full org details
         let latestOrganization =
           organization ||
-          (organizations && organizations.length ? organizations[0] : null);
+          (organizations && organizations.length
+            ? organizations.find(
+                ({slug}) => slug === ConfigStore.get('lastOrganization')
+              ) || organizations[0]
+            : null);
 
         // TODO(billy): Below is going to be wrong if component is passed project, it will override
         // project from `latestContext`
