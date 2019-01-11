@@ -1,5 +1,3 @@
-/*global __webpack_public_path__ */
-/*eslint no-native-reassign:0 */
 import $ from 'jquery';
 import {ThemeProvider} from 'emotion-theming';
 import Cookies from 'js-cookie';
@@ -24,8 +22,6 @@ import LoadingIndicator from 'app/components/loadingIndicator';
 import NewsletterConsent from 'app/views/newsletterConsent';
 import OrganizationsStore from 'app/stores/organizationsStore';
 import theme from 'app/utils/theme';
-
-if (window.globalStaticUrl) __webpack_public_path__ = window.globalStaticUrl; // defined in layout.html
 
 function getAlertTypeForProblem(problem) {
   switch (problem.severity) {
