@@ -159,6 +159,8 @@ class Http(Interface):
             if isinstance(query_string, six.string_types):
                 if query_string[0] == '?':
                     query_string = query_string[1:]
+                if query_string.endswith("\u2026"):
+                    query_string = query_string[:-1] + "..."
                 query_string = [
                     (to_unicode(k), jsonify(v))
                     for k, v in parse_qsl(query_string, keep_blank_values=True)
