@@ -14,7 +14,7 @@ import SentryTypes from 'app/sentryTypes';
 import withGlobalSelection from 'app/utils/withGlobalSelection';
 import withOrganization from 'app/utils/withOrganization';
 
-import DiscoverQuery from './discoveryQuery';
+import DiscoverQuery from './discoverQuery';
 
 class Widget extends React.Component {
   static propTypes = {
