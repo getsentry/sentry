@@ -102,6 +102,8 @@ def backfill_group_env():
             ).values_list('id', 'project_id')
         )
 
+        group_environments = [ge for ge in group_environments if ge.group_id in project_by_group]
+
         group_tag_values = GroupTagValue.objects.filter(
             reduce(or_, [Q(
                 group_id=ge.group_id,
