@@ -148,11 +148,12 @@ exports[`ProjectPluginDetails renders 1`] = `
                 </Button>
               </div>
             }
+            noTitleStyles={false}
             title="Amazon SQS"
           >
             <Wrapper>
               <div
-                className="css-1pnrn3o-Wrapper e1kblvez1"
+                className="css-1r5ylk7-Wrapper e1kblvez2"
               >
                 <Flex
                   align="center"
@@ -165,37 +166,36 @@ exports[`ProjectPluginDetails renders 1`] = `
                       className="css-5ipae5"
                       is={null}
                     >
-                      <Title>
+                      <Title
+                        styled={false}
+                      >
                         <Base
-                          className="css-1mqcea-Title e1kblvez0"
+                          className="css-1ky52ze-Title e1kblvez0"
                         >
                           <div
-                            className="css-1mqcea-Title e1kblvez0"
+                            className="css-1ky52ze-Title e1kblvez0"
                             is={null}
                           >
-                            Amazon SQS
+                            <HeaderTitle>
+                              <h4
+                                className="css-1w8ttcn-HeaderTitle e6lvex72"
+                              >
+                                Amazon SQS
+                              </h4>
+                            </HeaderTitle>
                           </div>
                         </Base>
                       </Title>
-                      <div>
+                      <Action>
                         <div
-                          className="pull-right"
+                          className="css-18luhfc-Action e1kblvez1"
                         >
-                          <Button
-                            disabled={false}
-                            onClick={[Function]}
-                            size="small"
-                            style={
-                              Object {
-                                "marginRight": "6px",
-                              }
-                            }
+                          <div
+                            className="pull-right"
                           >
-                            <StyledButton
-                              aria-label="Enable Plugin"
+                            <Button
                               disabled={false}
                               onClick={[Function]}
-                              role="button"
                               size="small"
                               style={
                                 Object {
@@ -203,9 +203,8 @@ exports[`ProjectPluginDetails renders 1`] = `
                                 }
                               }
                             >
-                              <Component
+                              <StyledButton
                                 aria-label="Enable Plugin"
-                                className="css-dkprmi-StyledButton-getColors eqrebog0"
                                 disabled={false}
                                 onClick={[Function]}
                                 role="button"
@@ -216,7 +215,7 @@ exports[`ProjectPluginDetails renders 1`] = `
                                   }
                                 }
                               >
-                                <button
+                                <Component
                                   aria-label="Enable Plugin"
                                   className="css-dkprmi-StyledButton-getColors eqrebog0"
                                   disabled={false}
@@ -229,45 +228,50 @@ exports[`ProjectPluginDetails renders 1`] = `
                                     }
                                   }
                                 >
-                                  <ButtonLabel
+                                  <button
+                                    aria-label="Enable Plugin"
+                                    className="css-dkprmi-StyledButton-getColors eqrebog0"
+                                    disabled={false}
+                                    onClick={[Function]}
+                                    role="button"
                                     size="small"
+                                    style={
+                                      Object {
+                                        "marginRight": "6px",
+                                      }
+                                    }
                                   >
-                                    <Component
-                                      className="css-7ui8bl-ButtonLabel eqrebog1"
+                                    <ButtonLabel
                                       size="small"
                                     >
-                                      <span
+                                      <Component
                                         className="css-7ui8bl-ButtonLabel eqrebog1"
+                                        size="small"
                                       >
-                                        Enable Plugin
-                                      </span>
-                                    </Component>
-                                  </ButtonLabel>
-                                </button>
-                              </Component>
-                            </StyledButton>
-                          </Button>
-                          <Button
-                            disabled={false}
-                            onClick={[Function]}
-                            size="small"
-                          >
-                            <StyledButton
-                              aria-label="Reset Configuration"
+                                        <span
+                                          className="css-7ui8bl-ButtonLabel eqrebog1"
+                                        >
+                                          Enable Plugin
+                                        </span>
+                                      </Component>
+                                    </ButtonLabel>
+                                  </button>
+                                </Component>
+                              </StyledButton>
+                            </Button>
+                            <Button
                               disabled={false}
                               onClick={[Function]}
-                              role="button"
                               size="small"
                             >
-                              <Component
+                              <StyledButton
                                 aria-label="Reset Configuration"
-                                className="css-dkprmi-StyledButton-getColors eqrebog0"
                                 disabled={false}
                                 onClick={[Function]}
                                 role="button"
                                 size="small"
                               >
-                                <button
+                                <Component
                                   aria-label="Reset Configuration"
                                   className="css-dkprmi-StyledButton-getColors eqrebog0"
                                   disabled={false}
@@ -275,26 +279,35 @@ exports[`ProjectPluginDetails renders 1`] = `
                                   role="button"
                                   size="small"
                                 >
-                                  <ButtonLabel
+                                  <button
+                                    aria-label="Reset Configuration"
+                                    className="css-dkprmi-StyledButton-getColors eqrebog0"
+                                    disabled={false}
+                                    onClick={[Function]}
+                                    role="button"
                                     size="small"
                                   >
-                                    <Component
-                                      className="css-7ui8bl-ButtonLabel eqrebog1"
+                                    <ButtonLabel
                                       size="small"
                                     >
-                                      <span
+                                      <Component
                                         className="css-7ui8bl-ButtonLabel eqrebog1"
+                                        size="small"
                                       >
-                                        Reset Configuration
-                                      </span>
-                                    </Component>
-                                  </ButtonLabel>
-                                </button>
-                              </Component>
-                            </StyledButton>
-                          </Button>
+                                        <span
+                                          className="css-7ui8bl-ButtonLabel eqrebog1"
+                                        >
+                                          Reset Configuration
+                                        </span>
+                                      </Component>
+                                    </ButtonLabel>
+                                  </button>
+                                </Component>
+                              </StyledButton>
+                            </Button>
+                          </div>
                         </div>
-                      </div>
+                      </Action>
                     </div>
                   </Base>
                 </Flex>

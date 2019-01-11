@@ -9,7 +9,6 @@ const Crumb = styled('div')`
   font-size: 18px;
   color: ${p => p.theme.gray3};
   padding-right: ${space(1)};
-  padding-bottom: ${space(0.5)};
   cursor: pointer;
   > span {
     transition: 0.1s all ease;
