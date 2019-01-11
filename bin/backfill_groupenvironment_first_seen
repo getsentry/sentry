@@ -15,7 +15,7 @@ from django.db.models import Q
 from sentry.models import Environment, Group, GroupEnvironment
 from sentry.tagstore.v2.models import GroupTagValue
 
-CHUNK_SIZE = 10000
+CHUNK_SIZE = 100
 POOL_SIZE = 20
 
 logger = logging.getLogger('backfill_group_env')
