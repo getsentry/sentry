@@ -332,6 +332,16 @@ class Sidebar extends React.Component {
                   to={`/organizations/${organization.slug}/stats/`}
                 />
               </SidebarSection>
+
+              <SidebarSection>
+                <SidebarItem
+                  {...sidebarItemProps}
+                  onClick={this.hidePanel}
+                  icon={<InlineSvg src="icon-settings" />}
+                  label={t('Settings')}
+                  to={`/settings/${organization.slug}/`}
+                />
+              </SidebarSection>
             </React.Fragment>
           )}
         </SidebarSectionGroup>
