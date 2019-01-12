@@ -457,7 +457,7 @@ class Group(Model):
     @property
     def message(self):
         warnings.warn(
-            'Group.message is deprecated. Use Group.search_message instead.',
+            'Group.message is deprecated. Use Group.search_message or Group.title instead.',
             DeprecationWarning)
         return self.search_message
 
