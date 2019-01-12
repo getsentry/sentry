@@ -8,9 +8,6 @@ import functools
 import logging
 from Queue import Queue
 from threading import Thread
-from operator import or_
-
-from django.db.models import Q
 
 from sentry.models import Environment, Group, GroupEnvironment
 from sentry.tagstore.v2.models import GroupTagValue
@@ -80,12 +77,6 @@ class SimpleThreadedWorkerPool(object):
 
 
 def backfill_group_env():
-    def _update_groupenv(group_env_id, first_seen):
-        GroupEnvironment.objects.filter(
-            id=group_env_id,
-            first_seen__isnull=True,
-        ).update(first_seen=first_seen)
-
     ENV_CACHE = dict(Environment.objects.values_list('id', 'name'))
     pool = SimpleThreadedWorkerPool(POOL_SIZE)
 
@@ -109,28 +100,34 @@ def backfill_group_env():
             ge for ge in group_environments if ge.group_id in project_by_group and ge.environment_id in ENV_CACHE
         ]
 
-        group_tag_values = GroupTagValue.objects.filter(
-            reduce(or_, [Q(
-                group_id=ge.group_id,
-                _value__value=ENV_CACHE[ge.environment_id],
-                project_id=project_by_group[ge.group_id],
-                _key__key='environment',
-                first_seen__isnull=False,
-                _key__environment_id__gt=0,
-                _value__project_id=project_by_group[ge.group_id],
-            ) for ge in group_environments]),
-        ).extra(
-            where=['tagstore_grouptagvalue.project_id = tagstore_tagkey.project_id', 'tagstore_grouptagvalue.project_id = tagstore_tagvalue.project_id']
-        ).values_list('project_id', 'group_id', '_key__environment_id', 'first_seen')
+        def _update_groupenv(group_env, project_id):
+            env_name = ENV_CACHE.get(group_env.environment_id)
+            if not env_name:
+                return
+            try:
+                first_seen = GroupTagValue.objects.filter(
+                    group_id=group_env.group_id,
+                    project_id=project_id,
+                    _key__key='environment',
+                    _key__environment_id=group_env.environment_id,
+                    _key__project_id=project_id,
+                    _value__project_id=project_id,
+                    _value__value=env_name,
+                    first_seen__isnull=False,
+                ).extra(
+                    where=['tagstore_grouptagvalue.project_id = tagstore_tagkey.project_id', 'tagstore_grouptagvalue.project_id = tagstore_tagvalue.project_id']
+                ).values_list('first_seen', flat=True).get()
+            except GroupTagValue.DoesNotExist:
+                return
 
-        gtv_lookup = {}
-        for project_id, group_id, env_id, first_seen in group_tag_values:
-            gtv_lookup[(group_id, env_id)] = first_seen
+            GroupEnvironment.objects.filter(
+                id=group_env.id,
+                first_seen__isnull=True,
+            ).update(first_seen=first_seen)
 
         for ge in group_environments:
-            first_seen = gtv_lookup.get((ge.group_id, ge.environment_id))
-            if first_seen:
-                pool.submit(functools.partial(_update_groupenv, ge.id, first_seen))
+            pool.submit(functools.partial(_update_groupenv, ge, project_by_group[ge.group_id]))
+
         remaining_count = remaining_count - CHUNK_SIZE
         logger.info('%s GroupEnvironments remaining' % (remaining_count,))  # NOQA
         group_environments = list(qs.filter(pk__gt=last_pk)[0:CHUNK_SIZE])
