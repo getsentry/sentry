@@ -9,6 +9,8 @@ from __future__ import absolute_import, print_function
 
 import sys
 
+import six
+
 from django.core.management.base import BaseCommand, CommandError, make_option
 from django.utils.dateparse import parse_datetime
 
@@ -82,8 +84,8 @@ class Command(BaseCommand):
             sys.exit(0)
 
         if not options['no_input']:
-            proceed = raw_input('Do you want to continue? [y/N] ')
-            if proceed.lower() not in ['yes', 'y']:
+            proceed = six.moves.input('Do you want to continue? [y/N] ')
+            if proceed.strip().lower() not in ['yes', 'y']:
                 raise CommandError('Aborted.')
 
         for event in RangeQuerySetWrapper(events, step=100, callbacks=(_attach_related,)):
