@@ -24,6 +24,7 @@ from sentry.db.models import (
 )
 
 from sentry.models import CommitFileChange
+from sentry.signals import resolved_with_commit
 
 from sentry.utils import metrics
 from sentry.utils.cache import cache
@@ -561,10 +562,18 @@ class Release(Model):
                         'actor_id': actor.id if actor else None,
                     },
                 )
-                Group.objects.filter(
+                group = Group.objects.get(
                     id=group_id,
-                ).update(status=GroupStatus.RESOLVED)
+                )
+                group.update(status=GroupStatus.RESOLVED)
                 metrics.incr('group.resolved', instance='in_commit', skip_internal=True)
+
+            resolved_with_commit.send_robust(
+                organization_id=self.organization_id,
+                user=actor,
+                group=group,
+                sender=type(self),
+            )
 
             kick_off_status_syncs.apply_async(kwargs={
                 'project_id': group_project_lookup[group_id],
