@@ -29,11 +29,13 @@ const AssigneeSelectorComponent = createReactClass({
   propTypes: {
     id: PropTypes.string.isRequired,
     size: PropTypes.number,
+    memberList: PropTypes.array,
   },
 
   contextTypes: {
     organization: SentryTypes.Organization,
   },
+
   mixins: [
     Reflux.listenTo(GroupStore, 'onGroupChange'),
     Reflux.connect(MemberListStore, 'memberList'),
@@ -91,16 +93,21 @@ const AssigneeSelectorComponent = createReactClass({
       return true;
     }
 
+    let currentMembers = this.memberList();
     // XXX(billyvg): this means that once `memberList` is not-null, this component will never update due to `memberList` changes
     // Note: this allows us to show a "loading" state for memberList, but only before `MemberListStore.loadInitialData`
     // is called
-    if (
-      this.state.memberList === null &&
-      nextState.memberList !== this.state.memberList
-    ) {
+    if (currentMembers === null && nextState.memberList !== currentMembers) {
       return true;
     }
     return !valueIsEqual(nextState.assignedTo, this.state.assignedTo, true);
+  },
+
+  memberList() {
+    if (this.props.memberList) {
+      return this.props.memberList;
+    }
+    return this.state.memberList;
   },
 
   assignableTeams() {
@@ -159,9 +166,8 @@ const AssigneeSelectorComponent = createReactClass({
   },
 
   renderNewMemberNodes() {
-    let {memberList} = this.state;
     let {size} = this.props;
-    let members = AssigneeSelectorComponent.putSessionUserFirst(memberList);
+    let members = AssigneeSelectorComponent.putSessionUserFirst(this.memberList());
 
     return members.map(member => {
       return {
@@ -218,9 +224,10 @@ const AssigneeSelectorComponent = createReactClass({
   render() {
     let {className} = this.props;
     let {organization} = this.context;
-    let {loading, assignedTo, memberList} = this.state;
+    let {loading, assignedTo} = this.state;
     let canInvite = ConfigStore.get('invitesEnabled');
     let hasOrgWrite = organization.access.includes('org:write');
+    let memberList = this.memberList();
 
     return (
       <div className={className}>
