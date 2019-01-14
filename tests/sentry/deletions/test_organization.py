@@ -61,34 +61,35 @@ class DeleteOrganizationTest(TestCase):
         dashboard = Dashboard.objects.create(
             organization_id=org.id,
             title='The Dashboard',
-            owner=self.user,
+            created_by=self.user,
         )
         widget_1 = Widget.objects.create(
             dashboard=dashboard,
             order=1,
             title='Widget 1',
             display_type=0,
-            organization=org,
         )
         widget_2 = Widget.objects.create(
             dashboard=dashboard,
             order=2,
-            title='Widget 1',
+            title='Widget 2',
             display_type=5,
-            organization=org,
         )
         widget_1_data = WidgetDataSource.objects.create(
             widget=widget_1,
+            order=1,
             type=0,
             name='Incoming data',
         )
         widget_2_data_1 = WidgetDataSource.objects.create(
             widget=widget_2,
+            order=1,
             type=0,
             name='Incoming data',
         )
         widget_2_data_2 = WidgetDataSource.objects.create(
             widget=widget_2,
+            order=2,
             type=0,
             name='Outcoming data',
         )
