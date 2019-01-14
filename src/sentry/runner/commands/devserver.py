@@ -42,9 +42,12 @@ from sentry.runner.decorators import configuration, log_options
     metavar='ADDRESS',
     envvar='SENTRY_DEVSERVER_BIND',
 )
+@click.option(
+    '--no-uwsgi', default=False, is_flag=True, help='Run Django built-in server instead of uwsgi subprocess. '
+                                                    'The workers have to be executed separately.')
 @log_options()
 @configuration
-def devserver(reload, watchers, workers, browser_reload, styleguide, prefix, environment, bind):
+def devserver(reload, watchers, workers, browser_reload, styleguide, prefix, environment, bind, no_uwsgi):
     "Starts a lightweight web server for development."
     if ':' in bind:
         host, port = bind.split(':', 1)
@@ -56,6 +59,14 @@ def devserver(reload, watchers, workers, browser_reload, styleguide, prefix, env
     import os
 
     os.environ['SENTRY_ENVIRONMENT'] = environment
+
+    if no_uwsgi is True:
+        import sys
+        from django.core.management import ManagementUtility
+
+        args = [sys.argv[0], 'runserver', '%s:%s' % (host, port)]
+        utility = ManagementUtility(args)
+        return utility.execute()
 
     from django.conf import settings
     from sentry import options
