@@ -10,6 +10,7 @@ import qs from 'query-string';
 import {Panel, PanelBody} from 'app/components/panels';
 import {analytics} from 'app/utils/analytics';
 import {t, tct} from 'app/locale';
+import {fetchProject} from 'app/actionCreators/projects';
 import {fetchTags} from 'app/actionCreators/tags';
 import ApiMixin from 'app/mixins/apiMixin';
 import ConfigStore from 'app/stores/configStore';
@@ -115,6 +116,7 @@ const OrganizationStream = createReactClass({
 
   componentWillUnmount() {
     this._poller.disable();
+    this.projectCache = {};
     GroupStore.reset();
   },
 
@@ -340,12 +342,10 @@ const OrganizationStream = createReactClass({
     }
 
     let orgId = this.props.organization.slug;
-    this.api
-      .requestPromise(`/projects/${orgId}/${projectSlug}/`, {method: 'GET'})
-      .then(project => {
-        this.projectCache[project.slug] = project;
-        this.setState({selectedProject: project});
-      });
+    fetchProject(this.api, orgId, projectSlug).then(project => {
+      this.projectCache[project.slug] = project;
+      this.setState({selectedProject: project});
+    });
   },
 
   /**
