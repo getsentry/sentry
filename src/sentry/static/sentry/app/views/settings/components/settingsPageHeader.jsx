@@ -2,7 +2,9 @@ import PropTypes from 'prop-types';
 import React from 'react';
 import styled from 'react-emotion';
 import {Flex, Box} from 'grid-emotion';
+
 import space from 'app/styles/space';
+import {HeaderTitle} from 'app/styles/organization';
 
 class SettingsPageHeading extends React.Component {
   static propTypes = {
@@ -14,7 +16,7 @@ class SettingsPageHeading extends React.Component {
     noTitleStyles: PropTypes.bool,
   };
 
-  static defualtProps = {
+  static defaultProps = {
     noTitleStyles: false,
   };
 
@@ -24,9 +26,13 @@ class SettingsPageHeading extends React.Component {
         <Flex align="center">
           {this.props.icon && <Box pr={1}>{this.props.icon}</Box>}
           {this.props.title && (
-            <Title styled={this.props.noTitleStyles}>{this.props.title}</Title>
+            <Title tabs={this.props.tabs} styled={this.props.noTitleStyles}>
+              <HeaderTitle>{this.props.title}</HeaderTitle>
+            </Title>
           )}
-          {this.props.action && <div>{this.props.action}</div>}
+          {this.props.action && (
+            <Action tabs={this.props.tabs}>{this.props.action}</Action>
+          )}
         </Flex>
 
         {this.props.tabs && <div>{this.props.tabs}</div>}
@@ -41,14 +47,17 @@ const Title = styled(Flex, {shouldForwardProp: p => p !== 'styled'})`
     `
     font-size: 20px;
     font-weight: bold;`};
-  margin: ${space(3)} 0;
+  margin: ${p => (p.tabs ? `${space(4)} 0 ${space(2)}` : `${space(4)} 0`)};
   flex: 1;
+`;
+
+const Action = styled('div')`
+  ${p => (p.tabs ? `margin-top: ${space(2)}` : null)};
 `;
 
 const Wrapper = styled.div`
   font-size: 14px;
-  box-shadow: inset 0 -1px 0 ${p => p.theme.borderLight};
-  margin: -${space(3)} 0 ${space(3)};
+  margin-top: -${space(4)};
 `;
 
 export default SettingsPageHeading;

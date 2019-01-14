@@ -15,7 +15,8 @@ import six
 
 from django.conf import settings
 from django.utils.translation import ugettext as _
-from six.moves.urllib.parse import parse_qsl, urlencode, urlsplit, urlunsplit
+from django.utils.http import urlencode
+from six.moves.urllib.parse import parse_qsl, urlsplit, urlunsplit
 
 from sentry.interfaces.base import Interface, InterfaceValidationError, prune_empty_keys
 from sentry.interfaces.schemas import validate_and_default_interface
@@ -148,7 +149,7 @@ class Http(Interface):
             # three dots (which is the behavior of other SDKs). This effectively
             # makes the string two characters longer, but it will be trimmed
             # again down below.
-            if url.endswith("\u2026"):
+            if url.endswith(u"\u2026"):
                 url = url[:-1] + "..."
             scheme, netloc, path, query_bit, fragment_bit = urlsplit(url)
         else:
@@ -159,6 +160,8 @@ class Http(Interface):
             if isinstance(query_string, six.string_types):
                 if query_string[0] == '?':
                     query_string = query_string[1:]
+                if query_string.endswith(u"\u2026"):
+                    query_string = query_string[:-1] + "..."
                 query_string = [
                     (to_unicode(k), jsonify(v))
                     for k, v in parse_qsl(query_string, keep_blank_values=True)

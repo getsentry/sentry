@@ -1,5 +1,5 @@
 import {browserHistory} from 'react-router';
-import {isEqual} from 'lodash';
+import {omit, pickBy, uniq} from 'lodash';
 import Cookies from 'js-cookie';
 import React from 'react';
 import Reflux from 'reflux';
@@ -10,14 +10,22 @@ import qs from 'query-string';
 import {Panel, PanelBody} from 'app/components/panels';
 import {analytics} from 'app/utils/analytics';
 import {t, tct} from 'app/locale';
+import {fetchProject} from 'app/actionCreators/projects';
+import {fetchTags} from 'app/actionCreators/tags';
 import ApiMixin from 'app/mixins/apiMixin';
 import ConfigStore from 'app/stores/configStore';
+import GlobalSelectionStore from 'app/stores/globalSelectionStore';
 import GroupStore from 'app/stores/groupStore';
+import SelectedGroupStore from 'app/stores/selectedGroupStore';
+import TagStore from 'app/stores/tagStore';
 import LoadingError from 'app/components/loadingError';
 import LoadingIndicator from 'app/components/loadingIndicator';
 import Pagination from 'app/components/pagination';
 import SentryTypes from 'app/sentryTypes';
 import StreamGroup from 'app/components/stream/group';
+import StreamActions from 'app/views/stream/actions';
+import StreamFilters from 'app/views/stream/filters';
+import StreamSidebar from 'app/views/stream/sidebar';
 import parseApiError from 'app/utils/parseApiError';
 import parseLinkHeader from 'app/utils/parseLinkHeader';
 import utils from 'app/utils';
@@ -35,7 +43,13 @@ const OrganizationStream = createReactClass({
     organization: SentryTypes.Organization,
   },
 
-  mixins: [Reflux.listenTo(GroupStore, 'onGroupChange'), ApiMixin],
+  mixins: [
+    Reflux.listenTo(GlobalSelectionStore, 'onSelectionChange'),
+    Reflux.listenTo(GroupStore, 'onGroupChange'),
+    Reflux.listenTo(SelectedGroupStore, 'onSelectedGroupChange'),
+    Reflux.listenTo(TagStore, 'onTagsChange'),
+    ApiMixin,
+  ],
 
   getInitialState() {
     let realtimeActiveCookie = Cookies.get('realtimeActive');
@@ -47,8 +61,8 @@ const OrganizationStream = createReactClass({
     let currentQuery = this.props.location.query || {};
     let sort = 'sort' in currentQuery ? currentQuery.sort : DEFAULT_SORT;
 
-    let statsPeriod = STATS_PERIODS.has(currentQuery.statsPeriod)
-      ? currentQuery.statsPeriod
+    let groupStatsPeriod = STATS_PERIODS.has(currentQuery.groupStatsPeriod)
+      ? currentQuery.groupStatsPeriod
       : DEFAULT_STATS_PERIOD;
 
     return {
@@ -57,18 +71,23 @@ const OrganizationStream = createReactClass({
       loading: false,
       selectAllActive: false,
       multiSelected: false,
-      anySelected: false,
-      statsPeriod,
+      groupStatsPeriod,
       realtimeActive,
       pageLinks: '',
       queryCount: null,
       error: false,
       query: currentQuery.query || '',
       sort,
-      tagsLoading: true,
-      tags: [],
+      selection: GlobalSelectionStore.get(),
       isSidebarVisible: false,
+      savedSearchList: [],
       processingIssues: null,
+      tagsLoading: true,
+      tags: TagStore.getAllTags(),
+      // the project for the selected issues
+      // Will only be set if selected issues all belong
+      // to one project.
+      selectedProject: null,
     };
   },
 
@@ -80,19 +99,7 @@ const OrganizationStream = createReactClass({
 
     if (!this.state.loading) {
       this.fetchData();
-    }
-  },
-
-  componentWillReceiveProps(nextProps) {
-    // We are using qs.parse with location.search since this.props.location.query
-    // returns the same value as nextProps.location.query
-    let currentSearchTerm = qs.parse(this.props.location.search);
-    let nextSearchTerm = qs.parse(nextProps.location.search);
-
-    let searchTermChanged = !isEqual(currentSearchTerm, nextSearchTerm);
-
-    if (searchTermChanged) {
-      this.setState(this.getQueryState(nextProps), this.fetchData);
+      fetchTags(this.props.organization.slug);
     }
   },
 
@@ -109,36 +116,41 @@ const OrganizationStream = createReactClass({
 
   componentWillUnmount() {
     this._poller.disable();
+    this.projectCache = {};
     GroupStore.reset();
+  },
+
+  // Memoize projects fetched as selections are made
+  // This data is fed into the action toolbar for release data.
+  projectCache: {},
+
+  getQueryParams() {
+    let selection = this.state.selection;
+    let params = {
+      project: selection.projects,
+      environment: selection.environments,
+      query: this.state.query,
+      ...selection.datetime,
+    };
+    if (selection.datetime.period) {
+      delete params.period;
+      params.statsPeriod = selection.datetime.period;
+    }
+
+    if (this.state.sort !== DEFAULT_SORT) {
+      params.sort = this.state.sort;
+    }
+
+    if (this.state.groupStatsPeriod !== DEFAULT_STATS_PERIOD) {
+      params.groupStatsPeriod = this.state.groupStatsPeriod;
+    }
+
+    // only include defined values.
+    return pickBy(params, v => utils.defined(v));
   },
 
   getAccess() {
     return new Set(this.props.organization.access);
-  },
-
-  getQueryState(props) {
-    let currentQuery = props.location.query || {};
-    let hasQuery = 'query' in currentQuery;
-    let sort = 'sort' in currentQuery ? currentQuery.sort : DEFAULT_SORT;
-    let statsPeriod = STATS_PERIODS.has(currentQuery.statsPeriod)
-      ? currentQuery.statsPeriod
-      : DEFAULT_STATS_PERIOD;
-
-    let newState = {
-      sort,
-      statsPeriod,
-      query: hasQuery ? currentQuery.query : '',
-      isDefaultSearch: false,
-    };
-    newState.loading = false;
-
-    return newState;
-  },
-
-  hasQuery(props) {
-    props = props || this.props;
-    let currentQuery = props.location.query || {};
-    return 'query' in currentQuery;
   },
 
   fetchData() {
@@ -150,16 +162,10 @@ const OrganizationStream = createReactClass({
       error: false,
     });
 
-    let url = this.getGroupListEndpoint();
-    let query = qs.parse(this.props.location.query);
-
     let requestParams = {
-      ...query,
+      ...this.getQueryParams(),
       limit: MAX_ITEMS,
-      sort: this.state.sort,
-      statsPeriod: this.state.statsPeriod,
       shortIdLookup: '1',
-      environment: this.state.environment,
     };
 
     let currentQuery = this.props.location.query || {};
@@ -173,9 +179,9 @@ const OrganizationStream = createReactClass({
 
     this._poller.disable();
 
-    this.lastRequest = this.api.request(url, {
+    this.lastRequest = this.api.request(this.getGroupListEndpoint(), {
       method: 'GET',
-      data: requestParams,
+      data: qs.stringify(requestParams),
       success: (data, ignore, jqXHR) => {
         // if this is a direct hit, we redirect to the intended result directly.
         // we have to use the project slug from the result data instead of the
@@ -187,7 +193,7 @@ const OrganizationStream = createReactClass({
             let redirect = `/${this.props.params
               .orgId}/${project.slug}/issues/${id}/events/${matchingEventId}/`;
 
-            // TODO set environment for the requested issue.
+            // TODO include global search query params
             browserHistory.replace(redirect);
             return;
           }
@@ -201,7 +207,6 @@ const OrganizationStream = createReactClass({
         this.setState({
           error: false,
           loading: false,
-          query,
           queryCount:
             typeof queryCount !== 'undefined' ? parseInt(queryCount, 10) || 0 : 0,
           queryMaxCount:
@@ -237,7 +242,7 @@ const OrganizationStream = createReactClass({
   getGroupListEndpoint() {
     let params = this.props.params;
 
-    return '/organizations/' + params.orgId + '/issues/';
+    return `/organizations/${params.orgId}/issues/`;
   },
 
   onRealtimeChange(realtime) {
@@ -248,15 +253,13 @@ const OrganizationStream = createReactClass({
   },
 
   onSelectStatsPeriod(period) {
-    if (period != this.state.statsPeriod) {
+    if (period != this.state.groupStatsPeriod) {
       // TODO(dcramer): all charts should now suggest "loading"
       this.setState(
         {
-          statsPeriod: period,
+          groupStatsPeriod: period,
         },
-        function() {
-          this.transitionTo();
-        }
+        this.transitionTo
       );
     }
   },
@@ -279,27 +282,29 @@ const OrganizationStream = createReactClass({
     }
   },
 
+  onSelectionChange(selection) {
+    this.setState({selection}, this.transitionTo);
+  },
+
   onSearch(query) {
     if (query === this.state.query) {
       // if query is the same, just re-fetch data
       this.fetchData();
     } else {
-      this.setState(
-        {
-          query,
-        },
-        this.transitionTo
-      );
+      this.setState({query}, this.transitionTo);
     }
   },
 
   onSortChange(sort) {
-    this.setState(
-      {
-        sort,
-      },
-      this.transitionTo
-    );
+    this.setState({sort}, this.transitionTo);
+  },
+
+  onTagsChange(tags) {
+    // Exclude the environment tag as it lives in global search.
+    this.setState({
+      tags: omit(tags, 'environment'),
+      tagsLoading: false,
+    });
   },
 
   onSidebarToggle() {
@@ -309,6 +314,37 @@ const OrganizationStream = createReactClass({
     });
     analytics('issue.search_sidebar_clicked', {
       org_id: parseInt(organization.id, 10),
+    });
+  },
+
+  onSelectedGroupChange() {
+    let selected = SelectedGroupStore.getSelectedIds();
+    let projects = [...selected]
+      .map(id => GroupStore.get(id))
+      .map(group => group.project.slug);
+
+    let uniqProjects = uniq(projects);
+
+    // we only want selectedProject set if there is 1 project
+    // more or fewer should result in a null so that the action toolbar
+    // can behave correctly.
+    if (uniqProjects.length !== 1) {
+      this.setState({selectedProject: null});
+      return;
+    }
+    this.fetchProject(uniqProjects[0]);
+  },
+
+  fetchProject(projectSlug) {
+    if (projectSlug in this.projectCache) {
+      this.setState({selectedProject: this.projectCache[projectSlug]});
+      return;
+    }
+
+    let orgId = this.props.organization.slug;
+    fetchProject(this.api, orgId, projectSlug).then(project => {
+      this.projectCache[project.slug] = project;
+      this.setState({selectedProject: project});
     });
   },
 
@@ -323,32 +359,21 @@ const OrganizationStream = createReactClass({
   },
 
   transitionTo() {
-    let queryParams = {};
+    let query = this.getQueryParams();
+    let {organization} = this.props;
 
-    if (this.props.location.query.environment) {
-      queryParams.environment = this.props.location.query.environment;
-    }
-
-    queryParams.query = this.state.query;
-
-    if (this.state.sort !== DEFAULT_SORT) {
-      queryParams.sort = this.state.sort;
-    }
-
-    if (this.state.statsPeriod !== DEFAULT_STATS_PERIOD) {
-      queryParams.statsPeriod = this.state.statsPeriod;
-    }
-
-    let params = this.props.params;
-
-    let path = `/${params.orgId}/issues/`;
+    let path = `/organizations/${organization.slug}/issues/`;
     browserHistory.push({
       pathname: path,
-      query: queryParams,
+      query,
     });
+
+    // After transitioning reload data. This is simpler and less
+    // error prone than examining router state in componentWillReceiveProps
+    this.fetchData();
   },
 
-  renderGroupNodes(ids, statsPeriod) {
+  renderGroupNodes(ids, groupStatsPeriod) {
     // Restrict this guide to only show for new users (joined<30 days) and add guide anhor only to the first issue
     let userDateJoined = new Date(ConfigStore.get('user').dateJoined);
     let dateCutoff = new Date();
@@ -364,7 +389,7 @@ const OrganizationStream = createReactClass({
           key={id}
           id={id}
           orgId={orgId}
-          statsPeriod={statsPeriod}
+          statsPeriod={groupStatsPeriod}
           query={this.state.query}
           hasGuideAnchor={hasGuideAnchor}
         />
@@ -402,11 +427,15 @@ const OrganizationStream = createReactClass({
     } else if (this.state.error) {
       body = <LoadingError message={this.state.error} onRetry={this.fetchData} />;
     } else if (this.state.groupIds.length > 0) {
-      body = this.renderGroupNodes(this.state.groupIds, this.state.statsPeriod);
+      body = this.renderGroupNodes(this.state.groupIds, this.state.groupStatsPeriod);
     } else {
       body = this.renderEmpty();
     }
     return body;
+  },
+
+  onSavedSearchCreate() {
+    // TODO implement
   },
 
   render() {
@@ -420,10 +449,17 @@ const OrganizationStream = createReactClass({
     let {orgId} = this.props.params;
     let access = this.getAccess();
 
-    // In the project mode this reads from the project feature.
-    // There is no analogous property for organizations yet.
+    // If we have a selected project we can get release data
     let hasReleases = false;
-    let latestRelease = '';
+    let projectId = null;
+    let latestRelease = null;
+    let {selectedProject} = this.state;
+    if (selectedProject) {
+      let features = new Set(selectedProject.features);
+      hasReleases = features.has('releases');
+      latestRelease = selectedProject.latestRelease;
+      projectId = selectedProject.slug;
+    }
 
     return (
       <div className={classNames(classes)}>
@@ -445,6 +481,7 @@ const OrganizationStream = createReactClass({
           <Panel>
             <StreamActions
               orgId={params.orgId}
+              projectId={projectId}
               hasReleases={hasReleases}
               latestRelease={latestRelease}
               environment={this.state.environment}
@@ -453,7 +490,7 @@ const OrganizationStream = createReactClass({
               onSelectStatsPeriod={this.onSelectStatsPeriod}
               onRealtimeChange={this.onRealtimeChange}
               realtimeActive={this.state.realtimeActive}
-              statsPeriod={this.state.statsPeriod}
+              statsPeriod={this.state.groupStatsPeriod}
               groupIds={this.state.groupIds}
               allResultsVisible={this.allResultsVisible()}
             />
@@ -472,11 +509,6 @@ const OrganizationStream = createReactClass({
     );
   },
 });
-
-// Placeholder components to keep pull requests manageable.
-const StreamFilters = props => <p>Stream filters are coming soon</p>;
-const StreamActions = props => <p>Stream actions are coming soon</p>;
-const StreamSidebar = props => <p>Stream sidebar is coming soon</p>;
 
 export default withOrganization(OrganizationStream);
 export {OrganizationStream};
