@@ -90,8 +90,7 @@ def configure_sdk():
         upstream_transport = make_transport(get_options(options))
 
     def capture_event(event):
-        internal_transport.capture_event(event)
-
+        # Make sure we log to upstream when available first
         if upstream_transport is not None:
             # TODO(mattrobenolt): Bring this back safely.
             # from sentry import options
@@ -99,6 +98,8 @@ def configure_sdk():
             # if install_id:
             #     event.setdefault('tags', {})['install-id'] = install_id
             upstream_transport.capture_event(event)
+
+        internal_transport.capture_event(event)
 
     sentry_sdk.init(
         integrations=[
