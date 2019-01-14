@@ -44,6 +44,12 @@ describe('getQueryStringFromQuery()', function() {
   it('parses query from query string', function() {
     expect(getQueryStringFromQuery(query)).toEqual(queryString);
   });
+
+  it('keeps location in query string if provided', function() {
+    expect(getQueryStringFromQuery(query, {visualization: 'table'})).toEqual(
+      `${queryString}&visualization=table`
+    );
+  });
 });
 
 describe('getOrderbyFields()', function() {
