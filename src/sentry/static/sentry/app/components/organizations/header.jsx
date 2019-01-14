@@ -6,7 +6,7 @@ const Header = styled(Flex)`
   box-shadow: ${p => p.theme.dropShadowLight};
   font-size: ${p => p.theme.fontSizeExtraLarge};
   height: 60px;
-  z-index: ${p => p.theme.zIndex.sidebar};
+  z-index: ${p => p.theme.zIndex.globalSelectionHeader};
   position: relative;
   width: 100%;
   background: #fff;
