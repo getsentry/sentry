@@ -14,7 +14,7 @@ class Dashboard(Model):
     __core__ = True
 
     title = models.CharField(max_length=255)
-    owner = FlexibleForeignKey('sentry.User')
+    created_by = FlexibleForeignKey('sentry.User')
     organization = FlexibleForeignKey('sentry.Organization')
     date_added = models.DateTimeField(default=timezone.now)
     status = BoundedPositiveIntegerField(

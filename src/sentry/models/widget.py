@@ -52,6 +52,7 @@ class WidgetDataSource(Model):
     type = BoundedPositiveIntegerField(choices=WidgetDataSourceTypes.as_choices())
     name = models.CharField(max_length=255)
     data = JSONField(default={})  # i.e. saved discover query
+    order = BoundedPositiveIntegerField()
     date_added = models.DateTimeField(default=timezone.now)
     status = BoundedPositiveIntegerField(
         default=ObjectStatus.VISIBLE,
@@ -61,7 +62,7 @@ class WidgetDataSource(Model):
     class Meta:
         app_label = 'sentry'
         db_table = 'sentry_widgetdatasource'
-        unique_together = (('widget', 'type', 'name'), )
+        unique_together = (('widget', 'name'), ('widget', 'order'))
 
     __repr__ = sane_repr('widget', 'type', 'name')
 
@@ -77,7 +78,6 @@ class Widget(Model):
     title = models.CharField(max_length=255)
     display_type = BoundedPositiveIntegerField(choices=WidgetDisplayTypes.as_choices())
     display_options = JSONField(default={})
-    organization = FlexibleForeignKey('sentry.Organization')
     date_added = models.DateTimeField(default=timezone.now)
     status = BoundedPositiveIntegerField(
         default=ObjectStatus.VISIBLE,
@@ -87,6 +87,6 @@ class Widget(Model):
     class Meta:
         app_label = 'sentry'
         db_table = 'sentry_widget'
-        unique_together = (('organization', 'dashboard', 'order', 'title'), )
+        unique_together = (('dashboard', 'order'), ('dashboard', 'title'), )
 
-    __repr__ = sane_repr('organization', 'dashboard', 'title')
+    __repr__ = sane_repr('dashboard', 'title')
