@@ -41,11 +41,9 @@ const InstallPromptBanner = createReactClass({
   },
 
   sentFirstEvent() {
-    let {onboardingTasks} = this.props.organization;
-    let firstEventTask = onboardingTasks.find(task => task.task === 2);
-    this.setState({
-      sentFirstEvent: firstEventTask && firstEventTask.status === 'complete',
-    });
+    let {projects} = this.props.organization;
+    let hasFirstEvent = projects.find(project => project.firstEvent !== null);
+    hasFirstEvent && this.setState({sentFirstEvent: true});
   },
 
   getUrl() {
