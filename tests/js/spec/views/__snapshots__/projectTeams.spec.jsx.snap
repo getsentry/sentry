@@ -6,6 +6,7 @@ exports[`ProjectTeams renders 1`] = `
 >
   <div>
     <SettingsPageHeading
+      noTitleStyles={false}
       title={
         <span>
           <span>

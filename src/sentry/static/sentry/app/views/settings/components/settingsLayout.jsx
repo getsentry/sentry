@@ -3,9 +3,10 @@ import PropTypes from 'prop-types';
 import React from 'react';
 import styled from 'react-emotion';
 
+import Sidebar from 'app/components/sidebar';
 import Footer from 'app/components/footer';
+import space from 'app/styles/space';
 
-import SettingsBackButton from './settingsBackButton';
 import SettingsBreadcrumb from './settingsBreadcrumb';
 import SettingsHeader from './settingsHeader';
 import SettingsSearch from './settingsSearch';
@@ -26,13 +27,9 @@ class SettingsLayout extends React.Component {
     let childRoute = childProps.route || route || {};
     return (
       <React.Fragment>
-        <SettingsHeader>
-          <SettingsSubheader>
-            <Container>
-              <SettingsBackButton params={params} />
-            </Container>
-          </SettingsSubheader>
-          <Container>
+        <Sidebar />
+        <SettingsColumn>
+          <SettingsHeader>
             <Flex align="center" width={1}>
               <Box flex="1">
                 <SettingsBreadcrumb
@@ -43,40 +40,41 @@ class SettingsLayout extends React.Component {
               </Box>
               <SettingsSearch routes={routes} router={router} params={params} />
             </Flex>
-          </Container>
-        </SettingsHeader>
+          </SettingsHeader>
 
-        {/* this is div wrapper is required, else content won't stretch horizontally */}
-        <ContentContainerWrapper>
-          <Container>
+          <MaxWidthContainer>
             {typeof renderNavigation === 'function' && (
               <SidebarWrapper>{renderNavigation()}</SidebarWrapper>
             )}
             <Content>{children}</Content>
-          </Container>
-        </ContentContainerWrapper>
-        <Footer />
+          </MaxWidthContainer>
+          <Footer />
+        </SettingsColumn>
       </React.Fragment>
     );
   }
 }
-export default SettingsLayout;
 
-const Container = styled(Flex)`
+const MaxWidthContainer = styled(Flex)`
   max-width: ${p => p.theme.settings.containerWidth};
-  margin: 0 auto;
-  padding: 0 ${p => p.theme.grid * 2}px;
-`;
-
-// this wrapper is required, else content won't stretch horizontally
-const ContentContainerWrapper = styled(Box)`
-  flex: 1; /* so this stretches vertically so that footer is fixed at bottom */
+  flex: 1;
 `;
 
 const SidebarWrapper = styled(Box)`
   flex-shrink: 0;
   width: ${p => p.theme.settings.sidebarWidth};
-  margin-top: 7px;
+  background: #fff;
+  border-right: 1px solid ${p => p.theme.borderLight};
+  padding: ${space(4)};
+`;
+
+const SettingsColumn = styled('div')`
+  display: flex;
+  flex-direction: column;
+  flex: 1; /* so this stretches vertically so that footer is fixed at bottom */
+  footer {
+    margin-top: 0;
+  }
 `;
 
 /**
@@ -85,15 +83,8 @@ const SidebarWrapper = styled(Box)`
  */
 const Content = styled(Box)`
   flex: 1;
+  padding: ${space(4)};
   min-width: 0; /* keep children from stretching container */
 `;
 
-const SettingsSubheader = styled('div')`
-  position: relative;
-  z-index: ${p => p.theme.zIndex.dropdown};
-  padding: ${p => p.theme.grid}px 0;
-  margin-bottom: ${p => p.theme.grid * 3}px;
-  border-bottom: 1px solid ${p => p.theme.borderLight};
-  background: ${p => p.theme.offWhite};
-  font-size: 14px;
-`;
+export default SettingsLayout;

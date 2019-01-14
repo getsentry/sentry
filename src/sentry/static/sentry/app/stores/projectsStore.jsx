@@ -8,6 +8,7 @@ const ProjectsStore = Reflux.createStore({
   init() {
     this.reset();
     this.listenTo(ProjectActions.createSuccess, this.onCreateSuccess);
+    this.listenTo(ProjectActions.fetchSuccess, this.onFetchSuccess);
     this.listenTo(ProjectActions.updateSuccess, this.onUpdateSuccess);
     this.listenTo(ProjectActions.loadStatsSuccess, this.onStatsLoadSuccess);
     this.listenTo(ProjectActions.changeSlug, this.onChangeSlug);
@@ -50,6 +51,14 @@ const ProjectsStore = Reflux.createStore({
   },
 
   onCreateSuccess(project) {
+    this.itemsById = {
+      ...this.itemsById,
+      [project.id]: project,
+    };
+    this.trigger(new Set([project.id]));
+  },
+
+  onFetchSuccess(project) {
     this.itemsById = {
       ...this.itemsById,
       [project.id]: project,

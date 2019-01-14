@@ -5,14 +5,15 @@ import json
 import requests
 
 from collections import OrderedDict
+from time import time
 
 from BeautifulSoup import BeautifulStoneSoup
+from django.utils.functional import cached_property
 from requests.exceptions import ConnectionError, HTTPError
 from sentry.exceptions import InvalidIdentity
-from time import time
-from django.utils.functional import cached_property
-
 from sentry.http import build_session
+from sentry.utils import metrics
+from six.moves.urllib.parse import urlparse
 
 from .exceptions import ApiHostError, ApiError, ApiUnauthorized, UnsupportedResponseType
 
@@ -108,6 +109,13 @@ class SequenceApiResponse(list, BaseApiResponse):
         return self
 
 
+def track_response_code(host, code):
+    metrics.incr('integrations.http_response', tags={
+        'host': host,
+        'status': code
+    })
+
+
 class ApiClient(object):
     base_url = None
 
@@ -144,6 +152,7 @@ class ApiClient(object):
             timeout = 30
 
         full_url = self.build_url(path)
+        host = urlparse(full_url).netloc
         session = build_session()
         try:
             resp = getattr(session, method.lower())(
@@ -159,16 +168,23 @@ class ApiClient(object):
             )
             resp.raise_for_status()
         except ConnectionError as e:
+            metrics.incr('integrations.http_response', tags={
+                'host': host,
+                'status': 'connection_error'
+            })
             raise ApiHostError.from_exception(e)
         except HTTPError as e:
             resp = e.response
             if resp is None:
+                track_response_code(host, 'unknown')
                 self.logger.exception('request.error', extra={
                     'url': full_url,
                 })
                 raise ApiError('Internal Error')
+            track_response_code(host, resp.status_code)
             raise ApiError.from_response(resp)
 
+        track_response_code(host, resp.status_code)
         if resp.status_code == 204:
             return {}
 

@@ -11,7 +11,8 @@ from django.utils.functional import cached_property
 
 import sentry_sdk
 
-from sentry_sdk.transport import Transport, HttpTransport
+from sentry_sdk.client import get_options
+from sentry_sdk.transport import Transport, make_transport
 from sentry_sdk.consts import VERSION as SDK_VERSION
 from sentry_sdk.utils import Auth, capture_internal_exceptions
 from sentry_sdk.utils import logger as sdk_logger
@@ -86,15 +87,17 @@ def configure_sdk():
     internal_transport = InternalTransport()
     upstream_transport = None
     if options.get('dsn'):
-        upstream_transport = HttpTransport(options)
+        upstream_transport = make_transport(get_options(options))
 
     def capture_event(event):
         internal_transport.capture_event(event)
 
         if upstream_transport is not None:
-            from sentry import options
-            event.setdefault('tags', {})['install-id'] = \
-                options.get('sentry:install-id')
+            # TODO(mattrobenolt): Bring this back safely.
+            # from sentry import options
+            # install_id = options.get('sentry:install-id')
+            # if install_id:
+            #     event.setdefault('tags', {})['install-id'] = install_id
             upstream_transport.capture_event(event)
 
     sentry_sdk.init(

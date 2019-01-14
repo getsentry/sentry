@@ -27,11 +27,12 @@ exports[`Organization Developer Settings when no Apps exist displays empty state
               Create New Application
             </Button>
           }
+          noTitleStyles={false}
           title="Developer Settings"
         >
           <Wrapper>
             <div
-              className="css-1pnrn3o-Wrapper e1kblvez1"
+              className="css-1r5ylk7-Wrapper e1kblvez2"
             >
               <Flex
                 align="center"
@@ -44,38 +45,39 @@ exports[`Organization Developer Settings when no Apps exist displays empty state
                     className="css-5ipae5"
                     is={null}
                   >
-                    <Title>
+                    <Title
+                      styled={false}
+                    >
                       <Base
-                        className="css-1mqcea-Title e1kblvez0"
+                        className="css-1ky52ze-Title e1kblvez0"
                       >
                         <div
-                          className="css-1mqcea-Title e1kblvez0"
+                          className="css-1ky52ze-Title e1kblvez0"
                           is={null}
                         >
-                          Developer Settings
+                          <HeaderTitle>
+                            <h4
+                              className="css-1w8ttcn-HeaderTitle e6lvex72"
+                            >
+                              Developer Settings
+                            </h4>
+                          </HeaderTitle>
                         </div>
                       </Base>
                     </Title>
-                    <div>
-                      <Button
-                        disabled={false}
-                        icon="icon-circle-add"
-                        priority="primary"
-                        size="small"
-                        to="/settings/org-slug/developer-settings/new/"
+                    <Action>
+                      <div
+                        className="css-18luhfc-Action e1kblvez1"
                       >
-                        <StyledButton
-                          aria-label="Create New Application"
+                        <Button
                           disabled={false}
-                          onClick={[Function]}
+                          icon="icon-circle-add"
                           priority="primary"
-                          role="button"
                           size="small"
                           to="/settings/org-slug/developer-settings/new/"
                         >
-                          <Component
+                          <StyledButton
                             aria-label="Create New Application"
-                            className="css-zvpqlo-StyledButton-getColors eqrebog0"
                             disabled={false}
                             onClick={[Function]}
                             priority="primary"
@@ -83,95 +85,106 @@ exports[`Organization Developer Settings when no Apps exist displays empty state
                             size="small"
                             to="/settings/org-slug/developer-settings/new/"
                           >
-                            <Link
+                            <Component
                               aria-label="Create New Application"
                               className="css-zvpqlo-StyledButton-getColors eqrebog0"
                               disabled={false}
                               onClick={[Function]}
-                              onlyActiveOnIndex={false}
                               priority="primary"
                               role="button"
                               size="small"
-                              style={Object {}}
                               to="/settings/org-slug/developer-settings/new/"
                             >
-                              <a
+                              <Link
                                 aria-label="Create New Application"
                                 className="css-zvpqlo-StyledButton-getColors eqrebog0"
                                 disabled={false}
                                 onClick={[Function]}
+                                onlyActiveOnIndex={false}
                                 priority="primary"
                                 role="button"
                                 size="small"
                                 style={Object {}}
+                                to="/settings/org-slug/developer-settings/new/"
                               >
-                                <ButtonLabel
+                                <a
+                                  aria-label="Create New Application"
+                                  className="css-zvpqlo-StyledButton-getColors eqrebog0"
+                                  disabled={false}
+                                  onClick={[Function]}
                                   priority="primary"
+                                  role="button"
                                   size="small"
+                                  style={Object {}}
                                 >
-                                  <Component
-                                    className="css-7ui8bl-ButtonLabel eqrebog1"
+                                  <ButtonLabel
                                     priority="primary"
                                     size="small"
                                   >
-                                    <span
+                                    <Component
                                       className="css-7ui8bl-ButtonLabel eqrebog1"
+                                      priority="primary"
+                                      size="small"
                                     >
-                                      <Icon
-                                        hasChildren={true}
-                                        size="small"
+                                      <span
+                                        className="css-7ui8bl-ButtonLabel eqrebog1"
                                       >
-                                        <Component
-                                          className="css-1vdnsie-Icon eqrebog2"
+                                        <Icon
                                           hasChildren={true}
                                           size="small"
                                         >
-                                          <span
+                                          <Component
                                             className="css-1vdnsie-Icon eqrebog2"
+                                            hasChildren={true}
                                             size="small"
                                           >
-                                            <StyledInlineSvg
-                                              size="12px"
-                                              src="icon-circle-add"
+                                            <span
+                                              className="css-1vdnsie-Icon eqrebog2"
+                                              size="small"
                                             >
-                                              <InlineSvg
-                                                className="css-1ov3rcq-StyledInlineSvg eqrebog3"
+                                              <StyledInlineSvg
                                                 size="12px"
                                                 src="icon-circle-add"
                                               >
-                                                <StyledSvg
+                                                <InlineSvg
                                                   className="css-1ov3rcq-StyledInlineSvg eqrebog3"
-                                                  height="12px"
-                                                  viewBox={Object {}}
-                                                  width="12px"
+                                                  size="12px"
+                                                  src="icon-circle-add"
                                                 >
-                                                  <svg
-                                                    className="eqrebog3 css-1jjmnki-StyledSvg-StyledInlineSvg e2idor0"
+                                                  <StyledSvg
+                                                    className="css-1ov3rcq-StyledInlineSvg eqrebog3"
                                                     height="12px"
                                                     viewBox={Object {}}
                                                     width="12px"
                                                   >
-                                                    <use
-                                                      href="#test"
-                                                      xlinkHref="#test"
-                                                    />
-                                                  </svg>
-                                                </StyledSvg>
-                                              </InlineSvg>
-                                            </StyledInlineSvg>
-                                          </span>
-                                        </Component>
-                                      </Icon>
-                                      Create New Application
-                                    </span>
-                                  </Component>
-                                </ButtonLabel>
-                              </a>
-                            </Link>
-                          </Component>
-                        </StyledButton>
-                      </Button>
-                    </div>
+                                                    <svg
+                                                      className="eqrebog3 css-1jjmnki-StyledSvg-StyledInlineSvg e2idor0"
+                                                      height="12px"
+                                                      viewBox={Object {}}
+                                                      width="12px"
+                                                    >
+                                                      <use
+                                                        href="#test"
+                                                        xlinkHref="#test"
+                                                      />
+                                                    </svg>
+                                                  </StyledSvg>
+                                                </InlineSvg>
+                                              </StyledInlineSvg>
+                                            </span>
+                                          </Component>
+                                        </Icon>
+                                        Create New Application
+                                      </span>
+                                    </Component>
+                                  </ButtonLabel>
+                                </a>
+                              </Link>
+                            </Component>
+                          </StyledButton>
+                        </Button>
+                      </div>
+                    </Action>
                   </div>
                 </Base>
               </Flex>
@@ -277,11 +290,12 @@ exports[`Organization Developer Settings with published apps trash button is dis
               Create New Application
             </Button>
           }
+          noTitleStyles={false}
           title="Developer Settings"
         >
           <Wrapper>
             <div
-              className="css-1pnrn3o-Wrapper e1kblvez1"
+              className="css-1r5ylk7-Wrapper e1kblvez2"
             >
               <Flex
                 align="center"
@@ -294,38 +308,39 @@ exports[`Organization Developer Settings with published apps trash button is dis
                     className="css-5ipae5"
                     is={null}
                   >
-                    <Title>
+                    <Title
+                      styled={false}
+                    >
                       <Base
-                        className="css-1mqcea-Title e1kblvez0"
+                        className="css-1ky52ze-Title e1kblvez0"
                       >
                         <div
-                          className="css-1mqcea-Title e1kblvez0"
+                          className="css-1ky52ze-Title e1kblvez0"
                           is={null}
                         >
-                          Developer Settings
+                          <HeaderTitle>
+                            <h4
+                              className="css-1w8ttcn-HeaderTitle e6lvex72"
+                            >
+                              Developer Settings
+                            </h4>
+                          </HeaderTitle>
                         </div>
                       </Base>
                     </Title>
-                    <div>
-                      <Button
-                        disabled={false}
-                        icon="icon-circle-add"
-                        priority="primary"
-                        size="small"
-                        to="/settings/org-slug/developer-settings/new/"
+                    <Action>
+                      <div
+                        className="css-18luhfc-Action e1kblvez1"
                       >
-                        <StyledButton
-                          aria-label="Create New Application"
+                        <Button
                           disabled={false}
-                          onClick={[Function]}
+                          icon="icon-circle-add"
                           priority="primary"
-                          role="button"
                           size="small"
                           to="/settings/org-slug/developer-settings/new/"
                         >
-                          <Component
+                          <StyledButton
                             aria-label="Create New Application"
-                            className="css-zvpqlo-StyledButton-getColors eqrebog0"
                             disabled={false}
                             onClick={[Function]}
                             priority="primary"
@@ -333,95 +348,106 @@ exports[`Organization Developer Settings with published apps trash button is dis
                             size="small"
                             to="/settings/org-slug/developer-settings/new/"
                           >
-                            <Link
+                            <Component
                               aria-label="Create New Application"
                               className="css-zvpqlo-StyledButton-getColors eqrebog0"
                               disabled={false}
                               onClick={[Function]}
-                              onlyActiveOnIndex={false}
                               priority="primary"
                               role="button"
                               size="small"
-                              style={Object {}}
                               to="/settings/org-slug/developer-settings/new/"
                             >
-                              <a
+                              <Link
                                 aria-label="Create New Application"
                                 className="css-zvpqlo-StyledButton-getColors eqrebog0"
                                 disabled={false}
                                 onClick={[Function]}
+                                onlyActiveOnIndex={false}
                                 priority="primary"
                                 role="button"
                                 size="small"
                                 style={Object {}}
+                                to="/settings/org-slug/developer-settings/new/"
                               >
-                                <ButtonLabel
+                                <a
+                                  aria-label="Create New Application"
+                                  className="css-zvpqlo-StyledButton-getColors eqrebog0"
+                                  disabled={false}
+                                  onClick={[Function]}
                                   priority="primary"
+                                  role="button"
                                   size="small"
+                                  style={Object {}}
                                 >
-                                  <Component
-                                    className="css-7ui8bl-ButtonLabel eqrebog1"
+                                  <ButtonLabel
                                     priority="primary"
                                     size="small"
                                   >
-                                    <span
+                                    <Component
                                       className="css-7ui8bl-ButtonLabel eqrebog1"
+                                      priority="primary"
+                                      size="small"
                                     >
-                                      <Icon
-                                        hasChildren={true}
-                                        size="small"
+                                      <span
+                                        className="css-7ui8bl-ButtonLabel eqrebog1"
                                       >
-                                        <Component
-                                          className="css-1vdnsie-Icon eqrebog2"
+                                        <Icon
                                           hasChildren={true}
                                           size="small"
                                         >
-                                          <span
+                                          <Component
                                             className="css-1vdnsie-Icon eqrebog2"
+                                            hasChildren={true}
                                             size="small"
                                           >
-                                            <StyledInlineSvg
-                                              size="12px"
-                                              src="icon-circle-add"
+                                            <span
+                                              className="css-1vdnsie-Icon eqrebog2"
+                                              size="small"
                                             >
-                                              <InlineSvg
-                                                className="css-1ov3rcq-StyledInlineSvg eqrebog3"
+                                              <StyledInlineSvg
                                                 size="12px"
                                                 src="icon-circle-add"
                                               >
-                                                <StyledSvg
+                                                <InlineSvg
                                                   className="css-1ov3rcq-StyledInlineSvg eqrebog3"
-                                                  height="12px"
-                                                  viewBox={Object {}}
-                                                  width="12px"
+                                                  size="12px"
+                                                  src="icon-circle-add"
                                                 >
-                                                  <svg
-                                                    className="eqrebog3 css-1jjmnki-StyledSvg-StyledInlineSvg e2idor0"
+                                                  <StyledSvg
+                                                    className="css-1ov3rcq-StyledInlineSvg eqrebog3"
                                                     height="12px"
                                                     viewBox={Object {}}
                                                     width="12px"
                                                   >
-                                                    <use
-                                                      href="#test"
-                                                      xlinkHref="#test"
-                                                    />
-                                                  </svg>
-                                                </StyledSvg>
-                                              </InlineSvg>
-                                            </StyledInlineSvg>
-                                          </span>
-                                        </Component>
-                                      </Icon>
-                                      Create New Application
-                                    </span>
-                                  </Component>
-                                </ButtonLabel>
-                              </a>
-                            </Link>
-                          </Component>
-                        </StyledButton>
-                      </Button>
-                    </div>
+                                                    <svg
+                                                      className="eqrebog3 css-1jjmnki-StyledSvg-StyledInlineSvg e2idor0"
+                                                      height="12px"
+                                                      viewBox={Object {}}
+                                                      width="12px"
+                                                    >
+                                                      <use
+                                                        href="#test"
+                                                        xlinkHref="#test"
+                                                      />
+                                                    </svg>
+                                                  </StyledSvg>
+                                                </InlineSvg>
+                                              </StyledInlineSvg>
+                                            </span>
+                                          </Component>
+                                        </Icon>
+                                        Create New Application
+                                      </span>
+                                    </Component>
+                                  </ButtonLabel>
+                                </a>
+                              </Link>
+                            </Component>
+                          </StyledButton>
+                        </Button>
+                      </div>
+                    </Action>
                   </div>
                 </Base>
               </Flex>
@@ -836,11 +862,12 @@ exports[`Organization Developer Settings with unpublished apps displays all Apps
               Create New Application
             </Button>
           }
+          noTitleStyles={false}
           title="Developer Settings"
         >
           <Wrapper>
             <div
-              className="css-1pnrn3o-Wrapper e1kblvez1"
+              className="css-1r5ylk7-Wrapper e1kblvez2"
             >
               <Flex
                 align="center"
@@ -853,38 +880,39 @@ exports[`Organization Developer Settings with unpublished apps displays all Apps
                     className="css-5ipae5"
                     is={null}
                   >
-                    <Title>
+                    <Title
+                      styled={false}
+                    >
                       <Base
-                        className="css-1mqcea-Title e1kblvez0"
+                        className="css-1ky52ze-Title e1kblvez0"
                       >
                         <div
-                          className="css-1mqcea-Title e1kblvez0"
+                          className="css-1ky52ze-Title e1kblvez0"
                           is={null}
                         >
-                          Developer Settings
+                          <HeaderTitle>
+                            <h4
+                              className="css-1w8ttcn-HeaderTitle e6lvex72"
+                            >
+                              Developer Settings
+                            </h4>
+                          </HeaderTitle>
                         </div>
                       </Base>
                     </Title>
-                    <div>
-                      <Button
-                        disabled={false}
-                        icon="icon-circle-add"
-                        priority="primary"
-                        size="small"
-                        to="/settings/org-slug/developer-settings/new/"
+                    <Action>
+                      <div
+                        className="css-18luhfc-Action e1kblvez1"
                       >
-                        <StyledButton
-                          aria-label="Create New Application"
+                        <Button
                           disabled={false}
-                          onClick={[Function]}
+                          icon="icon-circle-add"
                           priority="primary"
-                          role="button"
                           size="small"
                           to="/settings/org-slug/developer-settings/new/"
                         >
-                          <Component
+                          <StyledButton
                             aria-label="Create New Application"
-                            className="css-zvpqlo-StyledButton-getColors eqrebog0"
                             disabled={false}
                             onClick={[Function]}
                             priority="primary"
@@ -892,95 +920,106 @@ exports[`Organization Developer Settings with unpublished apps displays all Apps
                             size="small"
                             to="/settings/org-slug/developer-settings/new/"
                           >
-                            <Link
+                            <Component
                               aria-label="Create New Application"
                               className="css-zvpqlo-StyledButton-getColors eqrebog0"
                               disabled={false}
                               onClick={[Function]}
-                              onlyActiveOnIndex={false}
                               priority="primary"
                               role="button"
                               size="small"
-                              style={Object {}}
                               to="/settings/org-slug/developer-settings/new/"
                             >
-                              <a
+                              <Link
                                 aria-label="Create New Application"
                                 className="css-zvpqlo-StyledButton-getColors eqrebog0"
                                 disabled={false}
                                 onClick={[Function]}
+                                onlyActiveOnIndex={false}
                                 priority="primary"
                                 role="button"
                                 size="small"
                                 style={Object {}}
+                                to="/settings/org-slug/developer-settings/new/"
                               >
-                                <ButtonLabel
+                                <a
+                                  aria-label="Create New Application"
+                                  className="css-zvpqlo-StyledButton-getColors eqrebog0"
+                                  disabled={false}
+                                  onClick={[Function]}
                                   priority="primary"
+                                  role="button"
                                   size="small"
+                                  style={Object {}}
                                 >
-                                  <Component
-                                    className="css-7ui8bl-ButtonLabel eqrebog1"
+                                  <ButtonLabel
                                     priority="primary"
                                     size="small"
                                   >
-                                    <span
+                                    <Component
                                       className="css-7ui8bl-ButtonLabel eqrebog1"
+                                      priority="primary"
+                                      size="small"
                                     >
-                                      <Icon
-                                        hasChildren={true}
-                                        size="small"
+                                      <span
+                                        className="css-7ui8bl-ButtonLabel eqrebog1"
                                       >
-                                        <Component
-                                          className="css-1vdnsie-Icon eqrebog2"
+                                        <Icon
                                           hasChildren={true}
                                           size="small"
                                         >
-                                          <span
+                                          <Component
                                             className="css-1vdnsie-Icon eqrebog2"
+                                            hasChildren={true}
                                             size="small"
                                           >
-                                            <StyledInlineSvg
-                                              size="12px"
-                                              src="icon-circle-add"
+                                            <span
+                                              className="css-1vdnsie-Icon eqrebog2"
+                                              size="small"
                                             >
-                                              <InlineSvg
-                                                className="css-1ov3rcq-StyledInlineSvg eqrebog3"
+                                              <StyledInlineSvg
                                                 size="12px"
                                                 src="icon-circle-add"
                                               >
-                                                <StyledSvg
+                                                <InlineSvg
                                                   className="css-1ov3rcq-StyledInlineSvg eqrebog3"
-                                                  height="12px"
-                                                  viewBox={Object {}}
-                                                  width="12px"
+                                                  size="12px"
+                                                  src="icon-circle-add"
                                                 >
-                                                  <svg
-                                                    className="eqrebog3 css-1jjmnki-StyledSvg-StyledInlineSvg e2idor0"
+                                                  <StyledSvg
+                                                    className="css-1ov3rcq-StyledInlineSvg eqrebog3"
                                                     height="12px"
                                                     viewBox={Object {}}
                                                     width="12px"
                                                   >
-                                                    <use
-                                                      href="#test"
-                                                      xlinkHref="#test"
-                                                    />
-                                                  </svg>
-                                                </StyledSvg>
-                                              </InlineSvg>
-                                            </StyledInlineSvg>
-                                          </span>
-                                        </Component>
-                                      </Icon>
-                                      Create New Application
-                                    </span>
-                                  </Component>
-                                </ButtonLabel>
-                              </a>
-                            </Link>
-                          </Component>
-                        </StyledButton>
-                      </Button>
-                    </div>
+                                                    <svg
+                                                      className="eqrebog3 css-1jjmnki-StyledSvg-StyledInlineSvg e2idor0"
+                                                      height="12px"
+                                                      viewBox={Object {}}
+                                                      width="12px"
+                                                    >
+                                                      <use
+                                                        href="#test"
+                                                        xlinkHref="#test"
+                                                      />
+                                                    </svg>
+                                                  </StyledSvg>
+                                                </InlineSvg>
+                                              </StyledInlineSvg>
+                                            </span>
+                                          </Component>
+                                        </Icon>
+                                        Create New Application
+                                      </span>
+                                    </Component>
+                                  </ButtonLabel>
+                                </a>
+                              </Link>
+                            </Component>
+                          </StyledButton>
+                        </Button>
+                      </div>
+                    </Action>
                   </div>
                 </Base>
               </Flex>

@@ -126,9 +126,9 @@ const theme = {
     // i.e. organization, project, or team
     maxCrumbWidth: '240px',
 
-    containerWidth: '1140px',
+    containerWidth: '1440px',
     headerHeight: '115px',
-    sidebarWidth: '210px',
+    sidebarWidth: '220px',
   },
 
   sidebar: {
