@@ -16,7 +16,7 @@ export default class ResolveActions extends React.Component {
     latestRelease: PropTypes.object,
     onUpdate: PropTypes.func.isRequired,
     orgId: PropTypes.string.isRequired,
-    projectId: PropTypes.string.isRequired,
+    projectId: PropTypes.string,
     shouldConfirm: PropTypes.bool,
     confirmMessage: PropTypes.node,
     disabled: PropTypes.bool,
