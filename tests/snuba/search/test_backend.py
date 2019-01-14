@@ -6,6 +6,7 @@ import pytest
 from datetime import datetime, timedelta
 from django.conf import settings
 from django.utils import timezone
+from hashlib import md5
 
 from sentry import options
 from sentry.models import (
@@ -1012,3 +1013,53 @@ class SnubaSearchTest(SnubaTestCase):
         )
 
         assert set(results) == set([])
+
+    def test_hits_estimate(self):
+        # 400 Groups/Events
+        # Every 3rd one is Unresolved
+        # Evey 2nd one has tag match=1
+        for i in range(400):
+            group = self.create_group(
+                project=self.project,
+                checksum=md5('group {}'.format(i)).hexdigest(),
+                message='group {}'.format(i),
+                times_seen=5,
+                status=GroupStatus.UNRESOLVED if i % 3 == 0 else GroupStatus.RESOLVED,
+                last_seen=self.base_datetime,
+                first_seen=self.base_datetime - timedelta(days=31),
+            )
+            self.create_event(
+                event_id=md5('event {}'.format(i)).hexdigest(),
+                group=group,
+                datetime=self.base_datetime - timedelta(days=31),
+                message='group {} event'.format(i),
+                stacktrace={
+                    'frames': [{
+                        'module': 'module {}'.format(i)
+                    }]
+                },
+                tags={
+                    'match': '{}'.format(i % 2),
+                    'environment': 'production',
+                }
+            )
+
+        # Sample should estimate there are roughly 66 overall matching groups
+        # based on a random sample of 100 (or $sample_size) of the total 200
+        # snuba matches, of which 33% should pass the postgres filter.
+        with self.options({
+                # Too small to pass all django candidates down to snuba
+                'snuba.search.max-pre-snuba-candidates': 5,
+                'snuba.search.hits-sample-size': 50}):
+            results = self.backend.query(
+                [self.project],
+                status=GroupStatus.UNRESOLVED,
+                tags={'match': '1'},
+                limit=10,
+                count_hits=True,
+            )
+
+            assert results.hits > 10
+            # Deliberately do not assert that the value is within some margin
+            # of error, as this will fail tests at some rate corresponding to
+            # our confidence interval.
