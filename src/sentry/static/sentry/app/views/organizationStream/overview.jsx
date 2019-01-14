@@ -1,5 +1,5 @@
 import {browserHistory} from 'react-router';
-import {omit, pickBy} from 'lodash';
+import {omit, pickBy, uniq} from 'lodash';
 import Cookies from 'js-cookie';
 import React from 'react';
 import Reflux from 'reflux';
@@ -10,17 +10,20 @@ import qs from 'query-string';
 import {Panel, PanelBody} from 'app/components/panels';
 import {analytics} from 'app/utils/analytics';
 import {t, tct} from 'app/locale';
+import {fetchProject} from 'app/actionCreators/projects';
 import {fetchTags} from 'app/actionCreators/tags';
 import ApiMixin from 'app/mixins/apiMixin';
 import ConfigStore from 'app/stores/configStore';
 import GlobalSelectionStore from 'app/stores/globalSelectionStore';
 import GroupStore from 'app/stores/groupStore';
+import SelectedGroupStore from 'app/stores/selectedGroupStore';
 import TagStore from 'app/stores/tagStore';
 import LoadingError from 'app/components/loadingError';
 import LoadingIndicator from 'app/components/loadingIndicator';
 import Pagination from 'app/components/pagination';
 import SentryTypes from 'app/sentryTypes';
 import StreamGroup from 'app/components/stream/group';
+import StreamActions from 'app/views/stream/actions';
 import StreamFilters from 'app/views/stream/filters';
 import StreamSidebar from 'app/views/stream/sidebar';
 import parseApiError from 'app/utils/parseApiError';
@@ -43,6 +46,7 @@ const OrganizationStream = createReactClass({
   mixins: [
     Reflux.listenTo(GlobalSelectionStore, 'onSelectionChange'),
     Reflux.listenTo(GroupStore, 'onGroupChange'),
+    Reflux.listenTo(SelectedGroupStore, 'onSelectedGroupChange'),
     Reflux.listenTo(TagStore, 'onTagsChange'),
     ApiMixin,
   ],
@@ -67,7 +71,6 @@ const OrganizationStream = createReactClass({
       loading: false,
       selectAllActive: false,
       multiSelected: false,
-      anySelected: false,
       groupStatsPeriod,
       realtimeActive,
       pageLinks: '',
@@ -81,6 +84,10 @@ const OrganizationStream = createReactClass({
       processingIssues: null,
       tagsLoading: true,
       tags: TagStore.getAllTags(),
+      // the project for the selected issues
+      // Will only be set if selected issues all belong
+      // to one project.
+      selectedProject: null,
     };
   },
 
@@ -109,8 +116,13 @@ const OrganizationStream = createReactClass({
 
   componentWillUnmount() {
     this._poller.disable();
+    this.projectCache = {};
     GroupStore.reset();
   },
+
+  // Memoize projects fetched as selections are made
+  // This data is fed into the action toolbar for release data.
+  projectCache: {},
 
   getQueryParams() {
     let selection = this.state.selection;
@@ -150,7 +162,6 @@ const OrganizationStream = createReactClass({
       error: false,
     });
 
-    let url = this.getGroupListEndpoint();
     let requestParams = {
       ...this.getQueryParams(),
       limit: MAX_ITEMS,
@@ -168,7 +179,7 @@ const OrganizationStream = createReactClass({
 
     this._poller.disable();
 
-    this.lastRequest = this.api.request(url, {
+    this.lastRequest = this.api.request(this.getGroupListEndpoint(), {
       method: 'GET',
       data: qs.stringify(requestParams),
       success: (data, ignore, jqXHR) => {
@@ -182,7 +193,7 @@ const OrganizationStream = createReactClass({
             let redirect = `/${this.props.params
               .orgId}/${project.slug}/issues/${id}/events/${matchingEventId}/`;
 
-            // TODO set environment for the requested issue.
+            // TODO include global search query params
             browserHistory.replace(redirect);
             return;
           }
@@ -280,22 +291,12 @@ const OrganizationStream = createReactClass({
       // if query is the same, just re-fetch data
       this.fetchData();
     } else {
-      this.setState(
-        {
-          query,
-        },
-        this.transitionTo
-      );
+      this.setState({query}, this.transitionTo);
     }
   },
 
   onSortChange(sort) {
-    this.setState(
-      {
-        sort,
-      },
-      this.transitionTo
-    );
+    this.setState({sort}, this.transitionTo);
   },
 
   onTagsChange(tags) {
@@ -313,6 +314,37 @@ const OrganizationStream = createReactClass({
     });
     analytics('issue.search_sidebar_clicked', {
       org_id: parseInt(organization.id, 10),
+    });
+  },
+
+  onSelectedGroupChange() {
+    let selected = SelectedGroupStore.getSelectedIds();
+    let projects = [...selected]
+      .map(id => GroupStore.get(id))
+      .map(group => group.project.slug);
+
+    let uniqProjects = uniq(projects);
+
+    // we only want selectedProject set if there is 1 project
+    // more or fewer should result in a null so that the action toolbar
+    // can behave correctly.
+    if (uniqProjects.length !== 1) {
+      this.setState({selectedProject: null});
+      return;
+    }
+    this.fetchProject(uniqProjects[0]);
+  },
+
+  fetchProject(projectSlug) {
+    if (projectSlug in this.projectCache) {
+      this.setState({selectedProject: this.projectCache[projectSlug]});
+      return;
+    }
+
+    let orgId = this.props.organization.slug;
+    fetchProject(this.api, orgId, projectSlug).then(project => {
+      this.projectCache[project.slug] = project;
+      this.setState({selectedProject: project});
     });
   },
 
@@ -417,10 +449,17 @@ const OrganizationStream = createReactClass({
     let {orgId} = this.props.params;
     let access = this.getAccess();
 
-    // In the project mode this reads from the project feature.
-    // There is no analogous property for organizations yet.
+    // If we have a selected project we can get release data
     let hasReleases = false;
-    let latestRelease = '';
+    let projectId = null;
+    let latestRelease = null;
+    let {selectedProject} = this.state;
+    if (selectedProject) {
+      let features = new Set(selectedProject.features);
+      hasReleases = features.has('releases');
+      latestRelease = selectedProject.latestRelease;
+      projectId = selectedProject.slug;
+    }
 
     return (
       <div className={classNames(classes)}>
@@ -442,6 +481,7 @@ const OrganizationStream = createReactClass({
           <Panel>
             <StreamActions
               orgId={params.orgId}
+              projectId={projectId}
               hasReleases={hasReleases}
               latestRelease={latestRelease}
               environment={this.state.environment}
@@ -469,9 +509,6 @@ const OrganizationStream = createReactClass({
     );
   },
 });
-
-// Placeholder components to keep pull requests manageable.
-const StreamActions = props => <p>Stream actions are coming soon</p>;
 
 export default withOrganization(OrganizationStream);
 export {OrganizationStream};

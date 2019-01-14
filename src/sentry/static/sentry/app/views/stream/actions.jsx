@@ -138,7 +138,7 @@ const StreamActions = createReactClass({
   propTypes: {
     allResultsVisible: PropTypes.bool,
     orgId: PropTypes.string.isRequired,
-    projectId: PropTypes.string.isRequired,
+    projectId: PropTypes.string,
     groupIds: PropTypes.instanceOf(Array).isRequired,
     onRealtimeChange: PropTypes.func.isRequired,
     onSelectStatsPeriod: PropTypes.func.isRequired,
@@ -154,7 +154,11 @@ const StreamActions = createReactClass({
   mixins: [ApiMixin, Reflux.listenTo(SelectedGroupStore, 'onSelectedGroupChange')],
 
   getDefaultProps() {
-    return {hasReleases: false, latestRelease: null};
+    return {
+      projectId: '',
+      hasReleases: false,
+      latestRelease: null,
+    };
   },
 
   getInitialState() {
@@ -201,7 +205,6 @@ const StreamActions = createReactClass({
   onUpdate(data) {
     this.actionSelectedGroups(itemIds => {
       let loadingIndicator = IndicatorStore.add(t('Saving changes..'));
-
       this.api.bulkUpdate(
         {
           orgId: this.props.orgId,
@@ -316,6 +319,11 @@ const StreamActions = createReactClass({
     let confirm = getConfirm(numIssues, allInQuerySelected, query, queryCount);
     let label = getLabel(numIssues, allInQuerySelected);
 
+    // resolve and merge require a single project to be active
+    // in an org context projectId is null when 0 or >1 projects are selected.
+    let resolveDisabled = !(anySelected && projectId);
+    let mergeDisabled = !(multiSelected && projectId);
+
     return (
       <Sticky>
         <StyledFlex py={1}>
@@ -332,7 +340,7 @@ const StreamActions = createReactClass({
               shouldConfirm={this.shouldConfirm('resolve')}
               confirmMessage={confirm('resolve', true)}
               confirmLabel={label('resolve')}
-              disabled={!anySelected}
+              disabled={resolveDisabled}
             />
             <IgnoreActions
               onUpdate={this.onUpdate}
@@ -344,7 +352,7 @@ const StreamActions = createReactClass({
             <div className="btn-group hidden-sm hidden-xs">
               <ActionLink
                 className={'btn btn-default btn-sm action-merge'}
-                disabled={!multiSelected}
+                disabled={mergeDisabled}
                 onAction={this.onMerge}
                 shouldConfirm={this.shouldConfirm('merge')}
                 message={confirm('merge', false)}
@@ -378,7 +386,7 @@ const StreamActions = createReactClass({
                 <MenuItem noAnchor={true}>
                   <ActionLink
                     className={'action-merge hidden-md hidden-lg hidden-xl'}
-                    disabled={!multiSelected}
+                    disabled={mergeDisabled}
                     onAction={this.onMerge}
                     shouldConfirm={this.shouldConfirm('merge')}
                     message={confirm('merge', false)}

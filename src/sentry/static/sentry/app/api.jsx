@@ -256,7 +256,10 @@ export class Client {
   }
 
   bulkDelete(params, options) {
-    let path = '/projects/' + params.orgId + '/' + params.projectId + '/issues/';
+    let path = params.projectId
+      ? `/projects/${params.orgId}/${params.projectId}/issues/`
+      : `/organizations/${params.orgId}/issues/`;
+
     let query = paramsToQueryArgs(params);
     let id = uniqueId();
 
@@ -279,7 +282,10 @@ export class Client {
   }
 
   bulkUpdate(params, options) {
-    let path = '/projects/' + params.orgId + '/' + params.projectId + '/issues/';
+    let path = params.projectId
+      ? `/projects/${params.orgId}/${params.projectId}/issues/`
+      : `/organizations/${params.orgId}/issues/`;
+
     let query = paramsToQueryArgs(params);
     let id = uniqueId();
 
