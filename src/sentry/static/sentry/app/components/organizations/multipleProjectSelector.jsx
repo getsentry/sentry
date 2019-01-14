@@ -2,6 +2,7 @@ import PropTypes from 'prop-types';
 import React from 'react';
 import styled, {css} from 'react-emotion';
 
+import SentryTypes from 'app/sentryTypes';
 import {t} from 'app/locale';
 import ProjectSelector from 'app/components/projectSelector';
 import InlineSvg from 'app/components/inlineSvg';
@@ -14,6 +15,7 @@ const rootContainerStyles = css`
 
 export default class MultipleProjectSelector extends React.PureComponent {
   static propTypes = {
+    organization: SentryTypes.Organization.isRequired,
     value: PropTypes.array,
     projects: PropTypes.array,
     onChange: PropTypes.func,
@@ -85,6 +87,10 @@ export default class MultipleProjectSelector extends React.PureComponent {
     this.setState({hasChanges: true});
   };
 
+  hasMultiSelect = () => {
+    return new Set(this.props.organization.features).has('global-views');
+  };
+
   render() {
     const {value, projects} = this.props;
     const selectedProjectIds = new Set(value);
@@ -96,7 +102,7 @@ export default class MultipleProjectSelector extends React.PureComponent {
     return (
       <StyledProjectSelector
         {...this.props}
-        multi
+        multi={this.hasMultiSelect()}
         selectedProjects={selected}
         projects={projects}
         onSelect={this.handleQuickSelect}

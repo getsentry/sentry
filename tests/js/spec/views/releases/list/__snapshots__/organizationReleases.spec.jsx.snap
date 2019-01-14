@@ -536,7 +536,7 @@ exports[`OrganizationReleases renders 1`] = `
                               value={Array []}
                             >
                               <StyledProjectSelector
-                                multi={true}
+                                multi={false}
                                 onChange={[Function]}
                                 onClose={[Function]}
                                 onMultiSelect={[Function]}
@@ -600,7 +600,7 @@ exports[`OrganizationReleases renders 1`] = `
                               >
                                 <ProjectSelector
                                   className="css-iw79rr-StyledProjectSelector ewlipse0"
-                                  multi={true}
+                                  multi={false}
                                   onChange={[Function]}
                                   onClose={[Function]}
                                   onMultiSelect={[Function]}
