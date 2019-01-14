@@ -4,7 +4,7 @@ import createReactClass from 'create-react-class';
 import Modal from 'react-bootstrap/lib/Modal';
 import ApiMixin from 'app/mixins/apiMixin';
 import {addSuccessMessage, addErrorMessage} from 'app/actionCreators/indicator';
-import GroupState from 'app/mixins/groupState';
+import OrganizationState from 'app/mixins/organizationState';
 import NavTabs from 'app/components/navTabs';
 import plugins from 'app/plugins';
 import {t} from 'app/locale';
@@ -16,10 +16,11 @@ const PluginActions = createReactClass({
 
   propTypes: {
     group: SentryTypes.Group.isRequired,
+    project: SentryTypes.Project.isRequired,
     plugin: PropTypes.object.isRequired,
   },
 
-  mixins: [ApiMixin, GroupState],
+  mixins: [ApiMixin, OrganizationState],
 
   getInitialState() {
     return {
@@ -133,8 +134,8 @@ const PluginActions = createReactClass({
               <Modal.Body key={actionType}>
                 {plugins.get(plugin).renderGroupActions({
                   plugin,
-                  group: this.getGroup(),
-                  project: this.getProject(),
+                  group: this.props.group,
+                  project: this.props.project,
                   organization: this.getOrganization(),
                   actionType,
                   onSuccess: this.closeModal,

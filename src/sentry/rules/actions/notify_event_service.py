@@ -61,7 +61,7 @@ class NotifyEventServiceAction(EventAction):
 
         if app:
             kwargs = {'sentry_app': app}
-            metrics.incr('notifications.sent', instance=app.slug)
+            metrics.incr('notifications.sent', instance=app.slug, skip_internal=False)
             yield self.future(notify_sentry_app, **kwargs)
         else:
             plugin = plugins.get(service)
@@ -77,7 +77,7 @@ class NotifyEventServiceAction(EventAction):
                 self.logger.info('rule.fail.should_notify', extra=extra)
                 return
 
-            metrics.incr('notifications.sent', instance=plugin.slug)
+            metrics.incr('notifications.sent', instance=plugin.slug, skip_internal=False)
             yield self.future(plugin.rule_notify)
 
     def get_sentry_app_services(self):

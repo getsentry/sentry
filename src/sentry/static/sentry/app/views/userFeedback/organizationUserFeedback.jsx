@@ -1,5 +1,4 @@
 import React from 'react';
-import styled from 'react-emotion';
 
 import {t} from 'app/locale';
 import withOrganization from 'app/utils/withOrganization';
@@ -9,9 +8,10 @@ import Alert from 'app/components/alert';
 import EmptyStateWarning from 'app/components/emptyStateWarning';
 import CompactIssue from 'app/components/compactIssue';
 import EventUserFeedback from 'app/components/events/userFeedback';
-import space from 'app/styles/space';
+import LoadingIndicator from 'app/components/loadingIndicator';
 import GlobalSelectionHeader from 'app/components/organizations/globalSelectionHeader';
 import AsyncView from 'app/views/asyncView';
+import {PageContent} from 'app/styles/organization';
 
 import UserFeedbackContainer from './container';
 import {getQuery} from './utils';
@@ -84,16 +84,39 @@ class OrganizationUserFeedback extends AsyncView {
 
   renderNoAccess() {
     return (
-      <Content>
+      <PageContent>
         <Alert type="warning">{t("You don't have access to this feature")}</Alert>
-      </Content>
+      </PageContent>
+    );
+  }
+
+  renderLoading() {
+    return this.renderBody();
+  }
+
+  renderStreamBody() {
+    const {location, params} = this.props;
+    const {status} = getQuery(location.search);
+    const {reportList, reportListPageLinks} = this.state;
+
+    if (this.state.loading) {
+      return <LoadingIndicator />;
+    }
+
+    return (
+      <UserFeedbackContainer
+        pageLinks={reportListPageLinks}
+        status={status}
+        location={location}
+        params={params}
+      >
+        {reportList.length ? this.renderResults() : this.renderEmpty()}
+      </UserFeedbackContainer>
     );
   }
 
   renderBody() {
-    const {organization, location, params} = this.props;
-    const {status} = getQuery(location.search);
-    const {reportList, reportListPageLinks} = this.state;
+    const {organization} = this.props;
 
     return (
       <Feature
@@ -101,35 +124,12 @@ class OrganizationUserFeedback extends AsyncView {
         organization={organization}
         renderDisabled={this.renderNoAccess}
       >
-        <GlobalSelectionHeader
-          organization={organization}
-          projects={organization.projects.filter(project => project.isMember)}
-          showAbsolute={true}
-          showRelative={true}
-        />
-        <Content>
-          <UserFeedbackContainer
-            pageLinks={reportListPageLinks}
-            status={status}
-            location={location}
-            params={params}
-          >
-            {reportList.length ? this.renderResults() : this.renderEmpty()}
-          </UserFeedbackContainer>
-        </Content>
+        <GlobalSelectionHeader organization={organization} />
+        <PageContent>{this.renderStreamBody()}</PageContent>
       </Feature>
     );
   }
 }
-
-const Content = styled('div')`
-  display: flex;
-  flex-direction: column;
-  flex: 1;
-  overflow: hidden;
-  padding: ${space(2)} ${space(4)} ${space(3)};
-  margin-bottom: -20px; /* <footer> has margin-top: 20px; */
-`;
 
 export {OrganizationUserFeedback};
 export default withOrganization(OrganizationUserFeedback);

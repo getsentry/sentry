@@ -40,7 +40,7 @@ class ReleaseList extends React.Component {
                 <ReleaseStats release={release} />
               </Box>
               <Box w={2 / 12} pl={2}>
-                <Count className="release-count" value={release.newGroups} />
+                <Count className="release-count" value={release.newGroups || 0} />
               </Box>
               <Box w={2 / 12} pl={2}>
                 {release.lastEvent ? (

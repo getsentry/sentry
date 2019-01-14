@@ -1,6 +1,4 @@
 import React from 'react';
-import styled from 'react-emotion';
-import PropTypes from 'prop-types';
 import {browserHistory} from 'react-router';
 
 import SentryTypes from 'app/sentryTypes';
@@ -12,48 +10,37 @@ import Pagination from 'app/components/pagination';
 import LoadingIndicator from 'app/components/loadingIndicator';
 import Alert from 'app/components/alert';
 import EmptyStateWarning from 'app/components/emptyStateWarning';
+import Feature from 'app/components/acl/feature';
+import GlobalSelectionHeader from 'app/components/organizations/globalSelectionHeader';
+import AsyncView from 'app/views/asyncView';
 
 import withOrganization from 'app/utils/withOrganization';
-import withGlobalSelection from 'app/utils/withGlobalSelection';
 
-import space from 'app/styles/space';
+import {PageContent, PageHeader} from 'app/styles/organization';
+import PageHeading from 'app/components/pageHeading';
 
 import ReleaseList from '../shared/releaseList';
 import ReleaseListHeader from '../shared/releaseListHeader';
-import {fetchOrganizationReleases} from '../shared/utils';
+import {getQuery} from '../shared/utils';
 
-class OrganizationReleases extends React.Component {
+class OrganizationReleases extends AsyncView {
   static propTypes = {
     organization: SentryTypes.Organization,
-    selection: PropTypes.object,
   };
-  constructor(props) {
-    super(props);
-    this.state = {releaseList: [], loading: true, error: null};
+
+  getTitle() {
+    return `${t('Releases')} - ${this.props.organization.slug}`;
   }
 
-  componentDidMount() {
-    this.fetchData({query: this.props.location.query.query, ...this.props.selection});
-  }
-
-  componentDidUpdate(prevProps) {
-    const queryHasChanged =
-      prevProps.location.query.query !== this.props.location.query.query;
-
-    if (queryHasChanged) {
-      this.fetchData({query: this.props.location.query.query, ...this.props.selection});
-    }
-  }
-
-  fetchData(query) {
-    this.setState({loading: true});
-    fetchOrganizationReleases(this.props.organization, query)
-      .then(releaseList => {
-        this.setState({releaseList, loading: false, error: null});
-      })
-      .catch(error => {
-        this.setState({error, loading: false});
-      });
+  getEndpoints() {
+    const {organization, location} = this.props;
+    return [
+      [
+        'releaseList',
+        `/organizations/${organization.slug}/releases/`,
+        {query: getQuery(location.query)},
+      ],
+    ];
   }
 
   onSearch = query => {
@@ -94,69 +81,49 @@ class OrganizationReleases extends React.Component {
 
   renderNoAccess() {
     return (
-      <Content>
+      <PageContent>
         <Alert type="warning">{t("You don't have access to this feature")}</Alert>
-      </Content>
+      </PageContent>
     );
   }
 
-  render() {
-    if (!new Set(this.props.organization.features).has('sentry10')) {
-      return this.renderNoAccess();
-    }
+  renderLoading() {
+    return this.renderBody();
+  }
+
+  renderBody() {
+    const {organization, location} = this.props;
 
     return (
-      <Content>
-        <Header>
+      <Feature
+        features={['organizations:sentry10']}
+        organization={organization}
+        renderDisabled={this.renderNoAccess}
+      >
+        <GlobalSelectionHeader organization={organization} />
+        <PageContent>
+          <PageHeader>
+            <PageHeading>{t('Releases')}</PageHeading>
+            <div>
+              <SearchBar
+                defaultQuery=""
+                placeholder={t('Search for a release')}
+                query={location.query.query}
+                onSearch={this.onSearch}
+              />
+            </div>
+          </PageHeader>
           <div>
-            <HeaderTitle>{t('Releases')}</HeaderTitle>
+            <Panel>
+              <ReleaseListHeader />
+              <PanelBody>{this.renderStreamBody()}</PanelBody>
+            </Panel>
+            <Pagination pageLinks={this.state.releaseListPageLinks} />
           </div>
-          <div>
-            <SearchBar
-              defaultQuery=""
-              placeholder={t('Search for a release')}
-              query={this.props.location.query.query}
-              onSearch={this.onSearch}
-            />
-          </div>
-        </Header>
-        <Body>
-          <Panel>
-            <ReleaseListHeader />
-            <PanelBody>{this.renderStreamBody()}</PanelBody>
-          </Panel>
-          <Pagination pageLinks={this.state.pageLinks} />
-        </Body>
-      </Content>
+        </PageContent>
+      </Feature>
     );
   }
 }
 
-const Content = styled('div')`
-  display: flex;
-  flex-direction: column;
-  flex: 1;
-  overflow: hidden;
-  padding: ${space(2)} ${space(4)} ${space(3)};
-  margin-bottom: -20px; /* <footer> has margin-top: 20px; */
-`;
-
-const Header = styled('div')`
-  display: flex;
-  justify-content: space-between;
-  margin-bottom: ${space(2)};
-  align-items: center;
-`;
-
-const HeaderTitle = styled('h4')`
-  flex: 1;
-  font-size: ${p => p.theme.headerFontSize};
-  line-height: ${p => p.theme.headerFontSize};
-  font-weight: normal;
-  color: ${p => p.theme.gray4};
-  margin: 0;
-`;
-
-const Body = styled('div')``;
-
-export default withOrganization(withGlobalSelection(OrganizationReleases));
+export default withOrganization(OrganizationReleases);

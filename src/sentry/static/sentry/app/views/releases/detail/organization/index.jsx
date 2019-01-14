@@ -1,7 +1,5 @@
-import DocumentTitle from 'react-document-title';
 import PropTypes from 'prop-types';
 import React from 'react';
-import styled from 'react-emotion';
 
 import SentryTypes from 'app/sentryTypes';
 import Feature from 'app/components/acl/feature';
@@ -9,13 +7,14 @@ import {t} from 'app/locale';
 import Alert from 'app/components/alert';
 import LoadingError from 'app/components/loadingError';
 import LoadingIndicator from 'app/components/loadingIndicator';
+import GlobalSelectionHeader from 'app/components/organizations/globalSelectionHeader';
 import withOrganization from 'app/utils/withOrganization';
-import space from 'app/styles/space';
+import AsyncView from 'app/views/asyncView';
+import {PageContent} from 'app/styles/organization';
 
 import ReleaseHeader from '../shared/releaseHeader';
-import {getRelease} from '../shared/utils';
 
-class OrganizationReleaseDetails extends React.Component {
+class OrganizationReleaseDetails extends AsyncView {
   static propTypes = {
     organization: SentryTypes.Organization,
   };
@@ -24,23 +23,10 @@ class OrganizationReleaseDetails extends React.Component {
     release: PropTypes.object,
   };
 
-  constructor(props) {
-    super(props);
-    this.state = {
-      release: null,
-      loading: true,
-      error: false,
-    };
-  }
-
   getChildContext() {
     return {
       release: this.state.release,
     };
-  }
-
-  componentDidMount() {
-    this.fetchData();
   }
 
   getTitle() {
@@ -48,68 +34,47 @@ class OrganizationReleaseDetails extends React.Component {
     return `Release ${version} | ${organization.slug}`;
   }
 
-  fetchData() {
-    this.setState({
-      loading: true,
-      error: false,
-    });
-
+  getEndpoints() {
     const {orgId, version} = this.props.params;
-
-    getRelease(orgId, version)
-      .then(release => {
-        this.setState({loading: false, release});
-      })
-      .catch(() => {
-        this.setState({loading: false, error: true});
-      });
+    return [
+      ['release', `/organizations/${orgId}/releases/${encodeURIComponent(version)}/`],
+    ];
   }
 
   renderNoAccess() {
     return (
-      <Content>
+      <PageContent>
         <Alert type="warning">{t("You don't have access to this feature")}</Alert>
-      </Content>
+      </PageContent>
     );
   }
 
-  renderContent() {
+  renderBody() {
     const release = this.state.release;
-    const {orgId, projectId} = this.props.params;
+    const {orgId} = this.props.params;
 
     if (this.state.loading) return <LoadingIndicator />;
     if (this.state.error) return <LoadingError onRetry={this.fetchData} />;
 
     return (
-      <Content>
-        <Feature
-          features={['organizations:sentry10']}
+      <Feature
+        features={['organizations:sentry10']}
+        organization={this.props.organization}
+        renderDisabled={this.renderNoAccess}
+      >
+        <GlobalSelectionHeader
           organization={this.props.organization}
-          renderDisabled={this.renderNoAccess}
-        >
-          <ReleaseHeader release={release} orgId={orgId} projectId={projectId} />
-          {/*React.cloneElement(this.props.children, {
-          release,
-          environment: this.props.environment,
-        })*/}
-        </Feature>
-      </Content>
+          hasCustomRouting={true}
+        />
+        <PageContent>
+          <ReleaseHeader release={release} orgId={orgId} />
+          {React.cloneElement(this.props.children, {
+            release,
+          })}
+        </PageContent>
+      </Feature>
     );
-  }
-
-  render() {
-    return <DocumentTitle title={this.getTitle()}>{this.renderContent()}</DocumentTitle>;
   }
 }
 
 export default withOrganization(OrganizationReleaseDetails);
-
-// TODO: refactor as this same component is used in events, release list and user feedback
-const Content = styled('div')`
-  display: flex;
-  flex-direction: column;
-  flex: 1;
-  overflow: hidden;
-  padding: ${space(2)} ${space(4)} ${space(3)};
-  margin-bottom: -20px; /* <footer> has margin-top: 20px; */
-`;

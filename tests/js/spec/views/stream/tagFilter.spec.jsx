@@ -4,7 +4,8 @@ import {mount} from 'enzyme';
 import StreamTagFilter from 'app/views/stream/tagFilter';
 
 describe('Stream TagFilter', function() {
-  let apiMock;
+  let projectApiMock;
+  let orgApiMock;
 
   let organization;
   let project;
@@ -13,8 +14,22 @@ describe('Stream TagFilter', function() {
     MockApiClient.clearMockResponses();
     organization = TestStubs.Organization();
     project = TestStubs.ProjectDetails();
-    apiMock = MockApiClient.addMockResponse({
-      url: `/api/0/projects/${organization.slug}/${project.slug}/tags/browser/values/`,
+    projectApiMock = MockApiClient.addMockResponse({
+      url: `/projects/${organization.slug}/${project.slug}/tags/browser/values/`,
+      body: [
+        {
+          count: 0,
+          firstSeen: '2018-05-30T11:33:46.535Z',
+          key: 'browser',
+          lastSeen: '2018-05-30T11:33:46.535Z',
+          name: 'foo',
+          value: 'foo',
+        },
+      ],
+    });
+
+    orgApiMock = MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/tags/browser/values/`,
       body: [
         {
           count: 0,
@@ -47,7 +62,32 @@ describe('Stream TagFilter', function() {
     await tick();
     wrapper.update();
 
-    expect(apiMock).toHaveBeenCalled();
+    expect(projectApiMock).toHaveBeenCalled();
+    expect(wrapper.find('div.Select-option').prop('children')).toBe('foo');
+
+    wrapper.find('Option').simulate('mouseDown');
+    expect(selectMock).toHaveBeenCalledWith(tag, 'foo');
+  });
+
+  it('calls API and renders options when opened without project', async function() {
+    let selectMock = jest.fn();
+    let tag = {key: 'browser', name: 'Browser'};
+    let wrapper = mount(
+      <StreamTagFilter
+        tag={tag}
+        orgId={organization.slug}
+        value=""
+        onSelect={selectMock}
+      />
+    );
+
+    wrapper.find('input').simulate('focus');
+    wrapper.find('.Select-control').simulate('mouseDown', {button: 0});
+
+    await tick();
+    wrapper.update();
+
+    expect(orgApiMock).toHaveBeenCalled();
     expect(wrapper.find('div.Select-option').prop('children')).toBe('foo');
 
     wrapper.find('Option').simulate('mouseDown');

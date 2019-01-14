@@ -6,7 +6,6 @@ from sentry import integrations
 from sentry.api.bases.organization import OrganizationEndpoint
 from sentry.api.serializers import serialize, IntegrationProviderSerializer
 
-
 class OrganizationConfigIntegrationsEndpoint(OrganizationEndpoint):
     def get(self, request, organization):
         providers = list(integrations.all())

@@ -3,7 +3,7 @@ from __future__ import absolute_import
 from django.utils import timezone
 
 from sentry.testutils import AcceptanceTestCase
-from sentry.models import GroupAssignee, Release, Environment, Deploy, ReleaseProjectEnvironment
+from sentry.models import GroupAssignee, Release, Environment, Deploy, ReleaseProjectEnvironment, OrganizationOnboardingTask, OnboardingTask, OnboardingTaskStatus
 from sentry.utils.samples import create_sample_event
 from datetime import datetime
 
@@ -80,6 +80,11 @@ class DashboardTest(AcceptanceTestCase):
             group=event.group,
             project=self.project,
         )
+        OrganizationOnboardingTask.objects.create_or_update(
+            organization_id=self.project.organization_id,
+            task=OnboardingTask.FIRST_EVENT,
+            status=OnboardingTaskStatus.COMPLETE,
+        )
         self.project.update(first_event=timezone.now())
         self.browser.get(self.path)
         self.browser.wait_until_not('.loading-indicator')
@@ -106,7 +111,6 @@ class EmptyDashboardTest(AcceptanceTestCase):
         self.path = u'/{}/'.format(self.org.slug)
 
     def test_new_dashboard_empty(self):
-        with self.feature('organizations:dashboard'):
-            self.browser.get(self.path)
-            self.browser.wait_until_not('.loading-indicator')
-            self.browser.snapshot('new dashboard empty')
+        self.browser.get(self.path)
+        self.browser.wait_until_not('.loading-indicator')
+        self.browser.snapshot('new dashboard empty')

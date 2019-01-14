@@ -134,8 +134,10 @@ class GlobalSelectionHeader extends React.Component {
 
       // This will update store with values from URL parameters
       updateDateTime({start, end, period, utc});
-      updateEnvironments(environment);
-      updateProjects(project);
+
+      // environment/project here can be null i.e. if only period is set in url params
+      updateEnvironments(environment || []);
+      updateProjects(project || []);
     } else {
       // Otherwise, we can update URL with values from store
       //
@@ -276,11 +278,17 @@ class GlobalSelectionHeader extends React.Component {
     callIfFunction(this.props.onUpdateProjects, projects);
   };
 
+  getProjects = () => {
+    return (
+      this.props.projects ||
+      this.props.organization.projects.filter(project => project.isMember)
+    );
+  };
+
   render() {
     const {
       className,
       organization,
-      projects,
       showAbsolute,
       showRelative,
       showEnvironmentSelector,
@@ -292,7 +300,7 @@ class GlobalSelectionHeader extends React.Component {
         <HeaderItemPosition>
           <MultipleProjectSelector
             organization={organization}
-            projects={projects}
+            projects={this.getProjects()}
             value={this.state.projects || this.props.selection.projects}
             onChange={this.handleChangeProjects}
             onUpdate={this.handleUpdateProjects}

@@ -63,7 +63,16 @@ HTTP_INTERFACE_SCHEMA = {
             'minLength': 1,
         },
         'method': {'type': 'string'},
-        'query_string': {'type': ['string', 'object']},
+        'query_string': {
+            'anyOf': [
+                {'type': ['string', 'object']},
+                {'type': 'array', 'items': {
+                    'type': 'array',
+                    'maxItems': 2,
+                    'minItems': 2,
+                }},
+            ],
+        },
         'inferred_content_type': {'type': 'string'},
         'cookies': {
             'anyOf': [
@@ -471,16 +480,21 @@ CSP_SCHEMA = {
                         'font-src',
                         'form-action',
                         'frame-ancestors',
+                        'frame-src',
                         'img-src',
                         'manifest-src',
                         'media-src',
                         'object-src',
                         'plugin-types',
+                        'prefetch-src',
                         'referrer',
                         'script-src',
+                        'script-src-attr',
+                        'script-src-elem',
                         'style-src',
+                        'style-src-elem',
+                        'style-src-attr',
                         'upgrade-insecure-requests',
-                        'frame-src',
                         'worker-src',
                         # 'sandbox', # Unsupported
                     ],

@@ -5,57 +5,64 @@ import React from 'react';
 import {Client} from 'app/api';
 import {mount} from 'enzyme';
 import SentryApplicationDetails from 'app/views/settings/organizationDeveloperSettings/sentryApplicationDetails';
+import {selectByValue} from '../../../../helpers/select';
 
 describe('Sentry Application Details', function() {
+  let org;
+  let orgId;
+  let sentryApp;
+  let wrapper;
+  let createAppRequest;
+
+  beforeEach(() => {
+    Client.clearMockResponses();
+
+    org = TestStubs.Organization();
+    orgId = org.slug;
+  });
+
   describe('new sentry application', () => {
-    const org = TestStubs.Organization();
-    const routerContext = TestStubs.routerContext();
-    const wrapper = mount(
-      <SentryApplicationDetails params={{orgId: org.slug}} />,
-      routerContext
-    );
-    describe('renders()', () => {
-      it('it shows empty scopes and no credentials', function() {
-        expect(wrapper).toMatchSnapshot();
-
-        // new app starts off with no scopes selected
-        expect(wrapper.find('ApplicationScopes').prop('scopes')).toEqual([]);
-
-        // 'API Scopes' should be last PanelHeader since 'Credentials'
-        // shouldn't be rendered when creating a new application.
-        expect(wrapper.find('PanelHeader[children="API Scopes"]')).toBeDefined();
-      });
-    });
-
-    describe('saving new app', () => {
-      Client.clearMockResponses();
-      let response = Client.addMockResponse({
+    beforeEach(() => {
+      createAppRequest = Client.addMockResponse({
         url: '/sentry-apps/',
         method: 'POST',
         body: [],
       });
 
-      it('it changes the data', function() {
+      wrapper = mount(
+        <SentryApplicationDetails params={{orgId}} />,
+        TestStubs.routerContext()
+      );
+    });
+
+    describe('renders()', () => {
+      it('it shows empty scopes and no credentials', function() {
+        expect(wrapper).toMatchSnapshot();
+        // new app starts off with no scopes selected
+        expect(wrapper.find('PermissionSelection').prop('scopes')).toEqual([]);
+        expect(
+          wrapper.find('PanelHeader').findWhere(h => h.text() == 'Permissions')
+        ).toBeDefined();
+      });
+    });
+
+    describe('saving new app', () => {
+      it('updates a SentryApp', function() {
         wrapper
-          .find('Input')
-          .first()
+          .find('Input[name="name"]')
           .simulate('change', {target: {value: 'Test App'}});
         wrapper
-          .find('Input')
-          .at(1)
+          .find('Input[name="webhookUrl"]')
           .simulate('change', {target: {value: 'https://webhook.com'}});
         wrapper
-          .find('Input')
-          .at(2)
+          .find('Input[name="redirectUrl"]')
           .simulate('change', {target: {value: 'https://webhook.com/setup'}});
+        wrapper.find('Switch[name="isAlertable"]').simulate('click');
+        selectByValue(wrapper, 'admin', {name: 'Member--permission'});
+        selectByValue(wrapper, 'admin', {name: 'Event--permission'});
         wrapper
-          .find('input[type="checkbox"]')
-          .last()
+          .find('FormField[name="events"] input[value="issue"]')
           .simulate('change', {target: {checked: true}});
-        wrapper
-          .find('[data-test-id="switch"]')
-          .last()
-          .simulate('click');
         wrapper.find('form').simulate('submit');
 
         let data = {
@@ -63,12 +70,17 @@ describe('Sentry Application Details', function() {
           organization: org.slug,
           redirectUrl: 'https://webhook.com/setup',
           webhookUrl: 'https://webhook.com',
-          scopes: new Set(['member:admin']),
-          events: observable.array(['issue']),
-          isAlertable: false,
+          scopes: observable([
+            'member:read',
+            'member:admin',
+            'event:read',
+            'event:admin',
+          ]),
+          events: observable(['issue']),
+          isAlertable: true,
         };
 
-        expect(response).toBeCalledWith(
+        expect(createAppRequest).toHaveBeenCalledWith(
           '/sentry-apps/',
           expect.objectContaining({
             data,
@@ -80,30 +92,27 @@ describe('Sentry Application Details', function() {
   });
 
   describe('edit existing application', () => {
-    const org = TestStubs.Organization();
-    const routerContext = TestStubs.routerContext();
-    const sentryApp = TestStubs.SentryApp();
+    beforeEach(() => {
+      sentryApp = TestStubs.SentryApp();
+      const appSlug = sentryApp.slug;
+
+      Client.addMockResponse({
+        url: `/sentry-apps/${sentryApp.slug}/`,
+        body: sentryApp,
+      });
+
+      wrapper = mount(
+        <SentryApplicationDetails params={{appSlug, orgId}} />,
+        TestStubs.routerContext()
+      );
+    });
 
     describe('renders()', () => {
       it('it shows application data and credentials', function() {
-        Client.clearMockResponses();
-
-        Client.addMockResponse({
-          url: `/sentry-apps/${sentryApp.slug}/`,
-          body: sentryApp,
-        });
-
-        const wrapper = mount(
-          <SentryApplicationDetails
-            params={{appSlug: sentryApp.slug, orgId: org.slug}}
-          />,
-          routerContext
-        );
-
         expect(wrapper).toMatchSnapshot();
 
         // data should be filled out
-        expect(wrapper.find('ApplicationScopes').prop('scopes')).toEqual([
+        expect(wrapper.find('PermissionSelection').prop('scopes')).toEqual([
           'project:read',
         ]);
 
@@ -118,37 +127,23 @@ describe('Sentry Application Details', function() {
     });
 
     describe('saving edited app', () => {
-      it('it updates app with correct data', function() {
-        Client.clearMockResponses();
-
+      beforeEach(() => {
         sentryApp.events = ['issue'];
+      });
 
-        Client.addMockResponse({
-          url: `/sentry-apps/${sentryApp.slug}/`,
-          body: sentryApp,
-        });
-
-        const wrapper = mount(
-          <SentryApplicationDetails
-            params={{appSlug: sentryApp.slug, orgId: org.slug}}
-          />,
-          routerContext
-        );
-
-        let response = Client.addMockResponse({
+      it('it updates app with correct data', function() {
+        const response = Client.addMockResponse({
           url: `/sentry-apps/${sentryApp.slug}/`,
           method: 'PUT',
           body: [],
         });
 
         wrapper
-          .find('Input')
-          .last()
+          .find('Input[name="redirectUrl"]')
           .simulate('change', {target: {value: 'https://hello.com/'}});
 
         wrapper
-          .find('input[type="checkbox"]')
-          .last()
+          .find('FormField[name="events"] input[value="issue"]')
           .simulate('change', {target: {checked: false}});
 
         wrapper.find('form').simulate('submit');

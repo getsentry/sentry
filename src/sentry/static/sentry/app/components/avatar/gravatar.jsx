@@ -30,10 +30,12 @@ class Gravatar extends React.Component {
   componentDidMount() {
     this._isMounted = true;
 
-    import(/*webpackChunkName: "MD5"*/ 'crypto-js/md5').then(MD5 => {
-      if (!this._isMounted) return;
-      this.setState({MD5});
-    });
+    import(/* webpackChunkName: "MD5" */ 'crypto-js/md5')
+      .then(mod => mod.default)
+      .then(MD5 => {
+        if (!this._isMounted) return;
+        this.setState({MD5});
+      });
   }
 
   componentWillUnmount() {

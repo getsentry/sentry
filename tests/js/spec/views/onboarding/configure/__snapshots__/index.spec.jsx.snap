@@ -13,28 +13,15 @@ exports[`Configure should render correctly render() should redirect to if no mat
       }
     >
       Configure your application
-      <Hook
-        key="header"
-        name="component:create-sample-event"
+      <createSampleEvent
         params={
           Object {
-            "organization": Object {
-              "id": "1337",
-              "slug": "testOrg",
-              "teams": Array [
-                Array [
-                  "project-slug",
-                ],
-              ],
-            },
-            "params": Object {
-              "orgId": "testOrg",
-              "platform": "other",
-              "projectId": "project-slug",
-            },
-            "source": "header",
+            "orgId": "testOrg",
+            "platform": "other",
+            "projectId": "project-slug",
           }
         }
+        source="header"
       />
     </h2>
     <withProjects(withRouter(ProjectContext))
@@ -66,24 +53,6 @@ exports[`Configure should render correctly render() should redirect to if no mat
     </withProjects(withRouter(ProjectContext))>
     <Waiting
       hasEvent={false}
-      organization={
-        Object {
-          "id": "1337",
-          "slug": "testOrg",
-          "teams": Array [
-            Array [
-              "project-slug",
-            ],
-          ],
-        }
-      }
-      params={
-        Object {
-          "orgId": "testOrg",
-          "platform": "other",
-          "projectId": "project-slug",
-        }
-      }
       skip={[Function]}
     />
   </div>
@@ -113,55 +82,74 @@ exports[`Configure should render correctly render() should render platform docs 
         }
       >
         Configure your application
-        <Hook
-          key="header"
-          name="component:create-sample-event"
+        <createSampleEvent
           params={
             Object {
-              "organization": Object {
-                "id": "1337",
-                "projects": Array [
-                  Object {
-                    "hasAccess": true,
-                    "id": "testProject",
-                    "isBookmarked": false,
-                    "isMember": true,
-                    "name": "Test Project",
-                    "slug": "project-slug",
-                    "teams": Array [
-                      Object {
-                        "hasAccess": true,
-                        "id": "coolteam",
-                        "slug": "coolteam",
-                      },
-                    ],
-                  },
-                ],
-                "slug": "testOrg",
-                "teams": Array [
-                  Object {
-                    "hasAccess": true,
-                    "id": "coolteam",
-                    "projects": Array [
-                      Object {
-                        "id": "testProject",
-                        "name": "Test Project",
-                        "slug": "project-slug",
-                      },
-                    ],
-                    "slug": "coolteam",
-                  },
-                ],
-              },
-              "params": Object {
-                "orgId": "testOrg",
-                "platform": "node",
-                "projectId": "project-slug",
-              },
-              "source": "header",
+              "orgId": "testOrg",
+              "platform": "node",
+              "projectId": "project-slug",
             }
           }
-        />
+          source="header"
+        >
+          <div
+            className="pull-right"
+          >
+            <StyledButton
+              onClick={[Function]}
+              priority="primary"
+            >
+              <Button
+                className="css-1lewl16-StyledButton eadl9o50"
+                disabled={false}
+                onClick={[Function]}
+                priority="primary"
+              >
+                <StyledButton
+                  aria-label="Or See Sample Event"
+                  className="css-1lewl16-StyledButton eadl9o50"
+                  disabled={false}
+                  onClick={[Function]}
+                  priority="primary"
+                  role="button"
+                >
+                  <Component
+                    aria-label="Or See Sample Event"
+                    className="eadl9o50 css-w2sk1s-StyledButton-getColors-StyledButton eqrebog0"
+                    disabled={false}
+                    onClick={[Function]}
+                    priority="primary"
+                    role="button"
+                  >
+                    <button
+                      aria-label="Or See Sample Event"
+                      className="eadl9o50 css-w2sk1s-StyledButton-getColors-StyledButton eqrebog0"
+                      disabled={false}
+                      onClick={[Function]}
+                      priority="primary"
+                      role="button"
+                    >
+                      <ButtonLabel
+                        priority="primary"
+                      >
+                        <Component
+                          className="css-ga4b18-ButtonLabel eqrebog1"
+                          priority="primary"
+                        >
+                          <span
+                            className="css-ga4b18-ButtonLabel eqrebog1"
+                          >
+                            Or See Sample Event
+                          </span>
+                        </Component>
+                      </ButtonLabel>
+                    </button>
+                  </Component>
+                </StyledButton>
+              </Button>
+            </StyledButton>
+          </div>
+        </createSampleEvent>
       </h2>
       <withProjects(withRouter(ProjectContext))
         orgId="testOrg"
@@ -560,50 +548,6 @@ exports[`Configure should render correctly render() should render platform docs 
       </withProjects(withRouter(ProjectContext))>
       <Waiting
         hasEvent={false}
-        organization={
-          Object {
-            "id": "1337",
-            "projects": Array [
-              Object {
-                "hasAccess": true,
-                "id": "testProject",
-                "isBookmarked": false,
-                "isMember": true,
-                "name": "Test Project",
-                "slug": "project-slug",
-                "teams": Array [
-                  Object {
-                    "hasAccess": true,
-                    "id": "coolteam",
-                    "slug": "coolteam",
-                  },
-                ],
-              },
-            ],
-            "slug": "testOrg",
-            "teams": Array [
-              Object {
-                "hasAccess": true,
-                "id": "coolteam",
-                "projects": Array [
-                  Object {
-                    "id": "testProject",
-                    "name": "Test Project",
-                    "slug": "project-slug",
-                  },
-                ],
-                "slug": "coolteam",
-              },
-            ],
-          }
-        }
-        params={
-          Object {
-            "orgId": "testOrg",
-            "platform": "node",
-            "projectId": "project-slug",
-          }
-        }
         skip={[Function]}
       >
         <div
@@ -691,55 +635,6 @@ exports[`Configure should render correctly render() should render platform docs 
                       </Component>
                     </StyledButton>
                   </Button>
-                  <Hook
-                    key="waiting"
-                    name="component:create-sample-event"
-                    params={
-                      Object {
-                        "organization": Object {
-                          "id": "1337",
-                          "projects": Array [
-                            Object {
-                              "hasAccess": true,
-                              "id": "testProject",
-                              "isBookmarked": false,
-                              "isMember": true,
-                              "name": "Test Project",
-                              "slug": "project-slug",
-                              "teams": Array [
-                                Object {
-                                  "hasAccess": true,
-                                  "id": "coolteam",
-                                  "slug": "coolteam",
-                                },
-                              ],
-                            },
-                          ],
-                          "slug": "testOrg",
-                          "teams": Array [
-                            Object {
-                              "hasAccess": true,
-                              "id": "coolteam",
-                              "projects": Array [
-                                Object {
-                                  "id": "testProject",
-                                  "name": "Test Project",
-                                  "slug": "project-slug",
-                                },
-                              ],
-                              "slug": "coolteam",
-                            },
-                          ],
-                        },
-                        "params": Object {
-                          "orgId": "testOrg",
-                          "platform": "node",
-                          "projectId": "project-slug",
-                        },
-                        "source": "waiting",
-                      }
-                    }
-                  />
                 </div>
               </div>
             </CenteredButtons>
@@ -764,28 +659,15 @@ exports[`Configure should render correctly render() shouldn't redirect for a fou
       }
     >
       Configure your application
-      <Hook
-        key="header"
-        name="component:create-sample-event"
+      <createSampleEvent
         params={
           Object {
-            "organization": Object {
-              "id": "1337",
-              "slug": "testOrg",
-              "teams": Array [
-                Array [
-                  "project-slug",
-                ],
-              ],
-            },
-            "params": Object {
-              "orgId": "testOrg",
-              "platform": "node",
-              "projectId": "project-slug",
-            },
-            "source": "header",
+            "orgId": "testOrg",
+            "platform": "node",
+            "projectId": "project-slug",
           }
         }
+        source="header"
       />
     </h2>
     <withProjects(withRouter(ProjectContext))
@@ -817,24 +699,6 @@ exports[`Configure should render correctly render() shouldn't redirect for a fou
     </withProjects(withRouter(ProjectContext))>
     <Waiting
       hasEvent={false}
-      organization={
-        Object {
-          "id": "1337",
-          "slug": "testOrg",
-          "teams": Array [
-            Array [
-              "project-slug",
-            ],
-          ],
-        }
-      }
-      params={
-        Object {
-          "orgId": "testOrg",
-          "platform": "node",
-          "projectId": "project-slug",
-        }
-      }
       skip={[Function]}
     />
   </div>

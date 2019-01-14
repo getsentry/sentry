@@ -401,61 +401,69 @@ class Release(Model):
                     if not author_email:
                         author = None
                     elif author_email not in authors:
-                        authors[author_email] = author = CommitAuthor.objects.get_or_create(
+                        author_data = {
+                            'name': data.get('author_name')
+                        }
+                        author, created = CommitAuthor.objects.create_or_update(
                             organization_id=self.organization_id,
                             email=author_email,
-                            defaults={
-                                'name': data.get('author_name'),
-                            }
-                        )[0]
-                        if data.get('author_name') and author.name != data['author_name']:
-                            author.update(name=data['author_name'])
+                            values=author_data)
+                        if not created:
+                            author = CommitAuthor.objects.get(
+                                organization_id=self.organization_id,
+                                email=author_email)
+                        authors[author_email] = author
                     else:
                         author = authors[author_email]
 
-                    defaults = {
+                    commit_data = {
                         'message': data.get('message'),
-                        'author': author,
                         'date_added': data.get('timestamp') or timezone.now(),
                     }
-                    commit, created = Commit.objects.get_or_create(
+                    # If we didn't get an author don't overwrite an existing one.
+                    if author is not None:
+                        commit_data['author'] = author
+
+                    commit, created = Commit.objects.create_or_update(
                         organization_id=self.organization_id,
                         repository_id=repo.id,
                         key=data['id'],
-                        defaults=defaults,
-                    )
+                        values=commit_data)
+                    if not created:
+                        commit = Commit.objects.get(
+                            organization_id=self.organization_id,
+                            repository_id=repo.id,
+                            key=data['id'])
+
                     if author is None:
                         author = commit.author
 
                     commit_author_by_commit[commit.id] = author
 
                     patch_set = data.get('patch_set', [])
-
                     for patched_file in patch_set:
-                        CommitFileChange.objects.get_or_create(
-                            organization_id=self.organization.id,
-                            commit=commit,
-                            filename=patched_file['path'],
-                            type=patched_file['type'],
-                        )
+                        try:
+                            with transaction.atomic():
+                                CommitFileChange.objects.create(
+                                    organization_id=self.organization.id,
+                                    commit=commit,
+                                    filename=patched_file['path'],
+                                    type=patched_file['type'],
+                                )
+                        except IntegrityError:
+                            pass
 
-                    if not created:
-                        update_kwargs = {}
-                        if commit.message is None and defaults['message'] is not None:
-                            update_kwargs['message'] = defaults['message']
-                        if commit.author_id is None and defaults['author'] is not None:
-                            update_kwargs['author'] = defaults['author']
-                        if defaults.get('date_added') is not None:
-                            update_kwargs['date_added'] = defaults['date_added']
-                        if update_kwargs:
-                            commit.update(**update_kwargs)
+                    try:
+                        with transaction.atomic():
+                            ReleaseCommit.objects.create(
+                                organization_id=self.organization_id,
+                                release=self,
+                                commit=commit,
+                                order=idx,
+                            )
+                    except IntegrityError:
+                        pass
 
-                    ReleaseCommit.objects.create(
-                        organization_id=self.organization_id,
-                        release=self,
-                        commit=commit,
-                        order=idx,
-                    )
                     if latest_commit is None:
                         latest_commit = commit
 

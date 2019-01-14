@@ -15,10 +15,13 @@ import six
 
 from django.conf import settings
 from django.utils.translation import ugettext as _
-from six.moves.urllib.parse import parse_qsl, urlencode, urlsplit, urlunsplit
+from django.utils.http import urlencode
+from six.moves.urllib.parse import parse_qsl, urlsplit, urlunsplit
 
 from sentry.interfaces.base import Interface, InterfaceValidationError, prune_empty_keys
 from sentry.interfaces.schemas import validate_and_default_interface
+from sentry.utils import json
+from sentry.utils.strings import to_unicode
 from sentry.utils.safe import trim, trim_dict, trim_pairs
 from sentry.utils.http import heuristic_decode
 from sentry.utils.validators import validate_ip
@@ -27,12 +30,6 @@ from sentry.web.helpers import render_to_string
 # Instead of relying on a list of hardcoded methods, just loosly match
 # against a pattern.
 http_method_re = re.compile(r'^[A-Z\-_]{3,32}$')
-
-
-def to_bytes(value):
-    if isinstance(value, six.text_type):
-        return value.encode('utf-8')
-    return six.binary_type(value)
 
 
 def format_headers(value):
@@ -84,6 +81,10 @@ def fix_broken_encoding(value):
     if isinstance(value, six.binary_type):
         value = value.decode('utf8', errors='replace')
     return value
+
+
+def jsonify(value):
+    return to_unicode(value) if isinstance(value, six.string_types) else json.dumps(value)
 
 
 class Http(Interface):
@@ -141,24 +142,42 @@ class Http(Interface):
             kwargs['method'] = None
 
         if data.get('url', None):
-            scheme, netloc, path, query_bit, fragment_bit = urlsplit(data['url'])
+            url = to_unicode(data['url'])
+            # The JavaScript SDK used to send an ellipsis character for
+            # truncated URLs. Canonical URLs do not contain UTF-8 characters in
+            # either the path, query string or fragment, so we replace it with
+            # three dots (which is the behavior of other SDKs). This effectively
+            # makes the string two characters longer, but it will be trimmed
+            # again down below.
+            if url.endswith(u"\u2026"):
+                url = url[:-1] + "..."
+            scheme, netloc, path, query_bit, fragment_bit = urlsplit(url)
         else:
             scheme = netloc = path = query_bit = fragment_bit = None
 
         query_string = data.get('query_string') or query_bit
         if query_string:
-            # if querystring was a dict, convert it to a string
-            if isinstance(query_string, dict):
-                query_string = urlencode(
-                    [(to_bytes(k), to_bytes(v)) for k, v in query_string.items()]
-                )
-            else:
+            if isinstance(query_string, six.string_types):
                 if query_string[0] == '?':
-                    # remove '?' prefix
                     query_string = query_string[1:]
+                if query_string.endswith(u"\u2026"):
+                    query_string = query_string[:-1] + "..."
+                query_string = [
+                    (to_unicode(k), jsonify(v))
+                    for k, v in parse_qsl(query_string, keep_blank_values=True)
+                ]
+            elif isinstance(query_string, dict):
+                query_string = [(to_unicode(k), jsonify(v)) for k, v in six.iteritems(query_string)]
+            elif isinstance(query_string, list):
+                query_string = [
+                    tuple(tup) for tup in query_string
+                    if isinstance(tup, (tuple, list)) and len(tup) == 2
+                ]
+            else:
+                query_string = []
             kwargs['query_string'] = trim(query_string, 4096)
         else:
-            kwargs['query_string'] = ''
+            kwargs['query_string'] = []
 
         fragment = data.get('fragment') or fragment_bit
 
@@ -230,7 +249,7 @@ class Http(Interface):
     def full_url(self):
         url = self.url
         if self.query_string:
-            url = url + '?' + self.query_string
+            url = url + '?' + urlencode(self.query_string)
         if self.fragment:
             url = url + '#' + self.fragment
         return url
@@ -242,7 +261,7 @@ class Http(Interface):
                 'url': self.full_url,
                 'short_url': self.url,
                 'method': self.method,
-                'query_string': self.query_string,
+                'query_string': urlencode(self.query_string),
                 'fragment': self.fragment,
             }
         )

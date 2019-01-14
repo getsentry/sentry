@@ -9,6 +9,7 @@ from __future__ import absolute_import, print_function
 
 import logging
 import six
+import urllib2
 from six.moves.urllib.parse import (
     urlparse,
     urlencode,
@@ -73,7 +74,7 @@ class NotificationPlugin(Plugin):
         try:
             return self.notify_users(event.group, event, triggering_rules=[
                                      r.label for r in notification.rules])
-        except (SSLError, HTTPError, ApiError, PluginError) as err:
+        except (SSLError, HTTPError, ApiError, PluginError, urllib2.HTTPError) as err:
             self.logger.info('notification-plugin.notify-failed.', extra={
                 'error': six.text_type(err),
                 'plugin': self.slug

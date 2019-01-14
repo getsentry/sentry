@@ -1,7 +1,6 @@
-import {isEqual} from 'lodash';
-import {withRouter} from 'react-router';
+import {isEqual, pick} from 'lodash';
+import {withRouter, browserHistory} from 'react-router';
 import {ThemeProvider} from 'emotion-theming';
-import $ from 'jquery';
 import PropTypes from 'prop-types';
 import React from 'react';
 import Reflux from 'reflux';
@@ -19,6 +18,7 @@ import PreferencesStore from 'app/stores/preferencesStore';
 import theme from 'app/utils/theme';
 import space from 'app/styles/space';
 import withLatestContext from 'app/utils/withLatestContext';
+import {URL_PARAM} from 'app/components/organizations/globalSelectionHeader/constants';
 
 import Broadcasts from './broadcasts';
 import Incidents from './incidents';
@@ -51,7 +51,7 @@ class Sidebar extends React.Component {
   }
 
   componentDidMount() {
-    let {organization, router} = this.props;
+    let {router} = this.props;
     jQuery(document.body).addClass('body-sidebar');
     jQuery(document).on('click', this.documentClickHandler);
 
@@ -66,9 +66,7 @@ class Sidebar extends React.Component {
         $('.tooltip').tooltip('hide');
       });
 
-    // If there is no organization (i.e. no org in context, or error loading org)
-    // then sidebar should default to collapsed state
-    this.doCollapse(!!organization ? this.props.collapsed : true);
+    this.doCollapse(this.props.collapsed);
   }
 
   componentWillReceiveProps(nextProps) {
@@ -155,6 +153,14 @@ class Sidebar extends React.Component {
     });
   };
 
+  // Keep the global selection querystring values in the path
+  navigateWithGlobalSelection = (pathname, evt) => {
+    evt.preventDefault();
+    const query = pick(this.props.location.query, Object.values(URL_PARAM));
+    browserHistory.push({pathname, query});
+    this.hidePanel();
+  };
+
   // Show slideout panel
   showPanel = panel => {
     this.setState({
@@ -190,10 +196,7 @@ class Sidebar extends React.Component {
     let hasOrganization = !!organization;
 
     return (
-      <StyledSidebar
-        innerRef={ref => (this.sidebar = ref)}
-        collapsed={hasOrganization ? collapsed : true}
-      >
+      <StyledSidebar innerRef={ref => (this.sidebar = ref)} collapsed={collapsed}>
         <SidebarSectionGroup>
           <SidebarSection>
             <SidebarDropdown
@@ -209,6 +212,17 @@ class Sidebar extends React.Component {
           {hasOrganization && (
             <React.Fragment>
               <SidebarSection>
+                <Feature features={['sentry10']}>
+                  <SidebarItem
+                    {...sidebarItemProps}
+                    index
+                    onClick={this.hidePanel}
+                    icon={<InlineSvg src="icon-health" />}
+                    label={t('Dashboard')}
+                    to={`/organizations/${organization.slug}/dashboards/`}
+                  />
+                </Feature>
+
                 <SidebarItem
                   {...sidebarItemProps}
                   index
@@ -220,14 +234,34 @@ class Sidebar extends React.Component {
                 <Feature features={['sentry10']}>
                   <SidebarItem
                     {...sidebarItemProps}
-                    onClick={this.hidePanel}
+                    onClick={(_id, evt) =>
+                      this.navigateWithGlobalSelection(
+                        `/organizations/${organization.slug}/issues/`,
+                        evt
+                      )}
+                    icon={<InlineSvg src="icon-issues" />}
+                    label={t('Issues')}
+                    to={`/organizations/${organization.slug}/issues/`}
+                  />
+
+                  <SidebarItem
+                    {...sidebarItemProps}
+                    onClick={(_id, evt) =>
+                      this.navigateWithGlobalSelection(
+                        `/organizations/${organization.slug}/releases/`,
+                        evt
+                      )}
                     icon={<InlineSvg src="icon-releases" />}
                     label={t('Releases')}
                     to={`/organizations/${organization.slug}/releases/`}
                   />
                   <SidebarItem
                     {...sidebarItemProps}
-                    onClick={this.hidePanel}
+                    onClick={(_id, evt) =>
+                      this.navigateWithGlobalSelection(
+                        `/organizations/${organization.slug}/user-feedback/`,
+                        evt
+                      )}
                     icon={<InlineSvg src="icon-support" />}
                     label={t('User Feedback')}
                     to={`/organizations/${organization.slug}/user-feedback/`}
@@ -236,7 +270,11 @@ class Sidebar extends React.Component {
                 <Feature features={['global-views']}>
                   <SidebarItem
                     {...sidebarItemProps}
-                    onClick={this.hidePanel}
+                    onClick={(_id, evt) =>
+                      this.navigateWithGlobalSelection(
+                        `/organizations/${organization.slug}/events/`,
+                        evt
+                      )}
                     icon={<InlineSvg src="icon-stack" />}
                     label={t('Events')}
                     to={`/organizations/${organization.slug}/events/`}
@@ -294,6 +332,16 @@ class Sidebar extends React.Component {
                   to={`/organizations/${organization.slug}/stats/`}
                 />
               </SidebarSection>
+
+              <SidebarSection>
+                <SidebarItem
+                  {...sidebarItemProps}
+                  onClick={this.hidePanel}
+                  icon={<InlineSvg src="icon-settings" />}
+                  label={t('Settings')}
+                  to={`/settings/${organization.slug}/`}
+                />
+              </SidebarSection>
             </React.Fragment>
           )}
         </SidebarSectionGroup>
@@ -324,17 +372,6 @@ class Sidebar extends React.Component {
                 hidePanel={this.hidePanel}
               />
             </SidebarSection>
-            <Feature features={['sentry10']}>
-              <SidebarSection>
-                <SidebarItem
-                  {...sidebarItemProps}
-                  onClick={this.hidePanel}
-                  icon={<InlineSvg src="icon-settings" />}
-                  label={t('Settings')}
-                  to={`/organizations/${organization.slug}/settings/`}
-                />
-              </SidebarSection>
-            </Feature>
 
             {!horizontal && (
               <SidebarSection noMargin>

@@ -22,7 +22,10 @@ import React from 'react';
  * @return {Array<{highlight: Boolean, text: String}>} Returns an array of {highlight, text} objects.
  */
 const getFuseMatches = ({value, indices}) => {
-  if (!indices.length) return [];
+  if (indices.length === 0) {
+    return [{highlight: false, text: value}];
+  }
+
   let strLength = value.length;
   let result = [];
   let prev = [0, -1];
@@ -62,11 +65,11 @@ const getFuseMatches = ({value, indices}) => {
 /**
  * Given a match object from fuse.js, returns an array of components with "highlighted" (bold) substrings.
  */
-const highlightFuseMatches = matchObj => {
+const highlightFuseMatches = (matchObj, Marker = 'mark') => {
   return getFuseMatches(matchObj).map(({highlight, text}, index) => {
     if (!text) return null;
     if (highlight) {
-      return <strong key={index}>{text}</strong>;
+      return <Marker key={index}>{text}</Marker>;
     }
 
     return <span key={index}>{text}</span>;

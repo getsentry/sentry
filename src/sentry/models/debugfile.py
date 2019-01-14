@@ -636,8 +636,17 @@ class DIFCache(object):
             return error
 
         _, _, error = self._update_cachefile(dif, filepath, ProjectCfiCacheFile)
+
+        # CFI generation will never fail to the user.  We instead log it here
+        # for reference only.  This is because we have currently limited trust
+        # in our CFI generation and even without CFI information we can
+        # continue processing stacktraces.
         if error is not None:
-            return error
+            logger.warning('dsymfile.cfi-generation-failed', extra=dict(
+                error=error,
+                debug_id=dif.debug_id
+            ))
+            return None
 
         return None
 
@@ -745,7 +754,7 @@ class DIFCache(object):
 
             metrics.incr('%s.failed' % cls.cache_name, tags={
                 'error': e.__class__.__name__,
-            })
+            }, skip_internal=False)
 
             return None, None, e.message
 

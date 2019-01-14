@@ -62,12 +62,14 @@ from .endpoints.organization_discover_query import OrganizationDiscoverQueryEndp
 from .endpoints.organization_discover_saved_queries import OrganizationDiscoverSavedQueriesEndpoint
 from .endpoints.organization_discover_saved_query_detail import OrganizationDiscoverSavedQueryDetailEndpoint
 from .endpoints.organization_events import OrganizationEventsEndpoint, OrganizationEventsMetaEndpoint, OrganizationEventsStatsEndpoint
+from .endpoints.organization_group_index import OrganizationGroupIndexEndpoint
 from .endpoints.organization_health import OrganizationHealthTopEndpoint, OrganizationHealthGraphEndpoint
 from .endpoints.organization_shortid import ShortIdLookupEndpoint
 from .endpoints.organization_environments import OrganizationEnvironmentsEndpoint
 from .endpoints.organization_eventid import EventIdLookupEndpoint
 from .endpoints.organization_slugs import SlugsUpdateEndpoint
 from .endpoints.organization_issues_new import OrganizationIssuesNewEndpoint
+from .endpoints.organization_issues_resolved_in_release import OrganizationIssuesResolvedInReleaseEndpoint
 from .endpoints.organization_member_details import OrganizationMemberDetailsEndpoint
 from .endpoints.organization_member_index import OrganizationMemberIndexEndpoint
 from .endpoints.organization_member_issues_assigned import OrganizationMemberIssuesAssignedEndpoint
@@ -96,6 +98,7 @@ from .endpoints.organization_sentry_apps import OrganizationSentryAppsEndpoint
 from .endpoints.organization_tagkey_values import OrganizationTagKeyValuesEndpoint
 from .endpoints.organization_tags import OrganizationTagsEndpoint
 from .endpoints.organization_user_reports import OrganizationUserReportsEndpoint
+from .endpoints.organization_users import OrganizationUsersEndpoint
 from .endpoints.sentry_app_installations import SentryAppInstallationsEndpoint
 from .endpoints.sentry_app_installation_details import SentryAppInstallationDetailsEndpoint
 from .endpoints.organization_stats import OrganizationStatsEndpoint
@@ -118,6 +121,7 @@ from .endpoints.project_filter_details import ProjectFilterDetailsEndpoint
 from .endpoints.project_group_index import ProjectGroupIndexEndpoint
 from .endpoints.project_group_stats import ProjectGroupStatsEndpoint
 from .endpoints.project_index import ProjectIndexEndpoint
+from .endpoints.project_issues_resolved_in_release import ProjectIssuesResolvedInReleaseEndpoint
 from .endpoints.project_keys import ProjectKeysEndpoint
 from .endpoints.project_key_details import ProjectKeyDetailsEndpoint
 from .endpoints.project_key_stats import ProjectKeyStatsEndpoint
@@ -155,7 +159,6 @@ from .endpoints.project_user_stats import ProjectUserStatsEndpoint
 from .endpoints.project_users import ProjectUsersEndpoint
 from .endpoints.prompts_activity import PromptsActivityEndpoint
 from .endpoints.filechange import CommitFileChangeEndpoint
-from .endpoints.issues_resolved_in_release import IssuesResolvedInReleaseEndpoint
 from .endpoints.release_deploys import ReleaseDeploysEndpoint
 from .endpoints.debug_files import DebugFilesEndpoint, DifAssembleEndpoint, \
     UnknownDebugFilesEndpoint, AssociateDSymFilesEndpoint
@@ -512,6 +515,11 @@ urlpatterns = patterns(
         OrganizationIssuesNewEndpoint.as_view(),
     ),
     url(
+        r'^organizations/(?P<organization_slug>[^\/]+)/issues/$',
+        OrganizationGroupIndexEndpoint.as_view(),
+        name='sentry-api-0-organization-group-index'
+    ),
+    url(
         r'^organizations/(?P<organization_slug>[^\/]+)/integrations/$',
         OrganizationIntegrationsEndpoint.as_view(),
         name='sentry-api-0-organization-integrations'
@@ -538,6 +546,11 @@ urlpatterns = patterns(
         r'^organizations/(?P<organization_slug>[^\/]+)/users/(?P<user_id>[^\/]+)/issues/$',
         OrganizationUserIssuesEndpoint.as_view(),
         name='sentry-api-0-organization-user-issues'
+    ),
+    url(
+        r'^organizations/(?P<organization_slug>[^\/]+)/releases/(?P<version>[^/]+)/resolved/$',
+        OrganizationIssuesResolvedInReleaseEndpoint.as_view(),
+        name='sentry-api-0-organization-release-resolved'
     ),
     url(
         r'^organizations/(?P<organization_slug>[^\/]+)/members/(?P<member_id>[^\/]+)/$',
@@ -633,6 +646,11 @@ urlpatterns = patterns(
         r'^organizations/(?P<organization_slug>[^\/]+)/user-feedback/$',
         OrganizationUserReportsEndpoint.as_view(),
         name='sentry-api-0-organization-user-feedback'
+    ),
+    url(
+        r'^organizations/(?P<organization_slug>[^\/]+)/users/$',
+        OrganizationUsersEndpoint.as_view(),
+        name='sentry-api-0-organization-users'
     ),
     url(
         r'^organizations/(?P<organization_slug>[^\/]+)/sentry-app-installations/$',
@@ -888,8 +906,8 @@ urlpatterns = patterns(
     ),
     url(
         r'^projects/(?P<organization_slug>[^\/]+)/(?P<project_slug>[^\/]+)/releases/(?P<version>[^/]+)/resolved/$',
-        IssuesResolvedInReleaseEndpoint.as_view(),
-        name='sentry-api-0-release-resolved'
+        ProjectIssuesResolvedInReleaseEndpoint.as_view(),
+        name='sentry-api-0-project-release-resolved'
     ),
     url(
         r'^projects/(?P<organization_slug>[^\/]+)/(?P<project_slug>[^\/]+)/releases/(?P<version>[^/]+)/files/$',

@@ -8,36 +8,21 @@ import Access from 'app/components/acl/access';
 import ActorAvatar from 'app/components/actorAvatar';
 import ApiMixin from 'app/mixins/apiMixin';
 import Button from 'app/components/button';
-import GroupState from 'app/mixins/groupState';
+import OrganizationState from 'app/mixins/organizationState';
 import GuideAnchor from 'app/components/assistant/guideAnchor';
 import SentryTypes from 'app/sentryTypes';
 import SuggestedOwnerHovercard from 'app/components/group/suggestedOwnerHovercard';
-
-/**
- * Given a list of rule objects returned from the API, locate the matching
- * rules for a specific owner.
- */
-function findMatchedRules(rules, owner) {
-  const matchOwner = (actorType, key) =>
-    (actorType == 'user' && key === owner.email) ||
-    (actorType == 'team' && key == owner.name);
-
-  const actorHasOwner = ([actorType, key]) =>
-    actorType === owner.type && matchOwner(actorType, key);
-
-  return rules
-    .filter(([_, ruleActors]) => ruleActors.find(actorHasOwner))
-    .map(([rule]) => rule);
-}
 
 const SuggestedOwners = createReactClass({
   displayName: 'SuggestedOwners',
 
   propTypes: {
+    project: SentryTypes.Project,
+    group: SentryTypes.Group,
     event: SentryTypes.Event,
   },
 
-  mixins: [ApiMixin, GroupState],
+  mixins: [ApiMixin, OrganizationState],
 
   getInitialState() {
     return {
@@ -65,8 +50,9 @@ const SuggestedOwners = createReactClass({
 
   fetchData(event) {
     if (!event) return;
-    let org = this.getOrganization();
-    let project = this.getProject();
+    const org = this.getOrganization();
+    const project = this.props.project;
+
     this.api.request(
       `/projects/${org.slug}/${project.slug}/events/${event.id}/committers/`,
       {
@@ -97,18 +83,17 @@ const SuggestedOwners = createReactClass({
     });
   },
 
-  assignTo(user) {
-    if (user.id !== undefined) {
-      assignToUser({id: this.props.event.groupID, user});
+  assign(actor) {
+    if (actor.id === undefined) {
+      return;
     }
-  },
 
-  assignToActor(actor) {
-    if (actor.id !== undefined) {
-      assignToActor({
-        actor,
-        id: this.props.event.groupID,
-      });
+    if (actor.type === 'user') {
+      assignToUser({id: this.props.event.groupID, user: actor});
+    }
+
+    if (actor.type === 'team') {
+      assignToActor({id: this.props.event.groupID, actor});
     }
   },
 
@@ -121,6 +106,7 @@ const SuggestedOwners = createReactClass({
    *
    * {
    *   actor: <
+   *    type,              # Either user or team
    *    SentryTypes.User,  # API expanded user object
    *    {email, id, name}  # Sentry user which is *not* expanded
    *    {email, name}      # Unidentified user (from commits)
@@ -157,11 +143,9 @@ const SuggestedOwners = createReactClass({
   },
 
   render() {
+    const {group, project} = this.props;
     const owners = this.getOwnerList();
-
-    let group = this.getGroup();
-    let project = this.getProject();
-    let org = this.getOrganization();
+    const org = this.getOrganization();
 
     return (
       <React.Fragment>
@@ -181,12 +165,13 @@ const SuggestedOwners = createReactClass({
                   commits={owner.commits}
                   containerClassName="avatar-grid-item"
                 >
-                  <ActorAvatar
-                    style={{cursor: 'pointer'}}
-                    hasTooltip={false}
-                    actor={owner.actor}
-                    onClick={() => this.assignToActor(owner)}
-                  />
+                  <span onClick={() => this.assign(owner.actor)}>
+                    <ActorAvatar
+                      style={{cursor: 'pointer'}}
+                      hasTooltip={false}
+                      actor={owner.actor}
+                    />
+                  </span>
                 </SuggestedOwnerHovercard>
               ))}
             </div>
@@ -217,3 +202,20 @@ const SuggestedOwners = createReactClass({
   },
 });
 export default SuggestedOwners;
+
+/**
+ * Given a list of rule objects returned from the API, locate the matching
+ * rules for a specific owner.
+ */
+function findMatchedRules(rules, owner) {
+  const matchOwner = (actorType, key) =>
+    (actorType == 'user' && key === owner.email) ||
+    (actorType == 'team' && key == owner.name);
+
+  const actorHasOwner = ([actorType, key]) =>
+    actorType === owner.type && matchOwner(actorType, key);
+
+  return rules
+    .filter(([_, ruleActors]) => ruleActors.find(actorHasOwner))
+    .map(([rule]) => rule);
+}

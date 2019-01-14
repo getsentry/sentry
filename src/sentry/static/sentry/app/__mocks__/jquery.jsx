@@ -6,6 +6,7 @@ let jq = {
   ajaxError: () => jq,
   simpleSlider: () => jq,
   addClass: () => jq,
+  find: () => jq,
 };
 
 const jqMock = () => jq;

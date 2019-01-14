@@ -166,9 +166,6 @@ exports[`OrganizationUserFeedback renders 1`] = `
                 "teams": Array [],
               }
             }
-            projects={Array []}
-            showAbsolute={true}
-            showRelative={true}
           >
             <withGlobalSelection(GlobalSelectionHeader)
               location={
@@ -205,7 +202,6 @@ exports[`OrganizationUserFeedback renders 1`] = `
                   "teams": Array [],
                 }
               }
-              projects={Array []}
               router={
                 Object {
                   "createHref": [MockFunction] {
@@ -297,8 +293,6 @@ exports[`OrganizationUserFeedback renders 1`] = `
                   "setRouteLeaveHook": [MockFunction],
                 }
               }
-              showAbsolute={true}
-              showRelative={true}
             >
               <GlobalSelectionHeader
                 hasCustomRouting={false}
@@ -336,7 +330,6 @@ exports[`OrganizationUserFeedback renders 1`] = `
                     "teams": Array [],
                   }
                 }
-                projects={Array []}
                 resetParamsOnChange={Array []}
                 router={
                   Object {
@@ -441,16 +434,14 @@ exports[`OrganizationUserFeedback renders 1`] = `
                     "projects": Array [],
                   }
                 }
-                showAbsolute={true}
                 showEnvironmentSelector={true}
-                showRelative={true}
               >
                 <Header>
                   <Base
-                    className="css-1651jh1-Header e10yv9i90"
+                    className="css-14hw0r3-Header e10yv9i90"
                   >
                     <div
-                      className="css-1651jh1-Header e10yv9i90"
+                      className="css-14hw0r3-Header e10yv9i90"
                       is={null}
                     >
                       <HeaderItemPosition>
@@ -1600,9 +1591,9 @@ exports[`OrganizationUserFeedback renders 1`] = `
               </GlobalSelectionHeader>
             </withGlobalSelection(GlobalSelectionHeader)>
           </withRouter(withGlobalSelection(GlobalSelectionHeader))>
-          <Content>
+          <PageContent>
             <div
-              className="css-1wsl7kd-Content euo9in30"
+              className="css-rejmra-PageContent e6lvex70"
             >
               <UserFeedbackContainer
                 location={
@@ -1621,23 +1612,35 @@ exports[`OrganizationUserFeedback renders 1`] = `
               >
                 <div>
                   <div
-                    className="row release-list-header"
+                    className="row"
                   >
                     <div
                       className="col-sm-9"
+                      style={
+                        Object {
+                          "marginBottom": "5px",
+                        }
+                      }
                     >
-                      <Header>
-                        <h4
-                          className="css-149epof-Header en9t8ev0"
+                      <PageHeading
+                        withMargins={true}
+                      >
+                        <Wrapper
+                          withMargins={true}
                         >
-                          User Feedback
-                        </h4>
-                      </Header>
+                          <h1
+                            className="css-13ev48w-Wrapper e1f8hk460"
+                          >
+                            User Feedback
+                          </h1>
+                        </Wrapper>
+                      </PageHeading>
                     </div>
                     <div
                       className="col-sm-3"
                       style={
                         Object {
+                          "marginTop": "4px",
                           "textAlign": "right",
                         }
                       }
@@ -2273,7 +2276,7 @@ exports[`OrganizationUserFeedback renders 1`] = `
                 </div>
               </UserFeedbackContainer>
             </div>
-          </Content>
+          </PageContent>
         </Feature>
       </FeatureContainer>
     </DocumentTitle>

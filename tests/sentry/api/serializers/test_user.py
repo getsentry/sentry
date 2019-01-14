@@ -84,3 +84,8 @@ class DetailedUserSerializerTest(TestCase):
         assert len(result['authenticators']) == 1
         assert result['authenticators'][0]['id'] == six.text_type(auth.id)
         assert result['permissions'] == ['foo']
+        assert result['canReset2fa'] is True
+
+        self.create_organization(owner=user)
+        result = serialize(user, user, DetailedUserSerializer())
+        assert result['canReset2fa'] is False

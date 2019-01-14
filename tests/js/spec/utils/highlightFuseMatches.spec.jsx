@@ -7,7 +7,9 @@ describe('highlightFuseMatches', function() {
   };
 
   it('handles no matches', function() {
-    expect(getFuseMatches({value: 'My long string', indices: []})).toEqual([]);
+    expect(getFuseMatches({value: 'My long string', indices: []})).toEqual([
+      {highlight: false, text: 'My long string'},
+    ]);
   });
 
   it('gets the correct tokens', function() {

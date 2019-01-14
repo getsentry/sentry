@@ -1,4 +1,5 @@
 import React from 'react';
+import {browserHistory, withRouter} from 'react-router';
 import PropTypes from 'prop-types';
 import {throttle} from 'lodash';
 
@@ -8,14 +9,20 @@ import getDynamicText from 'app/utils/getDynamicText';
 import BarChart from 'app/components/charts/barChart';
 import LineChart from 'app/components/charts/lineChart';
 import InlineSvg from 'app/components/inlineSvg';
+import PageHeading from 'app/components/pageHeading';
 
-import {getChartData, getChartDataByDay, getRowsPageRange, downloadAsCsv} from './utils';
+import {
+  getChartData,
+  getChartDataByDay,
+  getRowsPageRange,
+  downloadAsCsv,
+  getVisualization,
+} from './utils';
 import Table from './table';
 import Pagination from './pagination';
 import VisualizationsToggle from './visualizationsToggle';
 import {
   HeadingContainer,
-  Heading,
   ResultSummary,
   ResultContainer,
   ResultInnerContainer,
@@ -25,8 +32,13 @@ import {
   ResultSummaryAndButtons,
 } from '../styles';
 import {NUMBER_OF_SERIES_BY_DAY} from '../data';
+import {
+  queryHasChanged,
+  getQueryFromQueryString,
+  getQueryStringFromQuery,
+} from '../utils';
 
-export default class Result extends React.Component {
+class Result extends React.Component {
   static propTypes = {
     data: PropTypes.object.isRequired,
     savedQuery: SentryTypes.DiscoverSavedQuery, // Provided if it's a saved search
@@ -34,10 +46,10 @@ export default class Result extends React.Component {
     onToggleEdit: PropTypes.func,
   };
 
-  constructor() {
-    super();
+  constructor(props) {
+    super(props);
     this.state = {
-      view: 'table',
+      view: getVisualization(props.data, props.location.query.visualization),
       height: null,
       width: null,
     };
@@ -48,20 +60,18 @@ export default class Result extends React.Component {
   }
 
   componentWillReceiveProps(nextProps) {
-    const {baseQuery, byDayQuery} = nextProps.data;
+    const {data, location} = nextProps;
+    const visualization = getVisualization(data, location.query.visualization);
 
-    if (!byDayQuery.data && ['line-by-day', 'bar-by-day'].includes(this.state.view)) {
-      this.setState({
-        view: 'table',
+    if (queryHasChanged(this.props.location.search, nextProps.location.search)) {
+      const search = getQueryStringFromQuery(getQueryFromQueryString(location.search), {
+        visualization,
       });
-    }
 
-    if (
-      !baseQuery.query.aggregations.length &&
-      ['line', 'bar'].includes(this.state.view)
-    ) {
-      this.setState({
-        view: 'table',
+      this.setState({view: visualization});
+      browserHistory.replace({
+        pathname: location.pathname,
+        search,
       });
     }
   }
@@ -89,8 +99,18 @@ export default class Result extends React.Component {
   throttledUpdateDimensions = throttle(this.updateDimensions, 200, {trailing: true});
 
   handleToggleVisualizations = opt => {
+    const {location} = this.props;
     this.setState({
       view: opt,
+    });
+
+    const search = getQueryStringFromQuery(getQueryFromQueryString(location.search), {
+      visualization: opt,
+    });
+
+    browserHistory.push({
+      pathname: location.pathname,
+      search,
     });
   };
 
@@ -152,9 +172,9 @@ export default class Result extends React.Component {
   renderSavedQueryHeader() {
     return (
       <React.Fragment>
-        <Heading>
+        <PageHeading>
           {getDynamicText({value: this.props.savedQuery.name, fixed: 'saved query'})}
-        </Heading>
+        </PageHeading>
         <SavedQueryAction onClick={this.props.onToggleEdit}>
           <InlineSvg src="icon-edit" />
         </SavedQueryAction>
@@ -163,7 +183,7 @@ export default class Result extends React.Component {
   }
 
   renderQueryResultHeader() {
-    return <Heading>{t('Result')}</Heading>;
+    return <PageHeading>{t('Result')}</PageHeading>;
   }
 
   render() {
@@ -234,6 +254,7 @@ export default class Result extends React.Component {
                 tooltip={tooltipOptions}
                 legend={legendData}
                 renderer="canvas"
+                isGroupedByDate={true}
               />
               {this.renderNote()}
             </ChartWrapper>
@@ -247,6 +268,7 @@ export default class Result extends React.Component {
                 tooltip={tooltipOptions}
                 legend={legendData}
                 renderer="canvas"
+                isGroupedByDate={true}
               />
               {this.renderNote()}
             </ChartWrapper>
@@ -267,3 +289,6 @@ export default class Result extends React.Component {
     );
   }
 }
+
+export {Result};
+export default withRouter(Result);

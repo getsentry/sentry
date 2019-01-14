@@ -33,12 +33,11 @@ export const SPECIAL_TAGS = {
 
 export const COLUMNS = [
   {name: 'id', type: TYPES.STRING},
-  {name: 'issue.id', type: TYPES.STRING},
+  {name: 'issue.id', type: TYPES.NUMBER},
   {name: 'project.id', type: TYPES.STRING},
   {name: 'project.name', type: TYPES.STRING},
   {name: 'platform', type: TYPES.STRING},
   {name: 'message', type: TYPES.STRING},
-  {name: 'primary_hash', type: TYPES.STRING},
   {name: 'timestamp', type: TYPES.DATETIME},
 
   {name: 'user.id', type: TYPES.STRING},
@@ -85,7 +84,7 @@ export const COLUMNS = [
   {name: 'stack.stack_level', type: TYPES.STRING},
 ];
 
-export const NON_SNUBA_FIELDS = ['issue.id', 'project.name'];
+export const NON_SNUBA_FIELDS = ['project.name'];
 
 export const NON_CONDITIONS_FIELDS = [...NON_SNUBA_FIELDS, 'project.id'];
 

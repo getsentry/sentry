@@ -265,7 +265,7 @@ class JavascriptIntegrationTest(TestCase):
             'message': 'hello',
             'platform': 'javascript',
             'logentry': {
-                'message': u'ReferenceError: Impossible de d\xe9finir une propri\xe9t\xe9 \xab foo \xbb : objet non extensible'
+                'formatted': u'ReferenceError: Impossible de d\xe9finir une propri\xe9t\xe9 \xab foo \xbb : objet non extensible',
             },
             'exception': {
                 'values': [
@@ -287,7 +287,7 @@ class JavascriptIntegrationTest(TestCase):
         event = Event.objects.get()
 
         message = event.interfaces['logentry']
-        assert message.message == 'ReferenceError: Cannot define property \'foo\': object is not extensible'
+        assert message.formatted == 'ReferenceError: Cannot define property \'foo\': object is not extensible'
 
         exception = event.interfaces['exception']
         assert exception.values[0].value == 'Too many files'

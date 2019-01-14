@@ -1,6 +1,5 @@
 from __future__ import absolute_import
 
-import logging
 import sentry
 
 from django import template
@@ -12,12 +11,12 @@ from pkg_resources import parse_version
 from sentry import features, options
 from sentry.api.serializers.base import serialize
 from sentry.api.serializers.models.user import DetailedUserSerializer
-from sentry.models import ProjectKey
 from sentry.utils import auth, json
 from sentry.utils.email import is_smtp_enabled
 from sentry.utils.assets import get_asset_url
 from sentry.utils.functional import extract_lazy_object
 from sentry.utils.support import get_support_mail
+from sentry.templatetags.sentry_dsn import get_public_dsn
 
 register = template.Library()
 
@@ -61,17 +60,6 @@ def _needs_upgrade():
     return False
 
 
-def _get_public_dsn():
-    try:
-        projectkey = ProjectKey.objects.filter(
-            project=settings.SENTRY_FRONTEND_PROJECT or settings.SENTRY_PROJECT,
-        )[0]
-    except Exception:
-        logging.exception('Unable to fetch ProjectKey for internal project')
-        return
-    return projectkey.dsn_public
-
-
 def _get_statuspage():
     id = settings.STATUS_PAGE_ID
     if id is None:
@@ -84,6 +72,7 @@ def get_react_config(context):
     if 'request' in context:
         user = getattr(context['request'], 'user', None) or AnonymousUser()
         messages = get_messages(context['request'])
+        session = getattr(context['request'], 'session', None)
         try:
             is_superuser = context['request'].is_superuser()
         except AttributeError:
@@ -102,8 +91,6 @@ def get_react_config(context):
         enabled_features.append('organizations:create')
     if auth.has_user_registration():
         enabled_features.append('auth:register')
-    if features.has('user:assistant', actor=user):
-        enabled_features.append('assistant')
 
     version_info = _get_version_info()
 
@@ -120,7 +107,7 @@ def get_react_config(context):
         'features': enabled_features,
         'mediaUrl': get_asset_url('sentry', ''),
         'needsUpgrade': needs_upgrade,
-        'dsn': _get_public_dsn(),
+        'dsn': get_public_dsn(),
         'statuspage': _get_statuspage(),
         'messages': [{
             'message': msg.message,
@@ -131,6 +118,10 @@ def get_react_config(context):
         'gravatarBaseUrl': settings.SENTRY_GRAVATAR_BASE_URL,
         'termsUrl': settings.TERMS_URL,
         'privacyUrl': settings.PRIVACY_URL,
+        # Note `lastOrganization` should not be expected to update throughout frontend app lifecycle
+        # It should only be used on a fresh browser nav to a path where an
+        # organization is not in context
+        'lastOrganization': session['activeorg'] if session and 'activeorg' in session else None,
     }
     if user and user.is_authenticated():
         context.update({

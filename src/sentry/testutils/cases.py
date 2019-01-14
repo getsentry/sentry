@@ -436,12 +436,17 @@ class APITestCase(BaseTestCase, BaseAPITestCase):
     def get_response(self, *args, **params):
         if self.endpoint is None:
             raise Exception('Implement self.endpoint to use this method.')
-        url = self.endpoint.format(*args)
+        url = reverse(self.endpoint, args=args)
         return getattr(self.client, self.method)(
             url,
             format='json',
             data=params,
         )
+
+    def get_valid_response(self, *args, **params):
+        resp = self.get_response(*args, **params)
+        assert resp.status_code == 200, resp.content
+        return resp
 
 
 class TwoFactorAPITestCase(APITestCase):
@@ -469,12 +474,14 @@ class TwoFactorAPITestCase(APITestCase):
     def assert_can_enable_org_2fa(self, organization, user, status_code=200):
         self.__helper_enable_organization_2fa(organization, user, status_code)
 
-    def assert_cannot_enable_org_2fa(self, organization, user, status_code):
-        self.__helper_enable_organization_2fa(organization, user, status_code)
+    def assert_cannot_enable_org_2fa(self, organization, user, status_code, err_msg=None):
+        self.__helper_enable_organization_2fa(organization, user, status_code, err_msg)
 
-    def __helper_enable_organization_2fa(self, organization, user, status_code):
+    def __helper_enable_organization_2fa(self, organization, user, status_code, err_msg=None):
         response = self.api_enable_org_2fa(organization, user)
-        assert response.status_code == status_code, response.content
+        assert response.status_code == status_code
+        if err_msg:
+            assert err_msg in response.content
         organization = Organization.objects.get(id=organization.id)
 
         if status_code >= 200 and status_code < 300:
