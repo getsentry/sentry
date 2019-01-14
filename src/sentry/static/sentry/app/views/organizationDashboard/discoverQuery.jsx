@@ -30,10 +30,6 @@ class DiscoverQuery extends React.Component {
     // Query builders based on `queries`
     this.queryBuilders = [];
 
-    // Query builders for system generated queries
-    // e.g. when comparing to equivalent query but with different timeframe
-    this.systemQueryBuilders = [];
-
     this.createQueryBuilders();
   }
 
@@ -50,16 +46,9 @@ class DiscoverQuery extends React.Component {
   }
 
   createQueryBuilders() {
-    const {compareToPeriod, organization, queries} = this.props;
+    const {organization, queries} = this.props;
     queries.forEach(query => {
       this.queryBuilders.push(createQueryBuilder(this.getQuery(query), organization));
-
-      // Make sure this.queryBuilders.length === this.systemQueryBuilders.length
-      this.systemQueryBuilders.push(
-        compareToPeriod
-          ? createQueryBuilder(this.getQuery(query, compareToPeriod), organization)
-          : null
-      );
     });
   }
 
@@ -84,14 +73,10 @@ class DiscoverQuery extends React.Component {
   }
 
   resetQueries() {
-    const {compareToPeriod, queries} = this.props;
+    const {queries} = this.props;
     this.queryBuilders.forEach((builder, i) => {
       const query = queries[i];
       builder.reset(this.getQuery(query));
-
-      if (this.systemQueryBuilders[i]) {
-        this.systemQueryBuilders[i].reset(this.getQuery(query, compareToPeriod));
-      }
     });
   }
 
@@ -101,17 +86,12 @@ class DiscoverQuery extends React.Component {
 
     // Fetch
     const promises = this.queryBuilders.map(builder => builder.fetch());
-    const systemPromises = this.systemQueryBuilders.map(
-      builder => (builder ? builder.fetch() : null)
-    );
     let results = await Promise.all(promises);
-    let systemResults = await Promise.all(systemPromises);
     let previousData = null;
     let data = null;
 
     this.setState({
       results,
-      systemResults,
       data,
       previousData,
     });
@@ -123,7 +103,6 @@ class DiscoverQuery extends React.Component {
     return children({
       queries: this.queryBuilders.map(builder => builder.getInternal()),
       results: this.state.results,
-      systemResults: this.state.systemResults,
       data: this.state.data,
       previousData: this.state.previousData,
     });
