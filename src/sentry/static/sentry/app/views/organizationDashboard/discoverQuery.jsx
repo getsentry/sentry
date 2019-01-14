@@ -24,7 +24,6 @@ class DiscoverQuery extends React.Component {
 
     this.state = {
       results: null,
-      systemResults: null,
     };
 
     // Query builders based on `queries`
