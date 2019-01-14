@@ -91,6 +91,34 @@ class OrganizationDiscoverQueryTest(APITestCase, SnubaTestCase):
         assert response.data['data'][0]['message'] == 'message!'
         assert response.data['data'][0]['platform'] == 'python'
 
+    def test_invalid_date_request(self):
+        with self.feature('organizations:discover'):
+            url = reverse('sentry-api-0-organization-discover-query', args=[self.org.slug])
+            response = self.client.post(url, {
+                'projects': [self.project.id],
+                'fields': ['message', 'platform'],
+                'range': '1d',
+                'start': (datetime.now() - timedelta(seconds=10)).strftime('%Y-%m-%dT%H:%M:%S'),
+                'end': (datetime.now()).strftime('%Y-%m-%dT%H:%M:%S'),
+                'orderby': '-timestamp',
+            })
+
+        assert response.status_code == 400, response.content
+
+        with self.feature('organizations:discover'):
+            url = reverse('sentry-api-0-organization-discover-query', args=[self.org.slug])
+            response = self.client.post(url, {
+                'projects': [self.project.id],
+                'fields': ['message', 'platform'],
+                'statsPeriodStart': '7d',
+                'statsPeriodEnd': '1d',
+                'start': (datetime.now() - timedelta(seconds=10)).strftime('%Y-%m-%dT%H:%M:%S'),
+                'end': (datetime.now()).strftime('%Y-%m-%dT%H:%M:%S'),
+                'orderby': '-timestamp',
+            })
+
+        assert response.status_code == 400, response.content
+
     def test_invalid_range_value(self):
         with self.feature('organizations:discover'):
             url = reverse('sentry-api-0-organization-discover-query', args=[self.org.slug])

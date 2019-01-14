@@ -32,8 +32,8 @@ class DiscoverQuerySerializer(serializers.Serializer):
         required=True,
         allow_null=False,
     )
-    start = serializers.DateTimeField(required=False)
-    end = serializers.DateTimeField(required=False)
+    start = serializers.CharField(required=False)
+    end = serializers.CharField(required=False)
     range = serializers.CharField(required=False)
     statsPeriod = serializers.CharField(required=False)
     statsPeriodStart = serializers.CharField(required=False)
@@ -87,18 +87,22 @@ class DiscoverQuerySerializer(serializers.Serializer):
     def validate(self, data):
         data['arrayjoin'] = self.arrayjoin
 
-        if data.get('start') or data.get('end'):
-            if not all([data.get('start'), data.get('end')]):
-                raise InvalidParams('start and end are both required')
-            return data
+        # prevent conflicting date ranges from being supplied
+        date_fields = ['start', 'statsPeriod', 'range', 'statsPeriodStart']
+        date_fields_provided = len([data.get(f) for f in date_fields if data.get(f) is not None])
+        if date_fields_provided == 0:
+            raise serializers.ValidationError('You must specify a date filter')
+        elif date_fields_provided > 1:
+            raise serializers.ValidationError('Conflicting date filters supplied')
 
-        # Populate start and end if they weren't directly provided
         try:
             start, end = get_date_range_from_params({
+                'start': data.get('start'),
+                'end': data.get('end'),
                 'statsPeriod': data.get('statsPeriod') or data.get('range'),
                 'statsPeriodStart': data.get('statsPeriodStart'),
                 'statsPeriodEnd': data.get('statsPeriodEnd'),
-            }, optional=True)
+            }, optional=True, validate_window=False)
         except InvalidParams as exc:
             raise serializers.ValidationError(exc.message)
 
