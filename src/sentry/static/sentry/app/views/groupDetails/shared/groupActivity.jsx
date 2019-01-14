@@ -28,12 +28,13 @@ class GroupActivityItem extends React.Component {
   static propTypes = {
     author: PropTypes.node,
     item: PropTypes.object,
+    orgId: PropTypes.string,
+    projectId: PropTypes.string,
   };
 
   render() {
-    let {author, item, params} = this.props;
+    let {author, item, orgId, projectId} = this.props;
     let {data} = item;
-    let {orgId, projectId} = params;
 
     switch (item.type) {
       case 'note':
@@ -290,7 +291,8 @@ const GroupActivity = createReactClass({
                     </span>
                   }
                   item={item}
-                  params={this.props.params}
+                  orgId={this.props.params.orgId}
+                  projectId={group.project.slug}
                 />
               </ErrorBoundary>
             </div>
