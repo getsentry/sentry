@@ -11,6 +11,7 @@ from sentry.api.bases import OrganizationEventsEndpointBase
 from sentry.api.helpers.group_search import build_query_params_from_request, get_by_short_id, ValidationError
 from sentry.api.serializers import serialize
 from sentry.api.serializers.models.group import StreamGroupSerializerSnuba
+from sentry.api.utils import get_date_range_from_params, InvalidParams
 from sentry.models import Environment, Group, GroupStatus, Project
 from sentry.search.snuba.backend import SnubaSearchBackend
 
@@ -109,6 +110,7 @@ class OrganizationGroupIndexEndpoint(OrganizationEventsEndpointBase):
         if not project_ids:
             return Response([])
 
+        # we ignore date range for both short id and event ids
         query = request.GET.get('query', '').strip()
         if query:
             # check to see if we've got an event ID
@@ -136,8 +138,17 @@ class OrganizationGroupIndexEndpoint(OrganizationEventsEndpointBase):
                     return response
 
         try:
+            start, end = get_date_range_from_params(request.GET)
+        except InvalidParams as exc:
+            return Response({'detail': exc.message}, status=400)
+
+        try:
             cursor_result, query_kwargs = self._search(
-                request, organization, project_ids, environments, {'count_hits': True})
+                request, organization, project_ids, environments, {
+                    'count_hits': True,
+                    'date_to': end,
+                    'date_from': start,
+                })
         except ValidationError as exc:
             return Response({'detail': six.text_type(exc)}, status=400)
 
