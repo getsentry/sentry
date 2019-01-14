@@ -5,7 +5,7 @@ exports[`OrganizationDetails render() deletion in progress should render a delet
   class="app"
 >
   <div
-    class="css-11c8i4p-StyledSidebar-responsiveFlex e1sgxx350"
+    class="css-5cf61n-StyledSidebar-responsiveFlex e1sgxx350"
   >
     <div
       class="css-1uxlgm0-SidebarSectionGroup-responsiveFlex e1sgxx351"
@@ -481,7 +481,7 @@ exports[`OrganizationDetails render() pending deletion should render a restorati
   class="app"
 >
   <div
-    class="css-11c8i4p-StyledSidebar-responsiveFlex e1sgxx350"
+    class="css-5cf61n-StyledSidebar-responsiveFlex e1sgxx350"
   >
     <div
       class="css-1uxlgm0-SidebarSectionGroup-responsiveFlex e1sgxx351"
@@ -984,7 +984,7 @@ exports[`OrganizationDetails render() pending deletion should render a restorati
   class="app"
 >
   <div
-    class="css-11c8i4p-StyledSidebar-responsiveFlex e1sgxx350"
+    class="css-5cf61n-StyledSidebar-responsiveFlex e1sgxx350"
   >
     <div
       class="css-1uxlgm0-SidebarSectionGroup-responsiveFlex e1sgxx351"
