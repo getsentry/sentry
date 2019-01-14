@@ -214,7 +214,7 @@ class SnubaSearchBackend(ds.DjangoSearchBackend):
                 group_queryset = group_queryset.order_by('-last_seen')
                 paginator = DateTimePaginator(group_queryset, '-last_seen', **paginator_options)
                 # When its a simple django-only search, we count_hits like normal
-                return paginator.get_result(limit, cursor, count_hits=True)
+                return paginator.get_result(limit, cursor, count_hits=count_hits)
 
         # TODO: Presumably we only want to search back to the project's max
         # retention date, which may be closer than 90 days in the past, but
@@ -283,6 +283,7 @@ class SnubaSearchBackend(ds.DjangoSearchBackend):
         chunk_limit = limit
         offset = 0
         num_chunks = 0
+        hits = None
 
         paginator_results = EMPTY_RESULT
         result_groups = []
@@ -291,9 +292,7 @@ class SnubaSearchBackend(ds.DjangoSearchBackend):
         max_time = options.get('snuba.search.max-total-chunk-time-seconds')
         time_start = time.time()
 
-        hits = 0
-
-        if candidate_ids is None:
+        if count_hits and candidate_ids is None:
             # If we have no candidates, get a random sample of groups matching
             # the snuba side of the query, and see how many of those pass the
             # post-filter in postgres. This should give us an estimate of the
@@ -366,7 +365,8 @@ class SnubaSearchBackend(ds.DjangoSearchBackend):
                 # the candidate_ids, we know we got all of them (ie there are
                 # no more chunks after the first)
                 result_groups = snuba_groups
-                hits = len(snuba_groups)
+                if count_hits:
+                    hits = len(snuba_groups)
             else:
                 # pre-filtered candidates were *not* passed down to Snuba,
                 # so we need to do post-filtering to verify Sentry DB predicates
@@ -387,17 +387,18 @@ class SnubaSearchBackend(ds.DjangoSearchBackend):
                     result_group_ids.add(group_id)
                     result_groups.append((group_id, group_score))
 
-                if not more_results:
-                    # We know we have got all possible groups from snuba and filtered
-                    # them all down, so we have all hits.
-                    # TODO this probably doesn't work because we could be on page N
-                    # and not be including hits from previous pages.
-                    hits = len(result_groups)
-                else:
-                    # We also could have underestimated hits from our sample and have
-                    # already seen more hits than the estimate, so make sure hits is
-                    # at least as big as what we have seen.
-                    hits = max(hits, len(result_groups))
+                if count_hits:
+                    if not more_results:
+                        # We know we have got all possible groups from snuba and filtered
+                        # them all down, so we have all hits.
+                        # TODO this probably doesn't work because we could be on page N
+                        # and not be including hits from previous pages.
+                        hits = len(result_groups)
+                    else:
+                        # We also could have underestimated hits from our sample and have
+                        # already seen more hits than the estimate, so make sure hits is
+                        # at least as big as what we have seen.
+                        hits = max(hits, len(result_groups))
 
             # TODO do we actually have to rebuild this SequencePaginator every time
             # or can we just make it after we've broken out of the loop?
@@ -511,12 +512,12 @@ def snuba_search(start, end, project_ids, environment_ids, tags,
         selected_columns.append(('any', ('rand', ()), 'sample'))
         sort_field = 'sample'
         orderby = [sort_field]
-        referrer='search_sample',
+        referrer='search_sample'
     else:
         # Get the top matching groups by score, i.e. the actual search results
         # in the order that we want them.
         orderby = ['-{}'.format(sort_field), 'issue']  # ensure stable sort within the same score
-        referrer = 'search',
+        referrer = 'search'
 
     snuba_results = snuba.raw_query(
         start=start,
