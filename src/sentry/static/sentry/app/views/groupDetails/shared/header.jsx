@@ -25,6 +25,7 @@ const GroupHeader = createReactClass({
   propTypes: {
     group: SentryTypes.Group.isRequired,
     project: SentryTypes.Project,
+    params: PropTypes.object,
   },
 
   contextTypes: {
@@ -70,7 +71,7 @@ const GroupHeader = createReactClass({
   },
 
   render() {
-    let {project, group} = this.props;
+    let {project, group, params} = this.props;
     let projectFeatures = new Set(project ? project.features : []);
     let userCount = group.userCount;
 
@@ -90,11 +91,14 @@ const GroupHeader = createReactClass({
     }
 
     let groupId = group.id;
-    let projectId = group.project.slug;
     let orgId = this.context.organization.slug;
     let message = this.getMessage();
 
     let hasSimilarView = projectFeatures.has('similarity-view');
+
+    let baseUrl = params.projectId
+      ? `/${orgId}/${params.projectId}/issues/`
+      : `/organizations/${orgId}/issues/`;
 
     return (
       <div className={className}>
@@ -110,7 +114,7 @@ const GroupHeader = createReactClass({
                 <span className="event-annotation">
                   <Link
                     to={{
-                      pathname: `/${orgId}/${projectId}/`,
+                      pathname: baseUrl,
                       query: {query: 'logger:' + group.logger},
                     }}
                   >
@@ -153,14 +157,14 @@ const GroupHeader = createReactClass({
               )}
               <div className="count align-right">
                 <h6 className="nav-header">{t('Events')}</h6>
-                <Link to={`/${orgId}/${projectId}/issues/${groupId}/events/`}>
+                <Link to={`${baseUrl}${groupId}/events/`}>
                   <Count className="count" value={group.count} />
                 </Link>
               </div>
               <div className="count align-right">
                 <h6 className="nav-header">{t('Users')}</h6>
                 {userCount !== 0 ? (
-                  <Link to={`/${orgId}/${projectId}/issues/${groupId}/tags/user/`}>
+                  <Link to={`${baseUrl}${groupId}/tags/user/`}>
                     <Count className="count" value={userCount} />
                   </Link>
                 ) : (
@@ -178,9 +182,9 @@ const GroupHeader = createReactClass({
         <GroupActions group={group} project={project} />
         <NavTabs>
           <ListLink
-            to={`/${orgId}/${projectId}/issues/${groupId}/`}
+            to={`${baseUrl}${groupId}/`}
             isActive={() => {
-              let rootGroupPath = `/${orgId}/${projectId}/issues/${groupId}/`;
+              let rootGroupPath = `${baseUrl}${groupId}/`;
               let pathname = this.context.location.pathname;
 
               // Because react-router 1.0 removes router.isActive(route)
@@ -189,24 +193,18 @@ const GroupHeader = createReactClass({
           >
             {t('Details')}
           </ListLink>
-          <ListLink to={`/${orgId}/${projectId}/issues/${groupId}/activity/`}>
+          <ListLink to={`${baseUrl}${groupId}/activity/`}>
             {t('Comments')} <span className="badge animated">{group.numComments}</span>
           </ListLink>
-          <ListLink to={`/${orgId}/${projectId}/issues/${groupId}/feedback/`}>
+          <ListLink to={`${baseUrl}${groupId}/feedback/`}>
             {t('User Feedback')}{' '}
             <span className="badge animated">{group.userReportCount}</span>
           </ListLink>
-          <ListLink to={`/${orgId}/${projectId}/issues/${groupId}/tags/`}>
-            {t('Tags')}
-          </ListLink>
-          <ListLink to={`/${orgId}/${projectId}/issues/${groupId}/events/`}>
-            {t('Events')}
-          </ListLink>
-          <ListLink to={`/${orgId}/${projectId}/issues/${groupId}/merged/`}>
-            {t('Merged')}
-          </ListLink>
+          <ListLink to={`${baseUrl}${groupId}/tags/`}>{t('Tags')}</ListLink>
+          <ListLink to={`${baseUrl}${groupId}/events/`}>{t('Events')}</ListLink>
+          <ListLink to={`${baseUrl}${groupId}/merged/`}>{t('Merged')}</ListLink>
           {hasSimilarView && (
-            <ListLink to={`/${orgId}/${projectId}/issues/${groupId}/similar/`}>
+            <ListLink to={`${baseUrl}${groupId}/similar/`}>
               {t('Similar Issues')}
             </ListLink>
           )}

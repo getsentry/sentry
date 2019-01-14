@@ -199,7 +199,7 @@ const GroupDetails = createReactClass({
     return (
       <DocumentTitle title={this.getTitle()}>
         <div className={this.props.className}>
-          <GroupHeader orgId={params.orgId} project={project} group={group} />
+          <GroupHeader params={params} project={project} group={group} />
           {React.cloneElement(this.props.children, {
             group,
             project,
