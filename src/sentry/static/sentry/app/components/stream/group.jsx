@@ -29,6 +29,7 @@ const StreamGroup = createReactClass({
     canSelect: PropTypes.bool,
     query: PropTypes.string,
     hasGuideAnchor: PropTypes.bool,
+    memberList: PropTypes.array,
   },
 
   mixins: [Reflux.listenTo(GroupStore, 'onGroupChange'), ProjectState],
@@ -86,7 +87,7 @@ const StreamGroup = createReactClass({
 
   render() {
     const {data} = this.state;
-    const {id, orgId, query, hasGuideAnchor, canSelect} = this.props;
+    const {id, orgId, query, hasGuideAnchor, canSelect, memberList} = this.props;
     const projectId = data.project.slug;
 
     return (
@@ -124,7 +125,7 @@ const StreamGroup = createReactClass({
           <StyledCount value={data.userCount} />
         </Flex>
         <Box w={80} mx={2} className="hidden-xs hidden-sm">
-          <AssigneeSelector id={data.id} />
+          <AssigneeSelector id={data.id} memberList={memberList} />
         </Box>
       </Group>
     );

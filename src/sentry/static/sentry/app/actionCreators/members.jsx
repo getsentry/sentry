@@ -1,5 +1,10 @@
 import MemberActions from 'app/actions/memberActions';
 
+export function fetchOrgMembers(api, orgId) {
+  let endpoint = `/organizations/${orgId}/users/`;
+  return api.requestPromise(endpoint, {method: 'GET'});
+}
+
 export function updateMember(api, params) {
   MemberActions.update(params.memberId, params.data);
 
