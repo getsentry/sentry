@@ -1083,7 +1083,7 @@ function routes() {
             <Route
               path="activity/"
               componentPromise={() =>
-                import(/* webpackChunkName: "GroupActivity" */ './views/groupDetails/project/groupActivity')}
+                import(/* webpackChunkName: "GroupActivity" */ './views/groupDetails/shared/groupActivity')}
               component={errorHandler(LazyLoad)}
             />
 
