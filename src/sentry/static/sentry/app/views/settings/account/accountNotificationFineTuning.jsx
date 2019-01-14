@@ -62,6 +62,7 @@ const ACCOUNT_NOTIFICATION_FIELDS = {
       "Reports contain a summary of what's happened within the organization."
     ),
     type: 'select',
+    defaultValue: 1,
     choices: [[1, t('On')], [0, t('Off')]],
     defaultFieldName: 'weeklyReports',
   },
