@@ -92,6 +92,13 @@ class Search extends React.Component {
 
     if (!to) return;
 
+    if (to.startsWith('http')) {
+      const open = window.open();
+      open.opener = null;
+      open.location = to;
+      return;
+    }
+
     let {params, router} = this.props;
     let nextPath = replaceRouterParams(to, params);
 
