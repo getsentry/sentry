@@ -40,6 +40,8 @@ def load_defaults():
     default_manager.register(models.ApiToken, BulkModelDeletionTask)
     default_manager.register(models.CommitAuthor, BulkModelDeletionTask)
     default_manager.register(models.CommitFileChange, BulkModelDeletionTask)
+    # TODO(lb): Create a defaults.DashboardDeletionTask
+    default_manager.register(models.Dashboard, ModelDeletionTask)
     default_manager.register(models.DiscoverSavedQuery, BulkModelDeletionTask)
     default_manager.register(models.DiscoverSavedQueryProject, BulkModelDeletionTask)
     default_manager.register(models.EnvironmentProject, BulkModelDeletionTask)
@@ -77,6 +79,10 @@ def load_defaults():
     default_manager.register(models.SavedSearchUserDefault, BulkModelDeletionTask)
     default_manager.register(models.Team, defaults.TeamDeletionTask)
     default_manager.register(models.UserReport, BulkModelDeletionTask)
+    # TODO(lb): Create a defaults.DashboardDeletionTask
+    default_manager.register(models.Widget, ModelDeletionTask)
+    # TODO(lb): Create a defaults.DashboardDeletionTask
+    default_manager.register(models.WidgetDataSource, BulkModelDeletionTask)
 
 
 load_defaults()
