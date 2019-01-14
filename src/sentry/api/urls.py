@@ -79,8 +79,9 @@ from .endpoints.organization_member_unreleased_commits import OrganizationMember
 from .endpoints.organization_member_team_details import OrganizationMemberTeamDetailsEndpoint
 from .endpoints.organization_onboarding_tasks import OrganizationOnboardingTaskEndpoint
 from .endpoints.organization_index import OrganizationIndexEndpoint
-from .endpoints.organization_projects import OrganizationProjectsEndpoint
 from .endpoints.organization_plugins import OrganizationPluginsEndpoint
+from .endpoints.organization_processingissues import OrganizationProcessingIssuesEndpoint
+from .endpoints.organization_projects import OrganizationProjectsEndpoint
 from .endpoints.organization_releases import OrganizationReleasesEndpoint
 from .endpoints.organization_release_details import OrganizationReleaseDetailsEndpoint
 from .endpoints.organization_release_files import OrganizationReleaseFilesEndpoint
@@ -581,6 +582,11 @@ urlpatterns = patterns(
         r'^organizations/(?P<organization_slug>[^\/]+)/members/(?P<member_id>[^\/]+)/teams/(?P<team_slug>[^\/]+)/$',
         OrganizationMemberTeamDetailsEndpoint.as_view(),
         name='sentry-api-0-organization-member-team-details'
+    ),
+    url(
+        r'^organizations/(?P<organization_slug>[^\/]+)/processingissues/$',
+        OrganizationProcessingIssuesEndpoint.as_view(),
+        name='sentry-api-0-organization-processing-issues'
     ),
     url(
         r'^organizations/(?P<organization_slug>[^\/]+)/projects/$',

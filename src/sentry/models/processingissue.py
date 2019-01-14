@@ -59,6 +59,13 @@ class ProcessingIssueManager(BaseManager):
         ReprocessingReport.objects \
             .filter(project_id=project.id).delete()
 
+    def find_resolved_queryset(self, project_ids):
+        from sentry.models import RawEvent
+        return RawEvent.objects.filter(
+            project_id__in=project_ids,
+            eventprocessingissue__isnull=True,
+        )
+
     def find_resolved(self, project_id, limit=100):
         """Returns a list of raw events that generally match the given
         processing issue and no longer have any issues remaining.  Returns
@@ -66,11 +73,7 @@ class ProcessingIssueManager(BaseManager):
         if there are more.
         """
         from sentry.models import RawEvent
-        rv = list(
-            RawEvent.objects.filter(project_id=project_id)
-            .annotate(eventissue_count=Count('eventprocessingissue'))
-            .filter(eventissue_count=0)[:limit]
-        )
+        rv = list(self.find_resolved_queryset([project_id])[:limit])
         if len(rv) > limit:
             rv = rv[:limit]
             has_more = True
