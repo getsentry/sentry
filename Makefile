@@ -151,7 +151,7 @@ lint-js:
 	@echo ""
 
 publish:
-	python setup.py sdist bdist_wheel
+	python setup.py sdist bdist_wheel upload
 
 
 .PHONY: develop develop-only test build test reset-db clean setup-git update-submodules node-version-check install-system-pkgs install-yarn-pkgs install-sentry-dev build-js-po locale update-transifex build-platform-assets test-cli test-js test-styleguide test-python test-snuba test-acceptance lint lint-python lint-js publish
