@@ -72,7 +72,6 @@ default_manager.add('organizations:sso-saml2', OrganizationFeature)  # NOQA
 default_manager.add('organizations:suggested-commits', OrganizationFeature)  # NOQA
 default_manager.add('organizations:unreleased-changes', OrganizationFeature)  # NOQA
 default_manager.add('organizations:gitlab-integration', OrganizationFeature)  # NOQA
-default_manager.add('organizations:jira-server-integration', OrganizationFeature)  # NOQA
 default_manager.add('organizations:large-debug-files', OrganizationFeature)  # NOQA
 default_manager.add('organizations:legacy-event-id', OrganizationFeature)  # NOQA
 

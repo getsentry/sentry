@@ -802,8 +802,6 @@ SENTRY_FEATURES = {
     'organizations:internal-catchall': False,
     # Enable inviting members to organizations.
     'organizations:invite-members': True,
-    # Enable jira server integration currently available to internal users only.
-    'organizations:jira-server-integration': False,
 
     # DEPRECATED: pending removal.
     'organizations:js-loader': False,
