@@ -4,6 +4,7 @@ from django.db import IntegrityError, transaction
 from sentry.api.base import DocSection
 from sentry.api.bases.organization import OrganizationEndpoint
 from sentry.api.bases.dashboard import DashboardSerializer
+from sentry.api.paginator import OffsetPaginator
 from sentry.api.serializers import serialize
 from sentry.models import Dashboard
 from rest_framework.response import Response
@@ -31,8 +32,13 @@ class OrganizationDashboardsEndpoint(OrganizationEndpoint):
                 title__icontains=query,
             )
 
-        context = serialize(list(dashboards), request.user)
-        return Response(context)
+        return self.paginate(
+            request=request,
+            queryset=dashboards,
+            order_by='title',
+            paginator_cls=OffsetPaginator,
+            on_results=lambda x: serialize(x, request.user),
+        )
 
     def post(self, request, organization):
         serializer = DashboardSerializer(data=request.DATA, context={'organization': organization})

@@ -18,12 +18,12 @@ class OrganizationDashboardsTest(APITestCase):
     def test_get(self):
         Dashboard.objects.create(
             title='Dashboard 1',
-            owner=self.user,
+            created_by=self.user,
             organization=self.organization,
         )
         Dashboard.objects.create(
             title='Dashboard 2',
-            owner=self.user,
+            created_by=self.user,
             organization=self.organization,
             data={'stuff': 'stuff'}
         )
@@ -35,13 +35,13 @@ class OrganizationDashboardsTest(APITestCase):
         assert response.data[1]['id'] == '1'
         assert response.data[1]['organization'] == '2'
         assert response.data[1]['title'] == 'Dashboard 1'
-        assert response.data[1]['owner'] == self.user.id
+        assert response.data[1]['created_by'] == self.user.id
         assert response.data[1]['data'] == {}
 
         assert response.data[0]['id'] == '2'
         assert response.data[0]['organization'] == '2'
         assert response.data[0]['title'] == 'Dashboard 2'
-        assert response.data[0]['owner'] == self.user.id
+        assert response.data[0]['created_by'] == self.user.id
         assert response.data[0]['data'] == {'stuff': 'stuff'}
 
     def test_post(self):
