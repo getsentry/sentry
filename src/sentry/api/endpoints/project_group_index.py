@@ -235,11 +235,8 @@ class ProjectGroupIndexEndpoint(ProjectEndpoint, EnvironmentMixin):
 
     permission_classes = (ProjectEventPermission, )
 
-    def _build_query_params_from_request(self, request, project):
-        return build_query_params_from_request(request, [project])
-
     def _search(self, request, project, extra_query_kwargs=None):
-        query_kwargs = self._build_query_params_from_request(request, project)
+        query_kwargs = build_query_params_from_request(request, [project])
         if extra_query_kwargs is not None:
             assert 'environment' not in extra_query_kwargs
             query_kwargs.update(extra_query_kwargs)
