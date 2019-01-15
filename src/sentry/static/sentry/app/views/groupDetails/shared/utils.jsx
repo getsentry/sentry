@@ -32,3 +32,11 @@ export function fetchGroupEventAndMarkSeen(orgId, projectId, groupId, eventId) {
 
   return promise;
 }
+
+export function fetchGroupUserReports(groupId, query) {
+  const api = new Client();
+
+  return api.requestPromise(`/issues/${groupId}/user-reports/`, {
+    query,
+  });
+}
