@@ -69,6 +69,7 @@ class OrganizationDiscoverQueryTest(APITestCase, SnubaTestCase):
                 'start': (datetime.now() - timedelta(seconds=10)).strftime('%Y-%m-%dT%H:%M:%S'),
                 'end': (datetime.now()).strftime('%Y-%m-%dT%H:%M:%S'),
                 'orderby': '-timestamp',
+                'range': None,
             })
 
         assert response.status_code == 200, response.content
@@ -84,6 +85,8 @@ class OrganizationDiscoverQueryTest(APITestCase, SnubaTestCase):
                 'fields': ['message', 'platform'],
                 'range': '1d',
                 'orderby': '-timestamp',
+                'start': None,
+                'end': None,
             })
 
         assert response.status_code == 200, response.content
@@ -127,6 +130,8 @@ class OrganizationDiscoverQueryTest(APITestCase, SnubaTestCase):
                 'fields': ['message', 'platform'],
                 'range': '1x',
                 'orderby': '-timestamp',
+                'start': None,
+                'end': None,
             })
 
         assert response.status_code == 400, response.content
@@ -140,6 +145,8 @@ class OrganizationDiscoverQueryTest(APITestCase, SnubaTestCase):
                 'aggregations': [['test', 'test', 'test']],
                 'range': '14d',
                 'orderby': '-timestamp',
+                'start': None,
+                'end': None,
             })
 
         assert response.status_code == 400, response.content
@@ -154,6 +161,7 @@ class OrganizationDiscoverQueryTest(APITestCase, SnubaTestCase):
                 'start': (datetime.now() - timedelta(seconds=10)).strftime('%Y-%m-%dT%H:%M:%S'),
                 'end': (datetime.now()).strftime('%Y-%m-%dT%H:%M:%S'),
                 'orderby': '-timestamp',
+                'range': None,
             })
 
         assert response.status_code == 200, response.content
@@ -170,6 +178,7 @@ class OrganizationDiscoverQueryTest(APITestCase, SnubaTestCase):
                 'start': (datetime.now() - timedelta(seconds=10)).strftime('%Y-%m-%dT%H:%M:%S'),
                 'end': (datetime.now() + timedelta(seconds=10)).strftime('%Y-%m-%dT%H:%M:%S'),
                 'orderby': '-timestamp',
+                'range': None,
             })
         assert response.status_code == 200, response.content
         assert len(response.data['data']) == 1
@@ -185,6 +194,7 @@ class OrganizationDiscoverQueryTest(APITestCase, SnubaTestCase):
                 'start': (datetime.now() - timedelta(seconds=10)).strftime('%Y-%m-%dT%H:%M:%S'),
                 'end': (datetime.now()).strftime('%Y-%m-%dT%H:%M:%S'),
                 'orderby': '-timestamp',
+                'range': None,
             })
         assert response.status_code == 200, response.content
         assert len(response.data['data']) == 1
@@ -199,6 +209,7 @@ class OrganizationDiscoverQueryTest(APITestCase, SnubaTestCase):
                 'start': (datetime.now() - timedelta(seconds=10)).strftime('%Y-%m-%dT%H:%M:%S'),
                 'end': (datetime.now()).strftime('%Y-%m-%dT%H:%M:%S'),
                 'orderby': '-timestamp',
+                'range': None,
             })
 
         assert response.status_code == 200, response.content
@@ -212,6 +223,8 @@ class OrganizationDiscoverQueryTest(APITestCase, SnubaTestCase):
                 'fields': ['project.name'],
                 'range': '14d',
                 'orderby': '-timestamp',
+                'start': None,
+                'end': None,
             })
         assert response.status_code == 200, response.content
         assert len(response.data['data']) == 1
@@ -226,6 +239,8 @@ class OrganizationDiscoverQueryTest(APITestCase, SnubaTestCase):
                 'fields': ['project.name'],
                 'range': '14d',
                 'orderby': '-count',
+                'start': None,
+                'end': None,
             })
         assert response.status_code == 200, response.content
         assert len(response.data['data']) == 1
@@ -243,6 +258,8 @@ class OrganizationDiscoverQueryTest(APITestCase, SnubaTestCase):
                 'orderby': 'time',
                 'range': '5d',
                 'rollup': 86400,
+                'start': None,
+                'end': None,
             })
         assert response.status_code == 200, response.content
         assert len(response.data['data']) == 6
@@ -262,6 +279,7 @@ class OrganizationDiscoverQueryTest(APITestCase, SnubaTestCase):
                 'start': (self.now - timedelta(seconds=300)).strftime('%Y-%m-%dT%H:%M:%S'),
                 'end': self.now.strftime('%Y-%m-%dT%H:%M:%S'),
                 'rollup': 60,
+                'range': None,
             })
 
         assert response.status_code == 200, response.content
@@ -278,6 +296,8 @@ class OrganizationDiscoverQueryTest(APITestCase, SnubaTestCase):
                 'aggregations': [['uniq', 'project.name', 'uniq_project_name']],
                 'range': '14d',
                 'orderby': '-uniq_project_name',
+                'start': None,
+                'end': None,
             })
         assert response.status_code == 200, response.content
         assert len(response.data['data']) == 1
@@ -292,6 +312,8 @@ class OrganizationDiscoverQueryTest(APITestCase, SnubaTestCase):
                 'aggregations': [['count()', '', 'count']],
                 'range': '14d',
                 'orderby': '-count',
+                'start': None,
+                'end': None,
             })
         assert response.status_code == 200, response.content
         assert response.data['meta'] == [
@@ -307,6 +329,8 @@ class OrganizationDiscoverQueryTest(APITestCase, SnubaTestCase):
             'fields': ['message', 'platform'],
             'range': '14d',
             'orderby': '-timestamp',
+            'start': None,
+            'end': None,
         })
 
         assert response.status_code == 404, response.content
@@ -320,6 +344,8 @@ class OrganizationDiscoverQueryTest(APITestCase, SnubaTestCase):
                 'fields': ['message', 'platform'],
                 'range': '14d',
                 'orderby': '-timestamp',
+                'start': None,
+                'end': None,
             })
 
         assert response.status_code == 403, response.content
