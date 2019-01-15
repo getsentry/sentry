@@ -152,12 +152,12 @@ class GetProjectIdsTest(BaseOrganizationEndpointTest):
         request_args = {}
         if project_ids:
             request_args['project'] = project_ids
-        result = self.endpoint.get_project_ids(
+        result = self.endpoint.get_projects(
             self.build_request(user=user, active_superuser=active_superuser, **request_args),
             self.org,
             include_allow_joinleave=include_allow_joinleave,
         )
-        assert set([p.id for p in expected_projects]) == set(result)
+        assert set([p.id for p in expected_projects]) == set(p.id for p in result)
 
     def test_no_ids_no_teams(self):
         # Should get nothing if not part of the org
@@ -218,11 +218,11 @@ class GetProjectIdsTest(BaseOrganizationEndpointTest):
     def test_none_user(self):
         request = RequestFactory().get('/')
         request.session = {}
-        result = self.endpoint.get_project_ids(request, self.org)
+        result = self.endpoint.get_projects(request, self.org)
         assert [] == result
 
         request.user = None
-        result = self.endpoint.get_project_ids(request, self.org)
+        result = self.endpoint.get_projects(request, self.org)
         assert [] == result
 
 

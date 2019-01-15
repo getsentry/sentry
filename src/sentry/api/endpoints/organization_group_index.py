@@ -12,7 +12,7 @@ from sentry.api.helpers.group_search import build_query_params_from_request, get
 from sentry.api.serializers import serialize
 from sentry.api.serializers.models.group import StreamGroupSerializerSnuba
 from sentry.api.utils import get_date_range_from_params, InvalidParams
-from sentry.models import Environment, Group, GroupStatus, Project
+from sentry.models import Environment, Group, GroupStatus
 from sentry.search.snuba.backend import SnubaSearchBackend
 
 
@@ -24,17 +24,11 @@ search = SnubaSearchBackend(**settings.SENTRY_SEARCH_OPTIONS)
 
 class OrganizationGroupIndexEndpoint(OrganizationEventsEndpointBase):
 
-    def _build_query_params_from_request(self, request, organization, project_ids):
-        projects = list(
-            Project.objects.filter(
-                id__in=project_ids,
-                organization=organization,
-            )
-        )
+    def _build_query_params_from_request(self, request, organization, projects):
         return build_query_params_from_request(request, projects)
 
-    def _search(self, request, organization, project_ids, environments, extra_query_kwargs=None):
-        query_kwargs = self._build_query_params_from_request(request, organization, project_ids)
+    def _search(self, request, organization, projects, environments, extra_query_kwargs=None):
+        query_kwargs = self._build_query_params_from_request(request, organization, projects)
         if extra_query_kwargs is not None:
             assert 'environment' not in extra_query_kwargs
             query_kwargs.update(extra_query_kwargs)
@@ -105,9 +99,10 @@ class OrganizationGroupIndexEndpoint(OrganizationEventsEndpointBase):
             stats_period=stats_period,
         )
 
-        project_ids = self.get_project_ids(request, organization)
+        projects = self.get_projects(request, organization)
+        project_ids = [p.id for p in projects]
 
-        if not project_ids:
+        if not projects:
             return Response([])
 
         # we ignore date range for both short id and event ids
@@ -144,7 +139,7 @@ class OrganizationGroupIndexEndpoint(OrganizationEventsEndpointBase):
 
         try:
             cursor_result, query_kwargs = self._search(
-                request, organization, project_ids, environments, {
+                request, organization, projects, environments, {
                     'count_hits': True,
                     'date_to': end,
                     'date_from': start,

@@ -112,7 +112,7 @@ class OrganizationUserReportsPermission(OrganizationPermission):
 class OrganizationEndpoint(Endpoint):
     permission_classes = (OrganizationPermission, )
 
-    def get_project_ids(
+    def get_projects(
         self,
         request,
         organization,
@@ -167,12 +167,13 @@ class OrganizationEndpoint(Endpoint):
         if project_ids:
             qs = qs.filter(id__in=project_ids)
 
-        project_ids = set(qs.values_list('id', flat=True))
+        projects = list(qs)
+        project_ids = set(p.id for p in projects)
 
         if requested_projects and project_ids != requested_projects:
             raise PermissionDenied
 
-        return list(project_ids)
+        return projects
 
     def get_environments(self, request, organization):
         requested_environments = set(request.GET.getlist('environment'))
@@ -217,18 +218,18 @@ class OrganizationEndpoint(Endpoint):
             raise OrganizationEventsError(exc.message)
 
         try:
-            project_ids = self.get_project_ids(request, organization)
+            projects = self.get_projects(request, organization)
         except ValueError:
             raise OrganizationEventsError('Invalid project ids')
 
-        if not project_ids:
+        if not projects:
             raise NoProjects
 
         environments = [e.name for e in self.get_environments(request, organization)]
         params = {
             'start': start,
             'end': end,
-            'project_id': project_ids,
+            'project_id': [p.id for p in projects],
         }
         if environments:
             params['environment'] = environments
@@ -262,7 +263,7 @@ class OrganizationEndpoint(Endpoint):
 class OrganizationReleasesBaseEndpoint(OrganizationEndpoint):
     permission_classes = (OrganizationReleasePermission, )
 
-    def get_project_ids(self, request, organization):
+    def get_projects(self, request, organization):
         has_valid_api_key = False
         if isinstance(request.auth, ApiKey):
             if request.auth.organization_id != organization.id:
@@ -276,7 +277,7 @@ class OrganizationReleasesBaseEndpoint(OrganizationEndpoint):
         ):
             return []
 
-        return super(OrganizationReleasesBaseEndpoint, self).get_project_ids(
+        return super(OrganizationReleasesBaseEndpoint, self).get_projects(
             request,
             organization,
             force_global_perms=has_valid_api_key,
@@ -286,5 +287,5 @@ class OrganizationReleasesBaseEndpoint(OrganizationEndpoint):
     def has_release_permission(self, request, organization, release):
         return ReleaseProject.objects.filter(
             release=release,
-            project_id__in=self.get_project_ids(request, organization),
+            project__in=self.get_projects(request, organization),
         ).exists()
