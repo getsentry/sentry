@@ -301,6 +301,15 @@ class DjangoSearchBackendTest(TestCase):
                   'server': 'bar.example.com'})
         assert set(results) == set([])
 
+    def test_environment_tag_not_matching_project(self):
+        project = self.create_project(name='other')
+        results = self.backend.query(
+            [project],
+            environments=[self.environments['production']],
+            tags={'environment': 'production'},
+            query='')
+        assert set(results) == set([])
+
     def test_tags_with_environment(self):
         results = self.backend.query(
             [self.project],

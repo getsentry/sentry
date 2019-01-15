@@ -17,7 +17,7 @@ from django.utils import timezone
 
 from sentry import quotas, tagstore
 from sentry.api.paginator import DateTimePaginator, Paginator, SequencePaginator
-from sentry.search.base import ANY, SearchBackend
+from sentry.search.base import SearchBackend
 from sentry.search.django.constants import (
     MSSQL_ENGINES, MSSQL_SORT_CLAUSES, MYSQL_SORT_CLAUSES, ORACLE_SORT_CLAUSES, SORT_CLAUSES,
     SQLITE_SORT_CLAUSES
@@ -301,7 +301,7 @@ class DjangoSearchBackend(SearchBackend):
     def _query(self, projects, retention_window_start, group_queryset, tags, environments,
                sort_by, limit, cursor, count_hits, paginator_options, **parameters):
 
-        from sentry.models import (Group, Environment, Event, GroupEnvironment, Release)
+        from sentry.models import (Group, Event, GroupEnvironment, Release)
 
         # this backend only supports search within one project/environment
         if len(projects) != 1 or (environments is not None and len(environments) > 1):
@@ -311,12 +311,10 @@ class DjangoSearchBackend(SearchBackend):
         environment = environments[0] if environments is not None else environments
 
         if environment is not None:
+            # An explicit environment takes precedence over one defined
+            # in the tags data.
             if 'environment' in tags:
-                environment_name = tags.pop('environment')
-                assert environment_name is ANY or Environment.objects.get(
-                    projects=project,
-                    name=environment_name,
-                ).id == environment.id
+                tags.pop('environment')
 
             event_queryset_builder = QuerySetBuilder({
                 'date_from': ScalarCondition('date_added', 'gt'),
