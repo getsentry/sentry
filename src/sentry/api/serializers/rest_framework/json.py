@@ -6,7 +6,7 @@ from rest_framework.serializers import WritableField, ValidationError
 from sentry.api.serializers.rest_framework.utils_json import json
 
 # JSONField taken from Django rest framework version 3.9.0
-# See https://github.com/encode/django-rest-framework/blob/master/rest_framework/fields.py
+# See https://github.com/encode/django-rest-framework/blob/0eb2dc1137189027cc8d638630fb1754b02d6cfa/rest_framework/fields.py
 # or https://www.django-rest-framework.org/api-guide/fields/#jsonfield
 # for more information
 
