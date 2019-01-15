@@ -145,7 +145,7 @@ const GroupList = createReactClass({
         <Panel>
           <PanelBody>
             <EmptyStateWarning>
-              {t("There doesn't seem to be any events fitting the query.")}
+              <p>{t("There doesn't seem to be any events fitting the query.")}</p>
             </EmptyStateWarning>
           </PanelBody>
         </Panel>
