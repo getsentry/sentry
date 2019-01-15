@@ -14,7 +14,6 @@ import CommitLink from 'app/components/commitLink';
 import ConfigStore from 'app/stores/configStore';
 import Duration from 'app/components/duration';
 import ErrorBoundary from 'app/components/errorBoundary';
-import GroupState from 'app/mixins/groupState';
 import GroupStore from 'app/stores/groupStore';
 import MemberListStore from 'app/stores/memberListStore';
 import NoteContainer from 'app/components/activity/noteContainer';
@@ -213,7 +212,7 @@ const GroupActivity = createReactClass({
     group: PropTypes.object,
   },
 
-  mixins: [GroupState, ApiMixin],
+  mixins: [ApiMixin],
 
   onNoteDelete(item) {
     let {group} = this.props;

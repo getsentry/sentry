@@ -15,7 +15,6 @@ import {t, tct} from 'app/locale';
 import ApiMixin from 'app/mixins/apiMixin';
 import EmptyStateWarning from 'app/components/emptyStateWarning';
 import EventsTable from 'app/components/eventsTable/eventsTable';
-import GroupState from 'app/mixins/groupState';
 import LoadingError from 'app/components/loadingError';
 import LoadingIndicator from 'app/components/loadingIndicator';
 import Pagination from 'app/components/pagination';
@@ -28,10 +27,11 @@ const GroupEvents = createReactClass({
   displayName: 'GroupEvents',
 
   propTypes: {
+    group: SentryTypes.Group,
     environment: SentryTypes.Environment,
   },
 
-  mixins: [ApiMixin, GroupState],
+  mixins: [ApiMixin],
 
   getInitialState() {
     const queryParams = this.props.location.query;
@@ -177,7 +177,7 @@ const GroupEvents = createReactClass({
   },
 
   renderResults() {
-    let group = this.getGroup();
+    let group = this.props.group;
     let tagList = group.tags.filter(tag => tag.key !== 'user') || [];
 
     return (
