@@ -1,4 +1,3 @@
-/*eslint react/jsx-key:*/
 import React from 'react';
 import createReactClass from 'create-react-class';
 import {Link} from 'react-router';
@@ -118,12 +117,12 @@ const GroupTagValues = createReactClass({
               }}
             >
               {tagKey.key === 'user' ? (
-                [
+                <React.Fragment>
                   <Avatar user={tagValue} size={20} className="avatar" />,
                   <span style={{marginLeft: 10}}>
                     {this.getUserDisplayName(tagValue)}
-                  </span>,
-                ]
+                  </span>
+                </React.Fragment>
               ) : (
                 <DeviceName>{tagValue.name}</DeviceName>
               )}
