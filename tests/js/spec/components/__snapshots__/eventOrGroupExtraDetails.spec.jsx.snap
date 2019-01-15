@@ -1,350 +1,105 @@
 // Jest Snapshot v1, https://goo.gl/fbAQLP
 
 exports[`EventOrGroupExtraDetails details when mentioned 1`] = `
-<GroupExtra
-  align="center"
->
-  <GroupShortId
-    shortId="shortId"
-  />
-  <Times>
-    <div
-      className="css-77t6iv"
-    >
-      <GroupTimeIcon
-        src="icon-clock-sm"
-      />
-      <TimeSince
-        date="2017-07-25T22:56:12Z"
-        suffix="ago"
-      />
-      <span
-        className="hidden-xs hidden-sm"
-      >
-         — 
-      </span>
-      <TimeSince
-        className="hidden-xs hidden-sm"
-        date="2017-07-01T02:06:02Z"
-        suffix="old"
-      />
-    </div>
-  </Times>
-  <GroupExtraCommentsAndLogger>
-    <Box
-      mr={2}
-    >
-      <CommentsLink
-        className="comments"
-        to="/orgId/projectId/issues/groupId/activity/"
-      >
-        <GroupExtraIcon
-          mentioned={true}
-          src="icon-comment-sm"
-        />
-        <span>
-          14
-        </span>
-      </CommentsLink>
-    </Box>
-    <Box
-      className="event-annotation"
-      mr={2}
-    >
-      <Link
-        onlyActiveOnIndex={false}
-        style={Object {}}
-        to={
-          Object {
-            "pathname": "/orgId/projectId/",
-            "query": Object {
-              "query": "logger:javascript logger",
-            },
-          }
-        }
-      >
-        javascript logger
-      </Link>
-    </Box>
-  </GroupExtraCommentsAndLogger>
-  <div
-    className="event-annotation"
-    dangerouslySetInnerHTML={
-      Object {
-        "__html": "annotation1",
-      }
+<EventOrGroupExtraDetails
+  annotations={
+    Array [
+      "annotation1",
+      "annotation2",
+    ]
+  }
+  firstSeen="2017-07-01T02:06:02Z"
+  groupId="groupId"
+  lastSeen="2017-07-25T22:56:12Z"
+  logger="javascript logger"
+  numComments={14}
+  orgId="orgId"
+  projectId="projectId"
+  shortId="shortId"
+  subscriptionDetails={
+    Object {
+      "reason": "mentioned",
     }
-    key="0"
-  />
-  <div
-    className="event-annotation"
-    dangerouslySetInnerHTML={
-      Object {
-        "__html": "annotation2",
-      }
-    }
-    key="1"
-  />
-</GroupExtra>
+  }
+/>
 `;
 
 exports[`EventOrGroupExtraDetails renders all details 1`] = `
-<GroupExtra
-  align="center"
->
-  <GroupShortId
-    shortId="shortId"
-  />
-  <Times>
-    <div
-      className="css-77t6iv"
-    >
-      <GroupTimeIcon
-        src="icon-clock-sm"
-      />
-      <TimeSince
-        date="2017-07-25T22:56:12Z"
-        suffix="ago"
-      />
-      <span
-        className="hidden-xs hidden-sm"
-      >
-         — 
-      </span>
-      <TimeSince
-        className="hidden-xs hidden-sm"
-        date="2017-07-01T02:06:02Z"
-        suffix="old"
-      />
-    </div>
-  </Times>
-  <GroupExtraCommentsAndLogger>
-    <Box
-      mr={2}
-    >
-      <CommentsLink
-        className="comments"
-        to="/orgId/projectId/issues/groupId/activity/"
-      >
-        <GroupExtraIcon
-          src="icon-comment-sm"
-        />
-        <span>
-          14
-        </span>
-      </CommentsLink>
-    </Box>
-    <Box
-      className="event-annotation"
-      mr={2}
-    >
-      <Link
-        onlyActiveOnIndex={false}
-        style={Object {}}
-        to={
-          Object {
-            "pathname": "/orgId/projectId/",
-            "query": Object {
-              "query": "logger:javascript logger",
-            },
-          }
-        }
-      >
-        javascript logger
-      </Link>
-    </Box>
-  </GroupExtraCommentsAndLogger>
-  <div
-    className="event-annotation"
-    dangerouslySetInnerHTML={
-      Object {
-        "__html": "annotation1",
-      }
+<EventOrGroupExtraDetails
+  annotations={
+    Array [
+      "annotation1",
+      "annotation2",
+    ]
+  }
+  assignedTo={
+    Object {
+      "name": "Assignee Name",
     }
-    key="0"
-  />
-  <div
-    className="event-annotation"
-    dangerouslySetInnerHTML={
-      Object {
-        "__html": "annotation2",
-      }
-    }
-    key="1"
-  />
-</GroupExtra>
+  }
+  firstSeen="2017-07-01T02:06:02Z"
+  groupId="groupId"
+  lastSeen="2017-07-25T22:56:12Z"
+  logger="javascript logger"
+  numComments={14}
+  orgId="orgId"
+  projectId="projectId"
+  shortId="shortId"
+  status="resolved"
+/>
 `;
 
 exports[`EventOrGroupExtraDetails renders assignee and status 1`] = `
-<GroupExtra
-  align="center"
->
-  <GroupShortId
-    shortId="shortId"
-  />
-  <Times>
-    <div
-      className="css-77t6iv"
-    >
-      <GroupTimeIcon
-        src="icon-clock-sm"
-      />
-      <TimeSince
-        date="2017-07-25T22:56:12Z"
-        suffix="ago"
-      />
-      <span
-        className="hidden-xs hidden-sm"
-      >
-         — 
-      </span>
-      <TimeSince
-        className="hidden-xs hidden-sm"
-        date="2017-07-01T02:06:02Z"
-        suffix="old"
-      />
-    </div>
-  </Times>
-  <GroupExtraCommentsAndLogger>
-    <Box
-      mr={2}
-    >
-      <CommentsLink
-        className="comments"
-        to="/orgId/projectId/issues/groupId/activity/"
-      >
-        <GroupExtraIcon
-          src="icon-comment-sm"
-        />
-        <span>
-          14
-        </span>
-      </CommentsLink>
-    </Box>
-    <Box
-      className="event-annotation"
-      mr={2}
-    >
-      <Link
-        onlyActiveOnIndex={false}
-        style={Object {}}
-        to={
-          Object {
-            "pathname": "/orgId/projectId/",
-            "query": Object {
-              "query": "logger:javascript logger",
-            },
-          }
-        }
-      >
-        javascript logger
-      </Link>
-    </Box>
-  </GroupExtraCommentsAndLogger>
-  <div
-    className="event-annotation"
-    dangerouslySetInnerHTML={
-      Object {
-        "__html": "annotation1",
-      }
+<EventOrGroupExtraDetails
+  annotations={
+    Array [
+      "annotation1",
+      "annotation2",
+    ]
+  }
+  assignedTo={
+    Object {
+      "name": "Assignee Name",
     }
-    key="0"
-  />
-  <div
-    className="event-annotation"
-    dangerouslySetInnerHTML={
-      Object {
-        "__html": "annotation2",
-      }
-    }
-    key="1"
-  />
-  <div>
-    <span
-      key="4"
-    >
-      <span
-        key="0"
-      >
-        Assigned to 
-      </span>
-      <span
-        key="2"
-      >
-        Assignee Name
-      </span>
-    </span>
-  </div>
-</GroupExtra>
+  }
+  firstSeen="2017-07-01T02:06:02Z"
+  groupId="groupId"
+  lastSeen="2017-07-25T22:56:12Z"
+  logger="javascript logger"
+  numComments={14}
+  orgId="orgId"
+  projectId="projectId"
+  shortId="shortId"
+  showAssignee={true}
+  showStatus={true}
+  status="resolved"
+/>
 `;
 
 exports[`EventOrGroupExtraDetails renders last and first seen 1`] = `
-<GroupExtra
-  align="center"
->
-  <Times>
-    <div
-      className="css-77t6iv"
-    >
-      <GroupTimeIcon
-        src="icon-clock-sm"
-      />
-      <TimeSince
-        date="2017-07-25T22:56:12Z"
-        suffix="ago"
-      />
-      <span
-        className="hidden-xs hidden-sm"
-      >
-         — 
-      </span>
-      <TimeSince
-        className="hidden-xs hidden-sm"
-        date="2017-07-01T02:06:02Z"
-        suffix="old"
-      />
-    </div>
-  </Times>
-  <GroupExtraCommentsAndLogger />
-</GroupExtra>
+<EventOrGroupExtraDetails
+  firstSeen="2017-07-01T02:06:02Z"
+  groupId="groupId"
+  lastSeen="2017-07-25T22:56:12Z"
+  orgId="orgId"
+  projectId="projectId"
+/>
 `;
 
 exports[`EventOrGroupExtraDetails renders only first seen 1`] = `
-<GroupExtra
-  align="center"
->
-  <Times>
-    <div
-      className="css-77t6iv"
-    >
-      <TimeSince
-        className="hidden-xs hidden-sm"
-        date="2017-07-01T02:06:02Z"
-        suffix="old"
-      />
-    </div>
-  </Times>
-  <GroupExtraCommentsAndLogger />
-</GroupExtra>
+<EventOrGroupExtraDetails
+  firstSeen="2017-07-01T02:06:02Z"
+  groupId="groupId"
+  orgId="orgId"
+  projectId="projectId"
+/>
 `;
 
 exports[`EventOrGroupExtraDetails renders only last seen 1`] = `
-<GroupExtra
-  align="center"
->
-  <Times>
-    <div
-      className="css-77t6iv"
-    >
-      <GroupTimeIcon
-        src="icon-clock-sm"
-      />
-      <TimeSince
-        date="2017-07-25T22:56:12Z"
-        suffix="ago"
-      />
-    </div>
-  </Times>
-  <GroupExtraCommentsAndLogger />
-</GroupExtra>
+<EventOrGroupExtraDetails
+  groupId="groupId"
+  lastSeen="2017-07-25T22:56:12Z"
+  orgId="orgId"
+  projectId="projectId"
+/>
 `;

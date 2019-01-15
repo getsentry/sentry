@@ -20,20 +20,12 @@ const EventNode = createReactClass({
   render() {
     let group = this.props.group;
     let userCount = group.userCount;
-    let org = this.getOrganization();
-
-    let orgId = org.slug;
-    let projectId = group.project.slug;
-    let groupId = group.id;
 
     return (
       <li className="group row">
         <div className="col-xs-8 event-details">
           <EventOrGroupHeader data={group} hideIcons hideLevel />
           <EventOrGroupExtraDetails
-            orgId={orgId}
-            projectId={projectId}
-            groupId={groupId}
             lastSeen={group.lastSeen}
             firstSeen={group.firstSeen}
           />
