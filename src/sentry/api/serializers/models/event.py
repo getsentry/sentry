@@ -9,6 +9,7 @@ from semaphore import meta_with_chunks
 from sentry.api.serializers import Serializer, register, serialize
 from sentry.models import Event, EventError, EventAttachment, Release, UserReport
 from sentry.utils.safe import get_path
+from sentry.constants import LEGACY_MESSAGE_FALLBACK
 
 
 CRASH_FILE_TYPES = set(['event.minidump'])
@@ -282,6 +283,7 @@ class SnubaEvent(object):
         'message',
         'title',
         'location',
+        'culprit',
         'user_id',
         'username',
         'ip_address',
@@ -303,13 +305,14 @@ class SnubaEventSerializer(Serializer):
     """
 
     def serialize(self, obj, attrs, user):
+        title = obj.title
+        if LEGACY_MESSAGE_FALLBACK:
+            title = title or obj.message
         return {
             'eventID': six.text_type(obj.event_id),
             'projectID': six.text_type(obj.project_id),
             'message': obj.message,
-            # XXX(mitsuhiko): This is a temporary legacy code path
-            # remove by merge date of GH-10740 + 90 days
-            'title': obj.title or obj.message,
+            'title': title,
             'location': obj.location,
             'culprit': obj.culprit,
             'dateCreated': obj.timestamp,

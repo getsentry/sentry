@@ -21,7 +21,8 @@ from django.utils.translation import ugettext_lazy as _
 
 from sentry import eventtypes, tagstore
 from sentry.constants import (
-    DEFAULT_LOGGER_NAME, EVENT_ORDERING_KEY, LOG_LEVELS, MAX_CULPRIT_LENGTH
+    DEFAULT_LOGGER_NAME, EVENT_ORDERING_KEY, LOG_LEVELS, MAX_CULPRIT_LENGTH,
+    LEGACY_MESSAGE_FALLBACK
 )
 from sentry.db.models import (
     BaseManager, BoundedBigIntegerField, BoundedIntegerField, BoundedPositiveIntegerField,
@@ -456,18 +457,24 @@ class Group(Model):
 
     @property
     def message(self):
-        warnings.warn(
-            'Group.message is deprecated. Use Group.search_message or Group.title instead.',
-            DeprecationWarning)
-        return self.search_message
+        if LEGACY_MESSAGE_FALLBACK:
+            warnings.warn(
+                'Group.message is deprecated. Use Group.search_message or Group.title instead.',
+                DeprecationWarning)
+            return self.title
+        raise NotImplementedError('This is no longer here')
 
     def error(self):
-        warnings.warn('Group.error is deprecated, use Group.title', DeprecationWarning)
-        return self.title
+        if LEGACY_MESSAGE_FALLBACK:
+            warnings.warn('Group.error is deprecated, use Group.title', DeprecationWarning)
+            return self.title
+        raise NotImplementedError('This is no longer here')
 
     error.short_description = _('error')
 
     @property
     def message_short(self):
-        warnings.warn('Group.message_short is deprecated, use Group.title', DeprecationWarning)
-        return self.title
+        if LEGACY_MESSAGE_FALLBACK:
+            warnings.warn('Group.message_short is deprecated, use Group.title', DeprecationWarning)
+            return self.title
+        raise NotImplementedError('This is no longer here')
