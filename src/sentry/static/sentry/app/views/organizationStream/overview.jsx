@@ -33,6 +33,7 @@ import utils from 'app/utils';
 import withOrganization from 'app/utils/withOrganization';
 
 const MAX_ITEMS = 25;
+const DEFAULT_QUERY = 'is:unresolved';
 const DEFAULT_SORT = 'date';
 const DEFAULT_STATS_PERIOD = '24h';
 const STATS_PERIODS = new Set(['14d', '24h']);
@@ -77,7 +78,7 @@ const OrganizationStream = createReactClass({
       pageLinks: '',
       queryCount: null,
       error: false,
-      query: currentQuery.query || '',
+      query: currentQuery.query || DEFAULT_QUERY,
       sort,
       selection: GlobalSelectionStore.get(),
       isSidebarVisible: false,
@@ -102,6 +103,24 @@ const OrganizationStream = createReactClass({
       this.fetchData();
       fetchTags(this.props.organization.slug);
     }
+  },
+
+  componentWillReceiveProps(nextProps) {
+    // If the query strings are the same we won't need to reload.
+    if (nextProps.location.search == this.props.location.search) {
+      return;
+    }
+    let nextQuery = qs.parse(nextProps.location.search);
+
+    // Update state that doesn't come from the global-search bar
+    this.setState(
+      {
+        query: nextQuery.query || DEFAULT_QUERY,
+        sort: nextQuery.sort || DEFAULT_SORT,
+        groupStatsPeriod: nextQuery.groupStatsPeriod || DEFAULT_STATS_PERIOD,
+      },
+      this.fetchData
+    );
   },
 
   componentDidUpdate(prevProps, prevState) {
@@ -369,8 +388,8 @@ const OrganizationStream = createReactClass({
       query,
     });
 
-    // After transitioning reload data. This is simpler and less
-    // error prone than examining router state in componentWillReceiveProps
+    // Refetch data as simply pushing browserHistory doesn't
+    // update props.
     this.fetchData();
   },
 
