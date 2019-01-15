@@ -44,7 +44,7 @@ class Breadcrumbs(Interface):
 
             try:
                 values.append(cls.normalize_crumb(crumb))
-            except InterfaceValidationError:
+            except Exception:
                 # TODO(dcramer): we dont want to discard the entirety of data
                 # when one breadcrumb errors, but it'd be nice if we could still
                 # record an error
@@ -71,7 +71,8 @@ class Breadcrumbs(Interface):
     def normalize_crumb(cls, crumb):
         ty = crumb.get('type') or 'default'
         level = crumb.get('level')
-        if level not in LOG_LEVELS_MAP and level != 'critical':
+        if not isinstance(level, six.string_types) or \
+           (level not in LOG_LEVELS_MAP and level != 'critical'):
             level = 'info'
 
         ts = parse_timestamp(crumb.get('timestamp'))
