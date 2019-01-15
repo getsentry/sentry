@@ -28,7 +28,7 @@ class OrganizationDashboardsEndpoint(OrganizationEndpoint):
         )
         query = request.GET.get('query')
         if query:
-            dashboards = dashboards.objects.filter(
+            dashboards = Dashboard.objects.filter(
                 title__icontains=query,
             )
 
@@ -41,7 +41,7 @@ class OrganizationDashboardsEndpoint(OrganizationEndpoint):
         )
 
     def post(self, request, organization):
-        serializer = DashboardSerializer(data=request.DATA, context={'organization': organization})
+        serializer = DashboardSerializer(data=request.DATA)
 
         if not serializer.is_valid():
             return Response(serializer.errors, status=400)
@@ -53,11 +53,9 @@ class OrganizationDashboardsEndpoint(OrganizationEndpoint):
                 dashboard = Dashboard.objects.create(
                     organization_id=organization.id,
                     title=result['title'],
-                    owner=result['owner'],
-                    data=result.get('data'),
+                    created_by=result['created_by'],
                 )
-        except IntegrityError as e:
-            # TODO(lb): hmmm this probably shouldn't be e.message?
-            return Response(e.message, status=409)
+        except IntegrityError:
+            return Response('This dashboard already exists', status=409)
 
         return Response(serialize(dashboard, request.user), status=201)

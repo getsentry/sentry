@@ -1,5 +1,7 @@
 from __future__ import absolute_import
 
+import six
+
 from django.core.urlresolvers import reverse
 
 from sentry.models import Dashboard
@@ -14,43 +16,37 @@ class OrganizationDashboardsTest(APITestCase):
             'sentry-api-0-organization-dashboard',
             kwargs={'organization_slug': self.organization.slug}
         )
-
-    def test_get(self):
-        Dashboard.objects.create(
+        self.dashboard_1 = Dashboard.objects.create(
             title='Dashboard 1',
             created_by=self.user,
             organization=self.organization,
         )
-        Dashboard.objects.create(
+        self.dashboard_2 = Dashboard.objects.create(
             title='Dashboard 2',
             created_by=self.user,
             organization=self.organization,
-            data={'stuff': 'stuff'}
         )
 
+    def assert_equal_dashboards(self, dashboard, data):
+        assert data['id'] == six.text_type(dashboard.id)
+        assert data['organization'] == six.text_type(dashboard.organization.id)
+        assert data['title'] == dashboard.title
+        assert data['created_by'] == six.text_type(dashboard.created_by.id)
+
+    def test_get(self):
         response = self.client.get(self.url)
         assert response.status_code == 200, response.content
         assert len(response.data) == 2
 
-        assert response.data[1]['id'] == '1'
-        assert response.data[1]['organization'] == '2'
-        assert response.data[1]['title'] == 'Dashboard 1'
-        assert response.data[1]['created_by'] == self.user.id
-        assert response.data[1]['data'] == {}
-
-        assert response.data[0]['id'] == '2'
-        assert response.data[0]['organization'] == '2'
-        assert response.data[0]['title'] == 'Dashboard 2'
-        assert response.data[0]['created_by'] == self.user.id
-        assert response.data[0]['data'] == {'stuff': 'stuff'}
+        self.assert_equal_dashboards(self.dashboard_1, response.data[0])
+        self.assert_equal_dashboards(self.dashboard_2, response.data[1])
 
     def test_post(self):
         response = self.client.post(
             self.url,
             data={
                 'title': 'Dashboard from Post',
-                'data': {'data': 'data'},
-                'owner': self.user.id,
+                'created_by': self.user.id,
                 'organization': self.organization.id,
             }
         )
@@ -59,5 +55,36 @@ class OrganizationDashboardsTest(APITestCase):
             organization=self.organization,
             title='Dashboard from Post'
         )
-        assert dashboard.data == {'data': 'data'}
-        assert dashboard.owner == self.user
+        assert dashboard.created_by == self.user
+
+    def test_query(self):
+        response = self.client.get(self.url, data={'query': '1'})
+        assert response.status_code == 200, response.content
+        assert len(response.data)
+        self.assert_equal_dashboards(self.dashboard_1, response.data[0])
+
+    def test_query_no_results(self):
+        response = self.client.get(self.url, data={'query': 'not-in-there'})
+        assert response.status_code == 200, response.content
+        assert len(response.data) == 0
+
+    def test_invalid_data(self):
+        response = self.client.post(
+            self.url,
+            data={
+                'malformed-data': 'Dashboard from Post',
+            }
+        )
+        assert response.status_code == 400
+
+    def test_integrity_error(self):
+        response = self.client.post(
+            self.url,
+            data={
+                'title': self.dashboard_1.title,
+                'created_by': self.dashboard_1.created_by.id,
+                'organization': self.dashboard_1.organization.id,
+            }
+        )
+        assert response.status_code == 409
+        assert response.data == 'This dashboard already exists'
