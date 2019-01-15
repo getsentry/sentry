@@ -28,10 +28,12 @@ from sentry.event_manager import EventManager
 from sentry.constants import SentryAppStatus
 from sentry.mediators import sentry_apps, sentry_app_installations, service_hooks
 from sentry.models import (
-    Activity, Environment, Event, EventError, EventMapping, Group, Organization, OrganizationMember,
-    OrganizationMemberTeam, Project, ProjectBookmark, Team, User, UserEmail, Release, Commit, ReleaseCommit,
-    CommitAuthor, Repository, CommitFileChange, ProjectDebugFile, File, UserPermission, EventAttachment,
-    UserReport
+    Activity, Commit, CommitAuthor, CommitFileChange, Environment, Event,
+    EventAttachment, EventError, EventMapping, EventProcessingIssue, File,
+    Group, Organization, OrganizationMember, OrganizationMemberTeam,
+    ProcessingIssue, Project, ProjectBookmark, ProjectDebugFile, RawEvent,
+    Release, ReleaseCommit, Repository, Team, User, UserEmail, UserPermission,
+    UserReport,
 )
 from sentry.utils.canonical import CanonicalKeyDict
 
@@ -778,3 +780,26 @@ class Fixtures(object):
         )
 
         return userreport
+
+    def create_raw_event(self, **kwargs):
+        return RawEvent.objects.create(
+            project=kwargs.get('project', self.project),
+            event_id=kwargs.get('event_id', petname.Generate(1, '', letters=10).title()),
+        )
+
+    def create_processing_issue(self, **kwargs):
+        return ProcessingIssue.objects.create(
+            project=kwargs.get('project', self.project),
+            checksum=kwargs.get('checksum', petname.Generate(1, '', letters=20).title()),
+            type=kwargs.get('type', EventError.NATIVE_MISSING_DSYM),
+        )
+
+    def create_event_processing_issue(self, raw_event=None, processing_issue=None):
+        if raw_event is None:
+            raw_event = self.create_raw_event()
+        if processing_issue is None:
+            processing_issue = self.create_processing_issue()
+        return EventProcessingIssue.objects.create(
+            raw_event=raw_event,
+            processing_issue=processing_issue,
+        )

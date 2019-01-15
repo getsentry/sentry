@@ -73,7 +73,7 @@ class ProcessingIssueManager(BaseManager):
         if there are more.
         """
         from sentry.models import RawEvent
-        rv = list(self.find_resolved_queryset([project_id])[:limit])
+        rv = list(self.find_resolved_queryset([project_id]).order_by('id')[:limit + 1])
         if len(rv) > limit:
             rv = rv[:limit]
             has_more = True

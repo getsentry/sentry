@@ -25,3 +25,27 @@ class ProcessingIssueTest(TestCase):
         issue.delete()
 
         assert EventProcessingIssue.objects.count() == 0
+
+
+class FindResolvedTest(TestCase):
+    def test_has_processing_issues(self):
+        results, has_more = ProcessingIssue.objects.find_resolved(self.project.id)
+        assert results == []
+        assert not has_more
+
+        self.create_event_processing_issue(
+            raw_event=self.create_raw_event(),
+            processing_issue=self.create_processing_issue(),
+        )
+        results, has_more = ProcessingIssue.objects.find_resolved(self.project.id)
+        assert results == []
+        assert not has_more
+
+    def test_has_more(self):
+        raw_events = [self.create_raw_event() for _ in xrange(3)]
+        results, has_more = ProcessingIssue.objects.find_resolved(self.project.id, limit=2)
+        assert results == raw_events[:2]
+        assert has_more
+        results, has_more = ProcessingIssue.objects.find_resolved(self.project.id, limit=3)
+        assert results == raw_events
+        assert not has_more
