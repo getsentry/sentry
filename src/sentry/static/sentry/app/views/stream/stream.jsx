@@ -27,6 +27,7 @@ import Pagination from 'app/components/pagination';
 import ProjectState from 'app/mixins/projectState';
 import SentryTypes from 'app/sentryTypes';
 import StreamActions from 'app/views/stream/actions';
+import EmptyStateWarning from 'app/components/emptyStateWarning';
 import StreamFilters from 'app/views/stream/filters';
 import StreamGroup from 'app/components/stream/group';
 import StreamSidebar from 'app/views/stream/sidebar';
@@ -649,7 +650,7 @@ const Stream = createReactClass({
 
     let topIssue = ids[0];
 
-    let {orgId, projectId} = this.props.params;
+    let {orgId} = this.props.params;
     let groupNodes = ids.map(id => {
       let hasGuideAnchor = userDateJoined > dateCutoff && id === topIssue;
       return (
@@ -657,7 +658,6 @@ const Stream = createReactClass({
           key={id}
           id={id}
           orgId={orgId}
-          projectId={projectId}
           statsPeriod={statsPeriod}
           query={this.state.query}
           hasGuideAnchor={hasGuideAnchor}
@@ -689,12 +689,10 @@ const Stream = createReactClass({
         })
       : t('Sorry, no events match your filters.');
 
-    // TODO(lyn): Extract empty state to a separate component
     return (
-      <div className="empty-stream" style={{border: 0}}>
-        <span className="icon icon-exclamation" />
+      <EmptyStateWarning>
         <p>{message}</p>
-      </div>
+      </EmptyStateWarning>
     );
   },
 

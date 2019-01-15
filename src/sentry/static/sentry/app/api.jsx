@@ -1,6 +1,5 @@
 import $ from 'jquery';
 import {isUndefined, isNil} from 'lodash';
-import idx from 'idx';
 import * as Sentry from '@sentry/browser';
 
 import {
@@ -59,13 +58,13 @@ export class Client {
    * If so, redirect user to new project slug
    */
   hasProjectBeenRenamed(response) {
-    let code = response && idx(response, _ => _.responseJSON.detail.code);
+    let code = response?.responseJSON?.detail?.code;
 
     // XXX(billy): This actually will never happen because we can't intercept the 302
     // jQuery ajax will follow the redirect by default...
     if (code !== PROJECT_MOVED) return false;
 
-    let slug = response && idx(response, _ => _.responseJSON.detail.extra.slug);
+    let slug = response?.responseJSON?.detail?.extra?.slug;
 
     redirectToProject(slug);
     return true;
@@ -103,7 +102,7 @@ export class Client {
   }
 
   handleRequestError({id, path, requestOptions}, response, ...responseArgs) {
-    let code = response && idx(response, _ => _.responseJSON.detail.code);
+    let code = response?.responseJSON?.detail?.code;
     let isSudoRequired = code === SUDO_REQUIRED || code === SUPERUSER_REQUIRED;
 
     if (isSudoRequired) {
@@ -257,7 +256,10 @@ export class Client {
   }
 
   bulkDelete(params, options) {
-    let path = '/projects/' + params.orgId + '/' + params.projectId + '/issues/';
+    let path = params.projectId
+      ? `/projects/${params.orgId}/${params.projectId}/issues/`
+      : `/organizations/${params.orgId}/issues/`;
+
     let query = paramsToQueryArgs(params);
     let id = uniqueId();
 
@@ -280,7 +282,10 @@ export class Client {
   }
 
   bulkUpdate(params, options) {
-    let path = '/projects/' + params.orgId + '/' + params.projectId + '/issues/';
+    let path = params.projectId
+      ? `/projects/${params.orgId}/${params.projectId}/issues/`
+      : `/organizations/${params.orgId}/issues/`;
+
     let query = paramsToQueryArgs(params);
     let id = uniqueId();
 

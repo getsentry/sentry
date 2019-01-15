@@ -4,6 +4,7 @@ import createReactClass from 'create-react-class';
 import Reflux from 'reflux';
 import {browserHistory} from 'react-router';
 import DocumentTitle from 'react-document-title';
+import * as Sentry from '@sentry/browser';
 
 import ApiMixin from 'app/mixins/apiMixin';
 import GroupStore from 'app/stores/groupStore';
@@ -11,6 +12,7 @@ import LoadingError from 'app/components/loadingError';
 import LoadingIndicator from 'app/components/loadingIndicator';
 import SentryTypes from 'app/sentryTypes';
 import {t} from 'app/locale';
+import ProjectsStore from 'app/stores/projectsStore';
 
 import GroupHeader from '../shared/header';
 import {ERROR_TYPES} from '../shared/constants';
@@ -19,6 +21,8 @@ const GroupDetails = createReactClass({
   displayName: 'GroupDetails',
 
   propTypes: {
+    // Provided in the project version of group details
+    project: SentryTypes.Project,
     environment: SentryTypes.Environment,
   },
 
@@ -96,15 +100,24 @@ const GroupDetails = createReactClass({
           );
         }
 
+        let project = this.props.project || ProjectsStore.getById(data.project.id);
+
+        if (!project) {
+          Sentry.withScope(scope => {
+            Sentry.captureException(new Error('Project not found'));
+          });
+        }
+
         this.setState({
           loading: false,
           error: false,
           errorType: null,
+          project,
         });
 
         return void GroupStore.loadInitialData([data]);
       },
-      error: (_, textStatus, errorThrown) => {
+      error: (_, _textStatus, errorThrown) => {
         let errorType = null;
         switch (errorThrown) {
           case 'NOT FOUND':
@@ -167,8 +180,8 @@ const GroupDetails = createReactClass({
   },
 
   render() {
-    let group = this.state.group;
     let params = this.props.params;
+    let {group, project} = this.state;
 
     if (this.state.error) {
       switch (this.state.errorType) {
@@ -186,9 +199,10 @@ const GroupDetails = createReactClass({
     return (
       <DocumentTitle title={this.getTitle()}>
         <div className={this.props.className}>
-          <GroupHeader orgId={params.orgId} projectId={group.project.id} group={group} />
+          <GroupHeader params={params} project={project} group={group} />
           {React.cloneElement(this.props.children, {
             group,
+            project,
           })}
         </div>
       </DocumentTitle>

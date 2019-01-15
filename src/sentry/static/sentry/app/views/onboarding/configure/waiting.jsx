@@ -4,27 +4,22 @@ import {t} from 'app/locale';
 import styled from 'react-emotion';
 
 import Button from 'app/components/button';
-import Hook from 'app/components/hook';
-import SentryTypes from 'app/sentryTypes';
 
 class Waiting extends React.Component {
   static propTypes = {
     skip: PropTypes.func,
     hasEvent: PropTypes.bool.isRequired,
-    params: PropTypes.object,
-    organization: SentryTypes.Organization,
   };
 
   render() {
-    let {hasEvent, organization, params} = this.props;
-    let data = {params, organization, source: 'waiting'};
+    let {hasEvent} = this.props;
 
     return (
       <div className="awaiting-event">
         <div className="row">
           <div className="col-sm-10">
             <div className="wrap waiting-text">
-              {!this.props.hasEvent ? (
+              {!hasEvent ? (
                 <h3 className="animated-ellipsis">{t('Waiting to receive an error')}</h3>
               ) : (
                 <h3>{t("You've successfully sent an error")}</h3>
@@ -43,9 +38,6 @@ class Waiting extends React.Component {
               >
                 {t('All done!')}
               </Button>
-              {!hasEvent && (
-                <Hook name="component:create-sample-event" params={data} key="waiting" />
-              )}
             </div>
           </CenteredButtons>
         </div>

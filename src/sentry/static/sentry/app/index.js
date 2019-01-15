@@ -1,9 +1,10 @@
 /* global module */
-import 'babel-polyfill';
+import '@babel/polyfill';
 import 'bootstrap/js/alert';
 import 'bootstrap/js/tab';
 import 'bootstrap/js/dropdown';
 
+import 'app/utils/statics-setup';
 import 'app/utils/emotion-setup';
 
 import {renderToStaticMarkup} from 'react-dom/server';

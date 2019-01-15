@@ -5,7 +5,7 @@ exports[`OrganizationDetails render() deletion in progress should render a delet
   class="app"
 >
   <div
-    class="css-11c8i4p-StyledSidebar-responsiveFlex e1sgxx350"
+    class="css-5cf61n-StyledSidebar-responsiveFlex e1sgxx350"
   >
     <div
       class="css-1uxlgm0-SidebarSectionGroup-responsiveFlex e1sgxx351"
@@ -268,6 +268,41 @@ exports[`OrganizationDetails render() deletion in progress should render a delet
                 class="css-179hf69-TextOverflow e8qi82q0"
               >
                 Stats
+              </div>
+            </span>
+          </div>
+        </a>
+      </div>
+      <div
+        class="css-tlukoq-SidebarSectionGroup-responsiveFlex-SidebarSection e1sgxx352"
+      >
+        <a
+          class="css-1l9toro-StyledSidebarItem e1qdnaq70"
+        >
+          <div
+            class="css-gn87gt-SidebarItemWrapper e1qdnaq71"
+          >
+            <span
+              class="css-1murlm5-SidebarItemIcon e1qdnaq72"
+            >
+              <svg
+                class="css-ryh69w-StyledSvg e2idor0"
+                height="1em"
+                viewBox="[object Object]"
+                width="1em"
+              >
+                <use
+                  href="#test"
+                />
+              </svg>
+            </span>
+            <span
+              class="css-1wgok4l-SidebarItemLabel e1qdnaq73"
+            >
+              <div
+                class="css-179hf69-TextOverflow e8qi82q0"
+              >
+                Settings
               </div>
             </span>
           </div>
@@ -446,7 +481,7 @@ exports[`OrganizationDetails render() pending deletion should render a restorati
   class="app"
 >
   <div
-    class="css-11c8i4p-StyledSidebar-responsiveFlex e1sgxx350"
+    class="css-5cf61n-StyledSidebar-responsiveFlex e1sgxx350"
   >
     <div
       class="css-1uxlgm0-SidebarSectionGroup-responsiveFlex e1sgxx351"
@@ -709,6 +744,41 @@ exports[`OrganizationDetails render() pending deletion should render a restorati
                 class="css-179hf69-TextOverflow e8qi82q0"
               >
                 Stats
+              </div>
+            </span>
+          </div>
+        </a>
+      </div>
+      <div
+        class="css-tlukoq-SidebarSectionGroup-responsiveFlex-SidebarSection e1sgxx352"
+      >
+        <a
+          class="css-1l9toro-StyledSidebarItem e1qdnaq70"
+        >
+          <div
+            class="css-gn87gt-SidebarItemWrapper e1qdnaq71"
+          >
+            <span
+              class="css-1murlm5-SidebarItemIcon e1qdnaq72"
+            >
+              <svg
+                class="css-ryh69w-StyledSvg e2idor0"
+                height="1em"
+                viewBox="[object Object]"
+                width="1em"
+              >
+                <use
+                  href="#test"
+                />
+              </svg>
+            </span>
+            <span
+              class="css-1wgok4l-SidebarItemLabel e1qdnaq73"
+            >
+              <div
+                class="css-179hf69-TextOverflow e8qi82q0"
+              >
+                Settings
               </div>
             </span>
           </div>
@@ -914,7 +984,7 @@ exports[`OrganizationDetails render() pending deletion should render a restorati
   class="app"
 >
   <div
-    class="css-11c8i4p-StyledSidebar-responsiveFlex e1sgxx350"
+    class="css-5cf61n-StyledSidebar-responsiveFlex e1sgxx350"
   >
     <div
       class="css-1uxlgm0-SidebarSectionGroup-responsiveFlex e1sgxx351"
@@ -1177,6 +1247,41 @@ exports[`OrganizationDetails render() pending deletion should render a restorati
                 class="css-179hf69-TextOverflow e8qi82q0"
               >
                 Stats
+              </div>
+            </span>
+          </div>
+        </a>
+      </div>
+      <div
+        class="css-tlukoq-SidebarSectionGroup-responsiveFlex-SidebarSection e1sgxx352"
+      >
+        <a
+          class="css-1l9toro-StyledSidebarItem e1qdnaq70"
+        >
+          <div
+            class="css-gn87gt-SidebarItemWrapper e1qdnaq71"
+          >
+            <span
+              class="css-1murlm5-SidebarItemIcon e1qdnaq72"
+            >
+              <svg
+                class="css-ryh69w-StyledSvg e2idor0"
+                height="1em"
+                viewBox="[object Object]"
+                width="1em"
+              >
+                <use
+                  href="#test"
+                />
+              </svg>
+            </span>
+            <span
+              class="css-1wgok4l-SidebarItemLabel e1qdnaq73"
+            >
+              <div
+                class="css-179hf69-TextOverflow e8qi82q0"
+              >
+                Settings
               </div>
             </span>
           </div>

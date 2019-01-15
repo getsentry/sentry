@@ -53,7 +53,7 @@ class FormSource extends React.Component {
     this.setState({
       fuzzy: await createFuzzySearch(searchMap || [], {
         ...this.props.searchOptions,
-        keys: ['field.label', 'field.help'],
+        keys: ['title', 'description'],
       }),
     });
   }

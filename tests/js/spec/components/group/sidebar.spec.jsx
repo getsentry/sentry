@@ -1,10 +1,11 @@
 import React from 'react';
 import {shallow} from 'enzyme';
 
-import {GroupSidebar} from 'app/components/group/sidebar';
+import GroupSidebar from 'app/components/group/sidebar';
 
 describe('GroupSidebar', function() {
   let group = TestStubs.Group({tags: TestStubs.Tags()});
+  let project = TestStubs.Project();
   let environment = {name: 'production', displayName: 'Production', id: '1'};
   let wrapper;
   let tagValuesMock;
@@ -26,7 +27,12 @@ describe('GroupSidebar', function() {
     });
 
     wrapper = shallow(
-      <GroupSidebar group={group} event={TestStubs.Event()} environment={environment} />,
+      <GroupSidebar
+        group={group}
+        project={project}
+        event={TestStubs.Event()}
+        environment={environment}
+      />,
       TestStubs.routerContext()
     );
   });
@@ -67,6 +73,7 @@ describe('GroupSidebar', function() {
       wrapper = shallow(
         <GroupSidebar
           group={group}
+          project={project}
           event={TestStubs.Event()}
           environment={environment}
         />,

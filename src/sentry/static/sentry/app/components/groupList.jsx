@@ -145,7 +145,7 @@ const GroupList = createReactClass({
         <Panel>
           <PanelBody>
             <EmptyStateWarning>
-              {t("There doesn't seem to be any events fitting the query.")}
+              <p>{t("There doesn't seem to be any events fitting the query.")}</p>
             </EmptyStateWarning>
           </PanelBody>
         </Panel>
@@ -163,7 +163,6 @@ const GroupList = createReactClass({
                 key={id}
                 id={id}
                 orgId={orgId}
-                projectId={project.slug}
                 canSelect={this.props.canSelectGroups}
               />
             );

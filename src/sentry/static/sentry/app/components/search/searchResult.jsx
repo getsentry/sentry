@@ -64,20 +64,27 @@ class SearchResult extends React.Component {
     let {highlighted, item, matches, params} = this.props;
     let {sourceType, title, description, model} = item;
 
-    if (['organization', 'member', 'project', 'team'].includes(sourceType)) {
+    if (matches) {
+      const HighlightedMarker = p => <HighlightMarker highlighted={highlighted} {...p} />;
+
       let matchedTitle = matches && matches.find(({key}) => key === 'title');
       let matchedDescription = matches && matches.find(({key}) => key === 'description');
-      let highlightedTitle = matchedTitle ? highlightFuseMatches(matchedTitle) : title;
-      let highlightedDescription = matchedDescription
-        ? highlightFuseMatches(matchedDescription)
-        : description;
 
+      title = matchedTitle
+        ? highlightFuseMatches(matchedTitle, HighlightedMarker)
+        : title;
+      description = matchedDescription
+        ? highlightFuseMatches(matchedDescription, HighlightedMarker)
+        : description;
+    }
+
+    if (['organization', 'member', 'project', 'team'].includes(sourceType)) {
       let DescriptionNode = (
-        <Description highlighted={highlighted}>{highlightedDescription}</Description>
+        <BadgeDetail highlighted={highlighted}>{description}</BadgeDetail>
       );
 
       let badgeProps = {
-        displayName: highlightedTitle,
+        displayName: title,
         displayEmail: DescriptionNode,
         description: DescriptionNode,
         useLink: false,
@@ -152,12 +159,16 @@ const SearchDetail = styled.div`
   opacity: 0.8;
 `;
 
+const BadgeDetail = styled.div`
+  line-height: 1.3;
+  color: ${p => (p.highlighted ? p.theme.purpleDarkest : null)};
+`;
+
 const Content = styled(props => <Flex direction="column" {...props} />)`
   /* stylelint-disable-next-line no-empty-block */
 `;
 
 const ResultTypeIcon = styled(InlineSvg)`
-  color: ${p => p.theme.offWhite};
   font-size: 1.2em;
   flex-shrink: 0;
 
@@ -171,6 +182,9 @@ const StyledPluginIcon = styled(PluginIcon)`
   flex-shrink: 0;
 `;
 
-const Description = styled('div')`
-  ${p => (p.highlighted ? `color: ${p.theme.offWhite};` : '')};
+const HighlightMarker = styled('mark')`
+  padding: 0;
+  background: transparent;
+  font-weight: bold;
+  color: inherit;
 `;

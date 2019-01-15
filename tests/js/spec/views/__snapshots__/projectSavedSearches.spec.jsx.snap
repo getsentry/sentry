@@ -17,11 +17,12 @@ exports[`ProjectSavedSearches renders 1`] = `
     >
       <div>
         <SettingsPageHeading
+          noTitleStyles={false}
           title="Saved Searches"
         >
           <Wrapper>
             <div
-              className="css-1pnrn3o-Wrapper e1kblvez1"
+              className="css-1r5ylk7-Wrapper e1kblvez2"
             >
               <Flex
                 align="center"
@@ -34,15 +35,23 @@ exports[`ProjectSavedSearches renders 1`] = `
                     className="css-5ipae5"
                     is={null}
                   >
-                    <Title>
+                    <Title
+                      styled={false}
+                    >
                       <Base
-                        className="css-1mqcea-Title e1kblvez0"
+                        className="css-1ky52ze-Title e1kblvez0"
                       >
                         <div
-                          className="css-1mqcea-Title e1kblvez0"
+                          className="css-1ky52ze-Title e1kblvez0"
                           is={null}
                         >
-                          Saved Searches
+                          <HeaderTitle>
+                            <h4
+                              className="css-1w8ttcn-HeaderTitle e6lvex72"
+                            >
+                              Saved Searches
+                            </h4>
+                          </HeaderTitle>
                         </div>
                       </Base>
                     </Title>
@@ -845,11 +854,12 @@ exports[`ProjectSavedSearches renders empty 1`] = `
     >
       <div>
         <SettingsPageHeading
+          noTitleStyles={false}
           title="Saved Searches"
         >
           <Wrapper>
             <div
-              className="css-1pnrn3o-Wrapper e1kblvez1"
+              className="css-1r5ylk7-Wrapper e1kblvez2"
             >
               <Flex
                 align="center"
@@ -862,15 +872,23 @@ exports[`ProjectSavedSearches renders empty 1`] = `
                     className="css-5ipae5"
                     is={null}
                   >
-                    <Title>
+                    <Title
+                      styled={false}
+                    >
                       <Base
-                        className="css-1mqcea-Title e1kblvez0"
+                        className="css-1ky52ze-Title e1kblvez0"
                       >
                         <div
-                          className="css-1mqcea-Title e1kblvez0"
+                          className="css-1ky52ze-Title e1kblvez0"
                           is={null}
                         >
-                          Saved Searches
+                          <HeaderTitle>
+                            <h4
+                              className="css-1w8ttcn-HeaderTitle e6lvex72"
+                            >
+                              Saved Searches
+                            </h4>
+                          </HeaderTitle>
                         </div>
                       </Base>
                     </Title>
@@ -1030,16 +1048,44 @@ exports[`ProjectSavedSearches renders empty 1`] = `
                       data-test-id="empty-state"
                     >
                       <div
-                        className="css-n38n5f-EmptyStreamWrapper ernlsnc0"
+                        className="css-1ff2mrl-EmptyStreamWrapper ernlsnc0"
                         data-test-id="empty-state"
                       >
-                        <Icon
-                          className="icon icon-exclamation"
+                        <HeroIcon
+                          size="54"
+                          src="icon-circle-exclamation"
                         >
-                          <div
-                            className="icon icon-exclamation css-tjp7mx-Icon ernlsnc1"
-                          />
-                        </Icon>
+                          <Component
+                            className="css-1j03cl-HeroIcon e1h7wyrq0"
+                            size="54"
+                            src="icon-circle-exclamation"
+                          >
+                            <InlineSvg
+                              className="css-1j03cl-HeroIcon e1h7wyrq0"
+                              size="54"
+                              src="icon-circle-exclamation"
+                            >
+                              <StyledSvg
+                                className="css-1j03cl-HeroIcon e1h7wyrq0"
+                                height="54"
+                                viewBox={Object {}}
+                                width="54"
+                              >
+                                <svg
+                                  className="e1h7wyrq0 css-196iyqp-StyledSvg-HeroIcon e2idor0"
+                                  height="54"
+                                  viewBox={Object {}}
+                                  width="54"
+                                >
+                                  <use
+                                    href="#test"
+                                    xlinkHref="#test"
+                                  />
+                                </svg>
+                              </StyledSvg>
+                            </InlineSvg>
+                          </Component>
+                        </HeroIcon>
                         <p>
                           There are no saved searches for this project.
                         </p>

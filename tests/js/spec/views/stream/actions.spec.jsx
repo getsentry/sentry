@@ -178,4 +178,31 @@ describe('StreamActions', function() {
       });
     });
   });
+
+  describe('missing projectId prop', function() {
+    beforeEach(function() {
+      wrapper = mount(
+        <StreamActions
+          query=""
+          orgId="1337"
+          groupIds={[1, 2, 3]}
+          onRealtimeChange={function() {}}
+          onSelectStatsPeriod={function() {}}
+          realtimeActive={false}
+          statsPeriod="24h"
+        />,
+        TestStubs.routerContext()
+      );
+    });
+
+    it('should disable resolve picker', function() {
+      let resolve = wrapper.find('ResolveActions').first();
+      expect(resolve.props().disabled).toBeTruthy();
+    });
+
+    it('should disable merge button', function() {
+      let merge = wrapper.find('ActionLink[className~="action-merge"]').first();
+      expect(merge.props().disabled).toBeTruthy();
+    });
+  });
 });

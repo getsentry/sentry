@@ -7,6 +7,7 @@ sentry.utils.safe
 """
 from __future__ import absolute_import, print_function
 
+import os
 import collections
 import logging
 import six
@@ -17,6 +18,9 @@ from django.utils.encoding import force_text
 
 from sentry.utils import json
 from sentry.utils.strings import truncatechars
+
+
+ENABLE_TRIMMING = os.environ.get("SENTRY_RUST_ENABLE_TRIMMING", "true") == "true"
 
 
 def safe_execute(func, *args, **kwargs):
@@ -65,7 +69,7 @@ def trim(
         '_depth': _depth + 1,
     }
 
-    if _depth > max_depth:
+    if _depth > max_depth and ENABLE_TRIMMING:
         if not isinstance(value, six.string_types):
             value = json.dumps(value)
         return trim(value, _size=_size, max_size=max_size)
@@ -78,7 +82,7 @@ def trim(
             trim_v = trim(v, _size=_size, **options)
             result[k] = trim_v
             _size += len(force_text(trim_v)) + 1
-            if _size >= max_size:
+            if _size >= max_size and ENABLE_TRIMMING:
                 break
 
     elif isinstance(value, (list, tuple)):
@@ -88,10 +92,12 @@ def trim(
             trim_v = trim(v, _size=_size, **options)
             result.append(trim_v)
             _size += len(force_text(trim_v))
-            if _size >= max_size:
+            if _size >= max_size and ENABLE_TRIMMING:
                 break
+        if isinstance(value, tuple):
+            result = tuple(result)
 
-    elif isinstance(value, six.string_types):
+    elif isinstance(value, six.string_types) and ENABLE_TRIMMING:
         result = truncatechars(value, max_size - _size)
 
     else:
@@ -108,7 +114,7 @@ def trim_pairs(iterable, max_items=settings.SENTRY_MAX_DICTIONARY_ITEMS, **kwarg
     for idx, item in enumerate(iterable):
         key, value = item
         result.append((key, trim(value, **kwargs)))
-        if idx > max_items:
+        if idx > max_items and ENABLE_TRIMMING:
             return result
     return result
 
@@ -117,7 +123,7 @@ def trim_dict(value, max_items=settings.SENTRY_MAX_DICTIONARY_ITEMS, **kwargs):
     max_items -= 1
     for idx, key in enumerate(list(iter(value))):
         value[key] = trim(value[key], **kwargs)
-        if idx > max_items:
+        if idx > max_items and ENABLE_TRIMMING:
             del value[key]
     return value
 

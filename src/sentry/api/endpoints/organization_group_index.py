@@ -11,6 +11,7 @@ from sentry.api.bases import OrganizationEventsEndpointBase
 from sentry.api.helpers.group_search import build_query_params_from_request, get_by_short_id, ValidationError
 from sentry.api.serializers import serialize
 from sentry.api.serializers.models.group import StreamGroupSerializerSnuba
+from sentry.api.utils import get_date_range_from_params, InvalidParams
 from sentry.models import Environment, Group, GroupStatus, Project
 from sentry.search.snuba.backend import SnubaSearchBackend
 
@@ -54,12 +55,22 @@ class OrganizationGroupIndexEndpoint(OrganizationEventsEndpointBase):
         with other statuses send an new query value (i.e. ``?query=`` for all
         results).
 
-        The ``statsPeriod`` parameter can be used to select the timeline
+        The ``groupStatsPeriod`` parameter can be used to select the timeline
         stats which should be present. Possible values are: '' (disable),
         '24h', '14d'
 
+        The ``statsPeriod`` parameter can be used to select a date window starting
+        from now. Ex. ``14d``.
+
+        The ``start`` and ``end`` parameters can be used to select an absolute
+        date period to fetch issues from.
+
         :qparam string statsPeriod: an optional stat period (can be one of
                                     ``"24h"``, ``"14d"``, and ``""``).
+        :qparam string groupStatsPeriod: an optional stat period (can be one of
+                                    ``"24h"``, ``"14d"``, and ``""``).
+        :qparam string start:       Beginning date. You must also provide ``end``.
+        :qparam string end:         End date. You must also provide ``start``.
         :qparam bool shortIdLookup: if this is set to true then short IDs are
                                     looked up by this function as well.  This
                                     can cause the return value of the function
@@ -73,7 +84,7 @@ class OrganizationGroupIndexEndpoint(OrganizationEventsEndpointBase):
                                           issues belong to.
         :auth: required
         """
-        stats_period = request.GET.get('statsPeriod')
+        stats_period = request.GET.get('groupStatsPeriod')
         if stats_period not in (None, '', '24h', '14d'):
             return Response({"detail": ERR_INVALID_STATS_PERIOD}, status=400)
         elif stats_period is None:
@@ -99,6 +110,7 @@ class OrganizationGroupIndexEndpoint(OrganizationEventsEndpointBase):
         if not project_ids:
             return Response([])
 
+        # we ignore date range for both short id and event ids
         query = request.GET.get('query', '').strip()
         if query:
             # check to see if we've got an event ID
@@ -126,8 +138,17 @@ class OrganizationGroupIndexEndpoint(OrganizationEventsEndpointBase):
                     return response
 
         try:
+            start, end = get_date_range_from_params(request.GET)
+        except InvalidParams as exc:
+            return Response({'detail': exc.message}, status=400)
+
+        try:
             cursor_result, query_kwargs = self._search(
-                request, organization, project_ids, environments, {'count_hits': True})
+                request, organization, project_ids, environments, {
+                    'count_hits': True,
+                    'date_to': end,
+                    'date_from': start,
+                })
         except ValidationError as exc:
             return Response({'detail': six.text_type(exc)}, status=400)
 

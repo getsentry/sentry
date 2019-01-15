@@ -17,11 +17,12 @@ exports[`Sentry Application Details edit existing application renders() it shows
     >
       <div>
         <SettingsPageHeading
+          noTitleStyles={false}
           title="Sentry Application Details"
         >
           <Wrapper>
             <div
-              className="css-1pnrn3o-Wrapper e1kblvez1"
+              className="css-1r5ylk7-Wrapper e1kblvez2"
             >
               <Flex
                 align="center"
@@ -34,15 +35,23 @@ exports[`Sentry Application Details edit existing application renders() it shows
                     className="css-5ipae5"
                     is={null}
                   >
-                    <Title>
+                    <Title
+                      styled={false}
+                    >
                       <Base
-                        className="css-1mqcea-Title e1kblvez0"
+                        className="css-1ky52ze-Title e1kblvez0"
                       >
                         <div
-                          className="css-1mqcea-Title e1kblvez0"
+                          className="css-1ky52ze-Title e1kblvez0"
                           is={null}
                         >
-                          Sentry Application Details
+                          <HeaderTitle>
+                            <h4
+                              className="css-1w8ttcn-HeaderTitle e6lvex72"
+                            >
+                              Sentry Application Details
+                            </h4>
+                          </HeaderTitle>
                         </div>
                       </Base>
                     </Title>
@@ -20120,11 +20129,12 @@ exports[`Sentry Application Details new sentry application renders() it shows em
     >
       <div>
         <SettingsPageHeading
+          noTitleStyles={false}
           title="Sentry Application Details"
         >
           <Wrapper>
             <div
-              className="css-1pnrn3o-Wrapper e1kblvez1"
+              className="css-1r5ylk7-Wrapper e1kblvez2"
             >
               <Flex
                 align="center"
@@ -20137,15 +20147,23 @@ exports[`Sentry Application Details new sentry application renders() it shows em
                     className="css-5ipae5"
                     is={null}
                   >
-                    <Title>
+                    <Title
+                      styled={false}
+                    >
                       <Base
-                        className="css-1mqcea-Title e1kblvez0"
+                        className="css-1ky52ze-Title e1kblvez0"
                       >
                         <div
-                          className="css-1mqcea-Title e1kblvez0"
+                          className="css-1ky52ze-Title e1kblvez0"
                           is={null}
                         >
-                          Sentry Application Details
+                          <HeaderTitle>
+                            <h4
+                              className="css-1w8ttcn-HeaderTitle e6lvex72"
+                            >
+                              Sentry Application Details
+                            </h4>
+                          </HeaderTitle>
                         </div>
                       </Base>
                     </Title>

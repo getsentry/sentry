@@ -1,5 +1,3 @@
-/*global __webpack_public_path__ */
-/*eslint no-native-reassign:0 */
 import $ from 'jquery';
 import {ThemeProvider} from 'emotion-theming';
 import Cookies from 'js-cookie';
@@ -8,7 +6,6 @@ import React from 'react';
 import Reflux from 'reflux';
 import createReactClass from 'create-react-class';
 import keydown from 'react-keydown';
-import idx from 'idx';
 
 import {openCommandPalette} from 'app/actionCreators/modal';
 import {t} from 'app/locale';
@@ -25,8 +22,6 @@ import LoadingIndicator from 'app/components/loadingIndicator';
 import NewsletterConsent from 'app/views/newsletterConsent';
 import OrganizationsStore from 'app/stores/organizationsStore';
 import theme from 'app/utils/theme';
-
-if (window.globalStaticUrl) __webpack_public_path__ = window.globalStaticUrl; // defined in layout.html
 
 function getAlertTypeForProblem(problem) {
   switch (problem.severity) {
@@ -112,8 +107,8 @@ const App = createReactClass({
       // Ignore error unless it is a 401
       if (!jqXHR || jqXHR.status !== 401 || pageAllowsAnon) return;
 
-      let code = idx(jqXHR, _ => _.responseJSON.detail.code);
-      let extra = idx(jqXHR, _ => _.responseJSON.detail.extra);
+      let code = jqXHR?.responseJSON?.detail?.code;
+      let extra = jqXHR?.responseJSON?.detail?.extra;
 
       // 401s can also mean sudo is required or it's a request that is allowed to fail
       // Ignore if these are the cases

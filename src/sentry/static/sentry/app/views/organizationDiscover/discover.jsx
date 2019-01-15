@@ -26,6 +26,7 @@ import {
   getQueryFromQueryString,
   deleteSavedQuery,
   updateSavedQuery,
+  queryHasChanged,
 } from './utils';
 import {isValidAggregation} from './aggregations/utils';
 import {isValidCondition} from './conditions/utils';
@@ -66,7 +67,10 @@ export default class OrganizationDiscover extends React.Component {
   }
 
   componentDidMount() {
-    if (this.props.savedQuery) {
+    const {savedQuery, location} = this.props;
+
+    // Run query if there is *any* querystring
+    if (savedQuery || (location && !!location.search)) {
       this.runQuery();
     }
   }
@@ -79,7 +83,6 @@ export default class OrganizationDiscover extends React.Component {
       isEditingSavedQuery,
       params,
     } = nextProps;
-    const currentSearch = this.props.location.search;
     const {resultManager} = this.state;
 
     if (savedQuery && savedQuery !== this.props.savedQuery) {
@@ -92,7 +95,7 @@ export default class OrganizationDiscover extends React.Component {
       return;
     }
 
-    if (currentSearch === search) {
+    if (!queryHasChanged(this.props.location.search, nextProps.location.search)) {
       return;
     }
 
@@ -178,7 +181,7 @@ export default class OrganizationDiscover extends React.Component {
   };
 
   runQuery = () => {
-    const {queryBuilder, organization} = this.props;
+    const {queryBuilder, organization, location} = this.props;
     const {resultManager} = this.state;
 
     // Track query for analytics
@@ -212,7 +215,12 @@ export default class OrganizationDiscover extends React.Component {
         if (shouldRedirect) {
           browserHistory.push({
             pathname: `/organizations/${organization.slug}/discover/`,
-            search: getQueryStringFromQuery(queryBuilder.getInternal()),
+            // Don't drop "visualization" from querystring
+            search: getQueryStringFromQuery(queryBuilder.getInternal(), {
+              ...(location.query.visualization && {
+                visualization: location.query.visualization,
+              }),
+            }),
           });
         }
 

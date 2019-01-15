@@ -2,9 +2,9 @@
 
 exports[`highlightFuseMatches matches whole word 1`] = `
 Array [
-  <strong>
+  <mark>
     foo
-  </strong>,
+  </mark>,
 ]
 `;
 
@@ -13,21 +13,21 @@ Array [
   <span>
     Auth
   </span>,
-  <strong>
+  <mark>
     ent
-  </strong>,
+  </mark>,
   <span>
     icati
   </span>,
-  <strong>
+  <mark>
     on
-  </strong>,
+  </mark>,
   <span>
      
   </span>,
-  <strong>
+  <mark>
     to
-  </strong>,
+  </mark>,
   <span>
     kens allow you to perform actions
   </span>,

@@ -44,14 +44,20 @@ describe('getQueryStringFromQuery()', function() {
   it('parses query from query string', function() {
     expect(getQueryStringFromQuery(query)).toEqual(queryString);
   });
+
+  it('keeps location in query string if provided', function() {
+    expect(getQueryStringFromQuery(query, {visualization: 'table'})).toEqual(
+      `${queryString}&visualization=table`
+    );
+  });
 });
 
 describe('getOrderbyFields()', function() {
   const organization = TestStubs.Organization({projects: [TestStubs.Project()]});
   const queryBuilder = createQueryBuilder({}, organization);
 
-  it('allows ordering by all fields when no aggregations except project.name and issue.id', function() {
-    expect(getOrderbyFields(queryBuilder)).toHaveLength(COLUMNS.length - 2);
+  it('allows ordering by all fields when no aggregations except project.name', function() {
+    expect(getOrderbyFields(queryBuilder)).toHaveLength(COLUMNS.length - 1);
   });
 
   it('allows ordering by aggregations with aggregations and no fields', function() {

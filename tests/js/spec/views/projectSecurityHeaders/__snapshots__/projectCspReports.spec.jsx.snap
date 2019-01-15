@@ -6,6 +6,7 @@ exports[`ProjectCspReports renders 1`] = `
 >
   <div>
     <SettingsPageHeading
+      noTitleStyles={false}
       title="Content Security Policy"
     />
     <PreviewFeature

@@ -47,13 +47,6 @@ class EventManagerTest(TransactionTestCase):
         event = manager.save(project_id)
         return event
 
-    def test_key_id_remains_in_data(self):
-        manager = EventManager(make_event(key_id=12345))
-        manager.normalize()
-        assert manager.get_data()['key_id'] == 12345
-        event = manager.save(1)
-        assert event.data['key_id'] == 12345
-
     def test_similar_message_prefix_doesnt_group(self):
         # we had a regression which caused the default hash to just be
         # 'event.search_message' instead of '[event.search_message]' which

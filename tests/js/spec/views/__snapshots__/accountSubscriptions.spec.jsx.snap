@@ -6,6 +6,7 @@ exports[`AccountSubscriptions renders empty 1`] = `
 >
   <div>
     <SettingsPageHeading
+      noTitleStyles={false}
       title="Subscriptions"
     />
     <TextBlock>
@@ -45,11 +46,12 @@ exports[`AccountSubscriptions renders list and can toggle 1`] = `
     >
       <div>
         <SettingsPageHeading
+          noTitleStyles={false}
           title="Subscriptions"
         >
           <Wrapper>
             <div
-              className="css-12kovf2-Wrapper e1kblvez1"
+              className="css-1r5ylk7-Wrapper e1kblvez2"
             >
               <Flex
                 align="center"
@@ -62,15 +64,23 @@ exports[`AccountSubscriptions renders list and can toggle 1`] = `
                     className="css-5ipae5"
                     is={null}
                   >
-                    <Title>
+                    <Title
+                      styled={false}
+                    >
                       <Base
-                        className="css-1mqcea-Title e1kblvez0"
+                        className="css-1ky52ze-Title e1kblvez0"
                       >
                         <div
-                          className="css-1mqcea-Title e1kblvez0"
+                          className="css-1ky52ze-Title e1kblvez0"
                           is={null}
                         >
-                          Subscriptions
+                          <HeaderTitle>
+                            <h4
+                              className="css-u1l4am-HeaderTitle e6lvex72"
+                            >
+                              Subscriptions
+                            </h4>
+                          </HeaderTitle>
                         </div>
                       </Base>
                     </Title>

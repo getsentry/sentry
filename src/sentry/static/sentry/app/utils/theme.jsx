@@ -64,10 +64,11 @@ const theme = {
   background: '#fff',
 
   zIndex: {
-    orgAndUserMenu: 1003,
-    sidebar: 1002,
-    header: 1000,
+    orgAndUserMenu: 1004,
+    globalSelectionHeader: 1002,
+    sidebar: 1003,
     dropdown: 1001,
+    header: 1000,
     modal: 10000,
     toast: 10001,
     dropdownAutocomplete: {
@@ -126,9 +127,9 @@ const theme = {
     // i.e. organization, project, or team
     maxCrumbWidth: '240px',
 
-    containerWidth: '1140px',
+    containerWidth: '1440px',
     headerHeight: '115px',
-    sidebarWidth: '210px',
+    sidebarWidth: '220px',
   },
 
   sidebar: {

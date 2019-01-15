@@ -109,7 +109,7 @@ describe('components/interfaces/utils', function() {
       getCurlCommand(eventWithProxy);
 
       // This may need to change, but we should aim to keep this low
-      expect(spy).toHaveBeenCalledTimes(172);
+      expect(spy.mock.calls.length).toBeLessThan(200);
     });
   });
 

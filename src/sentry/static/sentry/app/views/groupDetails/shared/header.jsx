@@ -5,42 +5,45 @@ import {Link} from 'react-router';
 import ApiMixin from 'app/mixins/apiMixin';
 import AssigneeSelector from 'app/components/assigneeSelector';
 import Count from 'app/components/count';
-import GroupActions from 'app/views/groupDetails/project/actions';
 import IndicatorStore from 'app/stores/indicatorStore';
 import ListLink from 'app/components/listLink';
 import NavTabs from 'app/components/navTabs';
 import ShortId from 'app/components/shortId';
 import EventOrGroupTitle from 'app/components/eventOrGroupTitle';
 import GuideAnchor from 'app/components/assistant/guideAnchor';
-import ProjectState from 'app/mixins/projectState';
+import OrganizationState from 'app/mixins/organizationState';
 import Tooltip from 'app/components/tooltip';
 import {t} from 'app/locale';
+import SentryTypes from 'app/sentryTypes';
 
-import GroupSeenBy from '../project/seenBy';
+import GroupActions from './actions';
+import GroupSeenBy from './seenBy';
 
 const GroupHeader = createReactClass({
   displayName: 'GroupHeader',
 
   propTypes: {
-    group: PropTypes.object.isRequired,
+    group: SentryTypes.Group.isRequired,
+    project: SentryTypes.Project,
+    params: PropTypes.object,
   },
 
   contextTypes: {
     location: PropTypes.object,
+    organization: SentryTypes.Organization,
   },
 
-  mixins: [ApiMixin, ProjectState],
+  mixins: [ApiMixin, OrganizationState],
 
   onToggleMute() {
     let group = this.props.group;
-    let project = this.getProject();
-    let org = this.getOrganization();
+    let org = this.context.organization;
     let loadingIndicator = IndicatorStore.add(t('Saving changes..'));
 
     this.api.bulkUpdate(
       {
         orgId: org.slug,
-        projectId: project.slug,
+        projectId: group.project.slug,
         itemIds: [group.id],
         data: {
           status: group.status === 'ignored' ? 'unresolved' : 'ignored',
@@ -68,9 +71,9 @@ const GroupHeader = createReactClass({
   },
 
   render() {
-    let group = this.props.group,
-      projectFeatures = this.getProjectFeatures(),
-      userCount = group.userCount;
+    let {project, group, params} = this.props;
+    let projectFeatures = new Set(project ? project.features : []);
+    let userCount = group.userCount;
 
     let className = 'group-detail';
 
@@ -87,12 +90,15 @@ const GroupHeader = createReactClass({
       className += ' isResolved';
     }
 
-    let groupId = group.id,
-      projectId = this.getProject().slug,
-      orgId = this.getOrganization().slug;
+    let groupId = group.id;
+    let orgId = this.context.organization.slug;
     let message = this.getMessage();
 
     let hasSimilarView = projectFeatures.has('similarity-view');
+
+    let baseUrl = params.projectId
+      ? `/${orgId}/${params.projectId}/issues/`
+      : `/organizations/${orgId}/issues/`;
 
     return (
       <div className={className}>
@@ -108,7 +114,7 @@ const GroupHeader = createReactClass({
                 <span className="event-annotation">
                   <Link
                     to={{
-                      pathname: `/${orgId}/${projectId}/`,
+                      pathname: baseUrl,
                       query: {query: 'logger:' + group.logger},
                     }}
                   >
@@ -151,14 +157,14 @@ const GroupHeader = createReactClass({
               )}
               <div className="count align-right">
                 <h6 className="nav-header">{t('Events')}</h6>
-                <Link to={`/${orgId}/${projectId}/issues/${groupId}/events/`}>
+                <Link to={`${baseUrl}${groupId}/events/`}>
                   <Count className="count" value={group.count} />
                 </Link>
               </div>
               <div className="count align-right">
                 <h6 className="nav-header">{t('Users')}</h6>
                 {userCount !== 0 ? (
-                  <Link to={`/${orgId}/${projectId}/issues/${groupId}/tags/user/`}>
+                  <Link to={`${baseUrl}${groupId}/tags/user/`}>
                     <Count className="count" value={userCount} />
                   </Link>
                 ) : (
@@ -172,13 +178,13 @@ const GroupHeader = createReactClass({
             </div>
           </div>
         </div>
-        <GroupSeenBy />
-        <GroupActions />
+        <GroupSeenBy group={group} />
+        <GroupActions group={group} project={project} />
         <NavTabs>
           <ListLink
-            to={`/${orgId}/${projectId}/issues/${groupId}/`}
+            to={`${baseUrl}${groupId}/`}
             isActive={() => {
-              let rootGroupPath = `/${orgId}/${projectId}/issues/${groupId}/`;
+              let rootGroupPath = `${baseUrl}${groupId}/`;
               let pathname = this.context.location.pathname;
 
               // Because react-router 1.0 removes router.isActive(route)
@@ -187,24 +193,18 @@ const GroupHeader = createReactClass({
           >
             {t('Details')}
           </ListLink>
-          <ListLink to={`/${orgId}/${projectId}/issues/${groupId}/activity/`}>
+          <ListLink to={`${baseUrl}${groupId}/activity/`}>
             {t('Comments')} <span className="badge animated">{group.numComments}</span>
           </ListLink>
-          <ListLink to={`/${orgId}/${projectId}/issues/${groupId}/feedback/`}>
+          <ListLink to={`${baseUrl}${groupId}/feedback/`}>
             {t('User Feedback')}{' '}
             <span className="badge animated">{group.userReportCount}</span>
           </ListLink>
-          <ListLink to={`/${orgId}/${projectId}/issues/${groupId}/tags/`}>
-            {t('Tags')}
-          </ListLink>
-          <ListLink to={`/${orgId}/${projectId}/issues/${groupId}/events/`}>
-            {t('Events')}
-          </ListLink>
-          <ListLink to={`/${orgId}/${projectId}/issues/${groupId}/merged/`}>
-            {t('Merged')}
-          </ListLink>
+          <ListLink to={`${baseUrl}${groupId}/tags/`}>{t('Tags')}</ListLink>
+          <ListLink to={`${baseUrl}${groupId}/events/`}>{t('Events')}</ListLink>
+          <ListLink to={`${baseUrl}${groupId}/merged/`}>{t('Merged')}</ListLink>
           {hasSimilarView && (
-            <ListLink to={`/${orgId}/${projectId}/issues/${groupId}/similar/`}>
+            <ListLink to={`${baseUrl}${groupId}/similar/`}>
               {t('Similar Issues')}
             </ListLink>
           )}
