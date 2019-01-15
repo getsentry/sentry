@@ -30,7 +30,7 @@ exports[`StreamGroup renders with anchors 1`] = `
       ]
     }
   >
-    <EventOrGroupHeader
+    <withRouter(EventOrGroupHeader)
       data={
         Object {
           "assignedTo": null,
@@ -65,9 +65,6 @@ exports[`StreamGroup renders with anchors 1`] = `
           "type": "error",
         }
       }
-      includeLink={true}
-      orgId="orgId"
-      projectId="test"
     />
     <EventOrGroupExtraDetails
       assignedTo={null}
