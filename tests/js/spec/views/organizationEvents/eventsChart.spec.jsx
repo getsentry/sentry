@@ -18,11 +18,8 @@ describe('EventsChart', function() {
   let render;
   let wrapper;
 
-  beforeAll(function() {
-    // render = jest.spyOn(ChartZoom.prototype, 'render');
-  });
+  beforeAll(function() {});
   beforeEach(function() {
-    // render.mockClear();
     mockZoomRange(2, 5);
     wrapper = mount(
       <EventsChart
