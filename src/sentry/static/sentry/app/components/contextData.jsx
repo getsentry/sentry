@@ -1,6 +1,6 @@
+import $ from 'jquery';
 import PropTypes from 'prop-types';
 import React from 'react';
-import jQuery from 'jquery';
 import _ from 'lodash';
 
 import {isUrl} from 'app/utils';
@@ -81,7 +81,7 @@ class ContextData extends React.Component {
 
   renderValue = value => {
     function toggle(evt) {
-      jQuery(evt.target)
+      $(evt.target)
         .parent()
         .toggleClass('val-toggle-open');
       evt.preventDefault();

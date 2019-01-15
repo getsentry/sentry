@@ -1,3 +1,4 @@
+import $ from 'jquery';
 import React from 'react';
 
 import {mount} from 'enzyme';
@@ -128,7 +129,7 @@ describe('DropdownLink', function() {
       });
 
       it('does not close when document is clicked', function() {
-        jQuery(document).click();
+        $(document).click();
         // State does not change
         expect(wrapper.find('.dropdown-menu')).toHaveLength(1);
       });

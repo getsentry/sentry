@@ -1,7 +1,7 @@
+import $ from 'jquery';
+import Modal, {Header, Body, Footer} from 'react-bootstrap/lib/Modal';
 import PropTypes from 'prop-types';
 import React from 'react';
-import jQuery from 'jquery';
-import Modal, {Header, Body, Footer} from 'react-bootstrap/lib/Modal';
 
 import {SelectAsyncField} from 'app/components/forms';
 import {t} from 'app/locale';
@@ -26,7 +26,7 @@ export default class CustomResolutionModal extends React.Component {
   componentDidUpdate(prevProps, prevState) {
     if (!prevProps.show && this.props.show) {
       // XXX(cramer): this is incorrect but idgaf
-      jQuery('.modal').attr('tabindex', null);
+      $('.modal').attr('tabindex', null);
     }
   }
 

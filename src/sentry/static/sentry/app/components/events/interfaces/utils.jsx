@@ -1,5 +1,6 @@
 import {isString} from 'lodash';
 import * as Sentry from '@sentry/browser';
+import queryString from 'query-string';
 
 import {defined} from 'app/utils';
 
@@ -38,7 +39,7 @@ export function getCurlCommand(data) {
         result += ' \\\n --data "' + escapeQuotes(JSON.stringify(data.data)) + '"';
         break;
       case 'application/x-www-form-urlencoded':
-        result += ' \\\n --data "' + escapeQuotes(jQuery.param(data.data)) + '"';
+        result += ' \\\n --data "' + escapeQuotes(queryString.stringify(data.data)) + '"';
         break;
       default:
         if (isString(data.data)) {

@@ -1,3 +1,4 @@
+import $ from 'jquery';
 import PropTypes from 'prop-types';
 import React from 'react';
 import DocumentTitle from 'react-document-title';
@@ -15,12 +16,12 @@ export default class InstallWizard extends AsyncView {
 
   componentWillMount() {
     super.componentWillMount();
-    jQuery(document.body).addClass('install-wizard');
+    $(document.body).addClass('install-wizard');
   }
 
   componentWillUnmount() {
     super.componentWillUnmount();
-    jQuery(document.body).removeClass('install-wizard');
+    $(document.body).removeClass('install-wizard');
   }
 
   getEndpoints() {

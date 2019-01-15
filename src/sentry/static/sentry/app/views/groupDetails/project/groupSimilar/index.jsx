@@ -1,8 +1,9 @@
+import {browserHistory} from 'react-router';
 import PropTypes from 'prop-types';
 import React from 'react';
-import createReactClass from 'create-react-class';
-import {browserHistory} from 'react-router';
 import Reflux from 'reflux';
+import createReactClass from 'create-react-class';
+import queryString from 'query-string';
 
 import {t} from 'app/locale';
 import GroupingActions from 'app/actions/groupingActions';
@@ -10,6 +11,7 @@ import GroupingStore from 'app/stores/groupingStore';
 import LoadingError from 'app/components/loadingError';
 import LoadingIndicator from 'app/components/loadingIndicator';
 import ProjectState from 'app/mixins/projectState';
+
 import SimilarList from './similarList';
 
 const GroupGroupingView = createReactClass({
@@ -75,7 +77,7 @@ const GroupGroupingView = createReactClass({
       ...this.props.location.query,
       limit: 50,
     };
-    return `/issues/${params.groupId}/${type}/?${jQuery.param(queryParams)}`;
+    return `/issues/${params.groupId}/${type}/?${queryString.stringify(queryParams)}`;
   },
 
   fetchData() {

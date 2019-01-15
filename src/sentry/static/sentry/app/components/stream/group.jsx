@@ -3,7 +3,7 @@ import PropTypes from 'prop-types';
 import React from 'react';
 import Reflux from 'reflux';
 import createReactClass from 'create-react-class';
-import jQuery from 'jquery';
+import $ from 'jquery';
 import styled from 'react-emotion';
 
 import {PanelItem} from 'app/components/panels';
@@ -79,7 +79,7 @@ const StreamGroup = createReactClass({
   toggleSelect(evt) {
     if (evt.target.tagName === 'A') return;
     if (evt.target.tagName === 'INPUT') return;
-    if (jQuery(evt.target).parents('a').length !== 0) return;
+    if ($(evt.target).parents('a').length !== 0) return;
 
     SelectedGroupStore.toggleSelect(this.state.data.id);
   },

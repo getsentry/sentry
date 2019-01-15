@@ -1,5 +1,5 @@
+import $ from 'jquery';
 import PropTypes from 'prop-types';
-import jQuery from 'jquery';
 import ReactDOM from 'react-dom';
 
 import InputField from 'app/components/forms/inputField';
@@ -40,12 +40,12 @@ export default class RangeField extends InputField {
   }
 
   attachSlider() {
-    let $value = jQuery('<span class="value" />');
+    let $value = $('<span class="value" />');
     let suffixClassNames = '';
     if (this.props.disabled) {
       suffixClassNames += ' disabled';
     }
-    jQuery(ReactDOM.findDOMNode(this.refs.input))
+    $(ReactDOM.findDOMNode(this.refs.input))
       .on('slider:ready', (e, data) => {
         let value = parseInt(data.value, 10);
         $value.appendTo(data.el);

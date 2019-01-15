@@ -1,31 +1,32 @@
+import $ from 'jquery';
+import {ThemeProvider} from 'emotion-theming';
 import {isEqual, pick} from 'lodash';
 import {withRouter, browserHistory} from 'react-router';
-import {ThemeProvider} from 'emotion-theming';
 import PropTypes from 'prop-types';
 import React from 'react';
 import Reflux from 'reflux';
 import createReactClass from 'create-react-class';
 import styled, {css, cx} from 'react-emotion';
 
+import {URL_PARAM} from 'app/components/organizations/globalSelectionHeader/constants';
 import {hideSidebar, showSidebar} from 'app/actionCreators/preferences';
 import {load as loadIncidents} from 'app/actionCreators/incidents';
 import {t} from 'app/locale';
 import ConfigStore from 'app/stores/configStore';
-import InlineSvg from 'app/components/inlineSvg';
 import Feature from 'app/components/acl/feature';
-import SentryTypes from 'app/sentryTypes';
+import InlineSvg from 'app/components/inlineSvg';
 import PreferencesStore from 'app/stores/preferencesStore';
-import theme from 'app/utils/theme';
+import SentryTypes from 'app/sentryTypes';
 import space from 'app/styles/space';
+import theme from 'app/utils/theme';
 import withLatestContext from 'app/utils/withLatestContext';
-import {URL_PARAM} from 'app/components/organizations/globalSelectionHeader/constants';
 
 import Broadcasts from './broadcasts';
 import Incidents from './incidents';
+import OnboardingStatus from './onboardingStatus';
 import SidebarDropdown from './sidebarDropdown';
 import SidebarHelp from './help';
 import SidebarItem from './sidebarItem';
-import OnboardingStatus from './onboardingStatus';
 
 class Sidebar extends React.Component {
   static propTypes = {
@@ -52,8 +53,8 @@ class Sidebar extends React.Component {
 
   componentDidMount() {
     let {router} = this.props;
-    jQuery(document.body).addClass('body-sidebar');
-    jQuery(document).on('click', this.documentClickHandler);
+    $(document.body).addClass('body-sidebar');
+    $(document).on('click', this.documentClickHandler);
 
     loadIncidents();
 
@@ -99,8 +100,8 @@ class Sidebar extends React.Component {
   }
 
   componentWillUnmount() {
-    jQuery(document).off('click', this.documentClickHandler);
-    jQuery(document.body).removeClass('body-sidebar');
+    $(document).off('click', this.documentClickHandler);
+    $(document.body).removeClass('body-sidebar');
 
     if (this.mq) {
       this.mq.removeListener(this.handleMediaQueryChange);
@@ -115,9 +116,9 @@ class Sidebar extends React.Component {
 
   doCollapse(collapsed) {
     if (collapsed) {
-      jQuery(document.body).addClass('collapsed');
+      $(document.body).addClass('collapsed');
     } else {
-      jQuery(document.body).removeClass('collapsed');
+      $(document.body).removeClass('collapsed');
     }
   }
 
