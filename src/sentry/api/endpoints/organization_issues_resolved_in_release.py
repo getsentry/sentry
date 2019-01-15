@@ -30,7 +30,7 @@ class OrganizationIssuesResolvedInReleaseEndpoint(OrganizationEndpoint, Environm
         """
         group_ids = get_group_ids_resolved_in_release(organization, version)
         groups = Group.objects.filter(
-            project_id__in=self.get_project_ids(request, organization),
+            project__in=self.get_projects(request, organization),
             id__in=group_ids,
         )
 
