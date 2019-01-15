@@ -8,7 +8,7 @@ import {callIfFunction} from 'app/utils/callIfFunction';
 import {getFormattedDate} from 'app/utils/dates';
 import {isEqualWithDates} from 'app/utils/isEqualWithDates';
 import {updateParams} from 'app/actionCreators/globalSelection';
-import {useHourlyInterval} from 'app/components/charts/utils';
+import {useShortInterval} from 'app/components/charts/utils';
 import DataZoom from 'app/components/charts/components/dataZoom';
 import SentryTypes from 'app/sentryTypes';
 import ToolBox from 'app/components/charts/components/toolBox';
@@ -16,6 +16,17 @@ import ToolBox from 'app/components/charts/components/toolBox';
 const getDate = date =>
   date ? moment.utc(date).format(moment.HTML5_FMT.DATETIME_LOCAL_SECONDS) : null;
 
+/**
+ * This is a very opinionated component that takes a render prop through `children`. It
+ * will provide props to be passed to `BaseChart` to enable support of zooming without
+ * eCharts' clunky zoom toolboxes.
+ *
+ * This also is very tightly coupled with the Global Selection Header. We can make it more
+ * generic if need be in the future.
+ *
+ * TODO(billy): If this sees extended uses, this would be better as a child of LineChart so
+ * you can enable it via a prop to `<LineChart>`
+ */
 class ChartZoom extends React.Component {
   static propTypes = {
     router: PropTypes.object,
@@ -65,7 +76,7 @@ class ChartZoom extends React.Component {
       return true;
     }
 
-    if (zoom && useHourlyInterval(nextProps) !== useHourlyInterval(this.props)) {
+    if (zoom && useShortInterval(nextProps) !== useShortInterval(this.props)) {
       return true;
     }
 
@@ -236,14 +247,14 @@ class ChartZoom extends React.Component {
       return children(props);
     }
 
-    const useHourly = useHourlyInterval(this.props);
+    const hasShortInterval = useShortInterval(this.props);
 
-    let interval = useHourly ? '5m' : '30m';
+    let interval = hasShortInterval ? '5m' : '30m';
     let xAxisOptions = {
       axisLabel: {
-        formatter: (value, index, ...rest) => {
+        formatter: (value, index) => {
           const firstItem = index === 0;
-          const format = useHourly && !firstItem ? 'LT' : 'lll';
+          const format = hasShortInterval && !firstItem ? 'LT' : 'lll';
           return getFormattedDate(value, format, {local: !utc});
         },
       },
@@ -263,7 +274,7 @@ class ChartZoom extends React.Component {
       // Zooming only works when grouped by date
       isGroupedByDate: true,
       onChartReady: this.handleChartReady,
-      useUtc: utc,
+      utc,
       interval,
       dataZoom: DataZoom(),
       tooltip,

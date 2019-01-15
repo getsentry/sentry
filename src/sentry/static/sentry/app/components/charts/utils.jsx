@@ -13,7 +13,10 @@ export function truncationFormatter(value, truncate) {
     : value;
 }
 
-export function useHourlyInterval(datetimeObj) {
+/**
+ * Use a shorter interval if the time difference is <= 24 hours.
+ */
+export function useShortInterval(datetimeObj) {
   const {period, start, end} = datetimeObj;
 
   if (typeof period === 'string') {
