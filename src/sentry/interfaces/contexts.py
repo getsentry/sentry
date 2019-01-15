@@ -13,7 +13,7 @@ import string
 
 from django.utils.encoding import force_text
 
-from sentry.interfaces.base import Interface
+from sentry.interfaces.base import Interface, prune_empty_keys
 from sentry.utils.contexts_normalization import normalize_os, normalize_runtime
 from sentry.utils.safe import get_path, trim
 
@@ -55,7 +55,7 @@ class ContextType(object):
     def to_json(self):
         rv = dict(self.data)
         rv['type'] = self.type
-        return rv
+        return prune_empty_keys(rv)
 
     @classmethod
     def values_for_data(cls, data):

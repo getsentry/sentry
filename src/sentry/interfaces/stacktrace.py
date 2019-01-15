@@ -353,16 +353,20 @@ class Frame(Interface):
 
         # XXX: handle lines which were sent as 'null'
         context_line = trim(data.get('context_line'), 256)
-        if context_line is not None:
-            pre_context = data.get('pre_context', None)
-            if pre_context:
-                pre_context = [c or '' for c in pre_context]
-
-            post_context = data.get('post_context', None)
-            if post_context:
-                post_context = [c or '' for c in post_context]
+        pre_context = data.get('pre_context', None)
+        if isinstance(pre_context, list) and pre_context:
+            pre_context = [c or '' for c in pre_context]
         else:
-            pre_context, post_context = None, None
+            pre_context = None
+
+        post_context = data.get('post_context', None)
+        if isinstance(post_context, list) and post_context:
+            post_context = [c or '' for c in post_context]
+        else:
+            post_context = None
+
+        if not context_line and (pre_context or post_context):
+            context_line = ''
 
         in_app = validate_bool(data.get('in_app'), False)
 
@@ -397,7 +401,10 @@ class Frame(Interface):
             kwargs['lineno'] = None
 
         if data.get('colno') is not None:
-            kwargs['colno'] = int(data['colno'])
+            colno = int(data['colno'])
+            if colno < 0:
+                colno = None
+            kwargs['colno'] = colno
         else:
             kwargs['colno'] = None
 
@@ -417,7 +424,7 @@ class Frame(Interface):
             'instruction_addr': self.instruction_addr,
             'trust': self.trust,
             'in_app': self.in_app,
-            'context_line': self.context_line or None,
+            'context_line': self.context_line,
             'pre_context': self.pre_context or None,
             'post_context': self.post_context or None,
             'vars': self.vars or None,

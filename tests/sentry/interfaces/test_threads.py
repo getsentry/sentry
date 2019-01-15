@@ -69,9 +69,6 @@ class ThreadsTest(TestCase):
         sink = {"values": [{
             "crashed": False,
             "current": False,
-            "id": None,
-            "name": None,
-            "stacktrace": None
         }]}
 
         assert Threads.to_python({"values": [{}]}).to_json() == sink

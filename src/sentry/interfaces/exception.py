@@ -882,7 +882,7 @@ class SingleException(Interface):
         else:
             raw_stacktrace = None
 
-        return {
+        return prune_empty_keys({
             'type': self.type,
             'value': self.value,
             'mechanism': mechanism,
@@ -890,7 +890,7 @@ class SingleException(Interface):
             'stacktrace': stacktrace,
             'thread_id': self.thread_id,
             'raw_stacktrace': raw_stacktrace,
-        }
+        })
 
     def get_api_context(self, is_public=False):
         mechanism = isinstance(self.mechanism, Mechanism) and \

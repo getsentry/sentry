@@ -12,7 +12,6 @@ class EventAttributeConditionTest(RuleTestCase):
             platform='php',
             data={
                 'message': 'hello world',
-                'type': 'error',
                 'request': {
                     'method': 'GET',
                     'url': 'http://example.com',
@@ -433,6 +432,7 @@ class EventAttributeConditionTest(RuleTestCase):
 
     def test_event_type(self):
         event = self.get_event()
+        event.data['type'] = 'error'
         rule = self.get_rule(data={
             'match': MatchType.EQUAL,
             'attribute': 'type',
