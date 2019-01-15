@@ -1,30 +1,31 @@
 import moment from 'moment';
 import {Client} from 'app/api';
-import {isEqual, omit} from 'lodash';
+import {isEqual, pick} from 'lodash';
 import qs from 'query-string';
 import {isValidAggregation} from './aggregations/utils';
 import {NON_SNUBA_FIELDS} from './data';
 
-export function getQueryFromQueryString(queryString) {
-  const validQueryKeys = new Set([
-    'projects',
-    'fields',
-    'conditions',
-    'aggregations',
-    'range',
-    'start',
-    'end',
-    'orderby',
-    'limit',
-  ]);
+const VALID_QUERY_KEYS = [
+  'projects',
+  'fields',
+  'conditions',
+  'aggregations',
+  'range',
+  'start',
+  'end',
+  'orderby',
+  'limit',
+];
 
+export function getQueryFromQueryString(queryString) {
+  const queryKeys = new Set(VALID_QUERY_KEYS);
   const result = {};
   let parsedQuery = queryString;
   parsedQuery = parsedQuery.replace(/^\?|\/$/g, '').split('&');
   parsedQuery.forEach(item => {
     if (item.includes('=')) {
       const [key, value] = item.split('=');
-      if (validQueryKeys.has(key)) {
+      if (queryKeys.has(key)) {
         result[key] = JSON.parse(decodeURIComponent(value));
       }
     }
@@ -106,8 +107,8 @@ export function getView(params, requestedView) {
 }
 
 /**
- * Returns true if the underlying discover query has changed based on the querystring,
- * otherwise false. Omit "visualization" since it's not part of the query.
+ * Returns true if the underlying discover query has changed based on the
+ * querystring, otherwise false.
  *
  * @param {String} prev previous location.search string
  * @param {String} next next location.search string
@@ -115,8 +116,8 @@ export function getView(params, requestedView) {
  */
 export function queryHasChanged(prev, next) {
   return !isEqual(
-    omit(qs.parse(prev), 'visualization'),
-    omit(qs.parse(next), 'visualization')
+    pick(qs.parse(prev), VALID_QUERY_KEYS),
+    pick(qs.parse(next), VALID_QUERY_KEYS)
   );
 }
 
