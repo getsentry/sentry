@@ -28,7 +28,7 @@ def test_get_task_kwargs_for_message_version_1():
         'project_id': 1,
         'group_id': 2,
         'event_id': '00000000000010008080808080808080',
-        'message': 'message',
+        'search_message': 'search message',
         'platform': 'python',
         'datetime': '2018-07-20T21:04:27.600640Z',
         'data': {},
@@ -48,7 +48,7 @@ def test_get_task_kwargs_for_message_version_1():
     assert event.project_id == 1
     assert event.group_id == 2
     assert event.event_id == '00000000000010008080808080808080'
-    assert event.message == 'message'
+    assert event.search_message == 'search message'
     assert event.platform == 'python'
     assert event.datetime == datetime(2018, 7, 20, 21, 4, 27, 600640, tzinfo=pytz.utc)
     assert dict(event.data) == {}

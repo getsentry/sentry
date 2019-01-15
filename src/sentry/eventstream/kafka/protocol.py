@@ -29,8 +29,6 @@ def basic_protocol_handler(unsupported_operations):
         ).replace(tzinfo=pytz.utc)
 
         def _get_attr(name):
-            if name == 'search_message':
-                name = 'message'
             return event_data[name]
 
         kwargs = {

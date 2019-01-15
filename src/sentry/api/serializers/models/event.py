@@ -205,8 +205,10 @@ class EventSerializer(Serializer):
             'entries': attrs['entries'],
             'dist': obj.dist,
             'message': message,
+            'searchMessage': obj.search_message,
             'title': obj.title,
             'location': obj.location,
+            'culprit': obj.culprit,
             'user': attrs['user'],
             'contexts': attrs['contexts'],
             'crashFile': attrs['crash_file'],
@@ -309,6 +311,7 @@ class SnubaEventSerializer(Serializer):
             # remove by merge date of GH-10740 + 90 days
             'title': obj.title or obj.message,
             'location': obj.location,
+            'culprit': obj.culprit,
             'dateCreated': obj.timestamp,
             'user': {
                 'id': obj.user_id,

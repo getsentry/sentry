@@ -270,7 +270,7 @@ class EventSearchTest(TestCase):
                 ['email', '=', 'foo@example.com'],
                 ['tags[sentry:release]', '=', '1.2.1'],
                 ['tags[fruit]', '=', 'apple'],
-                [['positionCaseInsensitive', ['message', "'hello'"]], '!=', 0],
+                [['positionCaseInsensitive', [['coalesce', ['search_message', 'message']], "'hello'"]], '!=', 0],
             ],
             'filter_keys': {'project_id': [1, 2, 3]},
             'start': datetime.datetime(2015, 5, 18, 10, 15, 1, tzinfo=timezone.utc),

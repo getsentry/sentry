@@ -233,8 +233,6 @@ class Event(Model):
         data['release'] = self.release
         data['dist'] = self.dist
         data['platform'] = self.platform
-        data['message'] = self.real_message
-        data['datetime'] = self.datetime
         data['time_spent'] = self.time_spent
         data['tags'] = [(k.split('sentry:', 1)[-1], v) for (k, v) in self.get_tags()]
         for k, v in sorted(six.iteritems(self.data)):
@@ -246,10 +244,18 @@ class Event(Model):
 
         # for a long time culprit was not persisted.  In those cases put
         # the culprit in from the group.
-        if data.get('culprit') is None:
-            data['culprit'] = self.group.culprit
         data['title'] = self.title
         data['location'] = self.location
+        if data.get('culprit') is None:
+            data['culprit'] = self.group.culprit
+
+        # TODO(mitsuhiko): This is a deprecated property.  Can we kill this?
+        # The new replacement is `timestamp`.
+        data['datetime'] = self.datetime
+
+        # TODO(mitsuhiko): What do we do with this?  This got phased out for
+        # logentry.formatted
+        data['message'] = self.real_message
 
         return data
 
