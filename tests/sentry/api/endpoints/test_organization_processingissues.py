@@ -1,6 +1,7 @@
 from __future__ import absolute_import
 
 from exam import fixture
+from freezegun import freeze_time
 
 from sentry.api.helpers.processing_issues import get_processing_issues
 from sentry.models import (
@@ -33,6 +34,7 @@ class OrganizationProcessingIssuesTest(APITestCase):
     def other_project(self):
         return self.create_project(teams=[self.team], name='other')
 
+    @freeze_time()
     def test_simple(self):
         self.login_as(user=self.user)
 
