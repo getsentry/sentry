@@ -571,7 +571,7 @@ class StoreView(APIView):
                     # Relay will (eventually) need to produce a Kafka message
                     # with this JSON format.
                     value=json.dumps({
-                        'data': event_manager.get_data(),
+                        'data': dict(event_manager.get_data()),
                         'project_id': project.id,
                         'auth': {
                             'sentry_client': auth.client,
