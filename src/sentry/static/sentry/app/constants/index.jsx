@@ -111,7 +111,7 @@ export const DEFAULT_FUSE_OPTIONS = {
   location: 0,
   distance: 75,
   maxPatternLength: 24,
-  minMatchCharLength: 1,
+  minMatchCharLength: 2,
   // tokenize: true,
   // findAllMatches: true,
 };
