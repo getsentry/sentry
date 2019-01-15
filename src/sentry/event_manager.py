@@ -58,6 +58,7 @@ from sentry.utils.dates import to_timestamp
 from sentry.utils.db import is_postgres, is_mysql
 from sentry.utils.meta import Meta
 from sentry.utils.safe import ENABLE_TRIMMING, safe_execute, trim, trim_dict, get_path, set_path, setdefault_path
+from sentry.utils.sdk import capture_exception
 from sentry.utils.strings import truncatechars
 from sentry.utils.geo import rust_geoip
 from sentry.utils.validators import is_float
@@ -546,7 +547,12 @@ class EventManager(object):
                 meta.enter(k).add_error(EventError.INVALID_ATTRIBUTE)
                 continue
 
-            normalized = interface.normalize(value, meta.enter(k))
+            try:
+                normalized = interface.normalize(value, meta.enter(k))
+            except Exception:
+                capture_exception()
+                continue
+
             if normalized:
                 data[interface.path] = normalized
 
