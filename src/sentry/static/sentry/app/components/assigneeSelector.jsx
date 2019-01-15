@@ -29,6 +29,10 @@ const AssigneeSelectorComponent = createReactClass({
   propTypes: {
     id: PropTypes.string.isRequired,
     size: PropTypes.number,
+    // Either a list of users, or null. If null, members will
+    // be read from the MemberListStore. The prop is useful when the
+    // store contains more/different users than you need to show
+    // in an individual component, eg. Org Issue list
     memberList: PropTypes.array,
   },
 
