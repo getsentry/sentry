@@ -41,7 +41,7 @@ class GroupEventDetails extends React.Component {
     }
   }
 
-  fetchData() {
+  fetchData = () => {
     const {group, project, organization, params} = this.props;
     const eventId = params.eventId || 'latest';
     const groupId = group.id;
@@ -67,7 +67,7 @@ class GroupEventDetails extends React.Component {
           loading: false,
         });
       });
-  }
+  };
   render() {
     const {group, project, organization, params} = this.props;
     const evt = withMeta(this.state.event);
