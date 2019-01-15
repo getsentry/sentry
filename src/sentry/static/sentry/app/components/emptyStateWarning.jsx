@@ -20,7 +20,7 @@ class EmptyStateWarning extends React.Component {
       return (
         <EmptyMessage>
           <SmallMessage>
-            <InlineSvg src="icon-circle-exclamation" size="34" />
+            <InlineSvg src="icon-circle-exclamation" width="34px" />
             {this.props.children}
           </SmallMessage>
         </EmptyMessage>
