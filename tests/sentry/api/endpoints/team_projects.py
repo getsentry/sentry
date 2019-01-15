@@ -63,3 +63,25 @@ class TeamProjectCreateTest(APITestCase):
             }
         )
         assert resp.status_code == 409, resp.content
+
+    def test_no_name(self):
+        self.login_as(user=self.user)
+        team = self.create_team(members=[self.user])
+        url = reverse(
+            'sentry-api-0-team-project-index',
+            kwargs={
+                'organization_slug': team.organization.slug,
+                'team_slug': team.slug,
+            }
+        )
+        resp = self.client.post(url)
+        assert resp.status_code == 201, resp.content
+        project = Project.objects.get(id=resp.data['id'])
+        assert project.name == 'new-project'
+        assert project.slug == 'new-project'
+
+        resp = self.client.post(url)
+        assert resp.status_code == 201, resp.content
+        project = Project.objects.get(id=resp.data['id'])
+        assert project.name == 'new-project'
+        assert project.slug.startswith('new-project-')

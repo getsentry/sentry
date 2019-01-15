@@ -14,6 +14,9 @@ from sentry.utils.apidocs import scenario, attach_scenarios
 
 ERR_INVALID_STATS_PERIOD = "Invalid stats_period. Valid choices are '', '24h', '14d', and '30d'"
 
+# This will be used when no project name is provided
+DEFAULT_NEW_PROJECT_NAME = 'new-project'
+
 
 @scenario('ListTeamProjects')
 def list_team_projects_scenario(runner):
@@ -32,7 +35,7 @@ def create_project_scenario(runner):
 
 
 class ProjectSerializer(serializers.Serializer):
-    name = serializers.CharField(max_length=64, required=True)
+    name = serializers.CharField(max_length=64, required=False)
     slug = serializers.RegexField(r'^[a-z0-9_\-]+$', max_length=50, required=False)
     platform = serializers.CharField(required=False)
 
@@ -133,10 +136,13 @@ class TeamProjectsEndpoint(TeamEndpoint, EnvironmentMixin):
         if serializer.is_valid():
             result = serializer.object
 
+            if not result.get('name'):
+                result['name'] = DEFAULT_NEW_PROJECT_NAME
+
             try:
                 with transaction.atomic():
                     project = Project.objects.create(
-                        name=result['name'],
+                        name=result.get('name'),
                         slug=result.get('slug'),
                         organization=team.organization,
                         platform=result.get('platform')
