@@ -27,7 +27,7 @@ class ProjectUserFeedbackTest(AcceptanceTestCase):
     def test(self):
         self.create_group(
             project=self.project,
-            message='Foo bar',
+            search_message='Foo bar',
         )
         OrganizationOnboardingTask.objects.create_or_update(
             organization_id=self.project.organization_id,
