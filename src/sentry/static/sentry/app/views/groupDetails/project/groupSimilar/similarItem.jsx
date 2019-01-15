@@ -133,7 +133,7 @@ const SimilarIssueItem = createReactClass({
               />
             </div>
             <div className="event-details level-error" style={{flex: 1}}>
-              <EventOrGroupHeader orgId={orgId} projectId={projectId} data={issue} />
+              <EventOrGroupHeader data={issue} />
               <EventOrGroupExtraDetails
                 {...issue}
                 groupId={issue.id}

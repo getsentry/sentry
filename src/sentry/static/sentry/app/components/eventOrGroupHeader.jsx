@@ -1,5 +1,6 @@
 import PropTypes from 'prop-types';
 import React from 'react';
+import {withRouter, Link} from 'react-router';
 import styled, {css} from 'react-emotion';
 import classNames from 'classnames';
 import {capitalize} from 'lodash';
@@ -14,8 +15,7 @@ import Tooltip from 'app/components/tooltip';
  */
 class EventOrGroupHeader extends React.Component {
   static propTypes = {
-    orgId: PropTypes.string.isRequired,
-    projectId: PropTypes.string.isRequired,
+    params: PropTypes.object,
     /** Either an issue or event **/
     data: PropTypes.shape({
       id: PropTypes.string,
@@ -68,22 +68,33 @@ class EventOrGroupHeader extends React.Component {
   }
 
   getTitle() {
-    let {hideIcons, hideLevel, includeLink, orgId, projectId, data} = this.props;
+    let {hideIcons, hideLevel, includeLink, data, params} = this.props;
+    let {orgId, projectId} = params;
+
     let {id, level, groupID} = data || {};
     let isEvent = !!data.eventID;
 
     let props = {};
     let Wrapper;
+
+    let basePath = projectId
+      ? `/${orgId}/${projectId}/issues/`
+      : `/organizations/${orgId}/issues/`;
+
     if (includeLink) {
       props.to = {
-        pathname: `/${orgId}/${projectId}/issues/${isEvent ? groupID : id}/${isEvent
+        pathname: `${basePath}${isEvent ? groupID : id}/${isEvent
           ? `events/${data.id}/`
           : ''}`,
         search: `${this.props.query
           ? `?query=${window.encodeURIComponent(this.props.query)}`
           : ''}`,
       };
-      Wrapper = ProjectLink;
+      if (projectId) {
+        Wrapper = ProjectLink;
+      } else {
+        Wrapper = Link;
+      }
     } else {
       Wrapper = 'span';
     }
@@ -210,4 +221,4 @@ const GroupLevel = styled.div`
   }};
 `;
 
-export default EventOrGroupHeader;
+export default withRouter(EventOrGroupHeader);
