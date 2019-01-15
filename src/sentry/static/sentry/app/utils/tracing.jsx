@@ -1,26 +1,46 @@
 import {uniqueId} from './guid';
 
+let tracingEnabled = false;
 let spanId = null;
 let transactionId = null;
+let currentRoute = null;
 
-export function startTransaction() {
-  spanId = uniqueId();
+export function start() {
+  if (!window.Sentry) return;
+
+  window.Sentry.configureScope((scope) => {
+    if (tracingEnabled) return;
+    tracingEnabled = true;
+    scope.addEventProcessor((event) => ({
+      ...event,
+      transaction: currentRoute,
+      tags: {
+        ...(event.tags || {}),
+        span_id: spanId,
+        transaction_id: transactionId
+      }
+    }))
+  })
+}
+
+export function setCurrentRoute(route) {
+  currentRoute = route;
+}
+
+export function setTransactionId() {
   transactionId = uniqueId();
-  if (window.Sentry) {
-    window.Sentry.configureScope(function(scope) {
-      scope.setTag('span_id', spanId);
-      scope.setTag('transaction_id', transactionId);
-    });
-  }
-  return {spanId, transactionId};
+}
+
+export function setSpanId() {
+  spanId = uniqueId();
 }
 
 export function getTransactionId() {
-  if (!transactionId) startTransaction();
+  if (!transactionId) setTransactionId();
   return transactionId;
 }
 
 export function getSpanId() {
-  if (!spanId) startTransaction();
+  if (!spanId) setSpanId();
   return spanId;
 }

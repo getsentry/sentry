@@ -97,12 +97,12 @@ const GlobalModalContainer = createReactClass({
 
   componentDidMount() {
     // Listen for route changes so we can dismiss modal
-    this.unlisten = browserHistory.listen(() => closeModal());
+    this.unlistenBrowserHistory = browserHistory.listen(() => closeModal());
   },
 
   componentWillUnmount() {
-    if (this.unlisten) {
-      this.unlisten();
+    if (this.unlistenBrowserHistory) {
+      this.unlistenBrowserHistory();
     }
   },
 

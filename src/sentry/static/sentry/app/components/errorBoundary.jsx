@@ -31,12 +31,12 @@ class ErrorBoundary extends React.Component {
 
   componentDidMount() {
     // Listen for route changes so we can clear error
-    this.unlisten = browserHistory.listen(() => this.setState({error: null}));
+    this.unlistenBrowserHistory = browserHistory.listen(() => this.setState({error: null}));
   }
 
   componentWillUnmount() {
-    if (this.unlisten) {
-      this.unlisten();
+    if (this.unlistenBrowserHistory) {
+      this.unlistenBrowserHistory();
     }
   }
 
