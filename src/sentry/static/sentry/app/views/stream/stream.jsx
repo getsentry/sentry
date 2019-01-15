@@ -27,6 +27,7 @@ import Pagination from 'app/components/pagination';
 import ProjectState from 'app/mixins/projectState';
 import SentryTypes from 'app/sentryTypes';
 import StreamActions from 'app/views/stream/actions';
+import EmptyStateWarning from 'app/components/emptyStateWarning';
 import StreamFilters from 'app/views/stream/filters';
 import StreamGroup from 'app/components/stream/group';
 import StreamSidebar from 'app/views/stream/sidebar';
@@ -688,12 +689,10 @@ const Stream = createReactClass({
         })
       : t('Sorry, no events match your filters.');
 
-    // TODO(lyn): Extract empty state to a separate component
     return (
-      <div className="empty-stream" style={{border: 0}}>
-        <span className="icon icon-exclamation" />
+      <EmptyStateWarning>
         <p>{message}</p>
-      </div>
+      </EmptyStateWarning>
     );
   },
 

@@ -266,7 +266,7 @@ class ProjectFiltersSettings extends AsyncComponent {
                           <FormField
                             inline={false}
                             {...fieldProps}
-                            getData={data => ({subfilters: data[filter.id]})}
+                            getData={data => ({subfilters: [...data[filter.id]]})}
                           >
                             {({onChange, onBlur}) => (
                               <LegacyBrowserFilterRow

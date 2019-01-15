@@ -29,6 +29,28 @@ class JiraServerIntegrationTest(IntegrationTestCase):
         self.assertContains(resp, 'Submit</button>')
 
     @responses.activate
+    def test_validate_private_key(self):
+        responses.add(
+            responses.POST,
+            'https://jira.example.com/plugins/servlet/oauth/request-token',
+            status=503)
+
+        # Start pipeline and go to setup page.
+        self.client.get(self.setup_path)
+
+        # Submit credentials
+        data = {
+            'url': 'https://jira.example.com/',
+            'verify_ssl': False,
+            'consumer_key': 'sentry-bot',
+            'private_key': 'hot-garbage'
+        }
+        resp = self.client.post(self.setup_path, data=data)
+        assert resp.status_code == 200
+        self.assertContains(
+            resp, 'Private key must be a valid SSH private key encoded in a PEM format.')
+
+    @responses.activate
     def test_authentication_request_token_fails(self):
         responses.add(
             responses.POST,

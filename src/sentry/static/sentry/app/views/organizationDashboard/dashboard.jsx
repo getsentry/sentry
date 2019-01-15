@@ -5,6 +5,7 @@ import styled from 'react-emotion';
 import {t} from 'app/locale';
 import AsyncView from 'app/views/asyncView';
 import SentryTypes from 'app/sentryTypes';
+import Widget from 'app/views/organizationDashboard/widget';
 import space from 'app/styles/space';
 
 class Dashboard extends AsyncView {
@@ -27,7 +28,7 @@ class Dashboard extends AsyncView {
       <Widgets>
         {widgets.map((widget, i) => (
           <WidgetWrapper key={i}>
-            <div />
+            <Widget widget={widget} />
           </WidgetWrapper>
         ))}
       </Widgets>

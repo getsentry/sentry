@@ -131,6 +131,28 @@ export function getChartDataByDay(rawData, query, options = {}) {
 }
 
 /**
+ * Given result data and the location query, return the correct visualization
+ * @param {Object} data data object for result
+ * @param {String} current visualization from querystring
+ * @returns {String}
+ */
+export function getVisualization(data, current = 'table') {
+  const {baseQuery, byDayQuery} = data;
+
+  if (!byDayQuery.data && ['line-by-day', 'bar-by-day'].includes(current)) {
+    return 'table';
+  }
+
+  if (!baseQuery.query.aggregations.length && ['line', 'bar'].includes(current)) {
+    return 'table';
+  }
+
+  return ['table', 'line', 'bar', 'line-by-day', 'bar-by-day'].includes(current)
+    ? current
+    : 'table';
+}
+
+/**
  * Returns the page ranges of paginated tables, i.e. Results 1-100
  * @param {Object} baseQuery data
  * @returns {String}

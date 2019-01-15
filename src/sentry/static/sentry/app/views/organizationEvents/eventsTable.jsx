@@ -134,7 +134,12 @@ class EventsTable extends React.Component {
           </TableLayout>
         </PanelHeader>
         {loading && <LoadingIndicator />}
-        {!loading && !hasEvents && <EmptyStateWarning>No events</EmptyStateWarning>}
+        {!loading &&
+          !hasEvents && (
+            <EmptyStateWarning>
+              <p>No events</p>
+            </EmptyStateWarning>
+          )}
         {hasEvents && (
           <StyledPanelBody>
             {(reloading || zoomChanged) && <StyledLoadingIndicator overlay />}

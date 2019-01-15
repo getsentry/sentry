@@ -8,7 +8,7 @@ class OrganizationDeletionTask(ModelDeletionTask):
         from sentry.models import (
             OrganizationMember, Commit, CommitAuthor, CommitFileChange, Environment, Release,
             ReleaseCommit, ReleaseEnvironment, ReleaseFile, Distribution, ReleaseHeadCommit,
-            Repository, Team, Project, PullRequest, DiscoverSavedQuery, ExternalIssue, PromptsActivity
+            Repository, Team, Project, PullRequest, Dashboard, DiscoverSavedQuery, ExternalIssue, PromptsActivity
         )
 
         # Team must come first
@@ -31,6 +31,7 @@ class OrganizationDeletionTask(ModelDeletionTask):
             ReleaseFile,
             Distribution,
             ReleaseHeadCommit,
+            Dashboard,
             DiscoverSavedQuery,
             ExternalIssue,
             PromptsActivity,

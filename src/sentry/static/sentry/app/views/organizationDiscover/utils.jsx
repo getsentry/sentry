@@ -1,5 +1,7 @@
 import moment from 'moment';
 import {Client} from 'app/api';
+import {isEqual, omit} from 'lodash';
+import qs from 'query-string';
 import {isValidAggregation} from './aggregations/utils';
 import {NON_SNUBA_FIELDS} from './data';
 
@@ -31,12 +33,16 @@ export function getQueryFromQueryString(queryString) {
   return result;
 }
 
-export function getQueryStringFromQuery(query) {
+export function getQueryStringFromQuery(query, queryParams = {}) {
   const queryProperties = Object.entries(query).map(([key, value]) => {
     return key + '=' + encodeURIComponent(JSON.stringify(value));
   });
 
-  return `?${queryProperties.join('&')}`;
+  Object.entries(queryParams).forEach(([key, value]) => {
+    queryProperties.push(`${key}=${value}`);
+  });
+
+  return `?${queryProperties.sort().join('&')}`;
 }
 
 export function getOrderbyFields(queryBuilder) {
@@ -97,6 +103,21 @@ export function getView(params, requestedView) {
     default:
       return 'query';
   }
+}
+
+/**
+ * Returns true if the underlying discover query has changed based on the querystring,
+ * otherwise false. Omit "visualization" since it's not part of the query.
+ *
+ * @param {String} prev previous location.search string
+ * @param {String} next next location.search string
+ * @returns {Boolean}
+ */
+export function queryHasChanged(prev, next) {
+  return !isEqual(
+    omit(qs.parse(prev), 'visualization'),
+    omit(qs.parse(next), 'visualization')
+  );
 }
 
 /**
