@@ -57,6 +57,7 @@ class OrganizationDashboardsEndpoint(OrganizationEndpoint):
                     data=result.get('data'),
                 )
         except IntegrityError as e:
-            return Response(e.message, status=208)
+            # TODO(lb): hmmm this probably shouldn't be e.message?
+            return Response(e.message, status=409)
 
         return Response(serialize(dashboard, request.user), status=201)
