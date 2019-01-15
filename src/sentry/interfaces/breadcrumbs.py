@@ -15,7 +15,6 @@ import six
 from sentry.constants import LOG_LEVELS_MAP
 from sentry.interfaces.base import Interface, InterfaceValidationError, prune_empty_keys
 from sentry.utils.safe import get_path, trim
-from sentry.utils.sdk import capture_exception
 from sentry.utils.dates import to_timestamp, to_datetime, parse_timestamp
 
 
@@ -45,13 +44,11 @@ class Breadcrumbs(Interface):
 
             try:
                 values.append(cls.normalize_crumb(crumb))
-            except InterfaceValidationError:
+            except Exception:
                 # TODO(dcramer): we dont want to discard the entirety of data
                 # when one breadcrumb errors, but it'd be nice if we could still
                 # record an error
                 pass
-            except Exception:
-                capture_exception()
 
         return cls(values=values)
 
