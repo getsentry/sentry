@@ -171,6 +171,18 @@ class OrganizationReleaseListTest(APITestCase):
         assert response.data[0]['version'] == release3.version
         assert response.data[1]['version'] == release1.version
 
+    def test_new_org(self):
+        user = self.create_user(is_staff=False, is_superuser=False)
+        org = self.organization
+        team = self.create_team(organization=org)
+        self.create_member(teams=[team], user=user, organization=org)
+        self.login_as(user=user)
+        url = reverse('sentry-api-0-organization-releases', kwargs={'organization_slug': org.slug})
+        response = self.client.get(url, format='json')
+
+        assert response.status_code == 200, response.content
+        assert len(response.data) == 0
+
 
 class OrganizationReleaseCreateTest(APITestCase):
     def test_minimal(self):

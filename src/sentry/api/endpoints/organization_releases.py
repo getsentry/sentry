@@ -4,6 +4,7 @@ from django.db import IntegrityError, transaction
 
 from rest_framework.response import Response
 
+from sentry.api.bases import NoProjects
 from .project_releases import ReleaseSerializer
 from sentry.api.base import DocSection, EnvironmentMixin
 from sentry.api.bases.organization import OrganizationReleasesBaseEndpoint
@@ -93,11 +94,14 @@ class OrganizationReleasesEndpoint(OrganizationReleasesBaseEndpoint, Environment
         """
         query = request.GET.get('query')
 
-        filter_params = self.get_filter_params(
-            request,
-            organization,
-            date_filter_optional=True,
-        )
+        try:
+            filter_params = self.get_filter_params(
+                request,
+                organization,
+                date_filter_optional=True,
+            )
+        except NoProjects:
+            return Response([])
 
         queryset = Release.objects.filter(
             organization=organization,
