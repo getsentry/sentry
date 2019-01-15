@@ -108,7 +108,7 @@ class BaseChart extends React.Component {
     /**
      * Display previous period as a LineSeries
      */
-    previousPeriod: SentryTypes.SeriesUnit,
+    previousPeriod: PropTypes.arrayOf(SentryTypes.SeriesUnit),
 
     // If data is grouped by date, then apply default date formatting to
     // x-axis and tooltips.
@@ -230,14 +230,16 @@ class BaseChart extends React.Component {
             ? series
             : [
                 ...series,
-                LineSeries({
-                  name: previousPeriod.seriesName,
-                  data: previousPeriod.data.map(({name, value}) => [name, value]),
-                  lineStyle: {
-                    color: theme.gray1,
-                    type: 'dotted',
-                  },
-                }),
+                ...previousPeriod.map(previous =>
+                  LineSeries({
+                    name: previous.seriesName,
+                    data: previous.data.map(({name, value}) => [name, value]),
+                    lineStyle: {
+                      color: theme.gray1,
+                      type: 'dotted',
+                    },
+                  })
+                ),
               ],
           dataZoom,
           toolbox: toolBox,

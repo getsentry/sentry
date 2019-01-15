@@ -71,12 +71,7 @@ export const Deploy = PropTypes.shape({
   version: PropTypes.string,
 });
 
-export const DiscoverSavedQuery = PropTypes.shape({
-  id: PropTypes.string.isRequired,
-  dateCreated: PropTypes.string.isRequired,
-  dateUpdated: PropTypes.string.isRequired,
-  name: PropTypes.string.isRequired,
-  createdBy: PropTypes.string,
+const DiscoverQueryShape = {
   projects: PropTypes.arrayOf(PropTypes.number),
   fields: PropTypes.arrayOf(PropTypes.string),
   aggregations: PropTypes.arrayOf(PropTypes.array),
@@ -85,6 +80,17 @@ export const DiscoverSavedQuery = PropTypes.shape({
   range: PropTypes.string,
   start: PropTypes.string,
   end: PropTypes.string,
+};
+
+export const DiscoverQuery = PropTypes.shape(DiscoverQueryShape);
+
+export const DiscoverSavedQuery = PropTypes.shape({
+  id: PropTypes.string.isRequired,
+  dateCreated: PropTypes.string.isRequired,
+  dateUpdated: PropTypes.string.isRequired,
+  name: PropTypes.string.isRequired,
+  createdBy: PropTypes.string,
+  ...DiscoverQueryShape,
 });
 
 /**
@@ -359,6 +365,15 @@ export const GlobalSelection = PropTypes.shape({
     end: PropTypes.oneOfType([PropTypes.string, PropTypes.instanceOf(Date)]),
     utc: PropTypes.bool,
   }),
+});
+
+export const Widget = PropTypes.shape({
+  queries: PropTypes.shape({
+    discover: PropTypes.arrayOf(DiscoverQuery),
+  }),
+  title: PropTypes.node,
+  fieldLabelMap: PropTypes.object,
+  yAxisMapping: PropTypes.array,
 });
 
 export const EChartsData = PropTypes.arrayOf(
@@ -862,6 +877,7 @@ let SentryTypes = {
   AuthProvider,
   Config,
   Deploy,
+  DiscoverQuery,
   DiscoverSavedQuery,
   Environment,
   Event,
@@ -889,6 +905,7 @@ let SentryTypes = {
   Repository,
   User,
   SentryApplication,
+  Widget,
 
   // echarts prop types
   EChartsSeries,
