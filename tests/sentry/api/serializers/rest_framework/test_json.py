@@ -33,7 +33,7 @@ class JSONFieldTest(TestCase):
         }
 
     def test_invalid_binary_json(self):
-        data = b'''{"I\'m just a string"}'''
+        data = b'''['test':123]'''
         serializer = DummyBinarySerializer(data={'json_field': data})
         assert serializer.is_valid() is False
         assert serializer.errors == {'json_field': [u'Value must be valid JSON.']}
@@ -55,10 +55,3 @@ class JSONFieldTest(TestCase):
                 'actions': [{'say-hello': 'hello world'}, {'say-goodbye': 'bye'}]
             }
         }
-
-    def test_invalid_json(self):
-        data = {'I\'m just a string'}
-        serializer = DummySerializer(data={'json_field': data})
-        assert serializer.is_valid() is False
-        assert serializer.errors == {'json_field': [u'Value must be valid JSON.']}
-        assert serializer.object is None

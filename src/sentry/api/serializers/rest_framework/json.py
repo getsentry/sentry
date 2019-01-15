@@ -3,7 +3,7 @@ from __future__ import absolute_import
 import six
 from django.utils.translation import ugettext_lazy as _
 from rest_framework.serializers import WritableField, ValidationError
-from sentry.api.serializers.rest_framework.utils_json import json
+from sentry.utils import json
 
 # JSONField taken from Django rest framework version 3.9.0
 # See https://github.com/encode/django-rest-framework/blob/0eb2dc1137189027cc8d638630fb1754b02d6cfa/rest_framework/fields.py
@@ -31,7 +31,7 @@ class JSONField(WritableField):
 
     def from_native(self, data):
         try:
-            if self.binary or getattr(data, 'is_json_string', False):
+            if self.binary:
                 if isinstance(data, bytes):
                     data = data.decode('utf-8')
                 return json.loads(data)
