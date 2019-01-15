@@ -20,14 +20,13 @@ const InstallPromptBanner = createReactClass({
 
   getInitialState() {
     return {
-      sentFirstEvent: false,
+      sentFirstEvent: this.sentFirstEvent(),
     };
   },
 
   componentDidMount() {
     let {href} = window.location;
     let {organization} = this.props;
-    this.sentFirstEvent();
     analytics('install_prompt.banner_viewed', {
       org_id: parseInt(organization.id, 10),
       page: href,
@@ -42,8 +41,10 @@ const InstallPromptBanner = createReactClass({
 
   sentFirstEvent() {
     let {projects} = this.props.organization;
-    let hasFirstEvent = projects.find(project => project.firstEvent !== null);
-    hasFirstEvent && this.setState({sentFirstEvent: true});
+    let hasFirstEvent = projects.find(
+      project => project.firstEvent && project.firstEvent !== null
+    );
+    return hasFirstEvent !== undefined;
   },
 
   getUrl() {
