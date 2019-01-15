@@ -5,10 +5,8 @@ import {find, flatMap} from 'lodash';
 
 import {t} from 'app/locale';
 import {SENTRY_APP_PERMISSIONS} from 'app/constants';
-import {PERMISSIONS_MAP} from 'app/views/settings/organizationDeveloperSettings/constants';
-import ConsolidatedScopes from 'app/utils/consolidatedScopes';
 import SelectField from 'app/views/settings/components/forms/selectField';
-import Subscriptions from 'app/views/settings/organizationDeveloperSettings/resourceSubscriptions';
+
 /**
  * Custom form element that presents API scopes in a resource-centric way. Meaning
  * a dropdown for each resource, that rolls up into a flat list of scopes.
@@ -85,31 +83,15 @@ export default class PermissionSelection extends React.Component {
   };
 
   static propTypes = {
-    scopes: PropTypes.arrayOf(PropTypes.string).isRequired,
-    events: PropTypes.arrayOf(PropTypes.string).isRequired,
+    permissions: PropTypes.object.isRequired,
+    onChange: PropTypes.func.isRequired,
   };
 
   constructor(...args) {
     super(...args);
     this.state = {
-      permissions: this.scopeListToPermissionState(),
-      events: this.props.events,
+      permissions: this.props.permissions,
     };
-  }
-
-  /**
-   * Converts the list of raw API scopes passed in to an object that can
-   * before stored and used via `state`. This object is structured by
-   * resource and holds "Permission" values. For example:
-   *
-   *    {
-   *      'Project': 'read',
-   *      ...,
-   *    }
-   *
-   */
-  scopeListToPermissionState() {
-    return new ConsolidatedScopes(this.props.scopes).toResourcePermissions();
   }
 
   /**
@@ -129,28 +111,20 @@ export default class PermissionSelection extends React.Component {
     );
   }
 
-  validEvents(permissions) {
-    const {events} = this.state;
-    return events.filter(choice => {
-      return permissions[PERMISSIONS_MAP[choice]] !== 'no-access';
-    });
-  }
-
   onChange = (resource, choice) => {
     const {permissions} = this.state;
-
     permissions[resource] = choice;
-    // events depend on permissions and if someone updates a resource
-    // to have 'no-access' we must also update the corresponding
-    // resource subscription to be unselected.
-    const events = this.validEvents(permissions);
-    this.setState({permissions, events});
+    this.save(permissions);
+  };
+
+  save = permissions => {
+    this.setState({permissions});
+    this.props.onChange(permissions);
     this.context.form.setValue('scopes', this.permissionStateToList());
-    this.context.form.setValue('events', events);
   };
 
   render() {
-    const {permissions, events} = this.state;
+    const {permissions} = this.state;
 
     return (
       <React.Fragment>
@@ -176,7 +150,6 @@ export default class PermissionSelection extends React.Component {
             />
           );
         })}
-        <Subscriptions permissions={permissions} events={events} />
       </React.Fragment>
     );
   }

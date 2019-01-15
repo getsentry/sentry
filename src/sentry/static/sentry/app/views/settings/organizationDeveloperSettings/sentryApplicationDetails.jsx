@@ -11,7 +11,7 @@ import FormModel from 'app/views/settings/components/forms/model';
 import FormField from 'app/views/settings/components/forms/formField';
 import JsonForm from 'app/views/settings/components/forms/jsonForm';
 import SettingsPageHeader from 'app/views/settings/components/settingsPageHeader';
-import PermissionSelection from 'app/views/settings/organizationDeveloperSettings/permissionSelection';
+import PermissionsObserver from 'app/views/settings/organizationDeveloperSettings/permissionsObserver';
 import TextCopyInput from 'app/views/settings/components/forms/textCopyInput';
 import sentryApplicationForm from 'app/data/forms/sentryApplication';
 import getDynamicText from 'app/utils/getDynamicText';
@@ -109,12 +109,7 @@ export default class SentryApplicationDetails extends AsyncView {
         >
           <JsonForm location={this.props.location} forms={sentryApplicationForm} />
 
-          <Panel>
-            <PanelHeader>{t('Permissions')}</PanelHeader>
-            <PanelBody>
-              <PermissionSelection scopes={scopes} events={events} />
-            </PanelBody>
-          </Panel>
+          <PermissionsObserver scopes={scopes} events={events} />
 
           {app && (
             <Panel>
