@@ -91,7 +91,6 @@ const GroupMergedView = createReactClass({
   },
 
   render() {
-    let {orgId, projectId, groupId} = this.props.params;
     let isLoading = this.state.loading;
     let isError = this.state.error && !isLoading;
     let isLoadedSuccessfully = !isError && !isLoading;
@@ -116,12 +115,7 @@ const GroupMergedView = createReactClass({
         {isLoadedSuccessfully && (
           <MergedList
             items={this.state.mergedItems}
-            orgId={orgId}
-            projectId={projectId}
-            groupId={groupId}
             pageLinks={this.state.mergedLinks}
-            busyMap={this.state.busy}
-            hiddenMap={this.state.hidden}
             onUnmerge={this.handleUnmerge}
             onToggleCollapse={GroupingActions.toggleCollapseFingerprints}
           />
