@@ -11,14 +11,13 @@ import {t} from 'app/locale';
 import EmptyStateWarning from 'app/components/emptyStateWarning';
 import {Panel} from 'app/components/panels';
 import withOrganization from 'app/utils/withOrganization';
-import withApi from 'app/utils/withApi';
+import {fetchGroupUserReports} from './utils';
 
 class GroupUserFeedback extends React.Component {
   static propTypes = {
     organization: SentryTypes.Organization.isRequired,
     group: SentryTypes.Group.isRequired,
     query: PropTypes.object.isRequired,
-    api: PropTypes.object.isRequired,
   };
 
   constructor(props) {
@@ -47,23 +46,21 @@ class GroupUserFeedback extends React.Component {
       error: false,
     });
 
-    this.props.api.request(`/issues/${this.props.group.id}/user-reports/`, {
-      query: this.props.query,
-      success: (data, _, jqXHR) => {
+    fetchGroupUserReports(this.props.group.id, this.props.query)
+      .then((data, _, jqXHR) => {
         this.setState({
           error: false,
           loading: false,
           reportList: data,
           pageLinks: jqXHR.getResponseHeader('Link'),
         });
-      },
-      error: () => {
+      })
+      .catch(() => {
         this.setState({
           error: true,
           loading: false,
         });
-      },
-    });
+      });
   }
 
   getUserFeedbackUrl() {
@@ -121,4 +118,4 @@ class GroupUserFeedback extends React.Component {
   }
 }
 
-export default withApi(withOrganization(GroupUserFeedback));
+export default withOrganization(GroupUserFeedback);
