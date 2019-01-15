@@ -1,10 +1,9 @@
-/* eslint-env jest */
 import {browserHistory} from 'react-router';
 import React from 'react';
 
 import {mount, shallow} from 'enzyme';
-import GroupSimilarView from 'app/views/groupDetails/project/groupSimilar';
 
+import GroupSimilarView from 'app/views/groupDetails/project/groupSimilar';
 import issues from 'app-test/mocks/issues';
 
 jest.mock('app/mixins/projectState', () => {
@@ -13,6 +12,15 @@ jest.mock('app/mixins/projectState', () => {
     getProjectFeatures: () => new Set(['similarity-view']),
   };
 });
+
+const routerContext = TestStubs.routerContext([
+  {
+    router: {
+      ...TestStubs.router(),
+      params: {orgId: 'org-slug', projectId: 'project-slug', groupId: 'group-id'},
+    },
+  },
+]);
 
 const scores = [
   {'exception:stacktrace:pairs': 0.375},
@@ -39,7 +47,8 @@ describe('Issues Similar View', function() {
 
   it('renders initially with loading component', function() {
     let component = shallow(
-      <GroupSimilarView params={{groupId: 'group-id'}} location={{}} />
+      <GroupSimilarView params={{groupId: 'group-id'}} location={{}} />,
+      routerContext
     );
 
     expect(component).toMatchSnapshot();
@@ -51,7 +60,7 @@ describe('Issues Similar View', function() {
         params={{orgId: 'org-slug', projectId: 'project-slug', groupId: 'group-id'}}
         location={{}}
       />,
-      TestStubs.routerContext()
+      routerContext
     );
 
     await tick();
@@ -67,7 +76,7 @@ describe('Issues Similar View', function() {
         params={{orgId: 'org-slug', projectId: 'project-slug', groupId: 'group-id'}}
         location={{}}
       />,
-      TestStubs.routerContext()
+      routerContext
     );
     let merge = MockApiClient.addMockResponse({
       method: 'PUT',

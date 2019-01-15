@@ -29,13 +29,7 @@ const EventNode = createReactClass({
     return (
       <li className="group row">
         <div className="col-xs-8 event-details">
-          <EventOrGroupHeader
-            orgId={orgId}
-            projectId={projectId}
-            data={group}
-            hideIcons
-            hideLevel
-          />
+          <EventOrGroupHeader data={group} hideIcons hideLevel />
           <EventOrGroupExtraDetails
             orgId={orgId}
             projectId={projectId}

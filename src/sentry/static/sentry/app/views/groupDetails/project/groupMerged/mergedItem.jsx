@@ -16,8 +16,6 @@ const MergedItem = createReactClass({
   displayName: 'MergedItem',
 
   propTypes: {
-    orgId: PropTypes.string.isRequired,
-    projectId: PropTypes.string.isRequired,
     fingerprint: PropTypes.string.isRequired,
     disabled: PropTypes.bool,
     event: PropTypes.shape({
@@ -79,7 +77,7 @@ const MergedItem = createReactClass({
   },
 
   render() {
-    let {disabled, event, orgId, fingerprint, projectId} = this.props;
+    let {disabled, event, fingerprint} = this.props;
     let checkboxDisabled = disabled || this.state.disabled;
 
     // `event` can be null if last event w/ fingerprint is not within retention period
@@ -119,13 +117,7 @@ const MergedItem = createReactClass({
             {event && (
               <EventDetails className="event-details">
                 <FlowLayout>
-                  <EventOrGroupHeader
-                    orgId={orgId}
-                    projectId={projectId}
-                    data={event}
-                    hideIcons
-                    hideLevel
-                  />
+                  <EventOrGroupHeader data={event} hideIcons hideLevel />
                 </FlowLayout>
               </EventDetails>
             )}

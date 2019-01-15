@@ -98,12 +98,7 @@ const StreamGroup = createReactClass({
           </GroupCheckbox>
         )}
         <GroupSummary w={[8 / 12, 8 / 12, 6 / 12]} ml={canSelect ? 1 : 2} mr={1} flex="1">
-          <EventOrGroupHeader
-            data={data}
-            orgId={orgId}
-            projectId={projectId}
-            query={query}
-          />
+          <EventOrGroupHeader data={data} query={query} />
           <EventOrGroupExtraDetails
             group
             {...data}
