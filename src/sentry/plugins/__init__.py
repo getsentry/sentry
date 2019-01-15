@@ -13,7 +13,8 @@ HIDDEN_PLUGINS = (
     'github',
     'slack',
     'vsts',
-    'jira'
+    'jira',
+    'jira_ac',
 )
 
 from sentry.plugins.base import *  # NOQA
