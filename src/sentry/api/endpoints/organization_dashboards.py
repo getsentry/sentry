@@ -28,7 +28,7 @@ class OrganizationDashboardsEndpoint(OrganizationEndpoint):
         query = request.GET.get('query')
         if query:
             dashboards = dashboards.objects.filter(
-                title=query,
+                title__icontains=query,
             )
 
         context = serialize(list(dashboards), request.user)
