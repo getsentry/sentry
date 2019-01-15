@@ -1,7 +1,8 @@
-import jQuery from 'jquery';
+import $ from 'jquery';
 import PropTypes from 'prop-types';
 import React from 'react';
 import ReactDOM from 'react-dom';
+
 import FormField from 'app/components/forms/formField';
 
 export default class InputField extends FormField {
@@ -17,16 +18,16 @@ export default class InputField extends FormField {
 
   componentWillUnmount() {
     this.removeTooltips();
-    jQuery(ReactDOM.findDOMNode(this)).unbind();
+    $(ReactDOM.findDOMNode(this)).unbind();
     super.componentWillUnmount();
   }
 
   attachTooltips() {
-    jQuery('.tip', ReactDOM.findDOMNode(this)).tooltip();
+    $('.tip', ReactDOM.findDOMNode(this)).tooltip();
   }
 
   removeTooltips() {
-    jQuery('.tip', ReactDOM.findDOMNode(this)).tooltip('destroy');
+    $('.tip', ReactDOM.findDOMNode(this)).tooltip('destroy');
   }
 
   getAttributes() {

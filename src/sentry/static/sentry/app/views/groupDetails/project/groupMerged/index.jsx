@@ -1,6 +1,7 @@
 import React from 'react';
-import createReactClass from 'create-react-class';
 import Reflux from 'reflux';
+import createReactClass from 'create-react-class';
+import queryString from 'query-string';
 
 import {t} from 'app/locale';
 import ApiMixin from 'app/mixins/apiMixin';
@@ -63,7 +64,7 @@ const GroupMergedView = createReactClass({
       query: this.state.query,
     };
 
-    return `/issues/${params.groupId}/${type}/?${jQuery.param(queryParams)}`;
+    return `/issues/${params.groupId}/${type}/?${queryString.stringify(queryParams)}`;
   },
 
   fetchData() {
