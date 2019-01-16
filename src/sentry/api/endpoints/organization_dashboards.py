@@ -17,8 +17,8 @@ class OrganizationDashboardsEndpoint(OrganizationEndpoint):
         """
         Retrieve an Organizations Dashboards
         `````````````````````````````````````
-         Retrieve a list of dashboards that are associated with the given organization.
-         :pparam string organization_slug: the slug of the organization the
+        Retrieve a list of dashboards that are associated with the given organization.
+        :pparam string organization_slug: the slug of the organization the
                                           dashboards belongs to.
         :qparam string query: the title of the dashboard being searched for.
         :auth: required
@@ -28,7 +28,7 @@ class OrganizationDashboardsEndpoint(OrganizationEndpoint):
         )
         query = request.GET.get('query')
         if query:
-            dashboards = Dashboard.objects.filter(
+            dashboards = dashboards.filter(
                 title__icontains=query,
             )
 
@@ -41,6 +41,17 @@ class OrganizationDashboardsEndpoint(OrganizationEndpoint):
         )
 
     def post(self, request, organization):
+        """
+        Create a New Dashboard for an Organization
+        ``````````````````````````````````````````
+        Create a new dashboard for the given Organization
+        :pparam string organization_slug: the slug of the organization the
+                                          dashboards belongs to.
+        :param string title: the title of the dashboard.
+        :param user created_by: the user who created the dashboard
+                                this can be represented by the user's (verified) email
+                                or the user's id.
+        """
         serializer = DashboardSerializer(data=request.DATA)
 
         if not serializer.is_valid():

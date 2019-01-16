@@ -47,7 +47,6 @@ class OrganizationDashboardsTest(APITestCase):
             data={
                 'title': 'Dashboard from Post',
                 'created_by': self.user.id,
-                'organization': self.organization.id,
             }
         )
         assert response.status_code == 201
@@ -58,10 +57,16 @@ class OrganizationDashboardsTest(APITestCase):
         assert dashboard.created_by == self.user
 
     def test_query(self):
+        dashboard = Dashboard.objects.create(
+            title='Dashboard 11',
+            created_by=self.user,
+            organization=self.organization,
+        )
         response = self.client.get(self.url, data={'query': '1'})
         assert response.status_code == 200, response.content
-        assert len(response.data)
+        assert len(response.data) == 2
         self.assert_equal_dashboards(self.dashboard_1, response.data[0])
+        self.assert_equal_dashboards(dashboard, response.data[1])
 
     def test_query_no_results(self):
         response = self.client.get(self.url, data={'query': 'not-in-there'})
