@@ -57,7 +57,7 @@ class RequestInterface extends React.Component {
     }
 
     let parsedUrl = null;
-    if(fullUrl) {
+    if (fullUrl) {
       // lol
       parsedUrl = document.createElement('a');
       parsedUrl.href = fullUrl;
@@ -93,7 +93,11 @@ class RequestInterface extends React.Component {
         <a href={isValidUrl ? fullUrl : null} title={fullUrl}>
           <span className="path">
             <strong>{data.method || 'GET'}</strong>
-            <Truncate value={parsedUrl ? parsedUrl.pathname : ""} maxLength={36} leftTrim={true} />
+            <Truncate
+              value={parsedUrl ? parsedUrl.pathname : ''}
+              maxLength={36}
+              leftTrim={true}
+            />
           </span>
           {isValidUrl && (
             <span className="external-icon">
@@ -102,7 +106,7 @@ class RequestInterface extends React.Component {
           )}
         </a>
         <small style={{marginLeft: 10}} className="host">
-          {parsedUrl ? parsedUrl.hostname : ""}
+          {parsedUrl ? parsedUrl.hostname : ''}
         </small>
       </h3>
     );
