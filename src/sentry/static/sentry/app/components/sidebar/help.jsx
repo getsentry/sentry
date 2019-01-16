@@ -3,7 +3,7 @@ import React from 'react';
 import styled from 'react-emotion';
 
 import SentryTypes from 'app/sentryTypes';
-import {openDocsSearchModal} from 'app/actionCreators/modal';
+import {openHelpSearchModal} from 'app/actionCreators/modal';
 import {t} from 'app/locale';
 import DropdownMenu from 'app/components/dropdownMenu';
 import InlineSvg from 'app/components/inlineSvg';
@@ -47,7 +47,7 @@ class SidebarHelp extends React.Component {
   };
 
   handleSearchClick = () => {
-    openDocsSearchModal();
+    openHelpSearchModal();
   };
 
   render() {
