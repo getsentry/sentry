@@ -14,6 +14,8 @@ import withEnvironment from 'app/utils/withEnvironment';
 import GroupEventToolbar from './eventToolbar';
 import {fetchGroupEventAndMarkSeen} from './utils';
 
+const GroupSidebarWithEnvironment = withEnvironment(GroupSidebar);
+
 class GroupEventDetails extends React.Component {
   static propTypes = {
     group: SentryTypes.Group.isRequired,
@@ -75,7 +77,7 @@ class GroupEventDetails extends React.Component {
     // Sidebar doesn't support multiple environments yet so do not pass an
     // environment in the org level variant of the sidebar
     const SidebarWithEnvironment = params.projectId
-      ? withEnvironment(GroupSidebar)
+      ? GroupSidebarWithEnvironment
       : GroupSidebar;
 
     return (
