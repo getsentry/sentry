@@ -1,4 +1,4 @@
-import {Link, browserHistory} from 'react-router';
+import {browserHistory} from 'react-router';
 import {omit, isEqual} from 'lodash';
 import Cookies from 'js-cookie';
 import PropTypes from 'prop-types';
@@ -15,7 +15,7 @@ import {
   setActiveEnvironment,
   setActiveEnvironmentName,
 } from 'app/actionCreators/environments';
-import {t, tn, tct} from 'app/locale';
+import {t, tct} from 'app/locale';
 import ApiMixin from 'app/mixins/apiMixin';
 import ConfigStore from 'app/stores/configStore';
 import EnvironmentStore from 'app/stores/environmentStore';
@@ -24,6 +24,7 @@ import GroupStore from 'app/stores/groupStore';
 import LoadingError from 'app/components/loadingError';
 import LoadingIndicator from 'app/components/loadingIndicator';
 import Pagination from 'app/components/pagination';
+import ProcessingIssueHint from 'app/views/stream/processingIssueHint';
 import ProjectState from 'app/mixins/projectState';
 import SentryTypes from 'app/sentryTypes';
 import StreamActions from 'app/views/stream/actions';
@@ -31,7 +32,6 @@ import EmptyStateWarning from 'app/components/emptyStateWarning';
 import StreamFilters from 'app/views/stream/filters';
 import StreamGroup from 'app/components/stream/group';
 import StreamSidebar from 'app/views/stream/sidebar';
-import TimeSince from 'app/components/timeSince';
 import parseApiError from 'app/utils/parseApiError';
 import parseLinkHeader from 'app/utils/parseLinkHeader';
 import queryString from 'app/utils/queryString';
@@ -579,67 +579,8 @@ const Stream = createReactClass({
     if (!pi || this.showingProcessingIssues()) {
       return null;
     }
-
     let {orgId, projectId} = this.props.params;
-    let link = `/${orgId}/${projectId}/settings/processing-issues/`;
-    let showButton = false;
-    let className = {
-      'processing-issues': true,
-      alert: true,
-    };
-    let issues = null;
-    let lastEvent = null;
-    let icon = null;
-
-    if (pi.numIssues > 0) {
-      icon = <span className="icon icon-alert" />;
-      issues = tn(
-        'There is %s issue blocking event processing',
-        'There are %s issues blocking event processing',
-        pi.numIssues
-      );
-      lastEvent = (
-        <span className="last-seen">
-          ({tct('last event from [ago]', {
-            ago: <TimeSince date={pi.lastSeen} />,
-          })})
-        </span>
-      );
-      className['alert-error'] = true;
-      showButton = true;
-    } else if (pi.issuesProcessing > 0) {
-      icon = <span className="icon icon-processing play" />;
-      className['alert-info'] = true;
-      issues = tn(
-        'Reprocessing %s event …',
-        'Reprocessing %s events …',
-        pi.issuesProcessing
-      );
-    } else if (pi.resolveableIssues > 0) {
-      icon = <span className="icon icon-processing" />;
-      className['alert-warning'] = true;
-      issues = tn(
-        'There is %s event pending reprocessing.',
-        'There are %s events pending reprocessing.',
-        pi.resolveableIssues
-      );
-      showButton = true;
-    } else {
-      /* we should not go here but what do we know */ return null;
-    }
-    return (
-      <div
-        className={classNames(className)}
-        style={{margin: '-1px -1px 0', padding: '10px 16px'}}
-      >
-        {showButton && (
-          <Link to={link} className="btn btn-default btn-sm pull-right">
-            {t('Show details')}
-          </Link>
-        )}
-        {icon} <strong>{issues}</strong> {lastEvent}{' '}
-      </div>
-    );
+    return <ProcessingIssueHint issue={pi} projectId={projectId} orgId={orgId} />;
   },
 
   renderGroupNodes(ids, statsPeriod) {
