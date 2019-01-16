@@ -18,11 +18,12 @@ describe('groupEvents', function() {
   it('renders', function() {
     const component = shallow(
       <GroupEvents
+        group={TestStubs.Group()}
         params={{orgId: 'orgId', projectId: 'projectId', groupId: '1'}}
         location={{query: {}}}
       />,
       {
-        context: {...TestStubs.router(), group: TestStubs.Group()},
+        context: TestStubs.router(),
         childContextTypes: {
           router: PropTypes.object,
         },
@@ -35,11 +36,12 @@ describe('groupEvents', function() {
   it('handles search', function() {
     const component = shallow(
       <GroupEvents
+        group={TestStubs.Group()}
         params={{orgId: 'orgId', projectId: 'projectId', groupId: '1'}}
         location={{query: {}}}
       />,
       {
-        context: {...TestStubs.router(), group: TestStubs.Group()},
+        context: TestStubs.router(),
         childContextTypes: {
           router: PropTypes.object,
         },
@@ -67,12 +69,13 @@ describe('groupEvents', function() {
     beforeEach(function() {
       component = shallow(
         <GroupEvents
+          group={TestStubs.Group()}
           params={{orgId: 'orgId', projectId: 'projectId', groupId: '1'}}
           location={{query: {}}}
           environment={TestStubs.Environments()[0]}
         />,
         {
-          context: {...TestStubs.router(), group: TestStubs.Group()},
+          context: TestStubs.router(),
           childContextTypes: {
             router: PropTypes.object,
           },

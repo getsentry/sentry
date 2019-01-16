@@ -5,7 +5,6 @@ import {Box} from 'grid-emotion';
 
 import ApiMixin from 'app/mixins/apiMixin';
 import FileSize from 'app/components/fileSize';
-import GroupState from 'app/mixins/groupState';
 
 import {t} from 'app/locale';
 
@@ -20,7 +19,7 @@ export default createReactClass({
     projectId: PropTypes.string.isRequired,
   },
 
-  mixins: [ApiMixin, GroupState],
+  mixins: [ApiMixin],
 
   getInitialState() {
     return {attachmentList: undefined, expanded: false};

@@ -7,7 +7,7 @@ import SentryTypes from 'app/sentryTypes';
 import ApiMixin from 'app/mixins/apiMixin';
 import Count from 'app/components/count';
 import DeviceName from 'app/components/deviceName';
-import GroupState from 'app/mixins/groupState';
+import ProjectState from 'app/mixins/projectState';
 import LoadingError from 'app/components/loadingError';
 import LoadingIndicator from 'app/components/loadingIndicator';
 import {percent} from 'app/utils';
@@ -20,10 +20,11 @@ const GroupTags = createReactClass({
   displayName: 'GroupTags',
 
   propTypes: {
+    group: SentryTypes.Group,
     environment: SentryTypes.Environment,
   },
 
-  mixins: [ApiMixin, GroupState],
+  mixins: [ApiMixin, ProjectState],
 
   getInitialState() {
     return {
@@ -57,7 +58,7 @@ const GroupTags = createReactClass({
 
     // TODO(dcramer): each tag should be a separate query as the tags endpoint
     // is not performant
-    this.api.request('/issues/' + this.getGroup().id + '/tags/', {
+    this.api.request('/issues/' + this.props.group.id + '/tags/', {
       query,
       success: data => {
         this.setState({
@@ -90,7 +91,7 @@ const GroupTags = createReactClass({
 
     let orgId = this.getOrganization().slug;
     let projectId = this.getProject().slug;
-    let groupId = this.getGroup().id;
+    let groupId = this.props.group.id;
 
     if (this.state.tagList) {
       children = this.state.tagList.map((tag, tagIdx) => {
