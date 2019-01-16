@@ -33,7 +33,7 @@ class RequestInterface extends React.Component {
     // We assume we only have a partial interface is we're missing
     // an HTTP method. This means we don't have enough information
     // to reliably construct a full HTTP request.
-    return !this.props.data.method;
+    return !this.props.data.method || !this.props.data.url;
   };
 
   toggleView = value => {
@@ -59,7 +59,7 @@ class RequestInterface extends React.Component {
     let parsedUrl = null;
     if(fullUrl) {
       // lol
-      let parsedUrl = document.createElement('a');
+      parsedUrl = document.createElement('a');
       parsedUrl.href = fullUrl;
     }
 
@@ -93,7 +93,7 @@ class RequestInterface extends React.Component {
         <a href={isValidUrl ? fullUrl : null} title={fullUrl}>
           <span className="path">
             <strong>{data.method || 'GET'}</strong>
-            <Truncate value={parsedUrl ? parsedUrl.pathname : ""} maxLength={36} leftTrim={true} />
+            <Truncate value={parsedUrl && parsedUrl.pathname || ""} maxLength={36} leftTrim={true} />
           </span>
           {isValidUrl && (
             <span className="external-icon">
@@ -102,7 +102,7 @@ class RequestInterface extends React.Component {
           )}
         </a>
         <small style={{marginLeft: 10}} className="host">
-          {parsedUrl ? parsedUrl.hostname : ""}
+          {parsedUrl && parsedUrl.hostname || ""}
         </small>
       </h3>
     );
