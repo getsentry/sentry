@@ -33,18 +33,6 @@ class WidgetDisplayTypes(object):
     def as_choices(cls):
         return cls.TYPES
 
-    @classmethod
-    def get_type_name(cls, num):
-        for id, name in cls.TYPES:
-            if id == num:
-                return name
-
-    @classmethod
-    def get_name_type(cls, name):
-        for id, type_name in cls.TYPES:
-            if name == type_name:
-                return id
-
 
 class WidgetDataSourceTypes(object):
     DISCOVER_SAVED_SEARCH = 0
@@ -56,18 +44,6 @@ class WidgetDataSourceTypes(object):
     @classmethod
     def as_choices(cls):
         return cls.TYPES
-
-    @classmethod
-    def get_type_name(cls, num):
-        for id, name in cls.TYPES:
-            if id == num:
-                return name
-
-    @classmethod
-    def get_name_type(cls, name):
-        for id, type_name in cls.TYPES:
-            if name == type_name:
-                return id
 
 
 class WidgetDataSource(Model):

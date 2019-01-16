@@ -88,6 +88,15 @@ class OrganizationDashboardDetailsTestCase(APITestCase):
             }
         )
 
+    def sort_by_order(self, widgets):
+        def get_order(x):
+            try:
+                return x['order']
+            except TypeError:
+                return x.order
+
+        return sorted(widgets, key=get_order)
+
     def assert_widget(self, data, expected_widget):
         assert data['id'] == six.text_type(expected_widget.id)
         assert data['title'] == expected_widget.title
@@ -115,11 +124,11 @@ class OrganizationDashboardDetailsGetTest(OrganizationDashboardDetailsTestCase):
 
         self.assert_dashboard(response.data, self.dashboard)
         assert len(response.data['widgets']) == 2
-        widgets = sorted(response.data['widgets'], key=lambda x: x['order'])
+        widgets = self.sort_by_order(response.data['widgets'])
         self.assert_widget(widgets[0], self.widget_1)
         self.assert_widget(widgets[1], self.widget_2)
 
-        widget_1_data_sources = sorted(widgets[0]['dataSources'], key=lambda x: x['order'])
+        widget_1_data_sources = self.sort_by_order(widgets[0]['dataSources'])
         assert len(widget_1_data_sources) == 2
         self.assert_widget_data_source(widget_1_data_sources[0], self.widget_1_data_1)
         self.assert_widget_data_source(widget_1_data_sources[1], self.widget_1_data_2)
@@ -133,127 +142,11 @@ class OrganizationDashboardDetailsGetTest(OrganizationDashboardDetailsTestCase):
         assert response.data == {u'detail': u'Not found'}
 
 
-class OrganizationDashboardDetailsPutTest(OrganizationDashboardDetailsTestCase):
-
-    def test_put(self):
-        response = self.client.put(
-            self.url(self.dashboard.id),
-            data={
-                'title': 'Dashboard from Put',
-                'createdBy': self.user.id,
-                'organization': self.organization.id,
-                'widgets':
-                [
-                    {
-                        'order': 3,
-                        'displayType': 'line',
-                        'title': 'User Happiness',
-                        'dataSources': [
-                            {
-                                'name': 'knownUsersAffectedQuery_2',
-                                'data': self.known_users_query,
-                                'type': 'discover_saved_search',
-                                'order': 1,
-                            },
-                            {
-                                'name': 'anonymousUsersAffectedQuery_2',
-                                'data': self.anon_users_query,
-                                'type': 'discover_saved_search',
-                                'order': 2
-                            },
-
-                        ]
-
-                    },
-                    {
-                        'order': 4,
-                        'displayType': 'table',
-                        'title': 'Error Location',
-                        'dataSources': [
-                            {
-                                'name': 'errorsByGeo_2',
-                                'data': self.geo_erorrs_query,
-                                'type': 'discover_saved_search',
-                                'order': 1,
-                            },
-                        ]
-                    }
-                ]
-            }
-        )
-        assert response.status_code == 200
-        dashboard = Dashboard.objects.get(
-            organization=self.organization,
-            title='Dashboard from Put'
-        )
-        assert dashboard.created_by == self.user
-
-        widgets = sorted(Widget.objects.filter(dashboard=dashboard), key=lambda w: w.order)
-        assert len(widgets) == 4
-        # TODO(lb): Add other widgets revise this section onwards
-        assert widgets[0].order == 0
-        assert widgets[0].display_type == WidgetDisplayTypes.LINE_CHART
-        assert widgets[0].title == 'User Happiness'
-
-        assert widgets[1].order == 1
-        assert widgets[1].display_type == WidgetDisplayTypes.TABLE
-        assert widgets[1].title == 'Error Location'
-
-        data_sources = sorted(
-            WidgetDataSource.objects.filter(
-                widget_id=widgets[0].id
-            ),
-            key=lambda d: d['name']
-        )
-
-        assert data_sources[0].name == 'anonymousUsersAffectedQuery_2'
-        assert data_sources[0].data == self.anon_users_query
-        assert data_sources[0].type == 'disoversavedsearch'
-
-        assert data_sources[1].name == 'knownUsersAffectedQuery_2'
-        assert data_sources[1].data == self.known_users_query
-        assert data_sources[1].type == 'disoversavedsearch'
-
-        data_sources = sorted(
-            WidgetDataSource.objects.filter(
-                widget_id=widgets[1].id
-            ),
-            key=lambda d: d['name']
-        )
-        assert data_sources[0].name == 'errorsByGeo_2'
-        assert data_sources[0].data == self.geo_erorrs_query
-        assert data_sources[0].type == 'disoversavedsearch'
-
-    def test_dashboard_no_widgets(self):
-        pass
-
-    def test_widget_no_data_souces(self):
-        pass
-
-    def test_unrecognized_display_type(self):
-        pass
-
-    def test_unrecognized_data_source_type(self):
-        pass
-
-    def test_dashboard_does_not_exist(self):
-        response = self.client.put(self.url(1234567890))
-        assert response.status_code == 404
-        assert response.data == {u'detail': u'Not found'}
-
-    def test_invalid_dashboard(self):
-        pass
-
-    def test_invalid_widget(self):
-        pass
-
-    def test_invalid_widget_data_source(self):
-        pass
-
-
 class OrganizationDashboardDetailsDeleteTest(OrganizationDashboardDetailsTestCase):
     def test_delete(self):
-        pass
+        response = self.client.delete(self.url(self.dashboard.id))
+        assert response.status_code == 200
+        assert Dashboard.objects.filter(id=self.dashboard.id).exists()
 
     def test_dashboard_does_not_exist(self):
         response = self.client.delete(self.url(1234567890))
