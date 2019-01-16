@@ -26,7 +26,6 @@ class GroupUserFeedback extends React.Component {
       loading: true,
       error: false,
       reportList: [],
-      pageLinks: '',
     };
   }
 
@@ -47,12 +46,11 @@ class GroupUserFeedback extends React.Component {
     });
 
     fetchGroupUserReports(this.props.group.id, this.props.query)
-      .then((data, _, jqXHR) => {
+      .then(data => {
         this.setState({
           error: false,
           loading: false,
           reportList: data,
-          pageLinks: jqXHR.getResponseHeader('Link'),
         });
       })
       .catch(() => {
