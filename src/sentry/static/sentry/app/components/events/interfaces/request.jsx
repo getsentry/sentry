@@ -49,21 +49,24 @@ class RequestInterface extends React.Component {
     let view = this.state.view;
 
     let fullUrl = data.url;
-    if (data.query) {
+    if (data.query && fullUrl) {
       fullUrl = fullUrl + '?' + data.query;
     }
-    if (data.fragment) {
+    if (data.fragment && fullUrl) {
       fullUrl = fullUrl + '#' + data.fragment;
     }
 
-    // lol
-    let parsedUrl = document.createElement('a');
-    parsedUrl.href = fullUrl;
+    let parsedUrl = null;
+    if(fullUrl) {
+      // lol
+      let parsedUrl = document.createElement('a');
+      parsedUrl.href = fullUrl;
+    }
 
     let children = [];
 
     // Check if the url passed in is a safe url to avoid XSS
-    let isValidUrl = isUrl(fullUrl);
+    let isValidUrl = fullUrl ? isUrl(fullUrl) : false;
 
     if (!this.isPartial() && isValidUrl) {
       children.push(
@@ -90,7 +93,7 @@ class RequestInterface extends React.Component {
         <a href={isValidUrl ? fullUrl : null} title={fullUrl}>
           <span className="path">
             <strong>{data.method || 'GET'}</strong>
-            <Truncate value={parsedUrl.pathname} maxLength={36} leftTrim={true} />
+            <Truncate value={parsedUrl ? parsedUrl.pathname : ""} maxLength={36} leftTrim={true} />
           </span>
           {isValidUrl && (
             <span className="external-icon">
@@ -99,7 +102,7 @@ class RequestInterface extends React.Component {
           )}
         </a>
         <small style={{marginLeft: 10}} className="host">
-          {parsedUrl.hostname}
+          {parsedUrl ? parsedUrl.hostname : ""}
         </small>
       </h3>
     );
