@@ -15,7 +15,7 @@ from sentry import analytics, eventstream, features, search
 from sentry.api.base import DocSection, EnvironmentMixin
 from sentry.api.bases.project import ProjectEndpoint, ProjectEventPermission
 from sentry.api.fields import ActorField, Actor
-from sentry.api.helpers.group_search import build_query_params_from_request, get_by_short_id, ValidationError
+from sentry.api.helpers.group_index import build_query_params_from_request, get_by_short_id, ValidationError
 from sentry.api.serializers import serialize
 from sentry.api.serializers.models.actor import ActorSerializer
 from sentry.api.serializers.models.group import (
