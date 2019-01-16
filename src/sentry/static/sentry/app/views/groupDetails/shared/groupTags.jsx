@@ -1,6 +1,5 @@
 import React from 'react';
 import PropTypes from 'prop-types';
-import createReactClass from 'create-react-class';
 import {Link} from 'react-router';
 import {Box, Flex} from 'grid-emotion';
 
@@ -16,34 +15,33 @@ import Alert from 'app/components/alert';
 import withApi from 'app/utils/withApi';
 import withOrganization from 'app/utils/withOrganization';
 
-const GroupTags = createReactClass({
-  displayName: 'GroupTags',
-
-  propTypes: {
+class GroupTags extends React.Component {
+  static propTypes = {
     organization: SentryTypes.Organization.isRequired,
     group: SentryTypes.Group.isRequired,
     api: PropTypes.object.isRequired,
     query: PropTypes.object.isRequired,
     params: PropTypes.object.isRequired,
-  },
+  };
 
-  getInitialState() {
-    return {
+  constructor() {
+    super();
+    this.state = {
       tagList: null,
       loading: true,
       error: false,
     };
-  },
+  }
 
-  componentWillMount() {
+  componentDidMount() {
     this.fetchData();
-  },
+  }
 
-  componentWillReceiveProps(nextProps) {
-    if (nextProps.query !== this.props.query) {
+  componentDidUpdate(prevProps) {
+    if (prevProps.query !== this.props.query) {
       this.fetchData();
     }
-  },
+  }
 
   fetchData() {
     const {api, query, group} = this.props;
@@ -52,8 +50,6 @@ const GroupTags = createReactClass({
       error: false,
     });
 
-    // TODO(dcramer): each tag should be a separate query as the tags endpoint
-    // is not performant
     api.request('/issues/' + group.id + '/tags/', {
       query,
       success: data => {
@@ -70,11 +66,11 @@ const GroupTags = createReactClass({
         });
       },
     });
-  },
+  }
 
   getTagsDocsUrl() {
     return 'https://docs.sentry.io/hosted/learn/context/';
-  },
+  }
 
   render() {
     const {group, organization, params} = this.props;
@@ -154,7 +150,7 @@ const GroupTags = createReactClass({
         </Alert>
       </div>
     );
-  },
-});
+  }
+}
 
 export default withApi(withOrganization(GroupTags));
