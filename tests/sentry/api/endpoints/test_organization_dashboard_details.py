@@ -7,9 +7,9 @@ from sentry.models import Dashboard, Widget, WidgetDataSource, WidgetDataSourceT
 from sentry.testutils import APITestCase
 
 
-class OrganizationDashboardDetailsTest(APITestCase):
+class OrganizationDashboardDetailsTestCase(APITestCase):
     def setUp(self):
-        super(OrganizationDashboardDetailsTest, self).setUp()
+        super(OrganizationDashboardDetailsTestCase, self).setUp()
         self.login_as(self.user)
         self.dashboard = Dashboard.objects.create(
             title='Dashboard 1',
@@ -107,6 +107,8 @@ class OrganizationDashboardDetailsTest(APITestCase):
         assert data['data'] == widget_data_source.data
         assert data['order'] == six.text_type(widget_data_source.order)
 
+
+class OrganizationDashboardDetailsGetTest(OrganizationDashboardDetailsTestCase):
     def test_get(self):
         response = self.client.get(self.url(self.dashboard.id))
         assert response.status_code == 200, response.content
@@ -124,6 +126,14 @@ class OrganizationDashboardDetailsTest(APITestCase):
 
         assert len(widgets[1]['dataSources']) == 1
         self.assert_widget_data_source(widgets[1]['dataSources'][0], self.widget_2_data_1)
+
+    def test_dashboard_does_not_exist(self):
+        response = self.client.get(self.url(1234567890))
+        assert response.status_code == 404
+        assert response.data == {u'detail': u'Not found'}
+
+
+class OrganizationDashboardDetailsPutTest(OrganizationDashboardDetailsTestCase):
 
     def test_put(self):
         response = self.client.put(
@@ -214,5 +224,38 @@ class OrganizationDashboardDetailsTest(APITestCase):
         assert data_sources[0].data == self.geo_erorrs_query
         assert data_sources[0].type == 'disoversavedsearch'
 
+    def test_dashboard_no_widgets(self):
+        pass
+
+    def test_widget_no_data_souces(self):
+        pass
+
+    def test_unrecognized_display_type(self):
+        pass
+
+    def test_unrecognized_data_source_type(self):
+        pass
+
+    def test_dashboard_does_not_exist(self):
+        response = self.client.put(self.url(1234567890))
+        assert response.status_code == 404
+        assert response.data == {u'detail': u'Not found'}
+
+    def test_invalid_dashboard(self):
+        pass
+
+    def test_invalid_widget(self):
+        pass
+
+    def test_invalid_widget_data_source(self):
+        pass
+
+
+class OrganizationDashboardDetailsDeleteTest(OrganizationDashboardDetailsTestCase):
     def test_delete(self):
         pass
+
+    def test_dashboard_does_not_exist(self):
+        response = self.client.delete(self.url(1234567890))
+        assert response.status_code == 404
+        assert response.data == {u'detail': u'Not found'}
