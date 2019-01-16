@@ -13,7 +13,7 @@ class OrganizationDashboardsTest(APITestCase):
         super(OrganizationDashboardsTest, self).setUp()
         self.login_as(self.user)
         self.url = reverse(
-            'sentry-api-0-organization-dashboard',
+            'sentry-api-0-organization-dashboards',
             kwargs={'organization_slug': self.organization.slug}
         )
         self.dashboard_1 = Dashboard.objects.create(

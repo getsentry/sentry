@@ -64,7 +64,7 @@ class OrganizationDashboardsEndpoint(OrganizationEndpoint):
                 dashboard = Dashboard.objects.create(
                     organization_id=organization.id,
                     title=result['title'],
-                    created_by=result['created_by'],
+                    created_by=request.user,
                 )
         except IntegrityError:
             return Response('This dashboard already exists', status=409)
