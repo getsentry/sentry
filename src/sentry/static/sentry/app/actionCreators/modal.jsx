@@ -132,12 +132,12 @@ export function redirectToProject(newProjectSlug) {
     });
 }
 
-export function openDocsSearchModal() {
-  import(/* webpackChunkName: "DocsSearchModal" */ 'app/components/modals/docsSearchModal')
+export function openHelpSearchModal() {
+  import(/* webpackChunkName: "HelpSearchModal" */ 'app/components/modals/helpSearchModal')
     .then(mod => mod.default)
     .then(Modal => {
       openModal(deps => <Modal {...deps} />, {
-        modalClassName: 'docs-search-modal',
+        modalClassName: 'help-search-modal',
       });
     });
 }
