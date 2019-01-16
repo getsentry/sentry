@@ -69,7 +69,7 @@ const GroupGroupingView = createReactClass({
       let baseUrl = params.projectId
         ? `/${params.orgId}/${params.projectId}/issues/`
         : `/organizations/${params.orgId}/issues/`;
-      browserHistory.push(`/${baseUrl}${mergedParent}/similar/`);
+      browserHistory.push(`${baseUrl}${mergedParent}/similar/`);
     }
   },
 
