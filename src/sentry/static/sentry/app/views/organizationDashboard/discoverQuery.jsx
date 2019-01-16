@@ -84,7 +84,7 @@ class DiscoverQuery extends React.Component {
     this.resetQueries();
 
     // Fetch
-    const promises = this.queryBuilders.map(builder => builder.fetchForWidget());
+    const promises = this.queryBuilders.map(builder => builder.fetchWithoutLimit());
     let results = await Promise.all(promises);
     let previousData = null;
     let data = null;

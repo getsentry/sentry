@@ -13,7 +13,7 @@ import MissingProjectWarningModal from './missingProjectWarningModal';
 import {COLUMNS, PROMOTED_TAGS, SPECIAL_TAGS} from './data';
 import {isValidAggregation} from './aggregations/utils';
 
-const WIDGET_LIMIT = 10000;
+const API_LIMIT = 10000;
 
 const DEFAULTS = {
   projects: [],
@@ -52,7 +52,7 @@ export default function createQueryBuilder(initial = {}, organization) {
     getExternal,
     updateField,
     fetch,
-    fetchForWidget,
+    fetchWithoutLimit,
     getQueryByType,
     getColumns,
     load,
@@ -212,10 +212,12 @@ export default function createQueryBuilder(initial = {}, organization) {
    * Fetches either the query provided as an argument or the current query state
    * if this is not provided and returns the result wrapped in a promise
    *
+   * This is similar to `fetch` but does not support pagination and mirrors the API limit
+   *
    * @param {Object} [data] Optional field to provide data to fetch
    * @returns {Promise<Object|Error>}
    */
-  function fetchForWidget(data = getExternal()) {
+  function fetchWithoutLimit(data = getExternal()) {
     const api = new Client();
     const endpoint = `/organizations/${organization.slug}/discover/query/`;
 
@@ -225,7 +227,7 @@ export default function createQueryBuilder(initial = {}, organization) {
     }
 
     if (typeof data.limit === 'number') {
-      if (data.limit < 1 || data.limit > WIDGET_LIMIT) {
+      if (data.limit < 1 || data.limit > API_LIMIT) {
         return Promise.reject(new Error(t('Invalid limit parameter')));
       }
     }
