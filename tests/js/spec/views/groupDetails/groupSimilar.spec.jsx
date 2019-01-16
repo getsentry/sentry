@@ -3,7 +3,7 @@ import React from 'react';
 
 import {mount, shallow} from 'enzyme';
 
-import GroupSimilarView from 'app/views/groupDetails/project/groupSimilar';
+import GroupSimilarView from 'app/views/groupDetails/shared/groupSimilar';
 import issues from 'app-test/mocks/issues';
 
 jest.mock('app/mixins/projectState', () => {
