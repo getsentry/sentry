@@ -24,11 +24,11 @@ const StreamGroup = createReactClass({
 
   propTypes: {
     id: PropTypes.string.isRequired,
-    orgId: PropTypes.string.isRequired,
     statsPeriod: PropTypes.string.isRequired,
     canSelect: PropTypes.bool,
     query: PropTypes.string,
     hasGuideAnchor: PropTypes.bool,
+    memberList: PropTypes.array,
   },
 
   mixins: [Reflux.listenTo(GroupStore, 'onGroupChange'), ProjectState],
@@ -86,7 +86,7 @@ const StreamGroup = createReactClass({
 
   render() {
     const {data} = this.state;
-    const {query, hasGuideAnchor, canSelect} = this.props;
+    const {query, hasGuideAnchor, canSelect, memberList} = this.props;
 
     return (
       <Group onClick={this.toggleSelect} py={1} px={0} align="center">
@@ -112,7 +112,7 @@ const StreamGroup = createReactClass({
           <StyledCount value={data.userCount} />
         </Flex>
         <Box w={80} mx={2} className="hidden-xs hidden-sm">
-          <AssigneeSelector id={data.id} />
+          <AssigneeSelector id={data.id} memberList={memberList} />
         </Box>
       </Group>
     );
