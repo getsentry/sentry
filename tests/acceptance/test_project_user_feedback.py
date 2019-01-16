@@ -3,7 +3,6 @@ from __future__ import absolute_import
 from django.utils import timezone
 
 from sentry.testutils import AcceptanceTestCase
-from sentry.models import OrganizationOnboardingTask, OnboardingTask, OnboardingTaskStatus
 
 
 class ProjectUserFeedbackTest(AcceptanceTestCase):
@@ -28,11 +27,6 @@ class ProjectUserFeedbackTest(AcceptanceTestCase):
         self.create_group(
             project=self.project,
             message='Foo bar',
-        )
-        OrganizationOnboardingTask.objects.create_or_update(
-            organization_id=self.project.organization_id,
-            task=OnboardingTask.FIRST_EVENT,
-            status=OnboardingTaskStatus.COMPLETE,
         )
         self.create_userreport(group=self.group, project=self.project, event=self.event)
         self.browser.get(self.path)
