@@ -7,6 +7,7 @@ import React from 'react';
 import Reflux from 'reflux';
 import createReactClass from 'create-react-class';
 import styled, {css, cx} from 'react-emotion';
+import queryString from 'query-string';
 
 import {URL_PARAM} from 'app/components/organizations/globalSelectionHeader/constants';
 import {hideSidebar, showSidebar} from 'app/actionCreators/preferences';
@@ -156,8 +157,16 @@ class Sidebar extends React.Component {
 
   // Keep the global selection querystring values in the path
   navigateWithGlobalSelection = (pathname, evt) => {
-    evt.preventDefault();
     const query = pick(this.props.location.query, Object.values(URL_PARAM));
+
+    // Handle cmd-click (mac) and meta-click (linux)
+    if (evt.metaKey) {
+      let q = queryString.stringify(query);
+      evt.currentTarget.href = `${evt.currentTarget.href}?${q}`;
+      return;
+    }
+
+    evt.preventDefault();
     browserHistory.push({pathname, query});
     this.hidePanel();
   };
