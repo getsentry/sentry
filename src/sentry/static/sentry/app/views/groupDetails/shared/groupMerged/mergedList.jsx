@@ -29,7 +29,7 @@ class MergedList extends React.Component {
   };
 
   render() {
-    let {items, pageLinks, onToggleCollapse, onUnmerge, ...otherProps} = this.props;
+    let {items, pageLinks, onToggleCollapse, onUnmerge} = this.props;
     let itemsWithLatestEvent = items.filter(({latestEvent}) => !!latestEvent);
     let hasResults = itemsWithLatestEvent.length > 0;
 
@@ -44,21 +44,15 @@ class MergedList extends React.Component {
           <QueryCount count={itemsWithLatestEvent.length} />
         </h2>
 
-        <MergedToolbar
-          {...otherProps}
-          onToggleCollapse={onToggleCollapse}
-          onUnmerge={onUnmerge}
-        />
+        <MergedToolbar onToggleCollapse={onToggleCollapse} onUnmerge={onUnmerge} />
 
         <MergedItems>
           {itemsWithLatestEvent.map(({id, latestEvent}) => (
             <MergedItem
               key={id}
-              {...otherProps}
               disabled={items.length === 1}
               event={latestEvent}
               fingerprint={id}
-              itemCount={items.length}
             />
           ))}
         </MergedItems>

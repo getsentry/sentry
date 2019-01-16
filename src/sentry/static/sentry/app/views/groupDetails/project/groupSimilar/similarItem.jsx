@@ -4,6 +4,7 @@ import Reflux from 'reflux';
 import classNames from 'classnames';
 import createReactClass from 'create-react-class';
 
+import SentryTypes from 'app/sentryTypes';
 import {openDiffModal} from 'app/actionCreators/modal';
 import Checkbox from 'app/components/checkbox';
 import Count from 'app/components/count';
@@ -23,9 +24,7 @@ const SimilarIssueItem = createReactClass({
   displayName: 'SimilarIssueItem',
 
   propTypes: {
-    orgId: PropTypes.string.isRequired,
     groupId: PropTypes.string.isRequired,
-    projectId: PropTypes.string.isRequired,
     score: PropTypes.object,
     scoresByInterface: PropTypes.shape({
       exception: PropTypes.array,
@@ -35,22 +34,7 @@ const SimilarIssueItem = createReactClass({
       exception: PropTypes.number,
       message: PropTypes.number,
     }),
-    issue: PropTypes.shape({
-      id: PropTypes.string.isRequired,
-      level: PropTypes.string.isRequired,
-      type: PropTypes.oneOf(['error', 'csp', 'default']).isRequired,
-      title: PropTypes.string.isRequired,
-      metadata: PropTypes.shape({
-        value: PropTypes.string,
-        message: PropTypes.string,
-        directive: PropTypes.string,
-        type: PropTypes.string,
-        title: PropTypes.string,
-        uri: PropTypes.string,
-      }).isRequired,
-      culprit: PropTypes.string,
-      hideLevel: PropTypes.bool,
-    }),
+    issue: SentryTypes.Group.isRequired,
   },
 
   mixins: [Reflux.listenTo(GroupingStore, 'onGroupingUpdate')],
@@ -104,7 +88,7 @@ const SimilarIssueItem = createReactClass({
   },
 
   render() {
-    let {aggregate, scoresByInterface, issue, orgId, projectId} = this.props;
+    let {aggregate, scoresByInterface, issue} = this.props;
 
     if (!this.state.visible) {
       return null;
@@ -133,17 +117,8 @@ const SimilarIssueItem = createReactClass({
               />
             </div>
             <div className="event-details level-error" style={{flex: 1}}>
-              <EventOrGroupHeader orgId={orgId} projectId={projectId} data={issue} />
-              <EventOrGroupExtraDetails
-                {...issue}
-                groupId={issue.id}
-                orgId={orgId}
-                projectId={projectId}
-                lastSeen={null}
-                showAssignee
-                showStatus
-                group
-              />
+              <EventOrGroupHeader data={issue} />
+              <EventOrGroupExtraDetails {...issue} lastSeen={null} showAssignee group />
             </div>
           </FlowLayout>
           <button

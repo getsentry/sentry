@@ -3,7 +3,7 @@ import PropTypes from 'prop-types';
 import React from 'react';
 import Reflux from 'reflux';
 import createReactClass from 'create-react-class';
-import jQuery from 'jquery';
+import $ from 'jquery';
 import styled from 'react-emotion';
 
 import {PanelItem} from 'app/components/panels';
@@ -24,7 +24,6 @@ const StreamGroup = createReactClass({
 
   propTypes: {
     id: PropTypes.string.isRequired,
-    orgId: PropTypes.string.isRequired,
     statsPeriod: PropTypes.string.isRequired,
     canSelect: PropTypes.bool,
     query: PropTypes.string,
@@ -80,15 +79,14 @@ const StreamGroup = createReactClass({
   toggleSelect(evt) {
     if (evt.target.tagName === 'A') return;
     if (evt.target.tagName === 'INPUT') return;
-    if (jQuery(evt.target).parents('a').length !== 0) return;
+    if ($(evt.target).parents('a').length !== 0) return;
 
     SelectedGroupStore.toggleSelect(this.state.data.id);
   },
 
   render() {
     const {data} = this.state;
-    const {id, orgId, query, hasGuideAnchor, canSelect, memberList} = this.props;
-    const projectId = data.project.slug;
+    const {query, hasGuideAnchor, canSelect, memberList} = this.props;
 
     return (
       <Group onClick={this.toggleSelect} py={1} px={0} align="center">
@@ -99,19 +97,8 @@ const StreamGroup = createReactClass({
           </GroupCheckbox>
         )}
         <GroupSummary w={[8 / 12, 8 / 12, 6 / 12]} ml={canSelect ? 1 : 2} mr={1} flex="1">
-          <EventOrGroupHeader
-            data={data}
-            orgId={orgId}
-            projectId={projectId}
-            query={query}
-          />
-          <EventOrGroupExtraDetails
-            group
-            {...data}
-            groupId={id}
-            orgId={orgId}
-            projectId={projectId}
-          />
+          <EventOrGroupHeader data={data} query={query} />
+          <EventOrGroupExtraDetails group {...data} />
         </GroupSummary>
         <Box w={160} mx={2} className="hidden-xs hidden-sm">
           <GroupChart id={data.id} statsPeriod={this.props.statsPeriod} data={data} />

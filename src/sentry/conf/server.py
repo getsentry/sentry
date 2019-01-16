@@ -802,8 +802,6 @@ SENTRY_FEATURES = {
     'organizations:internal-catchall': False,
     # Enable inviting members to organizations.
     'organizations:invite-members': True,
-    # Enable jira server integration currently available to internal users only.
-    'organizations:jira-server-integration': False,
 
     # DEPRECATED: pending removal.
     'organizations:js-loader': False,
@@ -884,6 +882,9 @@ SENTRY_PROJECT_KEY = None
 
 # Project ID for recording frontend (javascript) exceptions
 SENTRY_FRONTEND_PROJECT = None
+# DSN for the frontend to use explicitly, which takes priority
+# over SENTRY_FRONTEND_PROJECT or SENTRY_PROJECT
+SENTRY_FRONTEND_DSN = None
 
 # Only store a portion of all messages per unique group.
 SENTRY_SAMPLE_DATA = True

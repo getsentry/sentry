@@ -26,7 +26,7 @@ def get_datetime_from_stats_period(stats_period, now=None):
     return now - stats_period
 
 
-def get_date_range_from_params(params, optional=False):
+def get_date_range_from_params(params, optional=False, validate_window=True):
     """
     Gets a date range from standard date range params we pass to the api.
 
@@ -43,6 +43,7 @@ def get_date_range_from_params(params, optional=False):
     If `start` end `end` are passed, validate them, convert to `datetime` and
     returns them if valid.
     :param optional: When True, if no params passed then return `(None, None)`.
+    :param validate_window: When True, validate against min / max time delta.
     :return: A length 2 tuple containing start/end or raises an `InvalidParams`
     exception
     """
@@ -78,8 +79,9 @@ def get_date_range_from_params(params, optional=False):
     if start > end:
         raise InvalidParams('start must be before end')
 
-    delta = end - start
-    if delta < MIN_STATS_PERIOD or delta > MAX_STATS_PERIOD:
-        raise InvalidParams(INVALID_PERIOD_ERROR)
+    if validate_window:
+        delta = end - start
+        if delta < MIN_STATS_PERIOD or delta > MAX_STATS_PERIOD:
+            raise InvalidParams(INVALID_PERIOD_ERROR)
 
     return start, end

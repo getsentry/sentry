@@ -585,8 +585,6 @@ exports[`Issues Similar View renders with mocked data 1`] = `
               }
             }
             key="271"
-            orgId="org-slug"
-            projectId="project-slug"
             score={
               Object {
                 "exception:stacktrace:pairs": 0.875,
@@ -654,7 +652,7 @@ exports[`Issues Similar View renders with mocked data 1`] = `
                             }
                           }
                         >
-                          <EventOrGroupHeader
+                          <withRouter(EventOrGroupHeader)
                             data={
                               Object {
                                 "annotations": Array [],
@@ -690,32 +688,135 @@ exports[`Issues Similar View renders with mocked data 1`] = `
                                 "userCount": 3,
                               }
                             }
-                            includeLink={true}
-                            orgId="org-slug"
-                            projectId="project-slug"
                           >
-                            <div
-                              className="event-issue-header"
+                            <EventOrGroupHeader
+                              data={
+                                Object {
+                                  "annotations": Array [],
+                                  "assignedTo": null,
+                                  "count": "90",
+                                  "culprit": "length(app/views/groupSimilar/groupSimilarView)",
+                                  "firstSeen": "2017-07-10T18:32:43Z",
+                                  "hasSeen": false,
+                                  "id": "271",
+                                  "isBookmarked": false,
+                                  "isPublic": false,
+                                  "isSubscribed": true,
+                                  "lastSeen": "2017-07-24T23:41:44Z",
+                                  "level": "error",
+                                  "logger": "javascript",
+                                  "metadata": Object {
+                                    "type": "TypeError",
+                                    "value": "Cannot read property 'length' of undefined",
+                                  },
+                                  "numComments": 0,
+                                  "permalink": "http://localhost:8000/sentry/internal/issues/271/",
+                                  "project": Object {
+                                    "name": "Internal",
+                                    "slug": "internal",
+                                  },
+                                  "shareId": "312e323731",
+                                  "shortId": "INTERNAL-4G",
+                                  "status": "resolved",
+                                  "statusDetails": Object {},
+                                  "subscriptionDetails": null,
+                                  "title": "TypeError: Cannot read property 'length' of undefined",
+                                  "type": "error",
+                                  "userCount": 3,
+                                }
+                              }
+                              includeLink={true}
+                              location={
+                                Object {
+                                  "query": Object {},
+                                }
+                              }
+                              params={
+                                Object {
+                                  "groupId": "group-id",
+                                  "orgId": "org-slug",
+                                  "projectId": "project-slug",
+                                }
+                              }
+                              router={
+                                Object {
+                                  "createHref": [MockFunction] {
+                                    "calls": Array [
+                                      Array [
+                                        Object {
+                                          "pathname": "/org-slug/project-slug/issues/271/",
+                                          "search": "",
+                                        },
+                                      ],
+                                      Array [
+                                        Object {
+                                          "pathname": "/org-slug/project-slug/issues",
+                                          "query": Object {
+                                            "query": "logger:javascript",
+                                          },
+                                        },
+                                      ],
+                                      Array [
+                                        Object {
+                                          "pathname": "/org-slug/project-slug/issues/271/",
+                                          "search": "",
+                                        },
+                                      ],
+                                      Array [
+                                        Object {
+                                          "pathname": "/org-slug/project-slug/issues",
+                                          "query": Object {
+                                            "query": "logger:javascript",
+                                          },
+                                        },
+                                      ],
+                                    ],
+                                    "results": Array [
+                                      Object {
+                                        "isThrow": false,
+                                        "value": undefined,
+                                      },
+                                      Object {
+                                        "isThrow": false,
+                                        "value": undefined,
+                                      },
+                                      Object {
+                                        "isThrow": false,
+                                        "value": undefined,
+                                      },
+                                      Object {
+                                        "isThrow": false,
+                                        "value": undefined,
+                                      },
+                                    ],
+                                  },
+                                  "go": [MockFunction],
+                                  "goBack": [MockFunction],
+                                  "goForward": [MockFunction],
+                                  "isActive": [MockFunction],
+                                  "listen": [MockFunction],
+                                  "location": Object {
+                                    "query": Object {},
+                                  },
+                                  "params": Object {
+                                    "groupId": "group-id",
+                                    "orgId": "org-slug",
+                                    "projectId": "project-slug",
+                                  },
+                                  "push": [MockFunction],
+                                  "replace": [MockFunction],
+                                  "setRouteLeaveHook": [MockFunction],
+                                }
+                              }
                             >
-                              <Title>
-                                <div
-                                  className="css-leroxf-Title-truncateStyles eex8od0"
-                                >
-                                  <ProjectLink
-                                    style={
-                                      Object {
-                                        "textDecoration": "line-through",
-                                      }
-                                    }
-                                    to={
-                                      Object {
-                                        "pathname": "/org-slug/project-slug/issues/271/",
-                                        "search": "",
-                                      }
-                                    }
+                              <div
+                                className="event-issue-header"
+                              >
+                                <Title>
+                                  <div
+                                    className="css-leroxf-Title-truncateStyles eex8od0"
                                   >
-                                    <Link
-                                      onlyActiveOnIndex={false}
+                                    <ProjectLink
                                       style={
                                         Object {
                                           "textDecoration": "line-through",
@@ -728,74 +829,161 @@ exports[`Issues Similar View renders with mocked data 1`] = `
                                         }
                                       }
                                     >
-                                      <a
-                                        onClick={[Function]}
+                                      <Link
+                                        onlyActiveOnIndex={false}
                                         style={
                                           Object {
                                             "textDecoration": "line-through",
                                           }
                                         }
-                                      >
-                                        <Tooltip
-                                          title="Error level: Error"
-                                        >
-                                          <GroupLevel
-                                            className="tip"
-                                            level="error"
-                                            title="Error level: Error"
-                                          >
-                                            <div
-                                              className="tip css-hpn2f3-GroupLevel eex8od5"
-                                              title="Error level: Error"
-                                            />
-                                          </GroupLevel>
-                                        </Tooltip>
-                                        <EventOrGroupTitle
-                                          data={
-                                            Object {
-                                              "annotations": Array [],
-                                              "assignedTo": null,
-                                              "count": "90",
-                                              "culprit": "length(app/views/groupSimilar/groupSimilarView)",
-                                              "firstSeen": "2017-07-10T18:32:43Z",
-                                              "hasSeen": false,
-                                              "id": "271",
-                                              "isBookmarked": false,
-                                              "isPublic": false,
-                                              "isSubscribed": true,
-                                              "lastSeen": "2017-07-24T23:41:44Z",
-                                              "level": "error",
-                                              "logger": "javascript",
-                                              "metadata": Object {
-                                                "type": "TypeError",
-                                                "value": "Cannot read property 'length' of undefined",
-                                              },
-                                              "numComments": 0,
-                                              "permalink": "http://localhost:8000/sentry/internal/issues/271/",
-                                              "project": Object {
-                                                "name": "Internal",
-                                                "slug": "internal",
-                                              },
-                                              "shareId": "312e323731",
-                                              "shortId": "INTERNAL-4G",
-                                              "status": "resolved",
-                                              "statusDetails": Object {},
-                                              "subscriptionDetails": null,
-                                              "title": "TypeError: Cannot read property 'length' of undefined",
-                                              "type": "error",
-                                              "userCount": 3,
-                                            }
+                                        to={
+                                          Object {
+                                            "pathname": "/org-slug/project-slug/issues/271/",
+                                            "search": "",
                                           }
-                                          includeLink={true}
-                                          orgId="org-slug"
-                                          projectId="project-slug"
+                                        }
+                                      >
+                                        <a
+                                          onClick={[Function]}
                                           style={
                                             Object {
-                                              "fontWeight": 600,
+                                              "textDecoration": "line-through",
                                             }
                                           }
                                         >
-                                          <span
+                                          <Tooltip
+                                            title="Error level: Error"
+                                          >
+                                            <GroupLevel
+                                              className="tip"
+                                              level="error"
+                                              title="Error level: Error"
+                                            >
+                                              <div
+                                                className="tip css-hpn2f3-GroupLevel eex8od5"
+                                                title="Error level: Error"
+                                              />
+                                            </GroupLevel>
+                                          </Tooltip>
+                                          <EventOrGroupTitle
+                                            data={
+                                              Object {
+                                                "annotations": Array [],
+                                                "assignedTo": null,
+                                                "count": "90",
+                                                "culprit": "length(app/views/groupSimilar/groupSimilarView)",
+                                                "firstSeen": "2017-07-10T18:32:43Z",
+                                                "hasSeen": false,
+                                                "id": "271",
+                                                "isBookmarked": false,
+                                                "isPublic": false,
+                                                "isSubscribed": true,
+                                                "lastSeen": "2017-07-24T23:41:44Z",
+                                                "level": "error",
+                                                "logger": "javascript",
+                                                "metadata": Object {
+                                                  "type": "TypeError",
+                                                  "value": "Cannot read property 'length' of undefined",
+                                                },
+                                                "numComments": 0,
+                                                "permalink": "http://localhost:8000/sentry/internal/issues/271/",
+                                                "project": Object {
+                                                  "name": "Internal",
+                                                  "slug": "internal",
+                                                },
+                                                "shareId": "312e323731",
+                                                "shortId": "INTERNAL-4G",
+                                                "status": "resolved",
+                                                "statusDetails": Object {},
+                                                "subscriptionDetails": null,
+                                                "title": "TypeError: Cannot read property 'length' of undefined",
+                                                "type": "error",
+                                                "userCount": 3,
+                                              }
+                                            }
+                                            includeLink={true}
+                                            location={
+                                              Object {
+                                                "query": Object {},
+                                              }
+                                            }
+                                            params={
+                                              Object {
+                                                "groupId": "group-id",
+                                                "orgId": "org-slug",
+                                                "projectId": "project-slug",
+                                              }
+                                            }
+                                            router={
+                                              Object {
+                                                "createHref": [MockFunction] {
+                                                  "calls": Array [
+                                                    Array [
+                                                      Object {
+                                                        "pathname": "/org-slug/project-slug/issues/271/",
+                                                        "search": "",
+                                                      },
+                                                    ],
+                                                    Array [
+                                                      Object {
+                                                        "pathname": "/org-slug/project-slug/issues",
+                                                        "query": Object {
+                                                          "query": "logger:javascript",
+                                                        },
+                                                      },
+                                                    ],
+                                                    Array [
+                                                      Object {
+                                                        "pathname": "/org-slug/project-slug/issues/271/",
+                                                        "search": "",
+                                                      },
+                                                    ],
+                                                    Array [
+                                                      Object {
+                                                        "pathname": "/org-slug/project-slug/issues",
+                                                        "query": Object {
+                                                          "query": "logger:javascript",
+                                                        },
+                                                      },
+                                                    ],
+                                                  ],
+                                                  "results": Array [
+                                                    Object {
+                                                      "isThrow": false,
+                                                      "value": undefined,
+                                                    },
+                                                    Object {
+                                                      "isThrow": false,
+                                                      "value": undefined,
+                                                    },
+                                                    Object {
+                                                      "isThrow": false,
+                                                      "value": undefined,
+                                                    },
+                                                    Object {
+                                                      "isThrow": false,
+                                                      "value": undefined,
+                                                    },
+                                                  ],
+                                                },
+                                                "go": [MockFunction],
+                                                "goBack": [MockFunction],
+                                                "goForward": [MockFunction],
+                                                "isActive": [MockFunction],
+                                                "listen": [MockFunction],
+                                                "location": Object {
+                                                  "query": Object {},
+                                                },
+                                                "params": Object {
+                                                  "groupId": "group-id",
+                                                  "orgId": "org-slug",
+                                                  "projectId": "project-slug",
+                                                },
+                                                "push": [MockFunction],
+                                                "replace": [MockFunction],
+                                                "setRouteLeaveHook": [MockFunction],
+                                              }
+                                            }
                                             style={
                                               Object {
                                                 "fontWeight": 600,
@@ -805,42 +993,49 @@ exports[`Issues Similar View renders with mocked data 1`] = `
                                             <span
                                               style={
                                                 Object {
-                                                  "marginRight": 10,
+                                                  "fontWeight": 600,
                                                 }
                                               }
                                             >
-                                              TypeError
+                                              <span
+                                                style={
+                                                  Object {
+                                                    "marginRight": 10,
+                                                  }
+                                                }
+                                              >
+                                                TypeError
+                                              </span>
+                                              <em
+                                                title="length(app/views/groupSimilar/groupSimilarView)"
+                                              >
+                                                length(app/views/groupSimilar/groupSimilarView)
+                                              </em>
+                                              <br />
                                             </span>
-                                            <em
-                                              title="length(app/views/groupSimilar/groupSimilarView)"
-                                            >
-                                              length(app/views/groupSimilar/groupSimilarView)
-                                            </em>
-                                            <br />
-                                          </span>
-                                        </EventOrGroupTitle>
-                                      </a>
-                                    </Link>
-                                  </ProjectLink>
-                                </div>
-                              </Title>
-                              <Message>
-                                <div
-                                  className="css-y5cfdn-Message-truncateStyles eex8od2"
-                                >
-                                  Cannot read property 'length' of undefined
-                                </div>
-                              </Message>
-                            </div>
-                          </EventOrGroupHeader>
-                          <EventOrGroupExtraDetails
+                                          </EventOrGroupTitle>
+                                        </a>
+                                      </Link>
+                                    </ProjectLink>
+                                  </div>
+                                </Title>
+                                <Message>
+                                  <div
+                                    className="css-y5cfdn-Message-truncateStyles eex8od2"
+                                  >
+                                    Cannot read property 'length' of undefined
+                                  </div>
+                                </Message>
+                              </div>
+                            </EventOrGroupHeader>
+                          </withRouter(EventOrGroupHeader)>
+                          <withRouter(EventOrGroupExtraDetails)
                             annotations={Array []}
                             assignedTo={null}
                             count="90"
                             culprit="length(app/views/groupSimilar/groupSimilarView)"
                             firstSeen="2017-07-10T18:32:43Z"
                             group={true}
-                            groupId="271"
                             hasSeen={false}
                             id="271"
                             isBookmarked={false}
@@ -856,7 +1051,6 @@ exports[`Issues Similar View renders with mocked data 1`] = `
                               }
                             }
                             numComments={0}
-                            orgId="org-slug"
                             permalink="http://localhost:8000/sentry/internal/issues/271/"
                             project={
                               Object {
@@ -864,11 +1058,9 @@ exports[`Issues Similar View renders with mocked data 1`] = `
                                 "slug": "internal",
                               }
                             }
-                            projectId="project-slug"
                             shareId="312e323731"
                             shortId="INTERNAL-4G"
                             showAssignee={true}
-                            showStatus={true}
                             status="resolved"
                             statusDetails={Object {}}
                             subscriptionDetails={null}
@@ -876,119 +1068,241 @@ exports[`Issues Similar View renders with mocked data 1`] = `
                             type="error"
                             userCount={3}
                           >
-                            <GroupExtra
-                              align="center"
+                            <EventOrGroupExtraDetails
+                              annotations={Array []}
+                              assignedTo={null}
+                              count="90"
+                              culprit="length(app/views/groupSimilar/groupSimilarView)"
+                              firstSeen="2017-07-10T18:32:43Z"
+                              group={true}
+                              hasSeen={false}
+                              id="271"
+                              isBookmarked={false}
+                              isPublic={false}
+                              isSubscribed={true}
+                              lastSeen={null}
+                              level="error"
+                              location={
+                                Object {
+                                  "query": Object {},
+                                }
+                              }
+                              logger="javascript"
+                              metadata={
+                                Object {
+                                  "type": "TypeError",
+                                  "value": "Cannot read property 'length' of undefined",
+                                }
+                              }
+                              numComments={0}
+                              params={
+                                Object {
+                                  "groupId": "group-id",
+                                  "orgId": "org-slug",
+                                  "projectId": "project-slug",
+                                }
+                              }
+                              permalink="http://localhost:8000/sentry/internal/issues/271/"
+                              project={
+                                Object {
+                                  "name": "Internal",
+                                  "slug": "internal",
+                                }
+                              }
+                              router={
+                                Object {
+                                  "createHref": [MockFunction] {
+                                    "calls": Array [
+                                      Array [
+                                        Object {
+                                          "pathname": "/org-slug/project-slug/issues/271/",
+                                          "search": "",
+                                        },
+                                      ],
+                                      Array [
+                                        Object {
+                                          "pathname": "/org-slug/project-slug/issues",
+                                          "query": Object {
+                                            "query": "logger:javascript",
+                                          },
+                                        },
+                                      ],
+                                      Array [
+                                        Object {
+                                          "pathname": "/org-slug/project-slug/issues/271/",
+                                          "search": "",
+                                        },
+                                      ],
+                                      Array [
+                                        Object {
+                                          "pathname": "/org-slug/project-slug/issues",
+                                          "query": Object {
+                                            "query": "logger:javascript",
+                                          },
+                                        },
+                                      ],
+                                    ],
+                                    "results": Array [
+                                      Object {
+                                        "isThrow": false,
+                                        "value": undefined,
+                                      },
+                                      Object {
+                                        "isThrow": false,
+                                        "value": undefined,
+                                      },
+                                      Object {
+                                        "isThrow": false,
+                                        "value": undefined,
+                                      },
+                                      Object {
+                                        "isThrow": false,
+                                        "value": undefined,
+                                      },
+                                    ],
+                                  },
+                                  "go": [MockFunction],
+                                  "goBack": [MockFunction],
+                                  "goForward": [MockFunction],
+                                  "isActive": [MockFunction],
+                                  "listen": [MockFunction],
+                                  "location": Object {
+                                    "query": Object {},
+                                  },
+                                  "params": Object {
+                                    "groupId": "group-id",
+                                    "orgId": "org-slug",
+                                    "projectId": "project-slug",
+                                  },
+                                  "push": [MockFunction],
+                                  "replace": [MockFunction],
+                                  "setRouteLeaveHook": [MockFunction],
+                                }
+                              }
+                              shareId="312e323731"
+                              shortId="INTERNAL-4G"
+                              showAssignee={true}
+                              status="resolved"
+                              statusDetails={Object {}}
+                              subscriptionDetails={null}
+                              title="TypeError: Cannot read property 'length' of undefined"
+                              type="error"
+                              userCount={3}
                             >
-                              <Base
+                              <GroupExtra
                                 align="center"
-                                className="css-1iq5qji-GroupExtra eec9orn0"
                               >
-                                <div
+                                <Base
+                                  align="center"
                                   className="css-1iq5qji-GroupExtra eec9orn0"
-                                  is={null}
                                 >
-                                  <GroupShortId
-                                    shortId="INTERNAL-4G"
+                                  <div
+                                    className="css-1iq5qji-GroupExtra eec9orn0"
+                                    is={null}
                                   >
-                                    <ShortId
-                                      className="css-yd3bt1-GroupShortId eec9orn4"
+                                    <GroupShortId
                                       shortId="INTERNAL-4G"
                                     >
-                                      <StyledShortId
+                                      <ShortId
                                         className="css-yd3bt1-GroupShortId eec9orn4"
-                                        onClick={[Function]}
                                         shortId="INTERNAL-4G"
                                       >
-                                        <div
-                                          className="eec9orn4 css-77itmv-StyledShortId-GroupShortId ebuncw00"
+                                        <StyledShortId
+                                          className="css-yd3bt1-GroupShortId eec9orn4"
                                           onClick={[Function]}
+                                          shortId="INTERNAL-4G"
                                         >
-                                          <AutoSelectText>
-                                            <div
-                                              className="auto-select-text"
-                                              onClick={[Function]}
-                                            >
-                                              <span>
-                                                INTERNAL-4G
-                                              </span>
-                                            </div>
-                                          </AutoSelectText>
-                                        </div>
-                                      </StyledShortId>
-                                    </ShortId>
-                                  </GroupShortId>
-                                  <Times>
-                                    <div
-                                      className="css-139skj2-Times eec9orn3"
-                                    >
-                                      <div
-                                        className="css-77t6iv"
-                                      >
-                                        <TimeSince
-                                          className="hidden-xs hidden-sm"
-                                          date="2017-07-10T18:32:43Z"
-                                          suffix="old"
-                                        >
-                                          <time
-                                            className="hidden-xs hidden-sm"
-                                            dateTime="2017-07-10T18:32:43.000Z"
-                                            title="July 10, 2017 6:32 PM UTC"
+                                          <div
+                                            className="eec9orn4 css-77itmv-StyledShortId-GroupShortId ebuncw00"
+                                            onClick={[Function]}
                                           >
-                                            3 months old
-                                          </time>
-                                        </TimeSince>
-                                      </div>
-                                    </div>
-                                  </Times>
-                                  <GroupExtraCommentsAndLogger>
-                                    <Base
-                                      className="css-1ycmuq8-GroupExtraCommentsAndLogger eec9orn1"
-                                    >
+                                            <AutoSelectText>
+                                              <div
+                                                className="auto-select-text"
+                                                onClick={[Function]}
+                                              >
+                                                <span>
+                                                  INTERNAL-4G
+                                                </span>
+                                              </div>
+                                            </AutoSelectText>
+                                          </div>
+                                        </StyledShortId>
+                                      </ShortId>
+                                    </GroupShortId>
+                                    <Times>
                                       <div
-                                        className="css-1ycmuq8-GroupExtraCommentsAndLogger eec9orn1"
-                                        is={null}
+                                        className="css-139skj2-Times eec9orn3"
                                       >
-                                        <Box
-                                          className="event-annotation"
-                                          mr={2}
+                                        <div
+                                          className="css-77t6iv"
                                         >
-                                          <Base
-                                            className="event-annotation css-6htue9"
+                                          <TimeSince
+                                            className="hidden-xs hidden-sm"
+                                            date="2017-07-10T18:32:43Z"
+                                            suffix="old"
+                                          >
+                                            <time
+                                              className="hidden-xs hidden-sm"
+                                              dateTime="2017-07-10T18:32:43.000Z"
+                                              title="July 10, 2017 6:32 PM UTC"
+                                            >
+                                              3 months old
+                                            </time>
+                                          </TimeSince>
+                                        </div>
+                                      </div>
+                                    </Times>
+                                    <GroupExtraCommentsAndLogger>
+                                      <Base
+                                        className="css-1ycmuq8-GroupExtraCommentsAndLogger eec9orn1"
+                                      >
+                                        <div
+                                          className="css-1ycmuq8-GroupExtraCommentsAndLogger eec9orn1"
+                                          is={null}
+                                        >
+                                          <Box
+                                            className="event-annotation"
                                             mr={2}
                                           >
-                                            <div
+                                            <Base
                                               className="event-annotation css-6htue9"
-                                              is={null}
+                                              mr={2}
                                             >
-                                              <Link
-                                                onlyActiveOnIndex={false}
-                                                style={Object {}}
-                                                to={
-                                                  Object {
-                                                    "pathname": "/org-slug/project-slug/",
-                                                    "query": Object {
-                                                      "query": "logger:javascript",
-                                                    },
-                                                  }
-                                                }
+                                              <div
+                                                className="event-annotation css-6htue9"
+                                                is={null}
                                               >
-                                                <a
-                                                  onClick={[Function]}
+                                                <Link
+                                                  onlyActiveOnIndex={false}
                                                   style={Object {}}
+                                                  to={
+                                                    Object {
+                                                      "pathname": "/org-slug/project-slug/issues",
+                                                      "query": Object {
+                                                        "query": "logger:javascript",
+                                                      },
+                                                    }
+                                                  }
                                                 >
-                                                  javascript
-                                                </a>
-                                              </Link>
-                                            </div>
-                                          </Base>
-                                        </Box>
-                                      </div>
-                                    </Base>
-                                  </GroupExtraCommentsAndLogger>
-                                </div>
-                              </Base>
-                            </GroupExtra>
-                          </EventOrGroupExtraDetails>
+                                                  <a
+                                                    onClick={[Function]}
+                                                    style={Object {}}
+                                                  >
+                                                    javascript
+                                                  </a>
+                                                </Link>
+                                              </div>
+                                            </Base>
+                                          </Box>
+                                        </div>
+                                      </Base>
+                                    </GroupExtraCommentsAndLogger>
+                                  </div>
+                                </Base>
+                              </GroupExtra>
+                            </EventOrGroupExtraDetails>
+                          </withRouter(EventOrGroupExtraDetails)>
                         </div>
                       </div>
                     </FlowLayout>

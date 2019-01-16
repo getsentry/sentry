@@ -21,6 +21,9 @@ def _get_project_key(project_id):
 
 
 def get_public_dsn():
+    if settings.SENTRY_FRONTEND_DSN:
+        return settings.SENTRY_FRONTEND_DSN
+
     project_id = settings.SENTRY_FRONTEND_PROJECT or settings.SENTRY_PROJECT
     cache_key = 'dsn:%s' % (project_id, )
 
