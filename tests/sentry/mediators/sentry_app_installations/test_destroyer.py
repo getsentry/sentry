@@ -26,7 +26,10 @@ class TestDestroyer(TestCase):
             user=self.user,
         )
 
-        self.destroyer = Destroyer(install=self.install)
+        self.destroyer = Destroyer(
+            install=self.install,
+            user=self.user,
+        )
 
     def test_deletes_authorization(self):
         auth = self.install.authorization
