@@ -2,6 +2,7 @@ import PropTypes from 'prop-types';
 import React from 'react';
 import moment from 'moment';
 
+import {defined} from 'app/utils';
 import HttpRenderer from 'app/components/events/interfaces/breadcrumbs/httpRenderer';
 import ErrorRenderer from 'app/components/events/interfaces/breadcrumbs/errorRenderer';
 import DefaultRenderer from 'app/components/events/interfaces/breadcrumbs/defaultRenderer';
@@ -52,9 +53,13 @@ class Breadcrumb extends React.Component {
         <span className="icon-container">
           <span className="icon" />
         </span>
-        <span className="dt" title={moment(crumb.timestamp).format()}>
-          {moment(crumb.timestamp).format('HH:mm:ss')}
-        </span>
+        {defined(crumb.timestamp) ? (
+          <span className="dt" title={moment(crumb.timestamp).format()}>
+            {moment(crumb.timestamp).format('HH:mm:ss')}
+          </span>
+        ) : (
+          <span className="dt" />
+        )}
         {this.renderType()}
       </li>
     );
