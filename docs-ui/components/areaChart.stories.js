@@ -28,10 +28,12 @@ storiesOf('Charts|AreaChart', module).add(
               data: getData(7),
             },
           ]}
-          previousPeriod={{
-            seriesName: 'Previous',
-            data: getData(7),
-          }}
+          previousPeriod={[
+            {
+              seriesName: 'Previous',
+              data: getData(7),
+            },
+          ]}
         />
       </div>
     );
