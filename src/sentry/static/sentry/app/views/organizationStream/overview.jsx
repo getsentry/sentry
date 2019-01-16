@@ -134,14 +134,6 @@ const OrganizationStream = createReactClass({
     return STATS_PERIODS.has(currentPeriod) ? currentPeriod : DEFAULT_STATS_PERIOD;
   },
 
-  getEnvironment() {
-    let {environments} = this.state.selection;
-    if (Array.isArray(environments)) {
-      return environments[0];
-    }
-    return environments;
-  },
-
   getEndpointParams() {
     let selection = this.state.selection;
 
@@ -494,7 +486,6 @@ const OrganizationStream = createReactClass({
               projectId={projectId}
               hasReleases={hasReleases}
               latestRelease={latestRelease}
-              environment={this.getEnvironment()}
               query={query}
               queryCount={this.state.queryCount}
               onSelectStatsPeriod={this.onSelectStatsPeriod}
