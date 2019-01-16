@@ -25,3 +25,7 @@ export function useShortInterval(datetimeObj) {
 
   return moment(end).diff(start, 'hours') <= 24;
 }
+
+export function getInterval(datetimeObj) {
+  return useShortInterval(datetimeObj) ? '5m' : '30m';
+}

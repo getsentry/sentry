@@ -6,9 +6,9 @@ import moment from 'moment';
 
 import {callIfFunction} from 'app/utils/callIfFunction';
 import {getFormattedDate} from 'app/utils/dates';
+import {getInterval, useShortInterval} from 'app/components/charts/utils';
 import {isEqualWithDates} from 'app/utils/isEqualWithDates';
 import {updateParams} from 'app/actionCreators/globalSelection';
-import {useShortInterval} from 'app/components/charts/utils';
 import DataZoom from 'app/components/charts/components/dataZoom';
 import SentryTypes from 'app/sentryTypes';
 import ToolBox from 'app/components/charts/components/toolBox';
@@ -248,9 +248,8 @@ class ChartZoom extends React.Component {
     }
 
     const hasShortInterval = useShortInterval(this.props);
-
-    let interval = hasShortInterval ? '5m' : '30m';
-    let xAxisOptions = {
+    const interval = getInterval(this.props);
+    const xAxisOptions = {
       axisLabel: {
         formatter: (value, index) => {
           const firstItem = index === 0;
