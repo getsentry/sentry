@@ -12,6 +12,10 @@ from sentry.utils.safe import get_path
 FRAME_CACHE_VERSION = 2
 
 
+def is_valid_image(image):
+    return bool(image) and image.get('uuid') is not None
+
+
 class JavaStacktraceProcessor(StacktraceProcessor):
     def __init__(self, *args, **kwargs):
         StacktraceProcessor.__init__(self, *args, **kwargs)
@@ -20,7 +24,7 @@ class JavaStacktraceProcessor(StacktraceProcessor):
         self.available = False
 
         for image in get_path(self.data, 'debug_meta', 'images', filter=True, default=()):
-            if image.get('type') == 'proguard':
+            if image.get('type') == 'proguard' and image.get('uuid'):
                 self.available = True
                 self.images.add(six.text_type(image['uuid']).lower())
 
