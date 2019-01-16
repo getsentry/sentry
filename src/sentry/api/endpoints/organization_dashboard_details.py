@@ -7,9 +7,9 @@ from sentry.api.base import DocSection
 from sentry.api.bases.organization import (
     OrganizationEndpoint
 )
-from sentry.api.bases.dashboard import DashboardSerializer
+from sentry.api.bases.dashboard import DashboardSerializer  # , DashboardWithWidgetsSerializer
 from sentry.api.serializers import serialize
-from sentry.api.serializers.models.organization_dashboard import DashboardWithWidgetsSerializer
+from sentry.api.serializers.models.dashboard import DashboardWithWidgetsSerializer
 from sentry.models import Dashboard, ObjectStatus
 
 

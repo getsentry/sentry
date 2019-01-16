@@ -47,27 +47,26 @@ class WidgetSerializer(serializers.ModelSerializer):
         return attrs
 
 
-class WidgetSerializerWithDataSourcesSerializer(WidgetSerializer):
+class WidgetWithDataSourcesSerializer(WidgetSerializer):
     data_sources = ListField(
-        child=WidgetDataSource(),
+        child=WidgetDataSourceSerializer(),
         required=True,
         default=[],
     )
 
     def save(self):
-        super(WidgetSerializerWithDataSourcesSerializer, self).save()
+        super(WidgetWithDataSourcesSerializer, self).save()
         serializer = WidgetDataSourceSerializer(data=self.data)
         serializer.save()
 
 
 class DashboardSerializer(serializers.ModelSerializer):
     title = serializers.CharField(required=True)
-    owner = UserField(required=True)
-    data = JSONField(required=False)
+    created_by = UserField(required=True)
 
     class Meta:
         model = Dashboard
-        fields = ('title', 'owner', 'data')
+        fields = ('title', 'created_by', 'data')
 
 
 class DashboardWithWidgetsSerializer(DashboardSerializer):
