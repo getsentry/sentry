@@ -5,7 +5,7 @@ const eventsByRelease = {
   fields: ['sentry:release'],
   conditions: [],
   aggregations: [['count()', null, 'Events']],
-  limit: 1000,
+  limit: 2000,
 
   orderby: '-time',
   groupby: ['time'],

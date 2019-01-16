@@ -5,7 +5,7 @@ const knownUsersAffectedQuery = {
   fields: [],
   conditions: [['user.email', 'IS NOT NULL', null]],
   aggregations: [['uniq', 'user.email', 'Known Users']],
-  limit: 1000,
+  limit: 2000,
 
   orderby: '-time',
   groupby: ['time'],

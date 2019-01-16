@@ -5,7 +5,7 @@ const eventsQuery = {
   fields: ['url'],
   conditions: [],
   aggregations: [['count()', null, 'count']],
-  limit: 1000,
+  limit: 2000,
 
   orderby: '-time',
   groupby: ['time'],
