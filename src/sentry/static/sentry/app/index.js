@@ -219,6 +219,8 @@ const globals = {
     Badge: require('app/components/badge').default,
     Tag: require('app/views/settings/components/tag').default,
     Switch: require('app/components/switch').default,
+    Search: require('app/components/search').default,
+    HelpSource: require('app/components/search/sources/helpSource').default,
     GlobalModal: require('app/components/globalModal').default,
     SetupWizard: require('app/components/setupWizard').default,
     Well: require('app/components/well').default,
