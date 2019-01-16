@@ -3,7 +3,7 @@ from __future__ import absolute_import
 import six
 
 from django.core.urlresolvers import reverse
-from sentry.models import Dashboard, Widget, WidgetDataSource, WidgetDataSourceTypes, WidgetDisplayTypes
+from sentry.models import Dashboard, ObjectStatus, Widget, WidgetDataSource, WidgetDataSourceTypes, WidgetDisplayTypes
 from sentry.testutils import APITestCase
 
 
@@ -145,8 +145,8 @@ class OrganizationDashboardDetailsGetTest(OrganizationDashboardDetailsTestCase):
 class OrganizationDashboardDetailsDeleteTest(OrganizationDashboardDetailsTestCase):
     def test_delete(self):
         response = self.client.delete(self.url(self.dashboard.id))
-        assert response.status_code == 200
-        assert Dashboard.objects.filter(id=self.dashboard.id).exists()
+        assert response.status_code == 204
+        assert Dashboard.objects.get(id=self.dashboard.id).status == ObjectStatus.PENDING_DELETION
 
     def test_dashboard_does_not_exist(self):
         response = self.client.delete(self.url(1234567890))

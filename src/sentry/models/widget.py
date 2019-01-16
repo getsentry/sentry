@@ -8,7 +8,21 @@ from sentry.constants import ObjectStatus
 from sentry.db.models import BoundedPositiveIntegerField, FlexibleForeignKey, Model, sane_repr
 
 
-class WidgetDisplayTypes(object):
+class TypesClass(object):
+    TYPES = []
+
+    @classmethod
+    def as_choices(cls):
+        return cls.TYPES
+
+    @classmethod
+    def get_type_name(cls, num):
+        for id, name in cls.TYPES:
+            if id == num:
+                return name
+
+
+class WidgetDisplayTypes(TypesClass):
     LINE_CHART = 0
     AREA_CHART = 1
     STACKED_AREA_CHART = 2
@@ -29,21 +43,13 @@ class WidgetDisplayTypes(object):
     ]
     TYPE_NAMES = [t[1] for t in TYPES]
 
-    @classmethod
-    def as_choices(cls):
-        return cls.TYPES
 
-
-class WidgetDataSourceTypes(object):
+class WidgetDataSourceTypes(TypesClass):
     DISCOVER_SAVED_SEARCH = 0
     TYPES = [
         (DISCOVER_SAVED_SEARCH, 'discover_saved_search'),
     ]
     TYPE_NAMES = [t[1] for t in TYPES]
-
-    @classmethod
-    def as_choices(cls):
-        return cls.TYPES
 
 
 class WidgetDataSource(Model):
