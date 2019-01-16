@@ -29,6 +29,7 @@ class OrganizationDashboardDetailsTest(APITestCase):
             display_type=WidgetDisplayTypes.TABLE,
         )
         self.anon_users_query = {
+            'name': 'anonymousUsersAffectedQuery',
             'fields': [],
             'conditions': [['user.email', 'IS NULL', None]],
             'aggregations': [['count()', None, 'Anonymous Users']],
@@ -38,6 +39,7 @@ class OrganizationDashboardDetailsTest(APITestCase):
             'rollup': 86400,
         }
         self.known_users_query = {
+            'name': 'knownUsersAffectedQuery',
             'fields': [],
             'conditions': [['user.email', 'IS NOT NULL', None]],
             'aggregations': [['uniq', 'user.email', 'Known Users']],
@@ -47,6 +49,7 @@ class OrganizationDashboardDetailsTest(APITestCase):
             'rollup': 86400,
         }
         self.geo_erorrs_query = {
+            'name': 'errorsByGeo',
             'fields': ['geo.country_code'],
             'conditions': [['geo.country_code', 'IS NOT NULL', None]],
             'aggregations': [['count()', None, 'count']],
@@ -126,56 +129,58 @@ class OrganizationDashboardDetailsTest(APITestCase):
         response = self.client.put(
             self.url(self.dashboard.id),
             data={
-                'title': 'Dashboard from Post',
-                'data': {'data': 'data'},
+                'title': 'Dashboard from Put',
                 'createdBy': self.user.id,
                 'organization': self.organization.id,
                 'widgets':
                 [
                     {
-                        'order': 0,
-                        'displayType': 'line-chart',
+                        'order': 3,
+                        'displayType': 'line',
                         'title': 'User Happiness',
                         'dataSources': [
                             {
-                                'name': 'knownUsersAffectedQuery',
+                                'name': 'knownUsersAffectedQuery_2',
                                 'data': self.known_users_query,
-                                'type': 'disoversavedsearch',
+                                'type': 'discover_saved_search',
+                                'order': 1,
                             },
                             {
-                                'name': 'anonymousUsersAffectedQuery',
+                                'name': 'anonymousUsersAffectedQuery_2',
                                 'data': self.anon_users_query,
-                                'type': 'disoversavedsearch',
+                                'type': 'discover_saved_search',
+                                'order': 2
                             },
 
                         ]
 
                     },
                     {
-                        'order': 1,
+                        'order': 4,
                         'displayType': 'table',
                         'title': 'Error Location',
                         'dataSources': [
                             {
-                                'name': 'errorsByGeo',
+                                'name': 'errorsByGeo_2',
                                 'data': self.geo_erorrs_query,
-                                'type': 'disoversavedsearch',
+                                'type': 'discover_saved_search',
+                                'order': 1,
                             },
                         ]
                     }
                 ]
             }
         )
-        assert response.status_code == 201
+        assert response.status_code == 200
         dashboard = Dashboard.objects.get(
             organization=self.organization,
-            title='Dashboard from Post'
+            title='Dashboard from Put'
         )
-        assert dashboard.data == {'data': 'data'}
         assert dashboard.created_by == self.user
 
         widgets = sorted(Widget.objects.filter(dashboard=dashboard), key=lambda w: w.order)
-        assert len(widgets) == 2
+        assert len(widgets) == 4
+        # TODO(lb): Add other widgets revise this section onwards
         assert widgets[0].order == 0
         assert widgets[0].display_type == WidgetDisplayTypes.LINE_CHART
         assert widgets[0].title == 'User Happiness'
@@ -191,11 +196,11 @@ class OrganizationDashboardDetailsTest(APITestCase):
             key=lambda d: d['name']
         )
 
-        assert data_sources[0].name == 'anonymousUsersAffectedQuery'
+        assert data_sources[0].name == 'anonymousUsersAffectedQuery_2'
         assert data_sources[0].data == self.anon_users_query
         assert data_sources[0].type == 'disoversavedsearch'
 
-        assert data_sources[1].name == 'knownUsersAffectedQuery'
+        assert data_sources[1].name == 'knownUsersAffectedQuery_2'
         assert data_sources[1].data == self.known_users_query
         assert data_sources[1].type == 'disoversavedsearch'
 
@@ -205,7 +210,7 @@ class OrganizationDashboardDetailsTest(APITestCase):
             ),
             key=lambda d: d['name']
         )
-        assert data_sources[0].name == 'errorsByGeo'
+        assert data_sources[0].name == 'errorsByGeo_2'
         assert data_sources[0].data == self.geo_erorrs_query
         assert data_sources[0].type == 'disoversavedsearch'
 

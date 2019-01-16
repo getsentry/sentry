@@ -27,6 +27,7 @@ class WidgetDisplayTypes(object):
         (WORLD_MAP, 'world_map'),
         (PERCENTAGE_AREA_CHART, 'percentage_area_chart')
     ]
+    TYPE_NAMES = [t[1] for t in TYPES]
 
     @classmethod
     def as_choices(cls):
@@ -37,6 +38,12 @@ class WidgetDisplayTypes(object):
         for id, name in cls.TYPES:
             if id == num:
                 return name
+
+    @classmethod
+    def get_name_type(cls, name):
+        for id, type_name in cls.TYPES:
+            if name == type_name:
+                return id
 
 
 class WidgetDataSourceTypes(object):
@@ -44,6 +51,7 @@ class WidgetDataSourceTypes(object):
     TYPES = [
         (DISCOVER_SAVED_SEARCH, 'discover_saved_search'),
     ]
+    TYPE_NAMES = [t[1] for t in TYPES]
 
     @classmethod
     def as_choices(cls):
@@ -54,6 +62,12 @@ class WidgetDataSourceTypes(object):
         for id, name in cls.TYPES:
             if id == num:
                 return name
+
+    @classmethod
+    def get_name_type(cls, name):
+        for id, type_name in cls.TYPES:
+            if name == type_name:
+                return id
 
 
 class WidgetDataSource(Model):
