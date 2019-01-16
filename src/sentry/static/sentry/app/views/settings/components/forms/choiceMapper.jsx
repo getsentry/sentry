@@ -122,7 +122,7 @@ export default class ChoiceMapper extends React.Component {
     };
 
     const setValue = (itemKey, fieldKey, fieldValue) => {
-      saveChanges({...value, [itemKey]: {...value[itemKey], [fieldKey]: fieldValue}}, {});
+      saveChanges({...value, [itemKey]: {...value[itemKey], [fieldKey]: fieldValue}});
     };
 
     // Remove already added values from the items list
