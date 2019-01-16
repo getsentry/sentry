@@ -139,6 +139,38 @@ describe('TimeRangeSelector', function() {
     });
   });
 
+  it('switches from relative to absolute and then toggling UTC', async function() {
+    wrapper = createWrapper({
+      relative: '7d',
+      utc: true,
+    });
+    await wrapper.find('HeaderItem').simulate('click');
+
+    wrapper.find('SelectorItem[value="absolute"]').simulate('click');
+    expect(onChange).toHaveBeenCalledWith({
+      relative: null,
+      start: new Date('2017-10-10T02:41:20.000Z'),
+      end: new Date('2017-10-17T02:41:20.000Z'),
+      utc: true,
+    });
+
+    wrapper.find('UtcPicker Checkbox').simulate('change');
+    expect(onChange).toHaveBeenLastCalledWith({
+      relative: null,
+      start: new Date('2017-10-10T06:41:20.000Z'),
+      end: new Date('2017-10-17T06:41:20.000Z'),
+      utc: false,
+    });
+
+    wrapper.find('UtcPicker Checkbox').simulate('change');
+    expect(onChange).toHaveBeenLastCalledWith({
+      relative: null,
+      start: new Date('2017-10-10T02:41:20.000Z'),
+      end: new Date('2017-10-17T02:41:20.000Z'),
+      utc: true,
+    });
+  });
+
   it('maintains time when switching UTC to local time', async function() {
     let state;
     wrapper = createWrapper({
