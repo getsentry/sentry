@@ -1,8 +1,17 @@
 import MemberActions from 'app/actions/memberActions';
+import MemberListStore from 'app/stores/memberListStore';
 
 export function fetchOrgMembers(api, orgId) {
   let endpoint = `/organizations/${orgId}/users/`;
-  return api.requestPromise(endpoint, {method: 'GET'});
+  let promise = api.requestPromise(endpoint, {method: 'GET'});
+  return promise.then(members => {
+    members = members.filter(m => m.user);
+
+    // Update the store with just the users, as avatars rely on them.
+    MemberListStore.loadInitialData(members.map(m => m.user));
+
+    return members;
+  });
 }
 
 export function updateMember(api, params) {

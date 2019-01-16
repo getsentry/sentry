@@ -17,7 +17,6 @@ import ApiMixin from 'app/mixins/apiMixin';
 import ConfigStore from 'app/stores/configStore';
 import GlobalSelectionStore from 'app/stores/globalSelectionStore';
 import GroupStore from 'app/stores/groupStore';
-import MemberListStore from 'app/stores/memberListStore';
 import SelectedGroupStore from 'app/stores/selectedGroupStore';
 import TagStore from 'app/stores/tagStore';
 import EmptyStateWarning from 'app/components/emptyStateWarning';
@@ -106,10 +105,6 @@ const OrganizationStream = createReactClass({
       fetchTags(this.props.organization.slug);
 
       fetchOrgMembers(this.api, this.props.organization.slug).then(members => {
-        members = members.filter(m => m.user);
-        // Update the store, as avatars rely on them.
-        MemberListStore.loadInitialData(members.map(m => m.user));
-
         let memberList = members.reduce((acc, member) => {
           for (let project of member.projects) {
             if (acc[project] === undefined) {
