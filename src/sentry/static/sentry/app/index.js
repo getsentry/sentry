@@ -223,6 +223,7 @@ const globals = {
     SetupWizard: require('app/components/setupWizard').default,
     Well: require('app/components/well').default,
     theme: require('app/utils/theme').default,
+    space: require('app/styles/space').default,
     utils: {
       errorHandler: require('app/utils/errorHandler').default,
       ajaxCsrfSetup: require('app/utils/ajaxCsrfSetup').default,
