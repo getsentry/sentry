@@ -13,6 +13,7 @@ describe('Sentry Application Details', function() {
   let sentryApp;
   let wrapper;
   let createAppRequest;
+  let editAppRequest;
 
   beforeEach(() => {
     Client.clearMockResponses();
@@ -39,7 +40,7 @@ describe('Sentry Application Details', function() {
       it('it shows empty scopes and no credentials', function() {
         expect(wrapper).toMatchSnapshot();
         // new app starts off with no scopes selected
-        expect(wrapper.find('PermissionSelection').prop('scopes')).toEqual([]);
+        expect(wrapper.find('PermissionsObserver').prop('scopes')).toEqual([]);
         expect(
           wrapper.find('PanelHeader').findWhere(h => h.text() == 'Permissions')
         ).toBeDefined();
@@ -61,7 +62,8 @@ describe('Sentry Application Details', function() {
         selectByValue(wrapper, 'admin', {name: 'Member--permission'});
         selectByValue(wrapper, 'admin', {name: 'Event--permission'});
         wrapper
-          .find('FormField[name="events"] input[value="issue"]')
+          .find('Checkbox')
+          .first()
           .simulate('change', {target: {checked: true}});
         wrapper.find('form').simulate('submit');
 
@@ -112,7 +114,7 @@ describe('Sentry Application Details', function() {
         expect(wrapper).toMatchSnapshot();
 
         // data should be filled out
-        expect(wrapper.find('PermissionSelection').prop('scopes')).toEqual([
+        expect(wrapper.find('PermissionsObserver').prop('scopes')).toEqual([
           'project:read',
         ]);
 
@@ -129,30 +131,47 @@ describe('Sentry Application Details', function() {
     describe('saving edited app', () => {
       beforeEach(() => {
         sentryApp.events = ['issue'];
-      });
-
-      it('it updates app with correct data', function() {
-        const response = Client.addMockResponse({
+        editAppRequest = Client.addMockResponse({
           url: `/sentry-apps/${sentryApp.slug}/`,
           method: 'PUT',
           body: [],
         });
+      });
 
+      it('it updates app with correct data', function() {
         wrapper
           .find('Input[name="redirectUrl"]')
           .simulate('change', {target: {value: 'https://hello.com/'}});
 
         wrapper
-          .find('FormField[name="events"] input[value="issue"]')
+          .find('Checkbox')
+          .first()
           .simulate('change', {target: {checked: false}});
 
         wrapper.find('form').simulate('submit');
 
-        expect(response).toHaveBeenCalledWith(
+        expect(editAppRequest).toHaveBeenCalledWith(
           `/sentry-apps/${sentryApp.slug}/`,
           expect.objectContaining({
             data: expect.objectContaining({
               redirectUrl: 'https://hello.com/',
+              events: observable.array([]),
+            }),
+            method: 'PUT',
+          })
+        );
+      });
+      it('submits with no-access for event subscription when permission is revoked', () => {
+        wrapper
+          .find('Checkbox')
+          .first()
+          .simulate('change', {target: {checked: true}});
+        selectByValue(wrapper, 'no-access', {name: 'Event--permission'});
+        wrapper.find('form').simulate('submit');
+        expect(editAppRequest).toHaveBeenCalledWith(
+          `/sentry-apps/${sentryApp.slug}/`,
+          expect.objectContaining({
+            data: expect.objectContaining({
               events: observable.array([]),
             }),
             method: 'PUT',
