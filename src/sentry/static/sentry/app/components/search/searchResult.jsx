@@ -30,6 +30,7 @@ class SearchResult extends React.Component {
         'event',
         'plugin',
         'integration',
+        'help',
       ]),
       /**
      * The type of result this is, for example:
@@ -45,8 +46,10 @@ class SearchResult extends React.Component {
         'issue',
         'event',
         'integration',
+        'doc',
+        'faq',
       ]),
-      title: PropTypes.string,
+      title: PropTypes.node,
       description: PropTypes.node,
       model: PropTypes.oneOfType([
         SentryTypes.Organization,
@@ -101,20 +104,23 @@ class SearchResult extends React.Component {
         <div>
           <SearchTitle>{title}</SearchTitle>
         </div>
-
-        <SearchDetail>{description}</SearchDetail>
+        {description && <SearchDetail>{description}</SearchDetail>}
       </React.Fragment>
     );
   }
 
   renderResultType() {
     let {item} = this.props;
-    let {resultType, model} = item;
+    let {resultIcon, resultType, model} = item;
 
     let isSettings = resultType === 'settings';
     let isField = resultType === 'field';
     let isRoute = resultType === 'route';
     let isIntegration = resultType === 'integration';
+
+    if (resultIcon) {
+      return resultIcon;
+    }
 
     if (isSettings) {
       return <ResultTypeIcon src="icon-settings" />;
