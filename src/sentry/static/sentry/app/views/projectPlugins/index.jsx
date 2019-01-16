@@ -17,9 +17,9 @@ class ProjectPluginsContainer extends React.Component {
     this.fetchData();
   }
 
-  fetchData() {
+  fetchData = () => {
     fetchPlugins(this.props.params);
-  }
+  };
 
   handleChange = (pluginId, shouldEnable) => {
     let {projectId, orgId} = this.props.params;

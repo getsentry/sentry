@@ -39,7 +39,7 @@ class GroupUserFeedback extends React.Component {
     }
   }
 
-  fetchData() {
+  fetchData = () => {
     this.setState({
       loading: true,
       error: false,
@@ -59,7 +59,7 @@ class GroupUserFeedback extends React.Component {
           loading: false,
         });
       });
-  }
+  };
 
   getUserFeedbackUrl() {
     const {organization, group} = this.props;
