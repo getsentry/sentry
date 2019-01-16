@@ -152,3 +152,196 @@ class OrganizationDashboardDetailsDeleteTest(OrganizationDashboardDetailsTestCas
         response = self.client.delete(self.url(1234567890))
         assert response.status_code == 404
         assert response.data == {u'detail': 'The requested resource does not exist'}
+
+
+class OrganizationDashboardDetailsPutTest(OrganizationDashboardDetailsTestCase):
+
+    def test_put(self):
+        response = self.client.put(
+            self.url(self.dashboard.id),
+            data={
+                'title': 'Dashboard from Put',
+                'createdBy': self.user.id,
+                'organization': self.organization.id,
+                'widgets':
+                [
+                    {
+                        'order': 3,
+                        'displayType': 'line',
+                        'title': 'User Happiness',
+                        'dataSources': [
+                            {
+                                'name': 'knownUsersAffectedQuery_2',
+                                'data': self.known_users_query,
+                                'type': 'discover_saved_search',
+                                'order': 1,
+                            },
+                            {
+                                'name': 'anonymousUsersAffectedQuery_2',
+                                'data': self.anon_users_query,
+                                'type': 'discover_saved_search',
+                                'order': 2
+                            },
+
+                        ]
+
+                    },
+                    {
+                        'order': 4,
+                        'displayType': 'table',
+                        'title': 'Error Location',
+                        'dataSources': [
+                            {
+                                'name': 'errorsByGeo_2',
+                                'data': self.geo_erorrs_query,
+                                'type': 'discover_saved_search',
+                                'order': 1,
+                            },
+                        ]
+                    }
+                ]
+            }
+        )
+        assert response.status_code == 200
+        dashboard = Dashboard.objects.get(
+            organization=self.organization,
+            title='Dashboard from Put'
+        )
+        assert dashboard.created_by == self.user
+
+        widgets = self.sort_by_order(Widget.objects.filter(dashboard=dashboard))
+        assert len(widgets) == 4
+
+        self.assert_widget(widgets[0], self.widget_1)
+        self.assert_widget(widgets[1], self.widget_2)
+
+        temp_widget = Widget(
+            order=3, display_type=0, title='User Happiness',
+        )
+        self.assert_widget(widgets[2], temp_widget)
+
+        temp_widget = Widget(
+            order=4, display_type=5, title='Error Location',
+        )
+        self.assert_widget(widgets[3], temp_widget)
+
+        data_sources = self.sort_by_order(
+            WidgetDataSource.objects.filter(
+                widget_id=widgets[0].id
+            )
+        )
+
+        assert data_sources[0].name == 'anonymousUsersAffectedQuery_2'
+        assert data_sources[0].data == self.anon_users_query
+        assert data_sources[0].type == 'disoversavedsearch'
+
+        assert data_sources[1].name == 'knownUsersAffectedQuery_2'
+        assert data_sources[1].data == self.known_users_query
+        assert data_sources[1].type == 'disoversavedsearch'
+
+        data_sources = self.sort_by_order(
+            WidgetDataSource.objects.filter(
+                widget_id=widgets[1].id
+            )
+        )
+        assert data_sources[0].name == 'errorsByGeo_2'
+        assert data_sources[0].data == self.geo_erorrs_query
+        assert data_sources[0].type == 'disoversavedsearch'
+
+    def test_dashboard_no_widgets(self):
+        Dashboard.objects.create(
+            title='Dashboard 10101',
+            created_by=self.user,
+            organization=self.organization,
+        )
+        response = self.client.put(
+            self.url(self.dashboard.id),
+            data={'title': 'Dashboard Hello'}
+        )
+        assert response.status_code == 200
+        assert Dashboard.objects.filter(
+            title='Dashboard Hello',
+            organizaiton=self.organization,
+            created_by=self.user
+        )
+
+    def test_widget_no_data_souces(self):
+        response = self.client.put(
+            self.url(self.dashboard.id),
+            data={
+                'title': 'Dashboard from Put',
+                'createdBy': self.user.id,
+                'organization': self.organization.id,
+                'widgets':
+                [
+                    {
+                        'order': 3,
+                        'displayType': 'line',
+                        'title': 'User Happiness',
+                        'dataSources': []
+                    }
+                ]
+            }
+        )
+        assert response.status_code == 200
+
+    def test_unrecognized_display_type(self):
+        response = self.client.put(
+            self.url(self.dashboard.id),
+            data={
+                'title': 'Dashboard from Put',
+                'createdBy': self.user.id,
+                'organization': self.organization.id,
+                'widgets':
+                [
+                    {
+                        'order': 3,
+                        'displayType': 'happy-face',
+                        'title': 'User Happiness',
+                        'dataSources': []
+                    }
+                ]
+            }
+        )
+        assert response.status_code == 400
+
+    def test_unrecognized_data_source_type(self):
+        response = self.client.put(
+            self.url(self.dashboard.id),
+            data={
+                'title': 'Dashboard from Put',
+                'createdBy': self.user.id,
+                'organization': self.organization.id,
+                'widgets':
+                [
+                    {
+                        'order': 3,
+                        'displayType': 'line',
+                        'title': 'User Happiness',
+                        'dataSources': [{
+                            'name': 'knownUsersAffectedQuery_2',
+                            'data': self.known_users_query,
+                            'type': 'not-real-type',
+                            'order': 1,
+                        }],
+                    }
+                ]
+            }
+        )
+        assert response.status_code == 400
+
+    def test_dashboard_does_not_exist(self):
+        response = self.client.put(self.url(1234567890))
+        assert response.status_code == 404
+        assert response.data == {u'detail': u'Not found'}
+
+    def test_invalid_dashboard(self):
+        response = self.client.put(
+            self.url(self.dashboard.id),
+            data={
+                'title': 'Dashboard from Put',
+                'organization': self.organization.id,
+                'widgets': [],
+            }
+        )
+        assert response.status_code == 400
