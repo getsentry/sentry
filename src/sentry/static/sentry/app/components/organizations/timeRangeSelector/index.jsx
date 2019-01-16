@@ -157,7 +157,10 @@ class TimeRangeSelector extends React.PureComponent {
   };
 
   handleUseUtc = () => {
-    const {onChange, start, end} = this.props;
+    let {onChange, start, end} = this.props;
+
+    start = start || this.state.start;
+    end = end || this.state.end;
 
     this.setState(state => {
       const utc = !state.utc;

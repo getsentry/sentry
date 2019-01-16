@@ -15,10 +15,11 @@ class EventsChart extends React.Component {
   static propTypes = {
     period: PropTypes.string,
     query: PropTypes.string,
+    utc: PropTypes.bool,
   };
 
   render() {
-    const {period, query} = this.props;
+    const {period, utc, query} = this.props;
 
     return (
       <ChartZoom {...this.props}>
@@ -35,6 +36,7 @@ class EventsChart extends React.Component {
               return (
                 <LineChart
                   {...zoomRenderProps}
+                  utc={utc}
                   series={timeseriesData}
                   seriesOptions={{
                     showSymbol: false,

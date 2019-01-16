@@ -5,7 +5,6 @@ import React from 'react';
 import ReactEchartsCore from 'echarts-for-react/lib/core';
 import echarts from 'echarts/lib/echarts';
 
-import {DEFAULT_USE_UTC} from 'app/constants';
 import SentryTypes from 'app/sentryTypes';
 import theme from 'app/utils/theme';
 
@@ -135,7 +134,6 @@ class BaseChart extends React.Component {
     yAxis: {},
     isGroupedByDate: false,
     interval: 'day',
-    utc: DEFAULT_USE_UTC,
   };
 
   handleChartReady = (...args) => {
@@ -209,6 +207,7 @@ class BaseChart extends React.Component {
         }}
         option={{
           ...options,
+          useUTC: utc,
           color: colors || this.getColorPalette(),
           grid: Grid(grid),
           tooltip:

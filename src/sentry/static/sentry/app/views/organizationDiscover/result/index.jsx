@@ -44,6 +44,7 @@ class Result extends React.Component {
     savedQuery: SentryTypes.DiscoverSavedQuery, // Provided if it's a saved search
     onFetchPage: PropTypes.func.isRequired,
     onToggleEdit: PropTypes.func,
+    utc: PropTypes.bool,
   };
 
   constructor(props) {
@@ -187,7 +188,7 @@ class Result extends React.Component {
   }
 
   render() {
-    const {data: {baseQuery, byDayQuery}, savedQuery, onFetchPage} = this.props;
+    const {data: {baseQuery, byDayQuery}, savedQuery, onFetchPage, utc} = this.props;
 
     const {view} = this.state;
 
@@ -255,6 +256,7 @@ class Result extends React.Component {
                 legend={legendData}
                 renderer="canvas"
                 isGroupedByDate={true}
+                utc={utc}
               />
               {this.renderNote()}
             </ChartWrapper>
@@ -269,6 +271,7 @@ class Result extends React.Component {
                 legend={legendData}
                 renderer="canvas"
                 isGroupedByDate={true}
+                utc={utc}
               />
               {this.renderNote()}
             </ChartWrapper>
