@@ -14,7 +14,13 @@ describe('PermissionSelection', () => {
     onChange = jest.fn();
     wrapper = mount(
       <PermissionSelection
-        scopes={['project:read', 'project:write', 'project:releases', 'org:admin']}
+        permissions={{
+          Event: 'no-access',
+          Team: 'no-access',
+          Project: 'write',
+          Release: 'admin',
+          Organization: 'admin',
+        }}
         onChange={onChange}
       />,
       {
@@ -24,30 +30,6 @@ describe('PermissionSelection', () => {
         },
       }
     );
-  });
-
-  it('defaults to no-access for all resources not passed', () => {
-    expect(wrapper.instance().state.permissions).toEqual(
-      expect.objectContaining({
-        Team: 'no-access',
-        Event: 'no-access',
-        Member: 'no-access',
-      })
-    );
-  });
-
-  it('converts a raw list of scopes into permissions', () => {
-    expect(wrapper.instance().state.permissions).toEqual(
-      expect.objectContaining({
-        Project: 'write',
-        Release: 'admin',
-        Organization: 'admin',
-      })
-    );
-  });
-
-  it('selects the highest ranking scope to convert to permission', () => {
-    expect(wrapper.instance().state.permissions.Project).toEqual('write');
   });
 
   it('renders a row for each resource', () => {
@@ -112,6 +94,7 @@ describe('PermissionSelection', () => {
     selectByValue(wrapper, 'admin', {name: 'Release--permission'});
     selectByValue(wrapper, 'admin', {name: 'Event--permission'});
     selectByValue(wrapper, 'read', {name: 'Organization--permission'});
+    selectByValue(wrapper, 'no-access', {name: 'Member--permission'});
 
     expect(getStateValue('Project')).toEqual('write');
     expect(getStateValue('Team')).toEqual('read');
