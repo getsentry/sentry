@@ -7,7 +7,7 @@ import ProjectGroupDetails from 'app/views/groupDetails/project/index';
 import ProjectGroupEvents from 'app/views/groupDetails/project/groupEvents';
 import ProjectGroupEventDetails from 'app/views/groupDetails/project/groupEventDetails';
 import ProjectGroupMergedView from 'app/views/groupDetails/shared/groupMerged';
-import ProjectGroupSimilarView from 'app/views/groupDetails/project/groupSimilar';
+import ProjectGroupSimilarView from 'app/views/groupDetails/shared/groupSimilar';
 import ProjectGroupTagValues from 'app/views/groupDetails/project/groupTagValues';
 import ProjectGroupTags from 'app/views/groupDetails/project/groupTags';
 import ProjectGroupUserFeedback from 'app/views/groupDetails/project/groupUserFeedback';

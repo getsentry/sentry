@@ -3,14 +3,11 @@ import React from 'react';
 
 import {mount, shallow} from 'enzyme';
 
-import GroupSimilarView from 'app/views/groupDetails/project/groupSimilar';
+import GroupSimilar from 'app/views/groupDetails/shared/groupSimilar';
 import issues from 'app-test/mocks/issues';
 
-jest.mock('app/mixins/projectState', () => {
-  return {
-    getFeatures: () => new Set([]),
-    getProjectFeatures: () => new Set(['similarity-view']),
-  };
+const project = TestStubs.Project({
+  features: ['similarity-view'],
 });
 
 const routerContext = TestStubs.routerContext([
@@ -47,7 +44,7 @@ describe('Issues Similar View', function() {
 
   it('renders initially with loading component', function() {
     let component = shallow(
-      <GroupSimilarView params={{groupId: 'group-id'}} location={{}} />,
+      <GroupSimilar project={project} params={{groupId: 'group-id'}} location={{}} />,
       routerContext
     );
 
@@ -56,7 +53,9 @@ describe('Issues Similar View', function() {
 
   it('renders with mocked data', async function() {
     let wrapper = mount(
-      <GroupSimilarView
+      <GroupSimilar
+        project={project}
+        query={''}
         params={{orgId: 'org-slug', projectId: 'project-slug', groupId: 'group-id'}}
         location={{}}
       />,
@@ -72,7 +71,8 @@ describe('Issues Similar View', function() {
 
   it('can merge and redirect to new parent', async function() {
     let wrapper = mount(
-      <GroupSimilarView
+      <GroupSimilar
+        project={project}
         params={{orgId: 'org-slug', projectId: 'project-slug', groupId: 'group-id'}}
         location={{}}
       />,

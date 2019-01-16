@@ -22,9 +22,7 @@ const SimilarItemPropType = PropTypes.shape({
 
 class SimilarList extends React.Component {
   static propTypes = {
-    orgId: PropTypes.string.isRequired,
     groupId: PropTypes.string.isRequired,
-    projectId: PropTypes.string.isRequired,
     onMerge: PropTypes.func.isRequired,
     pageLinks: PropTypes.string,
     items: PropTypes.arrayOf(SimilarItemPropType),

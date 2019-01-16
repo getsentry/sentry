@@ -26,6 +26,21 @@ exports[`Issues Similar View renders with mocked data 1`] = `
       "projectId": "project-slug",
     }
   }
+  project={
+    Object {
+      "features": Array [
+        "similarity-view",
+      ],
+      "hasAccess": true,
+      "id": "2",
+      "isBookmarked": false,
+      "isMember": true,
+      "name": "Project Name",
+      "slug": "project-slug",
+      "teams": Array [],
+    }
+  }
+  query=""
 >
   <div>
     <div
@@ -281,7 +296,6 @@ exports[`Issues Similar View renders with mocked data 1`] = `
       }
       onMerge={[Function]}
       orgId="org-slug"
-      projectId="project-slug"
     >
       <div
         className="similar-list-container"

@@ -5,12 +5,12 @@ import Reflux from 'reflux';
 import createReactClass from 'create-react-class';
 import queryString from 'query-string';
 
+import SentryTypes from 'app/sentryTypes';
 import {t} from 'app/locale';
 import GroupingActions from 'app/actions/groupingActions';
 import GroupingStore from 'app/stores/groupingStore';
 import LoadingError from 'app/components/loadingError';
 import LoadingIndicator from 'app/components/loadingIndicator';
-import ProjectState from 'app/mixins/projectState';
 
 import SimilarList from './similarList';
 
@@ -18,10 +18,11 @@ const GroupGroupingView = createReactClass({
   displayName: 'GroupGroupingView',
 
   propTypes: {
+    project: SentryTypes.Project,
     query: PropTypes.string,
   },
 
-  mixins: [ProjectState, Reflux.listenTo(GroupingStore, 'onGroupingUpdate')],
+  mixins: [Reflux.listenTo(GroupingStore, 'onGroupingUpdate')],
 
   getInitialState() {
     return {
@@ -65,9 +66,10 @@ const GroupGroupingView = createReactClass({
     } else if (mergedParent && mergedParent !== this.props.params.groupId) {
       let {params} = this.props;
       // Merge success, since we can't specify target, we need to redirect to new parent
-      browserHistory.push(
-        `/${params.orgId}/${params.projectId}/issues/${mergedParent}/similar/`
-      );
+      let baseUrl = params.projectId
+        ? `/${params.orgId}/${params.projectId}/issues/`
+        : `/organizations/${params.orgId}/issues/`;
+      browserHistory.push(`${baseUrl}${mergedParent}/similar/`);
     }
   },
 
@@ -77,12 +79,15 @@ const GroupGroupingView = createReactClass({
       ...this.props.location.query,
       limit: 50,
     };
+
     return `/issues/${params.groupId}/${type}/?${queryString.stringify(queryParams)}`;
   },
 
-  fetchData() {
-    let projectFeatures = this.getProjectFeatures();
+  hasSimilarityFeature() {
+    return new Set(this.props.project.features).has('similarity-view');
+  },
 
+  fetchData() {
     this.setState({
       loading: true,
       error: false,
@@ -90,7 +95,7 @@ const GroupGroupingView = createReactClass({
 
     let reqs = [];
 
-    if (projectFeatures.has('similarity-view')) {
+    if (this.hasSimilarityFeature()) {
       reqs.push({
         endpoint: this.getEndpoint('similar'),
         dataKey: 'similar',
@@ -113,13 +118,12 @@ const GroupGroupingView = createReactClass({
   },
 
   render() {
-    let {orgId, projectId, groupId} = this.props.params;
+    let {orgId, groupId} = this.props.params;
     let isLoading = this.state.loading;
     let isError = this.state.error && !isLoading;
     let isLoadedSuccessfully = !isError && !isLoading;
-    let projectFeatures = this.getProjectFeatures();
     let hasSimilarItems =
-      projectFeatures.has('similarity-view') &&
+      this.hasSimilarityFeature() &&
       (this.state.similarItems.length >= 0 ||
         this.state.filteredSimilarItems.length >= 0) &&
       isLoadedSuccessfully;
@@ -147,7 +151,6 @@ const GroupGroupingView = createReactClass({
             filteredItems={this.state.filteredSimilarItems}
             onMerge={this.handleMerge}
             orgId={orgId}
-            projectId={projectId}
             groupId={groupId}
             pageLinks={this.state.similarLinks}
           />
