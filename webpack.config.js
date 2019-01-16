@@ -279,7 +279,7 @@ const appConfig = {
           ? path.join(__dirname, 'tests/fixtures/integration-docs/_platforms.json')
           : path.join(__dirname, 'src/sentry/integration-docs/_platforms.json'),
     },
-    modules: [path.join(__dirname, staticPrefix), 'node_modules'],
+    modules: ['node_modules'],
     extensions: ['.jsx', '.js', '.json'],
   },
   output: {

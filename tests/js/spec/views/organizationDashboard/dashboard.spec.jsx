@@ -34,7 +34,7 @@ describe('OrganizationDashboard', function() {
       body: TestStubs.Environments(),
     });
     discoverMock = MockApiClient.addMockResponse({
-      url: '/organizations/org-slug/discover/query/?per_page=1000&cursor=0:0:1',
+      url: '/organizations/org-slug/discover/query/',
       method: 'POST',
       body: {
         data: [],

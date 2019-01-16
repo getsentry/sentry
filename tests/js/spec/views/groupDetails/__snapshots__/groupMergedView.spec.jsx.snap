@@ -13,7 +13,6 @@ exports[`Issues -> Merged View renders with mocked data 1`] = `
     This is an experimental feature. Data may not be immediately available while we process unmerges.
   </div>
   <MergedList
-    groupId="groupId"
     items={
       Array [
         Object {
@@ -218,8 +217,6 @@ exports[`Issues -> Merged View renders with mocked data 1`] = `
     }
     onToggleCollapse={[Function]}
     onUnmerge={[Function]}
-    orgId="orgId"
-    projectId="projectId"
   />
 </div>
 `;

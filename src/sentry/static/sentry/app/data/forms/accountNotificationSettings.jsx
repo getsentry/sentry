@@ -23,10 +23,10 @@ export const fields = {
   weeklyReports: {
     // Form is not visible because currently not implemented
     name: 'weeklyReports',
-    // type: 'boolean',
+    type: 'boolean',
     label: t('Send Me Weekly Reports'),
     help: t("Reports contain a summary of what's happened within your organization."),
-    // disabled: true,
+    disabled: true,
   },
   deployNotifications: {
     name: 'deployNotifications',
@@ -67,7 +67,7 @@ const formGroups = [
 
   {
     title: t('Weekly Reports'),
-    fields: [fields.weeklyReports],
+    fields: [],
   },
 
   {

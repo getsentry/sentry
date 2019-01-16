@@ -8,7 +8,7 @@ from django.conf import settings
 from rest_framework.response import Response
 
 from sentry.api.bases import OrganizationEventsEndpointBase
-from sentry.api.helpers.group_search import build_query_params_from_request, get_by_short_id, ValidationError
+from sentry.api.helpers.group_index import build_query_params_from_request, get_by_short_id, ValidationError
 from sentry.api.serializers import serialize
 from sentry.api.serializers.models.group import StreamGroupSerializerSnuba
 from sentry.api.utils import get_date_range_from_params, InvalidParams

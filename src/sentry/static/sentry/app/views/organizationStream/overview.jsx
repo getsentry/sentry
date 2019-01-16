@@ -13,6 +13,7 @@ import {analytics} from 'app/utils/analytics';
 import {t} from 'app/locale';
 import {fetchProject} from 'app/actionCreators/projects';
 import {fetchTags} from 'app/actionCreators/tags';
+import {fetchOrgMembers} from 'app/actionCreators/members';
 import ConfigStore from 'app/stores/configStore';
 import GlobalSelectionStore from 'app/stores/globalSelectionStore';
 import GroupStore from 'app/stores/groupStore';
@@ -74,6 +75,7 @@ const OrganizationStream = createReactClass({
       savedSearchList: [],
       processingIssues: null,
       tagsLoading: true,
+      memberList: null,
       tags: TagStore.getAllTags(),
       // the project for the selected issues
       // Will only be set if selected issues all belong
@@ -92,6 +94,19 @@ const OrganizationStream = createReactClass({
     if (!this.state.loading) {
       this.fetchData();
       fetchTags(this.props.organization.slug);
+
+      fetchOrgMembers(this.api, this.props.organization.slug).then(members => {
+        let memberList = members.reduce((acc, member) => {
+          for (let project of member.projects) {
+            if (acc[project] === undefined) {
+              acc[project] = [];
+            }
+            acc[project].push(member.user);
+          }
+          return acc;
+        }, {});
+        this.setState({memberList});
+      });
     }
   },
 
@@ -390,10 +405,15 @@ const OrganizationStream = createReactClass({
     dateCutoff.setDate(dateCutoff.getDate() - 30);
 
     let topIssue = ids[0];
+    let {memberList} = this.state;
 
     let {orgId} = this.props.params;
     let groupNodes = ids.map(id => {
       let hasGuideAnchor = userDateJoined > dateCutoff && id === topIssue;
+
+      let group = GroupStore.get(id);
+      let members = memberList[group.project.slug] || [];
+
       return (
         <StreamGroup
           key={id}
@@ -402,6 +422,7 @@ const OrganizationStream = createReactClass({
           statsPeriod={groupStatsPeriod}
           query={this.getQuery()}
           hasGuideAnchor={hasGuideAnchor}
+          memberList={members}
         />
       );
     });

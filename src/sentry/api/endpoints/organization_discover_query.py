@@ -5,19 +5,15 @@ import six
 from functools32 import partial
 from copy import deepcopy
 
-from django.utils import timezone
 from rest_framework import serializers
 from rest_framework.response import Response
 from rest_framework.exceptions import PermissionDenied
-
-from sentry.utils.dates import (
-    parse_stats_period,
-)
 
 from sentry.api.serializers.rest_framework import ListField
 from sentry.api.bases.organization import OrganizationPermission
 from sentry.api.bases import OrganizationEndpoint
 from sentry.api.paginator import GenericOffsetPaginator
+from sentry.api.utils import get_date_range_from_params, InvalidParams
 from sentry.models import Project, ProjectStatus, OrganizationMember, OrganizationMemberTeam
 from sentry.utils import snuba
 from sentry import roles
@@ -36,15 +32,18 @@ class DiscoverQuerySerializer(serializers.Serializer):
         required=True,
         allow_null=False,
     )
-    start = serializers.DateTimeField(required=False)
-    end = serializers.DateTimeField(required=False)
-    range = serializers.CharField(required=False)
+    start = serializers.CharField(required=False, allow_none=True)
+    end = serializers.CharField(required=False, allow_none=True)
+    range = serializers.CharField(required=False, allow_none=True)
+    statsPeriod = serializers.CharField(required=False, allow_none=True)
+    statsPeriodStart = serializers.CharField(required=False, allow_none=True)
+    statsPeriodEnd = serializers.CharField(required=False, allow_none=True)
     fields = ListField(
         child=serializers.CharField(),
         required=False,
         allow_null=True,
     )
-    limit = serializers.IntegerField(min_value=0, max_value=1000, required=False)
+    limit = serializers.IntegerField(min_value=0, max_value=10000, required=False)
     rollup = serializers.IntegerField(required=False)
     orderby = serializers.CharField(required=False)
     conditions = ListField(
@@ -88,27 +87,32 @@ class DiscoverQuerySerializer(serializers.Serializer):
     def validate(self, data):
         data['arrayjoin'] = self.arrayjoin
 
-        return data
+        # prevent conflicting date ranges from being supplied
+        date_fields = ['start', 'statsPeriod', 'range', 'statsPeriodStart']
+        date_fields_provided = len([data.get(f) for f in date_fields if data.get(f) is not None])
+        if date_fields_provided == 0:
+            raise serializers.ValidationError('You must specify a date filter')
+        elif date_fields_provided > 1:
+            raise serializers.ValidationError('Conflicting date filters supplied')
 
-    def validate_range(self, attrs, source):
-        has_start = bool(attrs.get('start'))
-        has_end = bool(attrs.get('end'))
-        has_range = bool(attrs.get('range'))
+        try:
+            start, end = get_date_range_from_params({
+                'start': data.get('start'),
+                'end': data.get('end'),
+                'statsPeriod': data.get('statsPeriod') or data.get('range'),
+                'statsPeriodStart': data.get('statsPeriodStart'),
+                'statsPeriodEnd': data.get('statsPeriodEnd'),
+            }, optional=True, validate_window=False)
+        except InvalidParams as exc:
+            raise serializers.ValidationError(exc.message)
 
-        if has_start != has_end or has_range == has_start:
+        if start is None or end is None:
             raise serializers.ValidationError('Either start and end dates or range is required')
 
-        # Populate start and end if only range is provided
-        if (attrs.get(source)):
-            delta = parse_stats_period(attrs[source])
+        data['start'] = start
+        data['end'] = end
 
-            if (delta is None):
-                raise serializers.ValidationError('Invalid range')
-
-            attrs['start'] = timezone.now() - delta
-            attrs['end'] = timezone.now()
-
-        return attrs
+        return data
 
     def validate_projects(self, attrs, source):
         organization = self.context['organization']

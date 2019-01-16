@@ -2,7 +2,7 @@ import PropTypes from 'prop-types';
 import React from 'react';
 
 import {createFuzzySearch} from 'app/utils/createFuzzySearch';
-import {openSudo, openDocsSearchModal} from 'app/actionCreators/modal';
+import {openSudo, openHelpSearchModal} from 'app/actionCreators/modal';
 import Access from 'app/components/acl/access';
 
 const ACTIONS = [
@@ -28,7 +28,7 @@ const ACTIONS = [
   {
     title: 'Search Documentation and FAQ',
     description: 'Open the Documentation and FAQ search modal.',
-    action: () => openDocsSearchModal(),
+    action: () => openHelpSearchModal(),
   },
 ];
 

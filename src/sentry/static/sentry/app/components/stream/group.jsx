@@ -24,11 +24,11 @@ const StreamGroup = createReactClass({
 
   propTypes: {
     id: PropTypes.string.isRequired,
-    orgId: PropTypes.string.isRequired,
     statsPeriod: PropTypes.string.isRequired,
     canSelect: PropTypes.bool,
     query: PropTypes.string,
     hasGuideAnchor: PropTypes.bool,
+    memberList: PropTypes.array,
   },
 
   mixins: [Reflux.listenTo(GroupStore, 'onGroupChange'), ProjectState],
@@ -86,8 +86,7 @@ const StreamGroup = createReactClass({
 
   render() {
     const {data} = this.state;
-    const {id, orgId, query, hasGuideAnchor, canSelect} = this.props;
-    const projectId = data.project.slug;
+    const {query, hasGuideAnchor, canSelect, memberList} = this.props;
 
     return (
       <Group onClick={this.toggleSelect} py={1} px={0} align="center">
@@ -99,13 +98,7 @@ const StreamGroup = createReactClass({
         )}
         <GroupSummary w={[8 / 12, 8 / 12, 6 / 12]} ml={canSelect ? 1 : 2} mr={1} flex="1">
           <EventOrGroupHeader data={data} query={query} />
-          <EventOrGroupExtraDetails
-            group
-            {...data}
-            groupId={id}
-            orgId={orgId}
-            projectId={projectId}
-          />
+          <EventOrGroupExtraDetails group {...data} />
         </GroupSummary>
         <Box w={160} mx={2} className="hidden-xs hidden-sm">
           <GroupChart id={data.id} statsPeriod={this.props.statsPeriod} data={data} />
@@ -119,7 +112,7 @@ const StreamGroup = createReactClass({
           <StyledCount value={data.userCount} />
         </Flex>
         <Box w={80} mx={2} className="hidden-xs hidden-sm">
-          <AssigneeSelector id={data.id} />
+          <AssigneeSelector id={data.id} memberList={memberList} />
         </Box>
       </Group>
     );
