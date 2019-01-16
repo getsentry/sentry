@@ -177,7 +177,6 @@ class GroupActivityItem extends React.Component {
         }
 
         if (item.user && data.assignee === item.user.id) {
-          assignee = 'themselves';
           return t('%s assigned this issue to themselves', author);
         } else {
           assignee = MemberListStore.getById(data.assignee);
