@@ -14,8 +14,8 @@ from sentry.api.base import DocSection, EnvironmentMixin
 from sentry.api.bases.project import ProjectEndpoint, ProjectEventPermission
 from sentry.api.fields import Actor
 from sentry.api.helpers.group_index import (
-    build_query_params_from_request, get_by_short_id, GroupIndexMixin,
-    GroupValidator, STATUS_CHOICES, ValidationError
+    build_query_params_from_request, delete_groups, get_by_short_id, GroupValidator,
+    handle_discard, STATUS_CHOICES, ValidationError
 )
 from sentry.api.serializers import serialize
 from sentry.api.serializers.models.actor import ActorSerializer
@@ -76,7 +76,7 @@ def list_project_issues_scenario(runner):
     )
 
 
-class ProjectGroupIndexEndpoint(ProjectEndpoint, EnvironmentMixin, GroupIndexMixin):
+class ProjectGroupIndexEndpoint(ProjectEndpoint, EnvironmentMixin):
     doc_section = DocSection.EVENTS
 
     permission_classes = (ProjectEventPermission, )
@@ -337,7 +337,9 @@ class ProjectGroupIndexEndpoint(ProjectEndpoint, EnvironmentMixin, GroupIndexMix
 
         discard = result.get('discard')
         if discard:
-            return self.handle_discard(request, list(queryset), [project], acting_user)
+            return handle_discard(
+                request, list(queryset), [project], acting_user, view_cls=self.__class__
+            )
 
         statusDetails = result.pop('statusDetails', result)
         status = result.get('status')
@@ -841,6 +843,6 @@ class ProjectGroupIndexEndpoint(ProjectEndpoint, EnvironmentMixin, GroupIndexMix
         if not group_list:
             return Response(status=204)
 
-        self._delete_groups(request, project, group_list, delete_type='delete')
+        delete_groups(request, project, group_list, delete_type='delete', view_cls=self.__class__)
 
         return Response(status=204)
