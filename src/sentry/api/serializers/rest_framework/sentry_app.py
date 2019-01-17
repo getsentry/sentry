@@ -36,6 +36,8 @@ class SentryAppSerializer(Serializer):
     overview = serializers.CharField(required=False)
 
     def validate_events(self, attrs, source):
+        if not attrs.get('scopes'):
+            return attrs
         resources = [s.split(':')[0] for s in attrs['scopes']]
         for event in attrs[source]:
             if event == 'issue':
