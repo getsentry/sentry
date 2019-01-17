@@ -23,13 +23,16 @@ export const PROMOTED_TAGS = [
   'os',
   'os.name',
   'os.rooted',
-  'sentry:release',
 ];
 
 // All tags are assumed to be strings, except the following
 export const SPECIAL_TAGS = {
   os_rooted: TYPES.BOOLEAN,
 };
+
+// Hide the following tags if they are returned from Snuba since these are
+// already mapped to user and release attributes
+export const HIDDEN_TAGS = ['sentry:user', 'sentry:release'];
 
 export const COLUMNS = [
   {name: 'id', type: TYPES.STRING},
@@ -39,6 +42,7 @@ export const COLUMNS = [
   {name: 'platform', type: TYPES.STRING},
   {name: 'message', type: TYPES.STRING},
   {name: 'timestamp', type: TYPES.DATETIME},
+  {name: 'release', type: TYPES.STRING},
 
   {name: 'user.id', type: TYPES.STRING},
   {name: 'user.username', type: TYPES.STRING},
