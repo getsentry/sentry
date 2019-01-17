@@ -74,37 +74,153 @@ exports[`OnboardingWizard render() should render and respond to click events 1`]
                   href="/"
                 />
               </div>
-              <div
-                className="progress-nodes"
+              <Node
+                active={false}
+                data-test-id="node"
+                done={true}
+                key="0"
               >
                 <div
-                  className="node done"
-                  key="0"
+                  className="css-13pq2ic-Node e1en1fxy0"
+                  data-test-id="node"
                 >
-                  <span
-                    className="node done"
-                  />
-                  Create an organization in Sentry
+                  <NodeIcon
+                    src="icon-circle-check"
+                  >
+                    <InlineSvg
+                      className="css-53uqb4-NodeIcon e1en1fxy1"
+                      src="icon-circle-check"
+                    >
+                      <StyledSvg
+                        className="css-53uqb4-NodeIcon e1en1fxy1"
+                        height="1em"
+                        viewBox={Object {}}
+                        width="1em"
+                      >
+                        <svg
+                          className="e1en1fxy1 css-1xrsyxg-StyledSvg-NodeIcon e2idor0"
+                          height="1em"
+                          viewBox={Object {}}
+                          width="1em"
+                        >
+                          <use
+                            href="#test"
+                            xlinkHref="#test"
+                          />
+                        </svg>
+                      </StyledSvg>
+                    </InlineSvg>
+                  </NodeIcon>
+                  <NodeDescription
+                    data-test-id="node-description"
+                  >
+                    <div
+                      className="css-yyeqaq-NodeDescription e1en1fxy2"
+                      data-test-id="node-description"
+                    >
+                      Create an organization in Sentry
+                    </div>
+                  </NodeDescription>
                 </div>
+              </Node>
+              <Node
+                active={true}
+                data-test-id="node"
+                done={false}
+                key="1"
+              >
                 <div
-                  className="node active"
-                  key="1"
+                  className="css-ogqwl2-Node e1en1fxy0"
+                  data-test-id="node"
                 >
-                  <span
-                    className="node active"
-                  />
-                  Tell us about your project
+                  <NodeIcon
+                    src="icon-circle-empty"
+                  >
+                    <InlineSvg
+                      className="css-53uqb4-NodeIcon e1en1fxy1"
+                      src="icon-circle-empty"
+                    >
+                      <StyledSvg
+                        className="css-53uqb4-NodeIcon e1en1fxy1"
+                        height="1em"
+                        viewBox={Object {}}
+                        width="1em"
+                      >
+                        <svg
+                          className="e1en1fxy1 css-1xrsyxg-StyledSvg-NodeIcon e2idor0"
+                          height="1em"
+                          viewBox={Object {}}
+                          width="1em"
+                        >
+                          <use
+                            href="#test"
+                            xlinkHref="#test"
+                          />
+                        </svg>
+                      </StyledSvg>
+                    </InlineSvg>
+                  </NodeIcon>
+                  <NodeDescription
+                    data-test-id="node-description"
+                  >
+                    <div
+                      className="css-yyeqaq-NodeDescription e1en1fxy2"
+                      data-test-id="node-description"
+                    >
+                      Tell us about your project
+                    </div>
+                  </NodeDescription>
                 </div>
+              </Node>
+              <Node
+                active={false}
+                data-test-id="node"
+                done={false}
+                key="2"
+              >
                 <div
-                  className="node"
-                  key="2"
+                  className="css-13pq2ic-Node e1en1fxy0"
+                  data-test-id="node"
                 >
-                  <span
-                    className="node"
-                  />
-                  Configure your application and send an event
+                  <NodeIcon
+                    src="icon-circle-empty"
+                  >
+                    <InlineSvg
+                      className="css-53uqb4-NodeIcon e1en1fxy1"
+                      src="icon-circle-empty"
+                    >
+                      <StyledSvg
+                        className="css-53uqb4-NodeIcon e1en1fxy1"
+                        height="1em"
+                        viewBox={Object {}}
+                        width="1em"
+                      >
+                        <svg
+                          className="e1en1fxy1 css-1xrsyxg-StyledSvg-NodeIcon e2idor0"
+                          height="1em"
+                          viewBox={Object {}}
+                          width="1em"
+                        >
+                          <use
+                            href="#test"
+                            xlinkHref="#test"
+                          />
+                        </svg>
+                      </StyledSvg>
+                    </InlineSvg>
+                  </NodeIcon>
+                  <NodeDescription
+                    data-test-id="node-description"
+                  >
+                    <div
+                      className="css-yyeqaq-NodeDescription e1en1fxy2"
+                      data-test-id="node-description"
+                    >
+                      Configure your application and send an event
+                    </div>
+                  </NodeDescription>
                 </div>
-              </div>
+              </Node>
               <div
                 className="stuck"
               >
@@ -1222,37 +1338,153 @@ exports[`OnboardingWizard render() should render and respond to click events 2`]
                   href="/"
                 />
               </div>
-              <div
-                className="progress-nodes"
+              <Node
+                active={false}
+                data-test-id="node"
+                done={true}
+                key="0"
               >
                 <div
-                  className="node done"
-                  key="0"
+                  className="css-13pq2ic-Node e1en1fxy0"
+                  data-test-id="node"
                 >
-                  <span
-                    className="node done"
-                  />
-                  Create an organization in Sentry
+                  <NodeIcon
+                    src="icon-circle-check"
+                  >
+                    <InlineSvg
+                      className="css-53uqb4-NodeIcon e1en1fxy1"
+                      src="icon-circle-check"
+                    >
+                      <StyledSvg
+                        className="css-53uqb4-NodeIcon e1en1fxy1"
+                        height="1em"
+                        viewBox={Object {}}
+                        width="1em"
+                      >
+                        <svg
+                          className="e1en1fxy1 css-1xrsyxg-StyledSvg-NodeIcon e2idor0"
+                          height="1em"
+                          viewBox={Object {}}
+                          width="1em"
+                        >
+                          <use
+                            href="#test"
+                            xlinkHref="#test"
+                          />
+                        </svg>
+                      </StyledSvg>
+                    </InlineSvg>
+                  </NodeIcon>
+                  <NodeDescription
+                    data-test-id="node-description"
+                  >
+                    <div
+                      className="css-yyeqaq-NodeDescription e1en1fxy2"
+                      data-test-id="node-description"
+                    >
+                      Create an organization in Sentry
+                    </div>
+                  </NodeDescription>
                 </div>
+              </Node>
+              <Node
+                active={true}
+                data-test-id="node"
+                done={false}
+                key="1"
+              >
                 <div
-                  className="node active"
-                  key="1"
+                  className="css-ogqwl2-Node e1en1fxy0"
+                  data-test-id="node"
                 >
-                  <span
-                    className="node active"
-                  />
-                  Tell us about your project
+                  <NodeIcon
+                    src="icon-circle-empty"
+                  >
+                    <InlineSvg
+                      className="css-53uqb4-NodeIcon e1en1fxy1"
+                      src="icon-circle-empty"
+                    >
+                      <StyledSvg
+                        className="css-53uqb4-NodeIcon e1en1fxy1"
+                        height="1em"
+                        viewBox={Object {}}
+                        width="1em"
+                      >
+                        <svg
+                          className="e1en1fxy1 css-1xrsyxg-StyledSvg-NodeIcon e2idor0"
+                          height="1em"
+                          viewBox={Object {}}
+                          width="1em"
+                        >
+                          <use
+                            href="#test"
+                            xlinkHref="#test"
+                          />
+                        </svg>
+                      </StyledSvg>
+                    </InlineSvg>
+                  </NodeIcon>
+                  <NodeDescription
+                    data-test-id="node-description"
+                  >
+                    <div
+                      className="css-yyeqaq-NodeDescription e1en1fxy2"
+                      data-test-id="node-description"
+                    >
+                      Tell us about your project
+                    </div>
+                  </NodeDescription>
                 </div>
+              </Node>
+              <Node
+                active={false}
+                data-test-id="node"
+                done={false}
+                key="2"
+              >
                 <div
-                  className="node"
-                  key="2"
+                  className="css-13pq2ic-Node e1en1fxy0"
+                  data-test-id="node"
                 >
-                  <span
-                    className="node"
-                  />
-                  Configure your application and send an event
+                  <NodeIcon
+                    src="icon-circle-empty"
+                  >
+                    <InlineSvg
+                      className="css-53uqb4-NodeIcon e1en1fxy1"
+                      src="icon-circle-empty"
+                    >
+                      <StyledSvg
+                        className="css-53uqb4-NodeIcon e1en1fxy1"
+                        height="1em"
+                        viewBox={Object {}}
+                        width="1em"
+                      >
+                        <svg
+                          className="e1en1fxy1 css-1xrsyxg-StyledSvg-NodeIcon e2idor0"
+                          height="1em"
+                          viewBox={Object {}}
+                          width="1em"
+                        >
+                          <use
+                            href="#test"
+                            xlinkHref="#test"
+                          />
+                        </svg>
+                      </StyledSvg>
+                    </InlineSvg>
+                  </NodeIcon>
+                  <NodeDescription
+                    data-test-id="node-description"
+                  >
+                    <div
+                      className="css-yyeqaq-NodeDescription e1en1fxy2"
+                      data-test-id="node-description"
+                    >
+                      Configure your application and send an event
+                    </div>
+                  </NodeDescription>
                 </div>
-              </div>
+              </Node>
               <div
                 className="stuck"
               >

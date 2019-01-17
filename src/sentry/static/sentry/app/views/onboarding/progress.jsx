@@ -1,11 +1,13 @@
 import PropTypes from 'prop-types';
 import React from 'react';
 import createReactClass from 'create-react-class';
-import classNames from 'classnames';
+import styled from 'react-emotion';
 
 import {analytics, amplitude} from 'app/utils/analytics';
 import ConfigStore from 'app/stores/configStore';
 import HookStore from 'app/stores/hookStore';
+import InlineSvg from 'app/components/inlineSvg';
+import space from 'app/styles/space';
 import {onboardingSteps, stepDescriptions} from 'app/views/onboarding/utils';
 
 const ProgressNodes = createReactClass({
@@ -69,17 +71,17 @@ const ProgressNodes = createReactClass({
   },
 
   node(stepKey, stepIndex) {
-    let nodeClass = classNames('node', {
-      done: stepIndex < this.inferStep(),
-      active: stepIndex === this.inferStep(),
-    });
-
+    const done = stepIndex < this.inferStep();
+    const active = stepIndex === this.inferStep();
     let descriptions = this.getAsset('descriptions');
+
     return (
-      <div className={nodeClass} key={stepIndex}>
-        <span className={nodeClass} />
-        {descriptions[stepKey]}
-      </div>
+      <Node key={stepIndex} done={done} active={active} data-test-id="node">
+        <NodeIcon src={done ? 'icon-circle-check' : 'icon-circle-empty'} />
+        <NodeDescription data-test-id="node-description">
+          {descriptions[stepKey]}
+        </NodeDescription>
+      </Node>
     );
   },
 
@@ -92,7 +94,7 @@ const ProgressNodes = createReactClass({
         <div className="sentry-flag">
           <span href="/" className="icon-sentry-logo-full" />
         </div>
-        <div className="progress-nodes">{steps.map(this.node)}</div>
+        <React.Fragment>{steps.map(this.node)}</React.Fragment>
         <div className="stuck">
           <a
             href={
@@ -109,5 +111,27 @@ const ProgressNodes = createReactClass({
     );
   },
 });
+
+const Node = styled('div')`
+  display: flex;
+  width: 210px;
+  margin: auto;
+  margin-bottom: ${space(4)};
+  color: ${p => (p.active ? '#fff' : p.theme.gray2)};
+  font-weight: ${p => (p.active ? 600 : 400)};
+`;
+
+const NodeIcon = styled(InlineSvg)`
+  position: relative;
+  margin-right: ${space(1.5)};
+  width: 22px;
+  height: 22px;
+  margin-top: -2px; /* this looks better if it floats a touch above the box */
+`;
+
+const NodeDescription = styled('div')`
+  flex: 1;
+  line-height: 1.2;
+`;
 
 export default ProgressNodes;

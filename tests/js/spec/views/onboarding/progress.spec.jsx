@@ -20,17 +20,18 @@ describe('ProgressNodes', function() {
       };
       let wrapper = shallow(<ProgressNodes {...baseProps} />, baseContext);
 
-      expect(wrapper.find('.node')).toHaveLength(6);
-      expect(wrapper.find('.active')).toHaveLength(2);
+      expect(wrapper.find('[data-test-id="node"]')).toHaveLength(3);
+      expect(wrapper.find('[data-test-id="node"]').find({active: true})).toHaveLength(1);
       expect(
         wrapper
-          .find('.active')
-          .first()
-          .last()
+          .find('[data-test-id="node"]')
+          .find({active: true})
+          .find('[data-test-id="node-description"]')
+          .children()
           .text()
       ).toEqual('Tell us about your project');
 
-      expect(wrapper.find('.done')).toHaveLength(2);
+      expect(wrapper.find('[data-test-id="node"]').find({done: true})).toHaveLength(1);
 
       expect(wrapper).toMatchSnapshot();
     });
@@ -54,17 +55,18 @@ describe('ProgressNodes', function() {
 
       let wrapper = shallow(<ProgressNodes {...props} />, baseContext);
 
-      expect(wrapper.find('.node')).toHaveLength(6);
-      expect(wrapper.find('.active')).toHaveLength(2);
+      expect(wrapper.find('[data-test-id="node"]')).toHaveLength(3);
+      expect(wrapper.find('[data-test-id="node"]').find({active: true})).toHaveLength(1);
       expect(
         wrapper
-          .find('.active')
-          .first()
-          .last()
+          .find('[data-test-id="node"]')
+          .find({active: true})
+          .find('[data-test-id="node-description"]')
+          .children()
           .text()
       ).toEqual('Configure your application and send an event');
 
-      expect(wrapper.find('.done')).toHaveLength(4);
+      expect(wrapper.find('[data-test-id="node"]').find({done: true})).toHaveLength(2);
 
       expect(wrapper).toMatchSnapshot();
     });

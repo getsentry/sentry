@@ -12,37 +12,51 @@ exports[`ProgressNodes render() should render step 0 if no projectId 1`] = `
       href="/"
     />
   </div>
-  <div
-    className="progress-nodes"
+  <Node
+    active={false}
+    data-test-id="node"
+    done={true}
+    key="0"
   >
-    <div
-      className="node done"
-      key="0"
+    <NodeIcon
+      src="icon-circle-check"
+    />
+    <NodeDescription
+      data-test-id="node-description"
     >
-      <span
-        className="node done"
-      />
       Create an organization in Sentry
-    </div>
-    <div
-      className="node active"
-      key="1"
+    </NodeDescription>
+  </Node>
+  <Node
+    active={true}
+    data-test-id="node"
+    done={false}
+    key="1"
+  >
+    <NodeIcon
+      src="icon-circle-empty"
+    />
+    <NodeDescription
+      data-test-id="node-description"
     >
-      <span
-        className="node active"
-      />
       Tell us about your project
-    </div>
-    <div
-      className="node"
-      key="2"
+    </NodeDescription>
+  </Node>
+  <Node
+    active={false}
+    data-test-id="node"
+    done={false}
+    key="2"
+  >
+    <NodeIcon
+      src="icon-circle-empty"
+    />
+    <NodeDescription
+      data-test-id="node-description"
     >
-      <span
-        className="node"
-      />
       Configure your application and send an event
-    </div>
-  </div>
+    </NodeDescription>
+  </Node>
   <div
     className="stuck"
   >
@@ -72,37 +86,51 @@ exports[`ProgressNodes render() should render step 1 if has projectId 1`] = `
       href="/"
     />
   </div>
-  <div
-    className="progress-nodes"
+  <Node
+    active={false}
+    data-test-id="node"
+    done={true}
+    key="0"
   >
-    <div
-      className="node done"
-      key="0"
+    <NodeIcon
+      src="icon-circle-check"
+    />
+    <NodeDescription
+      data-test-id="node-description"
     >
-      <span
-        className="node done"
-      />
       Create an organization in Sentry
-    </div>
-    <div
-      className="node done"
-      key="1"
+    </NodeDescription>
+  </Node>
+  <Node
+    active={false}
+    data-test-id="node"
+    done={true}
+    key="1"
+  >
+    <NodeIcon
+      src="icon-circle-check"
+    />
+    <NodeDescription
+      data-test-id="node-description"
     >
-      <span
-        className="node done"
-      />
       Tell us about your project
-    </div>
-    <div
-      className="node active"
-      key="2"
+    </NodeDescription>
+  </Node>
+  <Node
+    active={true}
+    data-test-id="node"
+    done={false}
+    key="2"
+  >
+    <NodeIcon
+      src="icon-circle-empty"
+    />
+    <NodeDescription
+      data-test-id="node-description"
     >
-      <span
-        className="node active"
-      />
       Configure your application and send an event
-    </div>
-  </div>
+    </NodeDescription>
+  </Node>
   <div
     className="stuck"
   >
