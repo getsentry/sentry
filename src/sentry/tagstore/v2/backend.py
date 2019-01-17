@@ -663,11 +663,18 @@ class V2TagStorage(TagStorage):
                         },
                         extra=extra)
 
-    def get_group_event_filter(self, project_id, group_id, environment_id, tags):
+    def get_group_event_filter(self, project_id, group_id, environment_ids, tags, start, end):
         # NOTE: `environment_id=None` needs to be filtered differently in this method.
         # EventTag never has NULL `environment_id` fields (individual Events always have an environment),
         # and so `environment_id=None` needs to query EventTag for *all* environments (except, ironically
         # the aggregate environment).
+        if environment_ids:
+            # only the snuba backend supports multi env
+            if len(environment_ids) > 1:
+                raise NotImplementedError
+            environment_id = environment_ids[0]
+        else:
+            environment_id = None
 
         if environment_id is None:
             # filter for all 'real' environments
@@ -707,12 +714,19 @@ class V2TagStorage(TagStorage):
         # Django doesnt support union, so we limit results and try to find
         # reasonable matches
 
+        date_filters = Q()
+        if start:
+            date_filters &= Q(date_added__gte=start)
+        if end:
+            date_filters &= Q(date_added__lte=end)
+
         # get initial matches to start the filter
         kv_pairs = tag_lookups.pop()
         matches = list(
             models.EventTag.objects.filter(
                 reduce(or_, (Q(key_id=k, value_id=v)
                              for k, v in kv_pairs)),
+                date_filters,
                 project_id=project_id,
                 group_id=group_id,
             ).values_list('event_id', flat=True)[:1000]
@@ -725,6 +739,7 @@ class V2TagStorage(TagStorage):
                 models.EventTag.objects.filter(
                     reduce(or_, (Q(key_id=k, value_id=v)
                                  for k, v in kv_pairs)),
+                    date_filters,
                     project_id=project_id,
                     group_id=group_id,
                     event_id__in=matches,

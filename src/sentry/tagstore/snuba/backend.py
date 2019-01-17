@@ -654,16 +654,22 @@ class SnubaTagStorage(TagStorage):
         # search backend.
         raise NotImplementedError
 
-    def get_group_event_filter(self, project_id, group_id, environment_id, tags):
-        start, end = self.get_time_range()
+    def get_group_event_filter(self, project_id, group_id, environment_ids, tags, start, end):
+        default_start, default_end = self.get_time_range()
+        start = max(start, default_start) if start else default_start
+        end = min(end, default_end) if end else default_end
+
         filters = {
             'project_id': [project_id],
             'issue': [group_id],
         }
-        if environment_id:
-            filters['environment'] = [environment_id]
+        if environment_ids:
+            filters['environment'] = environment_ids
 
-        conditions = [[u'tags[{}]'.format(k), '=', v] for (k, v) in tags.items()]
+        conditions = []
+        for tag_name, tag_val in tags.items():
+            operator = 'IN' if isinstance(tag_val, list) else '='
+            conditions.append([u'tags[{}]'.format(tag_name), operator, tag_val])
 
         result = snuba.raw_query(start, end, selected_columns=['event_id'],
                                  conditions=conditions, orderby='-timestamp', filter_keys=filters,

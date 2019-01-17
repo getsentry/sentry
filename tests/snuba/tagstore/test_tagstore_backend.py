@@ -29,6 +29,7 @@ class TagStorageTest(SnubaTestCase):
 
         self.proj1 = self.create_project()
         self.proj1env1 = self.create_environment(project=self.proj1, name='test')
+        self.proj1env2 = self.create_environment(project=self.proj1, name='test2')
 
         self.proj1group1 = self.create_group(self.proj1)
         self.proj1group2 = self.create_group(self.proj1)
@@ -75,6 +76,24 @@ class TagStorageTest(SnubaTestCase):
                     'browser': 'chrome',
                     'environment': self.proj1env1.name,
                     'sentry:user': "id:user1",
+                },
+                'user': {
+                    'id': "user1"
+                }
+            },
+        }] + [{
+            'event_id': '4' * 32,
+            'primary_hash': hash2,
+            'group_id': self.proj1group1.id,
+            'project_id': self.proj1.id,
+            'message': 'message 2',
+            'platform': 'python',
+            'datetime': (self.now - timedelta(seconds=2)).strftime('%Y-%m-%dT%H:%M:%S.%fZ'),
+            'data': {
+                'received': calendar.timegm(self.now.timetuple()) - 2,
+                'tags': {
+                    'foo': 'bar',
+                    'environment': self.proj1env2.name,
                 },
                 'user': {
                     'id': "user1"
@@ -314,38 +333,79 @@ class TagStorageTest(SnubaTestCase):
         assert self.ts.get_group_event_filter(
             self.proj1.id,
             self.proj1group1.id,
-            self.proj1env1.id,
+            [self.proj1env1.id],
             {
                 'foo': 'bar',
-            }
+            },
+            None,
+            None,
         ) == {'event_id__in': set(["1" * 32, "2" * 32])}
 
         assert self.ts.get_group_event_filter(
             self.proj1.id,
             self.proj1group1.id,
-            self.proj1env1.id,
+            [self.proj1env1.id],
+            {
+                'foo': 'bar',
+            },
+            (self.now - timedelta(seconds=1)),
+            None,
+        ) == {'event_id__in': set(["1" * 32])}
+
+        assert self.ts.get_group_event_filter(
+            self.proj1.id,
+            self.proj1group1.id,
+            [self.proj1env1.id],
+            {
+                'foo': 'bar',
+            },
+            None,
+            (self.now - timedelta(seconds=1)),
+        ) == {'event_id__in': set(["2" * 32])}
+
+        assert self.ts.get_group_event_filter(
+            self.proj1.id,
+            self.proj1group1.id,
+            [self.proj1env1.id, self.proj1env2.id],
+            {
+                'foo': 'bar',
+            },
+            None,
+            None,
+        ) == {'event_id__in': set(["1" * 32, "2" * 32, "4" * 32])}
+
+        assert self.ts.get_group_event_filter(
+            self.proj1.id,
+            self.proj1group1.id,
+            [self.proj1env1.id],
             {
                 'foo': 'bar',  # AND
                 'sentry:release': '200'
-            }
+            },
+            None,
+            None,
         ) == {'event_id__in': set(["2" * 32])}
 
         assert self.ts.get_group_event_filter(
             self.proj1.id,
             self.proj1group2.id,
-            self.proj1env1.id,
+            [self.proj1env1.id],
             {
                 'browser': 'chrome'
-            }
+            },
+            None,
+            None,
         ) == {'event_id__in': set(["3" * 32])}
 
         assert self.ts.get_group_event_filter(
             self.proj1.id,
             self.proj1group2.id,
-            self.proj1env1.id,
+            [self.proj1env1.id],
             {
                 'browser': 'ie'
-            }
+            },
+            None,
+            None,
         ) is None
 
     def test_get_tag_value_paginator(self):

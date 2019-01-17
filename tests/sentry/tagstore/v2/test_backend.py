@@ -4,7 +4,11 @@ import os
 import pytest
 
 from collections import OrderedDict
-from datetime import datetime
+from datetime import (
+    datetime,
+    timedelta,
+)
+from django.utils import timezone
 
 from sentry.search.base import ANY
 from sentry.testutils import TestCase
@@ -434,13 +438,14 @@ class TagStorage(TestCase):
         }
 
         # 2 events with the same tags
-        for event in (self.proj1group1event1, self.proj1group1event2):
+        for i, event in enumerate((self.proj1group1event1, self.proj1group1event2)):
             self.ts.create_event_tags(
                 project_id=self.proj1.id,
                 group_id=self.proj1group1.id,
                 environment_id=self.proj1env1.id,
                 event_id=event.id,
                 tags=tags.items(),
+                date_added=timezone.now() - timedelta(hours=i)
             )
 
         different_tags = {
@@ -461,9 +466,39 @@ class TagStorage(TestCase):
         assert self.ts.get_group_event_filter(
             self.proj1.id,
             self.proj1group1.id,
-            self.proj1env1.id,
-            tags
+            [self.proj1env1.id],
+            tags,
+            None,
+            None,
         ) == {'id__in': set([self.proj1group1event1.id, self.proj1group1event2.id])}
+
+        assert self.ts.get_group_event_filter(
+            self.proj1.id,
+            self.proj1group1.id,
+            [self.proj1env1.id],
+            tags,
+            timezone.now() - timedelta(minutes=30),
+            None,
+        ) == {'id__in': set([self.proj1group1event1.id])}
+
+        assert self.ts.get_group_event_filter(
+            self.proj1.id,
+            self.proj1group1.id,
+            [self.proj1env1.id],
+            tags,
+            None,
+            timezone.now() - timedelta(minutes=30),
+        ) == {'id__in': set([self.proj1group1event2.id])}
+
+        with pytest.raises(NotImplementedError):
+            self.ts.get_group_event_filter(
+                self.proj1.id,
+                self.proj1group1.id,
+                [self.proj1env1.id, self.proj1env2.id],
+                tags,
+                None,
+                None,
+            )
 
     def test_get_groups_user_counts(self):
         k1, _ = self.ts.get_or_create_group_tag_key(

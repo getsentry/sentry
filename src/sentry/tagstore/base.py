@@ -304,7 +304,7 @@ class TagStorage(Service):
         """
         raise NotImplementedError
 
-    def get_group_event_filter(self, project_id, group_id, environment_id, tags):
+    def get_group_event_filter(self, project_id, group_id, environment_ids, tags, start, end):
         """
         >>> get_group_event_filter(1, 2, 3, {'key1': 'value1', 'key2': 'value2'})
         """
