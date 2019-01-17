@@ -16,17 +16,11 @@ class JSONField(WritableField):
     }
 
     def __init__(self, *args, **kwargs):
-        self.binary = kwargs.pop('binary', False)
         super(JSONField, self).__init__(*args, **kwargs)
 
     def from_native(self, data):
         try:
-            if self.binary:
-                if isinstance(data, bytes):
-                    data = data.decode('utf-8')
-                return json.loads(data)
-            else:
-                json.dumps(data)
+            json.dumps(data)
         except (TypeError, ValueError):
             raise ValidationError(self.default_error_messages['invalid'])
         return data

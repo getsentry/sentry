@@ -7,34 +7,13 @@ from sentry.testutils import TestCase
 
 
 class DummySerializer(serializers.Serializer):
-    json_field = JSONField(binary=False)
-
-
-class DummyBinarySerializer(serializers.Serializer):
-    json_field = JSONField(binary=True)
+    json_field = JSONField()
 
 
 class JSONFieldTest(TestCase):
-    def test_valid_binary_json(self):
-        data = b'''{
-            "id": "1234",
-            "name": "json-tester",
-            "actions": [{"say-hello": "hello world"}, {"say-goodbye": "bye"}]
-        }'''
-
-        serializer = DummyBinarySerializer(data={'json_field': data})
-        assert serializer.is_valid()
-        assert serializer.object == {
-            'json_field': {
-                'id': '1234',
-                'name': 'json-tester',
-                'actions': [{'say-hello': 'hello world'}, {'say-goodbye': 'bye'}]
-            }
-        }
-
-    def test_invalid_binary_json(self):
-        data = b'''['test':123]'''
-        serializer = DummyBinarySerializer(data={'json_field': data})
+    def test_invalid_json(self):
+        data = object()
+        serializer = DummySerializer(data={'json_field': data})
         assert serializer.is_valid() is False
         assert serializer.errors == {'json_field': [u'Value must be valid JSON.']}
         assert serializer.object is None
