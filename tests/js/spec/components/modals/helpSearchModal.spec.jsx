@@ -56,6 +56,7 @@ describe('Docs Search Modal', function() {
       const search = jest.fn(params => {
         const docHits = [
           {
+            url: '/doc_result',
             _highlightResult: {
               title: {value: 'Doc result 1'},
             },
@@ -66,6 +67,7 @@ describe('Docs Search Modal', function() {
         ];
         const faqHits = [
           {
+            url: '/faq_result',
             _highlightResult: {
               title: {value: 'FAQ result 1'},
             },

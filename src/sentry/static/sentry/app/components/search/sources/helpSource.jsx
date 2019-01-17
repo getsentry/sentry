@@ -91,7 +91,7 @@ class HelpSource extends React.Component {
           descriptionKey: 'content',
           type: 'doc',
           badge: <DocsBadge />,
-          makeUrl: ({url}) => `https://docs.sentry.io/${url}`,
+          makeUrl: ({url}) => `https://docs.sentry.io${url}`,
         })
       ),
       ...faqResults.hits.map(result =>
