@@ -30,7 +30,7 @@ exports[`Docs Search Modal can open help search modal and complete a search 1`] 
                 "resultType": "doc",
                 "sourceType": "help",
                 "title": "Doc result 1",
-                "to": "https://docs.sentry.io/undefined",
+                "to": "https://docs.sentry.io/doc_result",
               }
             }
             matches={
@@ -57,7 +57,7 @@ exports[`Docs Search Modal can open help search modal and complete a search 1`] 
                   "resultType": "doc",
                   "sourceType": "help",
                   "title": "Doc result 1",
-                  "to": "https://docs.sentry.io/undefined",
+                  "to": "https://docs.sentry.io/doc_result",
                 }
               }
               location={
