@@ -283,9 +283,13 @@ def get_snuba_query_args(query=None, params=None):
             kwargs['filter_keys'][snuba_name] = value
 
         elif snuba_name == 'message':
+            # https://clickhouse.yandex/docs/en/query_language/functions/string_search_functions/#position-haystack-needle
+            # positionCaseInsensitive returns 0 if not found and an index of 1 or more if found
+            # so we should flip the operator here
+            operator = '=' if _filter.operator == '!=' else '!='
             # make message search case insensitive
             kwargs['conditions'].append(
-                [['positionCaseInsensitive', ['message', "'%s'" % (value,)]], '!=', 0]
+                [['positionCaseInsensitive', ['message', "'%s'" % (value,)]], operator, 0]
             )
 
         else:
