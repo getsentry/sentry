@@ -6,17 +6,21 @@ from datetime import timedelta
 from django.db.models import Q
 from django.utils import timezone
 from rest_framework.response import Response
+from functools32 import partial
+
 
 from sentry import options, quotas, tagstore
 from sentry.api.base import DocSection, EnvironmentMixin
 from sentry.api.bases import GroupEndpoint
+from sentry.api.serializers.models.event import SnubaEvent
 from sentry.api.serializers import serialize
-from sentry.api.paginator import DateTimePaginator
+from sentry.api.paginator import DateTimePaginator, GenericOffsetPaginator
 from sentry.models import Environment, Event, Group
 from sentry.search.utils import parse_query
-from sentry.utils.apidocs import scenario, attach_scenarios
 from sentry.search.utils import InvalidQuery
+from sentry.utils.apidocs import scenario, attach_scenarios
 from sentry.utils.validators import is_event_id
+from sentry.utils.snuba import raw_query
 
 
 class NoResults(Exception):
@@ -48,10 +52,6 @@ class GroupEventsEndpoint(GroupEndpoint, EnvironmentMixin):
         return backend(request, group)
 
     def _get_events_snuba(self, request, group):
-        from functools32 import partial
-        from sentry.api.paginator import GenericOffsetPaginator
-        from sentry.api.serializers.models.event import SnubaEvent
-        from sentry.utils.snuba import raw_query
 
         try:
             environment = self._get_environment(request, group)
@@ -63,7 +63,8 @@ class GroupEventsEndpoint(GroupEndpoint, EnvironmentMixin):
 
         conditions = []
         if query:
-            message_condition = [['positionCaseInsensitive', ['message', "'%s'" % (query,)]], '!=', 0]
+            msg_substr = ['positionCaseInsensitive', ['message', "'%s'" % (query,)]]
+            message_condition = [msg_substr, '!=', 0]
             if is_event_id(query):
                 or_condition = [message_condition, ['event_id', '=', query]]
                 conditions.append(or_condition)

@@ -243,6 +243,7 @@ class DetailedEventSerializer(EventSerializer):
     """
     Adds release and user report info to the serialized event.
     """
+
     def serialize(self, obj, attrs, user):
         result = super(DetailedEventSerializer, self).serialize(obj, attrs, user)
         result['release'] = self._get_release_info(user, obj)
@@ -285,6 +286,8 @@ class SnubaEvent(object):
         'ip_address',
         'email',
         'timestamp',
+        'tags.key',
+        'tags.value',
     ]
 
     def __init__(self, kv):
@@ -300,6 +303,9 @@ class SnubaEventSerializer(Serializer):
         serialization returned by EventSerializer.
     """
 
+    def get_tags_dict(self, obj):
+        return dict(zip(getattr(obj, 'tags.key'), getattr(obj, 'tags.value')))
+
     def serialize(self, obj, attrs, user):
         return {
             'eventID': six.text_type(obj.event_id),
@@ -311,5 +317,6 @@ class SnubaEventSerializer(Serializer):
                 'email': obj.email,
                 'username': obj.username,
                 'ipAddress': obj.ip_address,
-            }
+            },
+            'tags': self.get_tags_dict(obj)
         }

@@ -19,6 +19,7 @@ class GroupEventsTest(APITestCase, SnubaTestCase):
     with the removal of any explicit tagstore key/value creation calls, and
     comparing the resulting events by `eventID`, instead of `id`.
     """
+
     def setUp(self):
         super(GroupEventsTest, self).setUp()
         self.min_ago = timezone.now() - timedelta(minutes=1)
@@ -243,3 +244,23 @@ class GroupEventsTest(APITestCase, SnubaTestCase):
                 six.text_type(event_2.event_id),
             ]
         )
+
+    def test_search_event_has_tags(self):
+        self.login_as(user=self.user)
+
+        group = self.create_group()
+        event_1 = self.create_event(
+            event_id='a' * 32,
+            datetime=self.min_ago,
+            group=group,
+            message="foo",
+            tags={
+                'logger': 'python',
+            }
+        )
+
+        response = self.client.get(u'/api/0/issues/{}/events/'.format(group.id))
+
+        assert response.status_code == 200, response.content
+        assert len(response.data) == 1
+        assert response.data[0]['tags']['logger'] == 'python'
