@@ -2,7 +2,7 @@
  * Events by Release
  */
 const eventsByRelease = {
-  fields: ['sentry:release'],
+  fields: ['release'],
   conditions: [],
   aggregations: [['count()', null, 'Events']],
   limit: 2000,
