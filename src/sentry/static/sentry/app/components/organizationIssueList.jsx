@@ -1,12 +1,14 @@
 import PropTypes from 'prop-types';
 import React from 'react';
 import {Link} from 'react-router';
+import styled from 'react-emotion';
 
 import GroupStore from 'app/stores/groupStore';
 import IssueList from 'app/components/issueList';
 import PageHeading from 'app/components/pageHeading';
 import OrganizationHomeContainer from 'app/components/organizations/homeContainer';
 import {t} from 'app/locale';
+import space from 'app/styles/space';
 
 class OrganizationIssueList extends React.Component {
   static propTypes = {
@@ -62,7 +64,7 @@ class OrganizationIssueList extends React.Component {
             </Link>
           </div>
         </div>
-        <PageHeading withMargins>{this.props.title}</PageHeading>
+        <StyledPageHeading>{this.props.title}</StyledPageHeading>
         <IssueList
           endpoint={this.props.endpoint}
           emptyText={this.props.emptyText}
@@ -78,5 +80,10 @@ class OrganizationIssueList extends React.Component {
     );
   }
 }
+
+const StyledPageHeading = styled(PageHeading)`
+  margin-top: ${space(0.25)};
+  margin-bottom: 24px;
+`;
 
 export default OrganizationIssueList;
