@@ -13,7 +13,7 @@ class ProjectGroupUserFeedback extends React.Component {
 
   render() {
     const {group, environment} = this.props;
-    const query = {...this.props.params};
+    const query = {...this.props.params, ...this.props.location.query};
 
     if (environment) {
       query.environment = environment.name;
