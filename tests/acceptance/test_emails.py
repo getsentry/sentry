@@ -64,7 +64,6 @@ class EmailTestCase(AcceptanceTestCase):
 
     def test_emails(self):
         for url, name in EMAILS:
-            print("Now testing {}".format(name))
             # HTML output is captured as a snapshot
             self.browser.get(self.build_url(url, 'html'))
             self.browser.wait_until('#preview')
