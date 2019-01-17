@@ -2,21 +2,20 @@ from __future__ import absolute_import, division, print_function
 
 from datetime import timedelta
 import functools
-import logging
 from uuid import uuid4
 
 import six
-from django.db import IntegrityError, transaction
+from django.db import transaction
 from django.utils import timezone
 from rest_framework.response import Response
 
-from sentry import analytics, eventstream, features, search
+from sentry import analytics, eventstream, search
 from sentry.api.base import DocSection, EnvironmentMixin
 from sentry.api.bases.project import ProjectEndpoint, ProjectEventPermission
 from sentry.api.fields import Actor
 from sentry.api.helpers.group_index import (
-    build_query_params_from_request, get_by_short_id, GroupValidator,
-    STATUS_CHOICES, ValidationError
+    build_query_params_from_request, get_by_short_id, GroupIndexMixin,
+    GroupValidator, STATUS_CHOICES, ValidationError
 )
 from sentry.api.serializers import serialize
 from sentry.api.serializers.models.actor import ActorSerializer
@@ -24,14 +23,13 @@ from sentry.api.serializers.models.group import (
     SUBSCRIPTION_REASON_MAP, StreamGroupSerializer)
 from sentry.db.models.query import create_or_update
 from sentry.models import (
-    Activity, Environment, Group, GroupAssignee, GroupBookmark, GroupLink, GroupHash, GroupResolution,
+    Activity, Environment, Group, GroupAssignee, GroupBookmark, GroupLink, GroupResolution,
     GroupSeen, GroupShare, GroupSnooze, GroupStatus, GroupSubscription, GroupSubscriptionReason,
-    GroupTombstone, Release, TOMBSTONE_FIELDS_FROM_GROUP, UserOption, User
+    Release, UserOption, User
 )
 from sentry.models.event import Event
 from sentry.receivers import DEFAULT_SAVED_SEARCHES
-from sentry.signals import advanced_search, issue_ignored, issue_resolved_in_release, issue_deleted, resolved_with_commit
-from sentry.tasks.deletion import delete_groups
+from sentry.signals import advanced_search, issue_ignored, issue_resolved_in_release, resolved_with_commit
 from sentry.tasks.integrations import kick_off_status_syncs
 from sentry.tasks.merge import merge_groups
 from sentry.utils import metrics
@@ -39,7 +37,6 @@ from sentry.utils.apidocs import attach_scenarios, scenario
 from sentry.utils.cursors import CursorResult
 from sentry.utils.functional import extract_lazy_object
 
-delete_logger = logging.getLogger('sentry.deletions.api')
 
 ERR_INVALID_STATS_PERIOD = "Invalid stats_period. Valid choices are '', '24h', and '14d'"
 SAVED_SEARCH_QUERIES = set([s['query'] for s in DEFAULT_SAVED_SEARCHES])
@@ -79,7 +76,7 @@ def list_project_issues_scenario(runner):
     )
 
 
-class ProjectGroupIndexEndpoint(ProjectEndpoint, EnvironmentMixin):
+class ProjectGroupIndexEndpoint(ProjectEndpoint, EnvironmentMixin, GroupIndexMixin):
     doc_section = DocSection.EVENTS
 
     permission_classes = (ProjectEventPermission, )
@@ -340,38 +337,7 @@ class ProjectGroupIndexEndpoint(ProjectEndpoint, EnvironmentMixin):
 
         discard = result.get('discard')
         if discard:
-
-            if not features.has('projects:discard-groups', project, actor=request.user):
-                return Response({'detail': ['You do not have that feature enabled']}, status=400)
-
-            group_list = list(queryset)
-            groups_to_delete = []
-
-            for group in group_list:
-                with transaction.atomic():
-                    try:
-                        tombstone = GroupTombstone.objects.create(
-                            previous_group_id=group.id,
-                            actor_id=acting_user.id if acting_user else None,
-                            **{name: getattr(group, name) for name in TOMBSTONE_FIELDS_FROM_GROUP}
-                        )
-                    except IntegrityError:
-                        # in this case, a tombstone has already been created
-                        # for a group, so no hash updates are necessary
-                        pass
-                    else:
-                        groups_to_delete.append(group)
-
-                        GroupHash.objects.filter(
-                            group=group,
-                        ).update(
-                            group=None,
-                            group_tombstone_id=tombstone.id,
-                        )
-
-            self._delete_groups(request, project, groups_to_delete, delete_type='discard')
-
-            return Response(status=204)
+            return self.handle_discard(request, list(queryset), [project], acting_user)
 
         statusDetails = result.pop('statusDetails', result)
         status = result.get('status')
@@ -878,59 +844,3 @@ class ProjectGroupIndexEndpoint(ProjectEndpoint, EnvironmentMixin):
         self._delete_groups(request, project, group_list, delete_type='delete')
 
         return Response(status=204)
-
-    def _delete_groups(self, request, project, group_list, delete_type):
-        if not group_list:
-            return
-
-        # deterministic sort for sanity, and for very large deletions we'll
-        # delete the "smaller" groups first
-        group_list.sort(key=lambda g: (g.times_seen, g.id))
-        group_ids = [g.id for g in group_list]
-
-        Group.objects.filter(
-            id__in=group_ids,
-        ).exclude(status__in=[
-            GroupStatus.PENDING_DELETION,
-            GroupStatus.DELETION_IN_PROGRESS,
-        ]).update(status=GroupStatus.PENDING_DELETION)
-
-        eventstream_state = eventstream.start_delete_groups(project.id, group_ids)
-        transaction_id = uuid4().hex
-
-        GroupHash.objects.filter(
-            project_id=project.id,
-            group__id__in=group_ids,
-        ).delete()
-
-        delete_groups.apply_async(
-            kwargs={
-                'object_ids': group_ids,
-                'transaction_id': transaction_id,
-                'eventstream_state': eventstream_state,
-            },
-            countdown=3600,
-        )
-
-        for group in group_list:
-            self.create_audit_entry(
-                request=request,
-                organization_id=project.organization_id,
-                target_object=group.id,
-                transaction_id=transaction_id,
-            )
-
-            delete_logger.info(
-                'object.delete.queued',
-                extra={
-                    'object_id': group.id,
-                    'transaction_id': transaction_id,
-                    'model': type(group).__name__,
-                }
-            )
-
-            issue_deleted.send_robust(
-                group=group,
-                user=request.user,
-                delete_type=delete_type,
-                sender=self.__class__)

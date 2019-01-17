@@ -1782,7 +1782,7 @@ class GroupDeleteTest(APITestCase):
             self.project.slug,
         )
 
-    @patch('sentry.api.endpoints.project_group_index.eventstream')
+    @patch('sentry.api.helpers.group_index.eventstream')
     @patch('sentry.eventstream')
     def test_delete_by_id(self, mock_eventstream_task, mock_eventstream_api):
         eventstream_state = object()
