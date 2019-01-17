@@ -1,4 +1,3 @@
-import $ from 'jquery';
 import React from 'react';
 import PropTypes from 'prop-types';
 
@@ -14,12 +13,12 @@ class NarrowLayout extends React.Component {
 
   componentWillMount() {
     this.api = new Client();
-    $(document.body).addClass('narrow');
+    document.body.classList.add('narrow');
   }
 
   componentWillUnmount() {
     this.api.clear();
-    $(document.body).removeClass('narrow');
+    document.body.classList.remove('narrow');
   }
 
   handleLogout = () => {

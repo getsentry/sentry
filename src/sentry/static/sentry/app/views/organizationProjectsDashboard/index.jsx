@@ -1,4 +1,3 @@
-import $ from 'jquery';
 import {Link} from 'react-router';
 import LazyLoad from 'react-lazyload';
 import React from 'react';
@@ -30,10 +29,10 @@ class Dashboard extends React.Component {
   };
 
   componentDidMount() {
-    $(document.body).addClass('org-dashboard');
+    document.body.classList.add('org-dashboard');
   }
   componentWillUnmount() {
-    $(document.body).removeClass('org-dashboard');
+    document.body.classList.remove('org-dashboard');
     ProjectsStatsStore.reset();
   }
 
