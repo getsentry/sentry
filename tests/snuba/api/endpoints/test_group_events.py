@@ -4,6 +4,7 @@ import six
 
 from datetime import timedelta
 from django.utils import timezone
+from freezegun import freeze_time
 
 from sentry import options
 from sentry.models import Environment
@@ -204,13 +205,22 @@ class GroupEventsTest(APITestCase, SnubaTestCase):
             six.text_type(events['production'].event_id),
         ])
 
-        url = u'/api/0/issues/{}/events/'.format(group.id)
+        response = self.client.get(
+            url,
+            data={'environment': ['production', 'development']},
+            format='json',
+        )
+        assert response.status_code == 200, response.content
+        assert set(map(lambda x: x['eventID'], response.data)) == set([
+            six.text_type(event.event_id)
+            for event in events.values()
+        ])
+
         response = self.client.get(url + '?environment=invalid', format='json')
 
         assert response.status_code == 200, response.content
         assert response.data == []
 
-        url = u'/api/0/issues/{}/events/'.format(group.id)
         response = self.client.get(
             url + '?environment=production&query=environment:development',
             format='json')
@@ -264,3 +274,53 @@ class GroupEventsTest(APITestCase, SnubaTestCase):
         assert response.status_code == 200, response.content
         assert len(response.data) == 1
         assert response.data[0]['tags']['logger'] == 'python'
+
+    @freeze_time()
+    def test_date_filters(self):
+        self.login_as(user=self.user)
+
+        first_seen = timezone.now() - timedelta(days=5)
+
+        group = self.create_group(first_seen=first_seen)
+        event_1 = self.create_event(
+            event_id='a' * 32,
+            datetime=first_seen,
+            group=group,
+            message='foo',
+            tags={
+                'logger': 'python',
+            }
+        )
+        event_2 = self.create_event(
+            event_id='b' * 32,
+            datetime=timezone.now() - timedelta(days=1),
+            group=group,
+            message='bar',
+        )
+
+        response = self.client.get(
+            u'/api/0/issues/{}/events/'.format(group.id),
+            data={
+                'statsPeriod': '6d',
+            },
+        )
+
+        assert response.status_code == 200, response.content
+        assert len(response.data) == 2
+        assert sorted(map(lambda x: x['eventID'], response.data)) == sorted(
+            [
+                six.text_type(event_1.event_id),
+                six.text_type(event_2.event_id),
+            ]
+        )
+
+        response = self.client.get(
+            u'/api/0/issues/{}/events/'.format(group.id),
+            data={
+                'statsPeriod': '2d',
+            },
+        )
+
+        assert response.status_code == 200, response.content
+        assert len(response.data) == 1
+        assert response.data[0]['eventID'] == six.text_type(event_2.event_id)

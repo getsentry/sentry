@@ -4,6 +4,7 @@ from rest_framework.exceptions import PermissionDenied
 
 from sentry.api.base import Endpoint
 from sentry.api.exceptions import ResourceDoesNotExist
+from sentry.api.helpers.environments import get_environments
 from sentry.api.permissions import SentryPermission
 from sentry.api.utils import (
     get_date_range_from_params,
@@ -11,7 +12,7 @@ from sentry.api.utils import (
 )
 from sentry.auth.superuser import is_active_superuser
 from sentry.models import (
-    ApiKey, Authenticator, Environment, Organization, OrganizationMemberTeam, Project,
+    ApiKey, Authenticator, Organization, OrganizationMemberTeam, Project,
     ProjectStatus, ReleaseProject,
 )
 from sentry.utils import auth
@@ -176,20 +177,7 @@ class OrganizationEndpoint(Endpoint):
         return projects
 
     def get_environments(self, request, organization):
-        requested_environments = set(request.GET.getlist('environment'))
-
-        if not requested_environments:
-            return []
-
-        environments = Environment.objects.filter(
-            organization_id=organization.id,
-            name__in=requested_environments,
-        )
-
-        if set(requested_environments) != set([e.name for e in environments]):
-            raise ResourceDoesNotExist
-
-        return list(environments)
+        return get_environments(request, organization)
 
     def get_filter_params(self, request, organization, date_filter_optional=False):
         """
