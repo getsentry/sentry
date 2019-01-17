@@ -34,3 +34,18 @@ class SentryAppSerializer(Serializer):
     redirectUrl = serializers.URLField(required=False)
     isAlertable = serializers.BooleanField(required=False)
     overview = serializers.CharField(required=False)
+
+    def validate_events(self, attrs, source):
+        resources = [s.split(':')[0] for s in attrs['scopes']]
+        for event in attrs[source]:
+            if event == 'issue':
+                resource = 'event'
+            else:
+                resource = event
+
+            if resource not in resources:
+                raise ValidationError(
+                    u"resource type '{}' does not have the correct permissions.".format(event),
+                )
+
+        return attrs

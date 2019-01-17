@@ -1,6 +1,5 @@
 from __future__ import absolute_import
 
-
 from django.core.urlresolvers import reverse
 from sentry.testutils import APITestCase
 from sentry.testutils.helpers import with_feature
@@ -134,16 +133,38 @@ class UpdateSentryAppDetailsTest(SentryAppDetailsTest):
             data={
                 'name': 'NewName',
                 'webhookUrl': 'https://newurl.com',
-                'scopes': ('project:read',)
+                'scopes': ('event:read',),
+                'events': ('issue',),
             },
             format='json',
         )
 
         assert response.status_code == 200
         assert response.data['name'] == 'NewName'
-        assert response.data['scopes'] == ['project:read']
+        assert response.data['scopes'] == ['event:read']
+        assert response.data['events'] == set(['issue'])
         assert response.data['uuid'] == self.unpublished_app.uuid
         assert response.data['webhookUrl'] == 'https://newurl.com'
+
+    @with_feature('organizations:internal-catchall')
+    def test_cannot_update_events_without_permissions(self):
+        self.login_as(user=self.user)
+        url = reverse('sentry-api-0-sentry-app-details', args=[self.unpublished_app.slug])
+
+        response = self.client.put(
+            url,
+            data={
+                'name': 'NewName',
+                'webhookUrl': 'https://newurl.com',
+                'scopes': ('project:read',),
+                'events': ('issue',),
+            },
+            format='json',
+        )
+
+        assert response.status_code == 400
+        assert response.data == \
+            {'events': [u"resource type 'issue' does not have the correct permissions."]}
 
     @with_feature('organizations:internal-catchall')
     def test_cannot_update_scopes_published_app(self):
