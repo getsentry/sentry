@@ -21,7 +21,10 @@ class ResponseCodeMiddleware(object):
 
 class RequestTimingMiddleware(object):
     allowed_methods = ('POST', 'GET')
-    allowed_paths = ('sentry.web.api.StoreView', 'sentry.api.endpoints', )
+    allowed_paths = (
+        'sentry.web.api',  # Store endpoints
+        'sentry.api.endpoints',
+    )
 
     def process_view(self, request, view_func, view_args, view_kwargs):
         if request.method not in self.allowed_methods:
