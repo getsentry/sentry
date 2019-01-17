@@ -327,6 +327,16 @@ class EventSearchTest(TestCase):
             'conditions': [[['ifNull', ['tags[sentry:release]', "''"]], '=', '']]
         }
 
+    def test_get_snuba_query_args_message_negative(self):
+        assert get_snuba_query_args('!message:"post_process.process_error HTTPError 403"') == {
+            'filter_keys': {},
+            'conditions': [[
+                ['positionCaseInsensitive', ['message', "'post_process.process_error HTTPError 403'"]],
+                '=',
+                0,
+            ]]
+        }
+
     def test_convert_endpoint_params(self):
         assert convert_endpoint_params({
             'project_id': [1, 2, 3],
