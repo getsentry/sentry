@@ -35,7 +35,10 @@ export function queryToObj(queryStr) {
     {}
   );
 
-  if (text.length) queryObj.__text = text.join(' ');
+  queryObj.__text = '';
+  if (text.length) {
+    queryObj.__text = text.join(' ');
+  }
 
   return queryObj;
 }
