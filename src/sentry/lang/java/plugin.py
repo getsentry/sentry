@@ -12,6 +12,12 @@ from sentry.utils.safe import get_path
 FRAME_CACHE_VERSION = 2
 
 
+def is_valid_image(image):
+    return bool(image) \
+        and image.get('type') == 'proguard' \
+        and image.get('uuid') is not None
+
+
 class JavaStacktraceProcessor(StacktraceProcessor):
     def __init__(self, *args, **kwargs):
         StacktraceProcessor.__init__(self, *args, **kwargs)
@@ -19,10 +25,9 @@ class JavaStacktraceProcessor(StacktraceProcessor):
         self.images = set()
         self.available = False
 
-        for image in get_path(self.data, 'debug_meta', 'images', filter=True, default=()):
-            if image.get('type') == 'proguard':
-                self.available = True
-                self.images.add(six.text_type(image['uuid']).lower())
+        for image in get_path(self.data, 'debug_meta', 'images', filter=is_valid_image, default=()):
+            self.available = True
+            self.images.add(six.text_type(image['uuid']).lower())
 
     def handles_frame(self, frame, stacktrace_info):
         platform = frame.get('platform') or self.data.get('platform')
