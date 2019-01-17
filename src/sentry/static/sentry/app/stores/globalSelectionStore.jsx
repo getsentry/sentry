@@ -17,10 +17,6 @@ const DEFAULT_SELECTION = {
   },
 };
 
-/**
- * Store for global selections
- * Currently stores active project ids for Discover and EventStream
- */
 const GlobalSelectionStore = Reflux.createStore({
   init() {
     this.reset();

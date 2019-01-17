@@ -25,6 +25,7 @@ exports[`OrganizationReleases renders 1`] = `
       ],
       "features": Array [
         "sentry10",
+        "global-views",
       ],
       "id": "3",
       "name": "Organization Name",
@@ -79,6 +80,7 @@ exports[`OrganizationReleases renders 1`] = `
         ],
         "features": Array [
           "sentry10",
+          "global-views",
         ],
         "id": "3",
         "name": "Organization Name",
@@ -136,6 +138,7 @@ exports[`OrganizationReleases renders 1`] = `
               ],
               "features": Array [
                 "sentry10",
+                "global-views",
               ],
               "id": "3",
               "name": "Organization Name",
@@ -184,6 +187,7 @@ exports[`OrganizationReleases renders 1`] = `
                 ],
                 "features": Array [
                   "sentry10",
+                  "global-views",
                 ],
                 "id": "3",
                 "name": "Organization Name",
@@ -238,6 +242,7 @@ exports[`OrganizationReleases renders 1`] = `
                   ],
                   "features": Array [
                     "sentry10",
+                    "global-views",
                   ],
                   "id": "3",
                   "name": "Organization Name",
@@ -284,6 +289,7 @@ exports[`OrganizationReleases renders 1`] = `
                     ],
                     "features": Array [
                       "sentry10",
+                      "global-views",
                     ],
                     "id": "3",
                     "name": "Organization Name",
@@ -379,6 +385,7 @@ exports[`OrganizationReleases renders 1`] = `
                       ],
                       "features": Array [
                         "sentry10",
+                        "global-views",
                       ],
                       "id": "3",
                       "name": "Organization Name",
@@ -479,6 +486,7 @@ exports[`OrganizationReleases renders 1`] = `
                             className="css-5udiwc-HeaderItemPosition e165b9e40"
                           >
                             <MultipleProjectSelector
+                              multi={true}
                               onChange={[Function]}
                               onUpdate={[Function]}
                               organization={
@@ -496,6 +504,7 @@ exports[`OrganizationReleases renders 1`] = `
                                   ],
                                   "features": Array [
                                     "sentry10",
+                                    "global-views",
                                   ],
                                   "id": "3",
                                   "name": "Organization Name",
@@ -536,7 +545,7 @@ exports[`OrganizationReleases renders 1`] = `
                               value={Array []}
                             >
                               <StyledProjectSelector
-                                multi={false}
+                                multi={true}
                                 onChange={[Function]}
                                 onClose={[Function]}
                                 onMultiSelect={[Function]}
@@ -557,6 +566,7 @@ exports[`OrganizationReleases renders 1`] = `
                                     ],
                                     "features": Array [
                                       "sentry10",
+                                      "global-views",
                                     ],
                                     "id": "3",
                                     "name": "Organization Name",
@@ -600,7 +610,7 @@ exports[`OrganizationReleases renders 1`] = `
                               >
                                 <ProjectSelector
                                   className="css-iw79rr-StyledProjectSelector ewlipse0"
-                                  multi={false}
+                                  multi={true}
                                   onChange={[Function]}
                                   onClose={[Function]}
                                   onMultiSelect={[Function]}
@@ -621,6 +631,7 @@ exports[`OrganizationReleases renders 1`] = `
                                       ],
                                       "features": Array [
                                         "sentry10",
+                                        "global-views",
                                       ],
                                       "id": "3",
                                       "name": "Organization Name",
@@ -806,6 +817,7 @@ exports[`OrganizationReleases renders 1`] = `
                                                   >
                                                     <StyledHeaderItem
                                                       active={false}
+                                                      allowClear={true}
                                                       hasChanges={false}
                                                       hasSelected={false}
                                                       icon={
@@ -829,6 +841,7 @@ exports[`OrganizationReleases renders 1`] = `
                                                     >
                                                       <ForwardRef
                                                         active={false}
+                                                        allowClear={true}
                                                         className="css-22y332-StyledHeaderItem ewlipse1"
                                                         hasChanges={false}
                                                         hasSelected={false}
@@ -1032,6 +1045,7 @@ exports[`OrganizationReleases renders 1`] = `
                                   ],
                                   "features": Array [
                                     "sentry10",
+                                    "global-views",
                                   ],
                                   "id": "3",
                                   "name": "Organization Name",
@@ -1077,6 +1091,7 @@ exports[`OrganizationReleases renders 1`] = `
                                     ],
                                     "features": Array [
                                       "sentry10",
+                                      "global-views",
                                     ],
                                     "id": "3",
                                     "name": "Organization Name",
@@ -1119,6 +1134,7 @@ exports[`OrganizationReleases renders 1`] = `
                                       ],
                                       "features": Array [
                                         "sentry10",
+                                        "global-views",
                                       ],
                                       "id": "3",
                                       "name": "Organization Name",
@@ -1161,6 +1177,7 @@ exports[`OrganizationReleases renders 1`] = `
                                         ],
                                         "features": Array [
                                           "sentry10",
+                                          "global-views",
                                         ],
                                         "id": "3",
                                         "name": "Organization Name",
