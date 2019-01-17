@@ -7,7 +7,7 @@ from django.db.models import Q
 from django.utils import timezone
 from rest_framework.response import Response
 
-from sentry import quotas, tagstore
+from sentry import options, quotas, tagstore
 from sentry.api.base import DocSection, EnvironmentMixin
 from sentry.api.bases import GroupEndpoint
 from sentry.api.serializers import serialize
@@ -43,11 +43,9 @@ class GroupEventsEndpoint(GroupEndpoint, EnvironmentMixin):
         :pparam string issue_id: the ID of the issue to retrieve.
         :auth: required
         """
-        backend = request.COOKIES.get('eventstream', 'legacy')
-        return {
-            'legacy': self._get_events_legacy,
-            'snuba': self._get_events_snuba,
-        }[backend](request, group)
+        use_snuba = options.get('snuba.events-queries.enabled')
+        backend = self._get_events_snuba if use_snuba else self._get_events_legacy
+        return backend(request, group)
 
     def _get_events_snuba(self, request, group):
         from functools32 import partial
@@ -75,7 +73,6 @@ class GroupEventsEndpoint(GroupEndpoint, EnvironmentMixin):
         if tags:
             conditions.extend([[u'tags[{}]'.format(k), '=', v] for (k, v) in tags.items()])
 
-        # TODO do we need to add a retention filter, or does snuba util already do that for us
         now = timezone.now()
         data_fn = partial(
             # extract 'data' from raw_query result

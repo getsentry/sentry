@@ -5,15 +5,15 @@ import six
 from datetime import timedelta
 from django.utils import timezone
 
-from sentry import tagstore
+from sentry import options, tagstore
 from sentry.models import Environment
 from sentry.testutils import APITestCase
 
 
 class GroupEventsTest(APITestCase):
     def setUp(self):
-        super(ProjectEventsTest, self).setUp()
-        self.client.cookies['eventstream'] = 'legacy'
+        super(GroupEventsTest, self).setUp()
+        options.set('snuba.events-queries.enabled', False)
 
     def test_simple(self):
         self.login_as(user=self.user)
