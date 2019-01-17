@@ -15,7 +15,7 @@ export default function XAxis({isGroupedByDate, interval, utc, ...props} = {}) {
   };
 
   return {
-    type: 'category',
+    type: isGroupedByDate ? 'time' : 'category',
     boundaryGap: false,
     axisLine: {
       lineStyle: {
@@ -29,10 +29,23 @@ export default function XAxis({isGroupedByDate, interval, utc, ...props} = {}) {
       },
       ...(props.axisTick || {}),
     },
+    splitLine: {
+      show: false,
+    },
     axisLabel: {
       margin: 12,
       formatter: axisLabelFormatter,
       ...(props.axisLabel || {}),
+    },
+    axisPointer: {
+      show: true,
+      type: 'line',
+      label: {
+        show: false,
+      },
+      lineStyle: {
+        width: 0.5,
+      },
     },
     ...props,
   };
