@@ -1,4 +1,3 @@
-import $ from 'jquery';
 import React from 'react';
 import PropTypes from 'prop-types';
 import styled from 'react-emotion';
@@ -41,11 +40,11 @@ class SettingsWrapper extends React.Component {
   }
 
   componentDidMount() {
-    $(document.body).addClass('new-settings');
+    document.body.classList.add('new-settings');
   }
 
   componentWillUnmount() {
-    $(document.body).removeClass('new-settings');
+    document.body.classList.remove('new-settings');
   }
 
   render() {

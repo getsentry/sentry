@@ -1,4 +1,3 @@
-import $ from 'jquery';
 import {Box, Flex} from 'grid-emotion';
 import PropTypes from 'prop-types';
 import React from 'react';
@@ -63,13 +62,13 @@ const ProjectInstallPlatform = createReactClass({
 
   componentDidMount() {
     this.fetchData();
-    $(window).scrollTop(0);
+    window.scrollTo(0, 0);
   },
 
   componentWillReceiveProps(nextProps) {
     if (nextProps.params.platform !== this.props.params.platform) {
       this.setState(this.getInitialState(nextProps), this.fetchData);
-      $(window).scrollTop(0);
+      window.scrollTo(0, 0);
     }
   },
 

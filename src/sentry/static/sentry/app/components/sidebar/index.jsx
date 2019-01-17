@@ -54,8 +54,8 @@ class Sidebar extends React.Component {
 
   componentDidMount() {
     let {router} = this.props;
-    $(document.body).addClass('body-sidebar');
-    $(document).on('click', this.documentClickHandler);
+    document.body.classList.add('body-sidebar');
+    document.addEventListener('click', this.documentClickHandler);
 
     loadIncidents();
 
@@ -101,8 +101,8 @@ class Sidebar extends React.Component {
   }
 
   componentWillUnmount() {
-    $(document).off('click', this.documentClickHandler);
-    $(document.body).removeClass('body-sidebar');
+    document.removeEventListener('click', this.documentClickHandler);
+    document.body.classList.remove('body-sidebar');
 
     if (this.mq) {
       this.mq.removeListener(this.handleMediaQueryChange);
@@ -117,9 +117,9 @@ class Sidebar extends React.Component {
 
   doCollapse(collapsed) {
     if (collapsed) {
-      $(document.body).addClass('collapsed');
+      document.body.classList.add('collapsed');
     } else {
-      $(document.body).removeClass('collapsed');
+      document.body.classList.remove('collapsed');
     }
   }
 

@@ -1,4 +1,3 @@
-import $ from 'jquery';
 import PropTypes from 'prop-types';
 import React from 'react';
 import createReactClass from 'create-react-class';
@@ -14,11 +13,11 @@ export default createReactClass({
   },
 
   componentWillMount() {
-    $(document.body).addClass('auth');
+    document.body.classList.add('auth');
   },
 
   componentWillUnmount() {
-    $(document.body).removeClass('auth');
+    document.body.classList.remove('auth');
   },
 
   onSubmitSuccess() {
