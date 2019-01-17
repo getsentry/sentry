@@ -227,7 +227,7 @@ class GroupValidator(serializers.Serializer):
         return attrs
 
 
-def handle_discard(request, group_list, projects, user, view_cls):
+def handle_discard(request, group_list, projects, user):
     for project in projects:
         if not features.has('projects:discard-groups', project, actor=user):
             return Response({'detail': ['You do not have that feature enabled']}, status=400)
@@ -258,14 +258,12 @@ def handle_discard(request, group_list, projects, user, view_cls):
                 )
 
     for project in projects:
-        to_delete = groups_to_delete.get(project.id)
-        if to_delete:
-            delete_groups(request, project, to_delete, delete_type='discard', view_cls=view_cls)
+        delete_groups(request, project, groups_to_delete.get(project.id), delete_type='discard')
 
     return Response(status=204)
 
 
-def delete_groups(request, project, group_list, delete_type, view_cls):
+def delete_groups(request, project, group_list, delete_type):
     if not group_list:
         return
 
@@ -320,4 +318,4 @@ def delete_groups(request, project, group_list, delete_type, view_cls):
             group=group,
             user=request.user,
             delete_type=delete_type,
-            sender=view_cls)
+            sender=delete_groups)

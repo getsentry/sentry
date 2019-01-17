@@ -337,9 +337,7 @@ class ProjectGroupIndexEndpoint(ProjectEndpoint, EnvironmentMixin):
 
         discard = result.get('discard')
         if discard:
-            return handle_discard(
-                request, list(queryset), [project], acting_user, view_cls=self.__class__
-            )
+            return handle_discard(request, list(queryset), [project], acting_user)
 
         statusDetails = result.pop('statusDetails', result)
         status = result.get('status')
@@ -843,6 +841,6 @@ class ProjectGroupIndexEndpoint(ProjectEndpoint, EnvironmentMixin):
         if not group_list:
             return Response(status=204)
 
-        delete_groups(request, project, group_list, delete_type='delete', view_cls=self.__class__)
+        delete_groups(request, project, group_list, delete_type='delete')
 
         return Response(status=204)
