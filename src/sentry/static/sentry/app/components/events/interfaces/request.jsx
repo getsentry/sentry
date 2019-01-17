@@ -49,26 +49,31 @@ class RequestInterface extends React.Component {
     let view = this.state.view;
 
     let fullUrl = data.url;
-    if (data.query && fullUrl) {
-      fullUrl = fullUrl + '?' + data.query;
-    }
-    if (data.fragment && fullUrl) {
-      fullUrl = fullUrl + '#' + data.fragment;
-    }
-
     let parsedUrl = null;
     if (fullUrl) {
-      // lol
+      if (data.query) {
+        fullUrl = fullUrl + '?' + data.query;
+      }
+      if (data.fragment && fullUrl) {
+        fullUrl = fullUrl + '#' + data.fragment;
+      }
+
+      if (!isUrl(fullUrl)) {
+        // Check if the url passed in is a safe url to avoid XSS
+        fullUrl = null;
+      }
+    }
+
+    // check `fullUrl` again because of `isUrl` check
+    if (fullUrl) {
+      // use html tag to parse url, lol
       parsedUrl = document.createElement('a');
       parsedUrl.href = fullUrl;
     }
 
     let children = [];
 
-    // Check if the url passed in is a safe url to avoid XSS
-    let isValidUrl = fullUrl ? isUrl(fullUrl) : false;
-
-    if (!this.isPartial() && isValidUrl) {
+    if (!this.isPartial() && fullUrl) {
       children.push(
         <div key="view-buttons" className="btn-group">
           <a
@@ -90,7 +95,7 @@ class RequestInterface extends React.Component {
 
     children.push(
       <h3 key="title">
-        <a href={isValidUrl ? fullUrl : null} title={fullUrl}>
+        <a href={fullUrl} title={fullUrl}>
           <span className="path">
             <strong>{data.method || 'GET'}</strong>
             <Truncate
@@ -99,7 +104,7 @@ class RequestInterface extends React.Component {
               leftTrim={true}
             />
           </span>
-          {isValidUrl && (
+          {fullUrl && (
             <span className="external-icon">
               <em className="icon-open" />
             </span>
