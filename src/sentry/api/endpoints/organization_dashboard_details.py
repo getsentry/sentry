@@ -1,20 +1,18 @@
 from __future__ import absolute_import
 
-from django.http import Http404
-
 from sentry.api.base import DocSection
-from sentry.api.bases.organization import (
-    OrganizationEndpoint
+from sentry.api.bases.dashboard import (
+    OrganizationDashboardEndpoint
 )
 from sentry.api.serializers import serialize
-from sentry.models import Dashboard, ObjectStatus
+from sentry.models import ObjectStatus
 
 
-class OrganizationDashboardDetailsEndpoint(OrganizationEndpoint):
+class OrganizationDashboardDetailsEndpoint(OrganizationDashboardEndpoint):
 
     doc_section = DocSection.ORGANIZATIONS
 
-    def get(self, request, organization, dashboard_id):
+    def get(self, request, organization, dashboard):
         """
         Retrieve an Organization's Dashboard
         ````````````````````````````````````
@@ -26,17 +24,10 @@ class OrganizationDashboardDetailsEndpoint(OrganizationEndpoint):
         :pparam int dashboard_id: the id of the dashboard.
         :auth: required
         """
-        try:
-            dashboard = Dashboard.objects.get(
-                id=dashboard_id,
-                organization_id=organization.id,
-            )
-        except Dashboard.DoesNotExist:
-            raise Http404
 
         return self.respond(serialize(dashboard, request.user))
 
-    def delete(self, request, organization, dashboard_id):
+    def delete(self, request, organization, dashboard):
         """
         Delete an Organization's Dashboard
         ```````````````````````````````````
@@ -48,17 +39,8 @@ class OrganizationDashboardDetailsEndpoint(OrganizationEndpoint):
         :pparam int dashboard_id: the id of the dashboard.
         :auth: required
         """
-        try:
-            dashboard = Dashboard.objects.get(
-                id=dashboard_id,
-                organization=organization,
-            )
-        except Dashboard.DoesNotExist:
-            raise Http404
 
-        Dashboard.objects.filter(
-            id=dashboard.id,
-            status=ObjectStatus.VISIBLE,
-        ).update(status=ObjectStatus.PENDING_DELETION)
+        dashboard.status = ObjectStatus.PENDING_DELETION
+        dashboard.save()
 
         return self.respond(status=204)

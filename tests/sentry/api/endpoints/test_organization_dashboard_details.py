@@ -139,7 +139,7 @@ class OrganizationDashboardDetailsGetTest(OrganizationDashboardDetailsTestCase):
     def test_dashboard_does_not_exist(self):
         response = self.client.get(self.url(1234567890))
         assert response.status_code == 404
-        assert response.data == {u'detail': u'Not found'}
+        assert response.data == {u'detail': 'The requested resource does not exist'}
 
 
 class OrganizationDashboardDetailsDeleteTest(OrganizationDashboardDetailsTestCase):
@@ -151,4 +151,4 @@ class OrganizationDashboardDetailsDeleteTest(OrganizationDashboardDetailsTestCas
     def test_dashboard_does_not_exist(self):
         response = self.client.delete(self.url(1234567890))
         assert response.status_code == 404
-        assert response.data == {u'detail': u'Not found'}
+        assert response.data == {u'detail': 'The requested resource does not exist'}
