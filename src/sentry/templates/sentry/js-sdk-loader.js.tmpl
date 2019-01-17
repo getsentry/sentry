@@ -127,13 +127,14 @@
       // Because we installed the SDK, at this point we have an access to TraceKit's handler,
       // which can take care of browser differences (eg. missing exception argument in onerror)
       var tracekitErrorHandler = _window[_onerror];
+      var tracekitUnhandledRejectionHandler = _window[_onunhandledrejection];
 
       // And now capture all previously caught exceptions
       for (var i = 0; i < data.length; i++) {
-        if (data[i].e) {
+        if (data[i].e && tracekitErrorHandler) {
           tracekitErrorHandler.apply(_window, data[i].e);
-        } else if (data[i].p) {
-          SDK.captureException(data[i].p);
+        } else if (data[i].p && tracekitUnhandledRejectionHandler) {
+          tracekitUnhandledRejectionHandler.apply(_window, [data[i].p]);
         }
       }
     } catch (o_O) {
