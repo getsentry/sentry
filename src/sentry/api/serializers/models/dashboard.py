@@ -1,11 +1,27 @@
 from __future__ import absolute_import
 
 import six
+
 from sentry.api.serializers import Serializer, register, serialize
-from sentry.models import Dashboard, WidgetDataSource, WidgetDisplayTypes
+from sentry.models import Dashboard, Widget, WidgetDataSource, WidgetDisplayTypes
 
 
+@register(Widget)
 class WidgetSerializer(Serializer):
+    def get_attrs(self, item_list, user):
+        result = {}
+        data_sources = serialize(list(WidgetDataSource.objects.filter(
+            widget_id__in=[i.id for i in item_list],
+        )))
+
+        for widget in item_list:
+            widget_data_sources = [
+                d for d in data_sources if d['widgetId'] == six.text_type(
+                    widget.id)]
+            result[widget] = {'dataSources': widget_data_sources}
+
+        return result
+
     def serialize(self, obj, attrs, user, *args, **kwargs):
         return {
             'id': six.text_type(obj.id),
@@ -14,10 +30,14 @@ class WidgetSerializer(Serializer):
             'displayType': WidgetDisplayTypes.get_type_name(obj.display_type),
             'displayOptions': obj.display_options,
             'dateAdded': obj.date_added,
+            'dashboardId': six.text_type(obj.dashboard_id),
+            'dataSources': attrs['dataSources'],
         }
 
 
+@register(WidgetDataSource)
 class WidgetDataSourceSerializer(Serializer):
+
     def serialize(self, obj, attrs, user, *args, **kwargs):
         return {
             'id': six.text_type(obj.id),
@@ -25,6 +45,7 @@ class WidgetDataSourceSerializer(Serializer):
             'name': obj.name,
             'data': obj.data,
             'order': six.text_type(obj.order),
+            'widgetId': six.text_type(obj.widget_id),
         }
 
 
@@ -32,26 +53,17 @@ class WidgetDataSourceSerializer(Serializer):
 class DashboardWithWidgetsSerializer(Serializer):
 
     def get_attrs(self, item_list, user):
-        widget_data_sources = WidgetDataSource.objects.filter(
-            widget__dashboard_id__in=[i.id for i in item_list]
-        ).select_related('widget')
-        widgets = {}
-
-        for widget_data_source in widget_data_sources:
-            widget = widget_data_source.widget
-            if widget not in widgets:
-                widgets[widget] = serialize(widget, user, WidgetSerializer())
-                widgets[widget]['dataSources'] = []
-            widgets[widget]['dataSources'].append(
-                serialize(
-                    widget_data_source,
-                    user,
-                    WidgetDataSourceSerializer()))
-
         result = {}
+
+        widgets = serialize(list(Widget.objects.filter(
+            dashboard_id__in=[i.id for i in item_list]
+        )))
+
         for dashboard in item_list:
-            result[dashboard] = {'widgets': [widgets[w]
-                                             for w in widgets if w.dashboard_id == dashboard.id]}
+            dashboard_widgets = [
+                w for w in widgets if w['dashboardId'] == six.text_type(
+                    dashboard.id)]
+            result[dashboard] = {'widgets': dashboard_widgets}
 
         return result
 
