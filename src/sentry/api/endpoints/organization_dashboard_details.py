@@ -7,7 +7,6 @@ from sentry.api.bases.organization import (
     OrganizationEndpoint
 )
 from sentry.api.serializers import serialize
-from sentry.api.serializers.models.dashboard import DashboardWithWidgetsSerializer as DashboardModelSerializer
 from sentry.models import Dashboard, ObjectStatus
 
 
@@ -35,7 +34,7 @@ class OrganizationDashboardDetailsEndpoint(OrganizationEndpoint):
         except Dashboard.DoesNotExist:
             raise Http404
 
-        return self.respond(serialize(dashboard, request.user, DashboardModelSerializer()))
+        return self.respond(serialize(dashboard, request.user))
 
     def delete(self, request, organization, dashboard_id):
         """
