@@ -8,7 +8,21 @@ from sentry.constants import ObjectStatus
 from sentry.db.models import BoundedPositiveIntegerField, FlexibleForeignKey, Model, sane_repr
 
 
-class WidgetDisplayTypes(object):
+class TypesClass(object):
+    TYPES = []
+
+    @classmethod
+    def as_choices(cls):
+        return cls.TYPES
+
+    @classmethod
+    def get_type_name(cls, num):
+        for id, name in cls.TYPES:
+            if id == num:
+                return name
+
+
+class WidgetDisplayTypes(TypesClass):
     LINE_CHART = 0
     AREA_CHART = 1
     STACKED_AREA_CHART = 2
@@ -17,29 +31,25 @@ class WidgetDisplayTypes(object):
     TABLE = 5
     WORLD_MAP = 6
     PERCENTAGE_AREA_CHART = 7
-
-    @classmethod
-    def as_choices(cls):
-        return [
-            (cls.LINE_CHART, 'line'),
-            (cls.AREA_CHART, 'area'),
-            (cls.STACKED_AREA_CHART, 'stacked_area'),
-            (cls.BAR_CHART, 'bar'),
-            (cls.PIE_CHART, 'pie'),
-            (cls.TABLE, 'table'),
-            (cls.WORLD_MAP, 'world_map'),
-            (cls.PERCENTAGE_AREA_CHART, 'percentage_area_chart')
-        ]
+    TYPES = [
+        (LINE_CHART, 'line'),
+        (AREA_CHART, 'area'),
+        (STACKED_AREA_CHART, 'stacked_area'),
+        (BAR_CHART, 'bar'),
+        (PIE_CHART, 'pie'),
+        (TABLE, 'table'),
+        (WORLD_MAP, 'world_map'),
+        (PERCENTAGE_AREA_CHART, 'percentage_area_chart')
+    ]
+    TYPE_NAMES = [t[1] for t in TYPES]
 
 
-class WidgetDataSourceTypes(object):
+class WidgetDataSourceTypes(TypesClass):
     DISCOVER_SAVED_SEARCH = 0
-
-    @classmethod
-    def as_choices(cls):
-        return [
-            (cls.DISCOVER_SAVED_SEARCH, 'discover_saved_search'),
-        ]
+    TYPES = [
+        (DISCOVER_SAVED_SEARCH, 'discover_saved_search'),
+    ]
+    TYPE_NAMES = [t[1] for t in TYPES]
 
 
 class WidgetDataSource(Model):
