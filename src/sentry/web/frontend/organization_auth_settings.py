@@ -11,6 +11,7 @@ from django.utils.translation import ugettext_lazy as _
 from sentry import features, roles
 from sentry.auth import manager
 from sentry.auth.helper import AuthHelper
+from sentry.auth.superuser import is_active_superuser
 from sentry.models import AuditLogEntryEvent, AuthProvider, OrganizationMember, User
 from sentry.plugins import Response
 from sentry.tasks.auth import email_missing_links, email_unlink_notifications
@@ -168,11 +169,13 @@ class OrganizationAuthSettingsView(OrganizationView):
             requires_feature = provider.required_feature
 
             # Provider is not enabled
+            # Allow superusers to edit and disable SSO for orgs that
+            # downgrade plans and can no longer access the feature
             if requires_feature and not features.has(
-                    requires_feature,
-                    organization,
-                    actor=request.user
-            ):
+                requires_feature,
+                organization,
+                actor=request.user
+            ) and not is_active_superuser(request):
                 home_url = reverse('sentry-organization-home', args=[organization.slug])
                 messages.add_message(request, messages.ERROR, ERR_NO_SSO)
 
