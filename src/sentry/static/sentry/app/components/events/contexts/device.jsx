@@ -1,7 +1,9 @@
+import {isString} from 'lodash';
 import PropTypes from 'prop-types';
 import React from 'react';
 
 import ContextBlock from 'app/components/events/contexts/contextBlock';
+import DeviceName from 'app/components/deviceName';
 import {defined, formatBytes} from 'app/utils';
 
 class DeviceContextType extends React.Component {
@@ -83,13 +85,18 @@ class DeviceContextType extends React.Component {
       external_storage_size,
       external_free_storage
     );
+
+    let renderedModel = isString(model) ? (
+      <DeviceName>{model + (model_id ? ` (${model_id})` : '')}</DeviceName>
+    ) : null;
+
     return (
       <ContextBlock
         data={data}
         knownData={[
           ['?Name', name],
           ['?Family', family],
-          ['?Model', model + (model_id ? ` (${model_id})` : '')],
+          ['?Model', renderedModel],
           ['?CPU Description', cpu_description],
           ['?Architecture', arch],
           ['?Battery Level', defined(battery_level) ? `${battery_level}%` : null],

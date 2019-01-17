@@ -159,6 +159,8 @@ class ContextData extends React.Component {
             <span className="val-array-marker">{']'}</span>
           </span>
         );
+      } else if (React.isValidElement(value)) {
+        return value;
       } else {
         let keys = Object.keys(value);
         keys.sort(naturalCaseInsensitiveSort);

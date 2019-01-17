@@ -2,7 +2,6 @@ import PropTypes from 'prop-types';
 import React from 'react';
 import _ from 'lodash';
 
-import DeviceName from 'app/components/deviceName';
 import ContextData from 'app/components/contextData';
 
 class KeyValueList extends React.Component {
@@ -52,9 +51,7 @@ class KeyValueList extends React.Component {
                 <tr key={key}>
                   <td className="key">{key}</td>
                   <td className="value">
-                    <pre>
-                      <DeviceName>{'' + value || ' '}</DeviceName>
-                    </pre>
+                    <pre>{'' + value || ' '}</pre>
                   </td>
                 </tr>,
               ];

@@ -45,7 +45,7 @@ class ContextBlock extends React.Component {
     return (
       <div className={className}>
         <ErrorBoundary mini>
-          <KeyValueList data={data} isSorted={false} />
+          <KeyValueList data={data} isSorted={false} isContextData />
         </ErrorBoundary>
       </div>
     );
