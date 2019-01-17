@@ -244,8 +244,10 @@ class IndexEventTagsTest(TestCase):
         assert tagstore.get_group_event_filter(
             self.project.id,
             group.id,
-            self.environment.id,
+            [self.environment.id],
             {'foo': 'bar', 'biz': 'baz'},
+            None,
+            None,
         ) == {'id__in': set([event.id])}
 
         # ensure it safely handles repeat runs
@@ -262,6 +264,8 @@ class IndexEventTagsTest(TestCase):
         assert tagstore.get_group_event_filter(
             self.project.id,
             group.id,
-            self.environment.id,
+            [self.environment.id],
             {'foo': 'bar', 'biz': 'baz'},
+            None,
+            None,
         ) == {'id__in': set([event.id])}

@@ -442,7 +442,7 @@ class LegacyTagStorage(TagStorage):
                     },
                     extra=extra)
 
-    def get_group_event_filter(self, project_id, group_id, environment_id, tags):
+    def get_group_event_filter(self, project_id, group_id, environment_ids, tags, start, end):
         tagkeys = dict(
             models.TagKey.objects.filter(
                 project_id=project_id,
