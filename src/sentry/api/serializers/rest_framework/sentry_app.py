@@ -4,7 +4,7 @@ from rest_framework import serializers
 from rest_framework.serializers import Serializer, ValidationError
 
 from sentry.models import ApiScopes
-from sentry.models.sentryapp import VALID_EVENTS
+from sentry.models.sentryapp import VALID_EVENTS, VALID_EVENT_PERMISSIONS
 
 
 class ApiScopesField(serializers.WritableField):
@@ -38,16 +38,12 @@ class SentryAppSerializer(Serializer):
     def validate_events(self, attrs, source):
         if not attrs.get('scopes'):
             return attrs
-        resources = [s.split(':')[0] for s in attrs['scopes']]
-        for event in attrs[source]:
-            if event == 'issue':
-                resource = 'event'
-            else:
-                resource = event
 
-            if resource not in resources:
+        for resource in attrs[source]:
+            needed_scope = VALID_EVENT_PERMISSIONS[resource]
+            if needed_scope not in attrs['scopes']:
                 raise ValidationError(
-                    u"resource type '{}' does not have the correct permissions.".format(event),
+                    u'{} webhooks require the {} permission.'.format(resource, needed_scope),
                 )
 
         return attrs

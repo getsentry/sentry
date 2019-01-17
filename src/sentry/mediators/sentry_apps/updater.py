@@ -8,6 +8,7 @@ from sentry.coreapi import APIError
 from sentry.constants import SentryAppStatus
 from sentry.mediators import Mediator, Param
 from sentry.mediators.param import if_param
+from sentry.models.sentryapp import VALID_EVENT_PERMISSIONS
 
 
 class Updater(Mediator):
@@ -43,6 +44,13 @@ class Updater(Mediator):
 
     @if_param('events')
     def _update_events(self):
+        for event in self.events:
+            needed_scope = VALID_EVENT_PERMISSIONS[event]
+            if needed_scope not in self.sentry_app.scope_list:
+                raise APIError(
+                    u'{} webhooks require the {} permission.'.format(event, needed_scope),
+                )
+
         from sentry.mediators.service_hooks.creator import expand_events
         self.sentry_app.events = expand_events(self.events)
 

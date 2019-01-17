@@ -24,6 +24,14 @@ VALID_EVENTS = (
     'issue',
 )
 
+VALID_EVENT_PERMISSIONS = {
+    'issue': 'event:read',
+    'project': 'project:read',
+    'member': 'member:read',
+    'organization': 'org:read',
+    'team': 'team:read',
+}
+
 
 def default_uuid():
     return six.binary_type(uuid.uuid4())
