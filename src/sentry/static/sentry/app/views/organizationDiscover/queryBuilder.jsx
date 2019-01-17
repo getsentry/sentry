@@ -10,7 +10,7 @@ import {t} from 'app/locale';
 import {openModal} from 'app/actionCreators/modal';
 
 import MissingProjectWarningModal from './missingProjectWarningModal';
-import {COLUMNS, PROMOTED_TAGS, SPECIAL_TAGS} from './data';
+import {COLUMNS, PROMOTED_TAGS, SPECIAL_TAGS, HIDDEN_TAGS} from './data';
 import {isValidAggregation} from './aggregations/utils';
 
 const DEFAULTS = {
@@ -73,7 +73,7 @@ export default function createQueryBuilder(initial = {}, organization) {
       turbo: true,
     })
       .then(res => {
-        tags = res.data.map(tag => {
+        tags = res.data.filter(tag => !HIDDEN_TAGS.includes(tag.tags_key)).map(tag => {
           const type = SPECIAL_TAGS[tags.tags_key] || 'string';
           return {name: tag.tags_key, type, isTag: true};
         });
