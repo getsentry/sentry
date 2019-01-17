@@ -11,17 +11,17 @@ from sentry import quotas, tagstore
 from sentry.api.base import DocSection, EnvironmentMixin
 from sentry.api.bases import GroupEndpoint
 from sentry.api.serializers import serialize
-from sentry.api.paginator import DateTimePaginator, GenericOffsetPaginator, Paginator
+from sentry.api.paginator import DateTimePaginator
 from sentry.models import Environment, Event, Group
 from sentry.search.utils import parse_query
 from sentry.utils.apidocs import scenario, attach_scenarios
 from sentry.search.utils import InvalidQuery
 from sentry.utils.validators import is_event_id
 
+
 class NoResults(Exception):
     pass
 
-EMPTY_RESULT = Response([])
 
 @scenario('ListAvailableSamples')
 def list_available_samples_scenario(runner):
@@ -43,12 +43,11 @@ class GroupEventsEndpoint(GroupEndpoint, EnvironmentMixin):
         :pparam string issue_id: the ID of the issue to retrieve.
         :auth: required
         """
-        backend = 'legacy'
+        backend = request.COOKIES.get('eventstream', 'legacy')
         return {
             'legacy': self._get_events_legacy,
             'snuba': self._get_events_snuba,
         }[backend](request, group)
-
 
     def _get_events_snuba(self, request, group):
         from functools32 import partial
@@ -62,7 +61,7 @@ class GroupEventsEndpoint(GroupEndpoint, EnvironmentMixin):
         except InvalidQuery as exc:
             return Response({'detail': six.text_type(exc)}, status=400)
         except NoResults:
-            return EMPTY_RESULT
+            return Response([])
 
         conditions = []
         if query:
@@ -74,7 +73,7 @@ class GroupEventsEndpoint(GroupEndpoint, EnvironmentMixin):
                 conditions.append(message_condition)
 
         if tags:
-            tag_conditions = [[u'tags[{}]'.format(k), '=', v] for (k, v) in tags.items()]
+            conditions.extend([[u'tags[{}]'.format(k), '=', v] for (k, v) in tags.items()])
 
         # TODO do we need to add a retention filter, or does snuba util already do that for us
         now = timezone.now()
@@ -100,7 +99,6 @@ class GroupEventsEndpoint(GroupEndpoint, EnvironmentMixin):
             paginator=GenericOffsetPaginator(data_fn=data_fn)
         )
 
-
     def _get_events_legacy(self, request, group):
         try:
             environment = self._get_environment(request, group)
@@ -108,7 +106,7 @@ class GroupEventsEndpoint(GroupEndpoint, EnvironmentMixin):
         except InvalidQuery as exc:
             return Response({'detail': six.text_type(exc)}, status=400)
         except NoResults:
-            return EMPTY_RESULT
+            return Response([])
 
         events = Event.objects.filter(group_id=group.id)
 
@@ -129,7 +127,7 @@ class GroupEventsEndpoint(GroupEndpoint, EnvironmentMixin):
             )
 
             if not event_filter:
-                return EMPTY_RESULT
+                return Response([])
 
             events = events.filter(**event_filter)
 
