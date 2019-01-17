@@ -199,7 +199,6 @@ class ActivityMailDebugView(View):
 
         data = dict(load_data('python'))
         data['message'] = group.message
-        data['event_id'] = '44f1419e73884cd2b45c79918f4b6dc4'
         data.pop('logentry', None)
 
         event_manager = EventManager(data)
@@ -255,6 +254,7 @@ def alert(request):
 
     data = dict(load_data(platform))
     data['message'] = group.message
+    data['event_id'] = '44f1419e73884cd2b45c79918f4b6dc4'
     data.pop('logentry', None)
     data['environment'] = 'prod'
     data['tags'] = [
