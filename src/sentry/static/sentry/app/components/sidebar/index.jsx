@@ -205,6 +205,17 @@ class Sidebar extends React.Component {
     };
     let hasOrganization = !!organization;
 
+    let projectsSidebarItem = () => (
+      <SidebarItem
+        {...sidebarItemProps}
+        index
+        onClick={this.hidePanel}
+        icon={<InlineSvg src="icon-projects" />}
+        label={t('Projects')}
+        to={`/${organization.slug}/`}
+      />
+    );
+
     return (
       <StyledSidebar innerRef={ref => (this.sidebar = ref)} collapsed={collapsed}>
         <SidebarSectionGroup>
@@ -222,7 +233,7 @@ class Sidebar extends React.Component {
           {hasOrganization && (
             <React.Fragment>
               <SidebarSection>
-                <Feature features={['sentry10']}>
+                <Feature features={['sentry10']} renderDisabled={projectsSidebarItem}>
                   <SidebarItem
                     {...sidebarItemProps}
                     index
@@ -231,17 +242,6 @@ class Sidebar extends React.Component {
                     label={t('Dashboard')}
                     to={`/organizations/${organization.slug}/dashboards/`}
                   />
-                </Feature>
-
-                <SidebarItem
-                  {...sidebarItemProps}
-                  index
-                  onClick={this.hidePanel}
-                  icon={<InlineSvg src="icon-projects" />}
-                  label={t('Projects')}
-                  to={`/${organization.slug}/`}
-                />
-                <Feature features={['sentry10']}>
                   <SidebarItem
                     {...sidebarItemProps}
                     onClick={(_id, evt) =>
@@ -253,7 +253,23 @@ class Sidebar extends React.Component {
                     label={t('Issues')}
                     to={`/organizations/${organization.slug}/issues/`}
                   />
+                </Feature>
 
+                <Feature features={['global-views']}>
+                  <SidebarItem
+                    {...sidebarItemProps}
+                    onClick={(_id, evt) =>
+                      this.navigateWithGlobalSelection(
+                        `/organizations/${organization.slug}/events/`,
+                        evt
+                      )}
+                    icon={<InlineSvg src="icon-stack" />}
+                    label={t('Events')}
+                    to={`/organizations/${organization.slug}/events/`}
+                  />
+                </Feature>
+
+                <Feature features={['sentry10']}>
                   <SidebarItem
                     {...sidebarItemProps}
                     onClick={(_id, evt) =>
@@ -275,19 +291,6 @@ class Sidebar extends React.Component {
                     icon={<InlineSvg src="icon-support" />}
                     label={t('User Feedback')}
                     to={`/organizations/${organization.slug}/user-feedback/`}
-                  />
-                </Feature>
-                <Feature features={['global-views']}>
-                  <SidebarItem
-                    {...sidebarItemProps}
-                    onClick={(_id, evt) =>
-                      this.navigateWithGlobalSelection(
-                        `/organizations/${organization.slug}/events/`,
-                        evt
-                      )}
-                    icon={<InlineSvg src="icon-stack" />}
-                    label={t('Events')}
-                    to={`/organizations/${organization.slug}/events/`}
                   />
                 </Feature>
 
