@@ -31,7 +31,7 @@ class OrganizationDashboardsTest(APITestCase):
         assert data['id'] == six.text_type(dashboard.id)
         assert data['organization'] == six.text_type(dashboard.organization.id)
         assert data['title'] == dashboard.title
-        assert data['created_by'] == six.text_type(dashboard.created_by.id)
+        assert data['createdBy'] == six.text_type(dashboard.created_by.id)
 
     def test_get(self):
         response = self.client.get(self.url)
@@ -46,7 +46,6 @@ class OrganizationDashboardsTest(APITestCase):
             self.url,
             data={
                 'title': 'Dashboard from Post',
-                'created_by': self.user.id,
             }
         )
         assert response.status_code == 201
@@ -87,8 +86,6 @@ class OrganizationDashboardsTest(APITestCase):
             self.url,
             data={
                 'title': self.dashboard_1.title,
-                'created_by': self.dashboard_1.created_by.id,
-                'organization': self.dashboard_1.organization.id,
             }
         )
         assert response.status_code == 409
