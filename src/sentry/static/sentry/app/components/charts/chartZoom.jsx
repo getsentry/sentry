@@ -151,6 +151,20 @@ class ChartZoom extends React.Component {
         this.props.router
       );
 
+      setTimeout(() => {
+        // Hacky but we want to replace the zoom url param so that if we zoom again
+        // and use browser back button to go back, zoom is not in the URL params (and
+        // thus will re-render the chart)
+        const {
+          router,
+          location: {query: {zoom, ...query}, ...restLocation}, // eslint-disable-line no-unused-vars
+        } = this.props;
+        router.replace({
+          ...restLocation,
+          query,
+        });
+      }, 1);
+
       this.saveCurrentPeriod({period, start, end});
     };
   };
