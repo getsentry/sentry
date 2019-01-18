@@ -100,6 +100,7 @@ class OrganizationDiscoverContainer extends React.Component {
   }
 
   componentWillUnmount() {
+    this.queryBuilder.cancelRequests();
     document.body.classList.remove('body-discover');
   }
 
