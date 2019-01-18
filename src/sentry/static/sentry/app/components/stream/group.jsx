@@ -98,7 +98,7 @@ const StreamGroup = createReactClass({
         )}
         <GroupSummary w={[8 / 12, 8 / 12, 6 / 12]} ml={canSelect ? 1 : 2} mr={1} flex="1">
           <EventOrGroupHeader data={data} query={query} />
-          <EventOrGroupExtraDetails group {...data} />
+          <EventOrGroupExtraDetails {...data} />
         </GroupSummary>
         <Box w={160} mx={2} className="hidden-xs hidden-sm">
           <GroupChart id={data.id} statsPeriod={this.props.statsPeriod} data={data} />
