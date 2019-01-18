@@ -262,7 +262,7 @@ class BitbucketIssueTest(APITestCase):
             }]
 
     @responses.activate
-    def test_get_issue(self):
+    def test_create_issue(self):
         repo = 'myaccount/repo1'
         id = '112'
         title = 'hello'
