@@ -1,13 +1,15 @@
-import PropTypes from 'prop-types';
 import React from 'react';
 import {t} from 'app/locale';
 import styled from 'react-emotion';
 
+import SentryTypes from 'app/sentryTypes';
 import {analytics} from 'app/utils/analytics';
 import AsyncComponent from 'app/components/asyncComponent';
 import Button from 'app/components/button';
 import {PanelItem} from 'app/components/panels';
 import {promptsUpdate} from 'app/actionCreators/prompts';
+import withOrganization from 'app/utils/withOrganization';
+
 import ProgressBar from './progressBar';
 
 const STEPS = {
@@ -34,14 +36,13 @@ const STEPS = {
 };
 
 class ReleaseProgress extends AsyncComponent {
-  static contextTypes = {
-    organization: PropTypes.object,
-    project: PropTypes.object,
-    router: PropTypes.object,
+  static propTypes = {
+    organization: SentryTypes.Organization,
+    project: SentryTypes.Project,
   };
 
   getEndpoints() {
-    let {project, organization} = this.context;
+    let {project, organization} = this.props;
     let data = {
       organization_id: organization.id,
       project_id: project.id,
@@ -120,7 +121,7 @@ class ReleaseProgress extends AsyncComponent {
   }
 
   handleClick(action) {
-    let {project, organization} = this.context;
+    let {project, organization} = this.props;
 
     let params = {
       projectId: project.id,
@@ -135,7 +136,7 @@ class ReleaseProgress extends AsyncComponent {
   }
 
   recordAnalytics(action, data) {
-    let {project, organization} = this.context;
+    let {project, organization} = this.props;
 
     data.org_id = parseInt(organization.id, 10);
     data.project_id = parseInt(project.id, 10);
@@ -220,4 +221,5 @@ const StyledDiv = styled('div')`
   margin-bottom: 10px;
 `;
 
-export default ReleaseProgress;
+export {ReleaseProgress};
+export default withOrganization(ReleaseProgress);
