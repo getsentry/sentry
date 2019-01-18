@@ -10,6 +10,7 @@ import LoadingIndicator from 'app/components/loadingIndicator';
 import {t} from 'app/locale';
 import EmptyStateWarning from 'app/components/emptyStateWarning';
 import {Panel} from 'app/components/panels';
+import Pagination from 'app/components/pagination';
 import withOrganization from 'app/utils/withOrganization';
 import {fetchGroupUserReports} from './utils';
 
@@ -26,6 +27,7 @@ class GroupUserFeedback extends React.Component {
       loading: true,
       error: false,
       reportList: [],
+      pageLinks: '',
     };
   }
 
@@ -46,11 +48,12 @@ class GroupUserFeedback extends React.Component {
     });
 
     fetchGroupUserReports(this.props.group.id, this.props.query)
-      .then(data => {
+      .then(([data, _, jqXHR]) => {
         this.setState({
           error: false,
           loading: false,
           reportList: data,
+          pageLinks: jqXHR.getResponseHeader('Link'),
         });
       })
       .catch(() => {
@@ -92,6 +95,7 @@ class GroupUserFeedback extends React.Component {
                 />
               );
             })}
+            <Pagination pageLinks={this.state.pageLinks} />
           </div>
         </div>
       );

@@ -37,6 +37,7 @@ export function fetchGroupUserReports(groupId, query) {
   const api = new Client();
 
   return api.requestPromise(`/issues/${groupId}/user-reports/`, {
+    includeAllArgs: true,
     query,
   });
 }
