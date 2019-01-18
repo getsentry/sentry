@@ -286,12 +286,11 @@ class SnubaEvent(object):
         'ip_address',
         'email',
         'timestamp',
-        'tags.key',
-        'tags.value',
     ]
 
     def __init__(self, kv):
-        assert set(kv.keys()) == set(self.selected_columns)
+        assert len(set(self.selected_columns) - set(kv.keys())
+                   ) == 0, "SnubaEvents need all of the selected_columns"
         self.__dict__ = kv
 
 
@@ -304,10 +303,14 @@ class SnubaEventSerializer(Serializer):
     """
 
     def get_tags_dict(self, obj):
-        return dict(zip(getattr(obj, 'tags.key'), getattr(obj, 'tags.value')))
+        keys = getattr(obj, 'tags.key', None)
+        values = getattr(obj, 'tags.value', None)
+        if keys and values and len(keys) == len(values):
+            return dict(zip(keys, values))
+        return None
 
     def serialize(self, obj, attrs, user):
-        return {
+        result = {
             'eventID': six.text_type(obj.event_id),
             'projectID': six.text_type(obj.project_id),
             'message': obj.message,
@@ -318,5 +321,10 @@ class SnubaEventSerializer(Serializer):
                 'username': obj.username,
                 'ipAddress': obj.ip_address,
             },
-            'tags': self.get_tags_dict(obj)
         }
+
+        tags = self.get_tags_dict(obj)
+        if tags:
+            result['tags'] = tags
+
+        return result
