@@ -231,6 +231,7 @@ const globals = {
       descopeFeatureName: require('app/utils').descopeFeatureName,
       onboardingSteps: require('app/views/onboarding/utils').onboardingSteps,
       stepDescriptions: require('app/views/onboarding/utils').stepDescriptions,
+      withApi: require('app/utils/withApi').default,
     },
     passwordStrength: {load: loadPasswordStrength},
   },
