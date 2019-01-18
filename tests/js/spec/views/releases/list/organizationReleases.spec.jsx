@@ -10,7 +10,7 @@ describe('OrganizationReleases', function() {
   beforeEach(function() {
     const organization = TestStubs.Organization({
       projects: [TestStubs.Project()],
-      features: ['sentry10'],
+      features: ['sentry10', 'global-views'],
     });
 
     MockApiClient.addMockResponse({
