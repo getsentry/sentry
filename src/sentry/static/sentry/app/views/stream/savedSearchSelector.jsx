@@ -217,12 +217,12 @@ const SavedSearchSelector = createReactClass({
   render() {
     let {access, orgId, projectId, queryCount, queryMaxCount} = this.props;
     let children = this.props.savedSearchList.map(search => {
-      // TODO(dcramer): we want these to link directly to the saved
-      // search ID, and pass that into the backend (probably)
+      let url = projectId
+        ? `/${orgId}/${projectId}/searches/${search.id}/`
+        : `/organizations/${orgId}/issues/searches/${search.id}/`
 
-      // TODO(mark) Make links org/project aware.
       return (
-        <MenuItem to={`/${orgId}/${projectId}/searches/${search.id}/`} key={search.id}>
+        <MenuItem to={url} key={search.id}>
           <strong>{search.name}</strong>
           <code>{search.query}</code>
         </MenuItem>

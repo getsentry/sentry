@@ -20,6 +20,7 @@ import ApiMixin from 'app/mixins/apiMixin';
 import ConfigStore from 'app/stores/configStore';
 import EnvironmentStore from 'app/stores/environmentStore';
 import ErrorRobot from 'app/components/errorRobot';
+import {fetchSavedSearches} from 'app/actionCreators/savedSearches';
 import GroupStore from 'app/stores/groupStore';
 import LoadingError from 'app/components/loadingError';
 import LoadingIndicator from 'app/components/loadingIndicator';
@@ -165,8 +166,8 @@ const Stream = createReactClass({
     const {orgId, projectId} = this.props.params;
     const {searchId} = this.state;
 
-    this.api.request(`/projects/${orgId}/${projectId}/searches/`, {
-      success: data => {
+    fetchSavedSearches(this.api, orgId, projectId).then(
+      data => {
         const newState = {
           isDefaultSearch: false,
           savedSearchLoading: false,
@@ -214,7 +215,7 @@ const Stream = createReactClass({
 
         this.setState(newState, needsData ? this.fetchData : null);
       },
-      error: error => {
+      error => {
         // XXX(dcramer): fail gracefully by still loading the stream
         logAjaxError(error);
         this.setState({
@@ -225,8 +226,8 @@ const Stream = createReactClass({
           savedSearchLoading: false,
           query: '',
         });
-      },
-    });
+      }
+    );
   },
 
   fetchProcessingIssues() {
