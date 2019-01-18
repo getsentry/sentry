@@ -1334,6 +1334,7 @@ def get_sentry_sdk_config():
         'environment': ENVIRONMENT,
         'in_app_include': [
             'sentry',
+            'sentry_plugins',
         ],
         'debug': True,
         'send_default_pii': True
