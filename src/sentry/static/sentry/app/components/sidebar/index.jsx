@@ -1,6 +1,6 @@
 import $ from 'jquery';
 import {ThemeProvider} from 'emotion-theming';
-import {isEqual, pick} from 'lodash';
+import {isEqual, pick, identity} from 'lodash';
 import {withRouter, browserHistory} from 'react-router';
 import PropTypes from 'prop-types';
 import React from 'react';
@@ -157,7 +157,7 @@ class Sidebar extends React.Component {
 
   // Keep the global selection querystring values in the path
   navigateWithGlobalSelection = (pathname, evt) => {
-    const query = pick(this.props.location.query, Object.values(URL_PARAM));
+    const query = pick(this.props.location.query, Object.values(URL_PARAM) && identity);
 
     // Handle cmd-click (mac) and meta-click (linux)
     if (evt.metaKey) {
