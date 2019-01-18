@@ -764,7 +764,7 @@ exports[`Issues Similar View renders with mocked data 1`] = `
                                       ],
                                       Array [
                                         Object {
-                                          "pathname": "/org-slug/project-slug/issues",
+                                          "pathname": "/org-slug/project-slug/issues/",
                                           "query": Object {
                                             "query": "logger:javascript",
                                           },
@@ -778,7 +778,7 @@ exports[`Issues Similar View renders with mocked data 1`] = `
                                       ],
                                       Array [
                                         Object {
-                                          "pathname": "/org-slug/project-slug/issues",
+                                          "pathname": "/org-slug/project-slug/issues/",
                                           "query": Object {
                                             "query": "logger:javascript",
                                           },
@@ -940,7 +940,7 @@ exports[`Issues Similar View renders with mocked data 1`] = `
                                                     ],
                                                     Array [
                                                       Object {
-                                                        "pathname": "/org-slug/project-slug/issues",
+                                                        "pathname": "/org-slug/project-slug/issues/",
                                                         "query": Object {
                                                           "query": "logger:javascript",
                                                         },
@@ -954,7 +954,7 @@ exports[`Issues Similar View renders with mocked data 1`] = `
                                                     ],
                                                     Array [
                                                       Object {
-                                                        "pathname": "/org-slug/project-slug/issues",
+                                                        "pathname": "/org-slug/project-slug/issues/",
                                                         "query": Object {
                                                           "query": "logger:javascript",
                                                         },
@@ -1049,7 +1049,6 @@ exports[`Issues Similar View renders with mocked data 1`] = `
                             count="90"
                             culprit="length(app/views/groupSimilar/groupSimilarView)"
                             firstSeen="2017-07-10T18:32:43Z"
-                            group={true}
                             hasSeen={false}
                             id="271"
                             isBookmarked={false}
@@ -1088,7 +1087,6 @@ exports[`Issues Similar View renders with mocked data 1`] = `
                               count="90"
                               culprit="length(app/views/groupSimilar/groupSimilarView)"
                               firstSeen="2017-07-10T18:32:43Z"
-                              group={true}
                               hasSeen={false}
                               id="271"
                               isBookmarked={false}
@@ -1135,7 +1133,7 @@ exports[`Issues Similar View renders with mocked data 1`] = `
                                       ],
                                       Array [
                                         Object {
-                                          "pathname": "/org-slug/project-slug/issues",
+                                          "pathname": "/org-slug/project-slug/issues/",
                                           "query": Object {
                                             "query": "logger:javascript",
                                           },
@@ -1149,7 +1147,7 @@ exports[`Issues Similar View renders with mocked data 1`] = `
                                       ],
                                       Array [
                                         Object {
-                                          "pathname": "/org-slug/project-slug/issues",
+                                          "pathname": "/org-slug/project-slug/issues/",
                                           "query": Object {
                                             "query": "logger:javascript",
                                           },
@@ -1292,7 +1290,7 @@ exports[`Issues Similar View renders with mocked data 1`] = `
                                                   style={Object {}}
                                                   to={
                                                     Object {
-                                                      "pathname": "/org-slug/project-slug/issues",
+                                                      "pathname": "/org-slug/project-slug/issues/",
                                                       "query": Object {
                                                         "query": "logger:javascript",
                                                       },
