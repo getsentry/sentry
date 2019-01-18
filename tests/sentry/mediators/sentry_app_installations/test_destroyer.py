@@ -45,6 +45,7 @@ class TestDestroyer(TestCase):
     def test_deletes_service_hooks(self):
         hook = ServiceHook.objects.get(
             application=self.sentry_app.application,
+            actor_id=self.install.id,
         )
 
         self.destroyer.call()
