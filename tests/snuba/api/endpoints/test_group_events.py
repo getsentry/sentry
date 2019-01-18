@@ -249,7 +249,7 @@ class GroupEventsTest(APITestCase, SnubaTestCase):
         self.login_as(user=self.user)
 
         group = self.create_group()
-        event_1 = self.create_event(
+        self.create_event(
             event_id='a' * 32,
             datetime=self.min_ago,
             group=group,
