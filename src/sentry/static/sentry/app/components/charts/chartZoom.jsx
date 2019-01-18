@@ -188,9 +188,8 @@ class ChartZoom extends React.Component {
 
   handleDataZoom = (evt, chart) => {
     const model = chart.getModel();
-    const {xAxis, series} = model.option;
+    const {xAxis} = model.option;
     const axis = xAxis[0];
-    const [firstSeries] = series;
 
     // if `rangeStart` and `rangeEnd` are null, then we are going back
     if (axis.rangeStart === null && axis.rangeEnd === null) {
@@ -202,10 +201,10 @@ class ChartZoom extends React.Component {
 
       this.setPeriod(previousPeriod);
     } else {
-      const start = moment.utc(firstSeries.data[axis.rangeStart][0]);
+      const start = moment.utc(axis.rangeStart);
 
       // Add a day so we go until the end of the day (e.g. next day at midnight)
-      const end = moment.utc(firstSeries.data[axis.rangeEnd][0]);
+      const end = moment.utc(axis.rangeEnd);
 
       this.setPeriod({period: null, start, end}, true);
     }
