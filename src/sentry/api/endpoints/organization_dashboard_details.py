@@ -6,12 +6,10 @@ from sentry.api.bases.dashboard import (
 )
 from sentry.api.serializers import serialize
 from sentry.models import ObjectStatus
-from django.http import Http404
 from rest_framework.response import Response
 
 from sentry.api.bases.dashboard import DashboardWithWidgetsSerializer
-from sentry.api.serializers.models.dashboard import DashboardWithWidgetsSerializer as DashboardModelSerializer
-from sentry.models import Dashboard, Widget, WidgetDataSource
+from sentry.models import Widget, WidgetDataSource
 
 
 class OrganizationDashboardDetailsEndpoint(OrganizationDashboardEndpoint):
@@ -51,15 +49,7 @@ class OrganizationDashboardDetailsEndpoint(OrganizationDashboardEndpoint):
 
         return self.respond(status=204)
 
-    def put(self, request, organization, dashboard_id):
-        try:
-            dashboard = Dashboard.objects.get(
-                id=dashboard_id,
-                organization_id=organization.id,
-            )
-        except Dashboard.DoesNotExist:
-            raise Http404
-
+    def put(self, request, organization, dashboard):
         serializer = DashboardWithWidgetsSerializer(
             data=request.DATA,
             context={'organization': organization}
@@ -75,7 +65,7 @@ class OrganizationDashboardDetailsEndpoint(OrganizationDashboardEndpoint):
         )
         for widget_data in data['widgets']:
             widget, __created = Widget.objects.create_or_update(
-                dashboard_id=dashboard_id,
+                dashboard_id=dashboard.id,
                 order=widget_data['order'],
                 values={
                     'title': widget_data['title'],
@@ -93,5 +83,4 @@ class OrganizationDashboardDetailsEndpoint(OrganizationDashboardEndpoint):
                     },
                     order=data_source['order'],
                 )
-        return self.respond(serialize(dashboard, request.user,
-                                      DashboardModelSerializer()), status=200)
+        return self.respond(serialize(dashboard, request.user), status=200)
