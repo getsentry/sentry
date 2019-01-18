@@ -9,6 +9,7 @@ import {getChartComponent} from 'app/views/organizationDashboard/utils/getChartC
 import {getData} from 'app/views/organizationDashboard/utils/getData';
 import {getQueryStringFromQuery} from 'app/views/organizationDiscover/utils';
 import Button from 'app/components/button';
+import ReleaseSeries from 'app/components/charts/releaseSeries';
 import InlineSvg from 'app/components/inlineSvg';
 import SentryTypes from 'app/sentryTypes';
 import withGlobalSelection from 'app/utils/withGlobalSelection';
@@ -18,6 +19,7 @@ import DiscoverQuery from './discoverQuery';
 
 class Widget extends React.Component {
   static propTypes = {
+    releases: PropTypes.arrayOf(SentryTypes.Release),
     widget: SentryTypes.Widget,
     organization: SentryTypes.Organization,
     selection: SentryTypes.GlobalSelection,
@@ -65,7 +67,7 @@ class Widget extends React.Component {
   };
 
   renderResults(results) {
-    const {widget} = this.props;
+    const {releases, widget} = this.props;
     const isTable = widget.type === WIDGET_DISPLAY.TABLE;
 
     // get visualization based on widget data
@@ -79,6 +81,20 @@ class Widget extends React.Component {
         extraTitle: this.renderDiscoverButton(),
       }),
     };
+
+    if (widget.includeReleases) {
+      return (
+        <ReleaseSeries releases={releases}>
+          {({releaseSeries}) => (
+            <ChartComponent
+              {...chartData}
+              {...extra}
+              series={[...chartData.series, ...releaseSeries]}
+            />
+          )}
+        </ReleaseSeries>
+      );
+    }
 
     return <ChartComponent {...chartData} {...extra} />;
   }

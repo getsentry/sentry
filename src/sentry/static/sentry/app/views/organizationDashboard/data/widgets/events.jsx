@@ -7,8 +7,10 @@ const events = {
   queries: {
     discover: [eventsQuery],
   },
-  includePreviousPeriod: true,
   title: 'Events',
+
+  includePreviousPeriod: true,
+  includeReleases: true,
   aggregateLabelMap: {
     count: 'Events',
   },

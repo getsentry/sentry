@@ -3,6 +3,7 @@ import React from 'react';
 
 import {t} from 'app/locale';
 import ChartZoom from 'app/components/charts/chartZoom';
+import ReleaseSeries from 'app/components/charts/releaseSeries';
 import LineChart from 'app/components/charts/lineChart';
 import withApi from 'app/utils/withApi';
 
@@ -13,6 +14,7 @@ const DEFAULT_GET_CATEGORY = () => t('Events');
 
 class EventsChart extends React.Component {
   static propTypes = {
+    api: PropTypes.object,
     period: PropTypes.string,
     query: PropTypes.string,
     utc: PropTypes.bool,
@@ -34,21 +36,27 @@ class EventsChart extends React.Component {
           >
             {({timeseriesData, previousTimeseriesData}) => {
               return (
-                <LineChart
-                  {...zoomRenderProps}
-                  utc={utc}
-                  series={timeseriesData}
-                  seriesOptions={{
-                    showSymbol: false,
+                <ReleaseSeries api={this.props.api}>
+                  {({releaseSeries}) => {
+                    return (
+                      <LineChart
+                        {...zoomRenderProps}
+                        utc={utc}
+                        series={[...timeseriesData, ...releaseSeries]}
+                        seriesOptions={{
+                          showSymbol: false,
+                        }}
+                        previousPeriod={
+                          previousTimeseriesData ? [previousTimeseriesData] : null
+                        }
+                        grid={{
+                          left: '30px',
+                          right: '18px',
+                        }}
+                      />
+                    );
                   }}
-                  previousPeriod={
-                    previousTimeseriesData ? [previousTimeseriesData] : null
-                  }
-                  grid={{
-                    left: '30px',
-                    right: '18px',
-                  }}
-                />
+                </ReleaseSeries>
               );
             }}
           </EventsRequest>

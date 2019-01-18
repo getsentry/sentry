@@ -8,10 +8,7 @@ import 'echarts/lib/component/markLine';
 export default function MarkLine(props) {
   return {
     // The second symbol is a very ugly arrow, we don't want it
-    symbol: ['circle', 'none'],
-
-    // Default size is super big imo
-    symbolSize: 6,
+    symbol: ['none', 'none'],
     ...props,
   };
 }

@@ -11,8 +11,8 @@ let data = [
 let model = {
   xAxis: [
     {
-      rangeStart: 2,
-      rangeEnd: 5,
+      rangeStart: 1543449600000,
+      rangeEnd: 1543708800000,
     },
   ],
   series: [
