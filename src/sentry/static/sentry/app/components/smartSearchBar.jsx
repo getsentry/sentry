@@ -124,6 +124,13 @@ class SmartSearchBar extends React.Component {
     }
   }
 
+  componentWillUnmount() {
+    if (this.blurTimeout) {
+      clearTimeout(this.blurTimeout);
+      this.blurTimeout = null;
+    }
+  }
+
   DROPDOWN_BLUR_DURATION = 200;
 
   blur = () => {
@@ -273,12 +280,12 @@ class SmartSearchBar extends React.Component {
         this.setState({
           searchTerm: query,
         });
-        return void this.updateAutoCompleteState(this.getTagKeys(''), '');
+        return this.updateAutoCompleteState(this.getTagKeys(''), '');
       }
 
       // cursor on whitespace
       // show default "help" search terms
-      return void this.setState({
+      return this.setState({
         searchTerm: '',
         searchItems: defaultSearchItems,
         activeSearchItem: 0,
@@ -332,7 +339,7 @@ class SmartSearchBar extends React.Component {
         return undefined;
       }
 
-      return void (tag.predefined ? this.getPredefinedTagValues : this.getTagValues)(
+      return (tag.predefined ? this.getPredefinedTagValues : this.getTagValues)(
         tag,
         preparedQuery,
         this.updateAutoCompleteState
