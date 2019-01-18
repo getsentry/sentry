@@ -56,7 +56,11 @@ export function getCurlCommand(data) {
   result += ' \\\n "' + data.url;
 
   if (defined(data.query) && data.query) {
-    result += '?' + data.query;
+    let queryObj = {};
+    for(let [k, v] of data.query) {
+      queryObj[k] = v;
+    }
+    result += '?' + queryString.stringify(queryObj);
   }
 
   result += '"';
