@@ -25,10 +25,7 @@ const EventNode = createReactClass({
       <li className="group row">
         <div className="col-xs-8 event-details">
           <EventOrGroupHeader data={group} hideIcons hideLevel />
-          <EventOrGroupExtraDetails
-            lastSeen={group.lastSeen}
-            firstSeen={group.firstSeen}
-          />
+          <EventOrGroupExtraDetails {...group} />
         </div>
 
         <div className="col-xs-2 event-count align-right">

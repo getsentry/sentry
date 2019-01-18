@@ -13,6 +13,7 @@ import space from 'app/styles/space';
 
 class EventOrGroupExtraDetails extends React.Component {
   static propTypes = {
+    id: PropTypes.string,
     lastSeen: PropTypes.string,
     firstSeen: PropTypes.string,
     subscriptionDetails: PropTypes.shape({
@@ -31,12 +32,14 @@ class EventOrGroupExtraDetails extends React.Component {
   getIssuesPath() {
     const {orgId, projectId} = this.props.params;
 
-    return projectId ? `/${orgId}/${projectId}/issues` : `/organizations/${orgId}/issues`;
+    return projectId
+      ? `/${orgId}/${projectId}/issues/`
+      : `/organizations/${orgId}/issues/`;
   }
 
   render() {
     const {
-      params: {groupId},
+      id,
       lastSeen,
       firstSeen,
       subscriptionDetails,
@@ -75,7 +78,7 @@ class EventOrGroupExtraDetails extends React.Component {
         <GroupExtraCommentsAndLogger>
           {numComments > 0 && (
             <Box mr={2}>
-              <CommentsLink to={`${issuesPath}${groupId}/activity/`} className="comments">
+              <CommentsLink to={`${issuesPath}${id}/activity/`} className="comments">
                 <GroupExtraIcon
                   src="icon-comment-sm"
                   mentioned={

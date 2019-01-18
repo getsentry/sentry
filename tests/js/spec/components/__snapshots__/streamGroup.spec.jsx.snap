@@ -68,7 +68,6 @@ exports[`StreamGroup renders with anchors 1`] = `
     />
     <withRouter(EventOrGroupExtraDetails)
       assignedTo={null}
-      group={true}
       id="1337"
       project={
         Object {

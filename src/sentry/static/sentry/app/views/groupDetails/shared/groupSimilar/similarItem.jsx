@@ -118,7 +118,7 @@ const SimilarIssueItem = createReactClass({
             </div>
             <div className="event-details level-error" style={{flex: 1}}>
               <EventOrGroupHeader data={issue} />
-              <EventOrGroupExtraDetails {...issue} lastSeen={null} showAssignee group />
+              <EventOrGroupExtraDetails {...issue} lastSeen={null} showAssignee />
             </div>
           </FlowLayout>
           <button
