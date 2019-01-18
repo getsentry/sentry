@@ -2,10 +2,7 @@ import PropTypes from 'prop-types';
 import React from 'react';
 import {Flex} from 'grid-emotion';
 
-import createReactClass from 'create-react-class';
-
-import ApiMixin from 'app/mixins/apiMixin';
-import OrganizationState from 'app/mixins/organizationState';
+import SentryTypes from 'app/sentryTypes';
 import Tooltip from 'app/components/tooltip';
 import FileSize from 'app/components/fileSize';
 import LoadingError from 'app/components/loadingError';
@@ -16,34 +13,34 @@ import LinkWithConfirmation from 'app/components/linkWithConfirmation';
 import {t} from 'app/locale';
 import {Panel, PanelHeader, PanelBody, PanelItem} from 'app/components/panels';
 import EmptyStateWarning from 'app/components/emptyStateWarning';
+import withOrganization from 'app/utils/withOrganization';
+import withApi from 'app/utils/withApi';
 
-const ReleaseArtifacts = createReactClass({
-  displayName: 'ReleaseArtifacts',
+class ReleaseArtifacts extends React.Component {
+  static propTypes = {
+    organization: SentryTypes.Organization,
+    api: PropTypes.object,
+  };
 
-  contextTypes: {
-    release: PropTypes.object,
-  },
-
-  mixins: [ApiMixin, OrganizationState],
-
-  getInitialState() {
-    return {
+  constructor() {
+    super();
+    this.state = {
       loading: true,
       error: false,
       fileList: [],
       pageLinks: null,
     };
-  },
+  }
 
   componentDidMount() {
     this.fetchData();
-  },
+  }
 
   componentDidUpdate(prevProps) {
     if (this.props.location.search !== prevProps.location.search) {
       this.fetchData();
     }
-  },
+  }
 
   getFilesEndpoint() {
     let {orgId, projectId, version} = this.props.params;
@@ -52,7 +49,7 @@ const ReleaseArtifacts = createReactClass({
     return projectId
       ? `/projects/${orgId}/${projectId}/releases/${encodedVersion}/files/`
       : `/organizations/${orgId}/releases/${encodedVersion}/files/`;
-  },
+  }
 
   fetchData() {
     this.setState({
@@ -60,7 +57,7 @@ const ReleaseArtifacts = createReactClass({
       error: false,
     });
 
-    this.api.request(this.getFilesEndpoint(), {
+    this.props.api.request(this.getFilesEndpoint(), {
       method: 'GET',
       data: this.props.location.query,
       success: (data, _, jqXHR) => {
@@ -78,12 +75,12 @@ const ReleaseArtifacts = createReactClass({
         });
       },
     });
-  },
+  }
 
   handleRemove(id) {
     let loadingIndicator = IndicatorStore.add(t('Removing artifact..'));
 
-    this.api.request(this.getFilesEndpoint() + `${id}/`, {
+    this.props.api.request(this.getFilesEndpoint() + `${id}/`, {
       method: 'DELETE',
       success: () => {
         let fileList = this.state.fileList.filter(file => {
@@ -107,7 +104,7 @@ const ReleaseArtifacts = createReactClass({
         IndicatorStore.remove(loadingIndicator);
       },
     });
-  },
+  }
 
   render() {
     if (this.state.loading) return <LoadingIndicator />;
@@ -121,7 +118,7 @@ const ReleaseArtifacts = createReactClass({
         </Panel>
       );
 
-    let access = this.getAccess();
+    let access = new Set(this.props.organization.access);
 
     // TODO(dcramer): files should allow you to download them
     return (
@@ -154,7 +151,7 @@ const ReleaseArtifacts = createReactClass({
                       {access.has('project:write') ? (
                         <a
                           href={
-                            this.api.baseUrl +
+                            this.props.api.baseUrl +
                             this.getFilesEndpoint() +
                             `${file.id}/?download=1`
                           }
@@ -193,7 +190,8 @@ const ReleaseArtifacts = createReactClass({
         <Pagination pageLinks={this.state.pageLinks} />
       </div>
     );
-  },
-});
+  }
+}
 
-export default ReleaseArtifacts;
+export {ReleaseArtifacts};
+export default withOrganization(withApi(ReleaseArtifacts));
