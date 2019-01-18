@@ -46,7 +46,7 @@ class ReleaseLandingCard extends React.Component {
                 href={'https://docs.sentry.io/learn/releases/'}
                 onClick={this.props.onClick}
               >
-                {t(this.getMessage())}
+                {this.getMessage()}
               </StyledButton>
             ) : (
               <StyledButton onClick={this.props.onClick}>
