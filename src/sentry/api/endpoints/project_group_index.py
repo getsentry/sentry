@@ -12,10 +12,9 @@ from rest_framework.response import Response
 from sentry import analytics, eventstream, search
 from sentry.api.base import DocSection, EnvironmentMixin
 from sentry.api.bases.project import ProjectEndpoint, ProjectEventPermission
-from sentry.api.fields import Actor
 from sentry.api.helpers.group_index import (
     build_query_params_from_request, delete_groups, get_by_short_id, GroupValidator,
-    handle_discard, STATUS_CHOICES, ValidationError
+    handle_discard, self_subscribe_and_assign_issue, STATUS_CHOICES, ValidationError
 )
 from sentry.api.serializers import serialize
 from sentry.api.serializers.models.actor import ActorSerializer
@@ -25,7 +24,7 @@ from sentry.db.models.query import create_or_update
 from sentry.models import (
     Activity, Environment, Group, GroupAssignee, GroupBookmark, GroupLink, GroupResolution,
     GroupSeen, GroupShare, GroupSnooze, GroupStatus, GroupSubscription, GroupSubscriptionReason,
-    Release, UserOption, User
+    Release
 )
 from sentry.models.event import Event
 from sentry.models.savedsearch import DEFAULT_SAVED_SEARCH_QUERIES
@@ -102,19 +101,6 @@ class ProjectGroupIndexEndpoint(ProjectEndpoint, EnvironmentMixin):
             query_kwargs['environments'] = [environment] if environment is not None else environment
             result = search.query(**query_kwargs)
         return result, query_kwargs
-
-    def _subscribe_and_assign_issue(self, acting_user, group, result):
-        if acting_user:
-            GroupSubscription.objects.subscribe(
-                user=acting_user,
-                group=group,
-                reason=GroupSubscriptionReason.status_change,
-            )
-            self_assign_issue = UserOption.objects.get_value(
-                user=acting_user, key='self_assign_issue', default='0'
-            )
-            if self_assign_issue == '1' and not group.assignee_set.exists():
-                result['assignedTo'] = Actor(type=User, id=acting_user.id)
 
     # statsPeriod=24h
     @attach_scenarios([list_project_issues_scenario])
@@ -462,8 +448,9 @@ class ProjectGroupIndexEndpoint(ProjectEndpoint, EnvironmentMixin):
                     group.status = GroupStatus.RESOLVED
                     group.resolved_at = now
 
-                    self._subscribe_and_assign_issue(
-                        acting_user, group, result)
+                    assigned_to = self_subscribe_and_assign_issue(acting_user, group)
+                    if assigned_to is not None:
+                        result['assignedTo'] = assigned_to
 
                     if created:
                         activity = Activity.objects.create(
