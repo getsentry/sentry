@@ -3,6 +3,7 @@ from __future__ import absolute_import
 from datetime import timedelta
 from django.utils import timezone
 
+from sentry import options
 from sentry.api.base import DocSection
 from sentry.api.bases.project import ProjectEndpoint
 from sentry.api.serializers import serialize
@@ -20,7 +21,7 @@ def list_project_available_samples_scenario(runner):
 class ProjectEventsEndpoint(ProjectEndpoint):
     doc_section = DocSection.EVENTS
 
-    def __search_events_legacy(self, request, project):
+    def _get_events_legacy(self, request, project):
         from sentry import quotas
         from sentry.api.paginator import DateTimePaginator
         from sentry.models import Event
@@ -50,7 +51,7 @@ class ProjectEventsEndpoint(ProjectEndpoint):
             paginator_cls=DateTimePaginator,
         )
 
-    def __search_events_snuba(self, request, project):
+    def _get_events_snuba(self, request, project):
         from functools32 import partial
         from sentry.api.paginator import GenericOffsetPaginator
         from sentry.api.serializers.models.event import SnubaEvent
@@ -97,8 +98,6 @@ class ProjectEventsEndpoint(ProjectEndpoint):
         :pparam string project_slug: the slug of the project the groups
                                      belong to.
         """
-        backend = request.COOKIES.get('eventstream', 'legacy')
-        return {
-            'legacy': self.__search_events_legacy,
-            'snuba': self.__search_events_snuba,
-        }[backend](request, project)
+        use_snuba = options.get('snuba.events-queries.enabled')
+        backend = self._get_events_snuba if use_snuba else self._get_events_legacy
+        return backend(request, project)

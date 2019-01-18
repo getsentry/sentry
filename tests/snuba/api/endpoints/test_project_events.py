@@ -4,6 +4,7 @@ from datetime import timedelta
 from django.utils import timezone
 from django.core.urlresolvers import reverse
 
+from sentry import options
 from sentry.testutils import APITestCase, SnubaTestCase
 
 
@@ -11,7 +12,7 @@ class ProjectEventsTest(APITestCase, SnubaTestCase):
     def setUp(self):
         super(ProjectEventsTest, self).setUp()
         self.min_ago = timezone.now() - timedelta(minutes=1)
-        self.client.cookies['eventstream'] = 'snuba'
+        options.set('snuba.events-queries.enabled', True)
 
     def test_simple(self):
         self.login_as(user=self.user)
