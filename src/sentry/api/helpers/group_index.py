@@ -1,13 +1,31 @@
 from __future__ import absolute_import
 
-from rest_framework import serializers
+import logging
 
+from collections import defaultdict
+from uuid import uuid4
+
+from django.db import IntegrityError, transaction
+
+from rest_framework import serializers
+from rest_framework.response import Response
+
+from sentry import eventstream, features
+from sentry.api.base import audit_logger
 from sentry.api.fields import ActorField
 from sentry.constants import DEFAULT_SORT_OPTION
-from sentry.models import Commit, Group, GroupStatus, Release, Repository, Team, User
+from sentry.models import (
+    Commit, Group, GroupHash, GroupStatus, GroupTombstone,
+    Release, Repository, TOMBSTONE_FIELDS_FROM_GROUP, Team, User
+)
 from sentry.models.group import looks_like_short_id
 from sentry.search.utils import InvalidQuery, parse_query
+from sentry.signals import issue_deleted
+from sentry.tasks.deletion import delete_groups as delete_groups_task
+from sentry.utils.audit import create_audit_entry
 from sentry.utils.cursors import Cursor
+
+delete_logger = logging.getLogger('sentry.deletions.api')
 
 
 class ValidationError(Exception):
@@ -207,3 +225,97 @@ class GroupValidator(serializers.Serializer):
             raise serializers.ValidationError(
                 'Other attributes cannot be updated when discarding')
         return attrs
+
+
+def handle_discard(request, group_list, projects, user):
+    for project in projects:
+        if not features.has('projects:discard-groups', project, actor=user):
+            return Response({'detail': ['You do not have that feature enabled']}, status=400)
+
+    # grouped by project_id
+    groups_to_delete = defaultdict(list)
+
+    for group in group_list:
+        with transaction.atomic():
+            try:
+                tombstone = GroupTombstone.objects.create(
+                    previous_group_id=group.id,
+                    actor_id=user.id if user else None,
+                    **{name: getattr(group, name) for name in TOMBSTONE_FIELDS_FROM_GROUP}
+                )
+            except IntegrityError:
+                # in this case, a tombstone has already been created
+                # for a group, so no hash updates are necessary
+                pass
+            else:
+                groups_to_delete[group.project_id].append(group)
+
+                GroupHash.objects.filter(
+                    group=group,
+                ).update(
+                    group=None,
+                    group_tombstone_id=tombstone.id,
+                )
+
+    for project in projects:
+        delete_groups(request, project, groups_to_delete.get(project.id), delete_type='discard')
+
+    return Response(status=204)
+
+
+def delete_groups(request, project, group_list, delete_type):
+    if not group_list:
+        return
+
+    # deterministic sort for sanity, and for very large deletions we'll
+    # delete the "smaller" groups first
+    group_list.sort(key=lambda g: (g.times_seen, g.id))
+    group_ids = [g.id for g in group_list]
+
+    Group.objects.filter(
+        id__in=group_ids,
+    ).exclude(status__in=[
+        GroupStatus.PENDING_DELETION,
+        GroupStatus.DELETION_IN_PROGRESS,
+    ]).update(status=GroupStatus.PENDING_DELETION)
+
+    eventstream_state = eventstream.start_delete_groups(project.id, group_ids)
+    transaction_id = uuid4().hex
+
+    GroupHash.objects.filter(
+        project_id=project.id,
+        group__id__in=group_ids,
+    ).delete()
+
+    delete_groups_task.apply_async(
+        kwargs={
+            'object_ids': group_ids,
+            'transaction_id': transaction_id,
+            'eventstream_state': eventstream_state,
+        },
+        countdown=3600,
+    )
+
+    for group in group_list:
+        create_audit_entry(
+            request=request,
+            transaction_id=transaction_id,
+            logger=audit_logger,
+            organization_id=project.organization_id,
+            target_object=group.id,
+        )
+
+        delete_logger.info(
+            'object.delete.queued',
+            extra={
+                'object_id': group.id,
+                'transaction_id': transaction_id,
+                'model': type(group).__name__,
+            }
+        )
+
+        issue_deleted.send_robust(
+            group=group,
+            user=request.user,
+            delete_type=delete_type,
+            sender=delete_groups)
