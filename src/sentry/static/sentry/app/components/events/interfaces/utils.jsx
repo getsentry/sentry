@@ -57,7 +57,7 @@ export function getCurlCommand(data) {
 
   if (defined(data.query) && data.query) {
     let queryObj = {};
-    for(let [k, v] of data.query) {
+    for (let [k, v] of data.query) {
       queryObj[k] = v;
     }
     result += '?' + queryString.stringify(queryObj);
