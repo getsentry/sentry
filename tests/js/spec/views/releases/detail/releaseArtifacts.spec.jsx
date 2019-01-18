@@ -64,7 +64,6 @@ describe('ReleaseArtifacts', function() {
 
   afterEach(function() {
     MockApiClient.clearMockResponses();
-    // sandbox.restore();
   });
 
   describe('render()', function() {
