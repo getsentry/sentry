@@ -449,6 +449,7 @@ exports[`OrganizationUserFeedback renders 1`] = `
                           className="css-5udiwc-HeaderItemPosition e165b9e40"
                         >
                           <MultipleProjectSelector
+                            multi={false}
                             onChange={[Function]}
                             onUpdate={[Function]}
                             organization={
@@ -678,6 +679,7 @@ exports[`OrganizationUserFeedback renders 1`] = `
                                                 >
                                                   <StyledHeaderItem
                                                     active={false}
+                                                    allowClear={false}
                                                     hasChanges={false}
                                                     hasSelected={false}
                                                     icon={
@@ -701,6 +703,7 @@ exports[`OrganizationUserFeedback renders 1`] = `
                                                   >
                                                     <ForwardRef
                                                       active={false}
+                                                      allowClear={false}
                                                       className="css-22y332-StyledHeaderItem ewlipse1"
                                                       hasChanges={false}
                                                       hasSelected={false}
@@ -725,7 +728,7 @@ exports[`OrganizationUserFeedback renders 1`] = `
                                                     >
                                                       <HeaderItem
                                                         active={false}
-                                                        allowClear={true}
+                                                        allowClear={false}
                                                         className="css-22y332-StyledHeaderItem ewlipse1"
                                                         hasChanges={false}
                                                         hasSelected={false}

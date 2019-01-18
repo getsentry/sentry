@@ -32,10 +32,6 @@ class ProjectSelector extends React.Component {
     // Allow selecting multiple projects?
     multi: PropTypes.bool,
 
-    // Disable selecting a single project, every action should trigger multi select
-    // XXX(billy): This is unused as of 11/1/2018, could be due for a cleanup
-    multiOnly: PropTypes.bool,
-
     // Use this if the component should be a controlled component
     selectedProjects: PropTypes.arrayOf(SentryTypes.Project),
 
@@ -72,12 +68,20 @@ class ProjectSelector extends React.Component {
 
   getActiveProject() {
     const {projectId} = this.props;
-    return this.getProjects().find(({slug}) => slug === projectId);
+
+    const projects = this.getProjects();
+
+    return projects.find(({slug}) => slug === projectId);
   }
 
   getProjects() {
     const {organization, projects} = this.props;
-    return projects || organization.projects.filter(project => project.isMember);
+    const projectList =
+      projects || organization.projects.filter(project => project.isMember);
+
+    return sortArray(projectList, project => {
+      return [!project.isBookmarked, project.name];
+    });
   }
 
   isControlled = () => typeof this.props.selectedProjects !== 'undefined';
@@ -108,14 +112,10 @@ class ProjectSelector extends React.Component {
   }
 
   handleSelect = ({value: project}) => {
-    const {multiOnly, onSelect} = this.props;
+    const {onSelect} = this.props;
 
-    if (!multiOnly) {
-      this.setState({activeProject: project});
-      onSelect(project);
-    } else {
-      this.handleMultiSelect(project);
-    }
+    this.setState({activeProject: project});
+    onSelect(project);
   };
 
   handleMultiSelect = (project, e) => {
@@ -154,7 +154,6 @@ class ProjectSelector extends React.Component {
       organization: org,
       menuFooter,
       multi,
-      multiOnly,
       className,
       rootClassName,
       onClose,
@@ -173,7 +172,7 @@ class ProjectSelector extends React.Component {
     return (
       <DropdownAutoComplete
         alignMenu="left"
-        closeOnSelect={!multiOnly}
+        closeOnSelect={true}
         blendCorner={false}
         searchPlaceholder={t('Filter projects')}
         onSelect={this.handleSelect}

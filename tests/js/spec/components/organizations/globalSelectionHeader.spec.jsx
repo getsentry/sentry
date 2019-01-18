@@ -21,6 +21,7 @@ const changeQuery = (routerContext, query) => ({
 
 describe('GlobalSelectionHeader', function() {
   const {organization, router, routerContext} = initializeOrg({
+    organization: TestStubs.Organization({features: ['global-views']}),
     router: {
       location: {query: {}},
     },
@@ -175,6 +176,41 @@ describe('GlobalSelectionHeader', function() {
       },
       environments: [],
       projects: [],
+    });
+  });
+
+  describe('Single project selection mode', function() {
+    it('selects first project if more than one is requested', function() {
+      const initializationObj = initializeOrg({
+        router: {
+          location: {query: {project: [1, 2]}},
+        },
+      });
+
+      mount(
+        <GlobalSelectionHeader organization={initializationObj.organization} />,
+        initializationObj.routerContext
+      );
+
+      expect(globalActions.updateProjects).toHaveBeenCalledWith([1]);
+    });
+
+    it('selects first project if none (i.e. all) is requested', function() {
+      const project = TestStubs.Project({id: '3'});
+      const org = TestStubs.Organization({projects: [project]});
+      const initializationObj = initializeOrg({
+        organization: org,
+        router: {
+          location: {query: {}},
+        },
+      });
+
+      mount(
+        <GlobalSelectionHeader organization={initializationObj.organization} />,
+        initializationObj.routerContext
+      );
+
+      expect(globalActions.updateProjects).toHaveBeenCalledWith([3]);
     });
   });
 });

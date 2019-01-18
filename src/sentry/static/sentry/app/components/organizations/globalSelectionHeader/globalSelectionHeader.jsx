@@ -126,6 +126,8 @@ class GlobalSelectionHeader extends React.Component {
       return;
     }
 
+    const hasMultipleProjectFeature = this.hasMultipleProjectSelection();
+
     const stateFromRouter = GlobalSelectionHeader.getStateFromRouter(this.props);
     // We should update store if there are any relevant URL parameters when component
     // is mounted
@@ -137,17 +139,39 @@ class GlobalSelectionHeader extends React.Component {
 
       // environment/project here can be null i.e. if only period is set in url params
       updateEnvironments(environment || []);
-      updateProjects(project || []);
+
+      const requestedProjects = project || [];
+
+      if (hasMultipleProjectFeature) {
+        updateProjects(requestedProjects);
+      } else {
+        const allowedProjects =
+          requestedProjects.length > 0
+            ? requestedProjects.slice(0, 1)
+            : this.getFirstProject();
+        updateProjects(allowedProjects);
+        updateParams({project: allowedProjects}, this.getRouter());
+      }
     } else {
       // Otherwise, we can update URL with values from store
       //
       // e.g. when switching to a new view that uses this component,
       // update URL parameters to reflect current store
       const {datetime, environments, projects} = this.props.selection;
-      updateParams(
-        {project: projects, environment: environments, ...datetime},
-        this.getRouter()
-      );
+
+      if (hasMultipleProjectFeature) {
+        updateParams(
+          {project: projects, environment: environments, ...datetime},
+          this.getRouter()
+        );
+      } else {
+        const allowedProjects = this.getFirstProject();
+        updateProjects(allowedProjects);
+        updateParams(
+          {project: allowedProjects, environment: environments, ...datetime},
+          this.getRouter()
+        );
+      }
     }
   }
 
@@ -189,6 +213,10 @@ class GlobalSelectionHeader extends React.Component {
     // update store values with values from router. Router should be source of truth
     this.updateStoreIfChange(prevProps, this.props);
   }
+
+  hasMultipleProjectSelection = () => {
+    return new Set(this.props.organization.features).has('global-views');
+  };
 
   didQueryChange = (prevProps, nextProps) => {
     const urlParamKeys = Object.values(URL_PARAM);
@@ -285,6 +313,12 @@ class GlobalSelectionHeader extends React.Component {
     );
   };
 
+  getFirstProject = () => {
+    return this.getProjects()
+      .map(p => parseInt(p.id, 10))
+      .slice(0, 1);
+  };
+
   render() {
     const {
       className,
@@ -304,6 +338,7 @@ class GlobalSelectionHeader extends React.Component {
             value={this.state.projects || this.props.selection.projects}
             onChange={this.handleChangeProjects}
             onUpdate={this.handleUpdateProjects}
+            multi={this.hasMultipleProjectSelection()}
           />
         </HeaderItemPosition>
 
