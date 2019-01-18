@@ -18,12 +18,11 @@ describe('EventsChart', function() {
   let render;
   let wrapper;
 
-  beforeAll(function() {});
   beforeEach(function() {
-    mockZoomRange(2, 5);
+    mockZoomRange(1543449600000, 1543708800000);
     wrapper = mount(
       <EventsChart
-        api={MockApiClient}
+        api={new MockApiClient()}
         location={{query: {}}}
         organization={org}
         project={[]}
@@ -103,7 +102,7 @@ describe('EventsChart', function() {
     expect(chartZoomInstance.currentPeriod.end).toEqual('2018-12-02T00:00:00');
 
     // Zoom again
-    mockZoomRange(3, 5);
+    mockZoomRange(1543536000000, 1543708800000);
     doZoom(wrapper, chart);
     expect(chartZoomInstance.currentPeriod.period).toEqual(null);
     expect(chartZoomInstance.currentPeriod.start).toEqual('2018-11-30T00:00:00');
@@ -146,9 +145,9 @@ describe('EventsChart', function() {
 
     doZoom(wrapper, chart);
     // Zoom again
-    mockZoomRange(3, 5);
+    mockZoomRange(1543536000000, 1543708800000);
     doZoom(wrapper, chart);
-    mockZoomRange(4, 5);
+    mockZoomRange(1543622400000, 1543708800000);
     doZoom(wrapper, chart);
 
     const chartZoomInstance = wrapper.find('ChartZoom').instance();
