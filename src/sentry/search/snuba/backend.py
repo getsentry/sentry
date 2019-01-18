@@ -54,7 +54,8 @@ aggregation_defs = {
     'last_seen': ['toUInt64(max(timestamp)) * 1000', ''],
     # https://github.com/getsentry/sentry/blob/804c85100d0003cfdda91701911f21ed5f66f67c/src/sentry/event_manager.py#L241-L271
     'priority': ['(toUInt64(log(times_seen) * 600)) + last_seen', ''],
-    'total': ['uniq', 'issue'],  # Only makes sense with WITH TOTALS, returns 1 for an individual group.
+    # Only makes sense with WITH TOTALS, returns 1 for an individual group.
+    'total': ['uniq', 'issue'],
 }
 
 
@@ -292,6 +293,21 @@ class SnubaSearchBackend(ds.DjangoSearchBackend):
             # total number of snuba matches that will be overall matches, which
             # we can use to get an estimate for X-Hits. Note no cursor, so we
             # are always estimating the total hits.
+
+            # The number of samples required to achieve a certain error bound
+            # with a certain confidence interval can be calculated from a
+            # rearrangement of the normal approximation (Wald) confidence
+            # interval formula:
+            #
+            # https://en.wikipedia.org/wiki/Binomial_proportion_confidence_interval
+            #
+            # Effectively if we want the estimate to be within +/- 10% of the
+            # real value with 95% confidence, we would need (1.96^2 * p*(1-p))
+            # / 0.1^2 samples. With a starting assumption of p=0.5 (this
+            # requires the most samples) we would need 96 samples to achieve
+            # +/-10% @ 95% confidence.
+
+            sample_size = options.get('snuba.search.hits-sample-size')
             snuba_groups, snuba_total = snuba_search(
                 start=start,
                 end=end,
@@ -299,6 +315,8 @@ class SnubaSearchBackend(ds.DjangoSearchBackend):
                 environment_ids=environments and [environment.id for environment in environments],
                 tags=tags,
                 sort_field=sort_field,
+                limit=sample_size,
+                offset=0,
                 get_sample=True,
                 **parameters
             )
@@ -498,21 +516,10 @@ def snuba_search(start, end, project_ids, environment_ids, tags,
     if get_sample:
         # Get a random sample of matching groups. Because we use any(rand()),
         # we are testing against a single random value per group, and so the
-        # sample is independent of the number of events in a group.
-        #
-        # The number of samples required to achieve a certain error bound with
-        # a certain confidence interval can be calculated from a rearrangement
-        # of the normal approximation (Wald) confidence interval formula:
-        #
-        # https://en.wikipedia.org/wiki/Binomial_proportion_confidence_interval
-        #
-        # Effectively if we want the estimate to be within +/- 10% of the real
-        # value with 95% confidence, we would need (1.96^2 * p*(1-p)) / 0.1^2
-        # samples. With a starting assumption of p=0.5 (this requires the most
-        # samples) we would need 96 samples to achieve +/-10% @ 95% confidence.
+        # sample is independent of the number of events in a group. Since we
+        # are sampling using `ORDER by random() LIMIT x`, we will always grab
+        # the full result set if there less than x total results.
 
-        limit = options.get('snuba.search.hits-sample-size')
-        offset = 0
         selected_columns.append(('any', ('rand', ()), 'sample'))
         sort_field = 'sample'
         orderby = [sort_field]
