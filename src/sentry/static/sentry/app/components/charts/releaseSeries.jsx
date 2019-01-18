@@ -21,9 +21,9 @@ function getReleaseSeries(releases) {
     markLine: MarkLine({
       lineStyle: {
         normal: {
-          color: theme.gray1,
-          opacity: 0.6,
-          type: 'dotted',
+          color: theme.purpleLight,
+          opacity: 0.3,
+          type: 'solid',
         },
       },
       tooltip: {
