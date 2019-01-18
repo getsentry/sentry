@@ -12,11 +12,12 @@ from rest_framework.response import Response
 
 from sentry import eventstream, features
 from sentry.api.base import audit_logger
-from sentry.api.fields import ActorField
+from sentry.api.fields import Actor, ActorField
 from sentry.constants import DEFAULT_SORT_OPTION
 from sentry.models import (
-    Commit, Group, GroupHash, GroupStatus, GroupTombstone,
-    Release, Repository, TOMBSTONE_FIELDS_FROM_GROUP, Team, User
+    Commit, Group, GroupHash, GroupStatus, GroupTombstone, GroupSubscription,
+    GroupSubscriptionReason, Release, Repository, TOMBSTONE_FIELDS_FROM_GROUP,
+    Team, User, UserOption
 )
 from sentry.models.group import looks_like_short_id
 from sentry.search.utils import InvalidQuery, parse_query
@@ -319,3 +320,21 @@ def delete_groups(request, project, group_list, delete_type):
             user=request.user,
             delete_type=delete_type,
             sender=delete_groups)
+
+
+def self_subscribe_and_assign_issue(acting_user, group):
+    # Used during issue resolution to assign to acting user
+    # returns None if the user didn't elect to self assign on resolution
+    # or the group is assigned already, otherwise returns Actor
+    # representation of current user
+    if acting_user:
+        GroupSubscription.objects.subscribe(
+            user=acting_user,
+            group=group,
+            reason=GroupSubscriptionReason.status_change,
+        )
+        self_assign_issue = UserOption.objects.get_value(
+            user=acting_user, key='self_assign_issue', default='0'
+        )
+        if self_assign_issue == '1' and not group.assignee_set.exists():
+            return Actor(type=User, id=acting_user.id)
