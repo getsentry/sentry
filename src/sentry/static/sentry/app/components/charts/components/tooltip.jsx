@@ -21,8 +21,9 @@ function valueFormatter(value) {
 
 function getFormatter({filter, isGroupedByDate, truncate, formatAxisLabel, utc}) {
   const getFilter = seriesParam => {
-    // Releases can be a series with an empty `data`, but real series will
-    // have `data` as a tuple of (key, value)
+    // Series do not necessarily have `data` defined, e.g. releases don't have `data`, but rather
+    // has a series using strictly `markLine`s. 
+    // However, real series will have `data` as a tuple of (key, value)
     const value = seriesParam.data && seriesParam.data.length && seriesParam.data[1];
     if (typeof filter === 'function') {
       return filter(value);
