@@ -764,7 +764,7 @@ exports[`Issues Similar View renders with mocked data 1`] = `
                                       ],
                                       Array [
                                         Object {
-                                          "pathname": "/org-slug/project-slug/issues",
+                                          "pathname": "/org-slug/project-slug/issues/",
                                           "query": Object {
                                             "query": "logger:javascript",
                                           },
@@ -778,7 +778,7 @@ exports[`Issues Similar View renders with mocked data 1`] = `
                                       ],
                                       Array [
                                         Object {
-                                          "pathname": "/org-slug/project-slug/issues",
+                                          "pathname": "/org-slug/project-slug/issues/",
                                           "query": Object {
                                             "query": "logger:javascript",
                                           },
@@ -940,7 +940,7 @@ exports[`Issues Similar View renders with mocked data 1`] = `
                                                     ],
                                                     Array [
                                                       Object {
-                                                        "pathname": "/org-slug/project-slug/issues",
+                                                        "pathname": "/org-slug/project-slug/issues/",
                                                         "query": Object {
                                                           "query": "logger:javascript",
                                                         },
@@ -954,7 +954,7 @@ exports[`Issues Similar View renders with mocked data 1`] = `
                                                     ],
                                                     Array [
                                                       Object {
-                                                        "pathname": "/org-slug/project-slug/issues",
+                                                        "pathname": "/org-slug/project-slug/issues/",
                                                         "query": Object {
                                                           "query": "logger:javascript",
                                                         },
@@ -1135,7 +1135,7 @@ exports[`Issues Similar View renders with mocked data 1`] = `
                                       ],
                                       Array [
                                         Object {
-                                          "pathname": "/org-slug/project-slug/issues",
+                                          "pathname": "/org-slug/project-slug/issues/",
                                           "query": Object {
                                             "query": "logger:javascript",
                                           },
@@ -1149,7 +1149,7 @@ exports[`Issues Similar View renders with mocked data 1`] = `
                                       ],
                                       Array [
                                         Object {
-                                          "pathname": "/org-slug/project-slug/issues",
+                                          "pathname": "/org-slug/project-slug/issues/",
                                           "query": Object {
                                             "query": "logger:javascript",
                                           },
@@ -1292,7 +1292,7 @@ exports[`Issues Similar View renders with mocked data 1`] = `
                                                   style={Object {}}
                                                   to={
                                                     Object {
-                                                      "pathname": "/org-slug/project-slug/issues",
+                                                      "pathname": "/org-slug/project-slug/issues/",
                                                       "query": Object {
                                                         "query": "logger:javascript",
                                                       },
