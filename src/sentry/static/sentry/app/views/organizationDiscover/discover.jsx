@@ -51,6 +51,11 @@ export default class OrganizationDiscover extends React.Component {
     view: PropTypes.oneOf(['query', 'saved']),
     toggleEditMode: PropTypes.func.isRequired,
     isLoading: PropTypes.bool.isRequired,
+    utc: PropTypes.bool,
+  };
+
+  static defaultProps = {
+    utc: true,
   };
 
   constructor(props) {
@@ -347,6 +352,7 @@ export default class OrganizationDiscover extends React.Component {
       savedQuery,
       toggleEditMode,
       isLoading,
+      utc,
     } = this.props;
 
     const currentQuery = queryBuilder.getInternal();
@@ -404,7 +410,7 @@ export default class OrganizationDiscover extends React.Component {
           relative={currentQuery.range}
           start={start}
           end={end}
-          utc={true}
+          utc={utc}
           showEnvironmentSelector={false}
           onChangeProjects={this.updateProjects}
           onUpdateProjects={this.runQuery}
@@ -416,6 +422,7 @@ export default class OrganizationDiscover extends React.Component {
           <BodyContent>
             {shouldDisplayResult && (
               <Result
+                utc={utc}
                 data={data}
                 savedQuery={savedQuery}
                 onToggleEdit={toggleEditMode}

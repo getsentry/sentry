@@ -18,7 +18,8 @@
     "@babel/preset-env": "^7.0.0",
     "@babel/preset-react": "^7.0.0",
     "@babel/runtime": "^7.0.0",
-    "@sentry/browser": "^4.4.2",
+    "@sentry/browser": "^4.5.2",
+    "algoliasearch": "^3.32.0",
     "babel-core": "^7.0.0-bridge.0",
     "babel-loader": "^8.0.0",
     "babel-plugin-emotion": "9.1.2",
@@ -140,7 +141,7 @@
     "dev-proxy": "node scripts/devproxy.js",
     "dev-server": "webpack-dev-server",
     "storybook": "start-storybook -p 9001 -c .storybook",
-    "storybook-build": "build-storybook -c .storybook -o .storybook-out",
+    "storybook-build": "build-storybook -c .storybook -o .storybook-out && sed -i -e 's/\\\/sb_dll/sb_dll/g' .storybook-out/index.html",
     "snapshot": "build-storybook && PERCY_TOKEN=$STORYBOOK_PERCY_TOKEN PERCY_PROJECT=$STORYBOOK_PERCY_PROJECT percy-storybook --widths=1280",
     "webpack-profile": "yarn -s webpack --profile --json > stats.json"
   }

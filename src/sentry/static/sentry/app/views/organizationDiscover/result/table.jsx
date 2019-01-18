@@ -134,7 +134,7 @@ export default class ResultTable extends React.Component {
         // We want to avoid calling measureText() too much so only do this
         // for the top 3 longest strings
         const uniqs = [...new Set(data.map(row => row[colName]))]
-          .map(colData => getDisplayText(colData, false))
+          .map(colData => getDisplayText(colData))
           .sort((a, b) => b.length - a.length)
           .slice(0, 3);
 

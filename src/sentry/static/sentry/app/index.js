@@ -200,8 +200,6 @@ const globals = {
     Pagination: require('app/components/pagination').default,
     PluginConfig: require('app/components/pluginConfig').default,
     ProjectSelector: require('app/components/projectHeader/projectSelector').default,
-    CreateSampleEvent: require('app/components/createSampleEvent').default,
-    InstallPromptBanner: require('app/components/installPromptBanner').default,
     SentryTypes: require('app/sentryTypes').default,
     SettingsPageHeader: require('app/views/settings/components/settingsPageHeader')
       .default,
@@ -219,10 +217,13 @@ const globals = {
     Badge: require('app/components/badge').default,
     Tag: require('app/views/settings/components/tag').default,
     Switch: require('app/components/switch').default,
+    Search: require('app/components/search').default,
+    HelpSource: require('app/components/search/sources/helpSource').default,
     GlobalModal: require('app/components/globalModal').default,
     SetupWizard: require('app/components/setupWizard').default,
     Well: require('app/components/well').default,
     theme: require('app/utils/theme').default,
+    space: require('app/styles/space').default,
     utils: {
       errorHandler: require('app/utils/errorHandler').default,
       ajaxCsrfSetup: require('app/utils/ajaxCsrfSetup').default,

@@ -141,23 +141,23 @@ function getFrame(frame, frameIdx, platform) {
   }
   switch (platform) {
     case 'javascript':
-      return getJavaScriptFrame(frame, frameIdx);
+      return getJavaScriptFrame(frame);
     case 'ruby':
-      return getRubyFrame(frame, frameIdx);
+      return getRubyFrame(frame);
     case 'php':
       return getPHPFrame(frame, frameIdx);
     case 'python':
-      return getPythonFrame(frame, frameIdx);
+      return getPythonFrame(frame);
     case 'java':
-      return getJavaFrame(frame, frameIdx);
+      return getJavaFrame(frame);
     case 'objc':
     // fallthrough
     case 'cocoa':
     // fallthrough
     case 'native':
-      return getNativeFrame(frame, frameIdx);
+      return getNativeFrame(frame);
     default:
-      return getPythonFrame(frame, frameIdx);
+      return getPythonFrame(frame);
   }
 }
 

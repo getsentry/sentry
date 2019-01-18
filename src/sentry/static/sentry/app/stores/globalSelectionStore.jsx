@@ -2,19 +2,24 @@ import {isEqual} from 'lodash';
 import Reflux from 'reflux';
 
 import {DATE_TIME} from 'app/components/organizations/globalSelectionHeader/constants';
-import {DEFAULT_STATS_PERIOD, DEFAULT_USE_UTC} from 'app/constants';
+import {DEFAULT_STATS_PERIOD} from 'app/constants';
 import {isEqualWithDates} from 'app/utils/isEqualWithDates';
+import ConfigStore from 'app/stores/configStore';
 import GlobalSelectionActions from 'app/actions/globalSelectionActions';
 
-const DEFAULT_SELECTION = {
-  projects: [],
-  environments: [],
-  datetime: {
-    [DATE_TIME.START]: null,
-    [DATE_TIME.END]: null,
-    [DATE_TIME.PERIOD]: DEFAULT_STATS_PERIOD,
-    [DATE_TIME.UTC]: DEFAULT_USE_UTC,
-  },
+const getDefaultSelection = () => {
+  const user = ConfigStore.get('user');
+
+  return {
+    projects: [],
+    environments: [],
+    datetime: {
+      [DATE_TIME.START]: null,
+      [DATE_TIME.END]: null,
+      [DATE_TIME.PERIOD]: DEFAULT_STATS_PERIOD,
+      [DATE_TIME.UTC]: user?.options?.timezone === 'UTC' ? true : undefined,
+    },
+  };
 };
 
 /**
@@ -30,7 +35,7 @@ const GlobalSelectionStore = Reflux.createStore({
   },
 
   reset(state) {
-    this.selection = state || DEFAULT_SELECTION;
+    this.selection = state || getDefaultSelection();
   },
 
   get() {

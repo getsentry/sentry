@@ -59,6 +59,15 @@ FEATURE_DESCRIPTIONS = [
     ),
 ]
 
+setup_alert = {
+    'type': 'warning',
+    'icon': 'icon-warning-sm',
+    'text': 'Your Jira instance must be able to communicate with Sentry.'
+            ' Sentry makes outbound requests from a [static set of IP'
+            ' addresses](https://docs.sentry.io/ip-ranges/) that you may wish'
+            ' to whitelist to support this integration.',
+}
+
 
 metadata = IntegrationMetadata(
     description=_(DESCRIPTION.strip()),
@@ -67,7 +76,9 @@ metadata = IntegrationMetadata(
     noun=_('Installation'),
     issue_url='https://github.com/getsentry/sentry/issues/new?title=Jira%20Server%20Integration:%20&labels=Component%3A%20Integrations',
     source_url='https://github.com/getsentry/sentry/tree/master/src/sentry/integrations/jira_server',
-    aspects={},
+    aspects={
+        'alerts': [setup_alert],
+    },
 )
 
 

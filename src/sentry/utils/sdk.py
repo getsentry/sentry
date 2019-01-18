@@ -113,6 +113,19 @@ def configure_sdk():
     )
 
 
+def _create_noop_hub():
+    def transport(event):
+        with capture_internal_exceptions():
+            metrics.incr('internal.uncaptured.events', skip_internal=False)
+            sdk_logger.warn('internal-error.noop-hub')
+
+    return sentry_sdk.Hub(sentry_sdk.Client(transport=transport))
+
+
+NOOP_HUB = _create_noop_hub()
+del _create_noop_hub
+
+
 class InternalTransport(Transport):
     def __init__(self):
         pass
@@ -127,6 +140,18 @@ class InternalTransport(Transport):
         return RequestFactory()
 
     def capture_event(self, event):
+        # Disable the SDK while processing our own events. This fixes some
+        # recursion issues when the view crashes without including any
+        # UNSAFE_FILES
+        #
+        # NOTE: UNSAFE_FILES still exists because the hub does not follow the
+        # execution flow into the celery job triggered by StoreView. In other
+        # words, UNSAFE_FILES is used in case the celery job for crashes and
+        # that error is captured by the SDK.
+        with NOOP_HUB:
+            return self._capture_event(event)
+
+    def _capture_event(self, event):
         with capture_internal_exceptions():
             key = self.project_key
             if key is None:

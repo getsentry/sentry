@@ -29,19 +29,7 @@ class OrganizationAuthSettingsPermissionTest(PermissionTestCase):
             args=[
                 self.organization.slug])
 
-    def test_teamless_admin_cannot_load(self):
-        with self.feature('organizations:sso-basic'):
-            self.assert_teamless_admin_cannot_access(self.path)
-
-    def test_team_admin_cannot_load(self):
-        with self.feature('organizations:sso-basic'):
-            self.assert_team_admin_cannot_access(self.path)
-
-    def test_manager_cannot_load(self):
-        with self.feature('organizations:sso-basic'):
-            self.assert_role_cannot_access(self.path, 'manager')
-
-    def test_owner_can_load(self):
+    def create_owner_and_attach_identity(self):
         user = self.create_user(is_superuser=False)
         self.create_member(
             user=user,
@@ -60,9 +48,41 @@ class OrganizationAuthSettingsPermissionTest(PermissionTestCase):
         )
         setattr(om.flags, 'sso:linked', True)
         om.save()
+        return user
 
-        self.login_as(user, organization_id=self.organization.id)
+    def test_teamless_admin_cannot_load(self):
         with self.feature('organizations:sso-basic'):
+            self.assert_teamless_admin_cannot_access(self.path)
+
+    def test_team_admin_cannot_load(self):
+        with self.feature('organizations:sso-basic'):
+            self.assert_team_admin_cannot_access(self.path)
+
+    def test_manager_cannot_load(self):
+        with self.feature('organizations:sso-basic'):
+            self.assert_role_cannot_access(self.path, 'manager')
+
+    def test_owner_can_load(self):
+        owner = self.create_owner_and_attach_identity()
+
+        self.login_as(owner, organization_id=self.organization.id)
+        with self.feature('organizations:sso-basic'):
+            resp = self.client.get(self.path)
+            assert resp.status_code == 200
+
+    def test_superuser_can_load(self):
+        owner = self.create_owner_and_attach_identity()
+
+        # owner can't load without feature
+        self.login_as(owner, organization_id=self.organization.id)
+        with self.feature({'organizations:sso-basic': False}):
+            resp = self.client.get(self.path)
+            assert resp.status_code == 302
+
+        # superuser can load without feature
+        superuser = self.create_user(is_superuser=True)
+        self.login_as(superuser, superuser=True)
+        with self.feature({'organizations:sso-basic': False}):
             resp = self.client.get(self.path)
             assert resp.status_code == 200
 
@@ -126,6 +146,31 @@ class OrganizationAuthSettingsTest(AuthProviderTestCase):
         assert getattr(member.flags, 'sso:linked')
         assert not getattr(member.flags, 'sso:invalid')
 
+    def create_org_and_auth_provider(self):
+        self.user.update(is_managed=True)
+        organization = self.create_organization(name='foo', owner=self.user)
+
+        auth_provider = AuthProvider.objects.create(
+            organization=organization,
+            provider='dummy',
+        )
+
+        AuthIdentity.objects.create(
+            user=self.user,
+            ident='foo',
+            auth_provider=auth_provider,
+        )
+        return organization, auth_provider
+
+    def create_om_and_link_sso(self, organization):
+        om = OrganizationMember.objects.get(
+            user=self.user,
+            organization=organization,
+        )
+        setattr(om.flags, 'sso:linked', True)
+        om.save()
+        return om
+
     def test_can_start_auth_flow(self):
         organization = self.create_organization(name='foo', owner=self.user)
 
@@ -168,32 +213,38 @@ class OrganizationAuthSettingsTest(AuthProviderTestCase):
 
     @patch('sentry.web.frontend.organization_auth_settings.email_unlink_notifications')
     def test_disable_provider(self, email_unlink_notifications):
-        self.user.update(is_managed=True)
-        organization = self.create_organization(name='foo', owner=self.user)
-
-        auth_provider = AuthProvider.objects.create(
-            organization=organization,
-            provider='dummy',
-        )
-
-        AuthIdentity.objects.create(
-            user=self.user,
-            ident='foo',
-            auth_provider=auth_provider,
-        )
-
-        om = OrganizationMember.objects.get(
-            user=self.user,
-            organization=organization,
-        )
-        setattr(om.flags, 'sso:linked', True)
-        om.save()
-
+        organization, auth_provider = self.create_org_and_auth_provider()
+        om = self.create_om_and_link_sso(organization)
         path = reverse('sentry-organization-auth-provider-settings', args=[organization.slug])
 
         self.login_as(self.user, organization_id=organization.id)
 
         with self.feature('organizations:sso-basic'):
+            resp = self.client.post(path, {'op': 'disable'})
+
+        assert resp.status_code == 302
+
+        assert not AuthProvider.objects.filter(organization=organization).exists()
+        assert not AuthProvider.objects.filter(id=auth_provider.id).exists()
+
+        om = OrganizationMember.objects.get(id=om.id)
+
+        assert not getattr(om.flags, 'sso:linked')
+        assert not om.user.is_managed
+
+        assert email_unlink_notifications.delay.called
+
+    @patch('sentry.web.frontend.organization_auth_settings.email_unlink_notifications')
+    def test_superuser_disable_provider(self, email_unlink_notifications):
+        organization, auth_provider = self.create_org_and_auth_provider()
+        om = self.create_om_and_link_sso(organization)
+
+        path = reverse('sentry-organization-auth-provider-settings', args=[organization.slug])
+
+        superuser = self.create_user(is_superuser=True)
+        self.login_as(superuser, superuser=True)
+
+        with self.feature({'organizations:sso-basic': False}):
             resp = self.client.post(path, {'op': 'disable'})
 
         assert resp.status_code == 302
