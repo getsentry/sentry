@@ -146,9 +146,9 @@ const StyledSidebarItem = styled(({active, ...props}) => <Link {...props} />)`
     display: block;
     content: '';
     position: absolute;
-    top: 5px;
+    top: 4px;
     left: -20px;
-    bottom: 5px;
+    bottom: 6px;
     width: 5px;
     border-radius: 0 3px 3px 0;
     background-color: transparent;
