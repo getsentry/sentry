@@ -40,6 +40,7 @@ function applyDefaults(query) {
  * initialization.
  */
 export default function createQueryBuilder(initial = {}, organization) {
+  const api = new Client();
   let query = applyDefaults(initial);
   const defaultProjects = organization.projects
     .filter(projects => projects.isMember)
@@ -53,6 +54,7 @@ export default function createQueryBuilder(initial = {}, organization) {
     updateField,
     fetch,
     fetchWithoutLimit,
+    cancelRequests,
     getQueryByType,
     getColumns,
     load,
@@ -178,7 +180,6 @@ export default function createQueryBuilder(initial = {}, organization) {
    * @returns {Promise<Object|Error>}
    */
   function fetch(data = getExternal(), cursor = '0:0:1') {
-    const api = new Client();
     const limit = data.limit || 1000;
     const endpoint = `/organizations/${organization.slug}/discover/query/?per_page=${limit}&cursor=${cursor}`;
 
@@ -218,7 +219,6 @@ export default function createQueryBuilder(initial = {}, organization) {
    * @returns {Promise<Object|Error>}
    */
   function fetchWithoutLimit(data = getExternal()) {
-    const api = new Client();
     const endpoint = `/organizations/${organization.slug}/discover/query/`;
 
     // Reject immediately if no projects are available
@@ -239,6 +239,15 @@ export default function createQueryBuilder(initial = {}, organization) {
     return api.requestPromise(endpoint, {method: 'POST', data}).catch(() => {
       throw new Error(t('Error with query'));
     });
+  }
+
+  /**
+   * Cancels any in-flight API requests made via `fetch` or `fetchWithoutLimit`
+   *
+   * @returns {Void}
+   */
+  function cancelRequests() {
+    api.clear();
   }
 
   /**
