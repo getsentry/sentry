@@ -47,11 +47,6 @@ class GroupEventsEndpoint(GroupEndpoint, EnvironmentMixin):
         :pparam string issue_id: the ID of the issue to retrieve.
         :auth: required
         """
-        use_snuba = options.get('snuba.events-queries.enabled')
-        backend = self._get_events_snuba if use_snuba else self._get_events_legacy
-        return backend(request, group)
-
-    def _get_events_snuba(self, request, group):
 
         try:
             environment = self._get_environment(request, group)
@@ -61,6 +56,11 @@ class GroupEventsEndpoint(GroupEndpoint, EnvironmentMixin):
         except NoResults:
             return Response([])
 
+        use_snuba = options.get('snuba.events-queries.enabled')
+        backend = self._get_events_snuba if use_snuba else self._get_events_legacy
+        return backend(request, group, environment, query, tags)
+
+    def _get_events_snuba(self, request, group, environment, query, tags):
         conditions = []
         if query:
             msg_substr = ['positionCaseInsensitive', ['message', "'%s'" % (query,)]]
@@ -97,15 +97,7 @@ class GroupEventsEndpoint(GroupEndpoint, EnvironmentMixin):
             paginator=GenericOffsetPaginator(data_fn=data_fn)
         )
 
-    def _get_events_legacy(self, request, group):
-        try:
-            environment = self._get_environment(request, group)
-            query, tags = self._get_search_query_and_tags(request, group, environment)
-        except InvalidQuery as exc:
-            return Response({'detail': six.text_type(exc)}, status=400)
-        except NoResults:
-            return Response([])
-
+    def _get_events_legacy(self, request, group, environment, query, tags):
         events = Event.objects.filter(group_id=group.id)
 
         if query:
