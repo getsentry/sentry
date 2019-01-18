@@ -55,7 +55,7 @@ class RequestInterface extends React.Component {
         fullUrl = fullUrl + '?' + data.query;
       }
       if (data.fragment && fullUrl) {
-        fullUrl = fullUrl + '#' + data.fragment;
+        fullUrl += '#' + data.fragment;
       }
 
       if (!isUrl(fullUrl)) {
