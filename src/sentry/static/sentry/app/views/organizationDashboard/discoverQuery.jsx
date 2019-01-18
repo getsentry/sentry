@@ -44,6 +44,10 @@ class DiscoverQuery extends React.Component {
     this.fetchData();
   }
 
+  componentWillUnmount() {
+    this.queryBuilders.forEach(builder => builder.cancelRequests());
+  }
+
   createQueryBuilders() {
     const {organization, queries} = this.props;
     queries.forEach(query => {
