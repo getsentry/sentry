@@ -28,7 +28,7 @@ class GetDateRangeFromParamsTest(TestCase):
         assert end - datetime.timedelta(seconds=3600) == start
 
         with self.assertRaises(InvalidParams):
-            get_date_range_from_params({'statsPeriod': '1s'})
+            get_date_range_from_params({'statsPeriod': '91d'})
 
     def test_date_range(self):
         start, end = get_date_range_from_params({
