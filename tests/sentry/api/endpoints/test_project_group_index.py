@@ -1574,9 +1574,9 @@ class GroupUpdateTest(APITestCase):
         r4 = GroupSeen.objects.filter(group=group4, user=self.user)
         assert not r4.exists()
 
-    @patch('sentry.api.endpoints.project_group_index.uuid4')
-    @patch('sentry.api.endpoints.project_group_index.merge_groups')
-    @patch('sentry.api.endpoints.project_group_index.eventstream')
+    @patch('sentry.api.helpers.group_index.uuid4')
+    @patch('sentry.api.helpers.group_index.merge_groups')
+    @patch('sentry.api.helpers.group_index.eventstream')
     def test_merge(self, mock_eventstream, merge_groups, mock_uuid4):
         eventstream_state = object()
         mock_eventstream.start_merge = Mock(return_value=eventstream_state)
