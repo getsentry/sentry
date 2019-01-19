@@ -9,6 +9,7 @@ import TeamStore from 'app/stores/teamStore';
 
 jest.mock('app/stores/configStore', () => ({
   get: jest.fn(),
+  set: jest.fn(),
 }));
 jest.mock('app/actionCreators/modal', () => ({
   openSudo: jest.fn(),

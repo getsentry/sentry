@@ -1,6 +1,7 @@
 import {browserHistory} from 'react-router';
 
 import {Client} from 'app/api';
+import ConfigStore from 'app/stores/configStore';
 import IndicatorStore from 'app/stores/indicatorStore';
 import OrganizationsActions from 'app/actions/organizationsActions';
 import OrganizationsStore from 'app/stores/organizationsStore';
@@ -49,6 +50,10 @@ export function removeAndRedirectToRemainingOrganization(api, params) {
 }
 
 export function setActiveOrganization(org) {
+  if (org && org.slug) {
+    // update lastOrganization without page load
+    ConfigStore.set('lastOrganization', org.slug);
+  }
   OrganizationsActions.setActive(org);
 }
 
@@ -60,17 +65,21 @@ export function updateOrganization(org) {
   OrganizationsActions.update(org);
 }
 
-export function fetchOrganizationByMember(memberId, {loadOrg, setActive}) {
+export function fetchOrganizationByMember(memberId, {addOrg, fetchOrgDetails}) {
   let api = new Client();
   let request = api.requestPromise(`/organizations/?query=member_id:${memberId}`);
 
   request.then(data => {
-    if (data.length && loadOrg) {
-      OrganizationsStore.add(data[0]);
-    }
+    if (data.length) {
+      if (addOrg) {
+        // add org to SwitchOrganization dropdown
+        OrganizationsStore.add(data[0]);
+      }
 
-    if (data.length && setActive) {
-      setActiveOrganization(data[0]);
+      if (fetchOrgDetails) {
+        // load SidebarDropdown with org details including `access`
+        fetchOrganizationDetails(data[0].name, {setActive: true, loadProjects: true});
+      }
     }
   });
 
