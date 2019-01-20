@@ -33,7 +33,7 @@ class RequestInterface extends React.Component {
     // We assume we only have a partial interface is we're missing
     // an HTTP method. This means we don't have enough information
     // to reliably construct a full HTTP request.
-    return !this.props.data.method;
+    return !this.props.data.method || !this.props.data.url;
   };
 
   toggleView = value => {
@@ -49,23 +49,31 @@ class RequestInterface extends React.Component {
     let view = this.state.view;
 
     let fullUrl = data.url;
-    if (data.query) {
-      fullUrl = fullUrl + '?' + data.query;
-    }
-    if (data.fragment) {
-      fullUrl = fullUrl + '#' + data.fragment;
+    let parsedUrl = null;
+    if (fullUrl) {
+      if (data.query) {
+        fullUrl += '?' + data.query;
+      }
+      if (data.fragment && fullUrl) {
+        fullUrl += '#' + data.fragment;
+      }
+
+      if (!isUrl(fullUrl)) {
+        // Check if the url passed in is a safe url to avoid XSS
+        fullUrl = null;
+      }
     }
 
-    // lol
-    let parsedUrl = document.createElement('a');
-    parsedUrl.href = fullUrl;
+    // check `fullUrl` again because of `isUrl` check
+    if (fullUrl) {
+      // use html tag to parse url, lol
+      parsedUrl = document.createElement('a');
+      parsedUrl.href = fullUrl;
+    }
 
     let children = [];
 
-    // Check if the url passed in is a safe url to avoid XSS
-    let isValidUrl = isUrl(fullUrl);
-
-    if (!this.isPartial() && isValidUrl) {
+    if (!this.isPartial() && fullUrl) {
       children.push(
         <div key="view-buttons" className="btn-group">
           <a
@@ -87,19 +95,23 @@ class RequestInterface extends React.Component {
 
     children.push(
       <h3 key="title">
-        <a href={isValidUrl ? fullUrl : null} title={fullUrl}>
+        <a href={fullUrl} title={fullUrl}>
           <span className="path">
             <strong>{data.method || 'GET'}</strong>
-            <Truncate value={parsedUrl.pathname} maxLength={36} leftTrim={true} />
+            <Truncate
+              value={parsedUrl ? parsedUrl.pathname : ''}
+              maxLength={36}
+              leftTrim={true}
+            />
           </span>
-          {isValidUrl && (
+          {fullUrl && (
             <span className="external-icon">
               <em className="icon-open" />
             </span>
           )}
         </a>
         <small style={{marginLeft: 10}} className="host">
-          {parsedUrl.hostname}
+          {parsedUrl ? parsedUrl.hostname : ''}
         </small>
       </h3>
     );
