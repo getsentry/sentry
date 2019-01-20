@@ -598,12 +598,13 @@ class EventManager(object):
             # Fix case where legacy apps pass 'environment' as a tag
             # instead of a top level key.
             # TODO (alex) save() just reinserts the environment into the tags
-            if not data.get('environment'):
-                tagsdict = dict(data['tags'])
-                if 'environment' in tagsdict:
-                    data['environment'] = tagsdict['environment']
-                    del tagsdict['environment']
-                    data['tags'] = tagsdict.items()
+            # TODO (markus) silly conversion between list and dict, hard to fix
+            # without messing up meta
+            tagsdict = dict(data['tags'])
+            environment_tag = tagsdict.pop("environment", None)
+            if not data.get('environment') and environment_tag:
+                data['environment'] = environment_tag
+            data['tags'] = tagsdict.items()
 
             # the SDKs currently do not describe event types, and we must infer
             # them from available attributes
