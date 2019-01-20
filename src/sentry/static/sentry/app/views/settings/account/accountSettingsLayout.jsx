@@ -29,7 +29,7 @@ class AccountSettingsLayout extends React.Component {
     // in OrganizationsStore and then fetch details for SidebarDropdown
     let {organizations} = this.props;
     if (organizations.length) {
-      fetchOrganizationDetails(organizations[0].name, {
+      fetchOrganizationDetails(organizations[0].slug, {
         setActive: true,
         loadProjects: true,
       });

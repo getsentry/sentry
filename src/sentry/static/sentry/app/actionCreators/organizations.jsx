@@ -78,7 +78,7 @@ export function fetchOrganizationByMember(memberId, {addOrg, fetchOrgDetails}) {
 
       if (fetchOrgDetails) {
         // load SidebarDropdown with org details including `access`
-        fetchOrganizationDetails(data[0].name, {setActive: true, loadProjects: true});
+        fetchOrganizationDetails(data[0].slug, {setActive: true, loadProjects: true});
       }
     }
   });
