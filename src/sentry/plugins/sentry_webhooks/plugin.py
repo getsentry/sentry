@@ -89,7 +89,7 @@ class WebHooksPlugin(notify.NotificationPlugin):
             'url': group.get_absolute_url(params={'referrer': 'webhooks_plugin'}),
             'triggering_rules': triggering_rules,
         }
-        data['event'] = dict(event.data or {})
+        data['event'] = event.as_dict()
         data['event']['tags'] = event.get_tags()
         data['event']['event_id'] = event.event_id
         if features.has('organizations:legacy-event-id', group.project.organization):
