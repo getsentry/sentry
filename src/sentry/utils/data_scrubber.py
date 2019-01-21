@@ -138,7 +138,7 @@ class SensitiveDataFilter(object):
         return value
 
     def filter_stacktrace(self, data):
-        if 'frames' not in data:
+        if not data.get('frames'):
             return
         for frame in data['frames']:
             if 'vars' not in frame:
