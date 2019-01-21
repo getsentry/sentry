@@ -41,9 +41,12 @@ export function getCurlCommand(data) {
       case 'application/x-www-form-urlencoded':
         result += ' \\\n --data "' + escapeQuotes(queryString.stringify(data.data)) + '"';
         break;
+
       default:
         if (isString(data.data)) {
           result += ' \\\n --data "' + escapeQuotes(data.data) + '"';
+        } else if (Object.keys(data.data).length === 0) {
+          // Do nothing with empty object data.
         } else {
           Sentry.withScope(scope => {
             scope.setExtra('data', data);
