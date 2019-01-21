@@ -15,6 +15,7 @@ import {fetchProject} from 'app/actionCreators/projects';
 import {fetchTags} from 'app/actionCreators/tags';
 import {fetchOrgMembers} from 'app/actionCreators/members';
 import {fetchSavedSearches} from 'app/actionCreators/savedSearches';
+import {fetchProcessingIssues} from 'app/actionCreators/processingIssues';
 import ConfigStore from 'app/stores/configStore';
 import GlobalSelectionStore from 'app/stores/globalSelectionStore';
 import GroupStore from 'app/stores/groupStore';
@@ -25,6 +26,7 @@ import LoadingError from 'app/components/loadingError';
 import LoadingIndicator from 'app/components/loadingIndicator';
 import {logAjaxError} from 'app/utils/logging';
 import Pagination from 'app/components/pagination';
+import ProcessingIssueHint from 'app/views/stream/processingIssueHint';
 import SentryTypes from 'app/sentryTypes';
 import StreamGroup from 'app/components/stream/group';
 import StreamActions from 'app/views/stream/actions';
@@ -187,6 +189,7 @@ const OrganizationStream = createReactClass({
   },
 
   fetchData() {
+    this.fetchProcessingIssues();
     GroupStore.loadInitialData([]);
 
     this.setState({
@@ -259,6 +262,32 @@ const OrganizationStream = createReactClass({
         this.resumePolling();
       },
     });
+  },
+
+  fetchProcessingIssues() {
+    let {orgId} = this.props.params;
+    let projects = this.state.selection.projects;
+    fetchProcessingIssues(this.api, orgId, projects).then(
+      data => {
+        let haveIssues = data.filter(
+          p => p.hasIssues || p.resolveableIssues > 0 || p.issuesProcessing > 0
+        );
+
+        if (haveIssues.length > 0) {
+          this.setState({
+            processingIssues: data,
+          });
+        }
+      },
+      error => {
+        // this is okay. it's just a ui hint
+        logAjaxError(error);
+      }
+    );
+  },
+
+  showingProcessingIssues() {
+    return this.state.query && this.state.query.trim() == 'is:unprocessed';
   },
 
   resumePolling() {
@@ -514,6 +543,25 @@ const OrganizationStream = createReactClass({
     // TODO implement
   },
 
+  renderProcessingIssuesHints() {
+    let pi = this.state.processingIssues;
+    if (!pi || this.showingProcessingIssues()) {
+      return null;
+    }
+    let {orgId} = this.props.params;
+    return pi.map((p, idx) => {
+      return (
+        <ProcessingIssueHint
+          key={idx}
+          issue={p}
+          projectId={p.project}
+          orgId={orgId}
+          showProject
+        />
+      );
+    });
+  },
+
   render() {
     if (this.state.loading) {
       return this.renderLoading();
@@ -573,7 +621,10 @@ const OrganizationStream = createReactClass({
               groupIds={this.state.groupIds}
               allResultsVisible={this.allResultsVisible()}
             />
-            <PanelBody>{this.renderStreamBody()}</PanelBody>
+            <PanelBody>
+              {this.renderProcessingIssuesHints()}
+              {this.renderStreamBody()}
+            </PanelBody>
           </Panel>
           <Pagination pageLinks={this.state.pageLinks} />
         </div>

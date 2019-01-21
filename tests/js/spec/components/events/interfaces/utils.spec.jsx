@@ -23,7 +23,7 @@ describe('components/interfaces/utils', function() {
             ENV: 'prod',
           },
           fragment: '',
-          query: 'foo=bar',
+          query: [['foo', 'bar']],
           data: '{"hello": "world"}',
           method: 'GET',
         })
@@ -49,7 +49,7 @@ describe('components/interfaces/utils', function() {
             ENV: 'prod',
           },
           fragment: '',
-          query: 'foo=bar',
+          query: [['foo', 'bar']],
           data: '{"hello": "world"}',
           method: 'GET',
         })
@@ -72,7 +72,7 @@ describe('components/interfaces/utils', function() {
             ENV: 'prod',
           },
           fragment: '',
-          query: 'foo=bar',
+          query: [['foo', 'bar']],
           method: 'GET',
         })
       ).toEqual('curl \\\n "http://example.com/foo?foo=bar"');
@@ -101,7 +101,7 @@ describe('components/interfaces/utils', function() {
           ['Accept-Encoding', 'gzip'],
         ],
         url: 'https://www.sentry.io',
-        query: '',
+        query: [],
         data: null,
         method: 'GET',
       };

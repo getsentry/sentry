@@ -16,6 +16,7 @@ from django.conf import settings
 from django.db import connection, IntegrityError, router, transaction
 from django.utils import timezone
 from django.utils.encoding import force_text
+from sentry import options
 
 from sentry import buffer, eventtypes, eventstream, features, tsdb, filters
 from sentry.constants import (
@@ -441,12 +442,20 @@ class EventManager(object):
 
         self._data = data
 
+    def use_rust_normalize(self):
+        if self._project is not None:
+            if self._project.id in options.get('store.projects-normalize-in-rust-opt-out'):
+                return False
+            if self._project.id in options.get('store.projects-normalize-in-rust-opt-in'):
+                return True
+        return ENABLE_RUST
+
     def normalize(self):
         if self._normalized:
             raise RuntimeError('Already normalized')
         self._normalized = True
 
-        if ENABLE_RUST:
+        if self.use_rust_normalize():
             from semaphore.processing import StoreNormalizer
             rust_normalizer = StoreNormalizer(
                 geoip_lookup=rust_geoip,
@@ -457,6 +466,7 @@ class EventManager(object):
                 key_id=six.text_type(self._key.id) if self._key else None,
                 protocol_version=six.text_type(self.version) if self.version is not None else None,
                 stacktrace_frames_hard_limit=settings.SENTRY_STACKTRACE_FRAMES_HARD_LIMIT,
+                max_stacktrace_frames=settings.SENTRY_MAX_STACKTRACE_FRAMES,
                 valid_platforms=list(VALID_PLATFORMS),
                 max_secs_in_future=MAX_SECS_IN_FUTURE,
                 max_secs_in_past=MAX_SECS_IN_PAST,
