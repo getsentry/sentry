@@ -443,10 +443,11 @@ class EventManager(object):
         self._data = data
 
     def use_rust_normalize(self):
-        if self._project.id in options.get('store.projects-normalize-in-rust-opt-out'):
-            return False
-        if self._project.id in options.get('store.projects-normalize-in-rust-opt-in'):
-            return True
+        if self._project is not None:
+            if self._project.id in options.get('store.projects-normalize-in-rust-opt-out'):
+                return False
+            if self._project.id in options.get('store.projects-normalize-in-rust-opt-in'):
+                return True
         return ENABLE_RUST
 
     def normalize(self):
