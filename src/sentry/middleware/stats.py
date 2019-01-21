@@ -72,3 +72,12 @@ class RequestTimingMiddleware(object):
                 'method': request.method,
             }
         )
+
+
+class MetricsScopingMiddleware(object):
+    def process_view(self, request, view_func, view_args, view_kwargs):
+        metrics.clear_tags()
+
+    def process_response(self, request, response):
+        metrics.clear_tags()
+        return response

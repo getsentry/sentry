@@ -186,6 +186,15 @@ def process_event(event_manager, project, key, remote_addr, helper, attachments)
         project.organization_id)
 
     data = event_manager.get_data()
+
+    metrics.timing(
+        'events.errorcount',
+        len(data.get("errors") or ()),
+        tags={
+            'project_id': project.id,
+        },
+    )
+
     del event_manager
 
     event_id = data['event_id']

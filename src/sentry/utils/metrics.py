@@ -8,7 +8,7 @@ from contextlib import contextmanager
 from django.conf import settings
 from random import random
 from time import time
-from threading import Thread
+from threading import Thread, local
 from six.moves.queue import Queue
 
 
@@ -88,7 +88,7 @@ def incr(key, amount=1, instance=None, tags=None, skip_internal=True):
     if not skip_internal and _should_sample():
         internal.incr(key, instance, tags, amount)
     try:
-        backend.incr(key, instance, tags, amount, sample_rate)
+        backend.incr(key, instance, _set_default_tags(tags), amount, sample_rate)
     except Exception:
         logger = logging.getLogger('sentry.errors')
         logger.exception('Unable to record backend metric')
@@ -99,7 +99,7 @@ def timing(key, value, instance=None, tags=None):
     # TODO(dcramer): implement sampling for timing
     sample_rate = settings.SENTRY_METRICS_SAMPLE_RATE
     try:
-        backend.timing(key, value, instance, tags, sample_rate)
+        backend.timing(key, value, instance, _set_default_tags(tags), sample_rate)
     except Exception:
         logger = logging.getLogger('sentry.errors')
         logger.exception('Unable to record backend metric')
@@ -120,3 +120,27 @@ def timer(key, instance=None, tags=None):
         tags['result'] = 'success'
     finally:
         timing(key, time() - start, instance, tags)
+
+
+_tags = local()
+
+
+def clear_tags():
+    _tags.tags = {}
+
+
+def set_tag(key, value):
+    if not hasattr(_tags, "tags"):
+        clear_tags()
+
+    _tags.tags[key] = value
+
+
+def _set_default_tags(tags):
+    if tags is None:
+        tags = {}
+
+    for k, v in getattr(_tags, "tags", {}).items():
+        tags.setdefault(k, v)
+
+    return tags

@@ -455,7 +455,10 @@ class EventManager(object):
             raise RuntimeError('Already normalized')
         self._normalized = True
 
-        if self.use_rust_normalize():
+        use_rust_normalize = self.use_rust_normalize()
+        metrics.set_tag("use_rust_normalize", use_rust_normalize)
+
+        if use_rust_normalize:
             from semaphore.processing import StoreNormalizer
             rust_normalizer = StoreNormalizer(
                 geoip_lookup=rust_geoip,
