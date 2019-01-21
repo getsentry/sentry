@@ -802,6 +802,11 @@ function routes() {
                 import(/* webpackChunkName: "OrganizationStreamOverview" */ './views/organizationStream/overview')}
               component={errorHandler(LazyLoad)}
             />
+            <Route path="searches/:searchId/"
+              componentPromise={() =>
+                import(/* webpackChunkName: "OrganizationStreamOverview" */ './views/organizationStream/overview')}
+              component={errorHandler(LazyLoad)}
+            />
           </Route>
           {/* Once org issues is complete, these routes can be nested under
           /organizations/:orgId/issues */}
@@ -878,62 +883,6 @@ function routes() {
             />
           </Route>
 
-          <Route
-            path="/organizations/:orgId/discover/"
-            componentPromise={() =>
-              import(/* webpackChunkName: "OrganizationDiscover" */ './views/organizationDiscover/index')}
-            component={errorHandler(LazyLoad)}
-          >
-            <Redirect path="saved/" to="/organizations/:orgId/discover/" />
-            <Route path="saved/:savedQueryId/" />
-          </Route>
-          <Route
-            path="/organizations/:orgId/activity/"
-            component={errorHandler(OrganizationActivity)}
-          />
-          <Route
-            path="/organizations/:orgId/events/"
-            componentPromise={() =>
-              import(/* webpackChunkName: "OrganizationEventsContainer" */ './views/organizationEvents')}
-            component={errorHandler(LazyLoad)}
-          >
-            <IndexRoute
-              componentPromise={() =>
-                import(/* webpackChunkName: "OrganizationEvents" */ './views/organizationEvents/events')}
-              component={errorHandler(LazyLoad)}
-            />
-          </Route>
-          <Route
-            path="/organizations/:orgId/issues/"
-            componentPromise={() =>
-              import(/* webpackChunkName: "OrganizationStreamContainer" */ './views/organizationStream/container')}
-            component={errorHandler(LazyLoad)}
-          >
-            <IndexRoute
-              componentPromise={() =>
-                import(/* webpackChunkName: "OrganizationStreamOverview" */ './views/organizationStream/overview')}
-              component={errorHandler(LazyLoad)}
-            />
-            <Route path="searches/:searchId/"
-              componentPromise={() =>
-                import(/* webpackChunkName: "OrganizationStreamOverview" */ './views/organizationStream/overview')}
-              component={errorHandler(LazyLoad)}
-            />
-          </Route>
-          {/* Once org issues is complete, these routes can be nested under
-          /organizations/:orgId/issues */}
-          <Route
-            path="/organizations/:orgId/issues/assigned/"
-            component={errorHandler(MyIssuesAssignedToMe)}
-          />
-          <Route
-            path="/organizations/:orgId/issues/bookmarks/"
-            component={errorHandler(MyIssuesBookmarked)}
-          />
-          <Route
-            path="/organizations/:orgId/issues/history/"
-            component={errorHandler(MyIssuesViewed)}
-          />
           <Route
             path="/organizations/:orgId/user-feedback/"
             componentPromise={() =>
