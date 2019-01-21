@@ -6,6 +6,7 @@ import RichHttpContent from 'app/components/events/interfaces/richHttpContent';
 import {getCurlCommand} from 'app/components/events/interfaces/utils';
 import {isUrl} from 'app/utils';
 import {t} from 'app/locale';
+import ExternalLink from 'app/components/externalLink';
 
 import Truncate from 'app/components/truncate';
 
@@ -95,7 +96,7 @@ class RequestInterface extends React.Component {
 
     children.push(
       <h3 key="title">
-        <a href={fullUrl} title={fullUrl}>
+        <ExternalLink href={fullUrl} title={fullUrl}>
           <span className="path">
             <strong>{data.method || 'GET'}</strong>
             <Truncate
@@ -109,7 +110,7 @@ class RequestInterface extends React.Component {
               <em className="icon-open" />
             </span>
           )}
-        </a>
+        </ExternalLink>
         <small style={{marginLeft: 10}} className="host">
           {parsedUrl ? parsedUrl.hostname : ''}
         </small>
