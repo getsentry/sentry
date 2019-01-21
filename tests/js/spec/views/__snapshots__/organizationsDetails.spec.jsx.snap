@@ -55,10 +55,10 @@ exports[`OrganizationDetails render() deletion in progress should render a delet
                 </svg>
               </span>
               <div
-                class="css-a5a05a-NameAndOrgWrapper e1fowdfw4"
+                class="css-1mzb71u-OrgAndUserWrapper e1fowdfw4"
               >
                 <div
-                  class="css-1cbli9p-TextOverflow-DropdownOrgName e1fowdfw5"
+                  class="css-df1voe-TextOverflow-OrgOrUserName e1fowdfw5"
                 >
                   Organization Name 
                   <i
@@ -66,7 +66,7 @@ exports[`OrganizationDetails render() deletion in progress should render a delet
                   />
                 </div>
                 <div
-                  class="css-1djvv1k-TextOverflow-DropdownUserName e1fowdfw6"
+                  class="css-1b3lkmg-TextOverflow-UserNameOrEmail e1fowdfw6"
                 >
                   Foo Bar
                 </div>
@@ -531,10 +531,10 @@ exports[`OrganizationDetails render() pending deletion should render a restorati
                 </svg>
               </span>
               <div
-                class="css-a5a05a-NameAndOrgWrapper e1fowdfw4"
+                class="css-1mzb71u-OrgAndUserWrapper e1fowdfw4"
               >
                 <div
-                  class="css-1cbli9p-TextOverflow-DropdownOrgName e1fowdfw5"
+                  class="css-df1voe-TextOverflow-OrgOrUserName e1fowdfw5"
                 >
                   Organization Name 
                   <i
@@ -542,7 +542,7 @@ exports[`OrganizationDetails render() pending deletion should render a restorati
                   />
                 </div>
                 <div
-                  class="css-1djvv1k-TextOverflow-DropdownUserName e1fowdfw6"
+                  class="css-1b3lkmg-TextOverflow-UserNameOrEmail e1fowdfw6"
                 >
                   Foo Bar
                 </div>
@@ -1034,10 +1034,10 @@ exports[`OrganizationDetails render() pending deletion should render a restorati
                 </svg>
               </span>
               <div
-                class="css-a5a05a-NameAndOrgWrapper e1fowdfw4"
+                class="css-1mzb71u-OrgAndUserWrapper e1fowdfw4"
               >
                 <div
-                  class="css-1cbli9p-TextOverflow-DropdownOrgName e1fowdfw5"
+                  class="css-df1voe-TextOverflow-OrgOrUserName e1fowdfw5"
                 >
                   Organization Name 
                   <i
@@ -1045,7 +1045,7 @@ exports[`OrganizationDetails render() pending deletion should render a restorati
                   />
                 </div>
                 <div
-                  class="css-1djvv1k-TextOverflow-DropdownUserName e1fowdfw6"
+                  class="css-1b3lkmg-TextOverflow-UserNameOrEmail e1fowdfw6"
                 >
                   Foo Bar
                 </div>
