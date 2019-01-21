@@ -524,7 +524,7 @@ const OrganizationStream = createReactClass({
   },
 
   fetchSavedSearches() {
-    let {orgId, searchId} = this.props.params;
+    let {orgId} = this.props.params;
     this.setState({loading: true});
 
     fetchSavedSearches(this.api, orgId).then(
@@ -538,7 +538,6 @@ const OrganizationStream = createReactClass({
   },
 
   onSavedSearchCreate(data) {
-    let {orgId, projectId} = this.props.params;
     let savedSearchList = this.state.savedSearchList;
 
     savedSearchList.push(data);

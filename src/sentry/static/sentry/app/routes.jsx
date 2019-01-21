@@ -802,7 +802,8 @@ function routes() {
                 import(/* webpackChunkName: "OrganizationStreamOverview" */ './views/organizationStream/overview')}
               component={errorHandler(LazyLoad)}
             />
-            <Route path="searches/:searchId/"
+            <Route
+              path="searches/:searchId/"
               componentPromise={() =>
                 import(/* webpackChunkName: "OrganizationStreamOverview" */ './views/organizationStream/overview')}
               component={errorHandler(LazyLoad)}

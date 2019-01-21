@@ -3,6 +3,6 @@ export function fetchSavedSearches(api, orgId, projectId = null) {
     ? `/projects/${orgId}/${projectId}/searches/`
     : `/organizations/${orgId}/searches/`;
   return api.requestPromise(url, {
-    method: 'GET'
+    method: 'GET',
   });
 }

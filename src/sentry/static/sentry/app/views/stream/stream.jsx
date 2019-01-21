@@ -76,7 +76,7 @@ const Stream = createReactClass({
       isDefaultSearch: false,
       searchId: hasQuery ? null : searchId,
       // if we have no query then we can go ahead and fetch data
-      loading: searchId || !hasQuery,
+      loading: !!searchId || !hasQuery,
       savedSearchLoading: true,
       savedSearchList: [],
       selectAllActive: false,
