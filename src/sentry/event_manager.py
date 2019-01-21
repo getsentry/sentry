@@ -457,6 +457,7 @@ class EventManager(object):
                 key_id=six.text_type(self._key.id) if self._key else None,
                 protocol_version=six.text_type(self.version) if self.version is not None else None,
                 stacktrace_frames_hard_limit=settings.SENTRY_STACKTRACE_FRAMES_HARD_LIMIT,
+                max_stacktrace_frames=settings.SENTRY_MAX_STACKTRACE_FRAMES,
                 valid_platforms=list(VALID_PLATFORMS),
                 max_secs_in_future=MAX_SECS_IN_FUTURE,
                 max_secs_in_past=MAX_SECS_IN_PAST,
