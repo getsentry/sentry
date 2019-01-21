@@ -78,7 +78,7 @@ const OrganizationStream = createReactClass({
       savedSearchList: [],
       processingIssues: null,
       tagsLoading: true,
-      memberList: null,
+      memberList: [],
       tags: TagStore.getAllTags(),
       // the project for the selected issues
       // Will only be set if selected issues all belong
