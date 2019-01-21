@@ -6,12 +6,14 @@ import styled from 'react-emotion';
 
 import {t} from 'app/locale';
 import {Link} from 'react-router';
+import Button from 'app/components/button';
 import IndicatorStore from 'app/stores/indicatorStore';
 import DropdownLink from 'app/components/dropdownLink';
 import QueryCount from 'app/components/queryCount';
 import MenuItem from 'app/components/menuItem';
 import {BooleanField, FormState, TextField} from 'app/components/forms';
 import withApi from 'app/utils/withApi';
+import space from 'app/styles/space';
 
 const SaveSearchButton = withApi(class SaveSearchButton extends React.Component {
   static propTypes = {
@@ -113,15 +115,16 @@ const SaveSearchButton = withApi(class SaveSearchButton extends React.Component 
     let isSaving = this.state.state === FormState.SAVING;
     return (
       <React.Fragment>
-        <a
+        <Button
           title={this.props.tooltip || this.props.buttonTitle}
-          className={this.props.className}
+          size="xsmall"
+          priority="default"
           disabled={this.props.disabled}
           onClick={this.onToggle.bind(this)}
           style={this.props.style}
         >
           {this.props.children}
-        </a>
+        </Button>
         <Modal show={this.state.isModalOpen} animation={false} onHide={this.onToggle.bind(this)}>
           <form onSubmit={this.onSubmit.bind(this)}>
             <div className="modal-header">
@@ -170,17 +173,21 @@ const SaveSearchButton = withApi(class SaveSearchButton extends React.Component 
               )}
             </div>
             <div className="modal-footer">
-              <button
-                type="button"
-                className="btn btn-default"
+              <Button
+                priority="default"
+                size="medium"
                 disabled={isSaving}
                 onClick={this.onToggle.bind(this)}
               >
                 {t('Cancel')}
-              </button>
-              <button type="submit" className="btn btn-primary" disabled={isSaving}>
+              </Button>
+              <Button
+                priority="primary"
+                size="medium"
+                disabled={isSaving}
+              >
                 {t('Save')}
-              </button>
+              </Button>
             </div>
           </form>
         </Modal>
@@ -252,13 +259,14 @@ const SavedSearchSelector = withApi(class SavedSearchSelector extends React.Comp
             >
               {t('Save Current Search')}
             </SaveSearchButton>
-            <Link
+            <Button
+              size="xsmall"
+              priority="default"
               to={`/${orgId}/${projectId}/settings/saved-searches/`}
-              className="btn btn-sm btn-default"
               disabled={!projectId}
             >
               {t('Manage')}
-            </Link>
+            </Button>
           </ButtonBar>
         </DropdownLink>
       </div>
@@ -273,7 +281,7 @@ const EmptyItem = styled.li`
 
 const StyledMenuItem = styled(MenuItem)`
   & a {
-    padding: 3px 10px;
+    padding: ${space(0.5)} ${space(1)};
   }
   & strong,
   & code {
@@ -289,9 +297,15 @@ const StyledMenuItem = styled(MenuItem)`
 `;
 
 const ButtonBar = styled.li`
-  padding: 3px 10px;
+  padding: ${space(0.5)} ${space(1)};
   display: flex;
   justify-content: space-between;
+
+  & a {
+    /* need to override .dropdown-menu li a in shared-components.less */
+    padding: 0 !important;
+    line-height: 1 !important;
+  }
 `;
 
 export default SavedSearchSelector;
