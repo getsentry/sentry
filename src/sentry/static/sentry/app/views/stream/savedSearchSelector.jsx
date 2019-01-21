@@ -242,7 +242,7 @@ const SavedSearchSelector = withApi(class SavedSearchSelector extends React.Comp
               {t("There don't seem to be any saved searches yet.")}
             </li>
           )}
-          {access.has('project:write') && <MenuItem divider={true} />}
+          <MenuItem divider={true} />
           <li>
             <div className="row">
               <div className="col-md-7">
