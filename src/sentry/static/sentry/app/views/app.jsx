@@ -6,6 +6,7 @@ import React from 'react';
 import Reflux from 'reflux';
 import createReactClass from 'create-react-class';
 import keydown from 'react-keydown';
+import {browserHistory, withRouter} from 'react-router';
 
 import {openCommandPalette} from 'app/actionCreators/modal';
 import {t} from 'app/locale';
@@ -22,6 +23,8 @@ import LoadingIndicator from 'app/components/loadingIndicator';
 import NewsletterConsent from 'app/views/newsletterConsent';
 import OrganizationsStore from 'app/stores/organizationsStore';
 import theme from 'app/utils/theme';
+import getRouteStringFromRoutes from 'app/utils/getRouteStringFromRoutes';
+import * as tracing from 'app/utils/tracing';
 
 function getAlertTypeForProblem(problem) {
   switch (problem.severity) {
@@ -29,6 +32,13 @@ function getAlertTypeForProblem(problem) {
       return 'error';
     default:
       return 'warning';
+  }
+}
+
+function setTracingRoute(routes) {
+  let route = getRouteStringFromRoutes(routes);
+  if (route) {
+    tracing.setRoute(route);
   }
 }
 
@@ -58,6 +68,17 @@ const App = createReactClass({
   },
 
   componentWillMount() {
+    tracing.startTransaction();
+    setTracingRoute(this.props.routes);
+
+    // Listen for route changes so we can set transaction data
+    this.unlistenBrowserHistory = browserHistory.listen(() => {
+      tracing.startTransaction();
+      // browserHistory event is triggered before props are passed to the component,
+      // thus we need to wait for another event loop
+      setTimeout(() => setTracingRoute(this.props.routes));
+    });
+
     this.api.request('/organizations/', {
       query: {
         member: '1',
@@ -128,6 +149,10 @@ const App = createReactClass({
   },
 
   componentWillUnmount() {
+    if (this.unlistenBrowserHistory) {
+      this.unlistenBrowserHistory();
+    }
+
     OrganizationsStore.load([]);
   },
 
@@ -204,4 +229,4 @@ const App = createReactClass({
   },
 });
 
-export default App;
+export default withRouter(App);
