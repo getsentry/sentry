@@ -64,6 +64,18 @@ def merge_apple_crash_report(apple_crash_report, event):
     if event.get('level') is None:
         event['level'] = 'info'
 
+    # Extract referenced (not all loaded) images
+    images = [{
+        'type': 'symbolic',
+        'id': module.get('uuid'),
+        'image_addr': module.get('addr'),
+        'image_size': module.get('size'),
+        'path': module.get('path'),
+        'arch': module.get('arch'),
+        'name': module.get('name'),
+    } for module in apple_crash_report.get('binary_images')]
+    event.setdefault('debug_meta', {})['images'] = images
+
 
 def merge_unreal_context_event(unreal_context, event, project):
     """Merges the context from an Unreal Engine 4 crash
