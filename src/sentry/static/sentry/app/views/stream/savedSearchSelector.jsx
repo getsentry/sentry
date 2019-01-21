@@ -2,10 +2,9 @@ import PropTypes from 'prop-types';
 import React from 'react';
 import createReactClass from 'create-react-class';
 import Modal from 'react-bootstrap/lib/Modal';
-import {Link} from 'react-router';
 
 import {t} from 'app/locale';
-import ApiMixin from 'app/mixins/apiMixin';
+import {Link} from 'react-router';
 import IndicatorStore from 'app/stores/indicatorStore';
 import DropdownLink from 'app/components/dropdownLink';
 import QueryCount from 'app/components/queryCount';
@@ -249,6 +248,7 @@ const SavedSearchSelector = withApi(class SavedSearchSelector extends React.Comp
                 <SaveSearchButton
                   className="btn btn-sm btn-default"
                   onSave={this.props.onSavedSearchCreate.bind(this)}
+                  disabled={!projectId}
                   {...this.props}
                 >
                   {t('Save Current Search')}
@@ -258,6 +258,7 @@ const SavedSearchSelector = withApi(class SavedSearchSelector extends React.Comp
                 <Link
                   to={`/${orgId}/${projectId}/settings/saved-searches/`}
                   className="btn btn-sm btn-default"
+                  disabled={!projectId}
                 >
                   {t('Manage')}
                 </Link>
