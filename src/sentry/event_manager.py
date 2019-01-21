@@ -467,6 +467,8 @@ class EventManager(object):
 
         data = self.get_data()
 
+        data['use_rust_normalize'] = self.use_rust_normalize
+
         metrics.timing(
             'events.errorcount',
             len(data.get("errors") or ()),
