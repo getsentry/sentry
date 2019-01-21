@@ -11,6 +11,7 @@ import IndicatorStore from 'app/stores/indicatorStore';
 import DropdownLink from 'app/components/dropdownLink';
 import QueryCount from 'app/components/queryCount';
 import MenuItem from 'app/components/menuItem';
+import Tooltip from 'app/components/tooltip';
 import {BooleanField, FormState, TextField} from 'app/components/forms';
 import withApi from 'app/utils/withApi';
 import space from 'app/styles/space';
@@ -113,18 +114,26 @@ const SaveSearchButton = withApi(class SaveSearchButton extends React.Component 
 
   render() {
     let isSaving = this.state.state === FormState.SAVING;
+    let {projectId, tooltip, buttonTitle, style, children, disabled} = this.props;
     return (
       <React.Fragment>
-        <Button
-          title={this.props.tooltip || this.props.buttonTitle}
-          size="xsmall"
-          priority="default"
-          disabled={this.props.disabled}
-          onClick={this.onToggle.bind(this)}
-          style={this.props.style}
+        <Tooltip
+          title="You must select issues from a single project to create new saved searches"
+          disabled={!disabled}
         >
-          {this.props.children}
-        </Button>
+          <span>
+            <Button
+              title={tooltip || buttonTitle}
+              size="xsmall"
+              priority="default"
+              disabled={disabled}
+              onClick={this.onToggle.bind(this)}
+              style={style}
+            >
+              {children}
+            </Button>
+          </span>
+        </Tooltip>
         <Modal show={this.state.isModalOpen} animation={false} onHide={this.onToggle.bind(this)}>
           <form onSubmit={this.onSubmit.bind(this)}>
             <div className="modal-header">
@@ -175,7 +184,7 @@ const SaveSearchButton = withApi(class SaveSearchButton extends React.Component 
             <div className="modal-footer">
               <Button
                 priority="default"
-                size="medium"
+                size="small"
                 disabled={isSaving}
                 onClick={this.onToggle.bind(this)}
               >
@@ -183,7 +192,7 @@ const SaveSearchButton = withApi(class SaveSearchButton extends React.Component 
               </Button>
               <Button
                 priority="primary"
-                size="medium"
+                size="small"
                 disabled={isSaving}
               >
                 {t('Save')}
@@ -219,9 +228,10 @@ const SavedSearchSelector = withApi(class SavedSearchSelector extends React.Comp
 
   render() {
     let {access, orgId, projectId, queryCount, queryMaxCount} = this.props;
+    let hasProject = !!projectId;
 
     let children = this.props.savedSearchList.map(search => {
-      let url = projectId
+      let url = hasProject
         ? `/${orgId}/${projectId}/searches/${search.id}/`
         : `/organizations/${orgId}/issues/searches/${search.id}/`
 
@@ -254,19 +264,27 @@ const SavedSearchSelector = withApi(class SavedSearchSelector extends React.Comp
             <SaveSearchButton
               className="btn btn-sm btn-default"
               onSave={this.props.onSavedSearchCreate.bind(this)}
-              disabled={!projectId}
+              disabled={!hasProject}
               {...this.props}
             >
               {t('Save Current Search')}
             </SaveSearchButton>
-            <Button
-              size="xsmall"
-              priority="default"
-              to={`/${orgId}/${projectId}/settings/saved-searches/`}
-              disabled={!projectId}
+
+            <Tooltip
+              title="You must select issues from a single project to manage saved searches"
+              disabled={hasProject}
             >
-              {t('Manage')}
-            </Button>
+              <span>
+                <Button
+                  size="xsmall"
+                  priority="default"
+                  to={`/${orgId}/${projectId}/settings/saved-searches/`}
+                  disabled={!hasProject}
+                >
+                  {t('Manage')}
+                </Button>
+              </span>
+            </Tooltip>
           </ButtonBar>
         </DropdownLink>
       </div>
