@@ -16,6 +16,7 @@ from django.conf import settings
 from django.db import connection, IntegrityError, router, transaction
 from django.utils import timezone
 from django.utils.encoding import force_text
+from sentry import options
 
 from sentry import buffer, eventtypes, eventstream, features, tsdb, filters
 from sentry.constants import (
@@ -442,6 +443,11 @@ class EventManager(object):
         self._data = data
 
     def use_rust_normalize(self):
+        if self._project is not None:
+            if self._project.id in options.get('store.projects-normalize-in-rust-opt-out'):
+                return False
+            if self._project.id in options.get('store.projects-normalize-in-rust-opt-in'):
+                return True
         return ENABLE_RUST
 
     def normalize(self):
