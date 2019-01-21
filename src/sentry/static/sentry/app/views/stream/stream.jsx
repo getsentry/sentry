@@ -1,5 +1,5 @@
 import {browserHistory} from 'react-router';
-import {omit, isEqual} from 'lodash';
+import {omit, isEqual, sortBy} from 'lodash';
 import Cookies from 'js-cookie';
 import PropTypes from 'prop-types';
 import React from 'react';
@@ -255,9 +255,9 @@ const Stream = createReactClass({
     let {orgId, projectId} = this.props.params;
     let savedSearchList = this.state.savedSearchList;
     savedSearchList.push(data);
-    // TODO(dcramer): sort
+
     this.setState({
-      savedSearchList,
+      savedSearchList: sortBy(savedSearchList, ['name']),
     });
     browserHistory.push(`/${orgId}/${projectId}/searches/${data.id}/`);
   },

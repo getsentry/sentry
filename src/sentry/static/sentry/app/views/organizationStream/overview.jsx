@@ -1,5 +1,5 @@
 import {browserHistory} from 'react-router';
-import {isEqual, omit, pickBy, uniq} from 'lodash';
+import {isEqual, omit, pickBy, uniq, sortBy} from 'lodash';
 import Cookies from 'js-cookie';
 import React from 'react';
 import Reflux from 'reflux';
@@ -352,10 +352,8 @@ const OrganizationStream = createReactClass({
 
   onGroupChange() {
     let groupIds = this._streamManager.getAllItems().map(item => item.id);
-    if (!utils.valueIsEqual(groupIds, this.state.groupIds)) {
-      this.setState({
-        groupIds,
-      });
+    if (!isEqual(groupIds, this.state.groupIds)) {
+      this.setState({groupIds});
     }
   },
 
@@ -539,8 +537,15 @@ const OrganizationStream = createReactClass({
     );
   },
 
-  onSavedSearchCreate() {
-    // TODO implement
+  onSavedSearchCreate(data) {
+    let {orgId, projectId} = this.props.params;
+    let savedSearchList = this.state.savedSearchList;
+
+    savedSearchList.push(data);
+    this.setState({
+      savedSearchList: sortBy(savedSearchList, ['name', 'projectId']),
+    });
+    this.setState({savedSearch: data}, this.transitionTo);
   },
 
   renderProcessingIssuesHints() {
