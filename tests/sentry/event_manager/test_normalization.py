@@ -317,3 +317,16 @@ def test_returns_cannonical_dict():
     assert isinstance(manager.get_data(), CanonicalKeyDict)
     manager.normalize()
     assert isinstance(manager.get_data(), CanonicalKeyDict)
+
+
+@pytest.mark.parametrize("environment", ["", None, "production"])
+def test_environment_tag_removed(environment):
+    event = make_event()
+    event['environment'] = environment
+    event['tags'] = {"environment": "production"}
+
+    manager = EventManager(event)
+    manager.normalize()
+    data = manager.get_data()
+    assert 'environment' not in dict(data.get('tags') or ())
+    assert data['environment'] == 'production'
