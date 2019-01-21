@@ -11,11 +11,10 @@ import DropdownLink from 'app/components/dropdownLink';
 import QueryCount from 'app/components/queryCount';
 import MenuItem from 'app/components/menuItem';
 import {BooleanField, FormState, TextField} from 'app/components/forms';
+import withApi from 'app/utils/withApi';
 
-const SaveSearchButton = createReactClass({
-  displayName: 'SaveSearchButton',
-
-  propTypes: {
+const SaveSearchButton = withApi(class SaveSearchButton extends React.Component {
+  static propTypes = {
     orgId: PropTypes.string.isRequired,
     projectId: PropTypes.string,
     access: PropTypes.object.isRequired,
@@ -26,19 +25,18 @@ const SaveSearchButton = createReactClass({
     buttonTitle: PropTypes.string,
 
     onSave: PropTypes.func.isRequired,
-  },
+  };
 
-  mixins: [ApiMixin],
-
-  getInitialState() {
-    return {
+  constructor(props) {
+    super(props);
+    this.state = {
       isModalOpen: false,
       formData: {
         query: this.props.query,
       },
       errors: {},
     };
-  },
+  }
 
   onToggle() {
     if (this.props.disabled) {
@@ -51,7 +49,7 @@ const SaveSearchButton = createReactClass({
         query: this.props.query,
       },
     });
-  },
+  }
 
   onFieldChange(name, value) {
     let formData = this.state.formData;
@@ -59,15 +57,15 @@ const SaveSearchButton = createReactClass({
     this.setState({
       formData,
     });
-  },
+  }
 
   onDefaultChange(e) {
     this.onFieldChange('isDefault', e.target.checked);
-  },
+  }
 
   onUserDefaultChange(e) {
     this.onFieldChange('isUserDefault', e.target.checked);
-  },
+  }
 
   onSubmit(e) {
     e.preventDefault();
@@ -75,6 +73,8 @@ const SaveSearchButton = createReactClass({
     if (this.state.state == FormState.SAVING) {
       return;
     }
+    let {api} = this.props;
+
     this.setState(
       {
         state: FormState.SAVING,
@@ -82,7 +82,7 @@ const SaveSearchButton = createReactClass({
       () => {
         let loadingIndicator = IndicatorStore.add(t('Saving changes..'));
         let {orgId, projectId} = this.props;
-        this.api.request(`/projects/${orgId}/${projectId}/searches/`, {
+        api.request(`/projects/${orgId}/${projectId}/searches/`, {
           method: 'POST',
           data: this.state.formData,
           success: data => {
@@ -107,7 +107,7 @@ const SaveSearchButton = createReactClass({
         });
       }
     );
-  },
+  }
 
   render() {
     let isSaving = this.state.state === FormState.SAVING;
@@ -117,13 +117,13 @@ const SaveSearchButton = createReactClass({
           title={this.props.tooltip || this.props.buttonTitle}
           className={this.props.className}
           disabled={this.props.disabled}
-          onClick={this.onToggle}
+          onClick={this.onToggle.bind(this)}
           style={this.props.style}
         >
           {this.props.children}
         </a>
-        <Modal show={this.state.isModalOpen} animation={false} onHide={this.onToggle}>
-          <form onSubmit={this.onSubmit}>
+        <Modal show={this.state.isModalOpen} animation={false} onHide={this.onToggle.bind(this)}>
+          <form onSubmit={this.onSubmit.bind(this)}>
             <div className="modal-header">
               <h4>{t('Save Current Search')}</h4>
             </div>
@@ -174,7 +174,7 @@ const SaveSearchButton = createReactClass({
                 type="button"
                 className="btn btn-default"
                 disabled={isSaving}
-                onClick={this.onToggle}
+                onClick={this.onToggle.bind(this)}
               >
                 {t('Cancel')}
               </button>
@@ -186,13 +186,11 @@ const SaveSearchButton = createReactClass({
         </Modal>
       </React.Fragment>
     );
-  },
+  }
 });
 
-const SavedSearchSelector = createReactClass({
-  displayName: 'SavedSearchSelector',
-
-  propTypes: {
+const SavedSearchSelector = withApi(class SavedSearchSelector extends React.Component {
+  static propTypes = {
     orgId: PropTypes.string.isRequired,
     projectId: PropTypes.string,
     searchId: PropTypes.string,
@@ -201,9 +199,7 @@ const SavedSearchSelector = createReactClass({
     queryCount: PropTypes.number,
     queryMaxCount: PropTypes.number,
     onSavedSearchCreate: PropTypes.func.isRequired,
-  },
-
-  mixins: [ApiMixin],
+  };
 
   getTitle() {
     let searchId = this.props.searchId || null;
@@ -212,10 +208,11 @@ const SavedSearchSelector = createReactClass({
       return searchId === search.id;
     });
     return results.length ? results[0].name : t('Custom Search');
-  },
+  }
 
   render() {
     let {access, orgId, projectId, queryCount, queryMaxCount} = this.props;
+
     let children = this.props.savedSearchList.map(search => {
       let url = projectId
         ? `/${orgId}/${projectId}/searches/${search.id}/`
@@ -251,7 +248,7 @@ const SavedSearchSelector = createReactClass({
               <div className="col-md-7">
                 <SaveSearchButton
                   className="btn btn-sm btn-default"
-                  onSave={this.props.onSavedSearchCreate}
+                  onSave={this.props.onSavedSearchCreate.bind(this)}
                   {...this.props}
                 >
                   {t('Save Current Search')}
@@ -270,7 +267,7 @@ const SavedSearchSelector = createReactClass({
         </DropdownLink>
       </div>
     );
-  },
+  }
 });
 
 export default SavedSearchSelector;
