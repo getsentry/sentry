@@ -219,6 +219,7 @@
     },
     "sentry.interfaces.Http": {
         "url": "https://sentry.io/sentry/sentry/issues/231/",
+        "query_string": "foo=bar&bam=baz",
         "headers": [
             [
                 "User-Agent",
