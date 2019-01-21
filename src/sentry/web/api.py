@@ -37,7 +37,7 @@ from sentry.coreapi import (
 from sentry.event_manager import EventManager
 from sentry.interfaces import schemas
 from sentry.interfaces.base import get_interface
-from sentry.lang.native.unreal import process_unreal_crash, unreal_attachment_type, merge_unreal_context_event, merge_unreal_logs_event
+from sentry.lang.native.unreal import process_unreal_crash, merge_apple_crash_report, unreal_attachment_type, merge_unreal_context_event, merge_unreal_logs_event
 from sentry.lang.native.minidump import merge_process_state_event, process_minidump, MINIDUMP_ATTACHMENT_TYPE
 from sentry.models import Project, OrganizationOption, Organization
 from sentry.signals import (
@@ -814,14 +814,17 @@ class UnrealView(StoreView):
         try:
             unreal = process_unreal_crash(request.body)
             process_state = unreal.process_minidump()
+            if process_state:
+                merge_process_state_event(data, process_state)
+            else:
+                apple_crash_report = unreal.get_apple_crash_report()
+                if apple_crash_report:
+                    merge_apple_crash_report(apple_crash_report, data)
+                else:
+                    raise APIError("missing minidump in unreal crash report")
         except (ProcessMinidumpError, Unreal4Error) as e:
             minidumps_logger.exception(e)
             raise APIError(e.message.split('\n', 1)[0])
-
-        if process_state:
-            merge_process_state_event(data, process_state)
-        else:
-            raise APIError("missing minidump in unreal crash report")
 
         try:
             unreal_context = unreal.get_context()

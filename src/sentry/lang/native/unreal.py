@@ -10,6 +10,15 @@ import uuid
 _portable_callstack_regexp = re.compile(
     r'((?P<package>[\w]+) )?(?P<baseaddr>0x[\da-fA-F]+) \+ (?P<offset>[\da-fA-F]+)')
 
+unreal_modules = [
+    'Foundation',
+    'CoreFoundation',
+    'HIToolbox',
+    'AppKit',
+    'libdyld.dylib',
+    'libsystem_pthread.dylib',
+    'libsystem_kernel.dylib']
+
 
 def process_unreal_crash(data):
     """Processes the raw bytes of the unreal crash"""
@@ -21,6 +30,39 @@ def unreal_attachment_type(unreal_file):
     unreal file type or None if not recognized"""
     if unreal_file.type == "minidump":
         return MINIDUMP_ATTACHMENT_TYPE
+
+
+def merge_apple_crash_report(apple_crash_report, event):
+    event['platform'] = 'native'
+
+    timestamp = apple_crash_report.get('timestamp')
+    if timestamp:
+        event['timestamp'] = timestamp
+
+    event['threads'] = []
+    for thread in apple_crash_report['threads']:
+        crashed = thread.get('crashed')
+        event['threads'].append({
+            'id': thread.get('id'),
+            'name': thread.get('name'),
+            'crashed': crashed,
+            'stacktrace': {
+                'frames': [{
+                    'function': '<unknown>',  # Required by the interface
+                    'instruction_addr': frame.get('instruction_addr'),
+                    'package': frame.get('module'),
+                    'in_app': False if frame.get('module') in unreal_modules else True,
+                    'lineno': frame.get('lineno'),
+                    'filename': frame.get('filename'),
+                } for frame in reversed(thread.get('frames', []))],
+                'registers': thread.get('registers', []),
+            },
+        })
+        if crashed:
+            event['level'] = 'fatal'
+
+    if event.get('level') is None:
+        event['level'] = 'info'
 
 
 def merge_unreal_context_event(unreal_context, event, project):
