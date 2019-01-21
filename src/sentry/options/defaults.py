@@ -157,3 +157,4 @@ register('eventstream.kafka.send-post_process-task', type=Bool, default=True)
 # Ingest refactor
 register('store.process-in-kafka', type=Bool, default=False)
 register('store.kafka-sample-rate', default=0.0)
+register('store.normalize-in-rust', thype=Sequence, default=[])

@@ -16,6 +16,7 @@ from django.conf import settings
 from django.db import connection, IntegrityError, router, transaction
 from django.utils import timezone
 from django.utils.encoding import force_text
+from sentry import options
 
 from sentry import buffer, eventtypes, eventstream, features, tsdb, filters
 from sentry.constants import (
@@ -441,12 +442,17 @@ class EventManager(object):
 
         self._data = data
 
+    def use_rust_normalize(self):
+        if not ENABLE_RUST:
+            return False
+        return self._project.id in options.get('store.normalize-in-rust')
+
     def normalize(self):
         if self._normalized:
             raise RuntimeError('Already normalized')
         self._normalized = True
 
-        if ENABLE_RUST:
+        if self.use_rust_normalize():
             from semaphore.processing import StoreNormalizer
             rust_normalizer = StoreNormalizer(
                 geoip_lookup=rust_geoip,
