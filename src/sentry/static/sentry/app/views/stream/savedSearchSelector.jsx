@@ -2,6 +2,7 @@ import PropTypes from 'prop-types';
 import React from 'react';
 import createReactClass from 'create-react-class';
 import Modal from 'react-bootstrap/lib/Modal';
+import styled from 'react-emotion';
 
 import {t} from 'app/locale';
 import {Link} from 'react-router';
@@ -218,10 +219,10 @@ const SavedSearchSelector = withApi(class SavedSearchSelector extends React.Comp
         : `/organizations/${orgId}/issues/searches/${search.id}/`
 
       return (
-        <MenuItem to={url} key={search.id}>
+        <StyledMenuItem to={url} key={search.id}>
           <strong>{search.name}</strong>
           <code>{search.query}</code>
-        </MenuItem>
+        </StyledMenuItem>
       );
     });
     return (
@@ -237,38 +238,60 @@ const SavedSearchSelector = withApi(class SavedSearchSelector extends React.Comp
           {children.length ? (
             children
           ) : (
-            <li className="empty">
+            <EmptyItem>
               {t("There don't seem to be any saved searches yet.")}
-            </li>
+            </EmptyItem>
           )}
-          <MenuItem divider={true} />
-          <li>
-            <div className="row">
-              <div className="col-md-7">
-                <SaveSearchButton
-                  className="btn btn-sm btn-default"
-                  onSave={this.props.onSavedSearchCreate.bind(this)}
-                  disabled={!projectId}
-                  {...this.props}
-                >
-                  {t('Save Current Search')}
-                </SaveSearchButton>
-              </div>
-              <div className="col-md-5">
-                <Link
-                  to={`/${orgId}/${projectId}/settings/saved-searches/`}
-                  className="btn btn-sm btn-default"
-                  disabled={!projectId}
-                >
-                  {t('Manage')}
-                </Link>
-              </div>
-            </div>
-          </li>
+          <StyledMenuItem divider={true} />
+          <ButtonBar>
+            <SaveSearchButton
+              className="btn btn-sm btn-default"
+              onSave={this.props.onSavedSearchCreate.bind(this)}
+              disabled={!projectId}
+              {...this.props}
+            >
+              {t('Save Current Search')}
+            </SaveSearchButton>
+            <Link
+              to={`/${orgId}/${projectId}/settings/saved-searches/`}
+              className="btn btn-sm btn-default"
+              disabled={!projectId}
+            >
+              {t('Manage')}
+            </Link>
+          </ButtonBar>
         </DropdownLink>
       </div>
     );
   }
 });
+
+const EmptyItem = styled.li`
+  padding: 8px 10px 5px;
+  font-style: italic;
+`;
+
+const StyledMenuItem = styled(MenuItem)`
+  & a {
+    padding: 3px 10px;
+  }
+  & strong,
+  & code {
+    display: block;
+    max-width: 100%;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    overflow: hidden;
+    color: ${p => p.theme.gray5};
+    padding: 0;
+    background: inherit;
+  }
+`;
+
+const ButtonBar = styled.li`
+  padding: 3px 10px;
+  display: flex;
+  justify-content: space-between;
+`;
 
 export default SavedSearchSelector;
