@@ -921,7 +921,7 @@ class EventManager(object):
         # into tags (logger, level, environment, transaction).  These are
         # different from legacy attributes which are normalized into tags
         # ahead of time (site, server_name).
-        setdefault_path(data, 'tags', [])
+        setdefault_path(data, 'tags', value=[])
         set_tag(data, 'level', level)
         if logger_name:
             set_tag(data, 'logger', logger_name)
