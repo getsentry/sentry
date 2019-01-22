@@ -292,11 +292,9 @@ class ChartZoom extends React.Component {
           },
         }
       ),
-      onEvents: {
-        datazoom: this.handleDataZoom,
-        restore: this.handleZoomRestore,
-        finished: this.handleChartFinished,
-      },
+      onDataZoom: this.handleDataZoom,
+      onRestore: this.handleZoomRestore,
+      onFinished: this.handleChartFinished,
       ...props,
       xAxis: xAxisOptions,
     };
