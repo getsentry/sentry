@@ -1,5 +1,5 @@
 import {browserHistory} from 'react-router';
-import {omit, pickBy, uniq} from 'lodash';
+import {omit, pickBy, uniq, isEqual} from 'lodash';
 import Cookies from 'js-cookie';
 import React from 'react';
 import Reflux from 'reflux';
@@ -16,7 +16,6 @@ import {fetchTags} from 'app/actionCreators/tags';
 import {fetchOrgMembers} from 'app/actionCreators/members';
 import {fetchProcessingIssues} from 'app/actionCreators/processingIssues';
 import ConfigStore from 'app/stores/configStore';
-import GlobalSelectionStore from 'app/stores/globalSelectionStore';
 import GroupStore from 'app/stores/groupStore';
 import SelectedGroupStore from 'app/stores/selectedGroupStore';
 import TagStore from 'app/stores/tagStore';
@@ -35,6 +34,7 @@ import parseApiError from 'app/utils/parseApiError';
 import parseLinkHeader from 'app/utils/parseLinkHeader';
 import utils from 'app/utils';
 import withOrganization from 'app/utils/withOrganization';
+import withGlobalSelection from 'app/utils/withGlobalSelection';
 
 const MAX_ITEMS = 25;
 const DEFAULT_QUERY = 'is:unresolved';
@@ -47,10 +47,10 @@ const OrganizationStream = createReactClass({
 
   propTypes: {
     organization: SentryTypes.Organization,
+    selection: SentryTypes.GlobalSelection,
   },
 
   mixins: [
-    Reflux.listenTo(GlobalSelectionStore, 'onSelectionChange'),
     Reflux.listenTo(GroupStore, 'onGroupChange'),
     Reflux.listenTo(SelectedGroupStore, 'onSelectedGroupChange'),
     Reflux.listenTo(TagStore, 'onTagsChange'),
@@ -73,7 +73,6 @@ const OrganizationStream = createReactClass({
       pageLinks: '',
       queryCount: null,
       error: false,
-      selection: GlobalSelectionStore.get(),
       isSidebarVisible: false,
       savedSearchList: [],
       processingIssues: null,
@@ -123,7 +122,10 @@ const OrganizationStream = createReactClass({
       }
     }
 
-    if (prevProps.location.search != this.props.location.search) {
+    if (
+      prevProps.location.search != this.props.location.search ||
+      !isEqual(prevProps.selection, this.props.selection)
+    ) {
       this.fetchData();
     }
   },
@@ -153,7 +155,7 @@ const OrganizationStream = createReactClass({
   },
 
   getEndpointParams() {
-    let selection = this.state.selection;
+    let {selection} = this.props;
 
     let params = {
       project: selection.projects,
@@ -262,7 +264,7 @@ const OrganizationStream = createReactClass({
 
   fetchProcessingIssues() {
     let {orgId} = this.props.params;
-    let projects = this.state.selection.projects;
+    let projects = this.props.selection.projects;
     fetchProcessingIssues(this.api, orgId, projects).then(
       data => {
         let haveIssues = data.filter(
@@ -332,10 +334,6 @@ const OrganizationStream = createReactClass({
         groupIds,
       });
     }
-  },
-
-  onSelectionChange(selection) {
-    this.setState({selection}, this.transitionTo);
   },
 
   onSearch(query) {
@@ -584,5 +582,5 @@ const OrganizationStream = createReactClass({
   },
 });
 
-export default withOrganization(OrganizationStream);
+export default withGlobalSelection(withOrganization(OrganizationStream));
 export {OrganizationStream};
