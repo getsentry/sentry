@@ -4,9 +4,11 @@ import styled from 'react-emotion';
 
 import {t} from 'app/locale';
 import Button from 'app/components/button';
+import PageHeading from 'app/components/pageHeading';
 import Tooltip from 'app/components/tooltip';
 import SentryTypes from 'app/sentryTypes';
-import img from '../../../images/dashboard/hair-on-fire.svg';
+import space from 'app/styles/space';
+import img from '../../../images/confused-io.png';
 
 export default class EmptyState extends React.Component {
   static propTypes = {
@@ -24,8 +26,8 @@ export default class EmptyState extends React.Component {
         <Wrapper>
           <img src={img} height={350} alt="Nothing to see" />
           <Content direction="column" justify="center">
-            <h2>{t('Remain calm.')}</h2>
-            <p>{t("Sentry's got you covered. To get started:")}</p>
+            <StyledPageHeading>{t('Remain calm.')}</StyledPageHeading>
+            <HelpMessage>{t("Sentry's got you covered. To get started:")}</HelpMessage>
             <Flex align="center">
               <CallToAction>
                 <Tooltip
@@ -63,11 +65,20 @@ export default class EmptyState extends React.Component {
   }
 }
 
+const StyledPageHeading = styled(PageHeading)`
+  font-size: 28px;
+  margin-bottom: ${space(1.5)};
+`;
+
 const CallToAction = styled('div')`
   margin-right: 8px;
   &:last-child {
     margin-right: 0;
   }
+`;
+
+const HelpMessage = styled('div')`
+  margin-bottom: ${space(2)};
 `;
 
 const Wrapper = styled(Flex)`
@@ -76,4 +87,5 @@ const Wrapper = styled(Flex)`
 
 const Content = styled(Flex)`
   margin-left: 40px;
+  margin-top: ${space(4)};
 `;
