@@ -26,8 +26,10 @@ export default class EmptyState extends React.Component {
         <Wrapper>
           <img src={img} height={350} alt="Nothing to see" />
           <Content direction="column" justify="center">
-            <StyledPageHeading>{t('Remain calm.')}</StyledPageHeading>
-            <HelpMessage>{t("Sentry's got you covered. To get started:")}</HelpMessage>
+            <StyledPageHeading>{t('Hmmm')}</StyledPageHeading>
+            <HelpMessage>
+              {t('You need at least one project to use this view')}
+            </HelpMessage>
             <Flex align="center">
               <CallToAction>
                 <Tooltip
