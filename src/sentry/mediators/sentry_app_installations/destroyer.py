@@ -23,13 +23,11 @@ class Destroyer(Mediator):
 
     def _destroy_service_hooks(self):
         hooks = ServiceHook.objects.filter(
-            application=self.install.sentry_app.application,
+            application_id=self.install.sentry_app.application_id,
             actor_id=self.install.id,
         )
         for hook in hooks:
-            service_hooks.Destroyer.run(
-                service_hook=hook,
-            )
+            service_hooks.Destroyer.run(service_hook=hook)
 
     def _destroy_installation(self):
         self.install.delete()

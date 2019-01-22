@@ -43,9 +43,10 @@ class TestDestroyer(TestCase):
         assert not ApiGrant.objects.filter(pk=grant.id).exists()
 
     def test_deletes_service_hooks(self):
-        hook = ServiceHook.objects.get(
+        hook = self.create_service_hook(
             application=self.sentry_app.application,
-            actor_id=self.install.id,
+            project=self.project,
+            actor=self.install,
         )
 
         self.destroyer.call()
