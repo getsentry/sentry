@@ -1,35 +1,25 @@
 import React from 'react';
-import PropTypes from 'prop-types';
 
 import AccountSettingsNavigation from 'app/views/settings/account/accountSettingsNavigation';
-import ConfigStore from 'app/stores/configStore';
 import {fetchOrganizationDetails} from 'app/actionCreators/organizations';
 import SentryTypes from 'app/sentryTypes';
 import SettingsLayout from 'app/views/settings/components/settingsLayout';
-import withOrganizations from 'app/utils/withOrganizations';
+import withLatestContext from 'app/utils/withLatestContext';
 
 class AccountSettingsLayout extends React.Component {
   static propTypes = {
-    organizations: PropTypes.arrayOf(SentryTypes.Organization),
+    organization: SentryTypes.Organization,
   };
 
-  componentWillMount() {
-    let lastOrg = ConfigStore.get('lastOrganization');
-    if (lastOrg) {
-      // load SidebarDropdown with org details including `access`
-      fetchOrganizationDetails(lastOrg, {setActive: true, loadProjects: true});
-    }
-  }
+  componentDidUpdate(prevProps) {
+    let {organization} = this.props;
+    if (prevProps.organization === organization) return;
 
-  componentDidUpdate() {
-    let lastOrg = ConfigStore.get('lastOrganization');
-    if (lastOrg) return;
-
-    // if there's no lastOrganization in session, wait for orgs to load
-    // in OrganizationsStore and then fetch details for SidebarDropdown
-    let {organizations} = this.props;
-    if (organizations.length) {
-      fetchOrganizationDetails(organizations[0].slug, {
+    // if there is no org in context, SidebarDropdown uses an org from `withLatestContext`
+    // (which queries the org index endpoint instead of org details)
+    // and does not have `access` info
+    if (organization && !organization.access) {
+      fetchOrganizationDetails(organization.slug, {
         setActive: true,
         loadProjects: true,
       });
@@ -50,4 +40,4 @@ class AccountSettingsLayout extends React.Component {
   }
 }
 
-export default withOrganizations(AccountSettingsLayout);
+export default withLatestContext(AccountSettingsLayout);

@@ -1,7 +1,6 @@
 import {browserHistory} from 'react-router';
 
 import {Client} from 'app/api';
-import ConfigStore from 'app/stores/configStore';
 import IndicatorStore from 'app/stores/indicatorStore';
 import OrganizationsActions from 'app/actions/organizationsActions';
 import OrganizationsStore from 'app/stores/organizationsStore';
@@ -50,10 +49,6 @@ export function removeAndRedirectToRemainingOrganization(api, params) {
 }
 
 export function setActiveOrganization(org) {
-  if (org && org.slug) {
-    // update lastOrganization without page load
-    ConfigStore.set('lastOrganization', org.slug);
-  }
   OrganizationsActions.setActive(org);
 }
 
