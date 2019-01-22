@@ -2,7 +2,7 @@ import React from 'react';
 import {Client} from 'app/api';
 import {mount} from 'enzyme';
 
-import ReleaseProgress from 'app/views/releases/list/projectReleases/releaseProgress';
+import {ReleaseProgress} from 'app/views/releases/list/shared/releaseProgress';
 
 describe('ReleaseProgress', function() {
   let wrapper, organization, project, getPromptsMock, putMock, routerContext;
@@ -13,12 +13,7 @@ describe('ReleaseProgress', function() {
   beforeEach(function() {
     organization = TestStubs.Organization();
     project = TestStubs.Project();
-    routerContext = TestStubs.routerContext([
-      {
-        organization,
-        project,
-      },
-    ]);
+    routerContext = TestStubs.routerContext();
 
     getPromptsMock = Client.addMockResponse({
       method: 'GET',
@@ -42,7 +37,7 @@ describe('ReleaseProgress', function() {
       ],
     });
     wrapper = mount(
-      <ReleaseProgress orgId={organization.id} projectId={project.id} />,
+      <ReleaseProgress organization={organization} project={project} />,
       routerContext
     );
     expect(wrapper.state('remainingSteps')).toBe(0);
@@ -61,7 +56,7 @@ describe('ReleaseProgress', function() {
       ],
     });
     wrapper = mount(
-      <ReleaseProgress orgId={organization.id} projectId={project.id} />,
+      <ReleaseProgress organization={organization} project={project} />,
       routerContext
     );
 
@@ -85,7 +80,7 @@ describe('ReleaseProgress', function() {
       ],
     });
     wrapper = mount(
-      <ReleaseProgress orgId={organization.id} projectId={project.id} />,
+      <ReleaseProgress organization={organization} project={project} />,
       routerContext
     );
     expect(
