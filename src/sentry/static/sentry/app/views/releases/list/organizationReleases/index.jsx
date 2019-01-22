@@ -21,6 +21,7 @@ import PageHeading from 'app/components/pageHeading';
 
 import ReleaseList from '../shared/releaseList';
 import ReleaseListHeader from '../shared/releaseListHeader';
+import ReleaseLanding from '../shared/releaseLanding';
 import {getQuery} from '../shared/utils';
 
 class OrganizationReleases extends AsyncView {
@@ -54,21 +55,34 @@ class OrganizationReleases extends AsyncView {
     });
   };
 
+  hasFilters() {
+    const {location} = this.props;
+
+    const hasQueryFilter = !!location.query.query;
+    const hasEnvironmentFilter = !!location.query.environment;
+
+    // If all or one project is selected show the setup screen
+    // We check the type since a single project value is represented as a
+    // string when deserialized and multiple values as an array.
+    const hasProjectFilter =
+      !location.query.project || Array.isArray(location.query.project);
+
+    return hasQueryFilter || hasProjectFilter || hasEnvironmentFilter;
+  }
+
   renderStreamBody() {
-    if (this.state.loading) {
+    const {organization} = this.props;
+    const {loading, releaseList} = this.state;
+
+    if (loading) {
       return <LoadingIndicator />;
     }
 
-    if (this.state.releaseList.length === 0) {
-      return this.renderNoQueryResults();
+    if (releaseList.length === 0) {
+      return this.hasFilters() ? this.renderNoQueryResults() : this.renderEmpty();
     }
 
-    return (
-      <ReleaseList
-        releaseList={this.state.releaseList}
-        orgId={this.props.organization.slug}
-      />
-    );
+    return <ReleaseList releaseList={releaseList} orgId={organization.slug} />;
   }
 
   renderNoQueryResults() {
@@ -77,6 +91,10 @@ class OrganizationReleases extends AsyncView {
         <p>{t('Sorry, no releases match your filters.')}</p>
       </EmptyStateWarning>
     );
+  }
+
+  renderEmpty() {
+    return <ReleaseLanding />;
   }
 
   renderNoAccess() {
