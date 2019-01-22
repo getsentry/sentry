@@ -1169,7 +1169,7 @@ class EventManager(object):
                 group_id=group.id,
                 environment_id=environment.id,
                 event_id=event.id,
-                tags=data['tags'],
+                tags=event.tags,
                 date_added=event.datetime,
             )
 
