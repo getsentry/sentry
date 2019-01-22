@@ -814,6 +814,8 @@ class Stacktrace(Interface):
 
         frame_meta = {}
         for index, value in six.iteritems(meta.get('frames', {})):
+            if index == '':
+                continue
             frame = self.frames[int(index)]
             frame_meta[index] = frame.get_api_meta(value, is_public=is_public)
 

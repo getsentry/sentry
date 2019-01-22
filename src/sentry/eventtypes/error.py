@@ -37,11 +37,12 @@ class ErrorEvent(BaseEvent):
         }
 
         # Attach crash location
-        stacktrace = exception.get('stacktrace')
-        if stacktrace:
-            fn = get_crash_file(stacktrace)
-            if fn is not None:
-                rv['filename'] = fn
+        if exception:
+            stacktrace = exception.get('stacktrace')
+            if stacktrace:
+                fn = get_crash_file(stacktrace)
+                if fn is not None:
+                    rv['filename'] = fn
 
         return rv
 

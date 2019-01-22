@@ -211,7 +211,7 @@ class SentryRemoteTest(TestCase):
         timestamp = timezone.now().replace(
             microsecond=0, tzinfo=timezone.utc
         ) - datetime.timedelta(hours=1)
-        kwargs = {u'message': 'hello', 'timestamp': timestamp.strftime('%s.%f')}
+        kwargs = {u'message': 'hello', 'timestamp': float(timestamp.strftime('%s.%f'))}
         resp = self._postWithSignature(kwargs)
         assert resp.status_code == 200, resp.content
         instance = Event.objects.get()
