@@ -34,6 +34,19 @@ class EventSerializerTest(TestCase):
         assert result['errors'][0]['type'] == EventError.INVALID_DATA
         assert result['errors'][0]['data'] == {'name': u'ü'}
 
+    def test_hidden_eventerror(self):
+        event = self.create_event(
+            data={
+                'errors': [{
+                    'type': EventError.INVALID_DATA,
+                    'name': u'breadcrumbs.values.42.data',
+                }],
+            }
+        )
+
+        result = serialize(event)
+        assert result['errors'] == []
+
     def test_renamed_attributes(self):
         # Only includes meta for simple top-level attributes
         event = self.create_event(
