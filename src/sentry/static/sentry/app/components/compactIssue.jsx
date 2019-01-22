@@ -1,5 +1,6 @@
 import PropTypes from 'prop-types';
 import React from 'react';
+import {withRouter} from 'react-router';
 import createReactClass from 'create-react-class';
 import Reflux from 'reflux';
 import {Flex, Box} from 'grid-emotion';
@@ -18,8 +19,6 @@ import {PanelItem} from 'app/components/panels';
 class CompactIssueHeader extends React.Component {
   static propTypes = {
     data: PropTypes.object.isRequired,
-    orgId: PropTypes.string.isRequired,
-    projectId: PropTypes.string.isRequired,
   };
 
   getTitle = () => {
@@ -63,9 +62,14 @@ class CompactIssueHeader extends React.Component {
   };
 
   render() {
-    let {orgId, projectId, data} = this.props;
+    let {data, params: {orgId, projectId}} = this.props;
 
     let styles = {};
+
+    let basePath = projectId
+      ? `/${orgId}/${projectId}/issues/`
+      : `/organizations/${orgId}/issues/`;
+
     if (data.subscriptionDetails && data.subscriptionDetails.reason === 'mentioned') {
       styles = {color: '#57be8c'};
     }
@@ -76,7 +80,7 @@ class CompactIssueHeader extends React.Component {
             <span className="error-level truncate" title={data.level} />
           </Box>
           <h3 className="truncate">
-            <ProjectLink to={`/${orgId}/${projectId}/issues/${data.id}/`}>
+            <ProjectLink to={`${basePath}${data.id}/`}>
               <span className="icon icon-soundoff" />
               <span className="icon icon-star-solid" />
               {this.getTitle()}
@@ -85,14 +89,11 @@ class CompactIssueHeader extends React.Component {
         </Flex>
         <div className="event-extra">
           <span className="project-name">
-            <ProjectLink to={`/${orgId}/${projectId}/`}>{data.project.slug}</ProjectLink>
+            <ProjectLink to={basePath}>{data.project.slug}</ProjectLink>
           </span>
           {data.numComments !== 0 && (
             <span>
-              <Link
-                to={`/${orgId}/${projectId}/issues/${data.id}/activity/`}
-                className="comments"
-              >
+              <Link to={`${basePath}${data.id}/activity/`} className="comments">
                 <span className="icon icon-comments" style={styles} />
                 <span className="tag-count">{data.numComments}</span>
               </Link>
@@ -111,7 +112,6 @@ const CompactIssue = createReactClass({
   propTypes: {
     data: PropTypes.object,
     id: PropTypes.string,
-    orgId: PropTypes.string,
     statsPeriod: PropTypes.string,
     showActions: PropTypes.bool,
   },
@@ -159,7 +159,7 @@ const CompactIssue = createReactClass({
 
     this.api.bulkUpdate(
       {
-        orgId: this.props.orgId,
+        orgId: this.props.params.orgId,
         projectId: issue.project.slug,
         itemIds: [issue.id],
         data,
@@ -195,8 +195,7 @@ const CompactIssue = createReactClass({
       className += ' with-graph';
     }
 
-    let {id, orgId} = this.props;
-    let projectId = issue.project.slug;
+    let {id, params} = this.props;
     let title = <span className="icon-more" />;
 
     return (
@@ -206,7 +205,7 @@ const CompactIssue = createReactClass({
         direction="column"
         style={{paddingTop: '12px', paddingBottom: '6px'}}
       >
-        <CompactIssueHeader data={issue} orgId={orgId} projectId={projectId} />
+        <CompactIssueHeader data={issue} params={params} />
         {this.props.statsPeriod && (
           <div className="event-graph">
             <GroupChart
@@ -242,19 +241,11 @@ const CompactIssue = createReactClass({
               </li>
               <li>
                 <SnoozeAction
-                  orgId={orgId}
-                  projectId={projectId}
+                  orgId={params.orgId}
                   groupId={id}
                   onSnooze={this.onSnooze}
                 />
               </li>
-              {false && (
-                <li>
-                  <a href="#">
-                    <span className="icon-user" />
-                  </a>
-                </li>
-              )}
             </DropdownLink>
           </div>
         )}
@@ -264,4 +255,5 @@ const CompactIssue = createReactClass({
   },
 });
 
-export default CompactIssue;
+export {CompactIssue};
+export default withRouter(CompactIssue);

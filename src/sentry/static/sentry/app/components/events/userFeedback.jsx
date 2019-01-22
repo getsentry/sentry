@@ -11,12 +11,21 @@ class EventUserFeedback extends React.Component {
   static propTypes = {
     report: PropTypes.object.isRequired,
     orgId: PropTypes.string.isRequired,
-    projectId: PropTypes.string.isRequired,
     issueId: PropTypes.string.isRequired,
+    // Provided only in the single project scoped version of this component
+    projectId: PropTypes.string,
   };
 
+  getUrl() {
+    const {report, orgId, projectId, issueId} = this.props;
+
+    return projectId
+      ? `/${orgId}/${projectId}/issues/${issueId}/events/${report.event.id}/`
+      : `/organizations/${orgId}/issues/${issueId}/events/${report.event.id}/`;
+  }
+
   render() {
-    let {report, orgId, projectId, issueId} = this.props;
+    const {report} = this.props;
 
     return (
       <div className="user-report">
@@ -33,12 +42,7 @@ class EventUserFeedback extends React.Component {
                     {/* event_id might be undefined for legacy accounts */}
                     {report.event.id && (
                       <small>
-                        <Link
-                          to={`/${orgId}/${projectId}/issues/${issueId}/events/${report
-                            .event.id}`}
-                        >
-                          {t('View event')}
-                        </Link>
+                        <Link to={this.getUrl()}>{t('View event')}</Link>
                       </small>
                     )}
                   </div>

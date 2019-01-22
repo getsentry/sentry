@@ -95,7 +95,7 @@ const IssueList = createReactClass({
 
   renderResults() {
     let body;
-    const {params, noBorder} = this.props;
+    const {noBorder} = this.props;
 
     if (this.state.loading) body = this.renderLoading();
     else if (this.state.error) body = <LoadingError onRetry={this.fetchData} />;
@@ -111,7 +111,6 @@ const IssueList = createReactClass({
                   key={issue.id}
                   id={issue.id}
                   data={issue}
-                  orgId={params.orgId}
                   statsPeriod={this.props.statsPeriod}
                   showActions={this.props.showActions}
                 />
