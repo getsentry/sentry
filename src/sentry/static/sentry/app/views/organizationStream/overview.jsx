@@ -11,6 +11,7 @@ import {Client} from 'app/api';
 import {Panel, PanelBody} from 'app/components/panels';
 import {analytics} from 'app/utils/analytics';
 import {t} from 'app/locale';
+import ErrorRobot from 'app/components/errorRobot';
 import {fetchProject} from 'app/actionCreators/projects';
 import {fetchTags} from 'app/actionCreators/tags';
 import {fetchOrgMembers} from 'app/actionCreators/members';
@@ -184,6 +185,16 @@ const OrganizationStream = createReactClass({
 
   getAccess() {
     return new Set(this.props.organization.access);
+  },
+
+  /**
+   * Get the projects that are selected in the global filters
+   */
+  getGlobalSearchProjects() {
+    let {projects} = this.state.selection;
+    projects = projects.map(p => p.toString());
+
+    return this.props.organization.projects.filter(p => projects.indexOf(p.id) > -1);
   },
 
   fetchData() {
@@ -385,6 +396,10 @@ const OrganizationStream = createReactClass({
     this.fetchProject(uniqProjects[0]);
   },
 
+  /**
+   * Fetch the selected project from the API
+   * We need to do this as `props.organization.projects` lacks the `latestRelease` property
+   */
   fetchProject(projectSlug) {
     if (projectSlug in this.projectCache) {
       this.setState({selectedProject: this.projectCache[projectSlug]});
@@ -471,6 +486,8 @@ const OrganizationStream = createReactClass({
 
   renderStreamBody() {
     let body;
+    let selectedProjects = this.getGlobalSearchProjects();
+    let noEvents = selectedProjects.filter(p => !p.firstEvent).length > 0;
 
     if (this.state.loading) {
       body = this.renderLoading();
@@ -478,6 +495,8 @@ const OrganizationStream = createReactClass({
       body = <LoadingError message={this.state.error} onRetry={this.fetchData} />;
     } else if (this.state.groupIds.length > 0) {
       body = this.renderGroupNodes(this.state.groupIds, this.getGroupStatsPeriod());
+    } else if (noEvents) {
+      body = this.renderAwaitingEvents(selectedProjects);
     } else {
       body = this.renderEmpty();
     }
@@ -505,6 +524,21 @@ const OrganizationStream = createReactClass({
         />
       );
     });
+  },
+
+  renderAwaitingEvents(projects) {
+    let {organization} = this.props;
+    let project = projects.length === 1 ? projects[0] : null;
+
+    let sampleIssueId = this.state.groupIds.length > 0 ? this.state.groupIds[0] : '';
+    return (
+      <ErrorRobot
+        org={organization}
+        project={project}
+        sampleIssueId={sampleIssueId}
+        gradient={true}
+      />
+    );
   },
 
   render() {
