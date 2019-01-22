@@ -16,7 +16,7 @@ exports[`projectUserFeedback renders 1`] = `
   }
   status="unresolved"
 >
-  <CompactIssue
+  <withRouter(CompactIssue)
     data={
       Object {
         "assignedTo": null,
@@ -52,8 +52,6 @@ exports[`projectUserFeedback renders 1`] = `
     }
     id="1"
     key="123"
-    orgId="org-slug"
-    projectId="project-slug"
   >
     <EventUserFeedback
       issueId="1"
@@ -106,6 +104,6 @@ exports[`projectUserFeedback renders 1`] = `
         }
       }
     />
-  </CompactIssue>
+  </withRouter(CompactIssue)>
 </UserFeedbackContainer>
 `;
