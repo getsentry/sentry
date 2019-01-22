@@ -450,6 +450,11 @@ class EventManager(object):
                 return False
             if self._project.id in options.get('store.projects-normalize-in-rust-opt-in'):
                 return True
+            opt_in_rate = options.get('store.projects-normalize-in-rust-percent-opt-in')
+            if opt_in_rate > 0.0:
+                bucket = ((self._project.id * 2654435761) % (2 ** 32)) % 1000
+                return bucket <= (opt_in_rate * 1000)
+
         return ENABLE_RUST
 
     def normalize(self):
