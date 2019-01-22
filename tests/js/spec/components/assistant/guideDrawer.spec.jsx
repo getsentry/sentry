@@ -84,7 +84,7 @@ describe('GuideDrawer', function() {
     });
     wrapper.update();
     wrapper
-      .find('.assistant-cue')
+      .find('[data-test-id="assistant-cue"]')
       .first()
       .simulate('click');
     expect(wrapper).toMatchSnapshot();

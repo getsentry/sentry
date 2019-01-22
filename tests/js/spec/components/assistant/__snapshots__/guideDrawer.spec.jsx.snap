@@ -54,7 +54,7 @@ exports[`GuideDrawer gets dismissed 1`] = `
 
 exports[`GuideDrawer renders drawer 1`] = `
 <StyledCueContainer
-  className="assistant-cue"
+  data-test-id="assistant-cue"
   onClick={[Function]}
 >
   <CueIcon

@@ -93,7 +93,7 @@ const GuideDrawer = createReactClass({
 
     if (step === 0) {
       return (
-        <StyledCueContainer onClick={nextStep} className="assistant-cue">
+        <StyledCueContainer onClick={nextStep} data-test-id="assistant-cue">
           {<CueIcon hasGuide={true} />}
           <StyledCueText>{guide.cue}</StyledCueText>
           <div style={{display: 'flex'}} onClick={this.handleDismiss}>
