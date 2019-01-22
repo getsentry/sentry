@@ -194,7 +194,7 @@ const ProjectReleases = createReactClass({
       <ReleaseLanding />
     ) : (
       <div>
-        <ReleaseProgress />
+        <ReleaseProgress project={project} />
         <ReleaseEmptyState message={message} />
       </div>
     );

@@ -37,8 +37,8 @@ const STEPS = {
 
 class ReleaseProgress extends AsyncComponent {
   static propTypes = {
-    organization: SentryTypes.Organization,
-    project: SentryTypes.Project,
+    organization: SentryTypes.Organization.isRequired,
+    project: SentryTypes.Project.isRequired,
   };
 
   getEndpoints() {
