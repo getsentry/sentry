@@ -15,9 +15,6 @@ class JSONField(WritableField):
         'invalid': _('Value must be valid JSON.')
     }
 
-    def __init__(self, *args, **kwargs):
-        super(JSONField, self).__init__(*args, **kwargs)
-
     def from_native(self, data):
         try:
             json.dumps(data)
