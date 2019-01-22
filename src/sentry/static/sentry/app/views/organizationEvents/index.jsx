@@ -44,7 +44,7 @@ class OrganizationEventsContainer extends React.Component {
     const {organization, location, children} = this.props;
 
     return (
-      <Feature features={['global-views']} renderDisabled>
+      <Feature features={['events']} renderDisabled>
         <GlobalSelectionHeader
           organization={organization}
           resetParamsOnChange={['zoom', 'cursor']}

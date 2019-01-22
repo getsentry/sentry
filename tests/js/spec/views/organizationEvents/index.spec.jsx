@@ -12,7 +12,7 @@ describe('OrganizationEvents', function() {
   const {organization, router, routerContext} = initializeOrg({
     projects: [{isMember: true}, {isMember: true, slug: 'new-project', id: 3}],
     organization: {
-      features: ['global-views'],
+      features: ['events', 'global-views'],
     },
     router: {
       location: {
