@@ -78,7 +78,7 @@ const OrganizationStream = createReactClass({
       savedSearchList: [],
       processingIssues: null,
       tagsLoading: true,
-      memberList: null,
+      memberList: {},
       tags: TagStore.getAllTags(),
       // the project for the selected issues
       // Will only be set if selected issues all belong
@@ -442,7 +442,7 @@ const OrganizationStream = createReactClass({
       let hasGuideAnchor = userDateJoined > dateCutoff && id === topIssue;
 
       let group = GroupStore.get(id);
-      let members = memberList[group.project.slug] || [];
+      let members = memberList[group.project.slug] || null;
 
       return (
         <StreamGroup
