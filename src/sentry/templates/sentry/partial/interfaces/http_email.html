@@ -4,10 +4,12 @@
       <col style="width:130px;">
     </colgroup>
     <tbody>
+        {% if short_url %}
         <tr>
             <th>{% trans "URL" %}</th>
             <td><a href="{{ url }}">{{ short_url|truncatechars:75 }}</a></td>
         </tr>
+        {% endif %}
         {% if method %}
         <tr>
             <th>{% trans "Method" %}</th>

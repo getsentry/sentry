@@ -248,10 +248,11 @@ class Http(Interface):
     @property
     def full_url(self):
         url = self.url
-        if self.query_string:
-            url = url + '?' + urlencode(self.query_string)
-        if self.fragment:
-            url = url + '#' + self.fragment
+        if url:
+            if self.query_string:
+                url = url + '?' + urlencode(self.query_string)
+            if self.fragment:
+                url = url + '#' + self.fragment
         return url
 
     def to_email_html(self, event, **kwargs):
