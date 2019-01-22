@@ -29,7 +29,7 @@ class EventListField(serializers.WritableField):
 class SentryAppSerializer(Serializer):
     name = serializers.CharField()
     scopes = ApiScopesField()
-    events = EventListField()
+    events = EventListField(required=False)
     webhookUrl = serializers.URLField()
     redirectUrl = serializers.URLField(required=False)
     isAlertable = serializers.BooleanField(required=False)
@@ -39,7 +39,7 @@ class SentryAppSerializer(Serializer):
         if not attrs.get('scopes'):
             return attrs
 
-        for resource in attrs[source]:
+        for resource in attrs.get(source):
             needed_scope = VALID_EVENT_PERMISSIONS[resource]
             if needed_scope not in attrs['scopes']:
                 raise ValidationError(
