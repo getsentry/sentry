@@ -8,7 +8,7 @@ import PageHeading from 'app/components/pageHeading';
 import Tooltip from 'app/components/tooltip';
 import SentryTypes from 'app/sentryTypes';
 import space from 'app/styles/space';
-import img from '../../../images/confused-io.png';
+import img from '../../images/confused-io.png';
 
 export default class EmptyState extends React.Component {
   static propTypes = {

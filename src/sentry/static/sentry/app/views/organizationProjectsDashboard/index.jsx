@@ -8,6 +8,7 @@ import styled from 'react-emotion';
 
 import SentryTypes from 'app/sentryTypes';
 import IdBadge from 'app/components/idBadge';
+import NoProjectMessage from 'app/components/noProjectMessage';
 import OrganizationState from 'app/mixins/organizationState';
 import ProjectsStatsStore from 'app/stores/projectsStatsStore';
 import getProjectsByTeams from 'app/utils/getProjectsByTeams';
@@ -18,7 +19,6 @@ import {t} from 'app/locale';
 
 import ProjectNav from './projectNav';
 import TeamSection from './teamSection';
-import EmptyState from './emptyState';
 import Resources from './resources';
 
 class Dashboard extends React.Component {
@@ -91,7 +91,11 @@ class Dashboard extends React.Component {
         })}
         {teamSlugs.length === 0 &&
           favorites.length === 0 && (
-            <EmptyState projects={projects} teams={teams} organization={organization} />
+            <NoProjectMessage
+              projects={projects}
+              teams={teams}
+              organization={organization}
+            />
           )}
       </React.Fragment>
     );
