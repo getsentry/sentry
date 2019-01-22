@@ -10,19 +10,27 @@ import uuid
 _portable_callstack_regexp = re.compile(
     r'((?P<package>[\w]+) )?(?P<baseaddr>0x[\da-fA-F]+) \+ (?P<offset>[\da-fA-F]+)')
 
-unreal_modules = [
-    'Foundation',
-    'CoreFoundation',
-    'HIToolbox',
-    'AppKit',
-    'libdyld.dylib',
-    'libsystem_pthread.dylib',
-    'libsystem_kernel.dylib']
 
+def process_unreal_crash(payload, user_id, environment, event):
+    """Initial processing of the event from the Unreal Crash Reporter data.
+    Processes the raw bytes of the unreal crash by returning a Unreal4Crash"""
 
-def process_unreal_crash(data):
-    """Processes the raw bytes of the unreal crash"""
-    return Unreal4Crash.from_bytes(data)
+    event_id = uuid.uuid4().hex
+    event['event_id'] = event_id
+    event['environment'] = environment
+
+    if user_id:
+        # https://github.com/EpicGames/UnrealEngine/blob/f509bb2d6c62806882d9a10476f3654cf1ee0634/Engine/Source/Programs/CrashReportClient/Private/CrashUpload.cpp#L769
+        parts = user_id.split('|', 2)
+        login_id, epic_account_id, machine_id = parts + [''] * (3 - len(parts))
+        event['user'] = {
+            'id': login_id if login_id else user_id
+        }
+        if epic_account_id:
+            set_path(event, 'tags', 'epic_account_id', value=epic_account_id)
+        if machine_id:
+            set_path(event, 'tags', 'machine_id', value=machine_id)
+    return Unreal4Crash.from_bytes(payload)
 
 
 def unreal_attachment_type(unreal_file):
@@ -51,7 +59,6 @@ def merge_apple_crash_report(apple_crash_report, event):
                     'function': '<unknown>',  # Required by the interface
                     'instruction_addr': frame.get('instruction_addr'),
                     'package': frame.get('module'),
-                    # 'in_app': False if frame.get('module') in unreal_modules else True,
                     'lineno': frame.get('lineno'),
                     'filename': frame.get('filename'),
                 } for frame in reversed(thread.get('frames', []))],

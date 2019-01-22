@@ -19,7 +19,7 @@ def get_unreal_crash_file():
 
 def test_process_minidump():
     with open(get_unreal_crash_file(), 'rb') as f:
-        unreal_crash = process_unreal_crash(f.read())
+        unreal_crash = process_unreal_crash(f.read(), None, None, {})
         process_state = unreal_crash.process_minidump()
         assert 115 == process_state.module_count
         assert 54 == process_state.thread_count
@@ -43,9 +43,17 @@ class MockFile(TestCase):
 class UnrealIntegrationTest(TestCase):
     def test_merge_unreal_context_event(self):
         with open(get_unreal_crash_file(), 'rb') as f:
-            unreal_crash = process_unreal_crash(f.read())
             event = {}
+            unreal_crash = process_unreal_crash(
+                f.read(),
+                'ebff51ef3c4878627823eebd9ff40eb4|2e7d369327054a448be6c8d3601213cb|C52DC39D-DAF3-5E36-A8D3-BF5F53A5D38F',
+                'Production',
+                event)
             merge_unreal_context_event(unreal_crash.get_context(), event, self.project)
+            assert event['environment'] == 'Production'
+            assert event['tags']['machine_id'] == 'C52DC39D-DAF3-5E36-A8D3-BF5F53A5D38F'
+            assert event['tags']['epic_account_id'] == '2e7d369327054a448be6c8d3601213cb'
+            assert event['user']['id'] == 'ebff51ef3c4878627823eebd9ff40eb4'
             assert event['message'] == 'Access violation - code c0000005 (first/second chance not available)'
             assert event['user']['username'] == 'bruno'
             assert event['contexts']['device']['memory_size'] == 6896832512
@@ -118,7 +126,8 @@ class UnrealIntegrationTest(TestCase):
 
     def test_merge_unreal_logs_event(self):
         with open(get_unreal_crash_file(), 'rb') as f:
-            unreal_crash = process_unreal_crash(f.read())
+            event = {}
+            unreal_crash = process_unreal_crash(f.read(), None, None, event)
             event = {}
             merge_unreal_logs_event(unreal_crash.get_logs(), event)
             breadcrumbs = event['breadcrumbs']['values']

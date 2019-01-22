@@ -799,27 +799,18 @@ class UnrealView(StoreView):
         attachments_enabled = features.has('organizations:event-attachments',
                                            project.organization, actor=request.user)
 
-        event_id = uuid.uuid4().hex
-        data = {
-            'event_id': event_id,
-            'environment': request.GET.get('AppEnvironment'),
-        }
-        user_id = request.GET.get('UserID')
-        if user_id:
-            data['user'] = {
-                'id': user_id
-            }
-
         attachments = []
         try:
-            unreal = process_unreal_crash(request.body)
+            event = {}
+            unreal = process_unreal_crash(request.body, request.GET.get(
+                'UserID'), request.GET.get('AppEnvironment'), event)
             process_state = unreal.process_minidump()
             if process_state:
-                merge_process_state_event(data, process_state)
+                merge_process_state_event(event, process_state)
             else:
                 apple_crash_report = unreal.get_apple_crash_report()
                 if apple_crash_report:
-                    merge_apple_crash_report(apple_crash_report, data)
+                    merge_apple_crash_report(apple_crash_report, event)
                 else:
                     raise APIError("missing minidump in unreal crash report")
         except (ProcessMinidumpError, Unreal4Error) as e:
@@ -829,7 +820,7 @@ class UnrealView(StoreView):
         try:
             unreal_context = unreal.get_context()
             if unreal_context is not None:
-                merge_unreal_context_event(unreal_context, data, project)
+                merge_unreal_context_event(unreal_context, event, project)
         except Unreal4Error as e:
             # we'll continue without the context data
             minidumps_logger.exception(e)
@@ -837,7 +828,7 @@ class UnrealView(StoreView):
         try:
             unreal_logs = unreal.get_logs()
             if unreal_logs is not None:
-                merge_unreal_logs_event(unreal_logs, data)
+                merge_unreal_logs_event(unreal_logs, event)
         except Unreal4Error as e:
             # we'll continue without the breadcrumbs
             minidumps_logger.exception(e)
@@ -856,7 +847,7 @@ class UnrealView(StoreView):
         response_or_event_id = self.process(
             request,
             attachments=attachments,
-            data=data,
+            data=event,
             project=project,
             **kwargs)
 
