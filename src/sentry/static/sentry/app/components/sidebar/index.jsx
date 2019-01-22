@@ -258,7 +258,7 @@ class Sidebar extends React.Component {
                   />
                 </Feature>
 
-                <Feature features={['global-views']}>
+                <Feature features={['events']}>
                   <SidebarItem
                     {...sidebarItemProps}
                     onClick={(_id, evt) =>
