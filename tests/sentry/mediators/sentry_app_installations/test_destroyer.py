@@ -3,7 +3,7 @@ from __future__ import absolute_import
 from django.db import connection
 
 from sentry.mediators.sentry_app_installations import Creator, Destroyer
-from sentry.models import ApiAuthorization, ApiGrant, SentryAppInstallation
+from sentry.models import ApiAuthorization, ApiGrant, SentryAppInstallation, ServiceHook
 from sentry.testutils import TestCase
 
 
@@ -11,11 +11,13 @@ class TestDestroyer(TestCase):
     def setUp(self):
         self.user = self.create_user()
         self.org = self.create_organization()
+        self.project = self.create_project(organization=self.org)
 
         self.sentry_app = self.create_sentry_app(
             name='nulldb',
             organization=self.org,
-            scopes=('project:read',),
+            scopes=('project:read', 'event:read'),
+            events=('issue',),
         )
 
         self.install = Creator.run(
@@ -39,6 +41,17 @@ class TestDestroyer(TestCase):
         self.destroyer.call()
 
         assert not ApiGrant.objects.filter(pk=grant.id).exists()
+
+    def test_deletes_service_hooks(self):
+        hook = self.create_service_hook(
+            application=self.sentry_app.application,
+            project=self.project,
+            actor=self.install,
+        )
+
+        self.destroyer.call()
+
+        assert not ServiceHook.objects.filter(pk=hook.id).exists()
 
     def test_soft_deletes_installation(self):
         self.destroyer.call()
