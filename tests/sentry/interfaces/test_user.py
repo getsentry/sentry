@@ -41,21 +41,21 @@ class UserTest(TestCase):
         }
 
     def test_invalid_ip_address(self):
-        with self.assertRaises(Exception):
-            User.to_python(dict(
-                ip_address='abc',
-            ))
+        user = User.to_python(dict(
+            ip_address='abc',
+        ))
+        assert user.ip_address is None
 
     def test_invalid_email_address(self):
-        with self.assertRaises(Exception):
-            User.to_python(dict(
-                email=1,
-            ))
+        user = User.to_python(dict(
+            email=1,
+        ))
+        assert user.email is None
 
-        with self.assertRaises(Exception):
-            User.to_python(dict(
-                email='foo',
-            ))
+        user = User.to_python(dict(
+            email='foo',
+        ))
+        assert user.email == 'foo'
 
     def test_id_long_dict(self):
         u = User.to_python({
