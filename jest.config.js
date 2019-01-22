@@ -19,8 +19,8 @@ module.exports = {
   },
   modulePaths: ['<rootDir>/src/sentry/static/sentry'],
   setupFiles: [
-    "<rootDir>/tests/js/throw-on-react-error.js",
-    '<rootDir>/tests/js/setup.js'
+    '<rootDir>/tests/js/throw-on-react-error.js',
+    '<rootDir>/tests/js/setup.js',
   ],
   setupTestFrameworkScriptFile: '<rootDir>/tests/js/setupFramework.js',
   testMatch: ['<rootDir>/tests/js/**/?(*.)(spec|test).js?(x)'],
