@@ -452,7 +452,7 @@ class EventManager(object):
                 return True
             opt_in_rate = options.get('store.projects-normalize-in-rust-percent-opt-in')
             if opt_in_rate > 0.0:
-                bucket = ((self.project_id * 2654435761) % (2 ** 32)) % 1000
+                bucket = ((self._project.id * 2654435761) % (2 ** 32)) % 1000
                 return bucket <= (opt_in_rate * 1000)
 
         return ENABLE_RUST
