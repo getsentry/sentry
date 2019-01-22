@@ -16,6 +16,7 @@ from django.conf import settings
 from django.db import connection, IntegrityError, router, transaction
 from django.utils import timezone
 from django.utils.encoding import force_text
+from django.utils.functional import cached_property
 from sentry import options
 
 from sentry import buffer, eventtypes, eventstream, features, tsdb, filters
@@ -442,6 +443,7 @@ class EventManager(object):
 
         self._data = data
 
+    @cached_property
     def use_rust_normalize(self):
         if self._project is not None:
             if self._project.id in options.get('store.projects-normalize-in-rust-opt-out'):
@@ -451,11 +453,34 @@ class EventManager(object):
         return ENABLE_RUST
 
     def normalize(self):
+        tags = {
+            'project_id': six.text_type(
+                self._project.id
+                if self._project and self.use_rust_normalize
+                else None
+            ),
+            'use_rust_normalize': six.text_type(self.use_rust_normalize)
+        }
+
+        with metrics.timer('events.store.normalize.duration', tags=tags):
+            self._normalize_impl()
+
+        data = self.get_data()
+
+        data['use_rust_normalize'] = self.use_rust_normalize
+
+        metrics.timing(
+            'events.store.normalize.errors',
+            len(data.get("errors") or ()),
+            tags=tags,
+        )
+
+    def _normalize_impl(self):
         if self._normalized:
             raise RuntimeError('Already normalized')
         self._normalized = True
 
-        if self.use_rust_normalize():
+        if self.use_rust_normalize:
             from semaphore.processing import StoreNormalizer
             rust_normalizer = StoreNormalizer(
                 geoip_lookup=rust_geoip,
