@@ -40,6 +40,9 @@ class EventSerializerTest(TestCase):
                 'errors': [{
                     'type': EventError.INVALID_DATA,
                     'name': u'breadcrumbs.values.42.data',
+                }, {
+                    'type': EventError.INVALID_DATA,
+                    'name': u'exception.values.0.stacktrace.frames.42.vars',
                 }],
             }
         )

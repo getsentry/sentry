@@ -184,13 +184,15 @@ class EventSerializer(Serializer):
         if not isinstance(name, six.string_types):
             return True
 
-        return not name.startswith('breadcrumbs') and 'frames' not in name
+        return not name.startswith('breadcrumbs.') \
+            and not name.startswith('extra.') \
+            and '.frames.' not in name
 
     def serialize(self, obj, attrs, user):
         errors = [
             EventError(error).get_api_context() for error
             in get_path(obj.data, 'errors', filter=True, default=())
-            # TODO(ja): Temporary hack to hide certain normalization errors.
+            # TODO(ja): Temporary workaround to hide certain normalization errors.
             # Remove this and the test in tests/sentry/api/serializers/test_event.py
             if self.should_display_error(error)
         ]
