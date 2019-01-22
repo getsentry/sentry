@@ -260,3 +260,27 @@ class BitbucketIssueTest(APITestCase):
                 'help': ('Leave blank if you don\'t want to '
                          'add a comment to the Bitbucket issue.'),
             }]
+
+    @responses.activate
+    def test_create_issue(self):
+        repo = 'myaccount/repo1'
+        id = '112'
+        title = 'hello'
+        content = {'html': 'This is the description'}
+
+        responses.add(
+            responses.POST,
+            u'https://api.bitbucket.org/2.0/repositories/{repo}/issues'.format(repo=repo),
+            json={
+                'id': id, 'title': title, 'content': {'html': content},
+            }
+        )
+        installation = self.integration.get_installation(self.organization.id)
+        result = installation.create_issue(
+            {'id': id, 'title': title, 'description': content, 'repo': repo})
+        assert result == {
+            'key': id,
+            'title': title,
+            'description': content,
+            'repo': repo,
+        }
