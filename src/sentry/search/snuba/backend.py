@@ -330,6 +330,9 @@ class SnubaSearchBackend(ds.DjangoSearchBackend):
 
                 hit_ratio = filtered_count / float(snuba_count)
                 hits = int(hit_ratio * snuba_total)
+                logger.info("estimating hits from snuba_samples: {}, snuba_total: {}, django_hits: {}, hit_ratio: {:.3f}, estimated_hits: {}".format(
+                    snuba_count, snuba_total, filtered_count, hit_ratio, hits
+                ))
 
         # Do smaller searches in chunks until we have enough results
         # to answer the query (or hit the end of possible results). We do
