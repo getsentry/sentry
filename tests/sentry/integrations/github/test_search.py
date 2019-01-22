@@ -174,6 +174,48 @@ class GithubSearchTest(APITestCase):
         assert resp.status_code == 200
         assert resp.data == []
 
+    @responses.activate
+    def test_search_issues_rate_limit(self):
+        responses.add(
+            responses.GET,
+            'https://api.github.com/search/issues?q=repo:example%20ex',
+            status=403,
+            json={
+                'message': 'API rate limit exceeded',
+                'documentation_url': 'https://developer.github.com/v3/#rate-limiting',
+            }
+        )
+        resp = self.client.get(
+            self.url,
+            data={
+                'field': 'externalIssue',
+                'query': 'ex',
+                'repo': 'example',
+            }
+        )
+        print resp.content
+        assert resp.status_code == 429
+
+    @responses.activate
+    def test_search_project_rate_limit(self):
+        responses.add(
+            responses.GET,
+            'https://api.github.com/search/repositories?q=org:test%20ex',
+            status=403,
+            json={
+                'message': 'API rate limit exceeded',
+                'documentation_url': 'https://developer.github.com/v3/#rate-limiting',
+            }
+        )
+        resp = self.client.get(
+            self.url,
+            data={
+                'field': 'repo',
+                'query': 'ex',
+            }
+        )
+        assert resp.status_code == 429
+
     # Request Validations
     def test_missing_field(self):
         resp = self.client.get(
