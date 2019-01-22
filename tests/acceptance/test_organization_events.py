@@ -2,7 +2,7 @@ from __future__ import absolute_import
 
 from sentry.testutils import AcceptanceTestCase
 
-FEATURE_NAME = 'organizations:global-views'
+FEATURE_NAME = 'organizations:events'
 
 
 class OrganizationEventsTest(AcceptanceTestCase):
