@@ -48,9 +48,6 @@ class OrganizationDashboardsEndpoint(OrganizationEndpoint):
         :pparam string organization_slug: the slug of the organization the
                                           dashboards belongs to.
         :param string title: the title of the dashboard.
-        :param user created_by: the user who created the dashboard
-                                this can be represented by the user's (verified) email
-                                or the user's id.
         """
         serializer = DashboardSerializer(data=request.DATA)
 
