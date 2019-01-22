@@ -3,11 +3,12 @@ import React from 'react';
 
 import {t} from 'app/locale';
 import ChartZoom from 'app/components/charts/chartZoom';
-import ReleaseSeries from 'app/components/charts/releaseSeries';
 import LineChart from 'app/components/charts/lineChart';
+import ReleaseSeries from 'app/components/charts/releaseSeries';
+import SentryTypes from 'app/sentryTypes';
 import withApi from 'app/utils/withApi';
+import withGlobalSelection from 'app/utils/withGlobalSelection';
 
-import EventsContext from './utils/eventsContext';
 import EventsRequest from './utils/eventsRequest';
 
 const DEFAULT_GET_CATEGORY = () => t('Events');
@@ -66,23 +67,26 @@ class EventsChart extends React.Component {
   }
 }
 
-const EventsChartContainer = withApi(
-  class EventsChartWithParams extends React.Component {
-    render() {
-      return (
-        <EventsContext.Consumer>
-          {context => (
-            <EventsChart
-              {...context}
-              project={context.project || []}
-              environment={context.environment || []}
-              {...this.props}
-            />
-          )}
-        </EventsContext.Consumer>
-      );
+const EventsChartContainer = withGlobalSelection(
+  withApi(
+    class EventsChartWithParams extends React.Component {
+      static propTypes = {
+        selection: SentryTypes.GlobalSelection,
+      };
+
+      render() {
+        const {datetime, projects, environments} = this.props.selection;
+        return (
+          <EventsChart
+            {...datetime}
+            project={projects || []}
+            environment={environments || []}
+            {...this.props}
+          />
+        );
+      }
     }
-  }
+  )
 );
 
 export default EventsChartContainer;

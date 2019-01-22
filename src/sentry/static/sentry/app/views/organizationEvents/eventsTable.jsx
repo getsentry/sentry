@@ -13,8 +13,6 @@ import SentryTypes from 'app/sentryTypes';
 import overflowEllipsis from 'app/styles/overflowEllipsis';
 import space from 'app/styles/space';
 
-import EventsContext from './utils/eventsContext';
-
 class EventsTableBody extends React.PureComponent {
   static propTypes = {
     events: PropTypes.array,
@@ -156,16 +154,7 @@ class EventsTable extends React.Component {
   }
 }
 
-class EventsTableContainer extends React.Component {
-  render() {
-    return (
-      <EventsContext.Consumer>
-        {context => <EventsTable {...context} {...this.props} />}
-      </EventsContext.Consumer>
-    );
-  }
-}
-export default withRouter(EventsTableContainer);
+export default withRouter(EventsTable);
 export {EventsTable};
 
 const StyledPanelBody = styled(PanelBody)`

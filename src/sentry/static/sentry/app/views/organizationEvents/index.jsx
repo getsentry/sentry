@@ -14,13 +14,11 @@ import withGlobalSelection from 'app/utils/withGlobalSelection';
 import withOrganization from 'app/utils/withOrganization';
 import {PageContent, PageHeader} from 'app/styles/organization';
 
-import EventsContext from './utils/eventsContext';
 import SearchBar from './searchBar';
 
 class OrganizationEventsContainer extends React.Component {
   static propTypes = {
     organization: SentryTypes.Organization,
-    selection: SentryTypes.GlobalSelection,
     router: PropTypes.object,
   };
 
@@ -43,40 +41,32 @@ class OrganizationEventsContainer extends React.Component {
   };
 
   render() {
-    const {organization, location, selection, children} = this.props;
+    const {organization, location, children} = this.props;
 
     return (
-      <EventsContext.Provider
-        value={{
-          project: selection.projects,
-          environment: selection.environments,
-          ...selection.datetime,
-        }}
-      >
-        <Feature features={['global-views']} renderDisabled>
-          <GlobalSelectionHeader
-            organization={organization}
-            resetParamsOnChange={['zoom', 'cursor']}
-          />
-          <PageContent>
-            <Body>
-              <PageHeader>
-                <HeaderTitle>
-                  {t('Events')} <BetaTag />
-                </HeaderTitle>
-                <StyledSearchBar
-                  organization={organization}
-                  query={(location.query && location.query.query) || ''}
-                  placeholder={t('Search for events, users, tags, and everything else.')}
-                  onSearch={this.handleSearch}
-                />
-              </PageHeader>
+      <Feature features={['global-views']} renderDisabled>
+        <GlobalSelectionHeader
+          organization={organization}
+          resetParamsOnChange={['zoom', 'cursor']}
+        />
+        <PageContent>
+          <Body>
+            <PageHeader>
+              <HeaderTitle>
+                {t('Events')} <BetaTag />
+              </HeaderTitle>
+              <StyledSearchBar
+                organization={organization}
+                query={(location.query && location.query.query) || ''}
+                placeholder={t('Search for events, users, tags, and everything else.')}
+                onSearch={this.handleSearch}
+              />
+            </PageHeader>
 
-              {children}
-            </Body>
-          </PageContent>
-        </Feature>
-      </EventsContext.Provider>
+            {children}
+          </Body>
+        </PageContent>
+      </Feature>
     );
   }
 }
