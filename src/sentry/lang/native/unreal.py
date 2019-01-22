@@ -51,7 +51,7 @@ def merge_apple_crash_report(apple_crash_report, event):
                     'function': '<unknown>',  # Required by the interface
                     'instruction_addr': frame.get('instruction_addr'),
                     'package': frame.get('module'),
-                    'in_app': False if frame.get('module') in unreal_modules else True,
+                    # 'in_app': False if frame.get('module') in unreal_modules else True,
                     'lineno': frame.get('lineno'),
                     'filename': frame.get('filename'),
                 } for frame in reversed(thread.get('frames', []))],
@@ -70,9 +70,8 @@ def merge_apple_crash_report(apple_crash_report, event):
         'id': module.get('uuid'),
         'image_addr': module.get('addr'),
         'image_size': module.get('size'),
-        'path': module.get('path'),
         'arch': module.get('arch'),
-        'name': module.get('name'),
+        'name': module.get('path'),
     } for module in apple_crash_report.get('binary_images')]
     event.setdefault('debug_meta', {})['images'] = images
 
@@ -120,7 +119,8 @@ def merge_unreal_context_event(unreal_context, event, project):
             comments=user_desc,
         )
 
-    if not any(thread.get('stacktrace') for thread in event.get('threads', [])):
+    if not any(thread.get('stacktrace') and thread.get('crashed')
+               for thread in event.get('threads', [])):
         portable_callstack = runtime_prop.pop('portable_call_stack', None)
         if portable_callstack is not None:
             frames = []
