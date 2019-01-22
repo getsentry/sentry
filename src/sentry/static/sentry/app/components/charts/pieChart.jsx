@@ -103,29 +103,26 @@ class PieChart extends React.Component {
           firstSeries.data &&
           theme.charts.getColorPalette(firstSeries.data.length)
         }
-        onEvents={{
-          // when legend highlights it does NOT pass dataIndex :(
-          highlight: ({name}) => {
-            if (
-              !this.isInitialSelected ||
-              !name ||
-              firstSeries.data[this.selected].name === name
-            )
-              return;
+        // when legend highlights it does NOT pass dataIndex :(
+        onHighlight={({name}) => {
+          if (
+            !this.isInitialSelected ||
+            !name ||
+            firstSeries.data[this.selected].name === name
+          )
+            return;
 
-            // Unhighlight if not initial "highlight" event and
-            // if name exists (i.e. not dispatched from cDM) and
-            // highlighted series name is different than the initially selected series name
-            this.downplay(this.selected);
-            this.isInitialSelected = false;
-          },
-
-          mouseover: ({dataIndex}) => {
-            if (!this.isInitialSelected) return;
-            if (dataIndex === this.selected) return;
-            this.downplay(this.selected);
-            this.isInitialSelected = false;
-          },
+          // Unhighlight if not initial "highlight" event and
+          // if name exists (i.e. not dispatched from cDM) and
+          // highlighted series name is different than the initially selected series name
+          this.downplay(this.selected);
+          this.isInitialSelected = false;
+        }}
+        onMouseOver={({dataIndex}) => {
+          if (!this.isInitialSelected) return;
+          if (dataIndex === this.selected) return;
+          this.downplay(this.selected);
+          this.isInitialSelected = false;
         }}
         {...props}
         options={{
