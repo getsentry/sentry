@@ -180,13 +180,7 @@ const ProjectUserFeedback = createReactClass({
       const issue = item.issue;
 
       return (
-        <CompactIssue
-          key={item.id}
-          id={issue.id}
-          data={issue}
-          orgId={orgId}
-          projectId={projectId}
-        >
+        <CompactIssue key={item.id} id={issue.id} data={issue}>
           <EventUserFeedback
             report={item}
             orgId={orgId}
