@@ -33,8 +33,8 @@ class ReleaseSeries extends React.Component {
   };
 
   componentDidMount() {
-    // No need to fetch releases
     if (this.props.releases) {
+      // No need to fetch releases if passed in from props
       return;
     }
 
