@@ -19,7 +19,6 @@ import EmptyStateWarning from 'app/components/emptyStateWarning';
 import withEnvironmentInQueryString from 'app/utils/withEnvironmentInQueryString';
 import PageHeading from 'app/components/pageHeading';
 import ReleaseLanding from '../shared/releaseLanding';
-import ReleaseProgress from './releaseProgress';
 import ReleaseEmptyState from './releaseEmptyState';
 import ReleaseList from '../shared/releaseList';
 import ReleaseListHeader from '../shared/releaseListHeader';
