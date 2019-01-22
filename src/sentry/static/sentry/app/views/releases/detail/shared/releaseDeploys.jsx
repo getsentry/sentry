@@ -45,11 +45,7 @@ export default class ReleaseDeploys extends React.Component {
                         <div className="col-xs-6">
                           <span className="repo-label" style={{verticalAlign: 'bottom'}}>
                             {deploy.environment}
-                            <InlineSvg
-                              src="icon-open"
-                              size={11}
-                              style={{marginLeft: 6}}
-                            />
+                            <InlineSvg src="icon-open" style={{marginLeft: 6}} />
                           </span>
                         </div>
                         <div className="col-xs-6 align-right">
