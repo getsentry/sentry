@@ -59,7 +59,7 @@ describe('OrganizationContext', function() {
 
     expect(TeamStore.loadInitialData).toHaveBeenCalledWith(org.teams);
     expect(ProjectsStore.loadInitialData).toHaveBeenCalledWith(org.projects);
-    expect(GlobalSelectionStore.loadInitialData).toHaveBeenCalledWith({});
+    expect(GlobalSelectionStore.loadInitialData).toHaveBeenCalledWith('org-slug', {});
   });
 
   it('resets TeamStore when unmounting', function() {

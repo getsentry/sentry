@@ -44,7 +44,8 @@ const GlobalSelectionStore = Reflux.createStore({
    * Initializes the global selection store
    * If there are query params apply these, otherwise check local storage
   */
-  loadInitialData(queryParams) {
+  loadInitialData(orgId, queryParams) {
+    this.orgId = orgId;
     const query = pick(queryParams, Object.values(URL_PARAM));
     const hasQuery = Object.keys(query).length > 0;
 
@@ -64,7 +65,11 @@ const GlobalSelectionStore = Reflux.createStore({
       };
     } else {
       try {
-        globalSelection = JSON.parse(localStorage.getItem(LOCAL_STORAGE_KEY));
+        const localStorageKey = `${LOCAL_STORAGE_KEY}:${orgId}`;
+        const storedValue = JSON.parse(localStorage.getItem(localStorageKey));
+        if (storedValue) {
+          globalSelection = storedValue;
+        }
       } catch (ex) {
         // use default if invalid
       }
@@ -122,8 +127,11 @@ const GlobalSelectionStore = Reflux.createStore({
 
   updateLocalStorage() {
     try {
-      localStorage.setItem(LOCAL_STORAGE_KEY, JSON.stringify(this.selection));
-    } catch (ex) {}
+      const localStorageKey = `${LOCAL_STORAGE_KEY}:${this.orgId}`;
+      localStorage.setItem(localStorageKey, JSON.stringify(this.selection));
+    } catch (ex) {
+      // Do nothing
+    }
   },
 });
 

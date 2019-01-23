@@ -56,7 +56,10 @@ const OrganizationContext = createReactClass({
 
   componentWillMount() {
     this.fetchData();
-    GlobalSelectionStore.loadInitialData(this.props.location.query);
+    GlobalSelectionStore.loadInitialData(
+      this.props.params.orgId,
+      this.props.location.query
+    );
   },
 
   componentWillReceiveProps(nextProps) {
