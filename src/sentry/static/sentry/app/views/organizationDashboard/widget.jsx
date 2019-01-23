@@ -62,6 +62,7 @@ class Widget extends React.Component {
         start: datetime.start,
         end: datetime.end,
         range: datetime.period,
+        limit: 1000,
       })}&visual=${visual}`
     );
   };
