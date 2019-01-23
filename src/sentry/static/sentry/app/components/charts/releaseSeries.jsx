@@ -81,9 +81,11 @@ class ReleaseSeries extends React.Component {
           name: release.shortVersion,
           value: release.shortVersion,
           onClick: () => {
-            router.push(
-              `/organizations/${organization.slug}/releases/${release.version}/`
-            );
+            if (organization.features.includes('sentry10')) {
+              router.push(
+                `/organizations/${organization.slug}/releases/${release.version}/`
+              );
+            }
           },
           label: {
             formatter: () => release.shortVersion,
