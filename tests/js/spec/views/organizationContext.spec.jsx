@@ -6,6 +6,7 @@ import ConfigStore from 'app/stores/configStore';
 import OrganizationContext from 'app/views/organizationContext';
 import ProjectsStore from 'app/stores/projectsStore';
 import TeamStore from 'app/stores/teamStore';
+import GlobalSelectionStore from 'app/stores/globalSelectionStore';
 
 jest.mock('app/stores/configStore', () => ({
   get: jest.fn(),
@@ -32,8 +33,12 @@ describe('OrganizationContext', function() {
     });
     jest.spyOn(TeamStore, 'loadInitialData');
     jest.spyOn(ProjectsStore, 'loadInitialData');
+    jest.spyOn(GlobalSelectionStore, 'loadInitialData');
+
     wrapper = mount(
-      <OrganizationContext params={{orgId: 'org-slug'}}>{<div />}</OrganizationContext>
+      <OrganizationContext params={{orgId: 'org-slug'}} location={{query: {}}}>
+        {<div />}
+      </OrganizationContext>
     );
   });
 
@@ -54,6 +59,7 @@ describe('OrganizationContext', function() {
 
     expect(TeamStore.loadInitialData).toHaveBeenCalledWith(org.teams);
     expect(ProjectsStore.loadInitialData).toHaveBeenCalledWith(org.projects);
+    expect(GlobalSelectionStore.loadInitialData).toHaveBeenCalledWith({});
   });
 
   it('resets TeamStore when unmounting', function() {
@@ -91,7 +97,9 @@ describe('OrganizationContext', function() {
       statusCode: 403,
     });
     wrapper = mount(
-      <OrganizationContext params={{orgId: 'org-slug'}}>{<div />}</OrganizationContext>
+      <OrganizationContext params={{orgId: 'org-slug'}} location={{}}>
+        {<div />}
+      </OrganizationContext>
     );
 
     expect(wrapper.find('LoadingError')).toHaveLength(1);
@@ -106,7 +114,9 @@ describe('OrganizationContext', function() {
       statusCode: 403,
     });
     wrapper = mount(
-      <OrganizationContext params={{orgId: 'org-slug'}}>{<div />}</OrganizationContext>
+      <OrganizationContext params={{orgId: 'org-slug'}} location={{}}>
+        {<div />}
+      </OrganizationContext>
     );
 
     expect(openSudo).toHaveBeenCalled();
