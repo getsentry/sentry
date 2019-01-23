@@ -106,6 +106,14 @@ class NormalizeOsTests(TestCase):
         normalize_os(data)
         assert data['version'] == 'Properly defined version'
 
+    # As reported by Unreal Engine crashes from macOS
+    def test_macos_unreal(self):
+        data = {'raw_description': 'Mac OS X 10.14.2 (18C54)'}
+        normalize_os(data)
+        assert data['name'] == 'macOS'
+        assert data['version'] == '10.14.2'
+        assert data['build'] == '18C54'
+
     def test_no_name(self):
         data = {}
         normalize_os(data)
