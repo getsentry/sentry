@@ -63,10 +63,14 @@ class ServiceHook(Model):
 
     @property
     def created_by_sentry_app(self):
-        return self.application_id and \
-            SentryApp.objects.filter(
-                application_id=self.application_id,
-            ).exists()
+        return (self.application_id and self.sentry_app)
+
+    @property
+    def sentry_app(self):
+        try:
+            return SentryApp.objects.get(application_id=self.application_id)
+        except SentryApp.DoesNotExist:
+            return
 
     def __init__(self, *args, **kwargs):
         super(ServiceHook, self).__init__(*args, **kwargs)
