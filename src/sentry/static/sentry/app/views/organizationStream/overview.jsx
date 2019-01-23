@@ -191,7 +191,7 @@ const OrganizationStream = createReactClass({
    * Get the projects that are selected in the global filters
    */
   getGlobalSearchProjects() {
-    let {projects} = this.state.selection;
+    let {projects} = this.props.selection;
     projects = projects.map(p => p.toString());
 
     return this.props.organization.projects.filter(p => projects.indexOf(p.id) > -1);
@@ -528,7 +528,7 @@ const OrganizationStream = createReactClass({
 
   renderAwaitingEvents(projects) {
     let {organization} = this.props;
-    let project = projects.length === 1 ? projects[0] : null;
+    let project = projects.length > 0 ? projects[0] : null;
 
     let sampleIssueId = this.state.groupIds.length > 0 ? this.state.groupIds[0] : '';
     return (
