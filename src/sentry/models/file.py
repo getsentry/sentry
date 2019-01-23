@@ -243,7 +243,7 @@ class FileBlob(Model):
                     # `_flush_blobs` call will take all those uploaded
                     # blobs and associate them with the database.
                     semaphore.acquire()
-                    exe.submit(_upload_and_pend_chunk(fileobj, size, checksum, lock))
+                    exe.submit(lambda: _upload_and_pend_chunk(fileobj, size, checksum, lock))
                     logger.info('FileBlob.from_files.end', extra={'checksum': reference_checksum})
 
             _flush_blobs()
