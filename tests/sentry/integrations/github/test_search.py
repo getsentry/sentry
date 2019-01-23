@@ -193,7 +193,6 @@ class GithubSearchTest(APITestCase):
                 'repo': 'example',
             }
         )
-        print resp.content
         assert resp.status_code == 429
 
     @responses.activate
