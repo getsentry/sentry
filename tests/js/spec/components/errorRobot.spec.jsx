@@ -4,14 +4,6 @@ import {shallow} from 'enzyme';
 import {Client} from 'app/api';
 import ErrorRobot from 'app/components/errorRobot';
 
-jest.mock('react-router', () => {
-  return {
-    browserHistory: {
-      push: jest.fn(),
-    },
-  };
-});
-
 describe('ErrorRobot', function() {
   let getIssues;
 
