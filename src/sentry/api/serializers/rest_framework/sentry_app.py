@@ -4,7 +4,7 @@ from rest_framework import serializers
 from rest_framework.serializers import Serializer, ValidationError
 
 from sentry.models import ApiScopes
-from sentry.models.sentryapp import VALID_EVENTS, VALID_EVENT_PERMISSIONS
+from sentry.models.sentryapp import VALID_EVENT_RESOURCES, REQUIRED_EVENT_PERMISSIONS
 
 
 class ApiScopesField(serializers.WritableField):
@@ -20,9 +20,9 @@ class ApiScopesField(serializers.WritableField):
 
 class EventListField(serializers.WritableField):
     def validate(self, data):
-        if not set(data).issubset(VALID_EVENTS):
+        if not set(data).issubset(VALID_EVENT_RESOURCES):
             raise ValidationError(u'Invalid event subscription: {}'.format(
-                ', '.join(set(data).difference(VALID_EVENTS))
+                ', '.join(set(data).difference(VALID_EVENT_RESOURCES))
             ))
 
 
@@ -40,7 +40,7 @@ class SentryAppSerializer(Serializer):
             return attrs
 
         for resource in attrs.get(source):
-            needed_scope = VALID_EVENT_PERMISSIONS[resource]
+            needed_scope = REQUIRED_EVENT_PERMISSIONS[resource]
             if needed_scope not in attrs['scopes']:
                 raise ValidationError(
                     u'{} webhooks require the {} permission.'.format(resource, needed_scope),

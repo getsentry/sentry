@@ -20,11 +20,11 @@ from sentry.db.models import (
     ParanoidModel,
 )
 
-VALID_EVENTS = (
+VALID_EVENT_RESOURCES = (
     'issue',
 )
 
-VALID_EVENT_PERMISSIONS = {
+REQUIRED_EVENT_PERMISSIONS = {
     'issue': 'event:read',
     'project': 'project:read',
     'member': 'member:read',
