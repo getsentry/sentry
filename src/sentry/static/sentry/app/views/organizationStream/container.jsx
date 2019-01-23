@@ -20,8 +20,6 @@ class OrganizationStreamContainer extends React.Component {
 
   render() {
     const {organization, children} = this.props;
-    const hasProjects =
-      organization.projects.filter(p => p.isMember && p.hasAccess).length !== 0;
 
     return (
       <DocumentTitle title={this.getTitle()}>
@@ -29,11 +27,7 @@ class OrganizationStreamContainer extends React.Component {
           <GlobalSelectionHeader organization={organization} />
 
           <PageContent>
-            {hasProjects ? (
-              children
-            ) : (
-              <NoProjectMessage organization={this.props.organization} />
-            )}
+            <NoProjectMessage organization={organization}>{children}</NoProjectMessage>
           </PageContent>
         </Feature>
       </DocumentTitle>

@@ -162,28 +162,30 @@ class OrganizationReleases extends AsyncView {
 
     return (
       <PageContent>
-        <PageHeader>
-          <PageHeading>{t('Releases')}</PageHeading>
-          <div>
-            <SearchBar
-              defaultQuery=""
-              placeholder={t('Search for a release')}
-              query={location.query.query}
-              onSearch={this.onSearch}
-            />
-          </div>
-        </PageHeader>
-        {hasProjects ? (
-          <div>
-            <Panel>
-              <ReleaseListHeader />
-              <PanelBody>{this.renderStreamBody()}</PanelBody>
-            </Panel>
-            <Pagination pageLinks={this.state.releaseListPageLinks} />
-          </div>
-        ) : (
-          <NoProjectMessage organization={this.props.organization} />
-        )}
+        <NoProjectMessage organization={organization}>
+          <PageHeader>
+            <PageHeading>{t('Releases')}</PageHeading>
+            <div>
+              <SearchBar
+                defaultQuery=""
+                placeholder={t('Search for a release')}
+                query={location.query.query}
+                onSearch={this.onSearch}
+              />
+            </div>
+          </PageHeader>
+          {hasProjects ? (
+            <div>
+              <Panel>
+                <ReleaseListHeader />
+                <PanelBody>{this.renderStreamBody()}</PanelBody>
+              </Panel>
+              <Pagination pageLinks={this.state.releaseListPageLinks} />
+            </div>
+          ) : (
+            <NoProjectMessage organization={this.props.organization} />
+          )}
+        </NoProjectMessage>
       </PageContent>
     );
   }

@@ -102,8 +102,6 @@ class OrganizationUserFeedback extends AsyncView {
     const {location} = this.props;
     const {status} = getQuery(location.search);
     const {reportListPageLinks} = this.state;
-    const hasProjects =
-      organization.projects.filter(p => p.isMember && p.hasAccess).length !== 0;
 
     return (
       <Feature
@@ -118,11 +116,9 @@ class OrganizationUserFeedback extends AsyncView {
             status={status}
             location={location}
           >
-            {hasProjects ? (
-              this.renderStreamBody()
-            ) : (
-              <NoProjectMessage organization={this.props.organization} />
-            )}
+            <NoProjectMessage organization={organization}>
+              {this.renderStreamBody()}
+            </NoProjectMessage>
           </UserFeedbackContainer>
         </PageContent>
       </Feature>

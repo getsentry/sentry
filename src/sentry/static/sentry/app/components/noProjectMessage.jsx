@@ -13,17 +13,24 @@ import img from '../../images/confused-io.png';
 
 export default class EmptyState extends React.Component {
   static propTypes = {
+    /* if the user has access to any projects, the wrapper
+    will expose whatever children are included */
+    children: PropTypes.node,
     organization: SentryTypes.Organization,
     className: PropTypes.string,
   };
 
   render() {
-    const {organization, className} = this.props;
+    const {children, organization, className} = this.props;
     const orgId = organization.slug;
     const canCreateProject = organization.access.includes('project:write');
     const canJoinTeam = organization.access.includes('team:read');
+    const hasProjects =
+      organization.projects.filter(p => p.isMember && p.hasAccess).length !== 0;
 
-    return (
+    return hasProjects ? (
+      children
+    ) : (
       <Flex flex="1" align="center" justify="center" className={className}>
         <Wrapper>
           <img src={img} height={350} alt="Nothing to see" />
