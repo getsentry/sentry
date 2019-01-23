@@ -14,7 +14,7 @@ from time import time
 
 from sentry.app import tsdb
 from sentry.constants import VERSION_LENGTH
-from sentry.event_manager import HashDiscarded, EventManager, EventUser
+from sentry.event_manager import HashDiscarded, EventManager, EventUser, ENABLE_RUST
 from sentry.event_hashing import md5_from_hash
 from sentry.models import (
     Activity, Environment, Event, ExternalIssue, Group, GroupEnvironment,
@@ -898,6 +898,18 @@ class EventManagerTest(TransactionTestCase):
         manager.normalize()
         event = manager.save(self.project.id)
         assert dict(event.tags).get('environment') is None
+
+    def test_invalid_tags(self):
+        manager = EventManager(make_event(**{
+            'tags': [42],
+        }))
+        manager.normalize()
+        if ENABLE_RUST:
+            assert None in manager.get_data().get('tags', [])
+        assert 42 not in manager.get_data().get('tags', [])
+        event = manager.save(self.project.id)
+        assert 42 not in event.tags
+        assert None not in event.tags
 
     @mock.patch('sentry.event_manager.eventstream.insert')
     def test_group_environment(self, eventstream_insert):
