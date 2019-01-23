@@ -118,3 +118,10 @@ class OrganizationUserReportListTest(APITestCase):
         response = self.get_response(org2.slug)
         assert response.status_code == 200, response.content
         assert response.data == []
+
+    def test_invalid_date_params(self):
+        response = self.get_response(
+            self.project_1.organization.slug,
+            **{'start': 'null', 'end': 'null'}
+        )
+        assert response.status_code == 400
