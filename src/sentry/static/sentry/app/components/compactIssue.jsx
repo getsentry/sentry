@@ -180,7 +180,7 @@ const CompactIssue = createReactClass({
 
   render() {
     let issue = this.state.issue;
-    let {organization} = this.props;
+    let {id, organization} = this.props;
 
     let className = 'issue';
     if (issue.isBookmarked) {
@@ -202,7 +202,6 @@ const CompactIssue = createReactClass({
       className += ' with-graph';
     }
 
-    let {id} = this.props;
     let title = <span className="icon-more" />;
 
     return (
