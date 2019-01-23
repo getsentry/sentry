@@ -41,7 +41,7 @@ class OrganizationEventsContainer extends React.Component {
   };
 
   render() {
-    const {organization, location, selection, children} = this.props;
+    const {organization, location, children} = this.props;
 
     return (
       <Feature features={['events']} renderDisabled>
@@ -50,29 +50,28 @@ class OrganizationEventsContainer extends React.Component {
           resetParamsOnChange={['cursor']}
         />
         <PageContent>
-          <Body>
-            <PageHeader>
-              <HeaderTitle>
-                {t('Events')} <BetaTag />
-              </HeaderTitle>
-              <StyledSearchBar
-                organization={organization}
-                query={(location.query && location.query.query) || ''}
-                placeholder={t('Search for events, users, tags, and everything else.')}
-                onSearch={this.handleSearch}
-              />
-            </PageHeader>
-              {hasProjects ? (
-                children
-              ) : (
-                <StyledNoProjectMessage organization={this.props.organization} />
-              )}
-          </Body>
+          <NoProjectMessage organization={organization}>
+            <Body>
+              <PageHeader>
+                <HeaderTitle>
+                  {t('Events')} <BetaTag />
+                </HeaderTitle>
+                <StyledSearchBar
+                  organization={organization}
+                  query={(location.query && location.query.query) || ''}
+                  placeholder={t('Search for events, users, tags, and everything else.')}
+                  onSearch={this.handleSearch}
+                />
+              </PageHeader>
+                {hasProjects ? (
+                  children
+                ) : (
+                  <StyledNoProjectMessage organization={this.props.organization} />
+                )}
+            </Body>
+          </NoProjectMessage>
         </PageContent>
       </Feature>
-          </PageContent>
-        </Feature>
-      </EventsContext.Provider>
     );
   }
 }
