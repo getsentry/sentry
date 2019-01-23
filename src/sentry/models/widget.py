@@ -57,22 +57,6 @@ class WidgetDataSourceTypes(TypesClass):
     ]
     TYPE_NAMES = [t[1] for t in TYPES]
 
-    @classmethod
-    def as_choices(cls):
-        return cls.TYPES
-
-    @classmethod
-    def get_type_name(cls, num):
-        for id, name in cls.TYPES:
-            if id == num:
-                return name
-
-    @classmethod
-    def get_name_type(cls, name):
-        for id, type_name in cls.TYPES:
-            if name == type_name:
-                return id
-
 
 class WidgetDataSource(Model):
     """
