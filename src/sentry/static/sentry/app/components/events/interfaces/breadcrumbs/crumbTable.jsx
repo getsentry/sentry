@@ -20,7 +20,7 @@ class CrumbTable extends React.Component {
         <tr key={key}>
           <td className="key">{key}</td>
           <td className="value">
-            <pre>{val + ''}</pre>
+            <pre>{_.isObject(val) ? JSON.stringify(val) : val}</pre>
           </td>
         </tr>
       );
