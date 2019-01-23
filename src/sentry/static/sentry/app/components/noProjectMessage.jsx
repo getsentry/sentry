@@ -12,7 +12,7 @@ import space from 'app/styles/space';
 /* TODO: replace with I/O when finished */
 import img from '../../images/dashboard/hair-on-fire.svg';
 
-export default class EmptyState extends React.Component {
+export default class NoProjectMessage extends React.Component {
   static propTypes = {
     /* if the user has access to any projects, we show whatever
     children are included. Otherwise we show the message */
@@ -26,8 +26,7 @@ export default class EmptyState extends React.Component {
     const orgId = organization.slug;
     const canCreateProject = organization.access.includes('project:write');
     const canJoinTeam = organization.access.includes('team:read');
-    const hasProjects =
-      organization.projects.filter(p => p.isMember && p.hasAccess).length !== 0;
+    const hasProjects = organization.projects.some(p => p.isMember && p.hasAccess);
 
     return hasProjects ? (
       children

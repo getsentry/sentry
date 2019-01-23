@@ -1696,7 +1696,7 @@ exports[`OrganizationUserFeedback renders 1`] = `
                           <div
                             className="css-9vq8an-textStyles issue-list"
                           >
-                            <EmptyState
+                            <NoProjectMessage
                               organization={
                                 Object {
                                   "access": Array [
@@ -1956,7 +1956,7 @@ exports[`OrganizationUserFeedback renders 1`] = `
                                   </div>
                                 </Base>
                               </Flex>
-                            </EmptyState>
+                            </NoProjectMessage>
                           </div>
                         </PanelBody>
                       </div>

@@ -174,17 +174,13 @@ class OrganizationReleases extends AsyncView {
               />
             </div>
           </PageHeader>
-          {hasProjects ? (
-            <div>
-              <Panel>
-                <ReleaseListHeader />
-                <PanelBody>{this.renderStreamBody()}</PanelBody>
-              </Panel>
-              <Pagination pageLinks={this.state.releaseListPageLinks} />
-            </div>
-          ) : (
-            <NoProjectMessage organization={this.props.organization} />
-          )}
+          <div>
+            <Panel>
+              <ReleaseListHeader />
+              <PanelBody>{this.renderStreamBody()}</PanelBody>
+            </Panel>
+            <Pagination pageLinks={this.state.releaseListPageLinks} />
+          </div>
         </NoProjectMessage>
       </PageContent>
     );
