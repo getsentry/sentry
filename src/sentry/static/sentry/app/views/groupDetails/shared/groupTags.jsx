@@ -43,7 +43,7 @@ class GroupTags extends React.Component {
     }
   }
 
-  fetchData() {
+  fetchData = () => {
     const {api, query, group} = this.props;
     this.setState({
       loading: true,
@@ -66,7 +66,7 @@ class GroupTags extends React.Component {
         });
       },
     });
-  }
+  };
 
   getTagsDocsUrl() {
     return 'https://docs.sentry.io/hosted/learn/context/';
