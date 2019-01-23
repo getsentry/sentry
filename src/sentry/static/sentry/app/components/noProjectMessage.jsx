@@ -9,7 +9,8 @@ import PageHeading from 'app/components/pageHeading';
 import Tooltip from 'app/components/tooltip';
 import SentryTypes from 'app/sentryTypes';
 import space from 'app/styles/space';
-import img from '../../images/confused-io.png';
+/* TODO: replace with I/O when finished */
+import img from '../../images/dashboard/hair-on-fire.svg';
 
 export default class EmptyState extends React.Component {
   static propTypes = {
@@ -35,7 +36,7 @@ export default class EmptyState extends React.Component {
         <Wrapper>
           <img src={img} height={350} alt="Nothing to see" />
           <Content direction="column" justify="center">
-            <StyledPageHeading>{t('Hmmm')}</StyledPageHeading>
+            <StyledPageHeading>{t('Remain Calm')}</StyledPageHeading>
             <HelpMessage>
               {t('You need at least one project to use this view')}
             </HelpMessage>
@@ -98,5 +99,4 @@ const Wrapper = styled(Flex)`
 
 const Content = styled(Flex)`
   margin-left: 40px;
-  margin-top: ${space(4)};
 `;

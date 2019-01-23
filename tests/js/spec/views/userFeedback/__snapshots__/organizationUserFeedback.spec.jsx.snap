@@ -1753,19 +1753,26 @@ exports[`OrganizationUserFeedback renders 1`] = `
                                           <img
                                             alt="Nothing to see"
                                             height={350}
-                                            src={Object {}}
+                                            src={
+                                              Object {
+                                                "default": Object {
+                                                  "id": "test",
+                                                  "viewBox": Object {},
+                                                },
+                                              }
+                                            }
                                           />
                                           <Content
                                             direction="column"
                                             justify="center"
                                           >
                                             <Base
-                                              className="css-1ny4231-Content e1dt1knp4"
+                                              className="css-1m5wt6u-Content e1dt1knp4"
                                               direction="column"
                                               justify="center"
                                             >
                                               <div
-                                                className="css-1ny4231-Content e1dt1knp4"
+                                                className="css-1m5wt6u-Content e1dt1knp4"
                                                 is={null}
                                               >
                                                 <StyledPageHeading>
@@ -1778,7 +1785,7 @@ exports[`OrganizationUserFeedback renders 1`] = `
                                                       <h1
                                                         className="e1dt1knp0 css-16rx587-Wrapper-StyledPageHeading e1f8hk460"
                                                       >
-                                                        Hmmm
+                                                        Remain Calm
                                                       </h1>
                                                     </Wrapper>
                                                   </PageHeading>
