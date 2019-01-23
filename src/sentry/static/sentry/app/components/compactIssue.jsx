@@ -1,6 +1,5 @@
 import PropTypes from 'prop-types';
 import React from 'react';
-import {withRouter} from 'react-router';
 import createReactClass from 'create-react-class';
 import Reflux from 'reflux';
 import {Flex, Box} from 'grid-emotion';
@@ -15,9 +14,13 @@ import Link from 'app/components/link';
 import ProjectLink from 'app/components/projectLink';
 import {t} from 'app/locale';
 import {PanelItem} from 'app/components/panels';
+import SentryTypes from 'app/sentryTypes';
+import withOrganization from 'app/utils/withOrganization';
 
 class CompactIssueHeader extends React.Component {
   static propTypes = {
+    organization: SentryTypes.Organization.isRequired,
+    projectId: PropTypes.string,
     data: PropTypes.object.isRequired,
   };
 
@@ -62,13 +65,15 @@ class CompactIssueHeader extends React.Component {
   };
 
   render() {
-    let {data, params: {orgId, projectId}} = this.props;
+    let {data, organization, projectId} = this.props;
+
+    let hasNewRoutes = new Set(organization.features).has('sentry10');
 
     let styles = {};
 
-    let basePath = projectId
-      ? `/${orgId}/${projectId}/issues/`
-      : `/organizations/${orgId}/issues/`;
+    let basePath = hasNewRoutes
+      ? `/${organization.slug}/${projectId}/issues/`
+      : `/organizations/${organization.slug}/issues/`;
 
     if (data.subscriptionDetails && data.subscriptionDetails.reason === 'mentioned') {
       styles = {color: '#57be8c'};
@@ -114,6 +119,7 @@ const CompactIssue = createReactClass({
     id: PropTypes.string,
     statsPeriod: PropTypes.string,
     showActions: PropTypes.bool,
+    organization: SentryTypes.Organization.isRequired,
   },
 
   mixins: [ApiMixin, Reflux.listenTo(GroupStore, 'onGroupChange')],
@@ -159,7 +165,7 @@ const CompactIssue = createReactClass({
 
     this.api.bulkUpdate(
       {
-        orgId: this.props.params.orgId,
+        orgId: this.props.organization.slug,
         projectId: issue.project.slug,
         itemIds: [issue.id],
         data,
@@ -174,6 +180,7 @@ const CompactIssue = createReactClass({
 
   render() {
     let issue = this.state.issue;
+    let {organization} = this.props;
 
     let className = 'issue';
     if (issue.isBookmarked) {
@@ -195,7 +202,7 @@ const CompactIssue = createReactClass({
       className += ' with-graph';
     }
 
-    let {id, params} = this.props;
+    let {id} = this.props;
     let title = <span className="icon-more" />;
 
     return (
@@ -205,7 +212,11 @@ const CompactIssue = createReactClass({
         direction="column"
         style={{paddingTop: '12px', paddingBottom: '6px'}}
       >
-        <CompactIssueHeader data={issue} params={params} />
+        <CompactIssueHeader
+          data={issue}
+          organization={organization}
+          projectId={issue.project.slug}
+        />
         {this.props.statsPeriod && (
           <div className="event-graph">
             <GroupChart
@@ -241,7 +252,7 @@ const CompactIssue = createReactClass({
               </li>
               <li>
                 <SnoozeAction
-                  orgId={params.orgId}
+                  orgId={organization.slug}
                   groupId={id}
                   onSnooze={this.onSnooze}
                 />
@@ -256,4 +267,4 @@ const CompactIssue = createReactClass({
 });
 
 export {CompactIssue};
-export default withRouter(CompactIssue);
+export default withOrganization(CompactIssue);
