@@ -226,13 +226,13 @@ exports[`OrganizationUserFeedback renders 1`] = `
                         },
                       ],
                       Array [
-                        "/organizations/org-slug/issues/1/",
+                        "/org-slug/project-slug/issues/1/",
                       ],
                       Array [
-                        "/organizations/org-slug/issues/",
+                        "/org-slug/project-slug/issues/",
                       ],
                       Array [
-                        "/organizations/org-slug/issues/1/activity/",
+                        "/org-slug/project-slug/issues/1/activity/",
                       ],
                       Array [
                         "/organizations/org-slug/issues/1/events/1/",
@@ -363,13 +363,13 @@ exports[`OrganizationUserFeedback renders 1`] = `
                           },
                         ],
                         Array [
-                          "/organizations/org-slug/issues/1/",
+                          "/org-slug/project-slug/issues/1/",
                         ],
                         Array [
-                          "/organizations/org-slug/issues/",
+                          "/org-slug/project-slug/issues/",
                         ],
                         Array [
-                          "/organizations/org-slug/issues/1/activity/",
+                          "/org-slug/project-slug/issues/1/activity/",
                         ],
                         Array [
                           "/organizations/org-slug/issues/1/events/1/",
@@ -1953,12 +1953,12 @@ exports[`OrganizationUserFeedback renders 1`] = `
                                                 className="truncate"
                                               >
                                                 <ProjectLink
-                                                  to="/organizations/org-slug/issues/1/"
+                                                  to="/org-slug/project-slug/issues/1/"
                                                 >
                                                   <Link
                                                     onlyActiveOnIndex={false}
                                                     style={Object {}}
-                                                    to="/organizations/org-slug/issues/1/"
+                                                    to="/org-slug/project-slug/issues/1/"
                                                   >
                                                     <a
                                                       onClick={[Function]}
@@ -1985,12 +1985,12 @@ exports[`OrganizationUserFeedback renders 1`] = `
                                             className="project-name"
                                           >
                                             <ProjectLink
-                                              to="/organizations/org-slug/issues/"
+                                              to="/org-slug/project-slug/issues/"
                                             >
                                               <Link
                                                 onlyActiveOnIndex={false}
                                                 style={Object {}}
-                                                to="/organizations/org-slug/issues/"
+                                                to="/org-slug/project-slug/issues/"
                                               >
                                                 <a
                                                   onClick={[Function]}
@@ -2004,13 +2004,13 @@ exports[`OrganizationUserFeedback renders 1`] = `
                                           <span>
                                             <Link
                                               className="comments"
-                                              to="/organizations/org-slug/issues/1/activity/"
+                                              to="/org-slug/project-slug/issues/1/activity/"
                                             >
                                               <Link
                                                 className="comments"
                                                 onlyActiveOnIndex={false}
                                                 style={Object {}}
-                                                to="/organizations/org-slug/issues/1/activity/"
+                                                to="/org-slug/project-slug/issues/1/activity/"
                                               >
                                                 <a
                                                   className="comments"

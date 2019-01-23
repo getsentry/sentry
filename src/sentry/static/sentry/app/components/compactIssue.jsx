@@ -72,8 +72,8 @@ class CompactIssueHeader extends React.Component {
     let styles = {};
 
     let basePath = hasNewRoutes
-      ? `/${organization.slug}/${projectId}/issues/`
-      : `/organizations/${organization.slug}/issues/`;
+      ? `/organizations/${organization.slug}/issues/`
+      : `/${organization.slug}/${projectId}/issues/`;
 
     if (data.subscriptionDetails && data.subscriptionDetails.reason === 'mentioned') {
       styles = {color: '#57be8c'};
