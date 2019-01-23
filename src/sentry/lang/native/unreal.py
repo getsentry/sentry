@@ -24,7 +24,7 @@ def process_unreal_crash(payload, user_id, environment, event):
         parts = user_id.split('|', 2)
         login_id, epic_account_id, machine_id = parts + [''] * (3 - len(parts))
         event['user'] = {
-            'id': login_id if login_id else user_id
+            'id': login_id if login_id else user_id,
         }
         if epic_account_id:
             set_path(event, 'tags', 'epic_account_id', value=epic_account_id)
@@ -70,6 +70,11 @@ def merge_apple_crash_report(apple_crash_report, event):
 
     if event.get('level') is None:
         event['level'] = 'info'
+
+    metadata = apple_crash_report.get('metadata')
+    if metadata:
+        set_path(event, 'contexts', 'os', 'raw_description', value=metadata.get('OS Version'))
+        set_path(event, 'contexts', 'device', 'model', value=metadata.get('Hardware Model'))
 
     # Extract referenced (not all loaded) images
     images = [{
