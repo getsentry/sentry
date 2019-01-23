@@ -41,6 +41,17 @@ class TestUpdater(TestCase):
         with self.assertRaises(APIError):
             updater.call()
 
+    def test_doesnt_update_app_with_invalid_event_permissions(self):
+        sentry_app = self.create_sentry_app(
+            name='sentry',
+            organization=self.org,
+            scopes=('project:read',),
+        )
+        updater = Updater(sentry_app=sentry_app)
+        updater.events = ('issue',)
+        with self.assertRaises(APIError):
+            updater.call()
+
     def test_updates_webhook_url(self):
         self.updater.webhook_url = 'http://example.com/hooks'
         self.updater.call()
