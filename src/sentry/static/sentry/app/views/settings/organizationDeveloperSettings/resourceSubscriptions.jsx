@@ -23,6 +23,7 @@ export default class Subscriptions extends React.Component {
   constructor(...args) {
     super(...args);
     this.state = {events: this.props.events};
+    this.context.form.setValue('events', this.props.events);
   }
 
   componentDidUpdate(prevProps) {
