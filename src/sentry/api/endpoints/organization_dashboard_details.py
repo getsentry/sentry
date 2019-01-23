@@ -1,15 +1,75 @@
 from __future__ import absolute_import
 
-from sentry.api.base import DocSection
-from sentry.api.bases.dashboard import (
-    OrganizationDashboardEndpoint
-)
-from sentry.api.serializers import serialize
-from sentry.models import ObjectStatus
+from rest_framework import serializers
 from rest_framework.response import Response
 
-from sentry.api.bases.dashboard import DashboardWithWidgetsSerializer
-from sentry.models import Widget, WidgetDataSource
+from sentry.api.base import DocSection
+from sentry.api.bases.dashboard import (
+    OrganizationDashboardEndpoint, DashboardSerializer
+)
+from sentry.api.serializers import serialize
+from sentry.api.serializers.rest_framework import ListField
+from sentry.models import ObjectStatus, Widget
+
+
+def remove_widgets(dashboard_widgets, widget_data):
+    """
+    Removes current widgets belonging to dashboard not in widget_data.
+    Returns remaining widgets.
+    """
+    widget_titles = [wd['id'] for wd in widget_data]
+    dashboard_widgets.exclude(
+        id__in=widget_titles
+    ).delete()
+    return dashboard_widgets.filter(
+        id__in=widget_titles
+    )
+
+
+def reorder_widgets(dashboard_id, widget_data):
+    """
+
+    """
+    dashboard_widgets = Widget.objects.filter(
+        dashboard_id=dashboard_id,
+    )
+    dashboard_widgets = remove_widgets(dashboard_widgets, widget_data)
+
+    for widget_datum in widget_data:
+        for widget in dashboard_widgets:
+            if widget.id == widget_datum['id']:
+                widget.order = widget_datum['order']
+                widget.save()
+
+
+class WidgetSerializer(serializers.Serializer):
+    order = serializers.IntegerField(min_value=0, required=True)
+    id = serializers.IntegerField(min_value=0, required=True)
+
+
+class DashboardWithWidgetsSerializer(DashboardSerializer):
+    widgets = ListField(
+        child=WidgetSerializer(),
+        required=False,
+        default=[],
+    )
+
+    def validate(self, data):
+        widgets = data['widgets']
+
+        if len(widgets) != len(set([w['order'] for w in widgets])):
+            raise ValueError('Widgets must have no repeating order')
+
+        widgets_count = len(Widget.objects.filter(
+            id__in=[w['id'] for w in data['widgets']],
+            dashboard_id=self.context['dashboard_id'],
+            status=ObjectStatus.VISIBLE,
+        ))
+
+        if len(widgets) != widgets_count:
+            raise ValueError('All widgets must exist within this dashboard prior to reordering.')
+
+        return data
 
 
 class OrganizationDashboardDetailsEndpoint(OrganizationDashboardEndpoint):
@@ -41,6 +101,8 @@ class OrganizationDashboardDetailsEndpoint(OrganizationDashboardEndpoint):
         :pparam string organization_slug: the slug of the organization the
                                           dashboard belongs to.
         :pparam int dashboard_id: the id of the dashboard.
+        :param array widgets: the array of widgets (consisting of a widget id and the order)
+                            to be updated.
         :auth: required
         """
 
@@ -52,7 +114,7 @@ class OrganizationDashboardDetailsEndpoint(OrganizationDashboardEndpoint):
     def put(self, request, organization, dashboard):
         serializer = DashboardWithWidgetsSerializer(
             data=request.DATA,
-            context={'organization': organization}
+            context={'dashboard_id': dashboard.id}
         )
 
         if not serializer.is_valid():
@@ -61,26 +123,6 @@ class OrganizationDashboardDetailsEndpoint(OrganizationDashboardEndpoint):
 
         dashboard.update(
             title=data['title'],
-            created_by=data['createdBy']
         )
-        for widget_data in data['widgets']:
-            widget, __created = Widget.objects.create_or_update(
-                dashboard_id=dashboard.id,
-                order=widget_data['order'],
-                values={
-                    'title': widget_data['title'],
-                    'display_type': widget_data['displayType'],
-                    'display_options': widget_data.get('displayOptions', {}),
-                }
-            )
-            for data_source in widget_data['dataSources']:
-                WidgetDataSource.objects.create_or_update(
-                    widget_id=widget.id,
-                    values={
-                        'name': data_source['name'],
-                        'data': data_source['data'],
-                        'type': data_source['type'],
-                    },
-                    order=data_source['order'],
-                )
+        reorder_widgets(dashboard.id, data['widgets'])
         return self.respond(serialize(dashboard, request.user), status=200)
