@@ -10,6 +10,7 @@ import CompactIssue from 'app/components/compactIssue';
 import EventUserFeedback from 'app/components/events/userFeedback';
 import LoadingIndicator from 'app/components/loadingIndicator';
 import GlobalSelectionHeader from 'app/components/organizations/globalSelectionHeader';
+import NoProjectMessage from 'app/components/noProjectMessage';
 import AsyncView from 'app/views/asyncView';
 import {PageContent} from 'app/styles/organization';
 
@@ -101,6 +102,8 @@ class OrganizationUserFeedback extends AsyncView {
     const {location} = this.props;
     const {status} = getQuery(location.search);
     const {reportListPageLinks} = this.state;
+    const hasProjects =
+      organization.projects.filter(p => p.isMember && p.hasAccess).length !== 0;
 
     return (
       <Feature
@@ -115,7 +118,11 @@ class OrganizationUserFeedback extends AsyncView {
             status={status}
             location={location}
           >
-            {this.renderStreamBody()}
+            {hasProjects ? (
+              this.renderStreamBody()
+            ) : (
+              <NoProjectMessage organization={this.props.organization} />
+            )}
           </UserFeedbackContainer>
         </PageContent>
       </Feature>

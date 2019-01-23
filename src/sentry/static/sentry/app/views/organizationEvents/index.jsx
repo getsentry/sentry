@@ -5,9 +5,11 @@ import styled from 'react-emotion';
 
 import {getParams} from 'app/views/organizationEvents/utils/getParams';
 import {t} from 'app/locale';
+import space from 'app/styles/space';
 import BetaTag from 'app/components/betaTag';
 import Feature from 'app/components/acl/feature';
 import GlobalSelectionHeader from 'app/components/organizations/globalSelectionHeader';
+import NoProjectMessage from 'app/components/noProjectMessage';
 import SentryTypes from 'app/sentryTypes';
 import PageHeading from 'app/components/pageHeading';
 import withGlobalSelection from 'app/utils/withGlobalSelection';
@@ -62,10 +64,22 @@ class OrganizationEventsContainer extends React.Component {
               />
             </PageHeader>
 
+<<<<<<< HEAD
             {children}
           </Body>
         </PageContent>
       </Feature>
+=======
+              {hasProjects ? (
+                children
+              ) : (
+                <StyledNoProjectMessage organization={this.props.organization} />
+              )}
+            </Body>
+          </PageContent>
+        </Feature>
+      </EventsContext.Provider>
+>>>>>>> add it to all of the pertinent top level tab views
     );
   }
 }
@@ -78,6 +92,10 @@ const Body = styled('div')`
   background-color: ${p => p.theme.whiteDark};
   flex-direction: column;
   flex: 1;
+`;
+
+const StyledNoProjectMessage = styled(NoProjectMessage)`
+  margin-top: ${space(4)};
 `;
 
 const HeaderTitle = styled(PageHeading)`

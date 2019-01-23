@@ -24,7 +24,6 @@ import ConfigStore from 'app/stores/configStore';
 import GroupStore from 'app/stores/groupStore';
 import SelectedGroupStore from 'app/stores/selectedGroupStore';
 import TagStore from 'app/stores/tagStore';
-import NoProjectMessage from 'app/components/noProjectMessage';
 import SentryTypes from 'app/sentryTypes';
 import StreamActions from 'app/views/stream/actions';
 import StreamFilters from 'app/views/stream/filters';
@@ -603,9 +602,7 @@ const OrganizationStream = createReactClass({
       }
     }
 
-    return Object.keys(this.state.memberList || {}).length == 0 ? (
-      <NoProjectMessage organization={this.props.organization} />
-    ) : (
+    return (
       <div className={classNames(classes)}>
         <div className="stream-content">
           <StreamFilters

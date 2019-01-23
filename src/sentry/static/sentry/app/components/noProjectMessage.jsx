@@ -1,6 +1,7 @@
 import React from 'react';
 import {Flex} from 'grid-emotion';
 import styled from 'react-emotion';
+import PropTypes from 'prop-types';
 
 import {t} from 'app/locale';
 import Button from 'app/components/button';
@@ -13,16 +14,17 @@ import img from '../../images/confused-io.png';
 export default class EmptyState extends React.Component {
   static propTypes = {
     organization: SentryTypes.Organization,
+    className: PropTypes.string,
   };
 
   render() {
-    const {organization} = this.props;
+    const {organization, className} = this.props;
     const orgId = organization.slug;
     const canCreateProject = organization.access.includes('project:write');
     const canJoinTeam = organization.access.includes('team:read');
 
     return (
-      <Flex flex="1" align="center" justify="center">
+      <Flex flex="1" align="center" justify="center" className={className}>
         <Wrapper>
           <img src={img} height={350} alt="Nothing to see" />
           <Content direction="column" justify="center">

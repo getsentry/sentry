@@ -11,6 +11,7 @@ import Alert from 'app/components/alert';
 import EmptyStateWarning from 'app/components/emptyStateWarning';
 import Feature from 'app/components/acl/feature';
 import GlobalSelectionHeader from 'app/components/organizations/globalSelectionHeader';
+import NoProjectMessage from 'app/components/noProjectMessage';
 import AsyncView from 'app/views/asyncView';
 import withOrganization from 'app/utils/withOrganization';
 import withGlobalSelection from 'app/utils/withGlobalSelection';
@@ -172,13 +173,17 @@ class OrganizationReleases extends AsyncView {
             />
           </div>
         </PageHeader>
-        <div>
-          <Panel>
-            <ReleaseListHeader />
-            <PanelBody>{this.renderStreamBody()}</PanelBody>
-          </Panel>
-          <Pagination pageLinks={this.state.releaseListPageLinks} />
-        </div>
+        {hasProjects ? (
+          <div>
+            <Panel>
+              <ReleaseListHeader />
+              <PanelBody>{this.renderStreamBody()}</PanelBody>
+            </Panel>
+            <Pagination pageLinks={this.state.releaseListPageLinks} />
+          </div>
+        ) : (
+          <NoProjectMessage organization={this.props.organization} />
+        )}
       </PageContent>
     );
   }
