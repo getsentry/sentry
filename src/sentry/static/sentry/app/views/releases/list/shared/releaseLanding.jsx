@@ -74,12 +74,10 @@ const ReleaseLanding = withApi(
 
     componentDidMount() {
       let {organization, project} = this.context;
-      if (project) {
-        analytics('releases.landing_card_viewed', {
-          org_id: parseInt(organization.id, 10),
-          project_id: parseInt(project.id, 10),
-        });
-      }
+      analytics('releases.landing_card_viewed', {
+        org_id: parseInt(organization.id, 10),
+        project_id: project && parseInt(project.id, 10),
+      });
     }
 
     handleClick = () => {
@@ -92,14 +90,12 @@ const ReleaseLanding = withApi(
         stepId: state.stepId + 1,
       }));
 
-      if (project) {
-        analytics('releases.landing_card_clicked', {
-          org_id: parseInt(organization.id, 10),
-          project_id: parseInt(project.id, 10),
-          step_id: stepId,
-          step_title: title,
-        });
-      }
+      analytics('releases.landing_card_clicked', {
+        org_id: parseInt(organization.id, 10),
+        project_id: project && parseInt(project.id, 10),
+        step_id: stepId,
+        step_title: title,
+      });
     };
 
     getCard = stepId => {
