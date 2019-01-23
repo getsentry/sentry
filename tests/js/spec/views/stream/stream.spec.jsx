@@ -151,20 +151,23 @@ describe('Stream', function() {
       });
     }); // complete handler
 
-    it('calls fetchData once on mount for a saved search', function() {
+    it('calls fetchData once on mount for a saved search', async function() {
       props.location = {query: {}};
       props.params.searchId = '1';
       wrapper = shallow(<Stream {...props} />, {
         context,
       });
+      await wrapper.update();
 
       expect(groupListRequest).toHaveBeenCalledTimes(1);
     });
 
-    it('calls fetchData once on mount if there is a query', function() {
+    it('calls fetchData once on mount if there is a query', async function() {
       wrapper = shallow(<Stream {...props} />, {
         context,
       });
+      await wrapper.update();
+
       expect(groupListRequest).toHaveBeenCalledTimes(1);
     });
 
@@ -217,7 +220,7 @@ describe('Stream', function() {
   });
 
   describe('fetchSavedSearches()', function() {
-    it('handles valid search id', function() {
+    it('handles valid search id', async function() {
       const streamProps = {
         setProjectNavSection: function() {},
         params: {orgId: 'org-slug', projectId: 'project-slug', searchId: '789'},
@@ -226,12 +229,13 @@ describe('Stream', function() {
       wrapper = shallow(<Stream {...streamProps} />, {
         context,
       });
+      await wrapper.update();
 
       expect(wrapper.instance().state.searchId).toBe('789');
       expect(wrapper.instance().state.query).toBe('is:unresolved');
     });
 
-    it('handles invalid search id', function() {
+    it('handles invalid search id', async function() {
       const streamProps = {
         setProjectNavSection: function() {},
         params: {orgId: 'org-slug', projectId: 'project-slug', searchId: 'invalid'},
@@ -240,12 +244,13 @@ describe('Stream', function() {
       wrapper = shallow(<Stream {...streamProps} />, {
         context,
       });
+      await wrapper.update();
 
       expect(wrapper.instance().state.searchId).toBeNull();
       expect(wrapper.instance().state.query).toBe('');
     });
 
-    it('handles default saved search (no search id or query)', function() {
+    it('handles default saved search (no search id or query)', async function() {
       const streamProps = {
         ...props,
         location: {query: {}, search: ''},
@@ -267,6 +272,7 @@ describe('Stream', function() {
       wrapper = shallow(<Stream {...streamProps} />, {
         context,
       });
+      await wrapper.update();
 
       expect(wrapper.instance().state.searchId).toBe('default');
       expect(wrapper.instance().state.query).toBe('is:unresolved assigned:me');
@@ -480,7 +486,7 @@ describe('Stream', function() {
       expect(_.pick(actual, _.keys(expected))).toEqual(expected);
     });
 
-    it('handles no searchId or query', function() {
+    it('handles no searchId or query', async function() {
       let streamProps = {
         ...props,
         location: {query: {sort: 'freq'}, search: 'sort=freq'},
@@ -501,15 +507,18 @@ describe('Stream', function() {
         searchId: null,
       };
 
-      let stream = shallow(<Stream {...streamProps} />, {
+      wrapper = shallow(<Stream {...streamProps} />, {
         context,
-      }).instance();
+      });
+      await wrapper.update();
+
+      let stream = wrapper.instance();
 
       let actual = stream.state;
       expect(_.pick(actual, _.keys(expected))).toEqual(expected);
     });
 
-    it('handles valid searchId in routing params', function() {
+    it('handles valid searchId in routing params', async function() {
       let streamProps = {
         ...props,
         location: {query: {sort: 'freq'}, search: 'sort=freq'},
@@ -538,12 +547,13 @@ describe('Stream', function() {
       wrapper.setState({
         savedSearchList: [{id: '789', query: 'is:unresolved', name: 'test'}],
       });
+      await wrapper.update();
 
       let actual = wrapper.instance().state;
       expect(_.pick(actual, _.keys(expected))).toEqual(expected);
     });
 
-    it('handles invalid searchId in routing params', function() {
+    it('handles invalid searchId in routing params', async function() {
       let streamProps = {
         ...props,
         location: {query: {sort: 'freq'}, search: 'sort=freq'},
@@ -565,9 +575,11 @@ describe('Stream', function() {
         searchId: null,
       };
 
-      let stream = shallow(<Stream {...streamProps} />, {
+      wrapper = shallow(<Stream {...streamProps} />, {
         context,
-      }).instance();
+      });
+      await wrapper.update();
+      let stream = wrapper.instance();
 
       let actual = stream.state;
       expect(_.pick(actual, _.keys(expected))).toEqual(expected);
@@ -575,7 +587,7 @@ describe('Stream', function() {
   });
 
   describe('getQueryState', function() {
-    it('handles changed search id', function() {
+    it('handles changed search id', async function() {
       const nextProps = {
         ...props,
         location: {
@@ -584,9 +596,12 @@ describe('Stream', function() {
         params: {orgId: 'org-slug', projectId: 'project-slug', searchId: '789'},
       };
 
-      const stream = shallow(<Stream {...props} />, {
+      wrapper = shallow(<Stream {...props} />, {
         context,
-      }).instance();
+      });
+      await wrapper.update();
+      const stream = wrapper.instance();
+
       const nextState = stream.getQueryState(nextProps);
       expect(nextState).toEqual(
         expect.objectContaining({searchId: '789', query: 'is:unresolved'})
