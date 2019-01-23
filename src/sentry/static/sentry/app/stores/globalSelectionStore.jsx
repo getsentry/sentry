@@ -28,6 +28,20 @@ const getDefaultSelection = () => {
   };
 };
 
+const isValidSelection = (selection, organization) => {
+  const allowedProjects = new Set(
+    organization.projects.filter(project => project.isMember).map(p => parseInt(p.id, 10))
+  );
+  if (
+    Array.isArray(selection.projects) &&
+    selection.projects.some(project => !allowedProjects.has(project))
+  ) {
+    return false;
+  }
+
+  return true;
+};
+
 const GlobalSelectionStore = Reflux.createStore({
   init() {
     this.reset(this.selection);
@@ -44,8 +58,8 @@ const GlobalSelectionStore = Reflux.createStore({
    * Initializes the global selection store
    * If there are query params apply these, otherwise check local storage
   */
-  loadInitialData(orgId, queryParams) {
-    this.orgId = orgId;
+  loadInitialData(organization, queryParams) {
+    this.organization = organization;
     const query = pick(queryParams, Object.values(URL_PARAM));
     const hasQuery = Object.keys(query).length > 0;
 
@@ -65,7 +79,7 @@ const GlobalSelectionStore = Reflux.createStore({
       };
     } else {
       try {
-        const localStorageKey = `${LOCAL_STORAGE_KEY}:${orgId}`;
+        const localStorageKey = `${LOCAL_STORAGE_KEY}:${organization.slug}`;
         const storedValue = JSON.parse(localStorage.getItem(localStorageKey));
         if (storedValue) {
           globalSelection = storedValue;
@@ -75,8 +89,10 @@ const GlobalSelectionStore = Reflux.createStore({
       }
     }
 
-    this.selection = globalSelection;
-    this.trigger(this.selection);
+    if (isValidSelection(globalSelection, organization)) {
+      this.selection = globalSelection;
+      this.trigger(this.selection);
+    }
   },
 
   get() {
@@ -127,7 +143,10 @@ const GlobalSelectionStore = Reflux.createStore({
 
   updateLocalStorage() {
     try {
-      const localStorageKey = `${LOCAL_STORAGE_KEY}:${this.orgId}`;
+      if (!this.organization) {
+        throw new Error('No organization loaded');
+      }
+      const localStorageKey = `${LOCAL_STORAGE_KEY}:${this.organization.slug}`;
       localStorage.setItem(localStorageKey, JSON.stringify(this.selection));
     } catch (ex) {
       // Do nothing

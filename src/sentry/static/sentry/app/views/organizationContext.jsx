@@ -56,10 +56,6 @@ const OrganizationContext = createReactClass({
 
   componentWillMount() {
     this.fetchData();
-    GlobalSelectionStore.loadInitialData(
-      this.props.params.orgId,
-      this.props.location.query
-    );
   },
 
   componentWillReceiveProps(nextProps) {
@@ -99,6 +95,7 @@ const OrganizationContext = createReactClass({
 
         TeamStore.loadInitialData(data.teams);
         ProjectsStore.loadInitialData(data.projects);
+        GlobalSelectionStore.loadInitialData(data, this.props.location.query);
 
         this.setState({
           organization: data,
