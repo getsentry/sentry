@@ -35,13 +35,6 @@ function getAlertTypeForProblem(problem) {
   }
 }
 
-function setTracingRoute(routes) {
-  let route = getRouteStringFromRoutes(routes);
-  if (route) {
-    tracing.setRoute(route);
-  }
-}
-
 const App = createReactClass({
   displayName: 'App',
 
@@ -68,17 +61,6 @@ const App = createReactClass({
   },
 
   componentWillMount() {
-    tracing.startTransaction();
-    setTracingRoute(this.props.routes);
-
-    // Listen for route changes so we can set transaction data
-    this.unlistenBrowserHistory = browserHistory.listen(() => {
-      tracing.startTransaction();
-      // browserHistory event is triggered before props are passed to the component,
-      // thus we need to wait for another event loop
-      setTimeout(() => setTracingRoute(this.props.routes));
-    });
-
     this.api.request('/organizations/', {
       query: {
         member: '1',
@@ -149,11 +131,24 @@ const App = createReactClass({
   },
 
   componentWillUnmount() {
-    if (this.unlistenBrowserHistory) {
-      this.unlistenBrowserHistory();
-    }
-
     OrganizationsStore.load([]);
+  },
+
+  componentDidMount() {
+    this.updateTracing();
+  },
+
+  componentDidUpdate() {
+    this.updateTracing();
+  },
+
+  updateTracing() {
+    tracing.startTransaction();
+
+    const route = getRouteStringFromRoutes(this.props.routes);
+    if (route) {
+      tracing.setRoute(route);
+    }
   },
 
   onConfigStoreChange(config) {
