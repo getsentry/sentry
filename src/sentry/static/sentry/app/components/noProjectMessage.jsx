@@ -13,8 +13,8 @@ import img from '../../images/confused-io.png';
 
 export default class EmptyState extends React.Component {
   static propTypes = {
-    /* if the user has access to any projects, the wrapper
-    will expose whatever children are included */
+    /* if the user has access to any projects, we show whatever
+    children are included. Otherwise we show the message */
     children: PropTypes.node,
     organization: SentryTypes.Organization,
     className: PropTypes.string,
