@@ -9,12 +9,16 @@ from django.core.files.uploadedfile import SimpleUploadedFile
 
 from sentry.testutils import TestCase
 from sentry.lang.native.minidump import MINIDUMP_ATTACHMENT_TYPE
-from sentry.lang.native.unreal import process_unreal_crash, unreal_attachment_type, merge_unreal_context_event, merge_unreal_logs_event
+from sentry.lang.native.unreal import process_unreal_crash, unreal_attachment_type, merge_unreal_context_event, merge_unreal_logs_event, merge_apple_crash_report
 from sentry.models import Event, EventAttachment, UserReport
 
 
 def get_unreal_crash_file():
     return os.path.join(os.path.dirname(__file__), 'fixtures', 'unreal_crash')
+
+
+def get_unreal_crash_apple_file():
+    return os.path.join(os.path.dirname(__file__), 'fixtures', 'unreal_crash_apple')
 
 
 def test_process_minidump():
@@ -128,7 +132,6 @@ class UnrealIntegrationTest(TestCase):
         with open(get_unreal_crash_file(), 'rb') as f:
             event = {}
             unreal_crash = process_unreal_crash(f.read(), None, None, event)
-            event = {}
             merge_unreal_logs_event(unreal_crash.get_logs(), event)
             breadcrumbs = event['breadcrumbs']['values']
             assert len(breadcrumbs) == 100
@@ -138,6 +141,30 @@ class UnrealIntegrationTest(TestCase):
             assert breadcrumbs[99]['timestamp'] == '2018-11-20T11:47:15Z'
             assert breadcrumbs[99]['message'] == 'Texture pool size now 1000 MB'
             assert breadcrumbs[99]['category'] == 'LogContentStreaming'
+
+    def test_merge_apple_crash_report(self):
+        with open(get_unreal_crash_apple_file(), 'rb') as f:
+            event = {}
+            unreal_crash = process_unreal_crash(f.read(), None, None, event)
+            merge_apple_crash_report(unreal_crash.get_apple_crash_report(), event)
+            assert event['platform'] == 'native'
+            assert event['timestamp'] == '2019-01-09T17:44:22Z'
+            assert event['level'] == 'fatal'
+            assert event['contexts']['os']['raw_description'] == 'Mac OS X 10.14.0 (18A391)'
+            assert event['contexts']['device']['model'] == 'MacBookPro14,3'
+            assert len(event['threads']) == 55
+            assert event['threads'][5]['crashed']
+            assert event['threads'][5]['id'] == 5
+            assert event['threads'][5]['stacktrace']['frames'][0]['instruction_addr'] == '0x7fff61c7f425'
+            assert event['threads'][5]['stacktrace']['frames'][0]['package'] == 'libsystem_pthread.dylib'
+            assert event['threads'][5]['stacktrace']['registers']['r14'] == '0x1'
+            assert len(event['debug_meta']['images']) == 272
+            assert event['debug_meta']['images'][0]['type'] == 'symbolic'
+            assert event['debug_meta']['images'][0]['id'] == '2d903291-397d-3d14-bfca-52c7fb8c5e00'
+            assert event['debug_meta']['images'][0]['image_addr'] == '0x10864e000'
+            assert event['debug_meta']['images'][0]['image_size'] == 108797951
+            assert event['debug_meta']['images'][0]['arch'] == 'x86_64'
+            assert event['debug_meta']['images'][0]['name'] == '/Users/bruno/Documents/Unreal Projects/YetAnotherMac/MacNoEditor/YetAnotherMac.app/Contents/MacOS/YetAnotherMac'
 
     def upload_symbols(self):
         url = reverse(
