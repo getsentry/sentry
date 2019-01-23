@@ -76,7 +76,7 @@ const ReleaseLanding = withApi(
       let {organization, project} = this.context;
       analytics('releases.landing_card_viewed', {
         org_id: parseInt(organization.id, 10),
-        project_id: parseInt(project.id, 10),
+        project_id: project && parseInt(project.id, 10),
       });
     }
 
@@ -92,7 +92,7 @@ const ReleaseLanding = withApi(
 
       analytics('releases.landing_card_clicked', {
         org_id: parseInt(organization.id, 10),
-        project_id: parseInt(project.id, 10),
+        project_id: project && parseInt(project.id, 10),
         step_id: stepId,
         step_title: title,
       });
