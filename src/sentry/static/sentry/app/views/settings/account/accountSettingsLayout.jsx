@@ -18,7 +18,7 @@ class AccountSettingsLayout extends React.Component {
     // if there is no org in context, SidebarDropdown uses an org from `withLatestContext`
     // (which queries the org index endpoint instead of org details)
     // and does not have `access` info
-    if (organization && !organization.access) {
+    if (organization && typeof organization.access === 'undefined') {
       fetchOrganizationDetails(organization.slug, {
         setActive: true,
         loadProjects: true,
