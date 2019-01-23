@@ -63,12 +63,25 @@ class OrganizationDashboardWidgetDetailsEndpoint(OrganizationDashboardWidgetEndp
         :pparam int dashboard_id: the id of the dashboard.
         :pparam int widget_id: the id of the widget belonging to a dashboard
                                 the organization owns.
+        :param string title: the title of the widget.
+        :param string display_type: the widget display type (i.e. line or table).
+        :param array display_options: the widget display options are special
+                                    variables necessary to displaying the widget correctly.
         :auth: required
         """
+        # TODO(lb): the display type has a set number of things you can enter.
+        # Where is the right place to document this? I vote linking to
+        # another page in the docs that shows what each type is with photos.
+
         serializer = WidgetSerializer(data=request.DATA)
         if not serializer.is_valid():
             return Response(serializer.errors, status=400)
 
-        serializer.object
-        # save data somewhow
+        data = serializer.object
+        # TODO(lb): For now, I am deciding to not allow moving widgets from dashboard to dashboard.
+        widget.update(
+            title=data['title'],
+            display_type=data['display_type'],
+            display_options=data['display_options'],
+        )
         return Response(serialize(widget, request.user))

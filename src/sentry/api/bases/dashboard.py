@@ -1,5 +1,6 @@
 from __future__ import absolute_import
 
+from django.db.models import Max
 from rest_framework import serializers
 
 from sentry.api.bases.organization import (
@@ -11,6 +12,13 @@ from sentry.api.exceptions import ResourceDoesNotExist
 from sentry.models import Dashboard, Widget, WidgetDisplayTypes, WidgetDataSourceTypes
 
 from sentry.api.bases.discoversavedquery import DiscoverSavedQuerySerializer
+
+
+def get_next_dashboard_order(dashboard_id):
+    max_order = Widget.objects.filter(
+        dashboard_id=dashboard_id,
+    ).aggregate(Max('order'))
+    return max_order['order__max'] + 1
 
 
 class OrganizationDashboardEndpoint(OrganizationEndpoint):
