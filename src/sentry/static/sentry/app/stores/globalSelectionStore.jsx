@@ -121,7 +121,9 @@ const GlobalSelectionStore = Reflux.createStore({
   },
 
   updateLocalStorage() {
-    localStorage.setItem(LOCAL_STORAGE_KEY, JSON.stringify(this.selection));
+    try {
+      localStorage.setItem(LOCAL_STORAGE_KEY, JSON.stringify(this.selection));
+    } catch (ex) {}
   },
 });
 
