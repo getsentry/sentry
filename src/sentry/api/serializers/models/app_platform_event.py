@@ -39,18 +39,17 @@ class AppPlatformEvent(object):
 
     @property
     def body(self):
-        return {
+        return json.dumps({
             'action': self.action,
             'installation': {
                 'uuid': self.install.uuid,
             },
             'data': self.data,
             'actor': self.get_actor(),
-        }
+        })
 
     @property
     def headers(self):
-        body = json.dumps(self.body)
         request_uuid = uuid4().hex
 
         return {
@@ -58,5 +57,5 @@ class AppPlatformEvent(object):
             'Request-ID': request_uuid,
             'Sentry-Hook-Resource': self.resource,
             'Sentry-Hook-Timestamp': six.text_type(int(time())),
-            'Sentry-Hook-Signature': self.install.sentry_app.build_signature(body)
+            'Sentry-Hook-Signature': self.install.sentry_app.build_signature(self.body)
         }

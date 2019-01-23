@@ -449,7 +449,7 @@ CELERY_IMPORTS = (
     'sentry.tasks.scheduler', 'sentry.tasks.signals', 'sentry.tasks.store', 'sentry.tasks.unmerge',
     'sentry.tasks.symcache_update', 'sentry.tasks.servicehooks',
     'sentry.tagstore.tasks', 'sentry.tasks.assemble', 'sentry.tasks.integrations',
-    'sentry.tasks.files', 'sentry.tasks.app_platform',
+    'sentry.tasks.files', 'sentry.tasks.sentry_apps',
 )
 CELERY_QUEUES = [
     Queue('activity.notify', routing_key='activity.notify'),

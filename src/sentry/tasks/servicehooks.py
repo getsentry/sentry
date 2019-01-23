@@ -1,125 +1,18 @@
 from __future__ import absolute_import, print_function
 
 import six
-import inspect
 
 from time import time
-from celery.task import current
 
-from sentry.api.serializers import serialize, AppPlatformEvent
+from sentry.api.serializers import serialize
 from sentry.http import safe_urlopen
-from sentry.models import Group, SentryAppInstallation, ServiceHook
-from sentry.tasks.base import instrumented_task, retry
+from sentry.models import ServiceHook
+from sentry.tasks.base import instrumented_task
 from sentry.utils import json
 from sentry.utils.http import absolute_uri
 
-# This is an extra, explicit, measure to ensure we only send events for
-# resource changes we deem necessary.
-ALLOWED_EVENTS = (
-    'issue.created',
-)
-
-# We call some models by a different name, publically, than their class name.
-# For example the model Group is called "Issue" in the UI. We want the Service
-# Hook events to match what we externally call these primitives.
-RESOURCE_RENAMES = {
-    'Group': 'issue',
-}
-
-TYPES = {
-    'Group': Group,
-}
-
-
-@instrumented_task(
-    'sentry.tasks.process_resource_change',
-    queue='app_platform',
-    default_retry_delay=60 * 5,
-    max_retries=5,
-)
-@retry()
-def process_resource_change(action, sender, instance_id, *args, **kwargs):
-    model = None
-    name = None
-
-    # Previous method signature.
-    if inspect.isclass(sender):
-        model = sender
-    else:
-        model = TYPES[sender]
-
-    name = RESOURCE_RENAMES.get(model.__name__, model.__name__.lower())
-
-    # We may run into a race condition where this task executes before the
-    # transaction that creates the Group has committed.
-    try:
-        instance = model.objects.get(id=instance_id)
-    except model.DoesNotExist as e:
-        # Explicitly requeue the task, so we don't report this to Sentry until
-        # we hit the max number of retries.
-        return current.retry(exc=e)
-
-    event = '{}.{}'.format(name, action)
-
-    if event not in ALLOWED_EVENTS:
-        return
-
-    project = None
-
-    if isinstance(instance, Group):
-        project = instance.project
-
-    if not project:
-        return
-
-    servicehooks = ServiceHook.objects.filter(
-        project_id=project.id,
-    )
-
-    for servicehook in filter(lambda s: event in s.events, servicehooks):
-        # For now, these ``post_save`` callbacks are only valid for service
-        # hooks created by a Sentry App.
-        if not servicehook.created_by_sentry_app:
-            continue
-
-        request_data = AppPlatformEvent(
-            resource=name,
-            action=action,
-            install=SentryAppInstallation.objects.get(id=servicehook.actor_id),
-            data=serialize(instance),
-        )
-
-        safe_urlopen(
-            url=servicehook.url,
-            data=request_data.body,
-            headers=request_data.headers,
-            timeout=5,
-        )
-
-
-def send_request(servicehook, payload, verify_ssl=None):
-    from sentry import tsdb
-    tsdb.incr(tsdb.models.servicehook_fired, servicehook.id)
-
-    headers = {
-        'Content-Type': 'application/json',
-        'X-ServiceHook-Timestamp': six.text_type(int(time())),
-        'X-ServiceHook-GUID': servicehook.guid,
-        'X-ServiceHook-Signature': servicehook.build_signature(json.dumps(payload)),
-    }
-
-    safe_urlopen(
-        url=servicehook.url,
-        data=json.dumps(payload),
-        headers=headers,
-        timeout=5,
-        verify_ssl=(verify_ssl or False),
-    )
-
 
 def get_payload_v0(event):
-    from sentry.api.serializers import serialize
-
     group = event.group
     project = group.project
 
@@ -152,7 +45,9 @@ def get_payload_v0(event):
 
 
 @instrumented_task(
-    name='sentry.tasks.process_service_hook', default_retry_delay=60 * 5, max_retries=5
+    name='sentry.tasks.process_service_hook',
+    default_retry_delay=60 * 5,
+    max_retries=5,
 )
 def process_service_hook(servicehook_id, event, **kwargs):
     try:
@@ -165,4 +60,20 @@ def process_service_hook(servicehook_id, event, **kwargs):
     else:
         raise NotImplementedError
 
-    send_request(servicehook, payload)
+    from sentry import tsdb
+    tsdb.incr(tsdb.models.servicehook_fired, servicehook.id)
+
+    headers = {
+        'Content-Type': 'application/json',
+        'X-ServiceHook-Timestamp': six.text_type(int(time())),
+        'X-ServiceHook-GUID': servicehook.guid,
+        'X-ServiceHook-Signature': servicehook.build_signature(json.dumps(payload)),
+    }
+
+    safe_urlopen(
+        url=servicehook.url,
+        data=json.dumps(payload),
+        headers=headers,
+        timeout=5,
+        verify_ssl=False,
+    )

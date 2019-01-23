@@ -6,6 +6,7 @@ from sentry.mediators import sentry_apps
 from sentry.mediators.sentry_app_installations import Creator, InstallationNotifier
 from sentry.testutils import TestCase
 from sentry.testutils.helpers.faux import faux
+from sentry.utils import json
 
 
 class DictContaining(object):
@@ -45,7 +46,7 @@ class TestInstallationNotifier(TestCase):
 
         data = faux(safe_urlopen).kwargs['data']
 
-        assert data == {
+        assert data == json.dumps({
             'action': 'created',
             'installation': {
                 'uuid': self.install.uuid,
@@ -66,7 +67,7 @@ class TestInstallationNotifier(TestCase):
                 'name': self.user.name,
                 'type': 'user',
             },
-        }
+        })
 
         assert faux(safe_urlopen).kwarg_equals('headers', DictContaining(
             'Content-Type',

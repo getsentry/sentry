@@ -7,7 +7,7 @@ from sentry.models import (
     ApiAuthorization, ApiGrant, SentryApp, SentryAppInstallation
 )
 from sentry.utils.cache import memoize
-from sentry.tasks.app_platform import installation_webhook
+from sentry.tasks.sentry_apps import installation_webhook
 
 
 class Creator(Mediator):

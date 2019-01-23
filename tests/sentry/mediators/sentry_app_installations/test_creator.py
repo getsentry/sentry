@@ -62,7 +62,7 @@ class TestCreator(TestCase):
         assert ServiceHook.objects.get(project_id=self.project1.id).events == self.sentry_app.events
         assert ServiceHook.objects.get(project_id=self.project2.id).events == self.sentry_app.events
 
-    @patch('sentry.tasks.app_platform.installation_webhook.delay')
+    @patch('sentry.tasks.sentry_apps.installation_webhook.delay')
     def test_notifies_service(self, installation_webhook):
         install = self.creator.call()
         installation_webhook.assert_called_once_with(install.id, self.user.id)
