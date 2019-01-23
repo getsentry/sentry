@@ -18,6 +18,7 @@ import {fetchSavedSearches} from 'app/actionCreators/savedSearches';
 import {fetchProcessingIssues} from 'app/actionCreators/processingIssues';
 import ConfigStore from 'app/stores/configStore';
 import GroupStore from 'app/stores/groupStore';
+import {getUtcDateString} from 'app/utils/dates';
 import SelectedGroupStore from 'app/stores/selectedGroupStore';
 import TagStore from 'app/stores/tagStore';
 import EmptyStateWarning from 'app/components/emptyStateWarning';
@@ -171,6 +172,12 @@ const OrganizationStream = createReactClass({
     if (selection.datetime.period) {
       delete params.period;
       params.statsPeriod = selection.datetime.period;
+    }
+    if (params.end) {
+      params.end = getUtcDateString(params.end);
+    }
+    if (params.start) {
+      params.start = getUtcDateString(params.start);
     }
 
     let sort = this.getSort();
