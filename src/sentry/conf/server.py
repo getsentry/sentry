@@ -789,8 +789,10 @@ SENTRY_FEATURES = {
     'organizations:discover': False,
     # Enable attaching arbitrary files to events.
     'organizations:event-attachments': False,
-    # Enable the organization wide events stream interface.
+    # Enable multi project selection
     'organizations:global-views': False,
+    # Enable the events stream interface.
+    'organizations:events': False,
     # Enable integration functionality to create and link groups to issues on
     # external services.
     'organizations:integrations-issue-basic': False,

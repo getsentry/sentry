@@ -76,6 +76,21 @@ describe('components/interfaces/utils', function() {
           method: 'GET',
         })
       ).toEqual('curl \\\n "http://example.com/foo?foo=bar"');
+
+      // Do not add data if data is empty object
+      expect(
+        getCurlCommand({
+          url: 'http://example.com/foo',
+          headers: [],
+          env: {
+            ENV: 'prod',
+          },
+          inferredContentType: null,
+          fragment: '',
+          data: {},
+          method: 'GET',
+        })
+      ).toEqual('curl \\\n "http://example.com/foo"');
     });
 
     it('works with a Proxy', function() {

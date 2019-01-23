@@ -17,7 +17,6 @@ import {fetchOrgMembers} from 'app/actionCreators/members';
 import {fetchSavedSearches} from 'app/actionCreators/savedSearches';
 import {fetchProcessingIssues} from 'app/actionCreators/processingIssues';
 import ConfigStore from 'app/stores/configStore';
-import GlobalSelectionStore from 'app/stores/globalSelectionStore';
 import GroupStore from 'app/stores/groupStore';
 import SelectedGroupStore from 'app/stores/selectedGroupStore';
 import TagStore from 'app/stores/tagStore';
@@ -34,8 +33,10 @@ import StreamFilters from 'app/views/stream/filters';
 import StreamSidebar from 'app/views/stream/sidebar';
 import parseApiError from 'app/utils/parseApiError';
 import parseLinkHeader from 'app/utils/parseLinkHeader';
+import {updateProjects} from 'app/actionCreators/globalSelection';
 import utils from 'app/utils';
 import withOrganization from 'app/utils/withOrganization';
+import withGlobalSelection from 'app/utils/withGlobalSelection';
 
 const MAX_ITEMS = 25;
 const DEFAULT_QUERY = 'is:unresolved';
@@ -48,10 +49,10 @@ const OrganizationStream = createReactClass({
 
   propTypes: {
     organization: SentryTypes.Organization,
+    selection: SentryTypes.GlobalSelection,
   },
 
   mixins: [
-    Reflux.listenTo(GlobalSelectionStore, 'onSelectionChange'),
     Reflux.listenTo(GroupStore, 'onGroupChange'),
     Reflux.listenTo(SelectedGroupStore, 'onSelectedGroupChange'),
     Reflux.listenTo(TagStore, 'onTagsChange'),
@@ -72,13 +73,12 @@ const OrganizationStream = createReactClass({
       pageLinks: '',
       queryCount: null,
       error: false,
-      selection: GlobalSelectionStore.get(),
       isSidebarVisible: false,
       savedSearch: null,
       savedSearchList: [],
       processingIssues: null,
       tagsLoading: true,
-      memberList: null,
+      memberList: {},
       tags: TagStore.getAllTags(),
       // the project for the selected issues
       // Will only be set if selected issues all belong
@@ -124,7 +124,10 @@ const OrganizationStream = createReactClass({
     }
     if (prevProps.params.searchId != this.props.params.searchId) {
       this.onSavedSearchChange();
-    } else if (prevProps.location.search != this.props.location.search) {
+    } else if (
+      prevProps.location.search != this.props.location.search ||
+      !isEqual(prevProps.selection, this.props.selection)
+    ) {
       this.fetchData();
     }
   },
@@ -157,7 +160,7 @@ const OrganizationStream = createReactClass({
   },
 
   getEndpointParams() {
-    let selection = this.state.selection;
+    let {selection} = this.props;
 
     let params = {
       project: selection.projects,
@@ -266,7 +269,7 @@ const OrganizationStream = createReactClass({
 
   fetchProcessingIssues() {
     let {orgId} = this.props.params;
-    let projects = this.state.selection.projects;
+    let projects = this.props.selection.projects;
     fetchProcessingIssues(this.api, orgId, projects).then(
       data => {
         let haveIssues = data.filter(
@@ -321,7 +324,7 @@ const OrganizationStream = createReactClass({
       }
 
       // Will trigger a transition if the projects changed
-      GlobalSelectionStore.updateProjects(projects);
+      updateProjects(projects);
       this.setState({savedSearch: match}, this.transitionTo);
     } else {
       this.setState({savedSearch: null}, this.transitionTo);
@@ -355,10 +358,6 @@ const OrganizationStream = createReactClass({
     if (!isEqual(groupIds, this.state.groupIds)) {
       this.setState({groupIds});
     }
-  },
-
-  onSelectionChange(selection) {
-    this.setState({selection}, this.transitionTo);
   },
 
   onSearch(query) {
@@ -479,7 +478,7 @@ const OrganizationStream = createReactClass({
       let hasGuideAnchor = userDateJoined > dateCutoff && id === topIssue;
 
       let group = GroupStore.get(id);
-      let members = memberList[group.project.slug] || [];
+      let members = memberList[group.project.slug] || null;
 
       return (
         <StreamGroup
@@ -644,5 +643,5 @@ const OrganizationStream = createReactClass({
   },
 });
 
-export default withOrganization(OrganizationStream);
+export default withGlobalSelection(withOrganization(OrganizationStream));
 export {OrganizationStream};

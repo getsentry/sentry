@@ -1,7 +1,8 @@
 from __future__ import absolute_import
 
+from django.utils import timezone
+
 from sentry.testutils import AcceptanceTestCase
-from sentry.models import OrganizationOnboardingTask, OnboardingTask, OnboardingTaskStatus
 
 
 class ProjectReleasesTest(AcceptanceTestCase):
@@ -31,11 +32,7 @@ class ProjectReleasesTest(AcceptanceTestCase):
             project=self.project,
             message='Foo bar',
         )
-        OrganizationOnboardingTask.objects.create_or_update(
-            organization_id=self.project.organization_id,
-            task=OnboardingTask.FIRST_EVENT,
-            status=OnboardingTaskStatus.COMPLETE,
-        )
+        self.project.update(first_event=timezone.now())
         self.browser.get(self.path)
         self.browser.wait_until_not('.loading')
         self.browser.wait_until('.ref-project-releases')
@@ -60,6 +57,7 @@ class ProjectReleaseDetailsTest(AcceptanceTestCase):
             organization=self.org,
             teams=[self.team],
             name='Bengal',
+            first_event=timezone.now(),
         )
         self.release = self.create_release(
             project=self.project,
@@ -69,11 +67,6 @@ class ProjectReleaseDetailsTest(AcceptanceTestCase):
             first_release=self.release,
             project=self.project,
             message='Foo bar',
-        )
-        OrganizationOnboardingTask.objects.create_or_update(
-            organization_id=self.project.organization_id,
-            task=OnboardingTask.FIRST_EVENT,
-            status=OnboardingTaskStatus.COMPLETE,
         )
         self.login_as(self.user)
         self.path = u'/{}/{}/releases/{}/'.format(

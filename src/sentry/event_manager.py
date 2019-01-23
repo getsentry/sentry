@@ -16,6 +16,7 @@ from django.conf import settings
 from django.db import connection, IntegrityError, router, transaction
 from django.utils import timezone
 from django.utils.encoding import force_text
+from django.utils.functional import cached_property
 from sentry import options
 
 from sentry import buffer, eventtypes, eventstream, features, tsdb, filters
@@ -82,9 +83,19 @@ SECURITY_REPORT_INTERFACES = (
 ENABLE_RUST = os.environ.get("SENTRY_USE_RUST_NORMALIZER", "false").lower() in ("1", "true")
 
 
+def pop_tag(data, key):
+    data['tags'] = [kv for kv in data['tags'] if kv is None or kv[0] != key]
+
+
 def set_tag(data, key, value):
-    data['tags'] = [(k, v) for k, v in data['tags'] if k != key]
+    pop_tag(data, key)
     data['tags'].append((key, value))
+
+
+def get_tag(data, key):
+    for k, v in get_path(data, 'tags', filter=True):
+        if k == key:
+            return v
 
 
 def get_event_metadata_compat(data, fallback_message):
@@ -442,20 +453,49 @@ class EventManager(object):
 
         self._data = data
 
+    @cached_property
     def use_rust_normalize(self):
         if self._project is not None:
             if self._project.id in options.get('store.projects-normalize-in-rust-opt-out'):
                 return False
             if self._project.id in options.get('store.projects-normalize-in-rust-opt-in'):
                 return True
+            opt_in_rate = options.get('store.projects-normalize-in-rust-percent-opt-in')
+            if opt_in_rate > 0.0:
+                bucket = ((self._project.id * 2654435761) % (2 ** 32)) % 1000
+                return bucket <= (opt_in_rate * 1000)
+
         return ENABLE_RUST
 
     def normalize(self):
+        tags = {
+            'project_id': six.text_type(
+                self._project.id
+                if self._project and self.use_rust_normalize
+                else None
+            ),
+            'use_rust_normalize': six.text_type(self.use_rust_normalize)
+        }
+
+        with metrics.timer('events.store.normalize.duration', tags=tags):
+            self._normalize_impl()
+
+        data = self.get_data()
+
+        data['use_rust_normalize'] = self.use_rust_normalize
+
+        metrics.timing(
+            'events.store.normalize.errors',
+            len(data.get("errors") or ()),
+            tags=tags,
+        )
+
+    def _normalize_impl(self):
         if self._normalized:
             raise RuntimeError('Already normalized')
         self._normalized = True
 
-        if self.use_rust_normalize():
+        if self.use_rust_normalize:
             from semaphore.processing import StoreNormalizer
             rust_normalizer = StoreNormalizer(
                 geoip_lookup=rust_geoip,
@@ -476,7 +516,6 @@ class EventManager(object):
             self._data = CanonicalKeyDict(rust_normalizer.normalize_event(dict(self._data)))
 
             normalize_user_agent(self._data)
-
             return
 
         data = self._data
@@ -607,12 +646,13 @@ class EventManager(object):
             # Fix case where legacy apps pass 'environment' as a tag
             # instead of a top level key.
             # TODO (alex) save() just reinserts the environment into the tags
-            if not data.get('environment'):
-                tagsdict = dict(data['tags'])
-                if 'environment' in tagsdict:
-                    data['environment'] = tagsdict['environment']
-                    del tagsdict['environment']
-                    data['tags'] = tagsdict.items()
+            # TODO (markus) silly conversion between list and dict, hard to fix
+            # without messing up meta
+            tagsdict = dict(data['tags'])
+            environment_tag = tagsdict.pop("environment", None)
+            if not data.get('environment') and environment_tag:
+                data['environment'] = environment_tag
+            data['tags'] = tagsdict.items()
 
             # the SDKs currently do not describe event types, and we must infer
             # them from available attributes
@@ -881,42 +921,38 @@ class EventManager(object):
         # into tags (logger, level, environment, transaction).  These are
         # different from legacy attributes which are normalized into tags
         # ahead of time (site, server_name).
-        tags = dict(data.get('tags') or [])
-        tags['level'] = level
+        setdefault_path(data, 'tags', value=[])
+        set_tag(data, 'level', level)
         if logger_name:
-            tags['logger'] = logger_name
+            set_tag(data, 'logger', logger_name)
         if environment:
-            tags['environment'] = trim(environment, MAX_TAG_VALUE_LENGTH)
+            set_tag(data, 'environment', trim(environment, MAX_TAG_VALUE_LENGTH))
         if transaction_name:
-            tags['transaction'] = trim(transaction_name, MAX_TAG_VALUE_LENGTH)
+            set_tag(data, 'transaction', trim(transaction_name, MAX_TAG_VALUE_LENGTH))
 
         if release:
             # dont allow a conflicting 'release' tag
-            if 'release' in tags:
-                del tags['release']
+            pop_tag(data, 'release')
             release = Release.get_or_create(
                 project=project,
                 version=release,
                 date_added=date,
             )
-
-            tags['sentry:release'] = release.version
+            set_tag(data, 'sentry:release', release.version)
 
         if dist and release:
             dist = release.add_dist(dist, date)
             # dont allow a conflicting 'dist' tag
-            if 'dist' in tags:
-                del tags['dist']
-            tags['sentry:dist'] = dist.name
+            pop_tag(data, 'dist')
+            set_tag(data, 'sentry:dist', dist.name)
         else:
             dist = None
 
         event_user = self._get_event_user(project, data)
         if event_user:
             # dont allow a conflicting 'user' tag
-            if 'user' in tags:
-                del tags['user']
-            tags['sentry:user'] = event_user.tag_value
+            pop_tag(data, 'user')
+            set_tag(data, 'sentry:user', event_user.tag_value)
 
         # At this point we want to normalize the in_app values in case the
         # clients did not set this appropriately so far.
@@ -927,20 +963,17 @@ class EventManager(object):
             if added_tags:
                 # plugins should not override user provided tags
                 for key, value in added_tags:
-                    tags.setdefault(key, value)
+                    if get_tag(data, key) is None:
+                        set_tag(data, key, value)
 
         for path, iface in six.iteritems(event.interfaces):
             for k, v in iface.iter_tags():
-                tags[k] = v
+                set_tag(data, k, v)
             # Get rid of ephemeral interface data
             if iface.ephemeral:
                 data.pop(iface.path, None)
 
-        # tags are stored as a tuple
-        tags = tags.items()
-
-        # Put the actual tags and fingerprint back
-        data['tags'] = tags
+        # Put the actual fingerprint back
         data['fingerprint'] = fingerprint
 
         hashes = event.get_hashes()
@@ -1136,7 +1169,7 @@ class EventManager(object):
                 group_id=group.id,
                 environment_id=environment.id,
                 event_id=event.id,
-                tags=tags,
+                tags=event.tags,
                 date_added=event.datetime,
             )
 
@@ -1166,7 +1199,12 @@ class EventManager(object):
                     }
                 )
 
-        safe_execute(Group.objects.add_tags, group, environment, tags, _with_transaction=False)
+        safe_execute(
+            Group.objects.add_tags,
+            group,
+            environment,
+            data['tags'],
+            _with_transaction=False)
 
         if not raw:
             if not project.first_event:

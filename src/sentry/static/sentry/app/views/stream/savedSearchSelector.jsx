@@ -263,7 +263,7 @@ const SavedSearchSelector = withApi(
             <ButtonBar>
               <SaveSearchButton
                 className="btn btn-sm btn-default"
-                onSave={this.props.onSavedSearchCreate.bind(this)}
+                onSave={this.props.onSavedSearchCreate}
                 disabled={!hasProject}
                 {...this.props}
               >

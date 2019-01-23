@@ -7,6 +7,8 @@ import Avatar from 'app/components/avatar';
 import ErrorBoundary from 'app/components/errorBoundary';
 import KeyValueList from 'app/components/events/interfaces/keyValueList';
 
+const EMAIL_REGEX = /[^@]+@[^\.]+\..+/;
+
 class UserContextType extends React.Component {
   static propTypes = {
     data: PropTypes.object.isRequired,
@@ -24,9 +26,11 @@ class UserContextType extends React.Component {
         'Email',
         <pre>
           {user.email}
-          <a href={`mailto:${user.email}`} target="_blank" className="external-icon">
-            <em className="icon-envelope" />
-          </a>
+          {EMAIL_REGEX.test(user.email) && (
+            <a href={`mailto:${user.email}`} target="_blank" className="external-icon">
+              <em className="icon-envelope" />
+            </a>
+          )}
         </pre>,
       ]);
     user.username && builtins.push(['Username', <pre>{user.username}</pre>]);
