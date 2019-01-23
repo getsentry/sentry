@@ -97,8 +97,8 @@ class ChunkUploadTest(APITestCase):
 
         file_blobs = FileBlob.objects.all()
         assert len(file_blobs) == 2
-        assert file_blobs[0].checksum == checksum1
-        assert file_blobs[1].checksum == checksum2
+        checksums = sorted([checksum1, checksum2])
+        assert sorted(x.checksum for x in file_blobs) == checksums
 
     def test_too_many_chunks(self):
         files = []
