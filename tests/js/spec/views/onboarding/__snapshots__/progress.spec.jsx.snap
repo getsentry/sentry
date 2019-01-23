@@ -54,7 +54,7 @@ exports[`ProgressNodes render() should render step 0 if no projectId 1`] = `
     <NodeDescription
       data-test-id="node-description"
     >
-      Configure your application and send an event
+      Send an event from your application
     </NodeDescription>
   </Node>
   <div
@@ -128,7 +128,7 @@ exports[`ProgressNodes render() should render step 1 if has projectId 1`] = `
     <NodeDescription
       data-test-id="node-description"
     >
-      Configure your application and send an event
+      Send an event from your application
     </NodeDescription>
   </Node>
   <div

@@ -114,7 +114,8 @@ const ProgressNodes = createReactClass({
 
 const Node = styled('div')`
   display: flex;
-  width: 210px;
+  align-items: center;
+  width: 220px;
   margin: auto;
   margin-bottom: ${space(4)};
   color: ${p => (p.active ? '#fff' : p.theme.gray2)};
@@ -126,7 +127,6 @@ const NodeIcon = styled(InlineSvg)`
   margin-right: ${space(1.5)};
   width: 22px;
   height: 22px;
-  margin-top: -2px; /* this looks better if it floats a touch above the box */
 `;
 
 const NodeDescription = styled('div')`

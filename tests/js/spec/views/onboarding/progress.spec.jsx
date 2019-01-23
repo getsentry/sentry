@@ -64,7 +64,7 @@ describe('ProgressNodes', function() {
           .find('[data-test-id="node-description"]')
           .children()
           .text()
-      ).toEqual('Configure your application and send an event');
+      ).toEqual('Send an event from your application');
 
       expect(wrapper.find('[data-test-id="node"]').find({done: true})).toHaveLength(2);
 

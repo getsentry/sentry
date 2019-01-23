@@ -81,24 +81,24 @@ exports[`OnboardingWizard render() should render and respond to click events 1`]
                 key="0"
               >
                 <div
-                  className="css-13pq2ic-Node e1en1fxy0"
+                  className="css-zrjk08-Node e1en1fxy0"
                   data-test-id="node"
                 >
                   <NodeIcon
                     src="icon-circle-check"
                   >
                     <InlineSvg
-                      className="css-53uqb4-NodeIcon e1en1fxy1"
+                      className="css-1y5anzy-NodeIcon e1en1fxy1"
                       src="icon-circle-check"
                     >
                       <StyledSvg
-                        className="css-53uqb4-NodeIcon e1en1fxy1"
+                        className="css-1y5anzy-NodeIcon e1en1fxy1"
                         height="1em"
                         viewBox={Object {}}
                         width="1em"
                       >
                         <svg
-                          className="e1en1fxy1 css-1xrsyxg-StyledSvg-NodeIcon e2idor0"
+                          className="e1en1fxy1 css-x6jhby-StyledSvg-NodeIcon e2idor0"
                           height="1em"
                           viewBox={Object {}}
                           width="1em"
@@ -130,24 +130,24 @@ exports[`OnboardingWizard render() should render and respond to click events 1`]
                 key="1"
               >
                 <div
-                  className="css-ogqwl2-Node e1en1fxy0"
+                  className="css-pe396z-Node e1en1fxy0"
                   data-test-id="node"
                 >
                   <NodeIcon
                     src="icon-circle-empty"
                   >
                     <InlineSvg
-                      className="css-53uqb4-NodeIcon e1en1fxy1"
+                      className="css-1y5anzy-NodeIcon e1en1fxy1"
                       src="icon-circle-empty"
                     >
                       <StyledSvg
-                        className="css-53uqb4-NodeIcon e1en1fxy1"
+                        className="css-1y5anzy-NodeIcon e1en1fxy1"
                         height="1em"
                         viewBox={Object {}}
                         width="1em"
                       >
                         <svg
-                          className="e1en1fxy1 css-1xrsyxg-StyledSvg-NodeIcon e2idor0"
+                          className="e1en1fxy1 css-x6jhby-StyledSvg-NodeIcon e2idor0"
                           height="1em"
                           viewBox={Object {}}
                           width="1em"
@@ -179,24 +179,24 @@ exports[`OnboardingWizard render() should render and respond to click events 1`]
                 key="2"
               >
                 <div
-                  className="css-13pq2ic-Node e1en1fxy0"
+                  className="css-zrjk08-Node e1en1fxy0"
                   data-test-id="node"
                 >
                   <NodeIcon
                     src="icon-circle-empty"
                   >
                     <InlineSvg
-                      className="css-53uqb4-NodeIcon e1en1fxy1"
+                      className="css-1y5anzy-NodeIcon e1en1fxy1"
                       src="icon-circle-empty"
                     >
                       <StyledSvg
-                        className="css-53uqb4-NodeIcon e1en1fxy1"
+                        className="css-1y5anzy-NodeIcon e1en1fxy1"
                         height="1em"
                         viewBox={Object {}}
                         width="1em"
                       >
                         <svg
-                          className="e1en1fxy1 css-1xrsyxg-StyledSvg-NodeIcon e2idor0"
+                          className="e1en1fxy1 css-x6jhby-StyledSvg-NodeIcon e2idor0"
                           height="1em"
                           viewBox={Object {}}
                           width="1em"
@@ -216,7 +216,7 @@ exports[`OnboardingWizard render() should render and respond to click events 1`]
                       className="css-yyeqaq-NodeDescription e1en1fxy2"
                       data-test-id="node-description"
                     >
-                      Configure your application and send an event
+                      Send an event from your application
                     </div>
                   </NodeDescription>
                 </div>
@@ -1345,24 +1345,24 @@ exports[`OnboardingWizard render() should render and respond to click events 2`]
                 key="0"
               >
                 <div
-                  className="css-13pq2ic-Node e1en1fxy0"
+                  className="css-zrjk08-Node e1en1fxy0"
                   data-test-id="node"
                 >
                   <NodeIcon
                     src="icon-circle-check"
                   >
                     <InlineSvg
-                      className="css-53uqb4-NodeIcon e1en1fxy1"
+                      className="css-1y5anzy-NodeIcon e1en1fxy1"
                       src="icon-circle-check"
                     >
                       <StyledSvg
-                        className="css-53uqb4-NodeIcon e1en1fxy1"
+                        className="css-1y5anzy-NodeIcon e1en1fxy1"
                         height="1em"
                         viewBox={Object {}}
                         width="1em"
                       >
                         <svg
-                          className="e1en1fxy1 css-1xrsyxg-StyledSvg-NodeIcon e2idor0"
+                          className="e1en1fxy1 css-x6jhby-StyledSvg-NodeIcon e2idor0"
                           height="1em"
                           viewBox={Object {}}
                           width="1em"
@@ -1394,24 +1394,24 @@ exports[`OnboardingWizard render() should render and respond to click events 2`]
                 key="1"
               >
                 <div
-                  className="css-ogqwl2-Node e1en1fxy0"
+                  className="css-pe396z-Node e1en1fxy0"
                   data-test-id="node"
                 >
                   <NodeIcon
                     src="icon-circle-empty"
                   >
                     <InlineSvg
-                      className="css-53uqb4-NodeIcon e1en1fxy1"
+                      className="css-1y5anzy-NodeIcon e1en1fxy1"
                       src="icon-circle-empty"
                     >
                       <StyledSvg
-                        className="css-53uqb4-NodeIcon e1en1fxy1"
+                        className="css-1y5anzy-NodeIcon e1en1fxy1"
                         height="1em"
                         viewBox={Object {}}
                         width="1em"
                       >
                         <svg
-                          className="e1en1fxy1 css-1xrsyxg-StyledSvg-NodeIcon e2idor0"
+                          className="e1en1fxy1 css-x6jhby-StyledSvg-NodeIcon e2idor0"
                           height="1em"
                           viewBox={Object {}}
                           width="1em"
@@ -1443,24 +1443,24 @@ exports[`OnboardingWizard render() should render and respond to click events 2`]
                 key="2"
               >
                 <div
-                  className="css-13pq2ic-Node e1en1fxy0"
+                  className="css-zrjk08-Node e1en1fxy0"
                   data-test-id="node"
                 >
                   <NodeIcon
                     src="icon-circle-empty"
                   >
                     <InlineSvg
-                      className="css-53uqb4-NodeIcon e1en1fxy1"
+                      className="css-1y5anzy-NodeIcon e1en1fxy1"
                       src="icon-circle-empty"
                     >
                       <StyledSvg
-                        className="css-53uqb4-NodeIcon e1en1fxy1"
+                        className="css-1y5anzy-NodeIcon e1en1fxy1"
                         height="1em"
                         viewBox={Object {}}
                         width="1em"
                       >
                         <svg
-                          className="e1en1fxy1 css-1xrsyxg-StyledSvg-NodeIcon e2idor0"
+                          className="e1en1fxy1 css-x6jhby-StyledSvg-NodeIcon e2idor0"
                           height="1em"
                           viewBox={Object {}}
                           width="1em"
@@ -1480,7 +1480,7 @@ exports[`OnboardingWizard render() should render and respond to click events 2`]
                       className="css-yyeqaq-NodeDescription e1en1fxy2"
                       data-test-id="node-description"
                     >
-                      Configure your application and send an event
+                      Send an event from your application
                     </div>
                   </NodeDescription>
                 </div>
