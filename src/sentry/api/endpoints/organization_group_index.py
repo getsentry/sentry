@@ -12,7 +12,7 @@ from sentry.api.helpers.group_index import build_query_params_from_request, get_
 from sentry.api.serializers import serialize
 from sentry.api.serializers.models.group import StreamGroupSerializerSnuba
 from sentry.api.utils import get_date_range_from_params, InvalidParams
-from sentry.models import Environment, Group, GroupStatus
+from sentry.models import Group, GroupStatus
 from sentry.search.snuba.backend import SnubaSearchBackend
 
 
@@ -85,10 +85,7 @@ class OrganizationGroupIndexEndpoint(OrganizationEventsEndpointBase):
             # disable stats
             stats_period = None
 
-        environments = list(Environment.objects.filter(
-            organization_id=organization.id,
-            name__in=self.get_environments(request, organization),
-        ))
+        environments = self.get_environments(request, organization)
 
         serializer = functools.partial(
             StreamGroupSerializerSnuba,

@@ -141,12 +141,16 @@ class GroupListTest(APITestCase, SnubaTestCase):
 
     def test_environment(self):
         self.create_environment(name='production', organization=self.project.organization)
-        self.create_event(tags={'environment': 'production'})
+        group = self.create_group(
+            project=self.project,
+        )
+        self.create_event(tags={'environment': 'production'}, group=group, datetime=self.min_ago)
 
         self.login_as(user=self.user)
 
         response = self.client.get(self.path + '?environment=production', format='json')
         assert response.status_code == 200
+        assert len(response.data) == 1
 
         response = self.client.get(self.path + '?environment=garbage', format='json')
         assert response.status_code == 404
