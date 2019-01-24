@@ -1,14 +1,18 @@
 from __future__ import absolute_import
 
 from django.db import IntegrityError, transaction
+from rest_framework import serializers
 
 from sentry.api.base import DocSection
 from sentry.api.bases.organization import OrganizationEndpoint
-from sentry.api.bases.dashboard import DashboardSerializer
 from sentry.api.paginator import OffsetPaginator
 from sentry.api.serializers import serialize
 from sentry.models import Dashboard
 from rest_framework.response import Response
+
+
+class DashboardSerializer(serializers.Serializer):
+    title = serializers.CharField(required=True)
 
 
 class OrganizationDashboardsEndpoint(OrganizationEndpoint):
