@@ -50,6 +50,10 @@ describe('Sidebar', function() {
       router: null,
     });
 
+    // no org displays user details
+    expect(wrapper.find('OrgOrUserName').text()).toContain(user.name);
+    expect(wrapper.find('UserNameOrEmail').text()).toContain(user.email);
+
     wrapper.find('SidebarDropdownActor').simulate('click');
     expect(wrapper.find('OrgAndUserMenu')).toMatchSnapshot();
   });
@@ -59,6 +63,9 @@ describe('Sidebar', function() {
       <SidebarContainer organization={organization} user={user} router={router} />,
       routerContext
     );
+
+    expect(wrapper.find('OrgOrUserName').text()).toContain(organization.name);
+    expect(wrapper.find('UserNameOrEmail').text()).toContain(user.name);
 
     wrapper.find('SidebarCollapseItem').simulate('click');
     await tick();

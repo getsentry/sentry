@@ -60,17 +60,21 @@ export function updateOrganization(org) {
   OrganizationsActions.update(org);
 }
 
-export function fetchOrganizationByMember(memberId, {loadOrg, setActive}) {
+export function fetchOrganizationByMember(memberId, {addOrg, fetchOrgDetails}) {
   let api = new Client();
   let request = api.requestPromise(`/organizations/?query=member_id:${memberId}`);
 
   request.then(data => {
-    if (data.length && loadOrg) {
-      OrganizationsStore.add(data[0]);
-    }
+    if (data.length) {
+      if (addOrg) {
+        // add org to SwitchOrganization dropdown
+        OrganizationsStore.add(data[0]);
+      }
 
-    if (data.length && setActive) {
-      setActiveOrganization(data[0]);
+      if (fetchOrgDetails) {
+        // load SidebarDropdown with org details including `access`
+        fetchOrganizationDetails(data[0].slug, {setActive: true, loadProjects: true});
+      }
     }
   });
 
