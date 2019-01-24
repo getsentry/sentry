@@ -296,7 +296,14 @@ class ProjectSummarySerializer(ProjectWithTeamSerializer):
                     'dateFinished': date_finished
                 }
 
+        latest_release_list = bulk_fetch_project_latest_releases(item_list)
+        latest_releases = {
+            r.actual_project_id: d
+            for r, d in zip(latest_release_list, serialize(latest_release_list, user))
+        }
+
         for item in item_list:
+            attrs[item]['latest_release'] = latest_releases.get(item.id)
             attrs[item]['deploys'] = deploys_by_project.get(item.id)
 
         return attrs
@@ -318,10 +325,41 @@ class ProjectSummarySerializer(ProjectWithTeamSerializer):
             'platform': obj.platform,
             'platforms': attrs['platforms'],
             'latestDeploys': attrs['deploys'],
+            'latestRelease': attrs['latest_release'],
         }
         if 'stats' in attrs:
             context['stats'] = attrs['stats']
         return context
+
+
+def bulk_fetch_project_latest_releases(projects):
+    """
+    Fetches the latest release for each of the passed projects
+    :param projects:
+    :return: List of Releases, each with an additional `actual_project_id`
+    attribute representing the project that they're the latest release for. If
+    no release found, no entry will be returned for the given project.
+    """
+    return list(Release.objects.raw(
+        u"""
+        SELECT lr.project_id as actual_project_id, r.*
+        FROM (
+            SELECT (
+                SELECT lrr.id
+                FROM sentry_release lrr
+                JOIN sentry_release_project lrp ON lrp.release_id = lrr.id
+                WHERE lrp.project_id = p.id
+                ORDER BY COALESCE(lrr.date_released, lrr.date_added) DESC
+                LIMIT 1
+            ) as release_id,
+            p.id as project_id
+            FROM sentry_project p
+            WHERE p.id IN ({})
+        ) as lr
+        JOIN sentry_release r
+        ON r.id = lr.release_id
+        """.format(', '.join(six.text_type(i.id) for i in projects), ),
+    ))
 
 
 class DetailedProjectSerializer(ProjectWithTeamSerializer):
@@ -370,31 +408,6 @@ class DetailedProjectSerializer(ProjectWithTeamSerializer):
         for project_id, num_issues in num_issues_projects:
             processing_issues_by_project[project_id] = num_issues
 
-        latest_release_list = list(
-            Release.objects.raw(
-                u"""
-            SELECT lr.project_id as actual_project_id, r.*
-            FROM (
-                SELECT (
-                    SELECT lrr.id FROM sentry_release lrr
-                    JOIN sentry_release_project lrp
-                    ON lrp.release_id = lrr.id
-                    WHERE lrp.project_id = p.id
-                    ORDER BY COALESCE(lrr.date_released, lrr.date_added) DESC
-                    LIMIT 1
-                ) as release_id,
-                p.id as project_id
-                FROM sentry_project p
-                WHERE p.id IN ({})
-            ) as lr
-            JOIN sentry_release r
-            ON r.id = lr.release_id
-        """.format(
-                    ', '.join(six.text_type(i.id) for i in item_list),
-                )
-            )
-        )
-
         queryset = ProjectOption.objects.filter(
             project__in=item_list,
             key__in=self.OPTION_KEYS,
@@ -406,6 +419,7 @@ class DetailedProjectSerializer(ProjectWithTeamSerializer):
         orgs = {d['id']: d for d in serialize(
             list(set(i.organization for i in item_list)), user)}
 
+        latest_release_list = bulk_fetch_project_latest_releases(item_list)
         latest_releases = {
             r.actual_project_id: d
             for r, d in zip(latest_release_list, serialize(latest_release_list, user))
@@ -429,8 +443,7 @@ class DetailedProjectSerializer(ProjectWithTeamSerializer):
                      self).serialize(obj, attrs, user)
         data.update(
             {
-                'latestRelease':
-                attrs['latest_release'],
+                'latestRelease': attrs['latest_release'],
                 'options': {
                     'sentry:csp_ignored_sources_defaults':
                     bool(attrs['options'].get(
