@@ -204,10 +204,13 @@ class Event(Model):
     def interfaces(self):
         return self.get_interfaces()
 
-    def get_tags(self):
+    def get_tags(self, sorted=True):
         try:
-            return sorted((t, v) for t, v in get_path(
-                self.data, 'tags', filter=True) or () if v is not None)
+            rv = [(t, v) for t, v in get_path(
+                self.data, 'tags', filter=True) or () if v is not None]
+            if sorted:
+                rv.sort()
+            return rv
         except ValueError:
             # at one point Sentry allowed invalid tag sets such as (foo, bar)
             # vs ((tag, foo), (tag, bar))

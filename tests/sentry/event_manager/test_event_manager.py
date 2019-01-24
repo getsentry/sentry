@@ -1135,8 +1135,12 @@ class EventManagerTest(TransactionTestCase):
         manager.normalize()
         event = manager.save(self.project.id)
 
-        assert event.message == '<unlabeled event>'
-        assert 'logentry' not in event.data
+        if ENABLE_RUST:
+            assert event.message == '["asdf"]'
+            assert 'logentry' in event.data
+        else:
+            assert event.message == '<unlabeled event>'
+            assert 'logentry' not in event.data
 
     def test_message_attribute_goes_to_interface(self):
         manager = EventManager(make_event(**{

@@ -185,7 +185,8 @@ class Hpkp(SecurityReport):
         ]
 
     def get_origin(self):
-        return self.hostname  # not quite origin, but the domain that failed pinning
+        # not quite origin, but the domain that failed pinning
+        return self.hostname
 
     def get_referrer(self):
         return None
@@ -249,6 +250,7 @@ class ExpectStaple(SecurityReport):
         )
 
     def get_origin(self):
+        # not quite origin, but the domain that failed pinning
         return self.hostname
 
     def get_referrer(self):
@@ -308,7 +310,8 @@ class ExpectCT(SecurityReport):
         )
 
     def get_origin(self):
-        return self.hostname  # not quite origin, but the domain that failed pinning
+        # not quite origin, but the domain that failed pinning
+        return self.hostname
 
     def get_referrer(self):
         return None
