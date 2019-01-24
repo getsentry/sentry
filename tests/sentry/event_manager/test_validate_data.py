@@ -8,7 +8,7 @@ from functools import partial
 from uuid import UUID
 
 from sentry.constants import VERSION_LENGTH, MAX_CULPRIT_LENGTH
-from sentry.event_manager import EventManager
+from sentry.event_manager import EventManager, ENABLE_RUST
 
 
 def validate_and_normalize(data):
@@ -284,6 +284,7 @@ def test_invalid_platform():
     assert data.get("platform") == "other"
 
 
+@pytest.mark.skipif(ENABLE_RUST, reason='Rust allows larger environment')
 def test_environment_too_long():
     data = validate_and_normalize({"environment": "a" * 65})
     assert not data.get("environment")
@@ -296,17 +297,25 @@ def test_environment_too_long():
 def test_environment_invalid():
     data = validate_and_normalize({"environment": "a/b"})
     assert not data.get("environment")
-    assert len(data["errors"]) == 1
-    assert data["errors"][0]["type"] == "invalid_environment"
-    assert data["errors"][0]["name"] == "environment"
-    assert data["errors"][0]["value"] == "a/b"
+    error, = data['errors']
+    if ENABLE_RUST:
+        error['type'] == 'invalid_data'
+    else:
+        error['type'] == 'invalid_environment'
+
+    assert error["name"] == "environment"
+    assert error["value"] == "a/b"
 
 
 def test_environment_as_non_string():
     data = validate_and_normalize({"environment": 42})
-    assert data.get("environment") == "42"
+    if ENABLE_RUST:
+        assert data.get("environment") is None
+    else:
+        assert data.get("environment") == "42"
 
 
+@pytest.mark.skipif(ENABLE_RUST, reason='attribute is not validated in Rust')
 def test_time_spent_too_large():
     data = validate_and_normalize({"time_spent": 2147483647 + 1})
     assert not data.get("time_spent")
@@ -327,7 +336,10 @@ def test_time_spent_invalid():
 
 def test_time_spent_non_int():
     data = validate_and_normalize({"time_spent": "123"})
-    assert data["time_spent"] == 123
+    if ENABLE_RUST:
+        assert data["time_spent"] is None
+    else:
+        assert data["time_spent"] == 123
 
 
 def test_fingerprints():
@@ -352,7 +364,11 @@ def test_fingerprints():
 
     data = validate_and_normalize({"fingerprint": ["{{default}}", 1e100, -1e100, 1e10]})
     assert data.get("fingerprint") == ["{{default}}", "10000000000"]
-    assert "errors" not in data
+    if ENABLE_RUST:
+        assert data["errors"] == [{'type': 'invalid_data',
+                                   'name': 'fingerprint', 'value': [1e100, -1e100]}]
+    else:
+        assert "errors" not in data
 
     data = validate_and_normalize({"fingerprint": []})
     assert "fingerprint" not in data
