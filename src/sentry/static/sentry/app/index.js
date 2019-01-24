@@ -49,8 +49,8 @@ Sentry.configureScope(scope => {
   scope.addEventProcessor(event => {
     return {
       ...event,
-      transaction: tracing.getRoute()
-    }
+      transaction: tracing.getRoute(),
+    };
   });
 });
 

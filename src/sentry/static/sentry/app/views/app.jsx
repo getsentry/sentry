@@ -130,16 +130,16 @@ const App = createReactClass({
     });
   },
 
-  componentWillUnmount() {
-    OrganizationsStore.load([]);
-  },
-
   componentDidMount() {
     this.updateTracing();
   },
 
   componentDidUpdate() {
     this.updateTracing();
+  },
+
+  componentWillUnmount() {
+    OrganizationsStore.load([]);
   },
 
   updateTracing() {
