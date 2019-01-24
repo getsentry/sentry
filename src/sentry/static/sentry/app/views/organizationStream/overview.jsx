@@ -600,10 +600,6 @@ const OrganizationStream = createReactClass({
 
     return (
       <div className={classNames(classes)}>
-        <Panel>
-          <EventsChart query="" organization={this.props.organization} />
-        </Panel>
-
         <div className="stream-content">
           <StreamFilters
             access={access}
@@ -621,6 +617,11 @@ const OrganizationStream = createReactClass({
             isSearchDisabled={this.state.isSidebarVisible}
             savedSearchList={this.state.savedSearchList}
           />
+
+          <Panel>
+            <EventsChart query="" organization={this.props.organization} />
+          </Panel>
+
           <Panel>
             <StreamActions
               orgId={params.orgId}
