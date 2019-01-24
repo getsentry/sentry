@@ -157,20 +157,28 @@ class Sidebar extends React.Component {
 
   // Keep the global selection querystring values in the path
   navigateWithGlobalSelection = (pathname, evt) => {
-    const query = pickBy(
-      pick(this.props.location.query, Object.values(URL_PARAM)),
-      identity
+    const globalSelectionRoutes = ['dashboards', 'issues', 'events', 'releases'].map(
+      route => `/organizations/${this.props.params.orgId}/${route}/`
     );
 
-    // Handle cmd-click (mac) and meta-click (linux)
-    if (evt.metaKey) {
-      let q = queryString.stringify(query);
-      evt.currentTarget.href = `${evt.currentTarget.href}?${q}`;
-      return;
+    // Only keep the querystring if the current route matches one of the above
+    if (globalSelectionRoutes.includes(this.props.location.pathname)) {
+      const query = pickBy(
+        pick(this.props.location.query, Object.values(URL_PARAM)),
+        identity
+      );
+
+      // Handle cmd-click (mac) and meta-click (linux)
+      if (evt.metaKey) {
+        let q = queryString.stringify(query);
+        evt.currentTarget.href = `${evt.currentTarget.href}?${q}`;
+        return;
+      }
+
+      evt.preventDefault();
+      browserHistory.push({pathname, query});
     }
 
-    evt.preventDefault();
-    browserHistory.push({pathname, query});
     this.hidePanel();
   };
 
