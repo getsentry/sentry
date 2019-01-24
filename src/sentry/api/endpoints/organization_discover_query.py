@@ -18,6 +18,7 @@ from sentry.models import Project, ProjectStatus, OrganizationMember, Organizati
 from sentry.utils import snuba
 from sentry import roles
 from sentry import features
+from sentry.auth.superuser import is_active_superuser
 
 
 class OrganizationDiscoverQueryPermission(OrganizationPermission):
@@ -66,8 +67,6 @@ class DiscoverQuerySerializer(serializers.Serializer):
 
     def __init__(self, *args, **kwargs):
         super(DiscoverQuerySerializer, self).__init__(*args, **kwargs)
-        self.member = OrganizationMember.objects.get(
-            user=self.context['user'], organization=self.context['organization'])
 
         data = kwargs['data']
 
@@ -115,14 +114,10 @@ class DiscoverQuerySerializer(serializers.Serializer):
         return data
 
     def validate_projects(self, attrs, source):
-        organization = self.context['organization']
-        member = self.member
         projects = attrs[source]
-
         org_projects = set(project[0] for project in self.context['projects'])
 
-        if not set(projects).issubset(org_projects) or not self.has_projects_access(
-                member, organization, projects):
+        if not set(projects).issubset(org_projects):
             raise PermissionDenied
 
         return attrs
@@ -171,20 +166,6 @@ class DiscoverQuerySerializer(serializers.Serializer):
             return [['has', [array_field.group(0), value]], '=', bool_value]
 
         return condition
-
-    def has_projects_access(self, member, organization, requested_projects):
-        has_global_access = roles.get(member.role).is_global
-        if has_global_access:
-            return True
-
-        member_project_list = Project.objects.filter(
-            organization=organization,
-            teams__in=OrganizationMemberTeam.objects.filter(
-                organizationmember=member,
-            ).values('team'),
-        ).values_list('id', flat=True)
-
-        return set(requested_projects).issubset(set(member_project_list))
 
 
 class OrganizationDiscoverQueryEndpoint(OrganizationEndpoint):
@@ -301,19 +282,42 @@ class OrganizationDiscoverQueryEndpoint(OrganizationEndpoint):
                 projects,
             ), status=200)
 
+    def has_projects_access(self, user, organization, requested_projects):
+        member = OrganizationMember.objects.get(
+            user=user, organization=organization)
+
+        has_global_access = roles.get(member.role).is_global
+
+        if has_global_access:
+            return True
+
+        member_project_list = Project.objects.filter(
+            organization=organization,
+            teams__in=OrganizationMemberTeam.objects.filter(
+                organizationmember=member,
+            ).values('team'),
+        ).values_list('id', flat=True)
+
+        return set(requested_projects).issubset(set(member_project_list))
+
     def post(self, request, organization):
 
         if not features.has('organizations:discover', organization, actor=request.user):
-            return self.respond(status=404)
+            return Response(status=404)
+
+        requested_projects = request.DATA['projects']
+
+        if not is_active_superuser(request) and not self.has_projects_access(
+            request.user, organization, requested_projects
+        ):
+            return Response("Invalid projects", status=400)
 
         projects = Project.objects.filter(
             organization=organization,
             status=ProjectStatus.VISIBLE,
         ).values_list('id', 'slug')
 
-        serializer = DiscoverQuerySerializer(
-            data=request.DATA, context={
-                'organization': organization, 'projects': projects, 'user': request.user})
+        serializer = DiscoverQuerySerializer(data=request.DATA, context={'projects': projects})
 
         if not serializer.is_valid():
             return Response(serializer.errors, status=400)
