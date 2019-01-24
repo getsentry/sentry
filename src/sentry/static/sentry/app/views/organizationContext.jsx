@@ -20,6 +20,7 @@ import SentryTypes from 'app/sentryTypes';
 import Sidebar from 'app/components/sidebar';
 import TeamStore from 'app/stores/teamStore';
 import space from 'app/styles/space';
+import GlobalSelectionStore from 'app/stores/globalSelectionStore';
 
 let ERROR_TYPES = {
   ORG_NOT_FOUND: 'ORG_NOT_FOUND',
@@ -94,6 +95,7 @@ const OrganizationContext = createReactClass({
 
         TeamStore.loadInitialData(data.teams);
         ProjectsStore.loadInitialData(data.projects);
+        GlobalSelectionStore.loadInitialData(data, this.props.location.query);
 
         this.setState({
           organization: data,
