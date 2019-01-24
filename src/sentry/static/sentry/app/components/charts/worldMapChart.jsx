@@ -40,7 +40,19 @@ export default class WorldMapChart extends React.Component {
         mapType: 'world',
         name: seriesName,
         nameMap: this.state.countryCodesMap,
+        aspectScale: 0.85,
+        zoom: 1.3,
+        center: [10.97, 9.71],
         data,
+        itemStyle: {
+          normal: {
+            areaColor: '#C1B8CA',
+            borderColor: '#F3EFF7',
+          },
+          emphasis: {
+            areaColor: '#EB982D',
+          },
+        },
       });
     });
 
@@ -52,24 +64,13 @@ export default class WorldMapChart extends React.Component {
     return (
       <BaseChart
         options={{
+          backgroundColor: '#F3EFF7',
           visualMap: {
             left: 'right',
             min: 0,
             max: maxValue,
             inRange: {
-              color: [
-                '#313695',
-                '#4575b4',
-                '#74add1',
-                '#abd9e9',
-                '#e0f3f8',
-                '#ffffbf',
-                '#fee090',
-                '#fdae61',
-                '#f46d43',
-                '#d73027',
-                '#a50026',
-              ],
+              color: ['#AE96D5', '#260058'],
             },
             text: ['High', 'Low'],
             calculable: true,
