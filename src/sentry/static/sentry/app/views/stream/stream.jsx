@@ -125,7 +125,7 @@ const Stream = createReactClass({
 
     let searchIdChanged = this.state.isDefaultSearch
       ? nextSearchId !== null
-      : nextSearchId !== this.state.searchId;
+      : nextSearchId !== this.props.params.searchId;
 
     // We are using qs.parse with location.search since this.props.location.query
     // returns the same value as nextProps.location.query
@@ -252,14 +252,20 @@ const Stream = createReactClass({
   },
 
   onSavedSearchCreate(data) {
-    let {orgId, projectId} = this.props.params;
     let savedSearchList = this.state.savedSearchList;
     savedSearchList.push(data);
 
-    this.setState({
-      savedSearchList: sortBy(savedSearchList, ['name']),
-    });
-    browserHistory.push(`/${orgId}/${projectId}/searches/${data.id}/`);
+    this.setState(
+      {
+        savedSearchList: sortBy(savedSearchList, ['name']),
+        searchId: data.id,
+      },
+      this.transitionTo
+    );
+  },
+
+  onSavedSearchSelect(search) {
+    this.setState({searchId: search.id}, this.transitionTo);
   },
 
   getQueryState(props) {
@@ -691,6 +697,7 @@ const Stream = createReactClass({
             onSortChange={this.onSortChange}
             onSearch={this.onSearch}
             onSavedSearchCreate={this.onSavedSearchCreate}
+            onSavedSearchSelect={this.onSavedSearchSelect}
             onSidebarToggle={this.onSidebarToggle}
             isSearchDisabled={this.state.isSidebarVisible}
             savedSearchList={this.state.savedSearchList}

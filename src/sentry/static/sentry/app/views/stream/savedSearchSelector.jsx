@@ -10,6 +10,7 @@ import DropdownLink from 'app/components/dropdownLink';
 import QueryCount from 'app/components/queryCount';
 import MenuItem from 'app/components/menuItem';
 import Tooltip from 'app/components/tooltip';
+import SentryTypes from 'app/sentryTypes';
 import {BooleanField, FormState, TextField} from 'app/components/forms';
 import withApi from 'app/utils/withApi';
 import space from 'app/styles/space';
@@ -218,6 +219,8 @@ const SavedSearchSelector = withApi(
       queryCount: PropTypes.number,
       queryMaxCount: PropTypes.number,
       onSavedSearchCreate: PropTypes.func.isRequired,
+      onSavedSearchSelect: PropTypes.func.isRequired,
+      selection: SentryTypes.GlobalSelection,
     };
 
     getTitle() {
@@ -230,16 +233,14 @@ const SavedSearchSelector = withApi(
     }
 
     render() {
-      let {orgId, projectId, queryCount, queryMaxCount} = this.props;
+      let {orgId, projectId, queryCount, queryMaxCount, onSavedSearchSelect} = this.props;
       let hasProject = !!projectId;
 
       let children = this.props.savedSearchList.map(search => {
-        let url = hasProject
-          ? `/${orgId}/${projectId}/searches/${search.id}/`
-          : `/organizations/${orgId}/issues/searches/${search.id}/`;
+        // let url = this.createUrl(search, hasProject);
 
         return (
-          <StyledMenuItem to={url} key={search.id}>
+          <StyledMenuItem onSelect={() => onSavedSearchSelect(search)} key={search.id}>
             <strong>{search.name}</strong>
             <code>{search.query}</code>
           </StyledMenuItem>
