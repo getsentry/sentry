@@ -144,7 +144,7 @@ def test_hpkp_validate_basic():
         expected_headers = [('User-Agent', 'Awesome Browser')]
 
     assert result['request'] == {
-        'url': 'https://www.example.com/',
+        'url': 'www.example.com',
         'headers': expected_headers
     }
 
