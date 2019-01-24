@@ -2,7 +2,6 @@ from __future__ import absolute_import, print_function
 
 import logging
 
-from celery.task import current
 from django.core.urlresolvers import reverse
 from requests.exceptions import RequestException
 
@@ -103,9 +102,9 @@ def send_alert_event(event, rule, sentry_app_id):
     )
 
 
-@instrumented_task('sentry.tasks.process_resource_change', **TASK_OPTIONS)
+@instrumented_task('sentry.tasks.process_resource_change', bind=True, **TASK_OPTIONS)
 @retry()
-def process_resource_change(action, sender, instance_id, *args, **kwargs):
+def process_resource_change(self, action, sender, instance_id, *args, **kwargs):
     # The class is serialized as a string when enqueueing the class.
     model = TYPES[sender]
 
@@ -120,7 +119,7 @@ def process_resource_change(action, sender, instance_id, *args, **kwargs):
     except model.DoesNotExist as e:
         # Explicitly requeue the task, so we don't report this to Sentry until
         # we hit the max number of retries.
-        return current.retry(exc=e)
+        return self.retry(exc=e, throw=False)
 
     event = '{}.{}'.format(name, action)
 
