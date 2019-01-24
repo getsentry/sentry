@@ -3,7 +3,7 @@ import errorsByGeoQuery from 'app/views/organizationDashboard/data/queries/error
 
 const errorsByGeo = {
   type: WIDGET_DISPLAY.WORLD_MAP,
-  title: 'Errors By Geography',
+  title: 'Errors by Country',
   queries: {discover: [errorsByGeoQuery]},
   compareToPeriod: {
     statsPeriodStart: '15d',
