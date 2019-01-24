@@ -96,7 +96,8 @@ class EventSerializer(Serializer):
                     '_meta': meta.get(kv[0]) or get_path(meta, six.text_type(i), '1') or None,
                 }
                 for i, kv in enumerate(event.data.get('tags') or ())
-                if kv is not None and kv[0] is not None and kv[1] is not None],
+                if kv is not None and kv[0] is not None and kv[1] is not None
+            ],
             key=lambda x: x['key']
         )
 
