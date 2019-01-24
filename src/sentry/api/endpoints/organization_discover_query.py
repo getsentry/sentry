@@ -66,8 +66,11 @@ class DiscoverQuerySerializer(serializers.Serializer):
 
     def __init__(self, *args, **kwargs):
         super(DiscoverQuerySerializer, self).__init__(*args, **kwargs)
-        self.member = OrganizationMember.objects.get(
-            user=self.context['user'], organization=self.context['organization'])
+        try:
+            self.member = OrganizationMember.objects.get(
+                user=self.context['user'], organization=self.context['organization'])
+        except OrganizationMember.DoesNotExist:
+            self.member = None
 
         data = kwargs['data']
 
