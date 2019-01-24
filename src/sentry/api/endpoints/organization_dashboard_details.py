@@ -123,8 +123,6 @@ class OrganizationDashboardDetailsEndpoint(OrganizationDashboardEndpoint):
         :pparam string organization_slug: the slug of the organization the
                                           dashboard belongs to.
         :pparam int dashboard_id: the id of the dashboard.
-        :param array widgets: the array of widgets (consisting of a widget id and the order)
-                            to be updated.
         :auth: required
         """
 
@@ -134,6 +132,20 @@ class OrganizationDashboardDetailsEndpoint(OrganizationDashboardEndpoint):
         return self.respond(status=204)
 
     def put(self, request, organization, dashboard):
+        """
+        Edit an Organization's Dashboard
+        ```````````````````````````````````
+
+        Edit an individual organization's dashboard as well as
+        bulk edits on widgets (i.e. rearranging widget order).
+
+        :pparam string organization_slug: the slug of the organization the
+                                          dashboard belongs to.
+        :pparam int dashboard_id: the id of the dashboard.
+        :param array widgets: the array of widgets (consisting of a widget id and the order)
+                            to be updated.
+        :auth: required
+        """
         serializer = DashboardWithWidgetsSerializer(
             data=request.DATA,
             context={'dashboard_id': dashboard.id}
