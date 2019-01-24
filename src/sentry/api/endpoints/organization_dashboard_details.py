@@ -25,13 +25,13 @@ def remove_widgets(dashboard_widgets, widget_data):
     Removes current widgets belonging to dashboard not in widget_data.
     Returns remaining widgets.
     """
-    widget_titles = [wd['id'] for wd in widget_data]
+    widget_ids = [wd['id'] for wd in widget_data]
     dashboard_widgets.exclude(
-        id__in=widget_titles
+        id__in=widget_ids
     ).update(status=ObjectStatus.PENDING_DELETION)
 
     return dashboard_widgets.filter(
-        id__in=widget_titles
+        id__in=widget_ids
     )
 
 
