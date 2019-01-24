@@ -4,6 +4,7 @@ import styled from 'react-emotion';
 import {DEFAULT_TOAST_DURATION} from 'app/constants';
 import {t, tct} from 'app/locale';
 import IndicatorActions from 'app/actions/indicatorActions';
+import space from 'app/styles/space';
 
 // RFormValueoves a single indicator
 export function removeIndicator(indicator) {
@@ -98,7 +99,8 @@ export function saveOnBlurUndoMessage(change, model, fieldName) {
         ? 'Changed [fieldName] from [oldValue] to [newValue]'
         : 'Changed [fieldName]',
       {
-        fieldName: <strong>{label}</strong>,
+        root: <MessageContainer />,
+        fieldName: <FieldName>{label}</FieldName>,
         oldValue: <FormValue>{prettifyValue(change.old)}</FormValue>,
         newValue: <FormValue>{prettifyValue(change.new)}</FormValue>,
       }
@@ -127,7 +129,8 @@ export function saveOnBlurUndoMessage(change, model, fieldName) {
                 ? 'Unable to restore [fieldName] from [oldValue] to [newValue]'
                 : 'Unable to restore [fieldName]',
               {
-                fieldName: <strong>{label}</strong>,
+                root: <MessageContainer />,
+                fieldName: <FieldName>{label}</FieldName>,
                 oldValue: <FormValue>{prettifyValue(oldValue)}</FormValue>,
                 newValue: <FormValue>{prettifyValue(newValue)}</FormValue>,
               }
@@ -143,7 +146,8 @@ export function saveOnBlurUndoMessage(change, model, fieldName) {
                 ? 'Restored [fieldName] from [oldValue] to [newValue]'
                 : 'Restored [fieldName]',
               {
-                fieldName: <strong>{label}</strong>,
+                root: <MessageContainer />,
+                fieldName: <FieldName>{label}</FieldName>,
                 oldValue: <FormValue>{prettifyValue(oldValue)}</FormValue>,
                 newValue: <FormValue>{prettifyValue(newValue)}</FormValue>,
               }
@@ -161,4 +165,12 @@ export function saveOnBlurUndoMessage(change, model, fieldName) {
 
 const FormValue = styled('span')`
   font-style: italic;
+  margin: 0 ${space(0.5)};
+`;
+const FieldName = styled('span')`
+  font-weight: bold;
+  margin: 0 ${space(0.5)};
+`;
+const MessageContainer = styled('div')`
+  display: flex;
 `;
