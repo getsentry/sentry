@@ -82,6 +82,10 @@ class SensitiveDataFilter(object):
             if exc.get('stacktrace'):
                 self.filter_stacktrace(exc['stacktrace'])
 
+        for exc in get_path(data, 'threads', 'values', filter=True) or ():
+            if exc.get('stacktrace'):
+                self.filter_stacktrace(exc['stacktrace'])
+
         for crumb in get_path(data, 'breadcrumbs', 'values', filter=True) or ():
             self.filter_crumb(crumb)
 
