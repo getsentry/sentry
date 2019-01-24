@@ -3,10 +3,12 @@ from __future__ import absolute_import
 from sentry.mediators import Mediator, Param
 from sentry.mediators import service_hooks
 from sentry.models import ServiceHook
+from sentry.mediators.sentry_app_installations.installation_notifier import InstallationNotifier
 
 
 class Destroyer(Mediator):
     install = Param('sentry.models.SentryAppInstallation')
+    user = Param('sentry.models.User')
 
     def call(self):
         self._destroy_authorization()
@@ -30,4 +32,9 @@ class Destroyer(Mediator):
             service_hooks.Destroyer.run(service_hook=hook)
 
     def _destroy_installation(self):
+        InstallationNotifier.run(
+            install=self.install,
+            user=self.user,
+            action='deleted',
+        )
         self.install.delete()
