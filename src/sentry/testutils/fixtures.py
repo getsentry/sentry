@@ -305,7 +305,7 @@ class Fixtures(object):
             project_id=project.id,
             name=name,
         )
-        env.add_project(project)
+        env.add_project(project, is_hidden=kwargs.get('is_hidden'))
         return env
 
     def create_project(self, **kwargs):
