@@ -34,10 +34,21 @@ class TestCreator(TestCase):
     def test_expands_resource_events_to_specific_events(self):
         self.creator.events = ['issue']
         service_hook = self.creator.call()
-        assert set(service_hook.events) == set(['issue.created', 'issue.resolved'])
+
+        assert set(service_hook.events) == set([
+            'issue.created',
+            'issue.resolved',
+            'issue.ignored',
+            'issue.assigned',
+        ])
 
     def test_expand_events(self):
-        assert expand_events(['issue']) == set(['issue.created', 'issue.resolved'])
+        assert expand_events(['issue']) == set([
+            'issue.created',
+            'issue.resolved',
+            'issue.ignored',
+            'issue.assigned',
+        ])
 
     def test_consolidate_events(self):
         assert consolidate_events(['issue.created']) == set(['issue'])

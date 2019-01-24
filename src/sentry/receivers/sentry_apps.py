@@ -3,9 +3,10 @@ from __future__ import absolute_import
 from django.db.models.signals import post_save
 from django.dispatch import receiver
 
-from sentry.models import Group, Organization
+from sentry.models import Group, GroupAssignee, Organization
 from sentry.signals import (
     issue_ignored,
+    issue_assigned,
     issue_resolved,
     issue_resolved_in_release,
     resolved_with_commit,
@@ -31,30 +32,54 @@ def issue_saved(sender, instance, created, **kwargs):
     )
 
 
+@issue_assigned.connect(weak=False)
+def send_issue_assigned_webhook(project, group, user, **kwargs):
+    assignee = GroupAssignee.objects.get(
+        group_id=group.id,
+    ).assigned_actor()
+
+    actor = assignee.resolve()
+
+    data = {
+        'assignee': {
+            'type': assignee.type.__name__.lower(),
+            'name': actor.name,
+            'id': actor.id,
+        }
+    }
+
+    org = project.organization
+
+    if hasattr(actor, 'email') and not org.flags.enhanced_privacy:
+        data['assignee']['email'] = actor.email
+
+    send_workflow_webhooks(org, group, user, 'issue.assigned', data=data)
+
+
 @issue_resolved_in_release.connect(weak=False)
-def issue_resolved_in_release(project, group, user, resolution_type, **kwargs):
+def send_issue_resolved_in_release_webhook(project, group, user, resolution_type, **kwargs):
     send_workflow_webhooks(
         project.organization,
         group,
         user,
         'issue.resolved',
-        {'resolution_type': 'resolved_in_release'},
+        data={'resolution_type': 'resolved_in_release'},
     )
 
 
 @issue_resolved.connect(weak=False)
-def issue_resolved(project, group, user, **kwargs):
+def send_issue_resolved_webhook(project, group, user, **kwargs):
     send_workflow_webhooks(
         project.organization,
         group,
         user,
         'issue.resolved',
-        {'resolution_type': 'resolved'},
+        data={'resolution_type': 'resolved'},
     )
 
 
 @issue_ignored.connect(weak=False)
-def issue_ignored(project, user, group_list, **kwargs):
+def send_issue_ignored_webhook(project, user, group_list, **kwargs):
     for issue in group_list:
         send_workflow_webhooks(
             project.organization,
@@ -65,14 +90,14 @@ def issue_ignored(project, user, group_list, **kwargs):
 
 
 @resolved_with_commit.connect(weak=False)
-def resolved_with_commit(organization_id, group, user, **kwargs):
+def send_resolved_with_commit_webhook(organization_id, group, user, **kwargs):
     organization = Organization.objects.get(id=organization_id)
     send_workflow_webhooks(
         organization,
         group,
         user,
         'issue.resolved',
-        {'resolution_type': 'resolved_in_commit'},
+        data={'resolution_type': 'resolved_in_commit'},
     )
 
 
