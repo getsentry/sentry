@@ -1,15 +1,23 @@
 from __future__ import absolute_import
 
+from django.db.models import Max
 from rest_framework import serializers
 from rest_framework.response import Response
 
 from sentry.api.base import DocSection
 from sentry.api.bases.dashboard import (
-    OrganizationDashboardEndpoint, DashboardSerializer
+    OrganizationDashboardEndpoint
 )
 from sentry.api.serializers import serialize
-from sentry.api.serializers.rest_framework import ListField
+from sentry.api.serializers.rest_framework import ListField, ValidationError
 from sentry.models import ObjectStatus, Widget
+
+
+def get_next_dashboard_order(dashboard_id):
+    max_order = Widget.objects.filter(
+        dashboard_id=dashboard_id,
+    ).aggregate(Max('order'))
+    return max_order['order__max'] + 1
 
 
 def remove_widgets(dashboard_widgets, widget_data):
@@ -20,7 +28,8 @@ def remove_widgets(dashboard_widgets, widget_data):
     widget_titles = [wd['id'] for wd in widget_data]
     dashboard_widgets.exclude(
         id__in=widget_titles
-    ).delete()
+    ).update(status=ObjectStatus.PENDING_DELETION)
+
     return dashboard_widgets.filter(
         id__in=widget_titles
     )
@@ -33,13 +42,18 @@ def reorder_widgets(dashboard_id, widget_data):
     dashboard_widgets = Widget.objects.filter(
         dashboard_id=dashboard_id,
     )
-    dashboard_widgets = remove_widgets(dashboard_widgets, widget_data)
+    dashboard_widgets = list(remove_widgets(dashboard_widgets, widget_data))
 
-    for widget_datum in widget_data:
+    # dashboard_widgets and widget_data should now have the same widgets
+    widget_data.sort(key=lambda x: x['order'])
+
+    next_order = get_next_dashboard_order(dashboard_id)
+    for index, data in enumerate(widget_data):
         for widget in dashboard_widgets:
-            if widget.id == widget_datum['id']:
-                widget.order = widget_datum['order']
+            if widget.id == data['id']:
+                widget.order = next_order + index
                 widget.save()
+                break
 
 
 class WidgetSerializer(serializers.Serializer):
@@ -47,29 +61,37 @@ class WidgetSerializer(serializers.Serializer):
     id = serializers.IntegerField(min_value=0, required=True)
 
 
-class DashboardWithWidgetsSerializer(DashboardSerializer):
+class DashboardWithWidgetsSerializer(serializers.Serializer):
+    title = serializers.CharField(required=False)
     widgets = ListField(
-        child=WidgetSerializer(),
+        child=WidgetSerializer(required=True),
         required=False,
-        default=[],
+        allow_null=True,
     )
 
-    def validate(self, data):
-        widgets = data['widgets']
+    def validate_widgets(self, attrs, source):
+        try:
+            widgets = attrs[source]
+        except KeyError:
+            if self.fields['widgets'].required:
+                raise ValidationError('Widgets are required')
+            else:
+                return attrs
 
         if len(widgets) != len(set([w['order'] for w in widgets])):
-            raise ValueError('Widgets must have no repeating order')
+            raise ValidationError('Widgets must have no repeating order')
 
         widgets_count = len(Widget.objects.filter(
-            id__in=[w['id'] for w in data['widgets']],
+            id__in=[w['id'] for w in widgets],
             dashboard_id=self.context['dashboard_id'],
             status=ObjectStatus.VISIBLE,
         ))
 
         if len(widgets) != widgets_count:
-            raise ValueError('All widgets must exist within this dashboard prior to reordering.')
+            raise ValidationError(
+                'All widgets must exist within this dashboard prior to reordering.')
 
-        return data
+        return attrs
 
 
 class OrganizationDashboardDetailsEndpoint(OrganizationDashboardEndpoint):
@@ -121,8 +143,12 @@ class OrganizationDashboardDetailsEndpoint(OrganizationDashboardEndpoint):
             return Response(serializer.errors, status=400)
         data = serializer.object
 
-        dashboard.update(
-            title=data['title'],
-        )
-        reorder_widgets(dashboard.id, data['widgets'])
+        title = data.get('title')
+        if title:
+            dashboard.update(title=data['title'])
+
+        widgets = data.get('widgets')
+        if widgets:
+            reorder_widgets(dashboard.id, widgets)
+
         return self.respond(serialize(dashboard, request.user), status=200)

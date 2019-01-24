@@ -156,104 +156,59 @@ class OrganizationDashboardDetailsDeleteTest(OrganizationDashboardDetailsTestCas
 
 class OrganizationDashboardDetailsPutTest(OrganizationDashboardDetailsTestCase):
 
+    def setUp(self):
+        super(OrganizationDashboardDetailsPutTest, self).setUp()
+        self.widget_3 = Widget.objects.create(
+            dashboard=self.dashboard,
+            order=3,
+            title='Widget 3',
+            display_type=WidgetDisplayTypes.LINE_CHART,
+        )
+        self.widget_4 = Widget.objects.create(
+            dashboard=self.dashboard,
+            order=4,
+            title='Widget 4',
+            display_type=WidgetDisplayTypes.LINE_CHART,
+        )
+        self.widget_ids = [self.widget_1.id, self.widget_2.id, self.widget_3.id, self.widget_4.id]
+
+    def assert_no_changes(self):
+        self.assert_dashboard_and_widgets(self.widget_ids, [1, 2, 3, 4])
+
+    def assert_dashboard_and_widgets(self, widget_ids, order):
+        assert Dashboard.objects.filter(
+            organization=self.organization,
+            id=self.dashboard.id
+        ).exists()
+
+        widgets = self.sort_by_order(Widget.objects.filter(
+            dashboard_id=self.dashboard.id,
+            status=ObjectStatus.VISIBLE,
+        ))
+        assert len(widgets) == len(list(widget_ids))
+
+        for widget, id, order in zip(widgets, widget_ids, order):
+            assert widget.id == id
+            assert widget.order == order
+
     def test_put(self):
         response = self.client.put(
             self.url(self.dashboard.id),
             data={
-                'title': 'Dashboard from Put',
-                'createdBy': self.user.id,
-                'organization': self.organization.id,
+                'title': 'Changed the title',
                 'widgets':
                 [
-                    {
-                        'order': 3,
-                        'displayType': 'line',
-                        'title': 'User Happiness',
-                        'dataSources': [
-                            {
-                                'name': 'knownUsersAffectedQuery_2',
-                                'data': self.known_users_query,
-                                'type': 'discover_saved_search',
-                                'order': 1,
-                            },
-                            {
-                                'name': 'anonymousUsersAffectedQuery_2',
-                                'data': self.anon_users_query,
-                                'type': 'discover_saved_search',
-                                'order': 2
-                            },
-
-                        ]
-
-                    },
-                    {
-                        'order': 4,
-                        'displayType': 'table',
-                        'title': 'Error Location',
-                        'dataSources': [
-                            {
-                                'name': 'errorsByGeo_2',
-                                'data': self.geo_erorrs_query,
-                                'type': 'discover_saved_search',
-                                'order': 1,
-                            },
-                        ]
-                    }
+                    {'order': 4, 'id': self.widget_1.id},
+                    {'order': 3, 'id': self.widget_2.id},
+                    {'order': 2, 'id': self.widget_3.id},
+                    {'order': 1, 'id': self.widget_4.id},
                 ]
             }
         )
         assert response.status_code == 200
-        dashboard = Dashboard.objects.get(
-            organization=self.organization,
-            title='Dashboard from Put'
-        )
-        assert dashboard.created_by == self.user
+        self.assert_dashboard_and_widgets(reversed(self.widget_ids), [5, 6, 7, 8])
 
-        widgets = self.sort_by_order(Widget.objects.filter(dashboard=dashboard))
-        assert len(widgets) == 4
-
-        self.assert_widget(widgets[0], self.widget_1)
-        self.assert_widget(widgets[1], self.widget_2)
-
-        temp_widget = Widget(
-            order=3, display_type=0, title='User Happiness',
-        )
-        self.assert_widget(widgets[2], temp_widget)
-
-        temp_widget = Widget(
-            order=4, display_type=5, title='Error Location',
-        )
-        self.assert_widget(widgets[3], temp_widget)
-
-        data_sources = self.sort_by_order(
-            WidgetDataSource.objects.filter(
-                widget_id=widgets[0].id
-            )
-        )
-
-        assert data_sources[0].name == 'anonymousUsersAffectedQuery_2'
-        assert data_sources[0].data == self.anon_users_query
-        assert data_sources[0].type == 'disoversavedsearch'
-
-        assert data_sources[1].name == 'knownUsersAffectedQuery_2'
-        assert data_sources[1].data == self.known_users_query
-        assert data_sources[1].type == 'disoversavedsearch'
-
-        data_sources = self.sort_by_order(
-            WidgetDataSource.objects.filter(
-                widget_id=widgets[1].id
-            )
-        )
-        assert data_sources[0].name == 'errorsByGeo_2'
-        assert data_sources[0].data == self.geo_erorrs_query
-        assert data_sources[0].type == 'disoversavedsearch'
-
-    def test_dashboard_no_widgets(self):
-        Dashboard.objects.create(
-            title='Dashboard 10101',
-            created_by=self.user,
-            organization=self.organization,
-        )
+    def test_change_dashboard_title(self):
         response = self.client.put(
             self.url(self.dashboard.id),
             data={'title': 'Dashboard Hello'}
@@ -261,87 +216,111 @@ class OrganizationDashboardDetailsPutTest(OrganizationDashboardDetailsTestCase):
         assert response.status_code == 200
         assert Dashboard.objects.filter(
             title='Dashboard Hello',
-            organizaiton=self.organization,
-            created_by=self.user
-        )
+            organization=self.organization,
+            id=self.dashboard.id,
+        ).exists()
 
-    def test_widget_no_data_souces(self):
+    def test_reorder_widgets(self):
         response = self.client.put(
             self.url(self.dashboard.id),
             data={
-                'title': 'Dashboard from Put',
-                'createdBy': self.user.id,
-                'organization': self.organization.id,
                 'widgets':
                 [
-                    {
-                        'order': 3,
-                        'displayType': 'line',
-                        'title': 'User Happiness',
-                        'dataSources': []
-                    }
+                    {'order': 4, 'id': self.widget_1.id},
+                    {'order': 3, 'id': self.widget_2.id},
+                    {'order': 2, 'id': self.widget_3.id},
+                    {'order': 1, 'id': self.widget_4.id},
                 ]
             }
         )
         assert response.status_code == 200
-
-    def test_unrecognized_display_type(self):
-        response = self.client.put(
-            self.url(self.dashboard.id),
-            data={
-                'title': 'Dashboard from Put',
-                'createdBy': self.user.id,
-                'organization': self.organization.id,
-                'widgets':
-                [
-                    {
-                        'order': 3,
-                        'displayType': 'happy-face',
-                        'title': 'User Happiness',
-                        'dataSources': []
-                    }
-                ]
-            }
-        )
-        assert response.status_code == 400
-
-    def test_unrecognized_data_source_type(self):
-        response = self.client.put(
-            self.url(self.dashboard.id),
-            data={
-                'title': 'Dashboard from Put',
-                'createdBy': self.user.id,
-                'organization': self.organization.id,
-                'widgets':
-                [
-                    {
-                        'order': 3,
-                        'displayType': 'line',
-                        'title': 'User Happiness',
-                        'dataSources': [{
-                            'name': 'knownUsersAffectedQuery_2',
-                            'data': self.known_users_query,
-                            'type': 'not-real-type',
-                            'order': 1,
-                        }],
-                    }
-                ]
-            }
-        )
-        assert response.status_code == 400
+        self.assert_dashboard_and_widgets(reversed(self.widget_ids), [5, 6, 7, 8])
 
     def test_dashboard_does_not_exist(self):
         response = self.client.put(self.url(1234567890))
         assert response.status_code == 404
-        assert response.data == {u'detail': u'Not found'}
+        assert response.data == {u'detail': u'The requested resource does not exist'}
 
-    def test_invalid_dashboard(self):
+    def test_duplicate_order(self):
         response = self.client.put(
             self.url(self.dashboard.id),
             data={
-                'title': 'Dashboard from Put',
-                'organization': self.organization.id,
-                'widgets': [],
+                'widgets':
+                [
+                    {'order': 4, 'id': self.widget_1.id},
+                    {'order': 4, 'id': self.widget_2.id},
+                    {'order': 2, 'id': self.widget_3.id},
+                    {'order': 1, 'id': self.widget_4.id},
+                ]
             }
         )
         assert response.status_code == 400
+        assert response.data == {'widgets': [u'Widgets must have no repeating order']}
+        self.assert_no_changes()
+
+    def test_partial_reordering_deletes_widgets(self):
+        response = self.client.put(
+            self.url(self.dashboard.id),
+            data={
+                'title': 'Changed the title',
+                'widgets':
+                [
+                    {'order': 2, 'id': self.widget_3.id},
+                    {'order': 1, 'id': self.widget_4.id},
+                ]
+            }
+        )
+        assert response.status_code == 200
+        self.assert_dashboard_and_widgets([self.widget_4.id, self.widget_3.id], [5, 6])
+        deleted_widgets = [
+            w.id for w in Widget.objects.filter(
+                status=ObjectStatus.PENDING_DELETION)]
+        assert sorted(deleted_widgets) == [self.widget_1.id, self.widget_2.id]
+
+    def test_widget_does_not_belong_to_dashboard(self):
+        widget = Widget.objects.create(
+            order=5,
+            dashboard=Dashboard.objects.create(
+                organization=self.organization,
+                title='Dashboard 2',
+                created_by=self.user,
+            ),
+            title='Widget 200',
+            display_type=WidgetDisplayTypes.LINE_CHART,
+        )
+        response = self.client.put(
+            self.url(self.dashboard.id),
+            data={
+                'widgets':
+                [
+                    {'order': 5, 'id': self.widget_1.id},
+                    {'order': 4, 'id': self.widget_2.id},
+                    {'order': 3, 'id': self.widget_3.id},
+                    {'order': 2, 'id': self.widget_4.id},
+                    {'order': 1, 'id': widget.id},
+                ]
+            }
+        )
+        assert response.status_code == 400
+        assert response.data == {
+            'widgets': [u'All widgets must exist within this dashboard prior to reordering.']}
+        self.assert_no_changes()
+
+    def test_widget_does_not_exist(self):
+        response = self.client.put(
+            self.url(self.dashboard.id),
+            data={
+                'widgets':
+                [
+                    {'order': 5, 'id': self.widget_1.id},
+                    {'order': 4, 'id': self.widget_2.id},
+                    {'order': 3, 'id': self.widget_3.id},
+                    {'order': 2, 'id': self.widget_4.id},
+                    {'order': 1, 'id': 1234567890},
+                ]
+            }
+        )
+        assert response.status_code == 400
+        assert response.data == {
+            'widgets': [u'All widgets must exist within this dashboard prior to reordering.']}
+        self.assert_no_changes()
