@@ -54,6 +54,8 @@ const ProjectItem = createReactClass({
     let {project, organization} = this.props;
     let {isBookmarked} = this.state;
 
+    let hasNewRoutes = new Set(organization.features).has('sentry10');
+
     return (
       <div key={project.id} className={isBookmarked ? 'isBookmarked' : null}>
         <Tooltip title={isBookmarked ? 'Remove from bookmarks' : 'Add to bookmarks'}>
@@ -65,7 +67,13 @@ const ProjectItem = createReactClass({
             )}
           </InlineButton>
         </Tooltip>
-        <Link to={`/${organization.slug}/${project.slug}/`}>
+        <Link
+          to={
+            hasNewRoutes
+              ? `/settings/${organization.slug}/${project.slug}/`
+              : `/${organization.slug}/${project.slug}/`
+          }
+        >
           <ProjectLabel project={project} />
         </Link>
       </div>

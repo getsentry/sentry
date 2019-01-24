@@ -75,6 +75,8 @@ export default class OrganizationProjects extends AsyncView {
       .getAccess()
       .has('project:admin');
 
+    let hasNewRoutes = new Set(organization.features).has('sentry10');
+
     let action = (
       <Button
         priority="primary"
@@ -121,15 +123,17 @@ export default class OrganizationProjects extends AsyncView {
                     stats={projectStats[project.id]}
                   />
                 </Box>
-                <Box p={2} align="right">
-                  <Button
-                    icon="icon-settings"
-                    size="small"
-                    to={`/settings/${organization.slug}/${project.slug}/`}
-                  >
-                    {t('Settings')}
-                  </Button>
-                </Box>
+                {!hasNewRoutes && (
+                  <Box p={2} align="right">
+                    <Button
+                      icon="icon-settings"
+                      size="small"
+                      to={`/settings/${organization.slug}/${project.slug}/`}
+                    >
+                      {t('Settings')}
+                    </Button>
+                  </Box>
+                )}
               </PanelItem>
             ))}
             {projectList.length === 0 && (
