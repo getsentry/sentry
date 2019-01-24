@@ -1,11 +1,8 @@
 from __future__ import absolute_import
 
 import pytest
-import mock
 
 from datetime import datetime, timedelta
-from functools import partial
-from uuid import UUID
 
 from sentry.constants import VERSION_LENGTH, MAX_CULPRIT_LENGTH
 from sentry.event_manager import EventManager, ENABLE_RUST
@@ -18,15 +15,6 @@ def validate_and_normalize(data):
 
 
 def test_timestamp():
-    from sentry.event_manager import process_timestamp
-
-    patched = partial(
-        process_timestamp, current_datetime=datetime(2018, 4, 10, 14, 33, 18)
-    )
-    with mock.patch("sentry.event_manager.process_timestamp", patched):
-        data = validate_and_normalize({"timestamp": "2018-04-10T14:33:18Z"})
-        assert "errors" not in data
-
     data = validate_and_normalize({"timestamp": "not-a-timestamp"})
     assert len(data["errors"]) == 1
 
@@ -45,29 +33,29 @@ def test_timestamp():
     assert data["errors"][0]["type"] == "past_timestamp"
 
 
-@mock.patch("uuid.uuid4", return_value=UUID("031667ea1758441f92c7995a428d2d14"))
-def test_empty_event_id(uuid4):
+def test_empty_event_id():
     data = validate_and_normalize({"event_id": ""})
-    assert data["event_id"] == "031667ea1758441f92c7995a428d2d14"
+    assert len(data["event_id"]) == 32
 
 
-@mock.patch("uuid.uuid4", return_value=UUID("031667ea1758441f92c7995a428d2d14"))
-def test_missing_event_id(uuid4):
+def test_missing_event_id():
     data = validate_and_normalize({})
-    assert data["event_id"] == "031667ea1758441f92c7995a428d2d14"
+    assert len(data["event_id"]) == 32
 
 
-@mock.patch("uuid.uuid4", return_value=UUID("031667ea1758441f92c7995a428d2d14"))
-def test_invalid_event_id(uuid4):
+def test_invalid_event_id():
     data = validate_and_normalize({"event_id": "a" * 33})
-    assert data["event_id"] == "031667ea1758441f92c7995a428d2d14"
+    assert len(data["event_id"]) == 32
     assert len(data["errors"]) == 1
-    assert data["errors"][0]["type"] == "value_too_long"
+    if ENABLE_RUST:
+        assert data["errors"][0]["type"] == "invalid_data"
+    else:
+        assert data["errors"][0]["type"] == "value_too_long"
     assert data["errors"][0]["name"] == "event_id"
     assert data["errors"][0]["value"] == "a" * 33
 
     data = validate_and_normalize({"event_id": "xyz"})
-    assert data["event_id"] == "031667ea1758441f92c7995a428d2d14"
+    assert len(data["event_id"]) == 32
     assert len(data["errors"]) == 1
     assert data["errors"][0]["type"] == "invalid_data"
     assert data["errors"][0]["name"] == "event_id"
@@ -76,7 +64,10 @@ def test_invalid_event_id(uuid4):
 
 def test_unknown_attribute():
     data = validate_and_normalize({"message": "foo", "foo": "bar"})
-    assert "foo" not in data
+    if ENABLE_RUST:
+        assert data['foo'] is None
+    else:
+        assert "foo" not in data
     assert len(data["errors"]) == 1
     assert data["errors"][0]["type"] == "invalid_attribute"
     assert data["errors"][0]["name"] == "foo"
@@ -84,7 +75,10 @@ def test_unknown_attribute():
 
 def test_invalid_interface_name():
     data = validate_and_normalize({"message": "foo", "foo.baz": "bar"})
-    assert "foo.baz" not in data
+    if ENABLE_RUST:
+        assert data["foo.baz"] is None
+    else:
+        assert "foo.baz" not in data
     assert len(data["errors"]) == 1
     assert data["errors"][0]["type"] == "invalid_attribute"
     assert data["errors"][0]["name"] == "foo.baz"
@@ -94,7 +88,11 @@ def test_invalid_interface_import_path():
     data = validate_and_normalize(
         {"message": "foo", "exception2": "bar"}
     )
-    assert "exception2" not in data
+    if ENABLE_RUST:
+        assert data['exception2'] is None
+    else:
+        assert "exception2" not in data
+
     assert len(data["errors"]) == 1
     assert data["errors"][0]["type"] == "invalid_attribute"
     assert data["errors"][0]["name"] == "exception2"
@@ -133,12 +131,18 @@ def test_invalid_log_level():
 
 def test_tags_as_string():
     data = validate_and_normalize({"message": "foo", "tags": "bar"})
-    assert "tags" not in data
+    if ENABLE_RUST:
+        assert data['tags'] == []
+    else:
+        assert "tags" not in data
 
 
 def test_tags_with_spaces():
     data = validate_and_normalize({"message": "foo", "tags": {"foo bar": "baz bar"}})
-    assert data["tags"] == [("foo-bar", "baz bar")]
+    if ENABLE_RUST:
+        assert data["tags"] == [["foo-bar", "baz bar"]]
+    else:
+        assert data["tags"] == [("foo-bar", "baz bar")]
 
 
 def test_tags_out_of_bounds():
@@ -148,7 +152,10 @@ def test_tags_out_of_bounds():
             "tags": {"f" * 33: "value", "foo": "v" * 201, "bar": "value"},
         }
     )
-    assert data["tags"] == [("bar", "value")]
+    if ENABLE_RUST:
+        assert data["tags"] == [["bar", "value"], None, None]
+    else:
+        assert data["tags"] == [("bar", "value")]
     assert len(data["errors"]) == 2
 
 
@@ -158,35 +165,54 @@ def test_tags_as_invalid_pair():
     )
     assert len(data["errors"]) == 1
     assert data["errors"][0]["type"] == "invalid_data"
-    assert data["errors"][0]["name"] == "tags"
-    assert data["errors"][0]["value"] == [("foo", "bar"), ("biz", "baz", "boz")]
+    if ENABLE_RUST:
+        assert data["errors"][0]["name"] == "tags.1"
+        assert data["errors"][0]["value"] == ["biz", "baz", "boz"]
+    else:
+        assert data["errors"][0]["name"] == "tags"
+        assert data["errors"][0]["value"] == [("foo", "bar"), ("biz", "baz", "boz")]
 
 
 def test_reserved_tags():
     data = validate_and_normalize(
         {"message": "foo", "tags": [("foo", "bar"), ("release", "abc123")]}
     )
-    assert data["tags"] == [("foo", "bar")]
-    assert len(data["errors"]) == 1
-    assert data["errors"][0]["type"] == "invalid_data"
-    assert data["errors"][0]["name"] == "tags.0"
-    assert data["errors"][0]["value"] == ("release", "abc123")
+    if ENABLE_RUST:
+        assert data["tags"] == [["foo", "bar"]]
+    else:
+        assert data["tags"] == [("foo", "bar")]
+
+        assert len(data["errors"]) == 1
+        assert data["errors"][0]["type"] == "invalid_data"
+        assert data["errors"][0]["name"] == "tags.0"
+        assert data["errors"][0]["value"] == ("release", "abc123")
 
 
 def test_tag_value():
     data = validate_and_normalize(
         {"message": "foo", "tags": [("foo", "b\nar"), ("biz", "baz")]}
     )
-    assert data["tags"] == [("biz", "baz")]
+    if ENABLE_RUST:
+        assert data["tags"] == [["foo", None], ["biz", "baz"]]
+    else:
+        assert data["tags"] == [("biz", "baz")]
+
     assert len(data["errors"]) == 1
     assert data["errors"][0]["type"] == "invalid_data"
-    assert data["errors"][0]["name"] == "tags.0"
-    assert data["errors"][0]["value"] == ("foo", "b\nar")
+    if ENABLE_RUST:
+        assert data["errors"][0]["name"] == "tags.0.1"
+        assert data["errors"][0]["value"] == "b\nar"
+    else:
+        assert data["errors"][0]["name"] == "tags.0"
+        assert data["errors"][0]["value"] == ("foo", "b\nar")
 
 
 def test_extra_as_string():
     data = validate_and_normalize({"message": "foo", "extra": "bar"})
-    assert "extra" not in data
+    if ENABLE_RUST:
+        assert data['extra'] == {}
+    else:
+        assert 'extra' not in data
 
 
 def test_release_tag_max_len():
@@ -196,38 +222,52 @@ def test_release_tag_max_len():
         {"message": "foo", "tags": [[release_key, release_value]]}
     )
     assert "errors" not in data
-    assert data["tags"] == [(release_key, release_value)]
+    if ENABLE_RUST:
+        assert data["tags"] == [[release_key, release_value]]
+    else:
+        assert data["tags"] == [(release_key, release_value)]
 
 
 def test_server_name_too_long():
     key = u"server_name"
     value = "a" * (MAX_CULPRIT_LENGTH + 1)
     data = validate_and_normalize({key: value})
-    assert not data.get(key)
-    assert len(data["errors"]) == 1
-    assert data["errors"][0]["type"] == "value_too_long"
-    assert data["errors"][0]["name"] == key
-    assert data["errors"][0]["value"] == value
+    if ENABLE_RUST:
+        assert len(dict(data['tags']).get(key)) == MAX_CULPRIT_LENGTH
+    else:
+        assert not data.get(key)
+        assert not dict(data.get('tags') or ()).get(key)
+        assert len(data["errors"]) == 1
+        assert data["errors"][0]["type"] == "value_too_long"
+        assert data["errors"][0]["name"] == key
+        assert data["errors"][0]["value"] == value
 
 
 def test_site_too_long():
     key = u"site"
     value = "a" * (MAX_CULPRIT_LENGTH + 1)
     data = validate_and_normalize({key: value})
-    assert not data.get(key)
-    assert len(data["errors"]) == 1
-    assert data["errors"][0]["type"] == "value_too_long"
-    assert data["errors"][0]["name"] == key
-    assert data["errors"][0]["value"] == value
+    if ENABLE_RUST:
+        assert len(dict(data['tags']).get(key)) == MAX_CULPRIT_LENGTH
+    else:
+        assert not data.get(key)
+        assert not dict(data.get('tags') or ()).get(key)
+        assert len(data["errors"]) == 1
+        assert data["errors"][0]["type"] == "value_too_long"
+        assert data["errors"][0]["name"] == key
+        assert data["errors"][0]["value"] == value
 
 
 def test_release_too_long():
     data = validate_and_normalize({"release": "a" * (VERSION_LENGTH + 1)})
-    assert not data.get("release")
-    assert len(data["errors"]) == 1
-    assert data["errors"][0]["type"] == "value_too_long"
-    assert data["errors"][0]["name"] == "release"
-    assert data["errors"][0]["value"] == "a" * (VERSION_LENGTH + 1)
+    if ENABLE_RUST:
+        assert len(data.get("release")) == VERSION_LENGTH
+    else:
+        assert not data.get("release")
+        assert len(data["errors"]) == 1
+        assert data["errors"][0]["type"] == "value_too_long"
+        assert data["errors"][0]["name"] == "release"
+        assert data["errors"][0]["value"] == "a" * (VERSION_LENGTH + 1)
 
 
 def test_release_as_non_string():
@@ -236,12 +276,20 @@ def test_release_as_non_string():
 
 
 def test_distribution_too_long():
-    data = validate_and_normalize({"release": "a" * 62, "dist": "b" * 65})
-    assert not data.get("dist")
-    assert len(data["errors"]) == 1
-    assert data["errors"][0]["type"] == "value_too_long"
-    assert data["errors"][0]["name"] == "dist"
-    assert data["errors"][0]["value"] == "b" * 65
+    if ENABLE_RUST:
+        dist_len = 201
+    else:
+        dist_len = 65
+    data = validate_and_normalize({"release": "a" * 62, "dist": "b" * dist_len})
+
+    if ENABLE_RUST:
+        assert len(data.get("dist")) == dist_len - 1
+    else:
+        assert not data.get("dist")
+        assert len(data["errors"]) == 1
+        assert data["errors"][0]["type"] == "value_too_long"
+        assert data["errors"][0]["name"] == "dist"
+        assert data["errors"][0]["value"] == "b" * dist_len
 
 
 def test_distribution_bad_char():
@@ -261,7 +309,10 @@ def test_distribution_strip():
 def test_distribution_as_non_string():
     data = validate_and_normalize({"release": "42", "dist": 23})
     assert data.get("release") == "42"
-    assert data.get("dist") == "23"
+    if ENABLE_RUST:
+        assert data.get("dist") is None
+    else:
+        assert data.get("dist") == "23"
 
 
 def test_distribution_no_release():
