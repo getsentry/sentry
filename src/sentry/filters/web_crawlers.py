@@ -4,6 +4,7 @@ import re
 
 from .base import Filter
 from sentry.utils.data_filters import FilterStatKeys
+from sentry.utils.safe import get_path
 
 # not all of these agents are guaranteed to execute JavaScript, but to avoid
 # overhead of identifying which ones do, and which ones will over time we simply
@@ -52,7 +53,7 @@ class WebCrawlersFilter(Filter):
 
     def get_user_agent(self, data):
         try:
-            for key, value in data['request']['headers']:
+            for key, value in get_path(data, 'request', 'headers', filter=True) or ():
                 if key.lower() == 'user-agent':
                     return value
         except LookupError:
