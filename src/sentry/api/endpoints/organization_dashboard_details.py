@@ -79,7 +79,7 @@ class DashboardWithWidgetsSerializer(serializers.Serializer):
             return attrs
 
         if len(widgets) != len(set([w['order'] for w in widgets])):
-            raise ValidationError('Widgets must have no repeating order')
+            raise ValidationError('Widgets must not have duplicate order values.')
 
         widgets_count = len(Widget.objects.filter(
             id__in=[w['id'] for w in widgets],
