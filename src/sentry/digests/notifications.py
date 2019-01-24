@@ -71,11 +71,11 @@ def fetch_state(project, records):
         Rule.objects.
         in_bulk(itertools.chain.from_iterable(record.value.rules for record in records)),
         'event_counts':
-        tsdb.get_sums(tsdb.models.group, groups.keys(), start, end) if groups else {},
+        tsdb.get_sums(tsdb.models.group, groups.keys(), start, end),
         'user_counts':
         tsdb.get_distinct_counts_totals(
             tsdb.models.users_affected_by_group, groups.keys(), start, end
-        ) if groups else {},
+        ),
     }
 
 
