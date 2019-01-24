@@ -3,15 +3,9 @@ from __future__ import absolute_import
 from rest_framework.response import Response
 
 from sentry.api.bases.project import ProjectEndpoint
+from sentry.api.helpers.environments import environment_visibility_filter_options
 from sentry.api.serializers import serialize
 from sentry.models import EnvironmentProject
-
-
-environment_visibility_filter_options = {
-    'all': lambda queryset: queryset,
-    'hidden': lambda queryset: queryset.filter(is_hidden=True),
-    'visible': lambda queryset: queryset.exclude(is_hidden=True),
-}
 
 
 class ProjectEnvironmentsEndpoint(ProjectEndpoint):
