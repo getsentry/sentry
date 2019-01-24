@@ -204,7 +204,7 @@ class Event(Model):
     def interfaces(self):
         return self.get_interfaces()
 
-    def get_tags(self):
+    def get_tags(self, sorted=True):
         try:
             rv = [(t, v) for t, v in get_path(
                 self.data, 'tags', filter=True) or () if t is not None and v is not None]
