@@ -4,10 +4,10 @@ from rest_framework.response import Response
 
 from sentry.api.base import DocSection
 from sentry.api.bases.dashboard import (
-    OrganizationDashboardWidgetEndpoint, WidgetDataSource, WidgetSerializer
+    OrganizationDashboardWidgetEndpoint, WidgetSerializer
 )
 from sentry.api.serializers import serialize
-from sentry.models import ObjectStatus
+from sentry.models import ObjectStatus, WidgetDataSource
 
 
 class OrganizationDashboardWidgetDetailsEndpoint(OrganizationDashboardWidgetEndpoint):

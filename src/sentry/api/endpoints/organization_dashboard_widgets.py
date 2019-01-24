@@ -8,7 +8,7 @@ from sentry.api.bases.dashboard import (
     OrganizationDashboardEndpoint, WidgetSerializer, get_next_dashboard_order
 )
 from sentry.api.serializers import serialize
-from sentry.models import Widget
+from sentry.models import Widget, WidgetDataSource
 
 
 class OrganizationDashboardWidgetsEndpoint(OrganizationDashboardEndpoint):
@@ -24,7 +24,8 @@ class OrganizationDashboardWidgetsEndpoint(OrganizationDashboardEndpoint):
                                           dashboards belongs to.
 
         """
-        serializer = WidgetSerializer(data=request.DATA)
+
+        serializer = WidgetSerializer(data=request.DATA, context={'organization': organization})
 
         if not serializer.is_valid():
             return Response(serializer.errors, status=400)
@@ -34,13 +35,20 @@ class OrganizationDashboardWidgetsEndpoint(OrganizationDashboardEndpoint):
         try:
             with transaction.atomic():
                 widget = Widget.objects.create(
-                    organization_id=organization.id,
-                    display_type=result['display_type'],
-                    display_options=result['display_options'],
+                    display_type=result['displayType'],
+                    display_options=result.get('displayOptions', {}),
                     title=result['title'],
                     order=get_next_dashboard_order(dashboard.id),
                     dashboard_id=dashboard.id,
                 )
+                for widget_data in result.get('dataSources', []):
+                    WidgetDataSource.objects.create(
+                        name=widget_data['name'],
+                        data=widget_data['data'],
+                        type=widget_data['type'],
+                        order=widget_data['order'],
+                        widget_id=widget.id,
+                    )
         except IntegrityError:
             return Response('This widget already exists', status=409)
 
