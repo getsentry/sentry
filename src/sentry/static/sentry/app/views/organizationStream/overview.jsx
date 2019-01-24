@@ -630,6 +630,13 @@ const OrganizationStream = createReactClass({
       hasReleases = features.has('releases');
       latestRelease = selectedProject.latestRelease;
       projectId = selectedProject.slug;
+    } else {
+      // If the user has filtered down to a single project
+      // we can hint the autocomplete/savedsearch picker with that.
+      let projects = this.getGlobalSearchProjects();
+      if (projects.length === 1) {
+        projectId = projects[0].slug;
+      }
     }
 
     return (
