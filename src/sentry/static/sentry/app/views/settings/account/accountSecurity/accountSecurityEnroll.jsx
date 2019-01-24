@@ -165,8 +165,8 @@ class AccountSecurityEnroll extends AsyncView {
   loadOrganizationContext = () => {
     if (this.invite && this.invite.memberId) {
       fetchOrganizationByMember(this.invite.memberId, {
-        loadOrg: true,
-        setActive: true,
+        addOrg: true,
+        fetchOrgDetails: true,
       });
     }
   };
