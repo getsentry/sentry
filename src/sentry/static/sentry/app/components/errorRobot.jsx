@@ -139,6 +139,7 @@ const ErrorRobot = createReactClass({
           <p>
             {project && (
               <Button
+                data-test-id="install-instructions"
                 priority="primary"
                 size="large"
                 to={`/${org.slug}/${project.slug}/getting-started/${project.platform ||
