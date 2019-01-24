@@ -93,7 +93,7 @@ class EventSerializer(Serializer):
                 'key': k.split('sentry:', 1)[-1],
                 'value': v,
                 '_meta': meta.get(k) or get_path(meta, six.text_type(i), '1') or None,
-            } for i, (k, v) in enumerate(event.get_tags() or ())],
+            } for i, (k, v) in enumerate(event.get_tags(sorted=False) or ())],
             key=lambda x: x['key']
         )
 
