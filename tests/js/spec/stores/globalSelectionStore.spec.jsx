@@ -5,7 +5,23 @@ import {
   updateEnvironments,
 } from 'app/actionCreators/globalSelection';
 
+jest.mock('app/utils/localStorage', () => {
+  return {
+    getItem: () => JSON.stringify({projects: [5], environments: ['staging']}),
+    setItem: jest.fn(),
+  };
+});
+
 describe('GlobalSelectionStore', function() {
+  const organization = TestStubs.Organization({
+    features: ['global-views'],
+    projects: [TestStubs.Project({id: '5'})],
+  });
+
+  afterEach(function() {
+    GlobalSelectionStore.reset();
+  });
+
   it('get()', function() {
     expect(GlobalSelectionStore.get()).toEqual({
       projects: [],
@@ -38,5 +54,33 @@ describe('GlobalSelectionStore', function() {
     updateEnvironments(['alpha']);
     await tick();
     expect(GlobalSelectionStore.get().environments).toEqual(['alpha']);
+  });
+
+  it('loadInitialData() - queryParams', async function() {
+    GlobalSelectionStore.loadInitialData(organization, {
+      project: '5',
+      environment: ['staging'],
+    });
+
+    await tick();
+
+    expect(GlobalSelectionStore.get().projects).toEqual([5]);
+    expect(GlobalSelectionStore.get().environments).toEqual(['staging']);
+  });
+
+  it('loadInitialData() - localStorage', async function() {
+    GlobalSelectionStore.loadInitialData(organization, {});
+    await tick();
+
+    expect(GlobalSelectionStore.get().projects).toEqual([5]);
+    expect(GlobalSelectionStore.get().environments).toEqual(['staging']);
+  });
+
+  it('loadInitialData() - defaults used if invalid', async function() {
+    GlobalSelectionStore.loadInitialData(organization, {project: [2]});
+    await tick();
+
+    expect(GlobalSelectionStore.get().projects).toEqual([]);
+    expect(GlobalSelectionStore.get().environments).toEqual([]);
   });
 });

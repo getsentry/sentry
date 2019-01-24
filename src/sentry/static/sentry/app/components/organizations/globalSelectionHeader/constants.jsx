@@ -15,3 +15,5 @@ export const DATE_TIME = {
 };
 
 export const DATE_TIME_KEYS = Object.values(DATE_TIME);
+
+export const LOCAL_STORAGE_KEY = 'global-selection';
