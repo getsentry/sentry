@@ -10,7 +10,6 @@ import DropdownLink from 'app/components/dropdownLink';
 import QueryCount from 'app/components/queryCount';
 import MenuItem from 'app/components/menuItem';
 import Tooltip from 'app/components/tooltip';
-import SentryTypes from 'app/sentryTypes';
 import {BooleanField, FormState, TextField} from 'app/components/forms';
 import withApi from 'app/utils/withApi';
 import space from 'app/styles/space';
@@ -220,7 +219,6 @@ const SavedSearchSelector = withApi(
       queryMaxCount: PropTypes.number,
       onSavedSearchCreate: PropTypes.func.isRequired,
       onSavedSearchSelect: PropTypes.func.isRequired,
-      selection: SentryTypes.GlobalSelection,
     };
 
     getTitle() {
