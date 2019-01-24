@@ -228,6 +228,7 @@ class TestInstallationWebhook(TestCase):
         run.assert_called_with(
             install=self.install,
             user=self.user,
+            action='created',
         )
 
     def test_gracefully_handles_missing_install(self, run):

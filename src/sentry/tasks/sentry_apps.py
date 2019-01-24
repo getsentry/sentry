@@ -166,6 +166,7 @@ def installation_webhook(installation_id, user_id, *args, **kwargs):
     InstallationNotifier.run(
         install=install,
         user=user,
+        action='created',
     )
 
 

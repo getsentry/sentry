@@ -16,7 +16,10 @@ class Destroyer(Mediator):
 
     def _destroy_sentry_app_installations(self):
         for install in self.sentry_app.installations.all():
-            sentry_app_installations.Destroyer.run(install=install)
+            sentry_app_installations.Destroyer.run(
+                install=install,
+                user=self.sentry_app.proxy_user,
+            )
 
     def _destroy_api_application(self):
         self.sentry_app.application.delete()
