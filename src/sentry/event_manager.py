@@ -508,7 +508,14 @@ class EventManager(object):
                 enable_trimming=ENABLE_TRIMMING,
             )
 
-            self._data = CanonicalKeyDict(rust_normalizer.normalize_event(dict(self._data)))
+            legacy_python_json = self._auth and \
+                self._auth.client and \
+                'raven-python' in self._auth.client
+
+            self._data = CanonicalKeyDict(
+                rust_normalizer.normalize_event(dict(self._data),
+                                                legacy_python_json=legacy_python_json)
+            )
 
             normalize_user_agent(self._data)
             return
