@@ -37,7 +37,10 @@ def remove_widgets(dashboard_widgets, widget_data):
 
 def reorder_widgets(dashboard_id, widget_data):
     """
-
+    Reorders Widgets given the relative order desired,
+    reorders widgets in the next possible set of numbers
+    i.e if order of widgets is 1, 2, 3
+        the reordered widgets will have order 4, 5, 6
     """
     dashboard_widgets = Widget.objects.filter(
         dashboard_id=dashboard_id,
@@ -64,7 +67,7 @@ class WidgetSerializer(serializers.Serializer):
 class DashboardWithWidgetsSerializer(serializers.Serializer):
     title = serializers.CharField(required=False)
     widgets = ListField(
-        child=WidgetSerializer(required=True),
+        child=WidgetSerializer(),
         required=False,
         allow_null=True,
     )
@@ -73,10 +76,7 @@ class DashboardWithWidgetsSerializer(serializers.Serializer):
         try:
             widgets = attrs[source]
         except KeyError:
-            if self.fields['widgets'].required:
-                raise ValidationError('Widgets are required')
-            else:
-                return attrs
+            return attrs
 
         if len(widgets) != len(set([w['order'] for w in widgets])):
             raise ValidationError('Widgets must have no repeating order')
