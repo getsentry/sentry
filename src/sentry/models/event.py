@@ -216,7 +216,7 @@ class Event(Model):
     tags = property(get_tags)
 
     def get_tag(self, key):
-        for t, v in (self.data.get('tags') or ()):
+        for t, v in self.get_tags():
             if t == key:
                 return v
         return None
