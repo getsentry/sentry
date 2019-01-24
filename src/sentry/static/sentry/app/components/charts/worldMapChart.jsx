@@ -2,6 +2,7 @@ import {max} from 'lodash';
 import PropTypes from 'prop-types';
 import React from 'react';
 
+import theme from 'app/utils/theme';
 import BaseChart from './baseChart';
 import MapSeries from './series/mapSeries';
 
@@ -46,11 +47,11 @@ export default class WorldMapChart extends React.Component {
         data,
         itemStyle: {
           normal: {
-            areaColor: '#C1B8CA',
-            borderColor: '#F3EFF7',
+            areaColor: theme.gray1,
+            borderColor: theme.borderLighter,
           },
           emphasis: {
-            areaColor: '#EB982D',
+            areaColor: theme.yellowOrange,
           },
         },
       });
@@ -64,7 +65,7 @@ export default class WorldMapChart extends React.Component {
     return (
       <BaseChart
         options={{
-          backgroundColor: '#F3EFF7',
+          backgroundColor: theme.borderLighter,
           visualMap: {
             left: 'right',
             min: 0,
