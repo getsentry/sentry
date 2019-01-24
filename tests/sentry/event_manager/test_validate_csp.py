@@ -3,7 +3,7 @@ from __future__ import absolute_import
 import pytest
 
 from sentry.coreapi import APIError
-from sentry.event_manager import EventManager
+from sentry.event_manager import EventManager, ENABLE_RUST
 
 
 def validate_and_normalize(report, client_ip='198.51.100.0',
@@ -38,7 +38,7 @@ def test_csp_validate_basic():
     assert "errors" not in result
     assert 'logentry' in result
     assert result['culprit'] == "img-src 'self'"
-    assert result['tags'] == [
+    assert map(tuple, result['tags']) == [
         ('effective-directive', 'img-src'),
         ('blocked-uri', 'http://google.com'),
     ]
@@ -81,9 +81,10 @@ def test_csp_tags_out_of_bounds():
         }
     }
     result = validate_and_normalize(report)
-    assert result['tags'] == [
-        ('effective-directive', 'img-src'),
-    ]
+    if ENABLE_RUST:
+        assert result['tags'] == [['effective-directive', 'img-src'], None]
+    else:
+        assert result['tags'] == [('effective-directive', 'img-src')]
     assert len(result['errors']) == 1
 
 
@@ -104,7 +105,7 @@ def test_csp_tag_value():
         }
     }
     result = validate_and_normalize(report)
-    assert result['tags'] == [
+    assert map(tuple, result['tags']) == [
         ('effective-directive', 'img-src'),
         ('blocked-uri', 'http://google.com'),
     ]
@@ -131,17 +132,20 @@ def test_hpkp_validate_basic():
     assert 'errors' not in result
     assert 'logentry' in result
     assert not result.get('culprit')
-    assert sorted(result['tags']) == [
+    assert sorted(map(tuple, result['tags'])) == [
         ('hostname', 'www.example.com'),
         ('include-subdomains', 'false'),
         ('port', '443'),
     ]
     assert result['user'] == {'ip_address': '198.51.100.0'}
+    if ENABLE_RUST:
+        expected_headers = [['User-Agent', 'Awesome Browser']]
+    else:
+        expected_headers = [('User-Agent', 'Awesome Browser')]
+
     assert result['request'] == {
-        'url': 'www.example.com',
-        'headers': [
-            ('User-Agent', 'Awesome Browser'),
-        ]
+        'url': 'https://www.example.com/',
+        'headers': expected_headers
     }
 
 
