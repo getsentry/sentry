@@ -38,6 +38,10 @@ function getAlertTypeForProblem(problem) {
 const App = createReactClass({
   displayName: 'App',
 
+  propTypes: {
+    routes: PropTypes.array,
+  },
+
   childContextTypes: {
     location: PropTypes.object,
   },
