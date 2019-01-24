@@ -469,11 +469,6 @@ class EventManager(object):
 
     def normalize(self):
         tags = {
-            'project_id': six.text_type(
-                self._project.id
-                if self._project and self.use_rust_normalize
-                else None
-            ),
             'use_rust_normalize': six.text_type(self.use_rust_normalize)
         }
 
