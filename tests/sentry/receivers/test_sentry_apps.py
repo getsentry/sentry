@@ -7,7 +7,7 @@ from sentry.testutils import APITestCase, TestCase
 from sentry.testutils.helpers.faux import faux
 
 
-@patch('sentry.tasks.sentry_apps.process_resource_change.delay')
+@patch('sentry.tasks.sentry_apps.process_resource_change_bound.delay')
 class TestIssueSaved(TestCase):
     def test_processes_created_issues(self, delay):
         issue = self.create_group()

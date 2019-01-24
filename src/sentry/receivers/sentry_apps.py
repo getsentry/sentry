@@ -10,7 +10,7 @@ from sentry.signals import (
     resolved_with_commit,
 )
 from sentry.tasks.sentry_apps import (
-    process_resource_change,
+    process_resource_change_bound,
     workflow_notification,
 )
 
@@ -23,7 +23,7 @@ def issue_saved(sender, instance, created, **kwargs):
     if not created:
         return
 
-    process_resource_change.delay(
+    process_resource_change_bound.delay(
         action='created',
         sender=sender.__name__,
         instance_id=issue.id,
