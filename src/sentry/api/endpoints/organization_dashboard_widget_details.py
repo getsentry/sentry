@@ -4,7 +4,7 @@ from rest_framework.response import Response
 
 from sentry.api.base import DocSection
 from sentry.api.bases.dashboard import (
-    OrganizationDashboardWidgetEndpoint, WidgetSerializer
+    OrganizationDashboardWidgetEndpoint, WidgetDataSource, WidgetSerializer
 )
 from sentry.api.serializers import serialize
 from sentry.models import ObjectStatus
@@ -80,8 +80,22 @@ class OrganizationDashboardWidgetDetailsEndpoint(OrganizationDashboardWidgetEndp
         data = serializer.object
         # TODO(lb): For now, I am deciding to not allow moving widgets from dashboard to dashboard.
         widget.update(
-            title=data['title'],
-            display_type=data['display_type'],
-            display_options=data['display_options'],
+            title=data.get('title', widget.title),
+            display_type=data.get('display_type', widget.display_type),
+            display_options=data.get('display_options', widget.display_options)
         )
+
+        data_sources = data.get('dataSources', [])
+        if data_sources:
+            WidgetDataSource.objects.filter(
+                widget_id=widget.id
+            ).delete()
+        for widget_data in data_sources:
+            WidgetDataSource.objects.create(
+                name=widget_data['name'],
+                data=widget_data['data'],
+                type=widget_data['type'],
+                order=widget_data['order'],
+            )
+
         return Response(serialize(widget, request.user))

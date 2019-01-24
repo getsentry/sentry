@@ -5,7 +5,7 @@ from rest_framework.response import Response
 
 from sentry.api.base import DocSection
 from sentry.api.bases.dashboard import (
-    OrganizationDashboardEndpoint, WidgetSerializer
+    OrganizationDashboardEndpoint, WidgetSerializer, get_next_dashboard_order
 )
 from sentry.api.serializers import serialize
 from sentry.models import Widget
@@ -38,7 +38,7 @@ class OrganizationDashboardWidgetsEndpoint(OrganizationDashboardEndpoint):
                     display_type=result['display_type'],
                     display_options=result['display_options'],
                     title=result['title'],
-                    order=result['order'],
+                    order=get_next_dashboard_order(dashboard.id),
                     dashboard_id=dashboard.id,
                 )
         except IntegrityError:
