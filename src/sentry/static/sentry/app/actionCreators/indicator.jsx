@@ -173,4 +173,5 @@ const FieldName = styled('span')`
 `;
 const MessageContainer = styled('div')`
   display: flex;
+  align-items: center;
 `;
