@@ -91,52 +91,6 @@
       padding: 14px 20px 11px;
     }
 
-    .progress-nodes {
-      div.node {
-        width: 190px;
-        margin: auto;
-        margin-bottom: 30px;
-        display: flex;
-        color: @50;
-        position: relative;
-        padding-left: 26px;
-        border-color: @50;
-        line-height: 1.2;
-        text-shadow: 0 2px 5px rgba(0, 0, 0, 0.2);
-
-        &.active {
-          color: white;
-          font-weight: 600;
-
-          &::before {
-            border-color: white;
-          }
-        }
-
-        span.node {
-          &::before {
-            content: '';
-            position: absolute;
-            left: -10px;
-            border-radius: 100%;
-            width: 22px;
-            height: 22px;
-            margin: 1px 8px 0 0;
-            border: 3px solid;
-          }
-
-          &.done {
-            &::before {
-              font-size: 14px;
-              content: '●';
-              text-align: center;
-              line-height: 16px;
-            }
-          }
-        }
-      }
-    }
-
     .stuck {
       position: absolute;
       bottom: 0px;
