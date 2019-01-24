@@ -89,7 +89,7 @@ class TestInstallationNotifier(TestCase):
 
         data = faux(safe_urlopen).kwargs['data']
 
-        assert data == {
+        assert data == json.dumps({
             'action': 'deleted',
             'installation': {
                 'uuid': self.install.uuid,
@@ -110,7 +110,7 @@ class TestInstallationNotifier(TestCase):
                 'name': self.user.name,
                 'type': 'user',
             },
-        }
+        })
 
         assert faux(safe_urlopen).kwarg_equals('headers', DictContaining(
             'Content-Type',
