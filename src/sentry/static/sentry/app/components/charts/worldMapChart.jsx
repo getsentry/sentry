@@ -44,16 +44,13 @@ export default class WorldMapChart extends React.Component {
         aspectScale: 0.85,
         zoom: 1.3,
         center: [10.97, 9.71],
-        data,
         itemStyle: {
           normal: {
             areaColor: theme.gray1,
             borderColor: theme.borderLighter,
           },
-          emphasis: {
-            areaColor: theme.yellowOrange,
-          },
         },
+        data,
       });
     });
 
