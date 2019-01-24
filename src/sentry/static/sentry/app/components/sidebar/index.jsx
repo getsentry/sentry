@@ -319,49 +319,47 @@ class Sidebar extends React.Component {
               </SidebarSection>
 
               {!hasSentry10 && (
-                <React.Fragment>
-                  <SidebarSection>
-                    <SidebarItem
-                      {...sidebarItemProps}
-                      onClick={this.hidePanel}
-                      icon={<InlineSvg src="icon-user" />}
-                      label={t('Assigned to me')}
-                      to={`/organizations/${organization.slug}/issues/assigned/`}
-                    />
-                    <SidebarItem
-                      {...sidebarItemProps}
-                      onClick={this.hidePanel}
-                      icon={<InlineSvg src="icon-star" />}
-                      label={t('Bookmarked issues')}
-                      to={`/organizations/${organization.slug}/issues/bookmarks/`}
-                    />
-                    <SidebarItem
-                      {...sidebarItemProps}
-                      onClick={this.hidePanel}
-                      icon={<InlineSvg src="icon-history" />}
-                      label={t('Recently viewed')}
-                      to={`/organizations/${organization.slug}/issues/history/`}
-                    />
-                  </SidebarSection>
-
-                  <SidebarSection>
-                    <SidebarItem
-                      {...sidebarItemProps}
-                      onClick={this.hidePanel}
-                      icon={<InlineSvg src="icon-activity" />}
-                      label={t('Activity')}
-                      to={`/organizations/${organization.slug}/activity/`}
-                    />
-                    <SidebarItem
-                      {...sidebarItemProps}
-                      onClick={this.hidePanel}
-                      icon={<InlineSvg src="icon-stats" />}
-                      label={t('Stats')}
-                      to={`/organizations/${organization.slug}/stats/`}
-                    />
-                  </SidebarSection>
-                </React.Fragment>
+                <SidebarSection>
+                  <SidebarItem
+                    {...sidebarItemProps}
+                    onClick={this.hidePanel}
+                    icon={<InlineSvg src="icon-user" />}
+                    label={t('Assigned to me')}
+                    to={`/organizations/${organization.slug}/issues/assigned/`}
+                  />
+                  <SidebarItem
+                    {...sidebarItemProps}
+                    onClick={this.hidePanel}
+                    icon={<InlineSvg src="icon-star" />}
+                    label={t('Bookmarked issues')}
+                    to={`/organizations/${organization.slug}/issues/bookmarks/`}
+                  />
+                  <SidebarItem
+                    {...sidebarItemProps}
+                    onClick={this.hidePanel}
+                    icon={<InlineSvg src="icon-history" />}
+                    label={t('Recently viewed')}
+                    to={`/organizations/${organization.slug}/issues/history/`}
+                  />
+                </SidebarSection>
               )}
+
+              <SidebarSection>
+                <SidebarItem
+                  {...sidebarItemProps}
+                  onClick={this.hidePanel}
+                  icon={<InlineSvg src="icon-activity" />}
+                  label={t('Activity')}
+                  to={`/organizations/${organization.slug}/activity/`}
+                />
+                <SidebarItem
+                  {...sidebarItemProps}
+                  onClick={this.hidePanel}
+                  icon={<InlineSvg src="icon-stats" />}
+                  label={t('Stats')}
+                  to={`/organizations/${organization.slug}/stats/`}
+                />
+              </SidebarSection>
 
               <SidebarSection>
                 <SidebarItem
