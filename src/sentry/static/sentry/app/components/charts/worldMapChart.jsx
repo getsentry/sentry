@@ -2,6 +2,7 @@ import {max} from 'lodash';
 import PropTypes from 'prop-types';
 import React from 'react';
 
+import theme from 'app/utils/theme';
 import BaseChart from './baseChart';
 import MapSeries from './series/mapSeries';
 
@@ -40,6 +41,15 @@ export default class WorldMapChart extends React.Component {
         mapType: 'world',
         name: seriesName,
         nameMap: this.state.countryCodesMap,
+        aspectScale: 0.85,
+        zoom: 1.3,
+        center: [10.97, 9.71],
+        itemStyle: {
+          normal: {
+            areaColor: theme.gray1,
+            borderColor: theme.borderLighter,
+          },
+        },
         data,
       });
     });
@@ -52,24 +62,13 @@ export default class WorldMapChart extends React.Component {
     return (
       <BaseChart
         options={{
+          backgroundColor: theme.borderLighter,
           visualMap: {
             left: 'right',
             min: 0,
             max: maxValue,
             inRange: {
-              color: [
-                '#313695',
-                '#4575b4',
-                '#74add1',
-                '#abd9e9',
-                '#e0f3f8',
-                '#ffffbf',
-                '#fee090',
-                '#fdae61',
-                '#f46d43',
-                '#d73027',
-                '#a50026',
-              ],
+              color: [theme.purpleLightest, theme.purpleDarkest],
             },
             text: ['High', 'Low'],
             calculable: true,
