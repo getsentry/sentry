@@ -14,35 +14,17 @@ class OrganizationDashboardWidgetDetailsEndpoint(OrganizationDashboardWidgetEndp
 
     doc_section = DocSection.ORGANIZATIONS
 
-    def get(self, request, organization, widget):
-        """
-        Retrieve an Organization's Dashboard's Widget
-        `````````````````````````````````````````````
-
-        Return details on an individual organization's dashboard's widget.
-
-        :pparam string organization_slug: the slug of the organization the
-                                          dashboard belongs to.
-        :pparam int dashboard_id: the id of the dashboard.
-        :pparam int widget_id: the id of the widget belonging to a dashboard
-                                the organization owns.
-        :auth: required
-        """
-
-        return self.respond(serialize(widget, request.user))
-
     def delete(self, request, organization, widget):
         """
         Delete an Organization's Dashboard
         ```````````````````````````````````
 
-        Delete an individual organization's dashboard.
+        Delete an individual widget on an organization's dashboard.
 
         :pparam string organization_slug: the slug of the organization the
                                           dashboard belongs to.
         :pparam int dashboard_id: the id of the dashboard.
-        :pparam int widget_id: the id of the widget belonging to a dashboard
-                                the organization owns.
+        :pparam int widget_id: the id of the widget.
         :auth: required
         """
 
@@ -61,17 +43,17 @@ class OrganizationDashboardWidgetDetailsEndpoint(OrganizationDashboardWidgetEndp
         :pparam string organization_slug: the slug of the organization the
                                           dashboard belongs to.
         :pparam int dashboard_id: the id of the dashboard.
-        :pparam int widget_id: the id of the widget belonging to a dashboard
-                                the organization owns.
+        :pparam int widget_id: the id of the widget.
         :param string title: the title of the widget.
-        :param string display_type: the widget display type (i.e. line or table).
-        :param array display_options: the widget display options are special
+        :param string displayType: the widget display type (i.e. line or table).
+        :param array displayOptions: the widget display options are special
                                     variables necessary to displaying the widget correctly.
+        :param array dataSources: the sources of data for the widget to display.
         :auth: required
         """
         # TODO(lb): the display type has a set number of things you can enter.
-        # Where is the right place to document this? I vote linking to
-        # another page in the docs that shows what each type is with photos.
+        # Where is the right place to document this? I think linking to
+        # another page in the docs that shows what each type is with photos is best.
 
         serializer = WidgetSerializer(data=request.DATA)
         if not serializer.is_valid():
@@ -81,8 +63,8 @@ class OrganizationDashboardWidgetDetailsEndpoint(OrganizationDashboardWidgetEndp
         # TODO(lb): For now, I am deciding to not allow moving widgets from dashboard to dashboard.
         widget.update(
             title=data.get('title', widget.title),
-            display_type=data.get('display_type', widget.display_type),
-            display_options=data.get('display_options', widget.display_options)
+            display_type=data.get('displayType', widget.display_type),
+            display_options=data.get('displayOptions', widget.display_options)
         )
 
         data_sources = data.get('dataSources', [])

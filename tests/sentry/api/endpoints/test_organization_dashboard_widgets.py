@@ -1,100 +1,10 @@
 from __future__ import absolute_import
 
-
-from django.core.urlresolvers import reverse
-from sentry.models import Dashboard, ObjectStatus, Widget, WidgetDataSource, WidgetDataSourceTypes, WidgetDisplayTypes
-from sentry.testutils import APITestCase
+from sentry.models import Widget, WidgetDataSource, WidgetDisplayTypes
+from sentry.testutils import OrganizationDashboardWidgetsTestCase
 
 
-class OrganizationDashboardWidgetsPostTestCase(APITestCase):
-    def setUp(self):
-        super(OrganizationDashboardWidgetsPostTestCase, self).setUp()
-        self.login_as(self.user)
-        self.dashboard = Dashboard.objects.create(
-            title='Dashboard 1',
-            created_by=self.user,
-            organization=self.organization,
-        )
-        self.anon_users_query = {
-            'name': 'anonymousUsersAffectedQuery',
-            'fields': [],
-            'conditions': [['user.email', 'IS NULL', None]],
-            'aggregations': [['count()', None, 'Anonymous Users']],
-            'limit': 1000,
-            'orderby': '-time',
-            'groupby': ['time'],
-            'rollup': 86400,
-        }
-        self.known_users_query = {
-            'name': 'knownUsersAffectedQuery',
-            'fields': [],
-            'conditions': [['user.email', 'IS NOT NULL', None]],
-            'aggregations': [['uniq', 'user.email', 'Known Users']],
-            'limit': 1000,
-            'orderby': '-time',
-            'groupby': ['time'],
-            'rollup': 86400,
-        }
-        self.geo_erorrs_query = {
-            'name': 'errorsByGeo',
-            'fields': ['geo.country_code'],
-            'conditions': [['geo.country_code', 'IS NOT NULL', None]],
-            'aggregations': [['count()', None, 'count']],
-            'limit': 10,
-            'orderby': '-count',
-            'groupby': ['geo.country_code'],
-        }
-
-    def url(self, dashboard_id):
-        return reverse(
-            'sentry-api-0-organization-dashboard-widgets',
-            kwargs={
-                'organization_slug': self.organization.slug,
-                'dashboard_id': dashboard_id,
-            }
-        )
-
-    def assert_widget_data_sources(self, widget_id, data):
-        result_data_sources = sorted(
-            WidgetDataSource.objects.filter(
-                widget_id=widget_id,
-                status=ObjectStatus.VISIBLE
-            ),
-            key=lambda x: x.order
-        )
-        data.sort(key=lambda x: x['order'])
-        for ds, expected_ds in zip(result_data_sources, data):
-            assert ds.name == expected_ds['name']
-            assert ds.type == WidgetDataSourceTypes.get_id_for_type_name(expected_ds['type'])
-            assert ds.order == expected_ds['order']
-            assert ds.data == expected_ds['data']
-
-    def assert_widget(self, widget, order, title, display_type,
-                      display_options=None, data_sources=None):
-        assert widget.order == order
-        assert widget.display_type == display_type
-        if display_options:
-            assert widget.display_options == display_options
-        assert widget.title == title
-
-        if not data_sources:
-            return
-
-        self.assert_widget_data_sources(widget.id, data_sources)
-
-    def assert_widget_data(self, data, order, title, display_type,
-                           display_options=None, data_sources=None):
-        assert data['order'] == order
-        assert data['displayType'] == display_type
-        if display_options:
-            assert data['displayOptions'] == display_options
-        assert data['title'] == title
-
-        if not data_sources:
-            return
-
-        self.assert_widget_data_sources(data['id'], data_sources)
-
+class OrganizationDashboardWidgetsPostTestCase(OrganizationDashboardWidgetsTestCase):
     def test_simple(self):
         data_sources = [
             {

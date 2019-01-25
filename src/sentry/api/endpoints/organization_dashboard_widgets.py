@@ -22,7 +22,12 @@ class OrganizationDashboardWidgetsEndpoint(OrganizationDashboardEndpoint):
         Create a new dashboard for the given Organization
         :pparam string organization_slug: the slug of the organization the
                                           dashboards belongs to.
-
+        :param string title: the title of the widget.
+        :param string displayType: the widget display type (i.e. line or table).
+        :param array displayOptions: the widget display options are special
+                                    variables necessary to displaying the widget correctly.
+        :param array dataSources: the sources of data for the widget to display.
+        :auth: required
         """
 
         serializer = WidgetSerializer(data=request.DATA, context={'organization': organization})
