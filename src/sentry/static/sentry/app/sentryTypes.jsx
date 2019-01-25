@@ -93,6 +93,31 @@ export const DiscoverSavedQuery = PropTypes.shape({
   ...DiscoverQueryShape,
 });
 
+const DiscoverResultShape = {
+  data: PropTypes.arrayOf(PropTypes.object),
+  meta: PropTypes.arrayOf(
+    PropTypes.shape({
+      type: PropTypes.string,
+      name: PropTypes.string,
+    })
+  ),
+  timing: PropTypes.shape({
+    duration_ms: PropTypes.number,
+    marks_ms: PropTypes.shape({
+      cache_get: PropTypes.number,
+      dedupe_wait: PropTypes.number,
+      execute: PropTypes.number,
+      get_configs: PropTypes.number,
+      prepare_query: PropTypes.number,
+      rate_limit: PropTypes.number,
+      validate_schema: PropTypes.number,
+    }),
+    timestamp: PropTypes.number,
+  }),
+};
+
+export const DiscoverResult = PropTypes.arrayOf(PropTypes.shape(DiscoverResultShape));
+
 /**
  * A Member is someone that was invited to Sentry but may
  * not have registered for an account yet
@@ -879,6 +904,7 @@ let SentryTypes = {
   Deploy,
   DiscoverQuery,
   DiscoverSavedQuery,
+  DiscoverResult,
   Environment,
   Event,
   Organization: PropTypes.shape({
