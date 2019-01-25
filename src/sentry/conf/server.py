@@ -441,7 +441,7 @@ CELERY_REDIRECT_STDOUTS = False
 CELERYD_HIJACK_ROOT_LOGGER = False
 CELERY_IMPORTS = (
     'sentry.tasks.auth', 'sentry.tasks.auto_resolve_issues', 'sentry.tasks.beacon',
-    'sentry.tasks.check_auth', 'sentry.tasks.clear_expired_snoozes',
+    'sentry.tasks.check_auth', 'sentry.tasks.check_monitors', 'sentry.tasks.clear_expired_snoozes',
     'sentry.tasks.collect_project_platforms', 'sentry.tasks.commits', 'sentry.tasks.deletion',
     'sentry.tasks.digests', 'sentry.tasks.email', 'sentry.tasks.merge',
     'sentry.tasks.options', 'sentry.tasks.ping', 'sentry.tasks.post_process',
