@@ -6,6 +6,8 @@ import styled from 'react-emotion';
 import {LoadingMask} from 'app/views/organizationEvents/loadingPanel';
 import {Panel, PanelBody, PanelHeader} from 'app/components/panels';
 import {WIDGET_DISPLAY} from 'app/views/organizationDashboard/constants';
+import {t} from 'app/locale';
+import ErrorBoundary from 'app/components/errorBoundary';
 import ExploreWidget from 'app/views/organizationDashboard/exploreWidget';
 import SentryTypes from 'app/sentryTypes';
 import withGlobalSelection from 'app/utils/withGlobalSelection';
@@ -25,53 +27,56 @@ class Widget extends React.Component {
 
   render() {
     const {organization, router, widget, releases, selection} = this.props;
-    const {type, title, includePreviousPeriod, compareToPeriod, queries} = widget;
+    const {type, title, includePreviousPeriod, compareToPeriod} = widget;
     const isTable = type === WIDGET_DISPLAY.TABLE;
 
     return (
-      <DiscoverQuery
-        organization={organization}
-        selection={selection}
-        queries={queries.discover}
-        includePreviousPeriod={includePreviousPeriod}
-        compareToPeriod={compareToPeriod}
-      >
-        {({results, reloading}) => {
-          // Show a placeholder "square" during initial load
-          if (results === null) {
-            return <Placeholder />;
-          }
+      <ErrorBoundary renderer={<ErrorCard>{t('Error loading widget')}</ErrorCard>}>
+        <DiscoverQuery
+          organization={organization}
+          selection={selection}
+          queries={widget.queries.discover}
+          includePreviousPeriod={includePreviousPeriod}
+          compareToPeriod={compareToPeriod}
+        >
+          {({queries, results, reloading}) => {
+            // Show a placeholder "square" during initial load
+            if (results === null) {
+              return <Placeholder />;
+            }
 
-          const widgetChartProps = {
-            releases,
-            selection,
-            results,
-            widget,
-            reloading,
-            router,
-          };
+            const widgetChartProps = {
+              releases,
+              selection,
+              results,
+              widget,
+              reloading,
+              router,
+              organization,
+            };
 
-          return (
-            <WidgetWrapper>
-              {reloading && <ReloadingMask />}
-              {isTable && <WidgetChart {...widgetChartProps} />}
-              {!isTable && (
-                <Panel>
-                  <PanelHeader hasButtons>
-                    {title}
+            return (
+              <WidgetWrapper>
+                {reloading && <ReloadingMask />}
+                {isTable && <WidgetChart {...widgetChartProps} />}
+                {!isTable && (
+                  <Panel>
+                    <PanelHeader hasButtons>
+                      {title}
 
-                    <ExploreWidget {...{widget, router, selection}} />
-                  </PanelHeader>
+                      <ExploreWidget {...{widget, queries, router, selection}} />
+                    </PanelHeader>
 
-                  <StyledPanelBody>
-                    <WidgetChart {...widgetChartProps} />
-                  </StyledPanelBody>
-                </Panel>
-              )}
-            </WidgetWrapper>
-          );
-        }}
-      </DiscoverQuery>
+                    <StyledPanelBody>
+                      <WidgetChart {...widgetChartProps} />
+                    </StyledPanelBody>
+                  </Panel>
+                )}
+              </WidgetWrapper>
+            );
+          }}
+        </DiscoverQuery>
+      </ErrorBoundary>
     );
   }
 }
@@ -85,7 +90,7 @@ const StyledPanelBody = styled(PanelBody)`
 
 const Placeholder = styled('div')`
   background-color: ${p => p.theme.offWhite};
-  height: 248px;
+  height: 237px;
 `;
 
 const WidgetWrapper = styled('div')`
@@ -95,4 +100,14 @@ const WidgetWrapper = styled('div')`
 const ReloadingMask = styled(LoadingMask)`
   z-index: 1;
   opacity: 0.6;
+`;
+
+const ErrorCard = styled(Placeholder)`
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background-color: ${p => p.theme.alert.error.backgroundLight};
+  border: 1px solid ${p => p.theme.alert.error.border};
+  color: ${p => p.theme.alert.error.textLight};
+  border-radius: ${p => p.theme.borderRadius};
 `;
