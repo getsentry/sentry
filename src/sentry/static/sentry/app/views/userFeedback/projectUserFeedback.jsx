@@ -195,14 +195,13 @@ const ProjectUserFeedback = createReactClass({
   },
 
   render() {
-    const {location, params} = this.props;
+    const {location} = this.props;
 
     return (
       <UserFeedbackContainer
         pageLinks={this.state.pageLinks}
         status={this.state.status}
         location={location}
-        params={params}
       >
         {this.renderStreamBody()}
       </UserFeedbackContainer>
