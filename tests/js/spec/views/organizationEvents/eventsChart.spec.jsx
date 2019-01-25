@@ -62,29 +62,6 @@ describe('EventsChart', function() {
     expect(render).toHaveBeenCalledTimes(1);
   });
 
-  it('does not re-render if zoomed', function() {
-    expect(render).toHaveBeenCalledTimes(0);
-    doZoom(wrapper, chart);
-    let newParams = {
-      period: null,
-      start: '2018-11-29T00:00:00',
-      end: '2018-12-02T00:00:00',
-      zoom: '1',
-    };
-    expect(updateParams).toHaveBeenCalledWith(newParams, router);
-    expect(render).toHaveBeenCalledTimes(0);
-    wrapper.setProps({
-      period: newParams.period,
-      start: getLocalDateObject(newParams.start),
-      end: getLocalDateObject(newParams.end),
-      zoom: true,
-    });
-    expect(render).toHaveBeenCalledTimes(0);
-    wrapper.update();
-
-    expect(render).toHaveBeenCalledTimes(0);
-  });
-
   it('has correct history entries when zooming', function() {
     let newParams;
     const chartZoomInstance = wrapper.find('ChartZoom').instance();
@@ -126,18 +103,14 @@ describe('EventsChart', function() {
       period: null,
       start: '2018-11-29T00:00:00',
       end: '2018-12-02T00:00:00',
-      zoom: '1',
     };
     expect(updateParams).toHaveBeenCalledWith(newParams, router);
     wrapper.setProps({
       period: newParams.period,
       start: getLocalDateObject(newParams.start),
       end: getLocalDateObject(newParams.end),
-      zoom: true,
     });
     wrapper.update();
-
-    expect(render).toHaveBeenCalledTimes(0);
   });
 
   it('updates url params when restoring zoom level on chart', function() {
@@ -165,18 +138,15 @@ describe('EventsChart', function() {
       period: '14d',
       start: null,
       end: null,
-      zoom: '1',
     };
     expect(updateParams).toHaveBeenCalledWith(newParams, router);
     wrapper.setProps({
       period: '14d',
       start: null,
       end: null,
-      zoom: true,
     });
     wrapper.update();
 
     expect(chartZoomInstance.history).toHaveLength(0);
-    expect(render).toHaveBeenCalledTimes(0);
   });
 });
