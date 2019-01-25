@@ -8,34 +8,35 @@ import createReactClass from 'create-react-class';
 import qs from 'query-string';
 
 import {Client} from 'app/api';
-import {Panel, PanelBody} from 'app/components/panels';
-import {analytics} from 'app/utils/analytics';
 import {t} from 'app/locale';
 import ErrorRobot from 'app/components/errorRobot';
+import EmptyStateWarning from 'app/components/emptyStateWarning';
+import LoadingError from 'app/components/loadingError';
+import LoadingIndicator from 'app/components/loadingIndicator';
+import {extractSelectionParameters} from 'app/components/organizations/globalSelectionHeader/utils';
+import Pagination from 'app/components/pagination';
+import {Panel, PanelBody} from 'app/components/panels';
+import StreamGroup from 'app/components/stream/group';
+import {updateProjects} from 'app/actionCreators/globalSelection';
 import {fetchTags} from 'app/actionCreators/tags';
 import {fetchOrgMembers} from 'app/actionCreators/members';
 import {fetchSavedSearches} from 'app/actionCreators/savedSearches';
 import {fetchProcessingIssues} from 'app/actionCreators/processingIssues';
 import ConfigStore from 'app/stores/configStore';
-import EventsChart from 'app/views/organizationEvents/eventsChart';
 import GroupStore from 'app/stores/groupStore';
-import {getUtcDateString} from 'app/utils/dates';
 import SelectedGroupStore from 'app/stores/selectedGroupStore';
 import TagStore from 'app/stores/tagStore';
-import EmptyStateWarning from 'app/components/emptyStateWarning';
-import LoadingError from 'app/components/loadingError';
-import LoadingIndicator from 'app/components/loadingIndicator';
-import {logAjaxError} from 'app/utils/logging';
-import Pagination from 'app/components/pagination';
-import ProcessingIssueHint from 'app/views/stream/processingIssueHint';
+import EventsChart from 'app/views/organizationEvents/eventsChart';
 import SentryTypes from 'app/sentryTypes';
-import StreamGroup from 'app/components/stream/group';
 import StreamActions from 'app/views/stream/actions';
 import StreamFilters from 'app/views/stream/filters';
 import StreamSidebar from 'app/views/stream/sidebar';
+import ProcessingIssueHint from 'app/views/stream/processingIssueHint';
+import {analytics} from 'app/utils/analytics';
+import {getUtcDateString} from 'app/utils/dates';
+import {logAjaxError} from 'app/utils/logging';
 import parseApiError from 'app/utils/parseApiError';
 import parseLinkHeader from 'app/utils/parseLinkHeader';
-import {updateProjects} from 'app/actionCreators/globalSelection';
 import utils from 'app/utils';
 import withOrganization from 'app/utils/withOrganization';
 import withGlobalSelection from 'app/utils/withGlobalSelection';
@@ -240,20 +241,23 @@ const OrganizationStream = createReactClass({
       method: 'GET',
       data: qs.stringify(requestParams),
       success: (data, ignore, jqXHR) => {
-        // if this is a direct hit, we redirect to the intended result directly.
-        // we have to use the project slug from the result data instead of the
-        // the current props one as the shortIdLookup can return results for
-        // different projects.
+        let {orgId} = this.props.params;
+        // If this is a direct hit, we redirect to the intended result directly.
         if (jqXHR.getResponseHeader('X-Sentry-Direct-Hit') === '1') {
-          if (data && data[0].matchingEventId) {
-            let {project, id, matchingEventId} = data[0];
-            let redirect = `/${this.props.params
-              .orgId}/${project.slug}/issues/${id}/events/${matchingEventId}/`;
-
-            // TODO include global search query params
-            browserHistory.replace(redirect);
-            return;
+          let redirect;
+          if (data[0] && data[0].matchingEventId) {
+            let {id, matchingEventId} = data[0];
+            redirect = `/organizations/${orgId}/issues/${id}/events/${matchingEventId}/`;
+          } else {
+            let {id} = data[0];
+            redirect = `/organizations/${orgId}/issues/${id}/`;
           }
+
+          browserHistory.replace({
+            pathname: redirect,
+            query: extractSelectionParameters(this.props.location.query),
+          });
+          return;
         }
 
         this._streamManager.push(data);
