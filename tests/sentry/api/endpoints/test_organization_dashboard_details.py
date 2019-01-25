@@ -255,7 +255,7 @@ class OrganizationDashboardDetailsPutTest(OrganizationDashboardDetailsTestCase):
             }
         )
         assert response.status_code == 400
-        assert response.data == {'widgets': [u'Widgets must have no repeating order']}
+        assert response.data == {'widgets': [u'Widgets must not have duplicate order values.']}
         self.assert_no_changes()
 
     def test_partial_reordering_deletes_widgets(self):
