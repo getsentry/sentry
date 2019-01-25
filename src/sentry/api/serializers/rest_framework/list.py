@@ -56,7 +56,7 @@ class ListField(WritableField):
         if self.child:
             # the `self.child.from_native` call might have already
             # validated/changed data so check for child errors first
-            if self.child.errors:
+            if self.child._errors:
                 raise ValidationError(self.format_child_errors())
             for item in value:
                 if item is None and not self.allow_null:

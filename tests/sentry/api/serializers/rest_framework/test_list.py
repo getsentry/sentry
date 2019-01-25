@@ -49,8 +49,7 @@ class ListFieldTest(TestCase):
         class DummySerializer(serializers.Serializer):
             list_field = ListField(required=False, child=DummyChildSerializer())
         serializer = DummySerializer(data={'list_field': []})
-        self.assert_unsuccessful(serializer,
-                                 {'list_field': ['non_field_errors: No input provided']})
+        self.assert_success(serializer, {'list_field': []})
 
     def test_empty_list_child_not_required_complex_object(self):
         class DummyChildSerializer(serializers.Serializer):
@@ -60,8 +59,7 @@ class ListFieldTest(TestCase):
         class DummySerializer(serializers.Serializer):
             list_field = ListField(required=False, child=DummyChildSerializer(required=False))
         serializer = DummySerializer(data={'list_field': []})
-        self.assert_unsuccessful(serializer,
-                                 {'list_field': ['non_field_errors: No input provided']})
+        self.assert_success(serializer, {'list_field': []})
 
     def test_empty_list_child_not_required_complex_object_with_default(self):
         class DummyChildSerializer(serializers.Serializer):
@@ -75,8 +73,7 @@ class ListFieldTest(TestCase):
                 child=DummyChildSerializer(
                     required=False))
         serializer = DummySerializer(data={'list_field': []})
-        self.assert_unsuccessful(serializer,
-                                 {'list_field': ['non_field_errors: No input provided']})
+        self.assert_success(serializer, {'list_field': []})
 
     def test_empty_list(self):
         class DummySerializer(serializers.Serializer):
