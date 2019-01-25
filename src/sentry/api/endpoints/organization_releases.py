@@ -219,6 +219,14 @@ class OrganizationReleasesEndpoint(OrganizationReleasesBaseEndpoint, Environment
                 if created:
                     new_projects.append(project)
 
+            commit_list = result.get('commits')
+            # Only process resolutions when adding a project to a release if
+            # the release already existed, and we're not passing in a new list
+            # of commits. If we're passing in commits we'll process resolutions
+            # as part of that process.
+            if not created and not commit_list:
+                release.resolve_commit_resolutions_for_projects(new_projects)
+
             if release.date_released:
                 for project in new_projects:
                     Activity.objects.create(
@@ -229,7 +237,6 @@ class OrganizationReleasesEndpoint(OrganizationReleasesBaseEndpoint, Environment
                         datetime=release.date_released,
                     )
 
-            commit_list = result.get('commits')
             if commit_list:
                 release.set_commits(commit_list)
 

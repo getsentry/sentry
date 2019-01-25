@@ -157,17 +157,22 @@ class Release(Model):
             else:
                 try:
                     with transaction.atomic():
-                        release = cls.objects.create(
+                        release, rel_created = cls.objects.create(
                             organization_id=project.organization_id,
                             version=version,
                             date_added=date_added,
                             total_deploys=0,
-                        )
+                        ), True
                 except IntegrityError:
-                    release = cls.objects.get(
+                    release, rel_created = cls.objects.get(
                         organization_id=project.organization_id, version=version
-                    )
-                release.add_project(project)
+                    ), False
+                created = release.add_project(project)
+                # Only process release resolutions if this release already
+                # existed
+                if not rel_created and created:
+                    release.resolve_commit_resolutions_for_projects([project])
+
                 if not project.flags.has_releases:
                     project.flags.has_releases = True
                     project.update(flags=F('flags').bitor(Project.flags.has_releases))
@@ -355,11 +360,10 @@ class Release(Model):
 
         # TODO(dcramer): this function could use some cleanup/refactoring as its a bit unwieldly
         from sentry.models import (
-            Commit, CommitAuthor, Group, GroupLink, GroupResolution, GroupStatus,
-            ReleaseCommit, ReleaseHeadCommit, Repository, PullRequest
+            Commit, CommitAuthor, Project, ReleaseCommit, ReleaseHeadCommit,
+            Repository
         )
         from sentry.plugins.providers.repository import RepositoryProvider
-        from sentry.tasks.integrations import kick_off_status_syncs
         # todo(meredith): implement for IntegrationRepositoryProvider
         commit_list = [
             c for c in commit_list
@@ -378,7 +382,6 @@ class Release(Model):
 
                 authors = {}
                 repos = {}
-                commit_author_by_commit = {}
                 head_commit_by_repo = {}
                 latest_commit = None
                 for idx, data in enumerate(commit_list):
@@ -442,11 +445,6 @@ class Release(Model):
                             repository_id=repo.id,
                             key=data['id'])
 
-                    if author is None:
-                        author = commit.author
-
-                    commit_author_by_commit[commit.id] = author
-
                     patch_set = data.get('patch_set', [])
                     for patched_file in patch_set:
                         try:
@@ -502,15 +500,40 @@ class Release(Model):
             except IntegrityError:
                 pass
 
-        release_commits = list(ReleaseCommit.objects.filter(release=self)
-                               .select_related('commit').values('commit_id', 'commit__key'))
+        projects = list(Project.objects.filter(releases=self))
+        self.resolve_commit_resolutions_for_projects(projects)
+
+    def resolve_commit_resolutions_for_projects(self, projects):
+        from sentry.models import (
+            CommitAuthor, Group, GroupLink, GroupResolution, GroupStatus,
+            ReleaseCommit, PullRequest,
+        )
+        from sentry.tasks.integrations import kick_off_status_syncs
+        project_ids = [project.id for project in projects]
+        release_commits = list(
+            ReleaseCommit.objects.filter(release=self).select_related(
+                'commit',
+            ).values('commit_id', 'commit__key', 'commit__author_id')
+        )
 
         commit_resolutions = list(
             GroupLink.objects.filter(
+                project_id__in=project_ids,
                 linked_type=GroupLink.LinkedType.commit,
                 linked_id__in=[rc['commit_id'] for rc in release_commits],
             ).values_list('group_id', 'linked_id')
         )
+
+        commit_author_by_id = {
+            author.id: author for author in CommitAuthor.objects.filter(
+                id__in=set(rc['commit__author_id'] for rc in release_commits),
+            )
+        }
+
+        commit_author_by_commit = {
+            rc['commit_id']: commit_author_by_id[rc['commit__author_id']]
+            for rc in release_commits if rc['commit__author_id']
+        }
 
         commit_group_authors = [
             (cr[0],  # group_id
@@ -523,6 +546,7 @@ class Release(Model):
 
         pull_request_resolutions = list(
             GroupLink.objects.filter(
+                project_id__in=project_ids,
                 relationship=GroupLink.Relationship.resolves,
                 linked_type=GroupLink.LinkedType.pull_request,
                 linked_id__in=pr_ids_by_merge_commit,

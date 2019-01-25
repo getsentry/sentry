@@ -485,6 +485,70 @@ class SetCommitsTestCase(TestCase):
 
         assert Group.objects.get(id=group.id).status == GroupStatus.RESOLVED
 
+    def test_resolution_multi_project_release(self):
+        org = self.create_organization(owner=self.user)
+        project = self.create_project(organization=org, name='foo')
+        other_project = self.create_project(organization=org)
+        group = self.create_group(project=other_project)
+
+        repo = Repository.objects.create(
+            organization_id=org.id,
+            name='test/repo',
+        )
+        author = CommitAuthor.objects.create(
+            organization_id=org.id,
+            name='Foo Bar',
+            email=self.user.email,
+        )
+        commit = Commit.objects.create(
+            organization_id=org.id,
+            repository_id=repo.id,
+            message='fixes %s' % (group.qualified_short_id),
+            key='alksdflskdfjsldkfajsflkslk',
+            author=author,
+        )
+
+        old_release = self.create_release(project=project, version='pre-1.0')
+
+        GroupResolution.objects.create(
+            group=group,
+            release=old_release,
+            type=GroupResolution.Type.in_next_release,
+            status=GroupResolution.Status.pending,
+        )
+
+        release = self.create_release(project=project, version='abcdabc')
+        release.set_commits([{
+            'id': commit.key,
+            'repository': repo.name,
+        }])
+
+        assert GroupLink.objects.filter(
+            group_id=group.id,
+            linked_type=GroupLink.LinkedType.commit,
+            linked_id=commit.id,
+        ).exists()
+
+        # Shouldn't be resolved at this point, since `other_project` isn't
+        # associated with the release yet.
+        resolution = GroupResolution.objects.get(group=group)
+        assert resolution.status == GroupResolution.Status.pending
+        assert resolution.release == old_release
+        assert resolution.type == GroupResolution.Type.in_next_release
+        assert resolution.actor_id is None
+
+        release.add_project(other_project)
+        release.set_commits([{
+            'id': commit.key,
+            'repository': repo.name,
+        }])
+
+        resolution = GroupResolution.objects.get(group=group)
+        assert resolution.status == GroupResolution.Status.resolved
+        assert resolution.release == release
+        assert resolution.type == GroupResolution.Type.in_release
+        assert resolution.actor_id == self.user.id
+
     @patch('sentry.integrations.example.integration.ExampleIntegration.sync_status_outbound')
     def test_resolution_support_with_integration(self, mock_sync_status_outbound):
         org = self.create_organization()

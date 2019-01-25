@@ -155,7 +155,7 @@ class ProjectReleasesEndpoint(ProjectEndpoint, EnvironmentMixin):
             # experiences
             try:
                 with transaction.atomic():
-                    release, created = Release.objects.create(
+                    release, rel_created = Release.objects.create(
                         organization_id=project.organization_id,
                         version=result['version'],
                         ref=result.get('ref'),
@@ -165,7 +165,7 @@ class ProjectReleasesEndpoint(ProjectEndpoint, EnvironmentMixin):
                     ), True
                 was_released = False
             except IntegrityError:
-                release, created = Release.objects.get(
+                release, rel_created = Release.objects.get(
                     organization_id=project.organization_id,
                     version=result['version'],
                 ), False
@@ -176,6 +176,13 @@ class ProjectReleasesEndpoint(ProjectEndpoint, EnvironmentMixin):
             created = release.add_project(project)
 
             commit_list = result.get('commits')
+            # Only process resolutions when adding a project to a release if
+            # the release already existed, and we're not passing in a new list
+            # of commits. If we're passing in commits we'll process resolutions
+            # as part of that process
+            if not rel_created and created and not commit_list:
+                release.resolve_commit_resolutions_for_projects([project])
+
             if commit_list:
                 hook = ReleaseHook(project)
                 # TODO(dcramer): handle errors with release payloads
