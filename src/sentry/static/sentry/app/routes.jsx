@@ -797,6 +797,7 @@ function routes() {
               import(/* webpackChunkName: "OrganizationStreamContainer" */ './views/organizationStream/container')}
             component={errorHandler(LazyLoad)}
           >
+            <Redirect from="/organizations/:orgId/" to="/organizations/:orgId/issues/" />
             <IndexRoute
               componentPromise={() =>
                 import(/* webpackChunkName: "OrganizationStreamOverview" */ './views/organizationStream/overview')}

@@ -65,7 +65,7 @@ class FeatureManager(object):
         Depending on the Feature class, additional arguments may need to be
         provided to assign organiation or project context to the feature.
 
-        >>> FeatureManager.has('organization:feature', organization, actor=request.user)
+        >>> FeatureManager.has('organizations:feature', organization, actor=request.user)
         """
         actor = kwargs.pop('actor', None)
         feature = self.get(name, *args, **kwargs)
