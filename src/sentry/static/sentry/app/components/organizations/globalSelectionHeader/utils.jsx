@@ -48,8 +48,5 @@ export function getStateFromQuery(query) {
  * when building another URL.
  */
 export function extractSelectionParameters(query) {
-  return pickBy(
-    pick(query, Object.values(URL_PARAM)),
-    identity
-  );
+  return pickBy(pick(query, Object.values(URL_PARAM)), identity);
 }

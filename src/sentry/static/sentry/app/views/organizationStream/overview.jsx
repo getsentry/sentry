@@ -247,7 +247,7 @@ const OrganizationStream = createReactClass({
         if (jqXHR.getResponseHeader('X-Sentry-Direct-Hit') === '1') {
           let redirect;
           if (data[0] && data[0].matchingEventId) {
-            let {project, id, matchingEventId} = data[0];
+            let {id, matchingEventId} = data[0];
             redirect = `/organizations/${orgId}/issues/${id}/events/${matchingEventId}/`;
           } else {
             let {id} = data[0];
