@@ -65,7 +65,7 @@ export default class AddIntegration extends React.Component {
   };
 
   didReceiveMessage = message => {
-    if (message.origin !== document.origin) {
+    if (message.origin !== document.location.origin) {
       return;
     }
 
