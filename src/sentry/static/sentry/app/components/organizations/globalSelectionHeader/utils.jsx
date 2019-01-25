@@ -1,4 +1,5 @@
 import {defined} from 'app/utils';
+import {pick, pickBy, identity} from 'lodash';
 import {getLocalDateObject} from 'app/utils/dates';
 import {URL_PARAM} from './constants';
 
@@ -39,4 +40,13 @@ export function getStateFromQuery(query) {
     // params from URL will be a string
     utc: typeof utc !== 'undefined' ? utc === 'true' : null,
   };
+}
+
+/**
+ * Extract the global selection parameters from an object
+ * Useful for extracting global selection properties from the current URL
+ * when building another URL.
+ */
+export function extractSelectionParameters(query) {
+  return pickBy(pick(query, Object.values(URL_PARAM)), identity);
 }

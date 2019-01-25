@@ -1,6 +1,6 @@
 import $ from 'jquery';
 import {ThemeProvider} from 'emotion-theming';
-import {isEqual, pick, pickBy, identity} from 'lodash';
+import {isEqual} from 'lodash';
 import {withRouter, browserHistory} from 'react-router';
 import PropTypes from 'prop-types';
 import React from 'react';
@@ -9,7 +9,7 @@ import createReactClass from 'create-react-class';
 import styled, {css, cx} from 'react-emotion';
 import queryString from 'query-string';
 
-import {URL_PARAM} from 'app/components/organizations/globalSelectionHeader/constants';
+import {extractSelectionParameters} from 'app/components/organizations/globalSelectionHeader/utils';
 import {hideSidebar, showSidebar} from 'app/actionCreators/preferences';
 import {load as loadIncidents} from 'app/actionCreators/incidents';
 import {t} from 'app/locale';
@@ -163,10 +163,7 @@ class Sidebar extends React.Component {
 
     // Only keep the querystring if the current route matches one of the above
     if (globalSelectionRoutes.includes(this.props.location.pathname)) {
-      const query = pickBy(
-        pick(this.props.location.query, Object.values(URL_PARAM)),
-        identity
-      );
+      const query = extractSelectionParameters(this.props.location.query);
 
       // Handle cmd-click (mac) and meta-click (linux)
       if (evt.metaKey) {
