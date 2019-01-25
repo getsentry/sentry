@@ -3,7 +3,7 @@ import React from 'react';
 import GroupEventDataSection from 'app/components/events/eventDataSection';
 import SentryTypes from 'app/sentryTypes';
 import RichHttpContent from 'app/components/events/interfaces/richHttpContent';
-import {getCurlCommand} from 'app/components/events/interfaces/utils';
+import {stringifyQueryList, getCurlCommand} from 'app/components/events/interfaces/utils';
 import {isUrl} from 'app/utils';
 import {t} from 'app/locale';
 import ExternalLink from 'app/components/externalLink';
@@ -53,7 +53,7 @@ class RequestInterface extends React.Component {
     let parsedUrl = null;
     if (fullUrl) {
       if (data.query) {
-        fullUrl += '?' + data.query;
+        fullUrl += '?' + stringifyQueryList(data.query);
       }
       if (data.fragment) {
         fullUrl += '#' + data.fragment;
@@ -129,7 +129,7 @@ class RequestInterface extends React.Component {
         className="request"
       >
         {view === 'curl' ? (
-          <pre>{getCurlCommand(data)}</pre>
+          <pre>{getCurlCommand(data, fullUrl)}</pre>
         ) : (
           <RichHttpContent data={data} />
         )}

@@ -9,7 +9,7 @@ export function escapeQuotes(v) {
 }
 
 // TODO(dcramer): support cookies
-export function getCurlCommand(data) {
+export function getCurlCommand(data, fullUrl) {
   let result = 'curl';
 
   if (defined(data.method) && data.method !== 'GET') {
@@ -56,18 +56,20 @@ export function getCurlCommand(data) {
     }
   }
 
-  result += ' \\\n "' + data.url;
-
-  if (defined(data.query) && data.query) {
-    let queryObj = {};
-    for (let [k, v] of data.query) {
-      queryObj[k] = v;
-    }
-    result += '?' + queryString.stringify(queryObj);
-  }
-
+  result += ' \\\n "';
+  result += fullUrl;
   result += '"';
   return result;
+}
+
+export function stringifyQueryList(query) {
+  let queryObj = {};
+  let rv = '';
+  for (let [k, v] of query) {
+    queryObj[k] = v;
+  }
+  rv += queryString.stringify(queryObj);
+  return rv;
 }
 
 /**
