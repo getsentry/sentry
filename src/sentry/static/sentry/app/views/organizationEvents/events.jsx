@@ -152,7 +152,6 @@ class OrganizationEvents extends AsyncView {
         <Panel>
           <EventsChart
             query={location.query.query}
-            zoom={!!location.query.zoom}
             organization={organization}
             onZoom={this.handleZoom}
           />

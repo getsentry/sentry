@@ -26,3 +26,4 @@ const LoadingPanel = styled(props => (
 `;
 
 export default LoadingPanel;
+export {LoadingMask};

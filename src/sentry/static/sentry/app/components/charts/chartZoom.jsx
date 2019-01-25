@@ -1,4 +1,3 @@
-import {pick, isEqual} from 'lodash';
 import {withRouter} from 'react-router';
 import PropTypes from 'prop-types';
 import React from 'react';
@@ -7,7 +6,6 @@ import moment from 'moment';
 import {callIfFunction} from 'app/utils/callIfFunction';
 import {getFormattedDate} from 'app/utils/dates';
 import {getInterval, useShortInterval} from 'app/components/charts/utils';
-import {isEqualWithDates} from 'app/utils/isEqualWithDates';
 import {updateParams} from 'app/actionCreators/globalSelection';
 import DataZoom from 'app/components/charts/components/dataZoom';
 import SentryTypes from 'app/sentryTypes';
@@ -34,7 +32,6 @@ class ChartZoom extends React.Component {
     start: PropTypes.instanceOf(Date),
     end: PropTypes.instanceOf(Date),
     utc: PropTypes.bool,
-    zoom: PropTypes.bool,
     disabled: PropTypes.bool,
 
     xAxis: SentryTypes.EChartsXAxis,
@@ -56,36 +53,6 @@ class ChartZoom extends React.Component {
 
     // Initialize current period instance state for zoom history
     this.saveCurrentPeriod(props);
-  }
-
-  // Need to be aggressive about not re-rendering because eCharts handles zoom so we
-  // don't want the component to update (unless parameters besides time period were changed)
-  shouldComponentUpdate(nextProps, nextState) {
-    if (this.props.disabled) {
-      return true;
-    }
-
-    const periodKeys = ['period', 'start', 'end'];
-    const nextPeriod = pick(nextProps, periodKeys);
-    const currentPeriod = pick(this.props, periodKeys);
-    const otherKeys = ['query', 'project', 'environment'];
-    const zoom = nextProps.zoom;
-
-    // Exception for these parameters -- needs to re-render chart
-    if (!zoom && !isEqual(pick(nextProps, otherKeys), pick(this.props, otherKeys))) {
-      return true;
-    }
-
-    if (zoom && useShortInterval(nextProps) !== useShortInterval(this.props)) {
-      return true;
-    }
-
-    // do not update if we are zooming or if period via props does not change
-    if (zoom || isEqualWithDates(currentPeriod, nextPeriod)) {
-      return false;
-    }
-
-    return true;
   }
 
   componentDidUpdate() {
@@ -146,7 +113,6 @@ class ChartZoom extends React.Component {
           period,
           start: startFormatted,
           end: endFormatted,
-          zoom: '1',
         },
         this.props.router
       );

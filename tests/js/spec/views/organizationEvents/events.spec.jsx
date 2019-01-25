@@ -168,7 +168,6 @@ describe('OrganizationEventsErrors', function() {
         ...router.location,
         query: {
           ...router.location.query,
-          zoom: '1',
         },
       };
 
@@ -195,32 +194,34 @@ describe('OrganizationEventsErrors', function() {
       mockRouterPush(wrapper, router);
 
       // XXX: Note this spy happens AFTER initial render!
-      chartRender = jest.spyOn(wrapper.find('ChartZoom').instance(), 'render');
       tableRender = jest.spyOn(wrapper.find('EventsTable').instance(), 'render');
     });
 
     afterAll(function() {
-      chartRender.mockRestore();
+      if (chartRender) {
+        chartRender.mockRestore();
+      }
+
       tableRender.mockRestore();
     });
 
     it('zooms using chart', async function() {
       expect(tableRender).toHaveBeenCalledTimes(0);
-      expect(chartRender).toHaveBeenCalledTimes(0);
 
       await tick();
       wrapper.update();
+
+      chartRender = jest.spyOn(wrapper.find('LineChart').instance(), 'render');
 
       doZoom(wrapper.find('EventsChart').first(), chart);
       await tick();
       wrapper.update();
 
-      // After zooming, chart should not re-render, but table does
-      expect(chartRender).toHaveBeenCalledTimes(0);
+      // After zooming, line chart should re-render once, but table does
+      expect(chartRender).toHaveBeenCalledTimes(1);
       expect(tableRender).toHaveBeenCalledTimes(3);
 
       newParams = {
-        zoom: '1',
         start: '2018-11-29T00:00:00',
         end: '2018-12-02T00:00:00',
       };
