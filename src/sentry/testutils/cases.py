@@ -12,7 +12,7 @@ __all__ = (
     'TestCase', 'TransactionTestCase', 'APITestCase', 'TwoFactorAPITestCase', 'AuthProviderTestCase', 'RuleTestCase',
     'PermissionTestCase', 'PluginTestCase', 'CliTestCase', 'AcceptanceTestCase',
     'IntegrationTestCase', 'UserReportEnvironmentTestCase', 'SnubaTestCase', 'IntegrationRepositoryTestCase',
-    'ReleaseCommitPatchTest', 'SetRefsTestCase', 'OrganizationDashboardWidgetsTestCase'
+    'ReleaseCommitPatchTest', 'SetRefsTestCase', 'OrganizationDashboardWidgetTestCase'
 )
 
 import base64
@@ -1016,9 +1016,9 @@ class SetRefsTestCase(APITestCase):
         assert commit.key == key
 
 
-class OrganizationDashboardWidgetsTestCase(APITestCase):
+class OrganizationDashboardWidgetTestCase(APITestCase):
     def setUp(self):
-        super(OrganizationDashboardWidgetsTestCase, self).setUp()
+        super(OrganizationDashboardWidgetTestCase, self).setUp()
         self.login_as(self.user)
         self.dashboard = Dashboard.objects.create(
             title='Dashboard 1',
@@ -1054,15 +1054,6 @@ class OrganizationDashboardWidgetsTestCase(APITestCase):
             'orderby': '-count',
             'groupby': ['geo.country_code'],
         }
-
-    def url(self, dashboard_id):
-        return reverse(
-            'sentry-api-0-organization-dashboard-widgets',
-            kwargs={
-                'organization_slug': self.organization.slug,
-                'dashboard_id': dashboard_id,
-            }
-        )
 
     def assert_widget_data_sources(self, widget_id, data):
         result_data_sources = sorted(

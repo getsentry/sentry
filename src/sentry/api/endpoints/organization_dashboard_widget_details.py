@@ -14,7 +14,7 @@ class OrganizationDashboardWidgetDetailsEndpoint(OrganizationDashboardWidgetEndp
 
     doc_section = DocSection.ORGANIZATIONS
 
-    def delete(self, request, organization, widget):
+    def delete(self, request, organization, dashboard, widget):
         """
         Delete an Organization's Dashboard
         ```````````````````````````````````
@@ -33,7 +33,7 @@ class OrganizationDashboardWidgetDetailsEndpoint(OrganizationDashboardWidgetEndp
 
         return self.respond(status=204)
 
-    def put(self, request, organization, widget):
+    def put(self, request, organization, dashboard, widget):
         """
         Edit an Organization's Dashboard
         ```````````````````````````````````
@@ -55,7 +55,7 @@ class OrganizationDashboardWidgetDetailsEndpoint(OrganizationDashboardWidgetEndp
         # Where is the right place to document this? I think linking to
         # another page in the docs that shows what each type is with photos is best.
 
-        serializer = WidgetSerializer(data=request.DATA)
+        serializer = WidgetSerializer(data=request.DATA, context={'organization': organization})
         if not serializer.is_valid():
             return Response(serializer.errors, status=400)
 
@@ -78,6 +78,7 @@ class OrganizationDashboardWidgetDetailsEndpoint(OrganizationDashboardWidgetEndp
                 data=widget_data['data'],
                 type=widget_data['type'],
                 order=widget_data['order'],
+                widget_id=widget.id,
             )
 
         return Response(serialize(widget, request.user))

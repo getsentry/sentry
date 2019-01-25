@@ -43,7 +43,7 @@ class OrganizationDashboardEndpoint(OrganizationEndpoint):
 class OrganizationDashboardWidgetEndpoint(OrganizationDashboardEndpoint):
     def convert_args(self, request, organization_slug, dashboard_id, widget_id, *args, **kwargs):
         args, kwargs = super(OrganizationDashboardWidgetEndpoint,
-                             self).convert_args(request, organization_slug)
+                             self).convert_args(request, organization_slug, dashboard_id, widget_id, *args, **kwargs)
 
         try:
             kwargs['widget'] = self._get_widget(
@@ -56,7 +56,6 @@ class OrganizationDashboardWidgetEndpoint(OrganizationDashboardEndpoint):
     def _get_widget(self, request, organization, dashboard_id, widget_id):
         return Widget.objects.get(
             id=widget_id,
-            organization_id=organization.id,
             dashboard_id=dashboard_id,
         )
 
