@@ -12,7 +12,6 @@ import {Panel, PanelBody} from 'app/components/panels';
 import {analytics} from 'app/utils/analytics';
 import {t} from 'app/locale';
 import ErrorRobot from 'app/components/errorRobot';
-import {fetchProject} from 'app/actionCreators/projects';
 import {fetchTags} from 'app/actionCreators/tags';
 import {fetchOrgMembers} from 'app/actionCreators/members';
 import {fetchSavedSearches} from 'app/actionCreators/savedSearches';
@@ -425,24 +424,8 @@ const OrganizationStream = createReactClass({
       this.setState({selectedProject: null});
       return;
     }
-    this.fetchProject(uniqProjects[0]);
-  },
-
-  /**
-   * Fetch the selected project from the API
-   * We need to do this as `props.organization.projects` lacks the `latestRelease` property
-   */
-  fetchProject(projectSlug) {
-    if (projectSlug in this.projectCache) {
-      this.setState({selectedProject: this.projectCache[projectSlug]});
-      return;
-    }
-
-    let orgId = this.props.organization.slug;
-    fetchProject(this.api, orgId, projectSlug).then(project => {
-      this.projectCache[project.slug] = project;
-      this.setState({selectedProject: project});
-    });
+    let selectedProject = this.props.organization.projects.find(p => p.slug === uniqProjects[0]);
+    this.setState({selectedProject});
   },
 
   /**
@@ -620,7 +603,8 @@ const OrganizationStream = createReactClass({
     let access = this.getAccess();
     let query = this.getQuery();
 
-    // If we have a selected project we can get release data
+    // If we have a selected project set release data up
+    // enabling stream actions
     let hasReleases = false;
     let projectId = null;
     let latestRelease = null;
