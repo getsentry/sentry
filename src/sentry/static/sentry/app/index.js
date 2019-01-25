@@ -241,6 +241,7 @@ const globals = {
       onboardingSteps: require('app/views/onboarding/utils').onboardingSteps,
       stepDescriptions: require('app/views/onboarding/utils').stepDescriptions,
       withApi: require('app/utils/withApi').default,
+      getDisplayName: require('app/utils/getDisplayName').default,
     },
     passwordStrength: {load: loadPasswordStrength},
   },
