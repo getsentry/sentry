@@ -505,6 +505,7 @@ create_partitioned_queues('triggers')
 
 from celery.schedules import crontab
 
+# XXX: Make sure to register the monitor_id for each job in `SENTRY_CELERYBEAT_MONITORS`!
 CELERYBEAT_SCHEDULE_FILENAME = os.path.join(tempfile.gettempdir(), 'sentry-celerybeat')
 CELERYBEAT_SCHEDULE = {
     'check-auth': {
@@ -894,6 +895,13 @@ SENTRY_FRONTEND_PROJECT = None
 # DSN for the frontend to use explicitly, which takes priority
 # over SENTRY_FRONTEND_PROJECT or SENTRY_PROJECT
 SENTRY_FRONTEND_DSN = None
+
+# DSN to use for Sentry monitors
+SENTRY_MONITOR_DSN = None
+SENTRY_MONITOR_API_ROOT = None
+SENTRY_CELERYBEAT_MONITORS = {
+    # 'scheduled-name': 'monitor_guid',
+}
 
 # Only store a portion of all messages per unique group.
 SENTRY_SAMPLE_DATA = True
