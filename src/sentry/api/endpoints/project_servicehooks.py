@@ -125,6 +125,7 @@ class ProjectServiceHooksEndpoint(ProjectEndpoint):
         with transaction.atomic():
             hook = ServiceHook.objects.create(
                 project_id=project.id,
+                organization_id=project.organization_id,
                 url=result['url'],
                 actor_id=request.user.id,
                 events=result.get('events'),
