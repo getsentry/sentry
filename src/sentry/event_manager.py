@@ -497,7 +497,6 @@ class EventManager(object):
                 project_id=self._project.id if self._project else None,
                 client_ip=self._client_ip,
                 client=self._auth.client if self._auth else None,
-                is_public_auth=self._auth.is_public if self._auth else False,
                 key_id=six.text_type(self._key.id) if self._key else None,
                 protocol_version=six.text_type(self.version) if self.version is not None else None,
                 stacktrace_frames_hard_limit=settings.SENTRY_STACKTRACE_FRAMES_HARD_LIMIT,
@@ -688,13 +687,10 @@ class EventManager(object):
         if not get_path(data, "user", "ip_address"):
             # If there is no User ip_address, update it either from the Http
             # interface or the client_ip of the request.
-            is_public = self._auth and self._auth.is_public
-            add_ip_platforms = ('javascript', 'cocoa', 'objc')
-
             http_ip = get_path(data, 'request', 'env', 'REMOTE_ADDR')
             if http_ip:
                 set_path(data, 'user', 'ip_address', value=http_ip)
-            elif self._client_ip and (is_public or data.get('platform') in add_ip_platforms):
+            elif self._client_ip:
                 set_path(data, 'user', 'ip_address', value=self._client_ip)
 
         # Trim values
