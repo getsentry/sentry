@@ -151,7 +151,7 @@ class OrganizationMixin(object):
 
         if organization:
             if features.has('organizations:sentry10', organization, actor=request.user):
-                url = reverse('sentry-organization-index', args=[organization.slug])
+                url = reverse('sentry-organization-issue-list', args=[organization.slug])
             else:
                 url = reverse('sentry-organization-home', args=[organization.slug])
         elif not features.has('organizations:create'):
