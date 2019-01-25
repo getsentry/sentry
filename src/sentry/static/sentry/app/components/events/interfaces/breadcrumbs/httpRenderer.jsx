@@ -10,7 +10,11 @@ class HttpRenderer extends React.Component {
   };
 
   renderUrl = url => {
-    return (typeof url === "string" && url.match(/^https?:\/\//)) ? <a href={url}>{url}</a> : <em>{url}</em>;
+    return typeof url === 'string' && url.match(/^https?:\/\//) ? (
+      <a href={url}>{url}</a>
+    ) : (
+      <em>{url}</em>
+    );
   };
 
   render() {
