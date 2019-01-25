@@ -157,9 +157,13 @@ class Sidebar extends React.Component {
 
   // Keep the global selection querystring values in the path
   navigateWithGlobalSelection = (pathname, evt) => {
-    const globalSelectionRoutes = ['dashboards', 'issues', 'events', 'releases'].map(
-      route => `/organizations/${this.props.params.orgId}/${route}/`
-    );
+    const globalSelectionRoutes = [
+      'dashboards',
+      'issues',
+      'events',
+      'releases',
+      'user-feedback',
+    ].map(route => `/organizations/${this.props.params.orgId}/${route}/`);
 
     // Only keep the querystring if the current route matches one of the above
     if (globalSelectionRoutes.includes(this.props.location.pathname)) {
