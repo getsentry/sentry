@@ -121,10 +121,10 @@ const Stream = createReactClass({
 
     // you cannot apply both a query and a saved search (our routes do not
     // support it), so the searchId takes priority
-    let nextSearchId = nextProps.params.searchId || null;
+    let nextSearchId = nextProps.params.searchId;
 
     let searchIdChanged = this.state.isDefaultSearch
-      ? nextSearchId !== null
+      ? nextSearchId !== undefined
       : nextSearchId !== this.props.params.searchId;
 
     // We are using qs.parse with location.search since this.props.location.query
