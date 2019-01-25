@@ -318,8 +318,13 @@ class SnubaEventSerializer(Serializer):
         keys = getattr(obj, 'tags.key', None)
         values = getattr(obj, 'tags.value', None)
         if keys and values and len(keys) == len(values):
-            return dict(zip(keys, values))
-        return None
+            return sorted([
+                {
+                    'key': k.split('sentry:', 1)[-1],
+                    'value': v,
+                } for (k, v) in zip(keys, values)
+            ], key=lambda x: x['key'])
+        return []
 
     def serialize(self, obj, attrs, user):
         result = {
