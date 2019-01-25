@@ -2,6 +2,7 @@
  * Anonymous affected users
  */
 const anonymousUsersAffectedQuery = {
+  name: 'Anonymous Users',
   fields: [],
   conditions: [['user.email', 'IS NULL', null]],
   aggregations: [['count()', null, 'Anonymous Users']],

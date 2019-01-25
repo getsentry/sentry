@@ -1,7 +1,8 @@
 /**
- * Events by day
+ * Handled vs Unhandled Events
  */
 const handledVsUnhandledQuery = {
+  name: 'Handled vs. Unhandled',
   fields: ['error.handled'],
   conditions: [],
   aggregations: [['count()', null, 'count']],

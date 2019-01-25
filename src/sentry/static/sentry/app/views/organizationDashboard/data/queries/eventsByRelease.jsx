@@ -2,6 +2,7 @@
  * Events by Release
  */
 const eventsByRelease = {
+  name: 'Events by Release',
   fields: ['release'],
   conditions: [],
   aggregations: [['count()', null, 'Events']],

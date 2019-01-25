@@ -2,6 +2,7 @@
  * Top Errors by Device
  */
 const topDevices = {
+  name: 'Top Devices',
   fields: ['device.family', 'browser.name'],
   conditions: [],
   aggregations: [['count()', null, 'count']],

@@ -2,6 +2,7 @@
  * Known affected users
  */
 const knownUsersAffectedQuery = {
+  name: 'Known Users',
   fields: [],
   conditions: [['user.email', 'IS NOT NULL', null]],
   aggregations: [['uniq', 'user.email', 'Known Users']],
