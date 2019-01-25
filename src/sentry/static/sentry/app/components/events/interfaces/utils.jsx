@@ -63,13 +63,15 @@ export function getCurlCommand(data, fullUrl) {
 }
 
 export function stringifyQueryList(query) {
+  if (isString(query)) {
+    return query;
+  }
+
   let queryObj = {};
-  let rv = '';
   for (let [k, v] of query) {
     queryObj[k] = v;
   }
-  rv += queryString.stringify(queryObj);
-  return rv;
+  return queryString.stringify(queryObj);
 }
 
 /**

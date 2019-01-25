@@ -1,3 +1,4 @@
+import _ from 'lodash';
 import PropTypes from 'prop-types';
 import React from 'react';
 import GroupEventDataSection from 'app/components/events/eventDataSection';
@@ -52,7 +53,7 @@ class RequestInterface extends React.Component {
     let fullUrl = data.url;
     let parsedUrl = null;
     if (fullUrl) {
-      if (data.query) {
+      if (!_.isEmpty(data.query)) {
         fullUrl += '?' + stringifyQueryList(data.query);
       }
       if (data.fragment) {
