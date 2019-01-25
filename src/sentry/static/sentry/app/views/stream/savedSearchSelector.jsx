@@ -191,6 +191,7 @@ const SaveSearchButton = withApi(
                   size="small"
                   disabled={isSaving}
                   onClick={this.onToggle.bind(this)}
+                  style={{marginRight: space(1)}}
                 >
                   {t('Cancel')}
                 </Button>
