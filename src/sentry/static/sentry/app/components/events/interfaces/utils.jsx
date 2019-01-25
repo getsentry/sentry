@@ -1,4 +1,4 @@
-import {isString} from 'lodash';
+import {isEmpty, isString} from 'lodash';
 import * as Sentry from '@sentry/browser';
 import queryString from 'query-string';
 
@@ -9,7 +9,7 @@ export function escapeQuotes(v) {
 }
 
 // TODO(dcramer): support cookies
-export function getCurlCommand(data, fullUrl) {
+export function getCurlCommand(data) {
   let result = 'curl';
 
   if (defined(data.method) && data.method !== 'GET') {
@@ -56,9 +56,7 @@ export function getCurlCommand(data, fullUrl) {
     }
   }
 
-  result += ' \\\n "';
-  result += fullUrl;
-  result += '"';
+  result += ' \\\n "' + getFullUrl(data) + '"';
   return result;
 }
 
@@ -72,6 +70,23 @@ export function stringifyQueryList(query) {
     queryObj[k] = v;
   }
   return queryString.stringify(queryObj);
+}
+
+export function getFullUrl(data) {
+  let fullUrl = data && data.url;
+  if (!fullUrl) {
+    return fullUrl;
+  }
+
+  if (!isEmpty(data.query)) {
+    fullUrl += '?' + stringifyQueryList(data.query);
+  }
+
+  if (data.fragment) {
+    fullUrl += '#' + data.fragment;
+  }
+
+  return fullUrl;
 }
 
 /**
