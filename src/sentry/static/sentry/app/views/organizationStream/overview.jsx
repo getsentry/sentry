@@ -424,7 +424,9 @@ const OrganizationStream = createReactClass({
       this.setState({selectedProject: null});
       return;
     }
-    let selectedProject = this.props.organization.projects.find(p => p.slug === uniqProjects[0]);
+    let selectedProject = this.props.organization.projects.find(
+      p => p.slug === uniqProjects[0]
+    );
     this.setState({selectedProject});
   },
 
