@@ -2,7 +2,7 @@ from __future__ import absolute_import
 
 from django.views.generic import View
 
-from sentry.models import (GroupSubscriptionReason, Organization, Project, Team)
+from sentry.models import (GroupSubscriptionReason, Organization, Project, ProjectTeam, Team)
 from sentry.utils.http import absolute_uri
 
 from .mail import MailPreview
@@ -16,7 +16,7 @@ class DebugNewProcessingIssuesEmailView(View):
         org = Organization(
             id=1,
             slug='organization',
-            name='My Company',
+            name='My Company'
         )
         team = Team(
             id=1,
@@ -27,9 +27,12 @@ class DebugNewProcessingIssuesEmailView(View):
         project = Project(
             id=1,
             organization=org,
-            team=team,
             slug='project',
             name='My Project',
+        )
+        ProjectTeam(
+            project=project,
+            team=team
         )
 
         return MailPreview(
