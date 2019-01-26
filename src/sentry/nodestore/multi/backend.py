@@ -50,11 +50,11 @@ class MultiNodeStorage(NodeStorage):
         backend = self.read_selector(self.backends)
         return backend.get_multi(id_list=id_list)
 
-    def set(self, id, data):
+    def set(self, id, data, ttl=None):
         should_raise = False
         for backend in self.backends:
             try:
-                backend.set(id, data)
+                backend.set(id, data, ttl=ttl)
             except Exception:
                 should_raise = True
 
