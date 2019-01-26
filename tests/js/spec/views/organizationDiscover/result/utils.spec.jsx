@@ -49,6 +49,30 @@ describe('Utils', function() {
   it('getChartDataByDay()', function() {
     const raw = [
       {
+        'error.type': 'Type Error',
+        platform: 'javascript',
+        count: 5,
+        time: 1532070000,
+      },
+      {
+        'error.type': 'Exception',
+        platform: 'php',
+        count: 8,
+        time: 1532070000,
+      },
+      {
+        'error.type': 'SnubaError',
+        platform: 'python',
+        count: 30,
+        time: 1532070000,
+      },
+      {
+        'error.type': 'ZeroDivisionError',
+        platform: 'python',
+        count: 20,
+        time: 1531180800,
+      },
+      {
         'error.type': 'ZeroDivisionError',
         platform: 'python',
         count: 6,
@@ -71,30 +95,6 @@ describe('Utils', function() {
         platform: 'python',
         count: 14,
         time: 1531094400,
-      },
-      {
-        'error.type': 'ZeroDivisionError',
-        platform: 'python',
-        count: 20,
-        time: 1531180800,
-      },
-      {
-        'error.type': 'Type Error',
-        platform: 'javascript',
-        count: 5,
-        time: 1532070000,
-      },
-      {
-        'error.type': 'Exception',
-        platform: 'php',
-        count: 8,
-        time: 1532070000,
-      },
-      {
-        'error.type': 'SnubaError',
-        platform: 'python',
-        count: 30,
-        time: 1532070000,
       },
     ];
 
