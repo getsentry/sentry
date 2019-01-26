@@ -403,6 +403,10 @@ def update_groups(request, projects, organization_id, search_fn):
 
     is_bulk = len(group_ids) > 1
 
+    group_project_ids = {g.project_id for g in group_list}
+    # filter projects down to only those that have groups in the search results
+    projects = [p for p in projects if p.id in group_project_ids]
+
     queryset = Group.objects.filter(
         id__in=group_ids,
     )
