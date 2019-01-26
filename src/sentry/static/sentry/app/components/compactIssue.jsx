@@ -3,6 +3,7 @@ import React from 'react';
 import createReactClass from 'create-react-class';
 import Reflux from 'reflux';
 import {Flex, Box} from 'grid-emotion';
+import styled from 'react-emotion';
 
 import ApiMixin from 'app/mixins/apiMixin';
 import IndicatorStore from 'app/stores/indicatorStore';
@@ -94,7 +95,13 @@ class CompactIssueHeader extends React.Component {
         </Flex>
         <div className="event-extra">
           <span className="project-name">
-            <ProjectLink to={basePath}>{data.project.slug}</ProjectLink>
+            {hasNewRoutes ? (
+              <ProjectSlug>{data.project.slug}</ProjectSlug>
+            ) : (
+              <ProjectLink to={`/${organization.slug}/${projectId}/`}>
+                {data.project.slug}
+              </ProjectLink>
+            )}
           </span>
           {data.numComments !== 0 && (
             <span>
@@ -264,6 +271,10 @@ const CompactIssue = createReactClass({
     );
   },
 });
+
+const ProjectSlug = styled('span')`
+  font-weight: bold;
+`;
 
 export {CompactIssue};
 export default withOrganization(CompactIssue);
