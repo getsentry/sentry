@@ -4,18 +4,19 @@ import {mount} from 'enzyme';
 import OrganizationReleases from 'app/views/releases/list/organizationReleases';
 
 describe('OrganizationReleases', function() {
+  let organization;
   let props;
   let wrapper;
 
   beforeEach(function() {
-    const organization = TestStubs.Organization({
+    organization = TestStubs.Organization({
       projects: [TestStubs.Project()],
       features: ['sentry10', 'global-views'],
     });
 
     MockApiClient.addMockResponse({
       url: '/organizations/org-slug/releases/',
-      body: [TestStubs.Commit({version: 'abc'})],
+      body: [TestStubs.Release({version: 'abc'}), TestStubs.Release({version: 'def'})],
     });
 
     MockApiClient.addMockResponse({
@@ -39,7 +40,23 @@ describe('OrganizationReleases', function() {
     MockApiClient.clearMockResponses();
   });
 
-  it('renders', function() {
-    expect(wrapper).toMatchSnapshot();
+  it('renders list', function() {
+    const content = wrapper.find('PageContent');
+    const releases = content.find('Version');
+    expect(releases).toHaveLength(2);
+    expect(releases.map(item => item.text())).toEqual(['abc', 'def']);
+  });
+
+  it('renders empty state', function() {
+    MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/releases/',
+      body: [],
+    });
+    wrapper = mount(
+      <OrganizationReleases {...props} />,
+      TestStubs.routerContext([{organization}])
+    );
+    const content = wrapper.find('PageContent');
+    expect(content.text()).toContain('Sorry, no releases match your filters');
   });
 });

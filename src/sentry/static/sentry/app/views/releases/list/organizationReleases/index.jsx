@@ -3,7 +3,6 @@ import {browserHistory} from 'react-router';
 
 import SentryTypes from 'app/sentryTypes';
 import {t} from 'app/locale';
-
 import SearchBar from 'app/components/searchBar';
 import {Panel, PanelBody} from 'app/components/panels';
 import Pagination from 'app/components/pagination';
@@ -13,7 +12,6 @@ import EmptyStateWarning from 'app/components/emptyStateWarning';
 import Feature from 'app/components/acl/feature';
 import GlobalSelectionHeader from 'app/components/organizations/globalSelectionHeader';
 import AsyncView from 'app/views/asyncView';
-
 import withOrganization from 'app/utils/withOrganization';
 
 import {PageContent, PageHeader} from 'app/styles/organization';
@@ -23,6 +21,26 @@ import ReleaseList from '../shared/releaseList';
 import ReleaseListHeader from '../shared/releaseListHeader';
 import ReleaseLanding from '../shared/releaseLanding';
 import {getQuery} from '../shared/utils';
+
+class OrganizationReleasesContainer extends React.Component {
+  static propTypes = {
+    organization: SentryTypes.Organization,
+  };
+
+  render() {
+    const {organization} = this.props;
+    return (
+      <Feature
+        features={['organizations:sentry10']}
+        organization={organization}
+        renderDisabled={this.renderNoAccess}
+      >
+        <GlobalSelectionHeader organization={organization} />
+        <OrganizationReleases {...this.props} />
+      </Feature>
+    );
+  }
+}
 
 class OrganizationReleases extends AsyncView {
   static propTypes = {
@@ -110,38 +128,31 @@ class OrganizationReleases extends AsyncView {
   }
 
   renderBody() {
-    const {organization, location} = this.props;
+    const {location} = this.props;
 
     return (
-      <Feature
-        features={['organizations:sentry10']}
-        organization={organization}
-        renderDisabled={this.renderNoAccess}
-      >
-        <GlobalSelectionHeader organization={organization} />
-        <PageContent>
-          <PageHeader>
-            <PageHeading>{t('Releases')}</PageHeading>
-            <div>
-              <SearchBar
-                defaultQuery=""
-                placeholder={t('Search for a release')}
-                query={location.query.query}
-                onSearch={this.onSearch}
-              />
-            </div>
-          </PageHeader>
+      <PageContent>
+        <PageHeader>
+          <PageHeading>{t('Releases')}</PageHeading>
           <div>
-            <Panel>
-              <ReleaseListHeader />
-              <PanelBody>{this.renderStreamBody()}</PanelBody>
-            </Panel>
-            <Pagination pageLinks={this.state.releaseListPageLinks} />
+            <SearchBar
+              defaultQuery=""
+              placeholder={t('Search for a release')}
+              query={location.query.query}
+              onSearch={this.onSearch}
+            />
           </div>
-        </PageContent>
-      </Feature>
+        </PageHeader>
+        <div>
+          <Panel>
+            <ReleaseListHeader />
+            <PanelBody>{this.renderStreamBody()}</PanelBody>
+          </Panel>
+          <Pagination pageLinks={this.state.releaseListPageLinks} />
+        </div>
+      </PageContent>
     );
   }
 }
 
-export default withOrganization(OrganizationReleases);
+export default withOrganization(OrganizationReleasesContainer);
