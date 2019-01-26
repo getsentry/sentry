@@ -68,7 +68,7 @@ class RiakNodeStorage(NodeStorage):
         self.automatic_expiry = automatic_expiry
         self.skip_deletes = automatic_expiry and '_SENTRY_CLEANUP' in os.environ
 
-    def set(self, id, data):
+    def set(self, id, data, ttl=None):
         self.conn.put(self.bucket, id, json_dumps(data), returnbody='false')
 
     def delete(self, id):

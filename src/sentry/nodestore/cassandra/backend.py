@@ -50,5 +50,5 @@ class CassandraNodeStorage(NodeStorage):
     def get_multi(self, id_list):
         return self.connection.get_multi(id_list)
 
-    def set(self, id, data):
+    def set(self, id, data, ttl=None):
         self.connection.set(id, data)

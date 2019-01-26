@@ -11,7 +11,7 @@ class InMemoryBackend(NodeStorage):
     def __init__(self):
         self._data = {}
 
-    def set(self, id, data):
+    def set(self, id, data, ttl=None):
         self._data[id] = data
 
     def get(self, id):

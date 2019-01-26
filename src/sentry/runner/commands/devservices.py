@@ -63,6 +63,10 @@ def up(project, exclude):
     # services are run if they're not needed.
     if not exclude:
         exclude = set()
+
+    if 'bigtable' not in settings.SENTRY_NODESTORE:
+        exclude |= {'bigtable'}
+
     if 'kafka' in settings.SENTRY_EVENTSTREAM:
         pass
     elif 'snuba' in settings.SENTRY_EVENTSTREAM:
