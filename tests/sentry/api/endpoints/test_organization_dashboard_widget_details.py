@@ -169,3 +169,9 @@ class OrganizationDashboardWidgetsDeleteTestCase(OrganizationDashboardWidgetDeta
         )
         assert response.status_code == 204
         self.assert_deleted_widget(self.widget.id)
+
+    def test_does_not_exists(self):
+        response = self.client.delete(
+            self.url(self.dashboard.id, 1234567890),
+        )
+        assert response.status_code == 404
