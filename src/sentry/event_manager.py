@@ -9,6 +9,7 @@ from __future__ import absolute_import, print_function
 import logging
 import os
 import six
+import random
 import jsonschema
 
 from datetime import datetime, timedelta
@@ -461,9 +462,12 @@ class EventManager(object):
             if self._project.id in options.get('store.projects-normalize-in-rust-opt-in'):
                 return True
             opt_in_rate = options.get('store.projects-normalize-in-rust-percent-opt-in')
-            if opt_in_rate > 0.0:
-                bucket = ((self._project.id * 2654435761) % (2 ** 32)) % 1000
-                return bucket <= (opt_in_rate * 1000)
+            if opt_in_rate != 0:
+                if opt_in_rate > 0.0:
+                    bucket = ((self._project.id * 2654435761) % (2 ** 32)) % 1000
+                    return bucket <= (opt_in_rate * 1000)
+                else:
+                    return random.random() < -opt_in_rate
 
         return ENABLE_RUST
 
