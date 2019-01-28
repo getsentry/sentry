@@ -2,7 +2,7 @@ from __future__ import absolute_import
 
 from django.core.urlresolvers import reverse
 
-from sentry.models import Widget, WidgetDataSource, WidgetDisplayTypes
+from sentry.models import Widget, WidgetDataSource, WidgetDataSourceTypes, WidgetDisplayTypes
 from sentry.testutils import OrganizationDashboardWidgetTestCase
 
 
@@ -138,4 +138,34 @@ class OrganizationDashboardWidgetDetailsPutTestCase(OrganizationDashboardWidgetD
 
 
 class OrganizationDashboardWidgetsDeleteTestCase(OrganizationDashboardWidgetDetailsTestCase):
-    pass
+    def assert_deleted_widget(self, widget_id):
+        assert not Widget.objects.filter(id=widget_id).exists()
+        assert not WidgetDataSource.objects.filter(widget_id=widget_id).exists()
+
+    def test_simple(self):
+        response = self.client.delete(
+            self.url(self.dashboard.id, self.widget.id),
+        )
+        assert response.status_code == 204
+        self.assert_deleted_widget(self.widget.id)
+
+    def test_with_data_sources(self):
+        WidgetDataSource.objects.create(
+            widget_id=self.widget.id,
+            name='Data source 1',
+            data=self.known_users_query,
+            type=WidgetDataSourceTypes.DISCOVER_SAVED_SEARCH,
+            order=1,
+        )
+        WidgetDataSource.objects.create(
+            widget_id=self.widget.id,
+            name='Data source 2',
+            data=self.known_users_query,
+            type=WidgetDataSourceTypes.DISCOVER_SAVED_SEARCH,
+            order=2,
+        )
+        response = self.client.delete(
+            self.url(self.dashboard.id, self.widget.id),
+        )
+        assert response.status_code == 204
+        self.assert_deleted_widget(self.widget.id)

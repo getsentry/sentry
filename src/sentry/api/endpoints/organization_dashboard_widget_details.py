@@ -7,7 +7,7 @@ from sentry.api.bases.dashboard import (
     OrganizationDashboardWidgetEndpoint, WidgetSerializer
 )
 from sentry.api.serializers import serialize
-from sentry.models import ObjectStatus, WidgetDataSource
+from sentry.models import WidgetDataSource
 
 
 class OrganizationDashboardWidgetDetailsEndpoint(OrganizationDashboardWidgetEndpoint):
@@ -28,8 +28,7 @@ class OrganizationDashboardWidgetDetailsEndpoint(OrganizationDashboardWidgetEndp
         :auth: required
         """
 
-        widget.status = ObjectStatus.PENDING_DELETION
-        widget.save()
+        widget.delete()
 
         return self.respond(status=204)
 
