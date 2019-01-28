@@ -1200,7 +1200,7 @@ class EventManager(object):
             Group.objects.add_tags,
             group,
             environment,
-            data['tags'],
+            event.get_tags(),
             _with_transaction=False)
 
         if not raw:
