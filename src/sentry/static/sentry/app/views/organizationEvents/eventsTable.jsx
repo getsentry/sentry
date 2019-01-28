@@ -29,7 +29,7 @@ class EventsTableBody extends React.PureComponent {
       const trimmedMessage = event.message.split('\n')[0].substr(0, 100);
 
       const eventLink = new Set(organization.features).has('sentry10')
-        ? `/organizations/`
+        ? `/organizations/${organization.slug}/events/${event.eventID}/`
         : `/${organization.slug}/${project.slug}/events/${event.eventID}/`;
 
       return (
@@ -135,11 +135,12 @@ class EventsTable extends React.Component {
           </TableLayout>
         </PanelHeader>
         {loading && <LoadingIndicator />}
-        {!loading && !hasEvents && (
-          <EmptyStateWarning>
-            <p>No events</p>
-          </EmptyStateWarning>
-        )}
+        {!loading &&
+          !hasEvents && (
+            <EmptyStateWarning>
+              <p>No events</p>
+            </EmptyStateWarning>
+          )}
         {hasEvents && (
           <StyledPanelBody>
             {(reloading || zoomChanged) && <StyledLoadingIndicator overlay />}
