@@ -61,7 +61,7 @@ class TotalEventCount extends AsyncComponent {
     Sentry.captureException(new Error('Unable to fetch "total event count"'));
   }
 
-  renderError(error) {
+  renderError(error, disableLog = false, disableReport = false) {
     // Don't show an error message, handle it in `onRequestError`
     return null;
   }
