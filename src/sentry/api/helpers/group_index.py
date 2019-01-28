@@ -274,12 +274,12 @@ def handle_discard(request, group_list, projects, user):
                 )
 
     for project in projects:
-        delete_groups(request, project, groups_to_delete.get(project.id), delete_type='discard')
+        _delete_groups(request, project, groups_to_delete.get(project.id), delete_type='discard')
 
     return Response(status=204)
 
 
-def delete_groups(request, project, group_list, delete_type):
+def _delete_groups(request, project, group_list, delete_type):
     if not group_list:
         return
 
@@ -334,7 +334,7 @@ def delete_groups(request, project, group_list, delete_type):
             group=group,
             user=request.user,
             delete_type=delete_type,
-            sender=delete_groups)
+            sender=_delete_groups)
 
 
 def self_subscribe_and_assign_issue(acting_user, group):
