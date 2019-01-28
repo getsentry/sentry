@@ -8,7 +8,6 @@ from django.utils import timezone
 from exam import fixture
 from mock import patch, Mock
 
-from sentry import tagstore
 from sentry.models import (
     Activity, ApiToken, Event, EventMapping, ExternalIssue, Group, GroupAssignee,
     GroupBookmark, GroupHash, GroupLink, GroupSeen, GroupShare, GroupSnooze,
@@ -1389,14 +1388,16 @@ class GroupUpdateTest(APITestCase, SnubaTestCase):
         group = self.create_group(
             checksum='a' * 32,
             status=GroupStatus.RESOLVED,
+            first_seen=self.min_ago - timedelta(seconds=100),
+            last_seen=timezone.now(),
         )
-        tagstore.create_group_tag_key(
-            group.project_id,
-            group.id,
-            None,
-            'sentry:user',
-            values_seen=100,
-        )
+        for i in range(100):
+            self.create_event(
+                group=group,
+                data={'checksum': six.binary_type(i)},
+                tags={'sentry:user': {'id': six.binary_type(i)}},
+                datetime=self.min_ago - timedelta(seconds=i),
+            )
 
         self.login_as(user=self.user)
 
