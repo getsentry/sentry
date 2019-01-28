@@ -9,7 +9,7 @@ from sentry import analytics, search
 from sentry.api.base import DocSection, EnvironmentMixin
 from sentry.api.bases.project import ProjectEndpoint, ProjectEventPermission
 from sentry.api.helpers.group_index import (
-    build_query_params_from_request, delete_groups, get_by_short_id,
+    build_query_params_from_request, _delete_groups, get_by_short_id,
     update_groups, ValidationError
 )
 from sentry.api.serializers import serialize
@@ -328,6 +328,6 @@ class ProjectGroupIndexEndpoint(ProjectEndpoint, EnvironmentMixin):
         if not group_list:
             return Response(status=204)
 
-        delete_groups(request, project, group_list, delete_type='delete')
+        _delete_groups(request, project, group_list, delete_type='delete')
 
         return Response(status=204)
