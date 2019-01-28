@@ -3,6 +3,8 @@ from __future__ import absolute_import
 import json
 import six
 from datetime import timedelta
+from uuid import uuid4
+
 from django.core.urlresolvers import reverse
 from django.utils import timezone
 from exam import fixture
@@ -1825,3 +1827,129 @@ class GroupUpdateTest(APITestCase, SnubaTestCase):
         assert tombstone.culprit == group1.culprit
         assert tombstone.project == group1.project
         assert tombstone.data == group1.data
+
+
+class GroupDeleteTest(APITestCase, SnubaTestCase):
+    @fixture
+    def path(self):
+        return u'/api/0/organizations/{}/issues/'.format(
+            self.project.organization.slug,
+        )
+
+    @patch('sentry.api.helpers.group_index.eventstream')
+    @patch('sentry.eventstream')
+    def test_delete_by_id(self, mock_eventstream_task, mock_eventstream_api):
+        eventstream_state = object()
+        mock_eventstream_api.start_delete_groups = Mock(return_value=eventstream_state)
+
+        group1 = self.create_group(checksum='a' * 32, status=GroupStatus.RESOLVED)
+        group2 = self.create_group(checksum='b' * 32, status=GroupStatus.UNRESOLVED)
+        group3 = self.create_group(checksum='c' * 32, status=GroupStatus.IGNORED)
+        group4 = self.create_group(
+            project=self.create_project(slug='foo'),
+            checksum='b' * 32,
+            status=GroupStatus.UNRESOLVED
+        )
+
+        hashes = []
+        for g in group1, group2, group3, group4:
+            hash = uuid4().hex
+            hashes.append(hash)
+            GroupHash.objects.create(
+                project=g.project,
+                hash=hash,
+                group=g,
+            )
+
+        self.login_as(user=self.user)
+        url = u'{url}?id={group1.id}&id={group2.id}&group4={group4.id}'.format(
+            url=self.path,
+            group1=group1,
+            group2=group2,
+            group4=group4,
+        )
+
+        response = self.client.delete(url, format='json')
+
+        mock_eventstream_api.start_delete_groups.assert_called_once_with(
+            group1.project_id, [group1.id, group2.id])
+
+        assert response.status_code == 204
+
+        assert Group.objects.get(id=group1.id).status == GroupStatus.PENDING_DELETION
+        assert not GroupHash.objects.filter(group_id=group1.id).exists()
+
+        assert Group.objects.get(id=group2.id).status == GroupStatus.PENDING_DELETION
+        assert not GroupHash.objects.filter(group_id=group2.id).exists()
+
+        assert Group.objects.get(id=group3.id).status != GroupStatus.PENDING_DELETION
+        assert GroupHash.objects.filter(group_id=group3.id).exists()
+
+        assert Group.objects.get(id=group4.id).status != GroupStatus.PENDING_DELETION
+        assert GroupHash.objects.filter(group_id=group4.id).exists()
+
+        Group.objects.filter(id__in=(group1.id, group2.id)).update(status=GroupStatus.UNRESOLVED)
+
+        with self.tasks():
+            response = self.client.delete(url, format='json')
+
+        mock_eventstream_task.end_delete_groups.assert_called_once_with(eventstream_state)
+
+        assert response.status_code == 204
+
+        assert not Group.objects.filter(id=group1.id).exists()
+        assert not GroupHash.objects.filter(group_id=group1.id).exists()
+
+        assert not Group.objects.filter(id=group2.id).exists()
+        assert not GroupHash.objects.filter(group_id=group2.id).exists()
+
+        assert Group.objects.filter(id=group3.id).exists()
+        assert GroupHash.objects.filter(group_id=group3.id).exists()
+
+        assert Group.objects.filter(id=group4.id).exists()
+        assert GroupHash.objects.filter(group_id=group4.id).exists()
+
+    def test_bulk_delete(self):
+        groups = []
+        for i in range(10, 41):
+            groups.append(
+                self.create_group(
+                    project=self.project,
+                    checksum=six.binary_type(i) * 16,
+                    status=GroupStatus.RESOLVED))
+
+        hashes = []
+        for group in groups:
+            hash = uuid4().hex
+            hashes.append(hash)
+            GroupHash.objects.create(
+                project=group.project,
+                hash=hash,
+                group=group,
+            )
+
+        self.login_as(user=self.user)
+
+        # if query is '' it defaults to is:unresolved
+        url = self.path + '?query='
+        response = self.client.delete(url, format='json')
+
+        assert response.status_code == 204
+
+        for group in groups:
+            assert Group.objects.get(id=group.id).status == GroupStatus.PENDING_DELETION
+            assert not GroupHash.objects.filter(group_id=group.id).exists()
+
+        Group.objects.filter(
+            id__in=[
+                group.id for group in groups]).update(
+            status=GroupStatus.UNRESOLVED)
+
+        with self.tasks():
+            response = self.client.delete(url, format='json')
+
+        assert response.status_code == 204
+
+        for group in groups:
+            assert not Group.objects.filter(id=group.id).exists()
+            assert not GroupHash.objects.filter(group_id=group.id).exists()
