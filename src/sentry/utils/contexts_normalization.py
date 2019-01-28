@@ -2,7 +2,7 @@ from __future__ import absolute_import
 import re
 
 from ua_parser.user_agent_parser import Parse
-from sentry.utils.safe import setdefault_path
+from sentry.utils.safe import get_path, setdefault_path
 
 # Environment.OSVersion (GetVersionEx) or RuntimeInformation.OSDescription, on Windows
 _windows_re = re.compile('^(Microsoft )?Windows (NT )?(?P<version>\d+\.\d+\.\d+).*$')
@@ -91,16 +91,8 @@ def _get_version(user_agent):
 
 
 def _parse_user_agent(data):
-    http = data.get('request')
-    if not http:
-        return None
-
-    headers = http.get('headers')
-    if not headers:
-        return None
-
     try:
-        for key, value in headers:
+        for key, value in get_path(data, 'request', 'headers', filter=True) or ():
             if key != 'User-Agent':
                 continue
             if not value:
