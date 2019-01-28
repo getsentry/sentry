@@ -1,22 +1,23 @@
 import {Flex} from 'grid-emotion';
+import {debounce} from 'lodash';
 import {withRouter} from 'react-router';
 import PropTypes from 'prop-types';
 import React from 'react';
 import styled from 'react-emotion';
-import {debounce} from 'lodash';
 
+import {addErrorMessage} from 'app/actionCreators/indicator';
+import {analytics} from 'app/utils/analytics';
 import {navigateTo} from 'app/actionCreators/navigation';
 import {t} from 'app/locale';
-import {analytics} from 'app/utils/analytics';
+import ApiSource from 'app/components/search/sources/apiSource';
 import AutoComplete from 'app/components/autoComplete';
+import CommandSource from 'app/components/search/sources/commandSource';
+import FormSource from 'app/components/search/sources/formSource';
 import LoadingIndicator from 'app/components/loadingIndicator';
+import RouteSource from 'app/components/search/sources/routeSource';
 import SearchResult from 'app/components/search/searchResult';
 import SearchResultWrapper from 'app/components/search/searchResultWrapper';
 import SearchSources from 'app/components/search/sources';
-import ApiSource from 'app/components/search/sources/apiSource';
-import CommandSource from 'app/components/search/sources/commandSource';
-import FormSource from 'app/components/search/sources/formSource';
-import RouteSource from 'app/components/search/sources/routeSource';
 import replaceRouterParams from 'app/utils/replaceRouterParams';
 
 // "Omni" search
@@ -94,6 +95,13 @@ class Search extends React.Component {
 
     if (to.startsWith('http')) {
       const open = window.open();
+      if (open === null) {
+        addErrorMessage(
+          t('Unable to open search result (a popup blocker may have caused this).')
+        );
+        return;
+      }
+
       open.opener = null;
       open.location = to;
       return;
