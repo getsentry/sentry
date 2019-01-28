@@ -83,10 +83,10 @@ class EventEntries extends React.Component {
 
     analytics('issue_error_banner.viewed', {
       org_id: parseInt(orgId, 10),
-      platform: project.platform,
       group: event.groupID,
       error_type: errorTypes,
       error_message: errorMessages,
+      ...(platform ? {platform: project.platform}),
     });
   }
 
