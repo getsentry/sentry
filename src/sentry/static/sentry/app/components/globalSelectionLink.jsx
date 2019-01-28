@@ -1,9 +1,8 @@
 import PropTypes from 'prop-types';
 import React from 'react';
 import {Link as RouterLink} from 'react-router';
-import {pick} from 'lodash';
 
-import {URL_PARAM} from 'app/components/organizations/globalSelectionHeader/constants';
+import {extractSelectionParameters} from 'app/components/organizations/globalSelectionHeader/utils';
 
 /**
  * A modified link used for navigating between organization level pages that
@@ -24,7 +23,7 @@ export default class GlobalSelectionLink extends React.Component {
   render() {
     const {location} = this.context;
 
-    const query = pick(location.query, Object.values(URL_PARAM));
+    const query = extractSelectionParameters(location.query);
 
     if (location) {
       const hasQuery = Object.keys(query).length > 0;
