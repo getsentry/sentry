@@ -126,6 +126,7 @@ class PostProcessGroupTest(TestCase):
 
         hook = ServiceHook.objects.create(
             project_id=self.project.id,
+            organization_id=self.project.organization_id,
             actor_id=self.user.id,
             events=['event.created'],
         )
@@ -159,6 +160,7 @@ class PostProcessGroupTest(TestCase):
 
         hook = ServiceHook.objects.create(
             project_id=self.project.id,
+            organization_id=self.project.organization_id,
             actor_id=self.user.id,
             events=['event.alert'],
         )
@@ -188,6 +190,7 @@ class PostProcessGroupTest(TestCase):
 
         ServiceHook.objects.create(
             project_id=self.project.id,
+            organization_id=self.project.organization_id,
             actor_id=self.user.id,
             events=['event.alert'],
         )
@@ -210,6 +213,7 @@ class PostProcessGroupTest(TestCase):
 
         ServiceHook.objects.create(
             project_id=self.project.id,
+            organization_id=self.project.organization_id,
             actor_id=self.user.id,
             events=[],
         )
