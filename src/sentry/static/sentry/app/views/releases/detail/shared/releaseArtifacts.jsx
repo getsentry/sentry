@@ -51,7 +51,7 @@ class ReleaseArtifacts extends React.Component {
       : `/organizations/${orgId}/releases/${encodedVersion}/files/`;
   }
 
-  fetchData() {
+  fetchData = () => {
     this.setState({
       loading: true,
       error: false,
@@ -75,7 +75,7 @@ class ReleaseArtifacts extends React.Component {
         });
       },
     });
-  }
+  };
 
   handleRemove(id) {
     let loadingIndicator = IndicatorStore.add(t('Removing artifact..'));
