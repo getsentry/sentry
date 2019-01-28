@@ -89,11 +89,14 @@ class EventSerializer(Serializer):
         meta = get_path(event.data, '_meta', 'tags') or {}
 
         tags = sorted(
-            [{
-                'key': k.split('sentry:', 1)[-1],
-                'value': v,
-                '_meta': meta.get(k) or get_path(meta, six.text_type(i), '1') or None,
-            } for i, (k, v) in enumerate(event.get_tags(sorted=False) or ())],
+            [
+                {
+                    'key': kv[0].split('sentry:', 1)[-1],
+                    'value': kv[1],
+                    '_meta': meta.get(kv[0]) or get_path(meta, six.text_type(i), '1') or None,
+                }
+                for i, kv in enumerate(event.data.get('tags') or ())
+                if kv is not None and kv[0] is not None and kv[1] is not None],
             key=lambda x: x['key']
         )
 
