@@ -18,6 +18,15 @@ class OrganizationReleaseDetailsContainer extends React.Component {
   static propTypes = {
     organization: SentryTypes.Organization,
   };
+
+  renderNoAccess() {
+    return (
+      <PageContent>
+        <Alert type="warning">{t("You don't have access to this feature")}</Alert>
+      </PageContent>
+    );
+  }
+
   render() {
     return (
       <Feature
@@ -60,14 +69,6 @@ class OrganizationReleaseDetails extends AsyncView {
     return [
       ['release', `/organizations/${orgId}/releases/${encodeURIComponent(version)}/`],
     ];
-  }
-
-  renderNoAccess() {
-    return (
-      <PageContent>
-        <Alert type="warning">{t("You don't have access to this feature")}</Alert>
-      </PageContent>
-    );
   }
 
   renderBody() {

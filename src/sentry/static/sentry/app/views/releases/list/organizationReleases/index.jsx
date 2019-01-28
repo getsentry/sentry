@@ -27,6 +27,14 @@ class OrganizationReleasesContainer extends React.Component {
     organization: SentryTypes.Organization,
   };
 
+  renderNoAccess() {
+    return (
+      <PageContent>
+        <Alert type="warning">{t("You don't have access to this feature")}</Alert>
+      </PageContent>
+    );
+  }
+
   render() {
     const {organization} = this.props;
     return (
@@ -113,14 +121,6 @@ class OrganizationReleases extends AsyncView {
 
   renderEmpty() {
     return <ReleaseLanding />;
-  }
-
-  renderNoAccess() {
-    return (
-      <PageContent>
-        <Alert type="warning">{t("You don't have access to this feature")}</Alert>
-      </PageContent>
-    );
   }
 
   renderLoading() {
