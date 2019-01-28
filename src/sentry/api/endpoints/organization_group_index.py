@@ -192,17 +192,22 @@ class OrganizationGroupIndexEndpoint(OrganizationEventsEndpointBase):
                                           issues belong to.
         :param string status: the new status for the issues.  Valid values
                               are ``"resolved"``, ``"resolvedInNextRelease"``,
-                              ``"unresolved"``, and ``"ignored"``.
+                              ``"unresolved"``, and ``"ignored"``. Status
+                              updates that include release data are only allowed
+                              for groups within a single project.
         :param map statusDetails: additional details about the resolution.
                                   Valid values are ``"inRelease"``, ``"inNextRelease"``,
                                   ``"inCommit"``,  ``"ignoreDuration"``, ``"ignoreCount"``,
                                   ``"ignoreWindow"``, ``"ignoreUserCount"``, and
-                                  ``"ignoreUserWindow"``.
+                                  ``"ignoreUserWindow"``. Status detail
+                                  updates that include release data are only allowed
+                                  for groups within a single project.
         :param int ignoreDuration: the number of minutes to ignore this issue.
         :param boolean isPublic: sets the issue to public or private.
         :param boolean merge: allows to merge or unmerge different issues.
         :param string assignedTo: the actor id (or username) of the user or team that should be
-                                  assigned to this issue.
+                                  assigned to this issue. Bulk assigning issues
+                                  is limited to groups within a single project.
         :param boolean hasSeen: in case this API call is invoked with a user
                                 context this allows changing of the flag
                                 that indicates if the user has seen the
