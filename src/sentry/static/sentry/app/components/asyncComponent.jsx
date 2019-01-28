@@ -12,7 +12,6 @@ import LoadingIndicator from 'app/components/loadingIndicator';
 import PermissionDenied from 'app/views/permissionDenied';
 import RouteError from 'app/views/routeError';
 import getRouteStringFromRoutes from 'app/utils/getRouteStringFromRoutes';
-import sdk from 'app/utils/sdk';
 
 export default class AsyncComponent extends React.Component {
   static propTypes = {
