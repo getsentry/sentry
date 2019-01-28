@@ -337,6 +337,45 @@ def _delete_groups(request, project, group_list, delete_type):
             sender=_delete_groups)
 
 
+def delete_groups(request, projects, organization_id, search_fn):
+    group_ids = request.GET.getlist('id')
+    if group_ids:
+        group_list = list(
+            Group.objects.filter(
+                project__in=projects,
+                project__organization_id=organization_id,
+                id__in=set(group_ids),
+            ).exclude(
+                status__in=[
+                    GroupStatus.PENDING_DELETION,
+                    GroupStatus.DELETION_IN_PROGRESS,
+                ]
+            )
+        )
+    else:
+        try:
+            # bulk mutations are limited to 1000 items
+            # TODO(dcramer): it'd be nice to support more than this, but its
+            # a bit too complicated right now
+            cursor_result, _ = search_fn()
+        except ValidationError as exc:
+            return Response({'detail': six.text_type(exc)}, status=400)
+
+        group_list = list(cursor_result)
+
+    if not group_list:
+        return Response(status=204)
+
+    groups_by_project_id = defaultdict(list)
+    for group in group_list:
+        groups_by_project_id[group.project_id].append(group)
+
+    for project in projects:
+        _delete_groups(request, project, groups_by_project_id.get(project.id), delete_type='delete')
+
+    return Response(status=204)
+
+
 def self_subscribe_and_assign_issue(acting_user, group):
     # Used during issue resolution to assign to acting user
     # returns None if the user didn't elect to self assign on resolution
