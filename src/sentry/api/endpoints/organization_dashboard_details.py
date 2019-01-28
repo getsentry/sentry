@@ -16,8 +16,9 @@ from sentry.models import ObjectStatus, Widget
 def get_next_dashboard_order(dashboard_id):
     max_order = Widget.objects.filter(
         dashboard_id=dashboard_id,
-    ).aggregate(Max('order'))
-    return max_order['order__max'] + 1
+    ).aggregate(Max('order'))['order__max']
+
+    return max_order + 1 if max_order else 1
 
 
 def remove_widgets(dashboard_widgets, widget_data):
