@@ -78,9 +78,16 @@ class SnubaTSDB(BaseTSDB):
         end = to_datetime(series[-1] + rollup)
 
         if keys:
-            result = snuba.query(start, end, groupby, None, keys_map,
-                                 aggregations, rollup, referrer='tsdb',
-                                 is_grouprelease=(model == TSDBModel.frequent_releases_by_group))
+            result = snuba.query(
+                start, end,
+                groupby=groupby,
+                conditions=None,
+                filter_keys=keys_map,
+                aggregations=aggregations,
+                rollup=rollup,
+                referrer='tsdb',
+                is_grouprelease=(model == TSDBModel.frequent_releases_by_group)
+            )
         else:
             result = {}
 

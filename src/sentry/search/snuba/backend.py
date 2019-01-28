@@ -546,7 +546,9 @@ def snuba_search(start, end, project_ids, environment_ids, tags,
         referrer=referrer,
         limit=limit,
         offset=offset,
-        totals=True,  # needs to have totals_mode=after_having_exclusive so we get groups matching HAVING only
+        totals=True,  # Needs to have totals_mode=after_having_exclusive so we get groups matching HAVING only
+        turbo=get_sample,  # Turn off FINAL when in sampling mode
+        sample=1,  # Don't use clickhouse sampling, even when in turbo mode.
     )
     rows = snuba_results['data']
     total = snuba_results['totals']['total']

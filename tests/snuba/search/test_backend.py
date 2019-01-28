@@ -920,6 +920,8 @@ class SnubaSearchTest(SnubaTestCase):
             'limit': limit,
             'offset': 0,
             'totals': True,
+            'turbo': False,
+            'sample': 1,
         }
 
         self.backend.query([self.project], query='foo')
