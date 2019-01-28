@@ -1,7 +1,7 @@
 // Jest Snapshot v1, https://goo.gl/fbAQLP
 
 exports[`OrganizationReleases renders 1`] = `
-<WithOrganizationMockWrappeer
+<WithOrganizationMockWrapper
   location={
     Object {
       "query": Object {
@@ -2275,5 +2275,5 @@ Users now have access to useful links from the blogs and docs on Spike-protectio
       </DocumentTitle>
     </SideEffect(DocumentTitle)>
   </OrganizationReleases>
-</WithOrganizationMockWrappeer>
+</WithOrganizationMockWrapper>
 `;

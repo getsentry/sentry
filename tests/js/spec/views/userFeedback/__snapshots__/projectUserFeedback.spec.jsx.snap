@@ -16,7 +16,7 @@ exports[`projectUserFeedback renders 1`] = `
   }
   status="unresolved"
 >
-  <WithOrganizationMockWrappeer
+  <WithOrganizationMockWrapper
     data={
       Object {
         "assignedTo": null,
@@ -104,6 +104,6 @@ exports[`projectUserFeedback renders 1`] = `
         }
       }
     />
-  </WithOrganizationMockWrappeer>
+  </WithOrganizationMockWrapper>
 </UserFeedbackContainer>
 `;

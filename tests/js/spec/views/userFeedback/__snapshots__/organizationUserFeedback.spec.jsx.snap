@@ -1726,7 +1726,7 @@ exports[`OrganizationUserFeedback renders 1`] = `
                           <div
                             className="css-9vq8an-textStyles issue-list"
                           >
-                            <WithOrganizationMockWrappeer
+                            <WithOrganizationMockWrapper
                               data={
                                 Object {
                                   "assignedTo": null,
@@ -2339,7 +2339,7 @@ exports[`OrganizationUserFeedback renders 1`] = `
                                   </Base>
                                 </PanelItem>
                               </CompactIssue>
-                            </WithOrganizationMockWrappeer>
+                            </WithOrganizationMockWrapper>
                           </div>
                         </PanelBody>
                       </div>
