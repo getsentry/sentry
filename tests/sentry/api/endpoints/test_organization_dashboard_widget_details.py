@@ -1,12 +1,12 @@
 from __future__ import absolute_import
 
-from django.core.urlresolvers import reverse
-
 from sentry.models import Widget, WidgetDataSource, WidgetDataSourceTypes, WidgetDisplayTypes
 from sentry.testutils import OrganizationDashboardWidgetTestCase
 
 
 class OrganizationDashboardWidgetDetailsTestCase(OrganizationDashboardWidgetTestCase):
+    endpoint = 'sentry-api-0-organization-dashboard-widget-details'
+
     def setUp(self):
         super(OrganizationDashboardWidgetDetailsTestCase, self).setUp()
         self.widget = Widget.objects.create(
@@ -17,18 +17,10 @@ class OrganizationDashboardWidgetDetailsTestCase(OrganizationDashboardWidgetTest
             display_options={},
         )
 
-    def url(self, dashboard_id, widget_id):
-        return reverse(
-            'sentry-api-0-organization-dashboard-widget-details',
-            kwargs={
-                'organization_slug': self.organization.slug,
-                'dashboard_id': dashboard_id,
-                'widget_id': widget_id,
-            }
-        )
-
 
 class OrganizationDashboardWidgetDetailsPutTestCase(OrganizationDashboardWidgetDetailsTestCase):
+    method = 'put'
+
     def test_simple(self):
         data_sources = [
             {
@@ -44,13 +36,13 @@ class OrganizationDashboardWidgetDetailsPutTestCase(OrganizationDashboardWidgetD
                 'order': 2
             },
         ]
-        response = self.client.put(
-            self.url(self.dashboard.id, self.widget.id),
-            data={
-                'displayType': 'line',
-                'title': 'User Happiness',
-                'dataSources': data_sources,
-            }
+        response = self.get_response(
+            self.organization.slug,
+            self.dashboard.id,
+            self.widget.id,
+            displayType='line',
+            title='User Happiness',
+            dataSources=data_sources,
         )
 
         assert response.status_code == 200
@@ -77,12 +69,12 @@ class OrganizationDashboardWidgetDetailsPutTestCase(OrganizationDashboardWidgetD
         )
 
     def test_widget_no_data_souces(self):
-        response = self.client.put(
-            self.url(self.dashboard.id, self.widget.id),
-            data={
-                'displayType': 'line',
-                'title': 'User Happiness',
-            }
+        response = self.get_response(
+            self.organization.slug,
+            self.dashboard.id,
+            self.widget.id,
+            displayType='line',
+            title='User Happiness',
         )
         assert response.status_code == 200
         self.assert_widget_data(
@@ -108,29 +100,29 @@ class OrganizationDashboardWidgetDetailsPutTestCase(OrganizationDashboardWidgetD
         ).exists()
 
     def test_unrecognized_display_type(self):
-        response = self.client.put(
-            self.url(self.dashboard.id, self.widget.id),
-            data={
-                'displayType': 'happy-face',
-                'title': 'User Happiness',
-            }
+        response = self.get_response(
+            self.organization.slug,
+            self.dashboard.id,
+            self.widget.id,
+            displayType='happy-face',
+            title='User Happiness',
         )
         assert response.status_code == 400
         assert response.data == {'displayType': [u'Widget display_type happy-face not recognized.']}
 
     def test_unrecognized_data_source_type(self):
-        response = self.client.put(
-            self.url(self.dashboard.id, self.widget.id),
-            data={
-                'displayType': 'line',
-                'title': 'User Happiness',
-                'dataSources': [{
-                    'name': 'knownUsersAffectedQuery_2',
-                    'data': self.known_users_query,
-                    'type': 'not-real-type',
-                    'order': 1,
-                }],
-            }
+        response = self.get_response(
+            self.organization.slug,
+            self.dashboard.id,
+            self.widget.id,
+            title='User Happiness',
+            displayType='line',
+            dataSources=[{
+                'name': 'knownUsersAffectedQuery_2',
+                'data': self.known_users_query,
+                'type': 'not-real-type',
+                'order': 1,
+            }],
         )
         assert response.status_code == 400
         assert response.data == {'dataSources': [
@@ -138,13 +130,17 @@ class OrganizationDashboardWidgetDetailsPutTestCase(OrganizationDashboardWidgetD
 
 
 class OrganizationDashboardWidgetsDeleteTestCase(OrganizationDashboardWidgetDetailsTestCase):
+    method = 'delete'
+
     def assert_deleted_widget(self, widget_id):
         assert not Widget.objects.filter(id=widget_id).exists()
         assert not WidgetDataSource.objects.filter(widget_id=widget_id).exists()
 
     def test_simple(self):
-        response = self.client.delete(
-            self.url(self.dashboard.id, self.widget.id),
+        response = self.get_response(
+            self.organization.slug,
+            self.dashboard.id,
+            self.widget.id,
         )
         assert response.status_code == 204
         self.assert_deleted_widget(self.widget.id)
@@ -164,14 +160,18 @@ class OrganizationDashboardWidgetsDeleteTestCase(OrganizationDashboardWidgetDeta
             type=WidgetDataSourceTypes.DISCOVER_SAVED_SEARCH,
             order=2,
         )
-        response = self.client.delete(
-            self.url(self.dashboard.id, self.widget.id),
+        response = self.get_response(
+            self.organization.slug,
+            self.dashboard.id,
+            self.widget.id,
         )
         assert response.status_code == 204
         self.assert_deleted_widget(self.widget.id)
 
     def test_does_not_exists(self):
-        response = self.client.delete(
-            self.url(self.dashboard.id, 1234567890),
+        response = self.get_response(
+            self.organization.slug,
+            self.dashboard.id,
+            1234567890,
         )
         assert response.status_code == 404
