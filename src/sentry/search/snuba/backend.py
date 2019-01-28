@@ -466,7 +466,7 @@ def snuba_search(start, end, project_ids, environment_ids, tags,
 
     Returns a tuple of:
      * a sorted list of (group_id, group_score) tuples sorted descending by score,
-     * a boolean indicating whether there are more result groups to iterate over
+     * the count of total results (rows) available for this query.
     """
 
     from sentry.search.base import ANY
