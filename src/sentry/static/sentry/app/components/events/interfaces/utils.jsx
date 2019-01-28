@@ -1,4 +1,4 @@
-import {isString} from 'lodash';
+import {isEmpty, isString} from 'lodash';
 import * as Sentry from '@sentry/browser';
 import queryString from 'query-string';
 
@@ -56,18 +56,37 @@ export function getCurlCommand(data) {
     }
   }
 
-  result += ' \\\n "' + data.url;
+  result += ' \\\n "' + getFullUrl(data) + '"';
+  return result;
+}
 
-  if (defined(data.query) && data.query) {
-    let queryObj = {};
-    for (let [k, v] of data.query) {
-      queryObj[k] = v;
-    }
-    result += '?' + queryString.stringify(queryObj);
+export function stringifyQueryList(query) {
+  if (isString(query)) {
+    return query;
   }
 
-  result += '"';
-  return result;
+  let queryObj = {};
+  for (let [k, v] of query) {
+    queryObj[k] = v;
+  }
+  return queryString.stringify(queryObj);
+}
+
+export function getFullUrl(data) {
+  let fullUrl = data && data.url;
+  if (!fullUrl) {
+    return fullUrl;
+  }
+
+  if (!isEmpty(data.query)) {
+    fullUrl += '?' + stringifyQueryList(data.query);
+  }
+
+  if (data.fragment) {
+    fullUrl += '#' + data.fragment;
+  }
+
+  return fullUrl;
 }
 
 /**

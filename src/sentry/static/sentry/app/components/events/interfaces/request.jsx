@@ -3,7 +3,7 @@ import React from 'react';
 import GroupEventDataSection from 'app/components/events/eventDataSection';
 import SentryTypes from 'app/sentryTypes';
 import RichHttpContent from 'app/components/events/interfaces/richHttpContent';
-import {getCurlCommand} from 'app/components/events/interfaces/utils';
+import {getFullUrl, getCurlCommand} from 'app/components/events/interfaces/utils';
 import {isUrl} from 'app/utils';
 import {t} from 'app/locale';
 import ExternalLink from 'app/components/externalLink';
@@ -49,23 +49,13 @@ class RequestInterface extends React.Component {
     let data = this.props.data;
     let view = this.state.view;
 
-    let fullUrl = data.url;
-    let parsedUrl = null;
-    if (fullUrl) {
-      if (data.query) {
-        fullUrl += '?' + data.query;
-      }
-      if (data.fragment) {
-        fullUrl += '#' + data.fragment;
-      }
-
-      if (!isUrl(fullUrl)) {
-        // Check if the url passed in is a safe url to avoid XSS
-        fullUrl = null;
-      }
+    let fullUrl = getFullUrl(data);
+    if (!isUrl(fullUrl)) {
+      // Check if the url passed in is a safe url to avoid XSS
+      fullUrl = null;
     }
 
-    // check `fullUrl` again because of `isUrl` check
+    let parsedUrl = null;
     if (fullUrl) {
       // use html tag to parse url, lol
       parsedUrl = document.createElement('a');
