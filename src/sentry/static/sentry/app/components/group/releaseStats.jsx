@@ -16,8 +16,8 @@ const GroupReleaseStats = createReactClass({
   displayName: 'GroupReleaseStats',
 
   propTypes: {
-    group: SentryTypes.Group,
-    project: SentryTypes.Project,
+    group: SentryTypes.Group.isRequired,
+    project: SentryTypes.Project.isRequired,
     allEnvironments: PropTypes.object,
   },
 
@@ -33,10 +33,11 @@ const GroupReleaseStats = createReactClass({
 
   getInitialState() {
     let envList = EnvironmentStore.getActive();
+    const latestEnv = LatestContextStore.getInitialState().environment;
 
     return {
       envList,
-      environment: LatestContextStore.getInitialState().environment,
+      environments: latestEnv ? [latestEnv] : [],
     };
   },
 
@@ -48,14 +49,23 @@ const GroupReleaseStats = createReactClass({
   },
 
   onLatestContextChange(context) {
-    this.setState({environment: context.environment || null});
+    const env = context.environment;
+    this.setState({environments: env ? [env] : []});
   },
 
   render() {
     let {group, project, allEnvironments} = this.props;
-    let {environment} = this.state;
+    let {environments} = this.state;
 
-    let envName = environment ? environment.displayName : t('All Environments');
+    const environmentLabel = environments.length
+      ? environments.map(env => env.displayName).join(', ')
+      : t('All Environments');
+
+    const shortEnvironmentLabel =
+      environments.length > 1
+        ? t('selected environments')
+        : environments.length === 1 ? environments[0].displayName : null;
+
     let projectId = project.slug;
     let orgId = this.getOrganization().slug;
     let hasRelease = new Set(project.features).has('releases');
@@ -64,7 +74,7 @@ const GroupReleaseStats = createReactClass({
     return (
       <div className="env-stats">
         <h6>
-          <span>{envName}</span>
+          <span>{environmentLabel}</span>
         </h6>
         <div className="env-content">
           {isLoading ? (
@@ -73,7 +83,7 @@ const GroupReleaseStats = createReactClass({
             <div>
               <GroupReleaseChart
                 group={allEnvironments}
-                environment={envName}
+                environment={environmentLabel}
                 environmentStats={group.stats}
                 release={group.currentRelease ? group.currentRelease.release : null}
                 releaseStats={group.currentRelease ? group.currentRelease.stats : null}
@@ -84,7 +94,7 @@ const GroupReleaseStats = createReactClass({
               />
               <GroupReleaseChart
                 group={allEnvironments}
-                environment={envName}
+                environment={environmentLabel}
                 environmentStats={group.stats}
                 release={group.currentRelease ? group.currentRelease.release : null}
                 releaseStats={group.currentRelease ? group.currentRelease.stats : null}
@@ -96,7 +106,7 @@ const GroupReleaseStats = createReactClass({
               />
               <h6>
                 <span>{t('First seen')}</span>
-                {environment ? <small>({environment.displayName})</small> : null}
+                {environments.length ? <small>({environmentLabel})</small> : null}
               </h6>
 
               <SeenInfo
@@ -105,14 +115,14 @@ const GroupReleaseStats = createReactClass({
                 date={group.firstSeen}
                 dateGlobal={allEnvironments.firstSeen}
                 hasRelease={hasRelease}
-                environment={environment ? environment.name : null}
+                environment={shortEnvironmentLabel}
                 release={group.firstRelease || null}
                 title={t('First seen')}
               />
 
               <h6>
                 <span>{t('Last seen')}</span>
-                {environment ? <small>({environment.displayName})</small> : null}
+                {environments.length ? <small>({environmentLabel})</small> : null}
               </h6>
               <SeenInfo
                 orgId={orgId}
@@ -120,7 +130,7 @@ const GroupReleaseStats = createReactClass({
                 date={group.lastSeen}
                 dateGlobal={allEnvironments.lastSeen}
                 hasRelease={hasRelease}
-                environment={environment ? environment.name : null}
+                environment={shortEnvironmentLabel}
                 release={group.lastRelease || null}
                 title={t('Last seen')}
               />
