@@ -3,10 +3,10 @@ from __future__ import absolute_import
 from django.core.urlresolvers import reverse
 
 from sentry.models import Widget, WidgetDataSource, WidgetDisplayTypes
-from sentry.testutils import OrganizationDashboardWidgetsTestCase
+from sentry.testutils import OrganizationDashboardWidgetTestCase
 
 
-class OrganizationDashboardWidgetsPostTestCase(OrganizationDashboardWidgetsTestCase):
+class OrganizationDashboardWidgetsPostTestCase(OrganizationDashboardWidgetTestCase):
     def url(self, dashboard_id):
         return reverse(
             'sentry-api-0-organization-dashboard-widgets',
