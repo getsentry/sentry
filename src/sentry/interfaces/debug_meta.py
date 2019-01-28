@@ -46,6 +46,9 @@ def process_symbolic_image(image):
 @imagetype('apple')
 def process_apple_image(image):
     try:
+        if image['uuid'] is None:
+            raise KeyError('uuid')
+
         apple_image = {
             'uuid': six.text_type(uuid.UUID(image['uuid'])),
             'cpu_type': image.get('cpu_type'),
@@ -73,6 +76,9 @@ def process_apple_image(image):
 @imagetype('proguard')
 def process_proguard_image(image):
     try:
+        if image['uuid'] is None:
+            raise KeyError('uuid')
+
         return {
             'uuid': six.text_type(uuid.UUID(image['uuid'])),
         }
