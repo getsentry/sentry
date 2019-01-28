@@ -318,7 +318,7 @@ const Frame = createReactClass({
     if (this.isInlineFrame()) {
       return t('Inlined frame');
     }
-    if (this.props.data.trust === 'scan') {
+    if (this.props.data.trust === 'scan' || this.props.data.trust === 'cfi-scan') {
       return t('Found by stack scanning');
     }
     if (this.getPlatform() == 'cocoa') {
