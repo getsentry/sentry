@@ -19,7 +19,7 @@ from sentry.utils.safe import get_path
 logger = logging.getLogger('sentry.minidumps')
 
 # Frame trust values achieved through the use of CFI
-CFI_TRUSTS = ('cfi', 'cfi-scan')
+CFI_TRUSTS = ('cfi', )
 
 # Minimum frame trust value that we require to omit CFI reprocessing
 MIN_TRUST = FrameTrust.fp
