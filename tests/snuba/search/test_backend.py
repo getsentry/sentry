@@ -1051,7 +1051,7 @@ class SnubaSearchTest(SnubaTestCase):
                 # Too small to pass all django candidates down to snuba
                 'snuba.search.max-pre-snuba-candidates': 5,
                 'snuba.search.hits-sample-size': 50}):
-            results = self.backend.query(
+            first_results = self.backend.query(
                 [self.project],
                 status=GroupStatus.UNRESOLVED,
                 tags={'match': '1'},
@@ -1059,7 +1059,32 @@ class SnubaSearchTest(SnubaTestCase):
                 count_hits=True,
             )
 
-            assert results.hits > 10
             # Deliberately do not assert that the value is within some margin
             # of error, as this will fail tests at some rate corresponding to
             # our confidence interval.
+            assert first_results.hits > 10
+
+            # When searching for the same tags, we should get the same set of
+            # hits as the sampling is based on the hash of the query.
+            second_results = self.backend.query(
+                [self.project],
+                status=GroupStatus.UNRESOLVED,
+                tags={'match': '1'},
+                limit=10,
+                count_hits=True,
+            )
+
+            assert first_results.results == second_results.results
+
+            # When using a different search, we should get a different sample
+            # but still should have some hits.
+            third_results = self.backend.query(
+                [self.project],
+                status=GroupStatus.UNRESOLVED,
+                tags={'match': '0'},
+                limit=10,
+                count_hits=True,
+            )
+
+            assert third_results.hits > 10
+            assert third_results.results != second_results.results

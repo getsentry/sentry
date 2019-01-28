@@ -1,7 +1,6 @@
 from __future__ import absolute_import
 
-import six
-
+from hashlib import md5
 import logging
 import pytz
 import time
@@ -495,7 +494,7 @@ def snuba_search(start, end, project_ids, environment_ids, tags,
     }).build(parameters)
 
     conditions = []
-    for tag, val in six.iteritems(tags):
+    for tag, val in sorted(tags.items()):
         col = u'tags[{}]'.format(tag)
         if val == ANY:
             conditions.append((col, '!=', ''))
@@ -523,7 +522,8 @@ def snuba_search(start, end, project_ids, environment_ids, tags,
         # are sampling using `ORDER by random() LIMIT x`, we will always grab
         # the full result set if there less than x total results.
 
-        selected_columns.append(('any', ('rand', ()), 'sample'))
+        query_hash = md5(repr(conditions)).hexdigest()[:8]
+        selected_columns.append(('cityHash64', ("'{}'".format(query_hash), 'issue'), 'sample'))
         sort_field = 'sample'
         orderby = [sort_field]
         referrer = 'search_sample'
