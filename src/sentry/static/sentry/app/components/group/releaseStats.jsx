@@ -6,6 +6,7 @@ import SentryTypes from 'app/sentryTypes';
 import ApiMixin from 'app/mixins/apiMixin';
 import EnvironmentStore from 'app/stores/environmentStore';
 import LatestContextStore from 'app/stores/latestContextStore';
+import GlobalSelectionStore from 'app/stores/globalSelectionStore';
 import LoadingIndicator from 'app/components/loadingIndicator';
 import OrganizationState from 'app/mixins/organizationState';
 import GroupReleaseChart from 'app/components/group/releaseChart';
@@ -29,28 +30,41 @@ const GroupReleaseStats = createReactClass({
     ApiMixin,
     OrganizationState,
     Reflux.listenTo(LatestContextStore, 'onLatestContextChange'),
+    Reflux.listenTo(GlobalSelectionStore, 'onGlobalSelectionChange'),
   ],
 
   getInitialState() {
     let envList = EnvironmentStore.getActive();
-    const latestEnv = LatestContextStore.getInitialState().environment;
+
+    let environments = [];
+    if (this.hasSentry10) {
+      environments = envList.filter(env =>
+        GlobalSelectionStore.get().environments.includes(env.name)
+      );
+    } else {
+      const latestContextEnv = LatestContextStore.getInitialState().environment;
+      environments = latestContextEnv ? [latestContextEnv] : [];
+    }
 
     return {
       envList,
-      environments: latestEnv ? [latestEnv] : [],
+      environments,
     };
   },
 
-  getEnvironment(envName) {
-    let defaultEnv = EnvironmentStore.getDefault();
-    let queriedEnvironment = EnvironmentStore.getByName(envName);
-
-    return queriedEnvironment || defaultEnv;
+  hasSentry10() {
+    return this.getFeatures().has('sentry10');
   },
 
   onLatestContextChange(context) {
-    const env = context.environment;
-    this.setState({environments: env ? [env] : []});
+    this.setState({environments: context.environment ? [context.environment] : []});
+  },
+
+  onGlobalSelectionChange(selection) {
+    const environments = EnvironmentStore.getActive().filter(env =>
+      selection.environments.includes(env.name)
+    );
+    this.setState({environments});
   },
 
   render() {

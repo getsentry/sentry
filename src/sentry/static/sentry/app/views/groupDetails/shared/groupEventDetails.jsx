@@ -10,11 +10,25 @@ import ResolutionBox from 'app/components/resolutionBox';
 import MutedBox from 'app/components/mutedBox';
 import withOrganization from 'app/utils/withOrganization';
 import withEnvironment from 'app/utils/withEnvironment';
+import withGlobalSelection from 'app/utils/withGlobalSelection';
+import EnvironmentStore from 'app/stores/environmentStore';
 
 import GroupEventToolbar from './eventToolbar';
 import {fetchGroupEventAndMarkSeen} from './utils';
 
-const GroupSidebarWithEnvironment = withEnvironment(GroupSidebar);
+const GroupSidebarWithLatestContextEnvironment = withEnvironment(props => {
+  const {environment, ...otherProps} = props;
+  return <GroupSidebar {...otherProps} environments={environment ? [environment] : []} />;
+});
+
+const GroupSidebarWithGlobalSelectionEnvironment = withGlobalSelection(props => {
+  const {selection, ...otherProps} = props;
+  const environments = EnvironmentStore.getActive().filter(env =>
+    selection.environments.includes(env.name)
+  );
+
+  return <GroupSidebar {...otherProps} environments={environments} />;
+});
 
 class GroupEventDetails extends React.Component {
   static propTypes = {
@@ -74,11 +88,9 @@ class GroupEventDetails extends React.Component {
     const {group, project, organization, params} = this.props;
     const evt = withMeta(this.state.event);
 
-    // Sidebar doesn't support multiple environments yet so do not pass an
-    // environment in the org level variant of the sidebar
     const SidebarWithEnvironment = params.projectId
-      ? GroupSidebarWithEnvironment
-      : GroupSidebar;
+      ? GroupSidebarWithLatestContextEnvironment
+      : GroupSidebarWithGlobalSelectionEnvironment;
 
     return (
       <div>

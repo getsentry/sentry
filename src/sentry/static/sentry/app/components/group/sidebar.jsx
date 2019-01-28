@@ -1,6 +1,6 @@
 import PropTypes from 'prop-types';
 import React from 'react';
-import _ from 'lodash';
+import {isEqual, pickBy, keyBy, isObject} from 'lodash';
 import createReactClass from 'create-react-class';
 import classNames from 'classnames';
 
@@ -24,8 +24,7 @@ const GroupSidebar = createReactClass({
     project: SentryTypes.Project,
     group: SentryTypes.Group,
     event: SentryTypes.Event,
-    // Currently only provided in the project version of the issue page
-    environment: SentryTypes.Environment,
+    environments: PropTypes.arrayOf(SentryTypes.Environment),
   },
 
   contextTypes: {
@@ -35,7 +34,7 @@ const GroupSidebar = createReactClass({
   mixins: [ApiMixin, OrganizationState],
 
   getInitialState() {
-    return {participants: [], environment: this.props.environment};
+    return {participants: [], environments: this.props.environments};
   },
 
   componentWillMount() {
@@ -72,8 +71,8 @@ const GroupSidebar = createReactClass({
   },
 
   componentWillReceiveProps(nextProps) {
-    if (nextProps.environment !== this.props.environment) {
-      this.setState({environment: nextProps.environment}, this.fetchTagData);
+    if (!isEqual(nextProps.environments, this.props.environments)) {
+      this.setState({environments: nextProps.environments}, this.fetchTagData);
     }
   },
 
@@ -82,13 +81,13 @@ const GroupSidebar = createReactClass({
 
     // Fetch the top values for the current group's top tags.
     this.api.request(`/issues/${group.id}/tags/`, {
-      query: _.pickBy({
+      query: pickBy({
         key: group.tags.map(data => data.key),
-        environment: this.state.environment && this.state.environment.name,
+        environment: this.state.environments.map(env => env.name),
       }),
       success: data => {
         this.setState({
-          tagsWithTopValues: _.keyBy(data, 'key'),
+          tagsWithTopValues: keyBy(data, 'key'),
         });
       },
       error: () => {
@@ -158,7 +157,7 @@ const GroupSidebar = createReactClass({
             <dt>{`${plugin.shortName || plugin.name || plugin.title}: `}</dt>
             <dd>
               <a href={issue.url}>
-                {_.isObject(issue.label) ? issue.label.id : issue.label}
+                {isObject(issue.label) ? issue.label.id : issue.label}
               </a>
             </dd>
           </dl>
@@ -276,10 +275,8 @@ const GroupSidebar = createReactClass({
           })}
         {group.tags.length === 0 && (
           <p data-test-id="no-tags">
-            {this.props.environment
-              ? tct('No tags found in the [env] environment', {
-                  env: this.props.environment.displayName,
-                })
+            {this.props.environments.length
+              ? t('No tags found in the selected environments')
               : t('No tags found')}
           </p>
         )}
