@@ -81,6 +81,7 @@ from .endpoints.organization_member_issues_bookmarked import OrganizationMemberI
 from .endpoints.organization_member_issues_viewed import OrganizationMemberIssuesViewedEndpoint
 from .endpoints.organization_member_unreleased_commits import OrganizationMemberUnreleasedCommitsEndpoint
 from .endpoints.organization_member_team_details import OrganizationMemberTeamDetailsEndpoint
+from .endpoints.organization_monitors import OrganizationMonitorsEndpoint
 from .endpoints.organization_onboarding_tasks import OrganizationOnboardingTaskEndpoint
 from .endpoints.organization_index import OrganizationIndexEndpoint
 from .endpoints.organization_plugins import OrganizationPluginsEndpoint
@@ -557,6 +558,10 @@ urlpatterns = patterns(
         r'^organizations/(?P<organization_slug>[^\/]+)/members/$',
         OrganizationMemberIndexEndpoint.as_view(),
         name='sentry-api-0-organization-member-index'
+    ),
+    url(
+        r'^organizations/(?P<organization_slug>[^\/]+)/monitors/$',
+        OrganizationMonitorsEndpoint.as_view(),
     ),
     url(
         r'^organizations/(?P<organization_slug>[^\/]+)/searches/$',
