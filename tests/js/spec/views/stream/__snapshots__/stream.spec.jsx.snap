@@ -23,6 +23,7 @@ exports[`Stream render() displays the group list 1`] = `
       }
       isSearchDisabled={false}
       onSavedSearchCreate={[Function]}
+      onSavedSearchSelect={[Function]}
       onSearch={[Function]}
       onSidebarToggle={[Function]}
       onSortChange={[Function]}
@@ -196,6 +197,7 @@ exports[`Stream toggles environment select all environments 1`] = `
       }
       isSearchDisabled={false}
       onSavedSearchCreate={[Function]}
+      onSavedSearchSelect={[Function]}
       onSearch={[Function]}
       onSidebarToggle={[Function]}
       onSortChange={[Function]}

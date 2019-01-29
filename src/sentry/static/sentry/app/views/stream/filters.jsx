@@ -25,6 +25,7 @@ class StreamFilters extends React.Component {
     onSearch: PropTypes.func,
     onSidebarToggle: PropTypes.func,
     onSavedSearchCreate: PropTypes.func.isRequired,
+    onSavedSearchSelect: PropTypes.func.isRequired,
   };
 
   static contextTypes = {
@@ -56,6 +57,7 @@ class StreamFilters extends React.Component {
       onSidebarToggle,
       onSearch,
       onSavedSearchCreate,
+      onSavedSearchSelect,
       onSortChange,
     } = this.props;
 
@@ -72,6 +74,7 @@ class StreamFilters extends React.Component {
               queryMaxCount={queryMaxCount}
               query={query}
               onSavedSearchCreate={onSavedSearchCreate}
+              onSavedSearchSelect={onSavedSearchSelect}
               savedSearchList={savedSearchList}
             />
           </div>
