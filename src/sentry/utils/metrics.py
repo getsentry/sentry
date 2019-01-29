@@ -90,7 +90,6 @@ def incr(key, amount=1, instance=None, tags=None, skip_internal=True):
     try:
         backend.incr(key, instance, tags, amount, sample_rate)
         if not skip_internal:
-            tags['instance'] = instance
             backend.incr('internal_metrics.incr', key, tags, amount, sample_rate)
     except Exception:
         logger = logging.getLogger('sentry.errors')
