@@ -159,3 +159,7 @@ def call_command(name, obj=None, **kwargs):
 
 def main():
     cli(prog_name=get_prog(), obj={}, max_content_width=100)
+
+
+if __name__ == "__main__":
+    main()
