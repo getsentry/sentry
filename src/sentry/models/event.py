@@ -307,7 +307,9 @@ class EventCommon(object):
 
     @property
     def server_name(self):
-        warnings.warn('Event.server_name is deprecated. Use Event.tags instead.', DeprecationWarning)
+        warnings.warn(
+            'Event.server_name is deprecated. Use Event.tags instead.',
+            DeprecationWarning)
         return self.get_tag('server_name')
 
     @property
@@ -329,7 +331,7 @@ class EventCommon(object):
 
 class SnubaEvent(EventCommon):
     """
-        Represents an event returned from snuba.
+        An event backed by data stored in snuba.
 
         This is a readonly event and does not support event creation or save.
         The basic event data is fetched from snuba, and the event body is
@@ -390,8 +392,14 @@ class SnubaEvent(EventCommon):
         if keys and values and len(keys) == len(values):
             return sorted(zip(keys, values))
         return []
-    # TODO unify with next_event/prev_event PR and create a snuba implementation
-    # of those methods (can it be done without 2 extra queries?)
+
+    @property
+    def next_event(self):
+        return None
+
+    @property
+    def prev_event(self):
+        return None
 
     # ============================================
     # Replication of django stuff
@@ -423,7 +431,8 @@ class SnubaEvent(EventCommon):
 
 class Event(Model, EventCommon):
     """
-    An individual event.
+    An event backed by data stored in postgres.
+
     """
     __core__ = False
 
