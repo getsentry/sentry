@@ -17,7 +17,6 @@ import {extractSelectionParameters} from 'app/components/organizations/globalSel
 import Pagination from 'app/components/pagination';
 import {Panel, PanelBody} from 'app/components/panels';
 import StreamGroup from 'app/components/stream/group';
-import {updateProjects} from 'app/actionCreators/globalSelection';
 import {fetchTags} from 'app/actionCreators/tags';
 import {fetchOrgMembers} from 'app/actionCreators/members';
 import {fetchSavedSearches} from 'app/actionCreators/savedSearches';
@@ -70,7 +69,7 @@ const OrganizationStream = createReactClass({
 
     return {
       groupIds: [],
-      loading: false,
+      loading: true,
       selectAllActive: false,
       realtimeActive,
       pageLinks: '',
@@ -113,7 +112,14 @@ const OrganizationStream = createReactClass({
 
     // Start by getting searches first so if the user is on a saved search
     // we load the correct data the first time.
+    this.fetchProcessingIssues();
     this.fetchSavedSearches();
+
+    // If we don't have a searchId there won't be more chained requests
+    // so we should fetch groups
+    if (!this.props.params.searchId) {
+      this.fetchData();
+    }
   },
 
   componentDidUpdate(prevProps, prevState) {
@@ -125,12 +131,29 @@ const OrganizationStream = createReactClass({
         this._poller.disable();
       }
     }
-    if (prevProps.params.searchId != this.props.params.searchId) {
-      this.onSavedSearchChange();
-    } else if (
-      prevProps.location.search != this.props.location.search ||
-      !isEqual(prevProps.selection, this.props.selection)
+
+    // If project selections have changed we need to get new processing issues.
+    if (!isEqual(prevProps.selection.projects, this.props.selection.projects)) {
+      this.fetchProcessingIssues();
+    }
+
+    let prevQuery = prevProps.location.query;
+    let newQuery = this.props.location.query;
+
+    // If any important url parameter changed or saved search changed
+    // reload data.
+    if (
+      !isEqual(prevProps.selection, this.props.selection) ||
+      prevQuery.sort !== newQuery.sort ||
+      prevQuery.query !== newQuery.query ||
+      prevQuery.statsPeriod !== newQuery.statsPeriod ||
+      prevQuery.groupStatsPeriod !== newQuery.groupStatsPeriod ||
+      prevState.savedSearch !== this.state.savedSearch
     ) {
+      this.fetchData();
+    } else if (!this.lastRequest && prevState.loading === false && this.state.loading) {
+      // Reload if we went from not loading to loading.
+      // This can happen when transitionTo is called
       this.fetchData();
     }
   },
@@ -211,7 +234,6 @@ const OrganizationStream = createReactClass({
   },
 
   fetchData() {
-    this.fetchProcessingIssues();
     GroupStore.loadInitialData([]);
 
     this.setState({
@@ -223,7 +245,7 @@ const OrganizationStream = createReactClass({
     let requestParams = {
       ...this.getEndpointParams(),
       limit: MAX_ITEMS,
-      shortIdLookup: '1',
+      shortIdLookup: 1,
     };
 
     let currentQuery = this.props.location.query || {};
@@ -332,25 +354,8 @@ const OrganizationStream = createReactClass({
     return `/organizations/${params.orgId}/issues/`;
   },
 
-  onSavedSearchChange() {
-    if (!this.state.savedSearchList) {
-      return;
-    }
-
-    let {searchId} = this.props.params;
-    let match = this.state.savedSearchList.find(search => search.id === searchId);
-    if (match) {
-      let projects = [];
-      if (match.projectId) {
-        projects = [parseInt(match.projectId, 10)];
-      }
-
-      // Will trigger a transition if the projects changed
-      updateProjects(projects);
-      this.setState({savedSearch: match}, this.transitionTo);
-    } else {
-      this.setState({savedSearch: null}, this.transitionTo);
-    }
+  onSavedSearchSelect(search) {
+    this.setState({savedSearch: search, loading: true}, this.transitionTo);
   },
 
   onRealtimeChange(realtime) {
@@ -453,10 +458,12 @@ const OrganizationStream = createReactClass({
     let {savedSearch} = this.state;
     let path;
 
-    if (savedSearch && query.query == savedSearch.query) {
+    if (savedSearch && savedSearch.query === query.query) {
       path = `/organizations/${organization.slug}/issues/searches/${savedSearch.id}/`;
-      // Drop query and add project so we endup in the right place.
+      // Drop query and project, adding the search project if available.
       delete query.query;
+      delete query.project;
+
       if (savedSearch.projectId) {
         query.project = [savedSearch.projectId];
       }
@@ -469,10 +476,7 @@ const OrganizationStream = createReactClass({
         pathname: path,
         query,
       });
-
-      // Refetch data as simply pushing browserHistory doesn't
-      // update props.
-      this.fetchData();
+      this.setState({loading: true});
     }
   },
 
@@ -539,12 +543,20 @@ const OrganizationStream = createReactClass({
   },
 
   fetchSavedSearches() {
-    let {orgId} = this.props.params;
-    this.setState({loading: true});
+    let {orgId, searchId} = this.props.params;
 
     fetchSavedSearches(this.api, orgId).then(
       savedSearchList => {
-        this.setState({savedSearchList}, this.onSavedSearchChange);
+        let newState = {
+          savedSearchList,
+          loading: true,
+        };
+
+        if (searchId) {
+          let match = savedSearchList.find(search => search.id === searchId);
+          newState.savedSearch = match ? match : null;
+        }
+        this.setState(newState);
       },
       error => {
         logAjaxError(error);
@@ -559,7 +571,7 @@ const OrganizationStream = createReactClass({
     this.setState({
       savedSearchList: sortBy(savedSearchList, ['name', 'projectId']),
     });
-    this.setState({savedSearch: data}, this.transitionTo);
+    this.setState({savedSearch: data, loading: true}, this.transitionTo);
   },
 
   renderProcessingIssuesHints() {
@@ -644,6 +656,7 @@ const OrganizationStream = createReactClass({
             onSortChange={this.onSortChange}
             onSearch={this.onSearch}
             onSavedSearchCreate={this.onSavedSearchCreate}
+            onSavedSearchSelect={this.onSavedSearchSelect}
             onSidebarToggle={this.onSidebarToggle}
             isSearchDisabled={this.state.isSidebarVisible}
             savedSearchList={this.state.savedSearchList}
