@@ -85,7 +85,8 @@ internal = InternalMetrics()
 
 def incr(key, amount=1, instance=None, tags=None, skip_internal=True):
     sample_rate = settings.SENTRY_METRICS_SAMPLE_RATE
-    if not skip_internal and _should_sample():
+    if (not skip_internal and _should_sample() and
+            not key.startswith(tuple(settings.SENTRY_MERTRICS_SKIP_INTERNAL_PREFIXES))):
         internal.incr(key, instance, tags, amount)
     try:
         backend.incr(key, instance, tags, amount, sample_rate)

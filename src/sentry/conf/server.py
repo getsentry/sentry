@@ -1077,6 +1077,7 @@ SENTRY_METRICS_BACKEND = 'sentry.metrics.dummy.DummyMetricsBackend'
 SENTRY_METRICS_OPTIONS = {}
 SENTRY_METRICS_SAMPLE_RATE = 1.0
 SENTRY_METRICS_PREFIX = 'sentry.'
+SENTRY_MERTRICS_SKIP_INTERNAL_PREFIXES = []  # Order this by most frequent prefixes.
 
 # URI Prefixes for generating DSN URLs
 # (Defaults to URL_PREFIX by default)
