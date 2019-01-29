@@ -37,7 +37,10 @@ describe('OrganizationDetails', function() {
         await tick();
         tree.update();
         expect(tree.text()).toContain('Deletion Scheduled');
-        expect(tree).toMatchSnapshot();
+        expect(tree.text()).toContain(
+          'Would you like to cancel this process and restore the organization back to the original state?'
+        );
+        expect(tree.find('button[aria-label="Restore Organization"]')).toHaveLength(1);
       });
 
       it('should render a restoration prompt without action for members', async function() {
@@ -59,8 +62,13 @@ describe('OrganizationDetails', function() {
         await tick();
         await tick();
         tree.update();
-        expect(tree.text()).toContain('Deletion Scheduled');
-        expect(tree).toMatchSnapshot();
+        expect(tree.text()).toContain(
+          [
+            'The org-slug organization is currently scheduled for deletion.',
+            'If this is a mistake, contact an organization owner and ask them to restore this organization.',
+          ].join('')
+        );
+        expect(tree.find('button[aria-label="Restore Organization"]')).toHaveLength(0);
       });
     });
 
@@ -88,7 +96,7 @@ describe('OrganizationDetails', function() {
         expect(tree.text()).toContain(
           'The org-slug organization is currently in the process of being deleted from Sentry'
         );
-        expect(tree).toMatchSnapshot();
+        expect(tree.find('button[aria-label="Restore Organization"]')).toHaveLength(0);
       });
     });
   });
