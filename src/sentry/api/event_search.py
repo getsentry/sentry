@@ -4,10 +4,12 @@ import re
 import six
 
 from collections import namedtuple
+from django.utils.functional import cached_property
 
 from parsimonious.exceptions import ParseError
 from parsimonious.grammar import Grammar, NodeVisitor
 
+from sentry.constants import STATUS_CHOICES
 from sentry.search.utils import parse_datetime_string, InvalidQuery
 from sentry.utils.snuba import SENTRY_SNUBA_MAP
 
@@ -56,7 +58,7 @@ event_search_grammar = Grammar(r"""
 # raw_search must come at the end, otherwise other
 # search_terms will be treated as a raw query
 search          = search_term* raw_search?
-search_term     = space? (time_filter / has_filter / basic_filter) space?
+search_term     = space? (time_filter / has_filter / is_filter / basic_filter) space?
 raw_search      = ~r".+$"
 
 # standard key:val filter
@@ -65,6 +67,7 @@ basic_filter    = negation? search_key sep search_value
 time_filter     = "timestamp" operator date_format
 # has filter for not null type checks
 has_filter      = negation? "has" sep (search_key / search_value)
+is_filter      = negation? "is" sep (search_key / search_value)
 
 search_key      = key / quoted_key
 search_value    = quoted_value / value
@@ -128,6 +131,16 @@ class SearchValue(namedtuple('SearchValue', 'raw_value')):
 
 
 class SearchVisitor(NodeVisitor):
+
+    @cached_property
+    def is_filter_translators(self):
+        is_filter_translators = {
+            'assigned': (SearchKey('unassigned'), SearchValue(False)),
+            'unassigned': (SearchKey('unassigned'), SearchValue(True)),
+        }
+        for status_key, status_value in STATUS_CHOICES.items():
+            is_filter_translators[status_key] = (SearchKey('status'), SearchValue(status_value))
+        return is_filter_translators
 
     unwrapped_exceptions = (InvalidSearchQuery,)
 
@@ -201,6 +214,33 @@ class SearchVisitor(NodeVisitor):
             search_key,
             operator,
             SearchValue(''),
+        )
+
+    def visit_is_filter(self, node, children):
+        # the key is "is" here, which we don't need
+        negation, _, _, (search_key,) = children
+
+        # if it matched search value instead, it's not a valid key
+        if isinstance(search_key, SearchValue):
+            raise InvalidSearchQuery(
+                'Invalid format for "is" search: %s' %
+                (search_key.raw_value,))
+
+        if search_key.name not in self.is_filter_translators:
+            raise InvalidSearchQuery(
+                'Invalid value for "is" search, valid values are {}'.format(
+                    sorted(self.is_filter_translators.keys()),
+                ),
+            )
+
+        search_key, search_value = self.is_filter_translators[search_key.name]
+
+        operator = '!=' if self.is_negated(negation) else '='
+
+        return SearchFilter(
+            search_key,
+            operator,
+            search_value,
         )
 
     def visit_search_key(self, node, children):
