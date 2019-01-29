@@ -27,11 +27,13 @@ class TestIssueSaved(TestCase):
 # This testcase needs to be an APITestCase because all of the logic to resolve
 # Issues and kick off side effects are just chillin in the endpoint code -_-
 @patch('sentry.tasks.sentry_apps.workflow_notification.delay')
-class TestIssueResolved(APITestCase):
+class TestIssueWorkflowNotifications(APITestCase):
     def setUp(self):
         self.issue = self.create_group(project=self.project)
 
-        self.sentry_app = self.create_sentry_app(events=['issue.resolved'])
+        self.sentry_app = self.create_sentry_app(
+            events=['issue.resolved', 'issue.ignored'],
+        )
 
         self.install = self.create_sentry_app_installation(
             organization=self.organization,
@@ -46,13 +48,13 @@ class TestIssueResolved(APITestCase):
 
         self.login_as(self.user)
 
-    def resolve_issue(self, _data=None):
+    def update_issue(self, _data=None):
         data = {'status': 'resolved'}
         data.update(_data or {})
         self.client.put(self.url, data=data, format='json')
 
     def test_notify_after_basic_resolved(self, delay):
-        self.resolve_issue()
+        self.update_issue()
 
         assert faux(delay).called_with(
             installation_id=self.install.id,
@@ -66,7 +68,7 @@ class TestIssueResolved(APITestCase):
         repo = self.create_repo(project=self.project)
         commit = self.create_commit(repo=repo)
 
-        self.resolve_issue({
+        self.update_issue({
             'statusDetails': {
                 'inCommit': {
                     'repository': repo.name,
@@ -86,7 +88,7 @@ class TestIssueResolved(APITestCase):
     def test_notify_after_resolve_in_specific_release(self, delay):
         release = self.create_release(project=self.project)
 
-        self.resolve_issue({
+        self.update_issue({
             'statusDetails': {
                 'inRelease': release.version,
             },
@@ -103,7 +105,7 @@ class TestIssueResolved(APITestCase):
     def test_notify_after_resolve_in_latest_release(self, delay):
         self.create_release(project=self.project)
 
-        self.resolve_issue({
+        self.update_issue({
             'statusDetails': {
                 'inRelease': 'latest',
             },
@@ -120,7 +122,7 @@ class TestIssueResolved(APITestCase):
     def test_notify_after_resolve_in_next_release(self, delay):
         self.create_release(project=self.project)
 
-        self.resolve_issue({
+        self.update_issue({
             'statusDetails': {
                 'inNextRelease': True,
             },
@@ -177,4 +179,15 @@ class TestIssueResolved(APITestCase):
             type='resolved',
             user_id=None,
             data={'resolution_type': 'resolved_in_commit'},
+        )
+
+    def test_notify_after_issue_ignored(self, delay):
+        self.update_issue({'status': 'ignored'})
+
+        assert faux(delay).called_with(
+            installation_id=self.install.id,
+            issue_id=self.issue.id,
+            type='ignored',
+            user_id=self.user.id,
+            data={},
         )
