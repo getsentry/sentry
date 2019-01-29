@@ -114,4 +114,5 @@ class EventsTableRow extends React.Component {
   }
 }
 
+export {EventsTableRow};
 export default withOrganization(EventsTableRow);
