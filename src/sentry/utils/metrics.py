@@ -12,7 +12,7 @@ from threading import Thread
 from six.moves.queue import Queue
 
 
-metrics_skip_internal_prefixes = tuple(settings.SENTRY_MERTRICS_SKIP_INTERNAL_PREFIXES)
+metrics_skip_internal_prefixes = tuple(settings.SENTRY_METRICS_SKIP_INTERNAL_PREFIXES)
 
 
 def get_default_backend():
