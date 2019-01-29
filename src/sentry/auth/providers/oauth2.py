@@ -128,14 +128,20 @@ class OAuth2Provider(Provider):
     client_id = None
     client_secret = None
 
+    def get_client_id(self):
+        return self.client_id
+
+    def get_client_secret(self):
+        return self.client_secret
+
     def get_auth_pipeline(self):
         return [
             OAuth2Login(
-                client_id=self.client_id,
+                client_id=self.get_client_id(),
             ),
             OAuth2Callback(
-                client_id=self.client_id,
-                client_secret=self.client_secret,
+                client_id=self.get_client_id(),
+                client_secret=self.get_client_secret(),
             ),
         ]
 
@@ -144,8 +150,8 @@ class OAuth2Provider(Provider):
 
     def get_refresh_token_params(self, refresh_token):
         return {
-            "client_id": self.client_id,
-            "client_secret": self.client_secret,
+            "client_id": self.get_client_id(),
+            "client_secret": self.get_client_secret(),
             "grant_type": "refresh_token",
             "refresh_token": refresh_token,
         }

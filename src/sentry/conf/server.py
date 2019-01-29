@@ -265,7 +265,7 @@ INSTALLED_APPS = (
     'sentry.lang.javascript', 'sentry.lang.native', 'sentry.plugins.sentry_interface_types',
     'sentry.plugins.sentry_mail', 'sentry.plugins.sentry_urls', 'sentry.plugins.sentry_useragents',
     'sentry.plugins.sentry_webhooks', 'social_auth', 'sudo', 'sentry.tagstore',
-    'sentry.eventstream',
+    'sentry.eventstream', 'sentry.auth.providers.google',
 )
 
 import django
