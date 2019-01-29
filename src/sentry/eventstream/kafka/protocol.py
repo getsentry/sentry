@@ -92,6 +92,11 @@ def get_task_kwargs_for_message(value):
     can be applied to a post-processing task, or ``None`` if no task should be
     dispatched.
     """
+
+    if len(value) > 2000000:
+        logger.debug("Event payload too large: %d", len(value))
+        return None
+
     payload = json.loads(value)
 
     try:
