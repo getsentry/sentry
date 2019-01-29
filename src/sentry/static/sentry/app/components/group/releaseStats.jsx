@@ -4,7 +4,7 @@ import Reflux from 'reflux';
 import createReactClass from 'create-react-class';
 import SentryTypes from 'app/sentryTypes';
 import ApiMixin from 'app/mixins/apiMixin';
-import EnvironmentStore from 'app/stores/environmentStore';
+import OrganizationEnvironmentsStore from 'app/stores/organizationEnvironmentsStore';
 import LatestContextStore from 'app/stores/latestContextStore';
 import GlobalSelectionStore from 'app/stores/globalSelectionStore';
 import LoadingIndicator from 'app/components/loadingIndicator';
@@ -34,7 +34,7 @@ const GroupReleaseStats = createReactClass({
   ],
 
   getInitialState() {
-    let envList = EnvironmentStore.getActive();
+    let envList = OrganizationEnvironmentsStore.getActive();
 
     let environments = [];
     if (this.hasSentry10) {
@@ -61,7 +61,7 @@ const GroupReleaseStats = createReactClass({
   },
 
   onGlobalSelectionChange(selection) {
-    const environments = EnvironmentStore.getActive().filter(env =>
+    const environments = OrganizationEnvironmentsStore.getActive().filter(env =>
       selection.environments.includes(env.name)
     );
     this.setState({environments});
