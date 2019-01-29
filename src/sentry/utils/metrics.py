@@ -89,6 +89,8 @@ def incr(key, amount=1, instance=None, tags=None, skip_internal=True):
         internal.incr(key, instance, tags, amount)
     try:
         backend.incr(key, instance, tags, amount, sample_rate)
+        if not skip_internal:
+            backend.incr('internal_metrics.incr', key, None, 1, sample_rate)
     except Exception:
         logger = logging.getLogger('sentry.errors')
         logger.exception('Unable to record backend metric')
