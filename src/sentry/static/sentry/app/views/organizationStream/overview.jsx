@@ -17,7 +17,6 @@ import {extractSelectionParameters} from 'app/components/organizations/globalSel
 import Pagination from 'app/components/pagination';
 import {Panel, PanelBody} from 'app/components/panels';
 import StreamGroup from 'app/components/stream/group';
-import {updateProjects} from 'app/actionCreators/globalSelection';
 import {fetchTags} from 'app/actionCreators/tags';
 import {fetchOrgMembers} from 'app/actionCreators/members';
 import {fetchSavedSearches} from 'app/actionCreators/savedSearches';
