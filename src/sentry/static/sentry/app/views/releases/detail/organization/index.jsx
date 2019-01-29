@@ -1,5 +1,6 @@
 import PropTypes from 'prop-types';
 import React from 'react';
+import {pick} from 'lodash';
 
 import SentryTypes from 'app/sentryTypes';
 import Feature from 'app/components/acl/feature';
@@ -8,6 +9,7 @@ import Alert from 'app/components/alert';
 import LoadingError from 'app/components/loadingError';
 import LoadingIndicator from 'app/components/loadingIndicator';
 import GlobalSelectionHeader from 'app/components/organizations/globalSelectionHeader';
+import {URL_PARAM} from 'app/components/organizations/globalSelectionHeader/constants';
 import withOrganization from 'app/utils/withOrganization';
 import AsyncView from 'app/views/asyncView';
 import {PageContent} from 'app/styles/organization';
@@ -34,10 +36,7 @@ class OrganizationReleaseDetailsContainer extends React.Component {
         organization={this.props.organization}
         renderDisabled={this.renderNoAccess}
       >
-        <GlobalSelectionHeader
-          organization={this.props.organization}
-          hasCustomRouting={true}
-        />
+        <GlobalSelectionHeader organization={this.props.organization} />
         <OrganizationReleaseDetails {...this.props} />
       </Feature>
     );
@@ -72,8 +71,10 @@ class OrganizationReleaseDetails extends AsyncView {
   }
 
   renderBody() {
-    const release = this.state.release;
-    const {orgId} = this.props.params;
+    const {location, params: {orgId}} = this.props;
+    const {release} = this.state;
+
+    const query = pick(location.query, Object.values(URL_PARAM));
 
     if (this.state.loading) return <LoadingIndicator />;
     if (this.state.error) return <LoadingError onRetry={this.fetchData} />;
@@ -83,6 +84,7 @@ class OrganizationReleaseDetails extends AsyncView {
         <ReleaseHeader release={release} orgId={orgId} />
         {React.cloneElement(this.props.children, {
           release,
+          query,
         })}
       </PageContent>
     );
