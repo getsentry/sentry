@@ -506,23 +506,20 @@ class StoreView(APIView):
             # bubble up as an APIError.
             data = None
 
-        response_or_event_id = self.process(request, data=data, **kwargs)
-        if isinstance(response_or_event_id, HttpResponse):
-            return response_or_event_id
+        event_id = self.process(request, data=data, **kwargs)
         return HttpResponse(
             json.dumps({
-                'id': response_or_event_id,
+                'id': event_id,
             }), content_type='application/json'
         )
 
     def get(self, request, **kwargs):
         data = request.GET.get('sentry_data', '')
-        response_or_event_id = self.process(request, data=data, **kwargs)
+        event_id = self.process(request, data=data, **kwargs)
 
         # Return a simple 1x1 gif for browser so they don't throw a warning
         response = HttpResponse(PIXEL, 'image/gif')
-        if not isinstance(response_or_event_id, HttpResponse):
-            response['X-Sentry-ID'] = response_or_event_id
+        response['X-Sentry-ID'] = event_id
         return response
 
     def pre_normalize(self, data, helper):
@@ -747,21 +744,18 @@ class MinidumpView(StoreView):
             minidumps_logger.exception(e)
             raise APIError(e.message.split('\n', 1)[0])
 
-        response_or_event_id = self.process(
+        event_id = self.process(
             request,
             attachments=attachments,
             data=data,
             project=project,
             **kwargs)
 
-        if isinstance(response_or_event_id, HttpResponse):
-            return response_or_event_id
-
         # Return the formatted UUID of the generated event. This is
         # expected by the Electron http uploader on Linux and doesn't
         # break the default Breakpad client library.
         return HttpResponse(
-            six.text_type(uuid.UUID(response_or_event_id)),
+            six.text_type(uuid.UUID(event_id)),
             content_type='text/plain'
         )
 
@@ -844,7 +838,7 @@ class UnrealView(StoreView):
                     type=unreal_attachment_type(file),
                 ))
 
-        response_or_event_id = self.process(
+        event_id = self.process(
             request,
             attachments=attachments,
             data=event,
@@ -853,11 +847,8 @@ class UnrealView(StoreView):
 
         # The return here is only useful for consistency
         # because the UE4 crash reporter doesn't care about it.
-        if isinstance(response_or_event_id, HttpResponse):
-            return response_or_event_id
-
         return HttpResponse(
-            six.text_type(uuid.UUID(response_or_event_id)),
+            six.text_type(uuid.UUID(event_id)),
             content_type='text/plain'
         )
 
@@ -936,11 +927,7 @@ class SecurityReportView(StoreView):
             'environment': request.GET.get('sentry_environment'),
         }
 
-        response_or_event_id = self.process(
-            request, project=project, helper=helper, data=data, **kwargs
-        )
-        if isinstance(response_or_event_id, HttpResponse):
-            return response_or_event_id
+        self.process(request, project=project, helper=helper, data=data, **kwargs)
         return HttpResponse(content_type='application/javascript', status=201)
 
     def security_report_type(self, body):
