@@ -6,14 +6,14 @@ import LastCommit from 'app/components/lastCommit';
 import CommitAuthorStats from 'app/components/commitAuthorStats';
 import ReleaseProjectStatSparkline from 'app/components/releaseProjectStatSparkline';
 import RepositoryFileSummary from 'app/components/repositoryFileSummary';
-import AsyncView from 'app/views/asyncView';
+import AsyncComponent from 'app/components/asyncComponent';
 import {t} from 'app/locale';
 import {getFilesByRepository} from '../shared/utils';
 import ReleaseDeploys from '../shared/releaseDeploys';
 import ReleaseEmptyState from '../shared/releaseEmptyState';
 import ReleaseIssues from '../shared/releaseIssues';
 
-export default class OrganizationReleaseOverview extends AsyncView {
+export default class OrganizationReleaseOverview extends AsyncComponent {
   static contextTypes = {
     release: SentryTypes.Release,
   };
