@@ -10,8 +10,8 @@ from sentry.models import EnvironmentProject
 from sentry.utils.apidocs import scenario, attach_scenarios
 
 
-@scenario('RetrieveEnvironmentsForProject')
-def retrieve_environments_for_project_scenario(runner):
+@scenario('ListEnvironmentsForProject')
+def list_project_environments_scenario(runner):
     runner.request(
         method='GET',
         path='/projects/%s/%s/environments/' %
@@ -22,17 +22,17 @@ def retrieve_environments_for_project_scenario(runner):
 class ProjectEnvironmentsEndpoint(ProjectEndpoint):
     doc_section = DocSection.PROJECTS
 
-    @attach_scenarios([retrieve_environments_for_project_scenario])
+    @attach_scenarios([list_project_environments_scenario])
     def get(self, request, project):
         """
-        Retrieve Environments for a Project
+        List a Project's Environments
         ```````````````````````````````
 
         Return environments for a given project.
 
         :qparam string visibility: when omitted only visible environments are
                                    returned. Set to ``"hidden"`` for only hidden
-                                   environemnts, or ``"all"`` for both hidden
+                                   environments, or ``"all"`` for both hidden
                                    and visible environments.
 
         :pparam string organization_slug: the slug of the organization the project
