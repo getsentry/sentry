@@ -415,6 +415,11 @@ urlpatterns += patterns(
         name='sentry-organization-issue-detail'
     ),
     url(
+        r'^organizations/(?P<organization_slug>[\w_-]+)/issues/(?P<group_id>\d+)/events/(?P<event_id_or_latest>(\d+|latest))/$',
+        react_page_view,
+        name='sentry-organization-event-detail'
+    ),
+    url(
         r'^organizations/(?P<organization_slug>[\w_-]+)/api-keys/$',
         react_page_view,
         name='sentry-organization-api-keys'
