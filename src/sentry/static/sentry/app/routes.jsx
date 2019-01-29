@@ -795,6 +795,15 @@ function routes() {
               component={errorHandler(LazyLoad)}
             />
           </Route>
+
+          <Route
+            path="/organizations/:orgId/projects/:projectId/getting-started/"
+            component={errorHandler(ProjectGettingStarted)}
+          >
+            <IndexRoute component={errorHandler(ProjectInstallOverview)} />
+            <Route path=":platform/" component={errorHandler(ProjectInstallPlatform)} />
+          </Route>
+
           <Route
             path="/organizations/:orgId/issues/"
             componentPromise={() =>
