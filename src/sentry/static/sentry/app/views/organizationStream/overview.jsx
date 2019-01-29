@@ -145,8 +145,8 @@ const OrganizationStream = createReactClass({
     // reload data.
     if (
       !isEqual(prevProps.selection, this.props.selection) ||
-      prevQuery.sort != newQuery.sort ||
-      prevQuery.query != newQuery.query ||
+      prevQuery.sort !== newQuery.sort ||
+      prevQuery.query !== newQuery.query ||
       prevQuery.statsPeriod !== newQuery.statsPeriod ||
       prevQuery.groupStatsPeriod !== newQuery.groupStatsPeriod ||
       prevState.savedSearch !== this.state.savedSearch
