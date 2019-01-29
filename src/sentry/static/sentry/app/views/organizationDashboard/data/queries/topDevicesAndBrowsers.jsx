@@ -2,13 +2,12 @@
  * Top Errors by Device
  */
 const topDevices = {
-  fields: ['device.family'],
+  fields: ['device.family', 'browser.name'],
   conditions: [],
   aggregations: [['count()', null, 'count']],
   limit: 10,
-
+  groupby: [],
   orderby: '-count',
-  groupby: ['device.family'],
 };
 
 export default topDevices;
