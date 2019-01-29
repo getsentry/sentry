@@ -145,6 +145,7 @@ register('snuba.search.max-pre-snuba-candidates', default=5000)
 register('snuba.search.chunk-growth-rate', default=1.5)
 register('snuba.search.max-chunk-size', default=2000)
 register('snuba.search.max-total-chunk-time-seconds', default=30.0)
+register('snuba.search.hits-sample-size', default=100)
 register('snuba.events-queries.enabled', type=Bool, default=False)
 
 # Kafka Publisher
