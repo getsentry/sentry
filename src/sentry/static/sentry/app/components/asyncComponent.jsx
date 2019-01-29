@@ -200,6 +200,10 @@ export default class AsyncComponent extends React.Component {
     // Allow children to implement this
   }
 
+  onRequestError(resp, args) {
+    // Allow children to implement this
+  }
+
   handleRequestSuccess = ({stateKey, data, jqXHR}, initialRequest) => {
     this.setState(prevState => {
       let state = {
@@ -219,7 +223,8 @@ export default class AsyncComponent extends React.Component {
     this.onRequestSuccess({stateKey, data, jqXHR});
   };
 
-  handleError(error, [stateKey]) {
+  handleError(error, args) {
+    let [stateKey] = args;
     if (error && error.responseText) {
       Sentry.addBreadcrumb({
         message: error.responseText,
@@ -243,6 +248,7 @@ export default class AsyncComponent extends React.Component {
 
       return state;
     });
+    this.onRequestError(error, args);
   }
 
   // DEPRECATED: use getEndpoints()
@@ -298,7 +304,7 @@ export default class AsyncComponent extends React.Component {
     return <LoadingIndicator />;
   }
 
-  renderError(error, disableLog = false) {
+  renderError(error, disableLog = false, disableReport = false) {
     // 401s are captured by SudaModal, but may be passed back to AsyncComponent if they close the modal without identifying
     let unauthorizedErrors = Object.values(this.state.errors).find(
       resp => resp && resp.status === 401
@@ -343,6 +349,7 @@ export default class AsyncComponent extends React.Component {
         error={error}
         component={this}
         disableLogSentry={!shouldLogSentry}
+        disableReport={disableReport}
         onRetry={this.remountComponent}
       />
     );

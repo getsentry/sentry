@@ -12,6 +12,7 @@ class RouteError extends React.Component {
      * Disable logging to Sentry
      */
     disableLogSentry: PropTypes.bool,
+    disableReport: PropTypes.bool,
     error: PropTypes.object.isRequired,
     routes: PropTypes.array,
   };
@@ -22,7 +23,7 @@ class RouteError extends React.Component {
   };
 
   componentWillMount() {
-    let {disableLogSentry, routes, error} = this.props;
+    let {disableLogSentry, disableReport, routes, error} = this.props;
     let {organization, project} = this.context;
 
     if (disableLogSentry) return;
@@ -43,7 +44,10 @@ class RouteError extends React.Component {
         scope.setExtra('projectFeatures', (project && project.features) || []);
         Sentry.captureException(error);
       });
-      Sentry.showReportDialog();
+
+      if (!disableReport) {
+        Sentry.showReportDialog();
+      }
     });
   }
 
