@@ -68,6 +68,41 @@ exports[`Stream render() displays the group list 1`] = `
         disablePadding={true}
         flex={false}
       >
+        <ProcessingIssueList
+          organization={
+            Object {
+              "access": Array [
+                "org:read",
+                "org:write",
+                "org:admin",
+                "project:read",
+                "project:write",
+                "project:admin",
+                "team:read",
+                "team:write",
+                "team:admin",
+              ],
+              "features": Array [],
+              "id": "1337",
+              "name": "Organization Name",
+              "onboardingTasks": Array [],
+              "projects": Array [],
+              "scrapeJavaScript": true,
+              "slug": "org-slug",
+              "status": Object {
+                "id": "active",
+                "name": "active",
+              },
+              "teams": Array [],
+            }
+          }
+          projectIds={
+            Array [
+              "3559",
+            ]
+          }
+          showProject={false}
+        />
         <PanelBody
           className="ref-group-list"
           direction="column"
@@ -242,6 +277,41 @@ exports[`Stream toggles environment select all environments 1`] = `
         disablePadding={true}
         flex={false}
       >
+        <ProcessingIssueList
+          organization={
+            Object {
+              "access": Array [
+                "org:read",
+                "org:write",
+                "org:admin",
+                "project:read",
+                "project:write",
+                "project:admin",
+                "team:read",
+                "team:write",
+                "team:admin",
+              ],
+              "features": Array [],
+              "id": "1337",
+              "name": "Organization Name",
+              "onboardingTasks": Array [],
+              "projects": Array [],
+              "scrapeJavaScript": true,
+              "slug": "org-slug",
+              "status": Object {
+                "id": "active",
+                "name": "active",
+              },
+              "teams": Array [],
+            }
+          }
+          projectIds={
+            Array [
+              "3559",
+            ]
+          }
+          showProject={false}
+        />
         <PanelBody
           className="ref-group-list"
           direction="column"

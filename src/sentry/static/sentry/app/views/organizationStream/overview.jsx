@@ -20,7 +20,6 @@ import StreamGroup from 'app/components/stream/group';
 import {fetchTags} from 'app/actionCreators/tags';
 import {fetchOrgMembers} from 'app/actionCreators/members';
 import {fetchSavedSearches} from 'app/actionCreators/savedSearches';
-import {fetchProcessingIssues} from 'app/actionCreators/processingIssues';
 import ConfigStore from 'app/stores/configStore';
 import GroupStore from 'app/stores/groupStore';
 import SelectedGroupStore from 'app/stores/selectedGroupStore';
@@ -30,7 +29,7 @@ import SentryTypes from 'app/sentryTypes';
 import StreamActions from 'app/views/stream/actions';
 import StreamFilters from 'app/views/stream/filters';
 import StreamSidebar from 'app/views/stream/sidebar';
-import ProcessingIssueHint from 'app/views/stream/processingIssueHint';
+import ProcessingIssueList from 'app/components/stream/processingIssueList';
 import {analytics} from 'app/utils/analytics';
 import {getUtcDateString} from 'app/utils/dates';
 import {logAjaxError} from 'app/utils/logging';
@@ -78,7 +77,6 @@ const OrganizationStream = createReactClass({
       isSidebarVisible: false,
       savedSearch: null,
       savedSearchList: [],
-      processingIssues: null,
       tagsLoading: true,
       memberList: {},
       tags: TagStore.getAllTags(),
@@ -112,7 +110,6 @@ const OrganizationStream = createReactClass({
 
     // Start by getting searches first so if the user is on a saved search
     // we load the correct data the first time.
-    this.fetchProcessingIssues();
     this.fetchSavedSearches();
 
     // If we don't have a searchId there won't be more chained requests
@@ -130,11 +127,6 @@ const OrganizationStream = createReactClass({
       } else {
         this._poller.disable();
       }
-    }
-
-    // If project selections have changed we need to get new processing issues.
-    if (!isEqual(prevProps.selection.projects, this.props.selection.projects)) {
-      this.fetchProcessingIssues();
     }
 
     let prevQuery = prevProps.location.query;
@@ -309,28 +301,6 @@ const OrganizationStream = createReactClass({
         this.resumePolling();
       },
     });
-  },
-
-  fetchProcessingIssues() {
-    let {orgId} = this.props.params;
-    let projects = this.props.selection.projects;
-    fetchProcessingIssues(this.api, orgId, projects).then(
-      data => {
-        let haveIssues = data.filter(
-          p => p.hasIssues || p.resolveableIssues > 0 || p.issuesProcessing > 0
-        );
-
-        if (haveIssues.length > 0) {
-          this.setState({
-            processingIssues: data,
-          });
-        }
-      },
-      error => {
-        // this is okay. it's just a ui hint
-        logAjaxError(error);
-      }
-    );
   },
 
   showingProcessingIssues() {
@@ -574,25 +544,6 @@ const OrganizationStream = createReactClass({
     this.setState({savedSearch: data, loading: true}, this.transitionTo);
   },
 
-  renderProcessingIssuesHints() {
-    let pi = this.state.processingIssues;
-    if (!pi || this.showingProcessingIssues()) {
-      return null;
-    }
-    let {orgId} = this.props.params;
-    return pi.map((p, idx) => {
-      return (
-        <ProcessingIssueHint
-          key={idx}
-          issue={p}
-          projectId={p.project}
-          orgId={orgId}
-          showProject
-        />
-      );
-    });
-  },
-
   renderAwaitingEvents(projects) {
     let {organization} = this.props;
     let project = projects.length > 0 ? projects[0] : null;
@@ -682,7 +633,11 @@ const OrganizationStream = createReactClass({
               allResultsVisible={this.allResultsVisible()}
             />
             <PanelBody>
-              {this.renderProcessingIssuesHints()}
+              <ProcessingIssueList
+                organization={this.props.organization}
+                projectIds={this.props.selection.projects}
+                showProject={true}
+              />
               {this.renderStreamBody()}
             </PanelBody>
           </Panel>
