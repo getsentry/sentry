@@ -24,6 +24,25 @@ class ProjectEnvironmentsEndpoint(ProjectEndpoint):
 
     @attach_scenarios([retrieve_environments_for_project_scenario])
     def get(self, request, project):
+        """
+        Retrieve Environments for a Project
+        ```````````````````````````````
+
+        Return environments for a given project.
+
+        :qparam string visibility: when omitted only visible environments are
+                                   returned. Set to ``"hidden"`` for only hidden
+                                   environemnts, or ``"all"`` for both hidden
+                                   and visible environments.
+
+        :pparam string organization_slug: the slug of the organization the project
+                                          belongs to.
+
+        :pparam string project_slug: the slug of the project.
+
+        :auth: required
+        """
+
         queryset = EnvironmentProject.objects.filter(
             project=project,
         ).exclude(
