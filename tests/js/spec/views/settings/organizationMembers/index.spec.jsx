@@ -83,7 +83,7 @@ describe('OrganizationMembers', function() {
         require_link: true,
       },
     });
-    browserHistory.push = jest.fn();
+    browserHistory.push.mockReset();
     OrganizationsStore.load([organization]);
   });
 
