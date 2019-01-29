@@ -93,7 +93,7 @@ def get_task_kwargs_for_message(value):
     dispatched.
     """
 
-    if len(value) > 2000000:
+    if len(value) > 10000000:
         logger.debug("Event payload too large: %d", len(value))
         return None
 
