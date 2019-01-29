@@ -3,6 +3,7 @@ from __future__ import absolute_import
 from .base import Filter
 from six.moves.urllib.parse import urlparse
 from sentry.utils.data_filters import FilterStatKeys
+from sentry.utils.safe import get_path
 
 LOCAL_IPS = frozenset(['127.0.0.1', '::1'])
 LOCAL_DOMAINS = frozenset(['127.0.0.1', 'localhost'])
@@ -14,16 +15,10 @@ class LocalhostFilter(Filter):
     description = 'This applies to both IPv4 (``127.0.0.1``) and IPv6 (``::1``) addresses.'
 
     def get_ip_address(self, data):
-        try:
-            return data['user']['ip_address']
-        except KeyError:
-            return ''
+        return get_path(data, 'user', 'ip_address') or ''
 
     def get_url(self, data):
-        try:
-            return data['request']['url'] or ''
-        except KeyError:
-            return ''
+        return get_path(data, 'request', 'url') or ''
 
     def get_domain(self, data):
         return urlparse(self.get_url(data)).hostname
