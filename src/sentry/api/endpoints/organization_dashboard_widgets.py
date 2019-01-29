@@ -23,6 +23,7 @@ class OrganizationDashboardWidgetsEndpoint(OrganizationDashboardEndpoint):
         Create a new dashboard for the given Organization
         :pparam string organization_slug: the slug of the organization the
                                           dashboards belongs to.
+        :pparam int dashboard_id: the id of the dashboard.
         :param string title: the title of the widget.
         :param string displayType: the widget display type (i.e. line or table).
         :param array displayOptions: the widget display options are special

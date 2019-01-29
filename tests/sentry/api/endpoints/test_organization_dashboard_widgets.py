@@ -1,20 +1,13 @@
 from __future__ import absolute_import
 
-from django.core.urlresolvers import reverse
 
 from sentry.models import Widget, WidgetDataSource, WidgetDisplayTypes
 from sentry.testutils import OrganizationDashboardWidgetTestCase
 
 
 class OrganizationDashboardWidgetsPostTestCase(OrganizationDashboardWidgetTestCase):
-    def url(self, dashboard_id):
-        return reverse(
-            'sentry-api-0-organization-dashboard-widgets',
-            kwargs={
-                'organization_slug': self.organization.slug,
-                'dashboard_id': dashboard_id,
-            }
-        )
+    endpoint = 'sentry-api-0-organization-dashboard-widgets'
+    method = 'post'
 
     def test_simple(self):
         data_sources = [
@@ -31,14 +24,13 @@ class OrganizationDashboardWidgetsPostTestCase(OrganizationDashboardWidgetTestCa
                 'order': 2
             },
         ]
-        response = self.client.post(
-            self.url(self.dashboard.id),
-            data={
-                'dashboard_id': self.dashboard.id,
-                'displayType': 'line',
-                'title': 'User Happiness',
-                'dataSources': data_sources,
-            }
+
+        response = self.get_response(
+            self.organization.slug,
+            self.dashboard.id,
+            displayType='line',
+            title='User Happiness',
+            dataSources=data_sources,
         )
 
         assert response.status_code == 201
@@ -65,14 +57,12 @@ class OrganizationDashboardWidgetsPostTestCase(OrganizationDashboardWidgetTestCa
         )
 
     def test_widget_no_data_souces(self):
-        response = self.client.post(
-            self.url(self.dashboard.id),
-            data={
-                'dashboard_id': self.dashboard.id,
-                'displayType': 'line',
-                'title': 'User Happiness',
-                # 'dataSources': [],
-            }
+        response = self.get_response(
+            self.organization.slug,
+            self.dashboard.id,
+            displayType='line',
+            title='User Happiness',
+            # 'dataSources': [],
         )
         assert response.status_code == 201
         self.assert_widget_data(
@@ -110,13 +100,11 @@ class OrganizationDashboardWidgetsPostTestCase(OrganizationDashboardWidgetTestCa
             display_type=WidgetDisplayTypes.LINE_CHART,
             dashboard_id=self.dashboard.id,
         )
-        response = self.client.post(
-            self.url(self.dashboard.id),
-            data={
-                'dashboard_id': self.dashboard.id,
-                'displayType': 'line',
-                'title': 'User Happiness',
-            }
+        response = self.get_response(
+            self.organization.slug,
+            self.dashboard.id,
+            displayType='line',
+            title='User Happiness',
         )
         assert response.status_code == 201
         self.assert_widget_data(
@@ -139,31 +127,27 @@ class OrganizationDashboardWidgetsPostTestCase(OrganizationDashboardWidgetTestCa
         )
 
     def test_unrecognized_display_type(self):
-        response = self.client.post(
-            self.url(self.dashboard.id),
-            data={
-                'dashboard_id': self.dashboard.id,
-                'displayType': 'happy-face',
-                'title': 'User Happiness',
-            }
+        response = self.get_response(
+            self.organization.slug,
+            self.dashboard.id,
+            displayType='happy-face',
+            title='User Happiness',
         )
         assert response.status_code == 400
         assert response.data == {'displayType': [u'Widget display_type happy-face not recognized.']}
 
     def test_unrecognized_data_source_type(self):
-        response = self.client.post(
-            self.url(self.dashboard.id),
-            data={
-                'dashboard_id': self.dashboard.id,
-                'displayType': 'line',
-                'title': 'User Happiness',
-                'dataSources': [{
-                    'name': 'knownUsersAffectedQuery_2',
-                    'data': self.known_users_query,
-                    'type': 'not-real-type',
-                    'order': 1,
-                }],
-            }
+        response = self.get_response(
+            self.organization.slug,
+            self.dashboard.id,
+            displayType='line',
+            title='User Happiness',
+            dataSources=[{
+                'name': 'knownUsersAffectedQuery_2',
+                'data': self.known_users_query,
+                'type': 'not-real-type',
+                'order': 1,
+            }],
         )
         assert response.status_code == 400
         assert response.data == {'dataSources': [
