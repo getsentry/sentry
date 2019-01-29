@@ -181,10 +181,15 @@ class GlobalSelectionHeader extends React.Component {
 
   didQueryChange = (prevProps, nextProps) => {
     const urlParamKeys = Object.values(URL_PARAM);
-    return !isEqual(
-      pick(prevProps.location.query, urlParamKeys),
-      pick(nextProps.location.query, urlParamKeys)
-    );
+    const prevQuery = pick(prevProps.location.query, urlParamKeys);
+    const nextQuery = pick(nextProps.location.query, urlParamKeys);
+
+    // If no next query is specified keep the previous global selection values
+    if (Object.keys(nextQuery).length === 0) {
+      return false;
+    }
+
+    return !isEqual(prevQuery, nextQuery);
   };
 
   updateStoreIfChange = (prevProps, nextProps) => {
