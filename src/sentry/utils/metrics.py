@@ -12,6 +12,9 @@ from threading import Thread
 from six.moves.queue import Queue
 
 
+metrics_skip_internal_prefixes = tuple(settings.SENTRY_MERTRICS_SKIP_INTERNAL_PREFIXES)
+
+
 def get_default_backend():
     from sentry.utils.imports import import_string
 
@@ -88,7 +91,7 @@ def incr(key, amount=1, instance=None, tags=None, skip_internal=True):
     if (
         not skip_internal and
         _should_sample() and
-        not key.startswith(settings.SENTRY_MERTRICS_SKIP_INTERNAL_PREFIXES)
+        not key.startswith(metrics_skip_internal_prefixes)
     ):
         internal.incr(key, instance, tags, amount)
     try:
