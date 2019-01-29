@@ -28,7 +28,7 @@ export function useShortInterval(datetimeObj) {
   return diffInMinutes <= TWENTY_FOUR_HOURS;
 }
 
-export function getInterval(datetimeObj, highFidelity) {
+export function getInterval(datetimeObj, highFidelity = false) {
   const diffInMinutes = getDiffInMinutes(datetimeObj);
 
   if (diffInMinutes > TWENTY_FOUR_HOURS) {
@@ -55,7 +55,7 @@ export function getInterval(datetimeObj, highFidelity) {
   }
 }
 
-function getDiffInMinutes(datetimeObj) {
+export function getDiffInMinutes(datetimeObj) {
   const {period, start, end} = datetimeObj;
   return typeof period === 'string'
     ? parsePeriodToHours(period) * 60

@@ -93,7 +93,7 @@ export const DiscoverSavedQuery = PropTypes.shape({
   ...DiscoverQueryShape,
 });
 
-const DiscoverResultShape = {
+const DiscoverResultsShape = {
   data: PropTypes.arrayOf(PropTypes.object),
   meta: PropTypes.arrayOf(
     PropTypes.shape({
@@ -103,20 +103,12 @@ const DiscoverResultShape = {
   ),
   timing: PropTypes.shape({
     duration_ms: PropTypes.number,
-    marks_ms: PropTypes.shape({
-      cache_get: PropTypes.number,
-      dedupe_wait: PropTypes.number,
-      execute: PropTypes.number,
-      get_configs: PropTypes.number,
-      prepare_query: PropTypes.number,
-      rate_limit: PropTypes.number,
-      validate_schema: PropTypes.number,
-    }),
+    marks_ms: PropTypes.object,
     timestamp: PropTypes.number,
   }),
 };
 
-export const DiscoverResult = PropTypes.arrayOf(PropTypes.shape(DiscoverResultShape));
+export const DiscoverResults = PropTypes.arrayOf(PropTypes.shape(DiscoverResultsShape));
 
 /**
  * A Member is someone that was invited to Sentry but may
@@ -904,7 +896,7 @@ let SentryTypes = {
   Deploy,
   DiscoverQuery,
   DiscoverSavedQuery,
-  DiscoverResult,
+  DiscoverResults,
   Environment,
   Event,
   Organization: PropTypes.shape({

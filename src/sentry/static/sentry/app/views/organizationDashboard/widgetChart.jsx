@@ -17,7 +17,7 @@ import SentryTypes from 'app/sentryTypes';
 class WidgetChart extends React.Component {
   static propTypes = {
     router: PropTypes.object,
-    results: SentryTypes.DiscoverResult,
+    results: SentryTypes.DiscoverResults,
     releases: PropTypes.arrayOf(SentryTypes.Release),
     widget: SentryTypes.Widget,
     organization: SentryTypes.Organization,
