@@ -156,6 +156,7 @@ describe('OrganizationStream', function() {
 
       expect(fetchTagsRequest).toHaveBeenCalled();
       expect(instance.state.tags.assigned).toBeTruthy();
+      expect(instance.state.tagsLoading).toBeFalsy();
     });
 
     it('fetches members and sets state', async function() {
@@ -182,7 +183,6 @@ describe('OrganizationStream', function() {
     });
 
     it('fetches searches and sets the savedSearch', async function() {
-      wrapper.setState({loading: false});
       let instance = wrapper.instance();
       await instance.componentDidMount();
       await wrapper.update();
@@ -203,10 +203,9 @@ describe('OrganizationStream', function() {
     beforeEach(function() {
       props.params.searchId = '999';
       wrapper = shallow(<OrganizationStream {...props} />);
-      wrapper.setState({loading: false});
     });
 
-    it('resets the savedSearch state', async function() {
+    it('does not set the savedSearch state', async function() {
       let instance = wrapper.instance();
       await instance.componentDidMount();
       await wrapper.update();
@@ -242,12 +241,16 @@ describe('OrganizationStream', function() {
     });
 
     it('displays the loading icon', function() {
-      wrapper.setState({loading: true});
+      wrapper.setState({savedSearchLoading: true});
       expect(wrapper.find('LoadingIndicator')).toHaveLength(1);
     });
 
     it('displays an error', function() {
-      wrapper.setState({error: 'Things broke', loading: false});
+      wrapper.setState({
+        error: 'Things broke',
+        savedSearchLoading: false,
+        issuesLoading: false,
+      });
 
       let error = wrapper.find('LoadingError');
       expect(error).toHaveLength(1);
@@ -256,7 +259,8 @@ describe('OrganizationStream', function() {
 
     it('displays an empty resultset', function() {
       wrapper.setState({
-        loading: false,
+        savedSearchLoading: false,
+        issuesLoading: false,
         error: false,
         groupIds: [],
       });
@@ -279,7 +283,7 @@ describe('OrganizationStream', function() {
           datetime: {period: '14d'},
         },
       });
-      wrapper.setState({loading: false});
+      wrapper.setState({savedSearchLoading: false, issuesLoading: false});
       expect(wrapper.find('ErrorRobot')).toHaveLength(1);
     });
 
@@ -287,7 +291,8 @@ describe('OrganizationStream', function() {
       GroupStore.add([group]);
       wrapper.setState({
         error: false,
-        loading: false,
+        savedSearchLoading: false,
+        issuesLoading: false,
         groupIds: ['1'],
       });
       let groups = wrapper.find('StreamGroup');
