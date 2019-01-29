@@ -14,6 +14,36 @@ import {PageContent} from 'app/styles/organization';
 
 import ReleaseHeader from '../shared/releaseHeader';
 
+class OrganizationReleaseDetailsContainer extends React.Component {
+  static propTypes = {
+    organization: SentryTypes.Organization,
+  };
+
+  renderNoAccess() {
+    return (
+      <PageContent>
+        <Alert type="warning">{t("You don't have access to this feature")}</Alert>
+      </PageContent>
+    );
+  }
+
+  render() {
+    return (
+      <Feature
+        features={['organizations:sentry10']}
+        organization={this.props.organization}
+        renderDisabled={this.renderNoAccess}
+      >
+        <GlobalSelectionHeader
+          organization={this.props.organization}
+          hasCustomRouting={true}
+        />
+        <OrganizationReleaseDetails {...this.props} />
+      </Feature>
+    );
+  }
+}
+
 class OrganizationReleaseDetails extends AsyncView {
   static propTypes = {
     organization: SentryTypes.Organization,
@@ -41,14 +71,6 @@ class OrganizationReleaseDetails extends AsyncView {
     ];
   }
 
-  renderNoAccess() {
-    return (
-      <PageContent>
-        <Alert type="warning">{t("You don't have access to this feature")}</Alert>
-      </PageContent>
-    );
-  }
-
   renderBody() {
     const release = this.state.release;
     const {orgId} = this.props.params;
@@ -57,24 +79,14 @@ class OrganizationReleaseDetails extends AsyncView {
     if (this.state.error) return <LoadingError onRetry={this.fetchData} />;
 
     return (
-      <Feature
-        features={['organizations:sentry10']}
-        organization={this.props.organization}
-        renderDisabled={this.renderNoAccess}
-      >
-        <GlobalSelectionHeader
-          organization={this.props.organization}
-          hasCustomRouting={true}
-        />
-        <PageContent>
-          <ReleaseHeader release={release} orgId={orgId} />
-          {React.cloneElement(this.props.children, {
-            release,
-          })}
-        </PageContent>
-      </Feature>
+      <PageContent>
+        <ReleaseHeader release={release} orgId={orgId} />
+        {React.cloneElement(this.props.children, {
+          release,
+        })}
+      </PageContent>
     );
   }
 }
 
-export default withOrganization(OrganizationReleaseDetails);
+export default withOrganization(OrganizationReleaseDetailsContainer);
