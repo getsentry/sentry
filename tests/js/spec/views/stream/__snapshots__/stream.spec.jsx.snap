@@ -42,6 +42,7 @@ exports[`Stream render() displays the group list 1`] = `
         ]
       }
       searchId={null}
+      showBeta={false}
       sort="date"
     />
     <Panel>
@@ -216,6 +217,7 @@ exports[`Stream toggles environment select all environments 1`] = `
         ]
       }
       searchId={null}
+      showBeta={false}
       sort="date"
     />
     <Panel>

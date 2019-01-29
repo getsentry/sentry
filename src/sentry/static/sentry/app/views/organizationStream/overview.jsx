@@ -668,6 +668,7 @@ const OrganizationStream = createReactClass({
             onSidebarToggle={this.onSidebarToggle}
             isSearchDisabled={this.state.isSidebarVisible}
             savedSearchList={this.state.savedSearchList}
+            showBeta={true}
           />
 
           <Panel>
