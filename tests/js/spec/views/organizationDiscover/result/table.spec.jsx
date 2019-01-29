@@ -1,26 +1,22 @@
 import React from 'react';
 import {shallow, render} from 'enzyme';
 
-import ResultTable from 'app/views/organizationDiscover/result/table';
+import {ResultTable} from 'app/views/organizationDiscover/result/table';
 
 describe('ResultTable', function() {
   let wrapper;
   beforeEach(function() {
     wrapper = shallow(
       <ResultTable
+        organization={TestStubs.Organization({
+          projects: [TestStubs.Project({id: '1'})],
+        })}
         query={{aggregations: [], fields: ['id', 'project.id']}}
         data={{
           data: [{id: '111', 'project.id': 1}],
           meta: [{name: 'id', type: 'string'}, {name: 'project.id', type: 'number'}],
         }}
-      />,
-      {
-        context: {
-          organization: TestStubs.Organization({
-            projects: [TestStubs.Project({id: '1'})],
-          }),
-        },
-      }
+      />
     );
     const mockCanvas = {
       getContext: () => ({
