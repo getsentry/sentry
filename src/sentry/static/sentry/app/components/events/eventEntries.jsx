@@ -87,7 +87,7 @@ class EventEntries extends React.Component {
       group: event.groupID,
       error_type: errorTypes,
       error_message: errorMessages,
-      ...(platform && {platform: project.platform}),
+      ...(platform && {platform}),
     });
   }
 
