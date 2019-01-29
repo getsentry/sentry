@@ -796,6 +796,11 @@ function routes() {
             />
           </Route>
           <Route
+            path="/organizations/:orgId/projects/:projectId/events/:eventId/"
+            component={errorHandler(ProjectEventRedirect)}
+          />
+
+          <Route
             path="/organizations/:orgId/issues/"
             componentPromise={() =>
               import(/* webpackChunkName: "OrganizationStreamContainer" */ './views/organizationStream/container')}
