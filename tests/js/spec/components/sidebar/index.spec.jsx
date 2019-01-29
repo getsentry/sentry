@@ -293,12 +293,10 @@ describe('Sidebar', function() {
       wrapper.setProps({organization: sentry10Org});
       wrapper.update();
       const labels = wrapper.find('SidebarItemLabel').map(node => node.text());
-      expect(labels).toHaveLength(5);
+      expect(labels).toHaveLength(7);
       expect(labels).not.toContain('Assigned to me');
       expect(labels).not.toContain('Bookmarked issues');
       expect(labels).not.toContain('Recently viewed');
-      expect(labels).not.toContain('Activity');
-      expect(labels).not.toContain('Stats');
     });
   });
 });
