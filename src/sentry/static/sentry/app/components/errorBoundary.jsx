@@ -18,7 +18,7 @@ class ErrorBoundary extends React.Component {
   static propTypes = {
     mini: PropTypes.bool,
     message: PropTypes.node,
-    renderer: PropTypes.node,
+    customComponent: PropTypes.node,
   };
 
   static defaultProps = {
@@ -53,10 +53,10 @@ class ErrorBoundary extends React.Component {
 
   render() {
     if (this.state.error) {
-      let {renderer, mini, message, className} = this.props;
+      let {customComponent, mini, message, className} = this.props;
 
-      if (renderer) {
-        return renderer;
+      if (customComponent) {
+        return customComponent;
       }
 
       if (mini) {

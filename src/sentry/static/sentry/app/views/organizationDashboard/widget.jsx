@@ -31,7 +31,7 @@ class Widget extends React.Component {
     const isTable = type === WIDGET_DISPLAY.TABLE;
 
     return (
-      <ErrorBoundary renderer={<ErrorCard>{t('Error loading widget')}</ErrorCard>}>
+      <ErrorBoundary customComponent={<ErrorCard>{t('Error loading widget')}</ErrorCard>}>
         <DiscoverQuery
           organization={organization}
           selection={selection}
