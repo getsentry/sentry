@@ -103,8 +103,9 @@ export default class WorldMapChart extends React.Component {
               return '';
             }
 
+            // `value` should be a number
             const formattedValue =
-              typeof value === 'number' ? value.toLocaleString() : value;
+              typeof value === 'number' ? value.toLocaleString() : '';
             const countryOrCode = this.state.codeToCountryMap[name] || name;
 
             return `<div>${marker} ${countryOrCode}: ${formattedValue}</div>`;
