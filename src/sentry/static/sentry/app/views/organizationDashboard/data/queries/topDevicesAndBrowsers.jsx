@@ -1,8 +1,8 @@
 /**
- * Top Errors by Device
+ * Top Errors by Device and Browsers
  */
-const topDevices = {
-  name: 'Top Devices',
+const topDevicesAndBrowsers = {
+  name: 'Top Devices and Browsers',
   fields: ['device.family', 'browser.name'],
   conditions: [],
   aggregations: [['count()', null, 'count']],
@@ -11,4 +11,4 @@ const topDevices = {
   orderby: '-count',
 };
 
-export default topDevices;
+export default topDevicesAndBrowsers;
