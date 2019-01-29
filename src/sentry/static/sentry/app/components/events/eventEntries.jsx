@@ -80,13 +80,14 @@ class EventEntries extends React.Component {
   recordIssueError(errorTypes, errorMessages) {
     let {organization, project, event} = this.props;
     let orgId = organization.id;
+    let platform = project.platform;
 
     analytics('issue_error_banner.viewed', {
       org_id: parseInt(orgId, 10),
       group: event.groupID,
       error_type: errorTypes,
       error_message: errorMessages,
-      ...(project.platform && {platform: project.platform}),
+      ...(platform && {platform: project.platform}),
     });
   }
 
