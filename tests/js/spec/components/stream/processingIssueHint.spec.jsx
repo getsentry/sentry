@@ -1,7 +1,7 @@
 import React from 'react';
 import {mount} from 'enzyme';
 
-import ProcessingIssueHint from 'app/views/stream/processingIssueHint';
+import ProcessingIssueHint from 'app/components/stream/processingIssueHint';
 
 describe('ProcessingIssueHint', function() {
   let issue, wrapper;

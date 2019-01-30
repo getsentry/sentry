@@ -230,7 +230,7 @@ describe('OrganizationStream', function() {
         loading: false,
       });
 
-      let issues = wrapper.find('ProcessingIssueHint');
+      let issues = wrapper.find('ProcessingIssueList');
       expect(issues).toHaveLength(1);
     });
   });
