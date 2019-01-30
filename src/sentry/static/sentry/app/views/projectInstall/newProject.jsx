@@ -14,13 +14,16 @@ const NewProject = createReactClass({
   mixins: [OrganizationState],
 
   render() {
+    const hasSentry10 = this.getFeatures().has('sentry10');
     return (
       <Container>
-        <div className="sub-header flex flex-container flex-vertically-centered">
-          <div className="p-t-1 p-b-1">
-            <ProjectSelector organization={this.getOrganization()} />
+        {!hasSentry10 && (
+          <div className="sub-header flex flex-container flex-vertically-centered">
+            <div className="p-t-1 p-b-1">
+              <ProjectSelector organization={this.getOrganization()} />
+            </div>
           </div>
-        </div>
+        )}
         <div className="container">
           <Content>
             <DocumentTitle title={'Sentry'} />

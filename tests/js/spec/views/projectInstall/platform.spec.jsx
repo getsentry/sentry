@@ -2,7 +2,7 @@ import React from 'react';
 import {shallow} from 'enzyme';
 
 import {Client} from 'app/api';
-import ProjectInstallPlatform from 'app/views/projectInstall/platform';
+import {ProjectInstallPlatform} from 'app/views/projectInstall/platform';
 
 describe('ProjectInstallPlatform', function() {
   let sandbox;
@@ -19,6 +19,7 @@ describe('ProjectInstallPlatform', function() {
 
   describe('render()', function() {
     const baseProps = {
+      organization: TestStubs.Organization(),
       location: {query: {}},
       platformData: {
         platforms: [
