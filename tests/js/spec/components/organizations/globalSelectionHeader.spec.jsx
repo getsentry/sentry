@@ -45,6 +45,7 @@ describe('GlobalSelectionHeader', function() {
       globalActions.updateProjects,
       globalActions.updateEnvironments,
       router.push,
+      router.replace,
     ].forEach(mock => mock.mockClear());
   });
 
@@ -56,10 +57,10 @@ describe('GlobalSelectionHeader', function() {
     expect(router.push).not.toHaveBeenCalled();
   });
 
-  it('updates URL with values from store when mounted with no query params', function() {
+  it('replaces URL with values from store when mounted with no query params', function() {
     mount(<GlobalSelectionHeader organization={organization} />, routerContext);
 
-    expect(router.push).toHaveBeenCalledWith(
+    expect(router.replace).toHaveBeenCalledWith(
       expect.objectContaining({
         query: {
           environment: [],
