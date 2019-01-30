@@ -127,7 +127,7 @@ export function updateParamsWithoutHistory(obj, router, options) {
 
   const newQuery = getNewQueryParams(obj, router.location.query, options);
 
-  // Only push new location if query params has changed because this will cause a heavy re-render
+  // Only push new location if query params have changed because this will cause a heavy re-render
   if (isEqualWithEmptyArrays(newQuery, router.location.query)) {
     return;
   }
