@@ -107,7 +107,7 @@ class TagStorageTest(SnubaTestCase):
         result = list(self.ts.get_group_tag_keys_and_top_values(
             self.proj1.id,
             self.proj1group1.id,
-            self.proj1env1.id,
+            [self.proj1env1.id],
         ))
         tags = [r.key for r in result]
         assert set(tags) == set(['foo', 'baz', 'environment', 'sentry:release', 'sentry:user'])
@@ -130,7 +130,7 @@ class TagStorageTest(SnubaTestCase):
         result = list(self.ts.get_group_tag_keys_and_top_values(
             self.proj1.id,
             self.proj1group1.id,
-            self.proj1env1.id,
+            [self.proj1env1.id],
             keys=['environment', 'sentry:release'],
         ))
         tags = [r.key for r in result]

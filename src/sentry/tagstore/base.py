@@ -420,18 +420,22 @@ class TagStorage(Service):
         raise NotImplementedError
 
     def get_group_tag_keys_and_top_values(
-            self, project_id, group_id, environment_id, keys=None, value_limit=TOP_VALUES_DEFAULT_LIMIT):
+            self, project_id, group_id, environment_ids, keys=None, value_limit=TOP_VALUES_DEFAULT_LIMIT):
+
+        # only the snuba backend supports multi env, and that overrides this method
+        if environment_ids and len(environment_ids) > 1:
+            raise NotImplementedError
 
         # If keys is unspecified, we will grab all tag keys for this group.
         tag_keys = self.get_group_tag_keys(
-            project_id, group_id, environment_id and [environment_id], keys=keys
+            project_id, group_id, environment_ids, keys=keys
         )
 
         for tk in tag_keys:
             tk.top_values = self.get_top_group_tag_values(
-                project_id, group_id, environment_id, tk.key, limit=value_limit)
+                project_id, group_id, environment_ids and environment_ids[0], tk.key, limit=value_limit)
             if tk.count is None:
                 tk.count = self.get_group_tag_value_count(
-                    project_id, group_id, environment_id, tk.key)
+                    project_id, group_id, environment_ids and environment_ids[0], tk.key)
 
         return tag_keys
