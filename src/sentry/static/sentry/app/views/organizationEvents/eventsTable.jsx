@@ -29,7 +29,7 @@ class EventsTableBody extends React.PureComponent {
       const trimmedMessage = event.message.split('\n')[0].substr(0, 100);
 
       const eventLink = new Set(organization.features).has('sentry10')
-        ? `/organizations/${organization.slug}/events/${event.eventID}/`
+        ? `/organizations/${organization.slug}/projects/${project.slug}/events/${event.eventID}/`
         : `/${organization.slug}/${project.slug}/events/${event.eventID}/`;
 
       return (
