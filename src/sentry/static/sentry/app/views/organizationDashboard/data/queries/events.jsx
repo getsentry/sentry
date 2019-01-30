@@ -2,6 +2,7 @@
  * Events by day
  */
 const events = {
+  name: 'Events',
   fields: [],
   conditions: [],
   aggregations: [['count()', null, 'Events']],
