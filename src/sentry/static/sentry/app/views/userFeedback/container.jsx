@@ -6,16 +6,28 @@ import {t} from 'app/locale';
 import Pagination from 'app/components/pagination';
 import {Panel, PanelBody} from 'app/components/panels';
 import PageHeading from 'app/components/pageHeading';
+import BetaTag from 'app/components/betaTag';
 
 export default class UserFeedbackContainer extends React.Component {
   static propTypes = {
     location: PropTypes.object.isRequired,
     pageLinks: PropTypes.string,
     status: PropTypes.string.isRequired,
+    showBeta: PropTypes.bool,
+  };
+
+  static defaultProps = {
+    showBeta: false,
   };
 
   render() {
-    const {location: {pathname, query}, pageLinks, children, status} = this.props;
+    const {
+      location: {pathname, query},
+      pageLinks,
+      children,
+      status,
+      showBeta,
+    } = this.props;
 
     const unresolvedQuery = omit(query, 'status');
     const allIssuesQuery = {...query, status: ''};
@@ -24,7 +36,10 @@ export default class UserFeedbackContainer extends React.Component {
       <div>
         <div className="row">
           <div className="col-sm-9" style={{marginBottom: '5px'}}>
-            <PageHeading withMargins>{t('User Feedback')}</PageHeading>
+            <PageHeading withMargins>
+              {t('User Feedback')}
+              {showBeta && <BetaTag />}
+            </PageHeading>
           </div>
           <div className="col-sm-3" style={{textAlign: 'right', marginTop: '4px'}}>
             <div className="btn-group">

@@ -1622,6 +1622,7 @@ exports[`OrganizationUserFeedback renders 1`] = `
                   }
                 }
                 pageLinks="<https://sentry.io/api/0/organizations/sentry/user-feedback/?statsPeriod=14d&cursor=0:0:1>; rel=\\"previous\\"; results=\\"false\\"; cursor=\\"0:0:1\\", <https://sentry.io/api/0/organizations/sentry/user-feedback/?statsPeriod=14d&cursor=0:100:0>; rel=\\"next\\"; results=\\"true\\"; cursor=\\"0:100:0\\""
+                showBeta={true}
                 status="unresolved"
               >
                 <div>
@@ -1646,6 +1647,59 @@ exports[`OrganizationUserFeedback renders 1`] = `
                             className="css-13ev48w-Wrapper e1f8hk460"
                           >
                             User Feedback
+                            <BetaTag>
+                              <Tooltip
+                                title="This feature is in beta and may change in the future."
+                                tooltipOptions={
+                                  Object {
+                                    "placement": "right",
+                                  }
+                                }
+                              >
+                                <span
+                                  className="tip"
+                                  title="This feature is in beta and may change in the future."
+                                >
+                                  <StyledTag
+                                    priority="beta"
+                                    size="small"
+                                  >
+                                    <Tag
+                                      className="css-f9iwbc-StyledTag e1xs0x250"
+                                      priority="beta"
+                                      size="small"
+                                    >
+                                      <TagTextStyled
+                                        className="css-f9iwbc-StyledTag e1xs0x250"
+                                        priority="beta"
+                                        size="small"
+                                      >
+                                        <Component
+                                          className="e1xs0x250 css-4og6iv-TagTextStyled-StyledTag e6q9yfr0"
+                                          priority="beta"
+                                          size="small"
+                                        >
+                                          <Box
+                                            className="e1xs0x250 css-4og6iv-TagTextStyled-StyledTag e6q9yfr0"
+                                          >
+                                            <Base
+                                              className="e1xs0x250 e6q9yfr0 css-1r8ewb4-TagTextStyled-StyledTag"
+                                            >
+                                              <div
+                                                className="e1xs0x250 e6q9yfr0 css-1r8ewb4-TagTextStyled-StyledTag"
+                                                is={null}
+                                              >
+                                                beta
+                                              </div>
+                                            </Base>
+                                          </Box>
+                                        </Component>
+                                      </TagTextStyled>
+                                    </Tag>
+                                  </StyledTag>
+                                </span>
+                              </Tooltip>
+                            </BetaTag>
                           </h1>
                         </Wrapper>
                       </PageHeading>

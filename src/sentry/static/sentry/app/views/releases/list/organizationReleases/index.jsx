@@ -16,6 +16,7 @@ import withOrganization from 'app/utils/withOrganization';
 
 import {PageContent, PageHeader} from 'app/styles/organization';
 import PageHeading from 'app/components/pageHeading';
+import BetaTag from 'app/components/betaTag';
 
 import ReleaseList from '../shared/releaseList';
 import ReleaseListHeader from '../shared/releaseListHeader';
@@ -133,7 +134,10 @@ class OrganizationReleases extends AsyncView {
     return (
       <PageContent>
         <PageHeader>
-          <PageHeading>{t('Releases')}</PageHeading>
+          <PageHeading>
+            {t('Releases')}
+            <BetaTag />
+          </PageHeading>
           <div>
             <SearchBar
               defaultQuery=""

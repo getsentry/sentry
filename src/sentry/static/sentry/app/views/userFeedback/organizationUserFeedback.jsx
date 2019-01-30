@@ -114,6 +114,7 @@ class OrganizationUserFeedback extends AsyncView {
             pageLinks={reportListPageLinks}
             status={status}
             location={location}
+            showBeta={true}
           >
             {this.renderStreamBody()}
           </UserFeedbackContainer>
