@@ -12,6 +12,9 @@ from threading import Thread
 from six.moves.queue import Queue
 
 
+metrics_skip_internal_prefixes = tuple(settings.SENTRY_METRICS_SKIP_INTERNAL_PREFIXES)
+
+
 def get_default_backend():
     from sentry.utils.imports import import_string
 
@@ -85,10 +88,17 @@ internal = InternalMetrics()
 
 def incr(key, amount=1, instance=None, tags=None, skip_internal=True):
     sample_rate = settings.SENTRY_METRICS_SAMPLE_RATE
-    if not skip_internal and _should_sample():
+    banned_prefix = key.startswith(metrics_skip_internal_prefixes)
+    if (
+        not skip_internal and
+        _should_sample() and
+        not banned_prefix
+    ):
         internal.incr(key, instance, tags, amount)
     try:
         backend.incr(key, instance, tags, amount, sample_rate)
+        if not skip_internal and not banned_prefix:
+            backend.incr('internal_metrics.incr', key, None, 1, sample_rate)
     except Exception:
         logger = logging.getLogger('sentry.errors')
         logger.exception('Unable to record backend metric')

@@ -1,8 +1,10 @@
-import React from 'react';
 import PropTypes from 'prop-types';
+import React from 'react';
 import createReactClass from 'create-react-class';
 import styled, {css} from 'react-emotion';
 
+import {addErrorMessage} from 'app/actionCreators/indicator';
+import {t} from 'app/locale';
 import ApiMixin from 'app/mixins/apiMixin';
 import LoadingIndicator from 'app/components/loadingIndicator';
 import rawStacktraceContent from 'app/components/events/interfaces/rawStacktraceContent';
@@ -42,14 +44,18 @@ class IssueDiff extends React.Component {
       import(/* webpackChunkName: "splitDiff" */ './splitDiff'),
       this.fetchData(baseIssueId, baseEventId),
       this.fetchData(targetIssueId, targetEventId),
-    ]).then(([{default: SplitDiffAsync}, baseEvent, targetEvent]) => {
-      this.setState({
-        SplitDiffAsync,
-        baseEvent: this.getException(baseEvent),
-        targetEvent: this.getException(targetEvent),
-        loading: false,
+    ])
+      .then(([{default: SplitDiffAsync}, baseEvent, targetEvent]) => {
+        this.setState({
+          SplitDiffAsync,
+          baseEvent: this.getException(baseEvent),
+          targetEvent: this.getException(targetEvent),
+          loading: false,
+        });
+      })
+      .catch(() => {
+        addErrorMessage(t('Error loading events'));
       });
-    });
   }
 
   getException(event) {
@@ -88,12 +94,7 @@ class IssueDiff extends React.Component {
   }
 
   fetchData(issueId, eventId) {
-    return new Promise((resolve, reject) => {
-      this.props.api.request(this.getEndpoint(issueId, eventId), {
-        success: data => resolve(data),
-        error: err => reject(err),
-      });
-    });
+    return this.props.api.requestPromise(this.getEndpoint(issueId, eventId));
   }
 
   render() {

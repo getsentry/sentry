@@ -1,21 +1,23 @@
 import React from 'react';
+import PropTypes from 'prop-types';
 
 import SentryTypes from 'app/sentryTypes';
-
 import LastCommit from 'app/components/lastCommit';
 import CommitAuthorStats from 'app/components/commitAuthorStats';
 import ReleaseProjectStatSparkline from 'app/components/releaseProjectStatSparkline';
 import RepositoryFileSummary from 'app/components/repositoryFileSummary';
-import AsyncView from 'app/views/asyncView';
+import AsyncComponent from 'app/components/asyncComponent';
 import {t} from 'app/locale';
+
 import {getFilesByRepository} from '../shared/utils';
 import ReleaseDeploys from '../shared/releaseDeploys';
 import ReleaseEmptyState from '../shared/releaseEmptyState';
 import ReleaseIssues from '../shared/releaseIssues';
 
-export default class OrganizationReleaseOverview extends AsyncView {
-  static contextTypes = {
+export default class OrganizationReleaseOverview extends AsyncComponent {
+  static propTypes = {
     release: SentryTypes.Release,
+    query: PropTypes.object,
   };
 
   getEndpoints() {
@@ -33,19 +35,13 @@ export default class OrganizationReleaseOverview extends AsyncView {
   }
 
   renderBody() {
-    const {orgId, version} = this.props.params;
-    const {release} = this.context;
+    const {release, query, params: {orgId, version}} = this.props;
 
     const {fileList, repos} = this.state;
 
     const hasRepos = repos.length > 0;
 
     const filesByRepository = getFilesByRepository(fileList);
-
-    // Unlike project releases) which filter issue lists on environment, we
-    // do not apply any of the global selection filters (project, environment,
-    // or time) to the organization release
-    const query = {};
 
     return (
       <div>

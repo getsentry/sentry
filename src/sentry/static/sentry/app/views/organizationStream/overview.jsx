@@ -68,15 +68,16 @@ const OrganizationStream = createReactClass({
 
     return {
       groupIds: [],
-      loading: true,
       selectAllActive: false,
       realtimeActive,
       pageLinks: '',
       queryCount: null,
       error: false,
       isSidebarVisible: false,
+      savedSearchLoading: true,
       savedSearch: null,
       savedSearchList: [],
+      issuesLoading: true,
       tagsLoading: true,
       memberList: {},
       tags: TagStore.getAllTags(),
@@ -143,8 +144,12 @@ const OrganizationStream = createReactClass({
       prevState.savedSearch !== this.state.savedSearch
     ) {
       this.fetchData();
-    } else if (!this.lastRequest && prevState.loading === false && this.state.loading) {
-      // Reload if we went from not loading to loading.
+    } else if (
+      !this.lastRequest &&
+      prevState.issuesLoading === false &&
+      this.state.issuesLoading
+    ) {
+      // Reload if we issues are loading or their loading state changed.
       // This can happen when transitionTo is called
       this.fetchData();
     }
@@ -229,7 +234,7 @@ const OrganizationStream = createReactClass({
     GroupStore.loadInitialData([]);
 
     this.setState({
-      loading: true,
+      issuesLoading: true,
       queryCount: null,
       error: false,
     });
@@ -281,7 +286,7 @@ const OrganizationStream = createReactClass({
 
         this.setState({
           error: false,
-          loading: false,
+          issuesLoading: false,
           queryCount:
             typeof queryCount !== 'undefined' ? parseInt(queryCount, 10) || 0 : 0,
           queryMaxCount:
@@ -292,7 +297,7 @@ const OrganizationStream = createReactClass({
       error: err => {
         this.setState({
           error: parseApiError(err),
-          loading: false,
+          issuesLoading: false,
         });
       },
       complete: jqXHR => {
@@ -325,7 +330,7 @@ const OrganizationStream = createReactClass({
   },
 
   onSavedSearchSelect(search) {
-    this.setState({savedSearch: search, loading: true}, this.transitionTo);
+    this.setState({savedSearch: search, issuesLoading: true}, this.transitionTo);
   },
 
   onRealtimeChange(realtime) {
@@ -446,7 +451,7 @@ const OrganizationStream = createReactClass({
         pathname: path,
         query,
       });
-      this.setState({loading: true});
+      this.setState({issuesLoading: true});
     }
   },
 
@@ -464,7 +469,10 @@ const OrganizationStream = createReactClass({
       let hasGuideAnchor = userDateJoined > dateCutoff && id === topIssue;
 
       let group = GroupStore.get(id);
-      let members = memberList[group.project.slug] || null;
+      let members = null;
+      if (group && group.project) {
+        members = memberList[group.project.slug] || null;
+      }
 
       return (
         <StreamGroup
@@ -498,7 +506,7 @@ const OrganizationStream = createReactClass({
     let selectedProjects = this.getGlobalSearchProjects();
     let noEvents = selectedProjects.filter(p => !p.firstEvent).length > 0;
 
-    if (this.state.loading) {
+    if (this.state.issuesLoading) {
       body = this.renderLoading();
     } else if (this.state.error) {
       body = <LoadingError message={this.state.error} onRetry={this.fetchData} />;
@@ -519,7 +527,7 @@ const OrganizationStream = createReactClass({
       savedSearchList => {
         let newState = {
           savedSearchList,
-          loading: true,
+          savedSearchLoading: false,
         };
 
         if (searchId) {
@@ -541,7 +549,7 @@ const OrganizationStream = createReactClass({
     this.setState({
       savedSearchList: sortBy(savedSearchList, ['name', 'projectId']),
     });
-    this.setState({savedSearch: data, loading: true}, this.transitionTo);
+    this.setState({savedSearch: data}, this.transitionTo);
   },
 
   renderAwaitingEvents(projects) {
@@ -560,7 +568,7 @@ const OrganizationStream = createReactClass({
   },
 
   render() {
-    if (this.state.loading) {
+    if (this.state.savedSearchLoading) {
       return this.renderLoading();
     }
     let params = this.props.params;
