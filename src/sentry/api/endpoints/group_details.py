@@ -5,7 +5,6 @@ import functools
 import logging
 from uuid import uuid4
 
-from django.conf import settings
 from django.utils import timezone
 from rest_framework.response import Response
 
@@ -200,10 +199,7 @@ class GroupDetailsEndpoint(GroupEndpoint, EnvironmentMixin):
             last_release = self._get_release_info(request, group, last_release)
 
         # TODO(jess): This can be removed when tagstore v2 is deprecated
-        use_snuba = (
-            settings.SENTRY_TAGSTORE == 'sentry.tagstore.snuba.SnubaTagStorage' or
-            request.GET.get('enable_snuba') == '1'
-        )
+        use_snuba = request.GET.get('enable_snuba') == '1'
         environments = get_environments(request, group.project.organization)
         environment_ids = [e.id for e in environments]
 
@@ -216,21 +212,28 @@ class GroupDetailsEndpoint(GroupEndpoint, EnvironmentMixin):
                 )
             )
         else:
+            # TODO(jess): This is just to ensure we're not breaking the old
+            # issue page somehow -- non-snuba tagstore versions will raise
+            # if more than one env is passed
+            if environments:
+                environments = environments[:1]
+                environment_ids = environment_ids[:1]
+
             data = serialize(
                 group,
                 request.user,
                 GroupSerializer(
-                    environment_func=self._get_environment_func(
-                        request, group.project.organization_id)
+                    # Just in case multiple envs are passed, let's make
+                    # sure we're using the same one for all the stats
+                    environment_func=lambda: environments[0] if environments else None
                 )
             )
 
         get_range = functools.partial(tsdb.get_range,
                                       environment_ids=environment_ids)
 
-        # TODO(jess): dependent on another pr for multi env support
         tags = tagstore.get_group_tag_keys(
-            group.project_id, group.id, environment_ids and environment_ids[0], limit=100)
+            group.project_id, group.id, environment_ids, limit=100)
         if not environment_ids:
             user_reports = UserReport.objects.filter(group=group)
         else:
