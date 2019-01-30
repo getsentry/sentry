@@ -11,6 +11,7 @@ import ProjectDocsContext from 'app/views/projectInstall/docsContext';
 import ProjectInstallPlatform from 'app/views/projectInstall/platform';
 import SentryTypes from 'app/sentryTypes';
 import Waiting from 'app/views/onboarding/configure/waiting';
+import {t} from 'app/locale';
 
 const Configure = createReactClass({
   displayName: 'Configure',
@@ -121,7 +122,11 @@ const Configure = createReactClass({
 
   redirectToNeutralDocs() {
     let {orgId, projectId} = this.props.params;
-    let url = `/${orgId}/${projectId}/getting-started`;
+    let {organization} = this.context;
+
+    let url = new Set(organization.features).has('sentry10')
+      ? `/organizations/${orgId}/projects/${projectId}/getting-started/`
+      : `/${orgId}/${projectId}/getting-started/`;
 
     browserHistory.push(url);
   },
@@ -134,7 +139,7 @@ const Configure = createReactClass({
       <div>
         <div className="onboarding-Configure">
           <h2 style={{marginBottom: 30}}>
-            Configure your application
+            {t('Configure your application')}
             {!hasSentRealEvent && (
               <CreateSampleEvent params={this.props.params} source="header" />
             )}
