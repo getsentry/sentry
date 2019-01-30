@@ -1,11 +1,12 @@
+import {isEqual, omit} from 'lodash';
 import PropTypes from 'prop-types';
 import React from 'react';
 
+import {getInterval} from 'app/components/charts/utils';
 import {getPeriod} from 'app/utils/getPeriod';
+import {parsePeriodToHours} from 'app/utils';
 import SentryTypes from 'app/sentryTypes';
 import createQueryBuilder from 'app/views/organizationDiscover/queryBuilder';
-import withGlobalSelection from 'app/utils/withGlobalSelection';
-import withOrganization from 'app/utils/withOrganization';
 
 class DiscoverQuery extends React.Component {
   static propTypes = {
@@ -24,6 +25,7 @@ class DiscoverQuery extends React.Component {
 
     this.state = {
       results: null,
+      reloading: null,
     };
 
     // Query builders based on `queries`
@@ -36,8 +38,24 @@ class DiscoverQuery extends React.Component {
     this.fetchData();
   }
 
+  shouldComponentUpdate(nextProps, nextState) {
+    if (this.state !== nextState) {
+      return true;
+    }
+
+    if (
+      this.props.organization === nextProps.organization &&
+      this.props.selection === nextProps.selection
+    ) {
+      return false;
+    }
+
+    return true;
+  }
+
   componentDidUpdate(prevProps) {
-    if (prevProps === this.props) {
+    const keysToIgnore = ['children'];
+    if (isEqual(omit(prevProps, keysToIgnore), omit(this.props, keysToIgnore))) {
       return;
     }
 
@@ -67,6 +85,12 @@ class DiscoverQuery extends React.Component {
       period = {start, end, range: statsPeriod};
     }
 
+    if (query.rollup) {
+      // getInterval returns a period string depending on current datetime range selected
+      // we then use a helper function to parse into hours and then convert back to seconds
+      query.rollup = parsePeriodToHours(getInterval(datetime)) * 60 * 60;
+    }
+
     return {
       ...query,
       ...selection,
@@ -88,15 +112,13 @@ class DiscoverQuery extends React.Component {
     this.resetQueries();
 
     // Fetch
+    this.setState({reloading: true});
     const promises = this.queryBuilders.map(builder => builder.fetchWithoutLimit());
     let results = await Promise.all(promises);
-    let previousData = null;
-    let data = null;
 
     this.setState({
+      reloading: false,
       results,
-      data,
-      previousData,
     });
   }
 
@@ -105,11 +127,10 @@ class DiscoverQuery extends React.Component {
 
     return children({
       queries: this.queryBuilders.map(builder => builder.getInternal()),
+      reloading: this.state.reloading,
       results: this.state.results,
-      data: this.state.data,
-      previousData: this.state.previousData,
     });
   }
 }
 
-export default withGlobalSelection(withOrganization(DiscoverQuery));
+export default DiscoverQuery;
