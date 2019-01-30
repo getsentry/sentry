@@ -263,12 +263,7 @@ class ProjectGroupIndexEndpoint(ProjectEndpoint, EnvironmentMixin):
         :auth: required
         """
 
-        search_fn = functools.partial(
-            self._search, request, project, {
-                'limit': 1000,
-                'paginator_options': {'max_limit': 1000},
-            }
-        )
+        search_fn = functools.partial(self._search, request, project)
         return update_groups(
             request,
             [project],
@@ -298,12 +293,7 @@ class ProjectGroupIndexEndpoint(ProjectEndpoint, EnvironmentMixin):
                                      belong to.
         :auth: required
         """
-        search_fn = functools.partial(
-            self._search, request, project, {
-                'limit': 1000,
-                'paginator_options': {'max_limit': 1000},
-            }
-        )
+        search_fn = functools.partial(self._search, request, project)
         return delete_groups(
             request,
             [project],

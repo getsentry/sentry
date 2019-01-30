@@ -222,10 +222,7 @@ class OrganizationGroupIndexEndpoint(OrganizationEventsEndpointBase):
 
         search_fn = functools.partial(
             self._search, request, organization, projects,
-            self.get_environments(request, organization), {
-                'limit': 1000,
-                'paginator_options': {'max_limit': 1000},
-            }
+            self.get_environments(request, organization),
         )
         return update_groups(
             request,
@@ -258,10 +255,7 @@ class OrganizationGroupIndexEndpoint(OrganizationEventsEndpointBase):
 
         search_fn = functools.partial(
             self._search, request, organization, projects,
-            self.get_environments(request, organization), {
-                'limit': 1000,
-                'paginator_options': {'max_limit': 1000},
-            }
+            self.get_environments(request, organization),
         )
 
         return delete_groups(
