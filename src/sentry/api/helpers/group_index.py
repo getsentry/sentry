@@ -361,7 +361,10 @@ def delete_groups(request, projects, organization_id, search_fn):
             # bulk mutations are limited to 1000 items
             # TODO(dcramer): it'd be nice to support more than this, but its
             # a bit too complicated right now
-            cursor_result, _ = search_fn()
+            cursor_result, _ = search_fn({
+                'limit': 1000,
+                'paginator_options': {'max_limit': 1000},
+            })
         except ValidationError as exc:
             return Response({'detail': six.text_type(exc)}, status=400)
 
@@ -437,7 +440,10 @@ def update_groups(request, projects, organization_id, search_fn):
             # bulk mutations are limited to 1000 items
             # TODO(dcramer): it'd be nice to support more than this, but its
             # a bit too complicated right now
-            cursor_result, _ = search_fn()
+            cursor_result, _ = search_fn({
+                'limit': 1000,
+                'paginator_options': {'max_limit': 1000},
+            })
         except ValidationError as exc:
             return Response({'detail': six.text_type(exc)}, status=400)
 
