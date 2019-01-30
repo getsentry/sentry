@@ -2,6 +2,8 @@ import $ from 'jquery';
 import React from 'react';
 import createReactClass from 'create-react-class';
 import PropTypes from 'prop-types';
+import DocumentTitle from 'react-document-title';
+
 import ApiMixin from 'app/mixins/apiMixin';
 import OrganizationState from 'app/mixins/organizationState';
 
@@ -250,14 +252,16 @@ const OrganizationStatsContainer = createReactClass({
     let organization = this.getOrganization();
 
     return (
-      <LazyLoad
-        component={() =>
-          import(/* webpackChunkName: "organizationStats" */ './organizationStatsDetails').then(
-            mod => mod.default
-          )}
-        organization={organization}
-        {...this.state}
-      />
+      <DocumentTitle title={`Stats - ${organization.slug} - Sentry`}>
+        <LazyLoad
+          component={() =>
+            import(/* webpackChunkName: "organizationStats" */ './organizationStatsDetails').then(
+              mod => mod.default
+            )}
+          organization={organization}
+          {...this.state}
+        />
+      </DocumentTitle>
     );
   },
 });
