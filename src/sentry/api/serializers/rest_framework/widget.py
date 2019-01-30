@@ -41,7 +41,7 @@ class WidgetSerializer(serializers.Serializer):
     def validate_displayType(self, attrs, source):
         display_type = attrs[source]
         if display_type not in WidgetDisplayTypes.TYPE_NAMES:
-            raise ValidationError('Widget display_type %s not recognized.' % display_type)
+            raise ValidationError('Widget displayType %s not recognized.' % display_type)
 
         attrs[source] = WidgetDisplayTypes.get_id_for_type_name(display_type)
         return attrs
