@@ -98,7 +98,7 @@ const ReleaseProjectStatSparkline = createReactClass({
 
   renderProjectSummary() {
     const {project} = this.props;
-    let {newIssueCount} = this.state;
+    const {newIssueCount} = this.state;
 
     return (
       <React.Fragment>
