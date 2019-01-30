@@ -18,7 +18,7 @@ class OrganizationDashboardWidgetDetailsEndpoint(OrganizationDashboardWidgetEndp
 
     def delete(self, request, organization, dashboard, widget):
         """
-        Delete a Wiget on an Organization's Dashboard
+        Delete a Widget on an Organization's Dashboard
         `````````````````````````````````````````````
 
         Delete a widget on an organization's dashboard.
