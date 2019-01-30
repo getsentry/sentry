@@ -25,15 +25,21 @@ const ProjectTable = ({projectMap, projectTotals, orgTotal, organization}) => {
     return <div />;
   }
 
+  const hasSentry10 = new Set(organization.features).has('sentry10');
+
   return projectTotals.sort((a, b) => b.received - a.received).map((item, index) => {
     let project = projectMap[item.id];
 
     if (!project) return null;
 
+    const projectLink = hasSentry10
+      ? `/settings/${organization.slug}/${project.slug}/`
+      : `/${organization.slug}/${project.slug}/`;
+
     return (
       <StyledProjectTableLayout key={index}>
         <StyledProjectTitle>
-          <Link to={`/${organization.slug}/${project.slug}/`}>{project.slug}</Link>
+          <Link to={projectLink}>{project.slug}</Link>
         </StyledProjectTitle>
         <ProjectTableDataElement>
           <Count value={item.accepted} />
