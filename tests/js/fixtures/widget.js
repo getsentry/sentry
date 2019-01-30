@@ -1,6 +1,7 @@
 const DEFAULT_QUERIES = {
   discover: [
     {
+      name: 'Known Users',
       fields: [],
       conditions: [['user.email', 'IS NOT NULL', null]],
       aggregations: [['uniq', 'user.email', 'Known Users']],
@@ -11,6 +12,7 @@ const DEFAULT_QUERIES = {
       rollup: 86400,
     },
     {
+      name: 'Anonymous Users',
       fields: [],
       conditions: [['user.email', 'IS NULL', null]],
       aggregations: [['count()', null, 'Anonymous Users']],

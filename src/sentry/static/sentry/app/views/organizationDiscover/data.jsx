@@ -92,19 +92,28 @@ export const NON_SNUBA_FIELDS = ['project.name'];
 
 export const NON_CONDITIONS_FIELDS = [...NON_SNUBA_FIELDS, 'project.id'];
 
-export const CONDITION_OPERATORS = [
-  '>',
-  '<',
-  '>=',
-  '<=',
-  '=',
-  '!=',
-  // 'IN', commented out since condition input doesn't support arrays yet :(
-  'IS NULL',
-  'IS NOT NULL',
-  'LIKE',
-  'NOT LIKE',
+export const OPERATOR = {
+  GREATER_THAN: '>',
+  LESS_THAN: '<',
+  GREATER_THAN_OR_EQUAL: '>=',
+  LESS_THAN_OR_EQUAL: '<=',
+  EQUAL: '=',
+  NOT_EQUAL: '!=',
+  IS_NULL: 'IS NULL',
+  IS_NOT_NULL: 'IS NOT NULL',
+  LIKE: 'LIKE',
+  NOT_LIKE: 'NOT LIKE',
+};
+
+export const CONDITION_OPERATORS = Object.values(OPERATOR);
+
+export const NEGATION_OPERATORS = [
+  OPERATOR.IS_NOT_NULL,
+  OPERATOR.NOT_EQUAL,
+  OPERATOR.NOT_LIKE,
 ];
+export const NULL_OPERATORS = [OPERATOR.IS_NOT_NULL, OPERATOR.IS_NULL];
+export const WILDCARD_OPERATORS = [OPERATOR.LIKE, OPERATOR.NOT_LIKE];
 
 export const ARRAY_FIELD_PREFIXES = ['error', 'stack'];
 

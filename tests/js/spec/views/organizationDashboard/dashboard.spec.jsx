@@ -107,6 +107,7 @@ describe('OrganizationDashboard', function() {
               {
                 discover: [
                   {
+                    name: 'Browsers',
                     fields: ['browser.name'],
                     conditions: [],
                     aggregations: [['count()', null, 'count']],
