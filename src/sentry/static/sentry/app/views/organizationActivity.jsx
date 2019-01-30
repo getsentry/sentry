@@ -26,6 +26,7 @@ export default class OrganizationActivity extends AsyncView {
       <React.Fragment>
         <PageHeading withMargins>{t('Activity')}</PageHeading>
         <ActivityFeed
+          organization={this.context.organization}
           endpoint={this.getEndpoint()}
           query={{
             per_page: 100,
