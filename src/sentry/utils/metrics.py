@@ -88,15 +88,16 @@ internal = InternalMetrics()
 
 def incr(key, amount=1, instance=None, tags=None, skip_internal=True):
     sample_rate = settings.SENTRY_METRICS_SAMPLE_RATE
+    banned_prefix = key.startswith(metrics_skip_internal_prefixes)
     if (
         not skip_internal and
         _should_sample() and
-        not key.startswith(metrics_skip_internal_prefixes)
+        not banned_prefix
     ):
         internal.incr(key, instance, tags, amount)
     try:
         backend.incr(key, instance, tags, amount, sample_rate)
-        if not skip_internal:
+        if not skip_internal and not banned_prefix:
             backend.incr('internal_metrics.incr', key, None, 1, sample_rate)
     except Exception:
         logger = logging.getLogger('sentry.errors')
