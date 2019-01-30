@@ -1,3 +1,4 @@
+import {pickBy} from 'lodash';
 import PropTypes from 'prop-types';
 import React from 'react';
 import styled, {css} from 'react-emotion';
@@ -54,14 +55,16 @@ class ExploreWidget extends React.Component {
       restQuery.orderby = orderby;
     }
 
-    return `/organizations/${organization.slug}/discover/${getQueryStringFromQuery({
-      ...restQuery,
-      ...selection,
-      start: datetime.start,
-      end: datetime.end,
-      range: datetime.period,
-      limit: 1000,
-    })}&visual=${visual}`;
+    return `/organizations/${organization.slug}/discover/${getQueryStringFromQuery(
+      pickBy({
+        ...restQuery,
+        ...selection,
+        start: datetime.start,
+        end: datetime.end,
+        range: datetime.period,
+        limit: 1000,
+      })
+    )}&visual=${visual}`;
   };
 
   getExportToEvents = query => {
