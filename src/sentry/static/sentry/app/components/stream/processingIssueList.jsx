@@ -24,7 +24,7 @@ class ProcessingIssueList extends React.Component {
     this.api = new Client();
     this.state = {
       loading: true,
-      issues: null,
+      issues: [],
     };
   }
 
@@ -47,11 +47,11 @@ class ProcessingIssueList extends React.Component {
 
     fetchProcessingIssues(this.api, organization.slug, projectIds).then(
       data => {
-        let haveIssues = data.filter(
+        let hasIssues = data.some(
           p => p.hasIssues || p.resolveableIssues > 0 || p.issuesProcessing > 0
         );
 
-        if (haveIssues.length > 0) {
+        if (hasIssues) {
           this.setState({issues: data});
         }
       },
@@ -64,22 +64,23 @@ class ProcessingIssueList extends React.Component {
 
   render() {
     let {issues} = this.state;
-    if (!issues) {
-      return null;
-    }
     let {organization, showProject} = this.props;
 
-    return issues.map((p, idx) => {
-      return (
-        <ProcessingIssueHint
-          key={idx}
-          issue={p}
-          projectId={p.project}
-          orgId={organization.slug}
-          showProject={showProject}
-        />
-      );
-    });
+    return (
+      <React.Fragment>
+        {issues.map((p, idx) => {
+          return (
+            <ProcessingIssueHint
+              key={idx}
+              issue={p}
+              projectId={p.project}
+              orgId={organization.slug}
+              showProject={showProject}
+            />
+          );
+        })}
+      </React.Fragment>
+    );
   }
 }
 
