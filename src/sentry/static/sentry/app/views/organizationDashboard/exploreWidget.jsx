@@ -1,10 +1,8 @@
-import {pickBy} from 'lodash';
-import PropTypes from 'prop-types';
 import React from 'react';
 import styled, {css} from 'react-emotion';
 
+import {getDiscoverUrlPathFromDiscoverQuery} from 'app/views/organizationDashboard/utils/getDiscoverUrlPathFromDiscoverQuery';
 import {getEventsUrlPathFromDiscoverQuery} from 'app/views/organizationDashboard/utils/getEventsUrlPathFromDiscoverQuery';
-import {getQueryStringFromQuery} from 'app/views/organizationDiscover/utils';
 import {t} from 'app/locale';
 import Button from 'app/components/button';
 import DropdownLink from 'app/components/dropdownLink';
@@ -22,49 +20,17 @@ const exploreMenuCss = css`
 class ExploreWidget extends React.Component {
   static propTypes = {
     widget: SentryTypes.Widget,
-    queries: PropTypes.arrayOf(SentryTypes.DiscoverQuery),
     organization: SentryTypes.Organization,
     selection: SentryTypes.GlobalSelection,
-    router: PropTypes.object,
   };
 
   getExportToDiscover = query => {
-    const {organization} = this.props;
-    const {
-      datetime,
-      environments, // eslint-disable-line no-unused-vars
-      ...selection
-    } = this.props.selection;
-
-    // Discover does not support importing these
-    const {
-      groupby, // eslint-disable-line no-unused-vars
-      rollup, // eslint-disable-line no-unused-vars
-      orderby,
-      ...restQuery
-    } = query;
-
-    const orderbyTimeIndex = orderby.indexOf('time');
-    let visual = 'table';
-
-    if (orderbyTimeIndex !== -1) {
-      restQuery.orderby = `${orderbyTimeIndex === 0 ? '' : '-'}${restQuery
-        .aggregations[0][2]}`;
-      visual = 'line-by-day';
-    } else {
-      restQuery.orderby = orderby;
-    }
-
-    return `/organizations/${organization.slug}/discover/${getQueryStringFromQuery(
-      pickBy({
-        ...restQuery,
-        ...selection,
-        start: datetime.start,
-        end: datetime.end,
-        range: datetime.period,
-        limit: 1000,
-      })
-    )}&visual=${visual}`;
+    const {selection, organization} = this.props;
+    return getDiscoverUrlPathFromDiscoverQuery({
+      organization,
+      selection,
+      query,
+    });
   };
 
   getExportToEvents = query => {
