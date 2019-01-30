@@ -10,12 +10,14 @@ import ErrorBoundary from 'app/components/errorBoundary';
 import LoadingError from 'app/components/loadingError';
 import LoadingIndicator from 'app/components/loadingIndicator';
 import Pagination from 'app/components/pagination';
+import SentryTypes from 'app/sentryTypes';
 import space from 'app/styles/space';
 
 const ActivityFeed = createReactClass({
   displayName: 'ActivityFeed',
 
   propTypes: {
+    organization: SentryTypes.Organization,
     endpoint: PropTypes.string,
     query: PropTypes.object,
     renderEmpty: PropTypes.func,
@@ -87,7 +89,6 @@ const ActivityFeed = createReactClass({
 
   renderResults() {
     let body;
-    let {orgId} = this.props.params;
 
     if (this.state.loading) body = this.renderLoading();
     else if (this.state.error) body = <LoadingError onRetry={this.fetchData} />;
@@ -103,7 +104,7 @@ const ActivityFeed = createReactClass({
                     css={{marginBottom: space(1), borderRadius: 0}}
                     key={item.id}
                   >
-                    <ActivityItem orgId={orgId} item={item} />
+                    <ActivityItem organization={this.props.organization} item={item} />
                   </ErrorBoundary>
                 );
               } catch (ex) {
