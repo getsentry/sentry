@@ -31,7 +31,7 @@ describe('GroupSidebar', function() {
         group={group}
         project={project}
         event={TestStubs.Event()}
-        environment={environment}
+        environments={[environment]}
       />,
       TestStubs.routerContext()
     );
@@ -75,7 +75,7 @@ describe('GroupSidebar', function() {
           group={group}
           project={project}
           event={TestStubs.Event()}
-          environment={environment}
+          environments={[environment]}
         />,
         TestStubs.routerContext()
       );
@@ -87,7 +87,7 @@ describe('GroupSidebar', function() {
 
     it('renders empty text', function() {
       expect(wrapper.find('[data-test-id="no-tags"]').text()).toBe(
-        'No tags found in the Production environment'
+        'No tags found in the selected environments'
       );
     });
   });
@@ -120,13 +120,13 @@ describe('GroupSidebar', function() {
     it('re-requests tags with correct environment', function() {
       const stagingEnv = {name: 'staging', displayName: 'Staging', id: '2'};
       expect(tagValuesMock).toHaveBeenCalledTimes(1);
-      wrapper.setProps({environment: stagingEnv});
+      wrapper.setProps({environments: [stagingEnv]});
       expect(tagValuesMock).toHaveBeenCalledTimes(2);
       expect(tagValuesMock).toHaveBeenCalledWith(
         '/issues/1/tags/',
         expect.objectContaining({
           query: expect.objectContaining({
-            environment: 'staging',
+            environment: ['staging'],
           }),
         })
       );
