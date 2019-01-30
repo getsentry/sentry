@@ -21,6 +21,7 @@ from sentry.models import (
     ProjectStatus, ProjectTeam, Release, ReleaseProjectEnvironment, Deploy, UserOption, DEFAULT_SUBJECT_TEMPLATE
 )
 from sentry.utils.data_filters import FilterTypes
+from sentry.utils.db import is_postgres
 
 STATUS_LABELS = {
     ProjectStatus.VISIBLE: 'active',
@@ -340,6 +341,24 @@ def bulk_fetch_project_latest_releases(projects):
     attribute representing the project that they're the latest release for. If
     no release found, no entry will be returned for the given project.
     """
+    if is_postgres():
+        # XXX: This query could be very inefficient for projects with a large
+        # number of releases. To work around this, we only check 20 releases
+        # ordered by highest release id, which is generally correlated with
+        # most recent releases for a project. This could potentially result in
+        # not having the correct most recent release, but in practice will
+        # likely work fine.
+        release_project_join_sql = """
+            JOIN (
+                SELECT *
+                FROM sentry_release_project lrp
+                WHERE lrp.project_id = p.id
+                ORDER BY lrp.release_id DESC
+                LIMIT 20
+            ) lrp ON lrp.release_id = lrr.id
+        """
+    else:
+        release_project_join_sql = 'JOIN sentry_release_project lrp ON lrp.release_id = lrr.id'
     return list(Release.objects.raw(
         u"""
         SELECT lr.project_id as actual_project_id, r.*
@@ -347,7 +366,7 @@ def bulk_fetch_project_latest_releases(projects):
             SELECT (
                 SELECT lrr.id
                 FROM sentry_release lrr
-                JOIN sentry_release_project lrp ON lrp.release_id = lrr.id
+                {}
                 WHERE lrp.project_id = p.id
                 ORDER BY COALESCE(lrr.date_released, lrr.date_added) DESC
                 LIMIT 1
@@ -358,7 +377,10 @@ def bulk_fetch_project_latest_releases(projects):
         ) as lr
         JOIN sentry_release r
         ON r.id = lr.release_id
-        """.format(', '.join(six.text_type(i.id) for i in projects), ),
+        """.format(
+            release_project_join_sql,
+            ', '.join(six.text_type(i.id) for i in projects),
+        ),
     ))
 
 
