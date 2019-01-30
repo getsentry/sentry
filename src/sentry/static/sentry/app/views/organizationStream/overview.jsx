@@ -145,6 +145,7 @@ const OrganizationStream = createReactClass({
     // reload data.
     if (
       !isEqual(prevProps.selection, this.props.selection) ||
+      prevQuery.cursor !== newQuery.cursor ||
       prevQuery.sort !== newQuery.sort ||
       prevQuery.query !== newQuery.query ||
       prevQuery.statsPeriod !== newQuery.statsPeriod ||
@@ -403,6 +404,10 @@ const OrganizationStream = createReactClass({
 
   onSortChange(sort) {
     this.transitionTo({sort});
+  },
+
+  onCursorChange(cursor, path, query) {
+    this.transitionTo({cursor});
   },
 
   onTagsChange(tags) {
@@ -694,7 +699,7 @@ const OrganizationStream = createReactClass({
               {this.renderStreamBody()}
             </PanelBody>
           </Panel>
-          <Pagination pageLinks={this.state.pageLinks} />
+          <Pagination pageLinks={this.state.pageLinks} onCursor={this.onCursorChange} />
         </div>
         <StreamSidebar
           loading={this.state.tagsLoading}
