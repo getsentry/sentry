@@ -34,5 +34,7 @@ const Widgets = styled('div')`
 `;
 const WidgetWrapper = styled('div')`
   width: 50%;
-  padding: ${space(1)};
+  :nth-child(odd) {
+    padding-right: ${space(2)};
+  }
 `;
