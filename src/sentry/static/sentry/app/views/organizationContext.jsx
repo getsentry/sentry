@@ -21,6 +21,8 @@ import Sidebar from 'app/components/sidebar';
 import TeamStore from 'app/stores/teamStore';
 import space from 'app/styles/space';
 import GlobalSelectionStore from 'app/stores/globalSelectionStore';
+import OrganizationEnvironmentsStore from 'app/stores/organizationEnvironmentsStore';
+import {fetchOrganizationEnvironments} from 'app/actionCreators/environments';
 
 let ERROR_TYPES = {
   ORG_NOT_FOUND: 'ORG_NOT_FOUND',
@@ -83,8 +85,13 @@ const OrganizationContext = createReactClass({
   },
 
   fetchData() {
-    this.api.request(this.getOrganizationDetailsEndpoint(), {
-      success: data => {
+    const promises = [
+      this.api.requestPromise(this.getOrganizationDetailsEndpoint()),
+      fetchOrganizationEnvironments(this.api, this.props.params.orgId),
+    ];
+
+    Promise.all(promises)
+      .then(([data, environments]) => {
         // Allow injection via getsentry et all
         let hooks = [];
         HookStore.get('organization:header').forEach(cb => {
@@ -96,6 +103,7 @@ const OrganizationContext = createReactClass({
         TeamStore.loadInitialData(data.teams);
         ProjectsStore.loadInitialData(data.projects);
         GlobalSelectionStore.loadInitialData(data, this.props.location.query);
+        OrganizationEnvironmentsStore.loadInitialData(environments);
 
         this.setState({
           organization: data,
@@ -104,17 +112,15 @@ const OrganizationContext = createReactClass({
           errorType: null,
           hooks,
         });
-      },
-
-      error: (err, textStatus, errorThrown) => {
+      })
+      .catch(err => {
         let errorType = null;
-        switch (errorThrown) {
+        switch (err.statusText) {
           case 'NOT FOUND':
             errorType = ERROR_TYPES.ORG_NOT_FOUND;
             break;
           default:
         }
-
         this.setState({
           loading: false,
           error: true,
@@ -129,8 +135,7 @@ const OrganizationContext = createReactClass({
         openSudo({
           retryRequest: () => Promise.resolve(this.fetchData()),
         });
-      },
-    });
+      });
   },
 
   getOrganizationDetailsEndpoint() {
