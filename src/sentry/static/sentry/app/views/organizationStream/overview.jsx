@@ -559,9 +559,9 @@ const OrganizationStream = createReactClass({
     }, {});
 
     fetchSavedSearches(this.api, orgId).then(
-      savedSearchList => {
+      data => {
         // Add in project slugs so that we can display them in the picker bars.
-        savedSearchList = savedSearchList.map(search => {
+        let savedSearchList = data.map(search => {
           search.projectSlug = projectMap[search.projectId];
           return search;
         });
