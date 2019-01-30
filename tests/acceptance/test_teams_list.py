@@ -33,7 +33,6 @@ class TeamsListTest(AcceptanceTestCase):
         self.project.update(first_event=timezone.now())
         self.browser.get(self.path)
         self.browser.wait_until_not('.loading-indicator')
-        self.browser.wait_until('.team-list')
         self.browser.snapshot('organization teams list')
 
         # team details link
