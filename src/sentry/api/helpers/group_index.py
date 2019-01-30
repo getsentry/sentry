@@ -338,6 +338,10 @@ def _delete_groups(request, project, group_list, delete_type):
 
 
 def delete_groups(request, projects, organization_id, search_fn):
+    """
+    `search_fn` refers to the `search.query` method with the appropriate
+    project, org, environment, and search params already bound
+    """
     group_ids = request.GET.getlist('id')
     if group_ids:
         group_list = list(
