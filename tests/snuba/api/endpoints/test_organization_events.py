@@ -511,6 +511,8 @@ class OrganizationEventsStatsEndpointTest(OrganizationEventsTestBase):
     def test_simple(self):
         self.login_as(user=self.user)
 
+        day_ago = self.day_ago.replace(hour=10, minute=0, second=0, microsecond=0)
+
         project = self.create_project()
         project2 = self.create_project()
         group = self.create_group(project=project)
@@ -518,17 +520,17 @@ class OrganizationEventsStatsEndpointTest(OrganizationEventsTestBase):
         self.create_event(
             'a' * 32,
             group=group,
-            datetime=self.day_ago + timedelta(minutes=1)
+            datetime=day_ago + timedelta(minutes=1)
         )
         self.create_event(
             'b' * 32,
             group=group2,
-            datetime=self.day_ago + timedelta(hours=1, minutes=1)
+            datetime=day_ago + timedelta(hours=1, minutes=1)
         )
         self.create_event(
             'c' * 32,
             group=group2,
-            datetime=self.day_ago + timedelta(hours=1, minutes=2)
+            datetime=day_ago + timedelta(hours=1, minutes=2)
         )
 
         url = reverse(
@@ -538,8 +540,8 @@ class OrganizationEventsStatsEndpointTest(OrganizationEventsTestBase):
             }
         )
         response = self.client.get('%s?%s' % (url, urlencode({
-            'start': self.day_ago.isoformat()[:19],
-            'end': (self.day_ago + timedelta(hours=1, minutes=30)).isoformat()[:19],
+            'start': day_ago.isoformat()[:19],
+            'end': (day_ago + timedelta(hours=1, minutes=59)).isoformat()[:19],
             'interval': '1h',
         })), format='json')
 
