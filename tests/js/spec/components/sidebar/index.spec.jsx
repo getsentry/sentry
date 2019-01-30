@@ -50,6 +50,10 @@ describe('Sidebar', function() {
       router: null,
     });
 
+    // no org displays user details
+    expect(wrapper.find('OrgOrUserName').text()).toContain(user.name);
+    expect(wrapper.find('UserNameOrEmail').text()).toContain(user.email);
+
     wrapper.find('SidebarDropdownActor').simulate('click');
     expect(wrapper.find('OrgAndUserMenu')).toMatchSnapshot();
   });
@@ -59,6 +63,9 @@ describe('Sidebar', function() {
       <SidebarContainer organization={organization} user={user} router={router} />,
       routerContext
     );
+
+    expect(wrapper.find('OrgOrUserName').text()).toContain(organization.name);
+    expect(wrapper.find('UserNameOrEmail').text()).toContain(user.name);
 
     wrapper.find('SidebarCollapseItem').simulate('click');
     await tick();
@@ -278,6 +285,18 @@ describe('Sidebar', function() {
       });
       wrapper.update();
       expect(wrapper.find('SidebarPanel')).toHaveLength(0);
+    });
+
+    it('hides assigned, bookmarks, history, activity and stats for sentry10', function() {
+      const sentry10Org = TestStubs.Organization({features: ['sentry10']});
+      wrapper = createWrapper();
+      wrapper.setProps({organization: sentry10Org});
+      wrapper.update();
+      const labels = wrapper.find('SidebarItemLabel').map(node => node.text());
+      expect(labels).toHaveLength(7);
+      expect(labels).not.toContain('Assigned to me');
+      expect(labels).not.toContain('Bookmarked issues');
+      expect(labels).not.toContain('Recently viewed');
     });
   });
 });

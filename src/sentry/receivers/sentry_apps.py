@@ -5,12 +5,13 @@ from django.dispatch import receiver
 
 from sentry.models import Group, Organization
 from sentry.signals import (
+    issue_ignored,
     issue_resolved,
     issue_resolved_in_release,
     resolved_with_commit,
 )
 from sentry.tasks.sentry_apps import (
-    process_resource_change,
+    process_resource_change_bound,
     workflow_notification,
 )
 
@@ -23,7 +24,7 @@ def issue_saved(sender, instance, created, **kwargs):
     if not created:
         return
 
-    process_resource_change.delay(
+    process_resource_change_bound.delay(
         action='created',
         sender=sender.__name__,
         instance_id=issue.id,
@@ -37,7 +38,7 @@ def issue_resolved_in_release(project, group, user, resolution_type, **kwargs):
         group,
         user,
         'issue.resolved',
-        'resolved_in_release',
+        {'resolution_type': 'resolved_in_release'},
     )
 
 
@@ -48,8 +49,19 @@ def issue_resolved(project, group, user, **kwargs):
         group,
         user,
         'issue.resolved',
-        'resolved',
+        {'resolution_type': 'resolved'},
     )
+
+
+@issue_ignored.connect(weak=False)
+def issue_ignored(project, user, group_list, **kwargs):
+    for issue in group_list:
+        send_workflow_webhooks(
+            project.organization,
+            issue,
+            user,
+            'issue.ignored',
+        )
 
 
 @resolved_with_commit.connect(weak=False)
@@ -60,18 +72,20 @@ def resolved_with_commit(organization_id, group, user, **kwargs):
         group,
         user,
         'issue.resolved',
-        'resolved_in_commit',
+        {'resolution_type': 'resolved_in_commit'},
     )
 
 
-def send_workflow_webhooks(organization, issue, user, event, resolution_type):
+def send_workflow_webhooks(organization, issue, user, event, data=None):
+    data = data or {}
+
     for install in installations_to_notify(organization, event):
         workflow_notification.delay(
             installation_id=install.id,
             issue_id=issue.id,
-            type='resolved',
+            type=event.split('.')[-1],
             user_id=(user.id if user else None),
-            data={'resolution_type': resolution_type},
+            data=data,
         )
 
 

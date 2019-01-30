@@ -145,6 +145,7 @@ register('snuba.search.max-pre-snuba-candidates', default=5000)
 register('snuba.search.chunk-growth-rate', default=1.5)
 register('snuba.search.max-chunk-size', default=2000)
 register('snuba.search.max-total-chunk-time-seconds', default=30.0)
+register('snuba.search.hits-sample-size', default=100)
 register('snuba.events-queries.enabled', type=Bool, default=False)
 
 # Kafka Publisher
@@ -159,4 +160,6 @@ register('store.process-in-kafka', type=Bool, default=False)
 register('store.kafka-sample-rate', default=0.0)
 register('store.projects-normalize-in-rust-opt-in', type=Sequence, default=[])
 register('store.projects-normalize-in-rust-opt-out', type=Sequence, default=[])
+# positive value means stable opt-in in the range 0.0 to 1.0, negative value
+# means random opt-in with the same range.
 register('store.projects-normalize-in-rust-percent-opt-in', default=0.0)

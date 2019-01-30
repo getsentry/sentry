@@ -89,11 +89,14 @@ class EventSerializer(Serializer):
         meta = get_path(event.data, '_meta', 'tags') or {}
 
         tags = sorted(
-            [{
-                'key': k.split('sentry:', 1)[-1],
-                'value': v,
-                '_meta': meta.get(k) or get_path(meta, six.text_type(i), '1') or None,
-            } for i, (k, v) in enumerate(event.data.get('tags') or ())],
+            [
+                {
+                    'key': kv[0].split('sentry:', 1)[-1],
+                    'value': kv[1],
+                    '_meta': meta.get(kv[0]) or get_path(meta, six.text_type(i), '1') or None,
+                }
+                for i, kv in enumerate(event.data.get('tags') or ())
+                if kv is not None and kv[0] is not None and kv[1] is not None],
             key=lambda x: x['key']
         )
 
@@ -318,8 +321,13 @@ class SnubaEventSerializer(Serializer):
         keys = getattr(obj, 'tags.key', None)
         values = getattr(obj, 'tags.value', None)
         if keys and values and len(keys) == len(values):
-            return dict(zip(keys, values))
-        return None
+            return sorted([
+                {
+                    'key': k.split('sentry:', 1)[-1],
+                    'value': v,
+                } for (k, v) in zip(keys, values)
+            ], key=lambda x: x['key'])
+        return []
 
     def serialize(self, obj, attrs, user):
         result = {

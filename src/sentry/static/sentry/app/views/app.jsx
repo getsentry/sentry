@@ -6,6 +6,7 @@ import React from 'react';
 import Reflux from 'reflux';
 import createReactClass from 'create-react-class';
 import keydown from 'react-keydown';
+import {withRouter} from 'react-router';
 
 import {openCommandPalette} from 'app/actionCreators/modal';
 import {t} from 'app/locale';
@@ -22,6 +23,8 @@ import LoadingIndicator from 'app/components/loadingIndicator';
 import NewsletterConsent from 'app/views/newsletterConsent';
 import OrganizationsStore from 'app/stores/organizationsStore';
 import theme from 'app/utils/theme';
+import getRouteStringFromRoutes from 'app/utils/getRouteStringFromRoutes';
+import * as tracing from 'app/utils/tracing';
 
 function getAlertTypeForProblem(problem) {
   switch (problem.severity) {
@@ -34,6 +37,10 @@ function getAlertTypeForProblem(problem) {
 
 const App = createReactClass({
   displayName: 'App',
+
+  propTypes: {
+    routes: PropTypes.array,
+  },
 
   childContextTypes: {
     location: PropTypes.object,
@@ -127,8 +134,25 @@ const App = createReactClass({
     });
   },
 
+  componentDidMount() {
+    this.updateTracing();
+  },
+
+  componentDidUpdate() {
+    this.updateTracing();
+  },
+
   componentWillUnmount() {
     OrganizationsStore.load([]);
+  },
+
+  updateTracing() {
+    tracing.startTransaction();
+
+    const route = getRouteStringFromRoutes(this.props.routes);
+    if (route) {
+      tracing.setRoute(route);
+    }
   },
 
   onConfigStoreChange(config) {
@@ -204,4 +228,4 @@ const App = createReactClass({
   },
 });
 
-export default App;
+export default withRouter(App);

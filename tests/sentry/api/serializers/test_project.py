@@ -2,15 +2,21 @@
 
 from __future__ import absolute_import
 
+from datetime import timedelta
+
 import six
 import datetime
 from django.utils import timezone
+from exam import fixture
 
 from sentry.api.serializers import serialize
 from sentry.api.serializers.models.project import (
-    ProjectWithOrganizationSerializer, ProjectWithTeamSerializer, ProjectSummarySerializer
+    bulk_fetch_project_latest_releases,
+    ProjectWithOrganizationSerializer,
+    ProjectWithTeamSerializer,
+    ProjectSummarySerializer,
 )
-from sentry.models import Deploy, Environment, Release, ReleaseProjectEnvironment
+from sentry.models import Deploy, Environment, ReleaseProjectEnvironment
 from sentry.testutils import TestCase
 
 
@@ -158,10 +164,7 @@ class ProjectSummarySerializerTest(TestCase):
         project.flags.has_releases = True
         project.save()
 
-        release = Release.objects.create(
-            organization_id=organization.id,
-            version='1',
-        )
+        release = self.create_release(project)
 
         environment = Environment.objects.create(
             organization_id=organization.id,
@@ -192,8 +195,9 @@ class ProjectSummarySerializerTest(TestCase):
         assert result['platform'] == project.platform
 
         assert result['latestDeploys'] == {
-            'production': {'dateFinished': date, 'version': '1'}
+            'production': {'dateFinished': date, 'version': release.version}
         }
+        assert result['latestRelease'] == serialize(release)
 
 
 class ProjectWithOrganizationSerializerTest(TestCase):
@@ -209,3 +213,56 @@ class ProjectWithOrganizationSerializerTest(TestCase):
         assert result['name'] == project.name
         assert result['id'] == six.text_type(project.id)
         assert result['organization'] == serialize(organization, user)
+
+
+class BulkFetchProjectLatestReleases(TestCase):
+    @fixture
+    def project(self):
+        return self.create_project(
+            teams=[self.team],
+            organization=self.organization,
+        )
+
+    @fixture
+    def other_project(self):
+        return self.create_project(
+            teams=[self.team],
+            organization=self.organization,
+        )
+
+    def test_single_no_release(self):
+        assert bulk_fetch_project_latest_releases([self.project]) == []
+
+    def test_single_release(self):
+        release = self.create_release(
+            self.project,
+            date_added=timezone.now() - timedelta(minutes=5),
+        )
+        assert bulk_fetch_project_latest_releases([self.project]) == [release]
+        newer_release = self.create_release(self.project)
+        assert bulk_fetch_project_latest_releases([self.project]) == [newer_release]
+
+    def test_multi_no_release(self):
+        assert bulk_fetch_project_latest_releases(
+            [self.project, self.other_project],
+        ) == []
+
+    def test_multi_mixed_releases(self):
+        release = self.create_release(self.project)
+        assert set(bulk_fetch_project_latest_releases(
+            [self.project, self.other_project],
+        )) == set([release])
+
+    def test_multi_releases(self):
+        release = self.create_release(
+            self.project,
+            date_added=timezone.now() - timedelta(minutes=5),
+        )
+        other_project_release = self.create_release(self.other_project)
+        assert set(bulk_fetch_project_latest_releases(
+            [self.project, self.other_project],
+        )) == set([release, other_project_release])
+        release_2 = self.create_release(self.project)
+        assert set(bulk_fetch_project_latest_releases(
+            [self.project, self.other_project],
+        )) == set([release_2, other_project_release])

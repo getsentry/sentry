@@ -35,7 +35,6 @@ class OrganizationEventsContainer extends React.Component {
       query: getParams({
         ...(location.query || {}),
         query,
-        zoom: null,
       }),
     });
   };
@@ -47,7 +46,7 @@ class OrganizationEventsContainer extends React.Component {
       <Feature features={['events']} renderDisabled>
         <GlobalSelectionHeader
           organization={organization}
-          resetParamsOnChange={['zoom', 'cursor']}
+          resetParamsOnChange={['cursor']}
         />
         <PageContent>
           <Body>

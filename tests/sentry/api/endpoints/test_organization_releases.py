@@ -1237,6 +1237,19 @@ class OrganizationReleaseListEnvironmentsTest(APITestCase):
         )
         self.assert_releases(response, [self.release4, self.release5])
 
+    def test_invalid_date_range(self):
+        url = reverse('sentry-api-0-organization-releases',
+                      kwargs={'organization_slug': self.org.slug})
+        response = self.client.get(
+            url,
+            format='json',
+            data={
+                'start': 'null',
+                'end': 'null',
+            },
+        )
+        assert response.status_code == 400
+
 
 class OrganizationReleaseCreateCommitPatch(ReleaseCommitPatchTest):
     @fixture

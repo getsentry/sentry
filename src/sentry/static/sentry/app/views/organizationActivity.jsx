@@ -1,5 +1,4 @@
 import React from 'react';
-import styled from 'react-emotion';
 
 import AsyncView from 'app/views/asyncView';
 import ActivityFeed from 'app/components/activity/feed';
@@ -7,9 +6,13 @@ import OrganizationHomeContainer from 'app/components/organizations/homeContaine
 import PageHeading from 'app/components/pageHeading';
 
 import {t} from 'app/locale';
-import space from 'app/styles/space';
+import SentryTypes from 'app/sentryTypes';
+import {PageContent} from 'app/styles/organization';
 
 export default class OrganizationActivity extends AsyncView {
+  static contextTypes = {
+    organization: SentryTypes.Organization,
+  };
   getEndpoint() {
     return `/organizations/${this.props.params.orgId}/activity/`;
   }
@@ -18,10 +21,10 @@ export default class OrganizationActivity extends AsyncView {
     return 'Activity';
   }
 
-  render() {
+  renderActivityFeed() {
     return (
-      <OrganizationHomeContainer>
-        <StyledPageHeading>{t('Activity')}</StyledPageHeading>
+      <React.Fragment>
+        <PageHeading withMargins>{t('Activity')}</PageHeading>
         <ActivityFeed
           endpoint={this.getEndpoint()}
           query={{
@@ -30,12 +33,19 @@ export default class OrganizationActivity extends AsyncView {
           pagination={true}
           {...this.props}
         />
-      </OrganizationHomeContainer>
+      </React.Fragment>
+    );
+  }
+
+  render() {
+    const hasSentry10 = new Set(this.context.organization.features).has('sentry10');
+
+    return hasSentry10 ? (
+      <PageContent>
+        <div className="organization-home">{this.renderActivityFeed()}</div>
+      </PageContent>
+    ) : (
+      <OrganizationHomeContainer>{this.renderActivityFeed()}</OrganizationHomeContainer>
     );
   }
 }
-
-const StyledPageHeading = styled(PageHeading)`
-  margin-top: ${space(0.25)};
-  margin-bottom: 24px;
-`;

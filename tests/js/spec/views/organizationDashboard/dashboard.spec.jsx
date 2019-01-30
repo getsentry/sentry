@@ -39,7 +39,7 @@ describe('OrganizationDashboard', function() {
       body: {
         data: [],
         meta: [],
-        timing: [],
+        timing: {},
       },
     });
   });

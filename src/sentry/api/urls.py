@@ -49,6 +49,8 @@ from .endpoints.index import IndexEndpoint
 from .endpoints.internal_queue_tasks import InternalQueueTasksEndpoint
 from .endpoints.internal_quotas import InternalQuotasEndpoint
 from .endpoints.internal_stats import InternalStatsEndpoint
+from .endpoints.monitor_checkins import MonitorCheckInsEndpoint
+from .endpoints.monitor_checkin_details import MonitorCheckInDetailsEndpoint
 from .endpoints.organization_access_request_details import OrganizationAccessRequestDetailsEndpoint
 from .endpoints.organization_activity import OrganizationActivityEndpoint
 from .endpoints.organization_auditlogs import OrganizationAuditLogsEndpoint
@@ -79,6 +81,7 @@ from .endpoints.organization_member_issues_bookmarked import OrganizationMemberI
 from .endpoints.organization_member_issues_viewed import OrganizationMemberIssuesViewedEndpoint
 from .endpoints.organization_member_unreleased_commits import OrganizationMemberUnreleasedCommitsEndpoint
 from .endpoints.organization_member_team_details import OrganizationMemberTeamDetailsEndpoint
+from .endpoints.organization_monitors import OrganizationMonitorsEndpoint
 from .endpoints.organization_onboarding_tasks import OrganizationOnboardingTaskEndpoint
 from .endpoints.organization_index import OrganizationIndexEndpoint
 from .endpoints.organization_plugins import OrganizationPluginsEndpoint
@@ -292,6 +295,11 @@ urlpatterns = patterns(
     # Project transfer
     url(r'^accept-transfer/$', AcceptProjectTransferEndpoint.as_view(),
         name='sentry-api-0-accept-project-transfer'),
+
+    # Monitors
+    url(r'^monitors/(?P<monitor_id>[^\/]+)/checkins/$', MonitorCheckInsEndpoint.as_view()),
+    url(r'^monitors/(?P<monitor_id>[^\/]+)/checkins/(?P<checkin_id>[^\/]+)/$',
+        MonitorCheckInDetailsEndpoint.as_view()),
 
     # Users
     url(r'^users/$', UserIndexEndpoint.as_view(), name='sentry-api-0-user-index'),
@@ -550,6 +558,10 @@ urlpatterns = patterns(
         r'^organizations/(?P<organization_slug>[^\/]+)/members/$',
         OrganizationMemberIndexEndpoint.as_view(),
         name='sentry-api-0-organization-member-index'
+    ),
+    url(
+        r'^organizations/(?P<organization_slug>[^\/]+)/monitors/$',
+        OrganizationMonitorsEndpoint.as_view(),
     ),
     url(
         r'^organizations/(?P<organization_slug>[^\/]+)/searches/$',

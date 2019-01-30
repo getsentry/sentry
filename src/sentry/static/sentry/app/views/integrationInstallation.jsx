@@ -142,6 +142,7 @@ export default class IntegrationInstallation extends AsyncView {
                 organization={organization}
                 features={this.provider.metadata.features}
                 formatter={singleLineRenderer}
+                provider={this.provider}
               />
             </React.Fragment>
           )}

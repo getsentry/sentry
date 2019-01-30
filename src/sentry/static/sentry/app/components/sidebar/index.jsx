@@ -1,6 +1,6 @@
 import $ from 'jquery';
 import {ThemeProvider} from 'emotion-theming';
-import {isEqual, pick, pickBy, identity} from 'lodash';
+import {isEqual} from 'lodash';
 import {withRouter, browserHistory} from 'react-router';
 import PropTypes from 'prop-types';
 import React from 'react';
@@ -9,7 +9,7 @@ import createReactClass from 'create-react-class';
 import styled, {css, cx} from 'react-emotion';
 import queryString from 'query-string';
 
-import {URL_PARAM} from 'app/components/organizations/globalSelectionHeader/constants';
+import {extractSelectionParameters} from 'app/components/organizations/globalSelectionHeader/utils';
 import {hideSidebar, showSidebar} from 'app/actionCreators/preferences';
 import {load as loadIncidents} from 'app/actionCreators/incidents';
 import {t} from 'app/locale';
@@ -157,20 +157,29 @@ class Sidebar extends React.Component {
 
   // Keep the global selection querystring values in the path
   navigateWithGlobalSelection = (pathname, evt) => {
-    const query = pickBy(
-      pick(this.props.location.query, Object.values(URL_PARAM)),
-      identity
-    );
+    const globalSelectionRoutes = [
+      'dashboards',
+      'issues',
+      'events',
+      'releases',
+      'user-feedback',
+    ].map(route => `/organizations/${this.props.params.orgId}/${route}/`);
 
-    // Handle cmd-click (mac) and meta-click (linux)
-    if (evt.metaKey) {
-      let q = queryString.stringify(query);
-      evt.currentTarget.href = `${evt.currentTarget.href}?${q}`;
-      return;
+    // Only keep the querystring if the current route matches one of the above
+    if (globalSelectionRoutes.includes(this.props.location.pathname)) {
+      const query = extractSelectionParameters(this.props.location.query);
+
+      // Handle cmd-click (mac) and meta-click (linux)
+      if (evt.metaKey) {
+        let q = queryString.stringify(query);
+        evt.currentTarget.href = `${evt.currentTarget.href}?${q}`;
+        return;
+      }
+
+      evt.preventDefault();
+      browserHistory.push({pathname, query});
     }
 
-    evt.preventDefault();
-    browserHistory.push({pathname, query});
     this.hidePanel();
   };
 
@@ -207,6 +216,8 @@ class Sidebar extends React.Component {
       hasPanel,
     };
     let hasOrganization = !!organization;
+
+    let hasSentry10 = hasOrganization && new Set(organization.features).has('sentry10');
 
     let projectsSidebarItem = () => (
       <SidebarItem
@@ -308,29 +319,31 @@ class Sidebar extends React.Component {
                 </Feature>
               </SidebarSection>
 
-              <SidebarSection>
-                <SidebarItem
-                  {...sidebarItemProps}
-                  onClick={this.hidePanel}
-                  icon={<InlineSvg src="icon-user" />}
-                  label={t('Assigned to me')}
-                  to={`/organizations/${organization.slug}/issues/assigned/`}
-                />
-                <SidebarItem
-                  {...sidebarItemProps}
-                  onClick={this.hidePanel}
-                  icon={<InlineSvg src="icon-star" />}
-                  label={t('Bookmarked issues')}
-                  to={`/organizations/${organization.slug}/issues/bookmarks/`}
-                />
-                <SidebarItem
-                  {...sidebarItemProps}
-                  onClick={this.hidePanel}
-                  icon={<InlineSvg src="icon-history" />}
-                  label={t('Recently viewed')}
-                  to={`/organizations/${organization.slug}/issues/history/`}
-                />
-              </SidebarSection>
+              {!hasSentry10 && (
+                <SidebarSection>
+                  <SidebarItem
+                    {...sidebarItemProps}
+                    onClick={this.hidePanel}
+                    icon={<InlineSvg src="icon-user" />}
+                    label={t('Assigned to me')}
+                    to={`/organizations/${organization.slug}/issues/assigned/`}
+                  />
+                  <SidebarItem
+                    {...sidebarItemProps}
+                    onClick={this.hidePanel}
+                    icon={<InlineSvg src="icon-star" />}
+                    label={t('Bookmarked issues')}
+                    to={`/organizations/${organization.slug}/issues/bookmarks/`}
+                  />
+                  <SidebarItem
+                    {...sidebarItemProps}
+                    onClick={this.hidePanel}
+                    icon={<InlineSvg src="icon-history" />}
+                    label={t('Recently viewed')}
+                    to={`/organizations/${organization.slug}/issues/history/`}
+                  />
+                </SidebarSection>
+              )}
 
               <SidebarSection>
                 <SidebarItem

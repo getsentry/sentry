@@ -1,3 +1,4 @@
+import * as Sentry from '@sentry/browser';
 import {Flex} from 'grid-emotion';
 import {isEqual} from 'lodash';
 import {withRouter} from 'react-router';
@@ -56,15 +57,20 @@ class TotalEventCount extends AsyncComponent {
     ];
   }
 
+  onRequestError(error) {
+    Sentry.captureException(new Error('Unable to fetch "total event count"'));
+  }
+
+  renderError(error, disableLog = false, disableReport = false) {
+    // Don't show an error message, handle it in `onRequestError`
+    return null;
+  }
+
   renderBody() {
     let {eventsMeta} = this.state;
-    let {isAllResults, organization, numRows} = this.props;
+    let {isAllResults, numRows} = this.props;
     let count = isAllResults ? numRows : eventsMeta.count;
-    return (
-      <Feature features={['internal-catchall']} organization={organization}>
-        {t(` of ${count.toLocaleString()}${isAllResults ? '' : ' (estimated)'}`)}
-      </Feature>
-    );
+    return t(` of ${count.toLocaleString()}${isAllResults ? '' : ' (estimated)'}`);
   }
 }
 
@@ -148,11 +154,15 @@ class OrganizationEvents extends AsyncView {
 
     return (
       <React.Fragment>
-        {error && super.renderError(new Error('Unable to load all required endpoints'))}
+        {error &&
+          super.renderError(
+            new Error('Unable to load all required endpoints'),
+            false,
+            true
+          )}
         <Panel>
           <EventsChart
             query={location.query.query}
-            zoom={!!location.query.zoom}
             organization={organization}
             onZoom={this.handleZoom}
           />
@@ -173,14 +183,16 @@ class OrganizationEvents extends AsyncView {
               <RowDisplay>
                 {events.length ? t(`Results ${this.renderRowCounts()}`) : t('No Results')}
                 {!!events.length && (
-                  <TotalEventCount
-                    organization={organization}
-                    location={location}
-                    isAllResults={
-                      !parsedLinks.previous.results && !parsedLinks.next.results
-                    }
-                    numRows={events.length}
-                  />
+                  <Feature features={['internal-catchall']}>
+                    <TotalEventCount
+                      organization={organization}
+                      location={location}
+                      isAllResults={
+                        !parsedLinks.previous.results && !parsedLinks.next.results
+                      }
+                      numRows={events.length}
+                    />
+                  </Feature>
                 )}
               </RowDisplay>
               <Pagination pageLinks={eventsPageLinks} className="" />

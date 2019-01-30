@@ -78,6 +78,7 @@ class CompactIssueHeader extends React.Component {
     if (data.subscriptionDetails && data.subscriptionDetails.reason === 'mentioned') {
       styles = {color: '#57be8c'};
     }
+
     return (
       <React.Fragment>
         <Flex align="center">
@@ -94,7 +95,13 @@ class CompactIssueHeader extends React.Component {
         </Flex>
         <div className="event-extra">
           <span className="project-name">
-            <ProjectLink to={basePath}>{data.project.slug}</ProjectLink>
+            {hasNewRoutes ? (
+              <strong>{data.project.slug}</strong>
+            ) : (
+              <ProjectLink to={`/${organization.slug}/${projectId}/`}>
+                {data.project.slug}
+              </ProjectLink>
+            )}
           </span>
           {data.numComments !== 0 && (
             <span>

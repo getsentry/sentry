@@ -191,6 +191,7 @@ const SaveSearchButton = withApi(
                   size="small"
                   disabled={isSaving}
                   onClick={this.onToggle.bind(this)}
+                  style={{marginRight: space(1)}}
                 >
                   {t('Cancel')}
                 </Button>
@@ -217,6 +218,7 @@ const SavedSearchSelector = withApi(
       queryCount: PropTypes.number,
       queryMaxCount: PropTypes.number,
       onSavedSearchCreate: PropTypes.func.isRequired,
+      onSavedSearchSelect: PropTypes.func.isRequired,
     };
 
     getTitle() {
@@ -229,16 +231,14 @@ const SavedSearchSelector = withApi(
     }
 
     render() {
-      let {orgId, projectId, queryCount, queryMaxCount} = this.props;
+      let {orgId, projectId, queryCount, queryMaxCount, onSavedSearchSelect} = this.props;
       let hasProject = !!projectId;
 
       let children = this.props.savedSearchList.map(search => {
-        let url = hasProject
-          ? `/${orgId}/${projectId}/searches/${search.id}/`
-          : `/organizations/${orgId}/issues/searches/${search.id}/`;
+        // let url = this.createUrl(search, hasProject);
 
         return (
-          <StyledMenuItem to={url} key={search.id}>
+          <StyledMenuItem onSelect={() => onSavedSearchSelect(search)} key={search.id}>
             <strong>{search.name}</strong>
             <code>{search.query}</code>
           </StyledMenuItem>

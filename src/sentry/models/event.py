@@ -206,8 +206,10 @@ class Event(Model):
 
     def get_tags(self):
         try:
-            return sorted((t, v) for t, v in get_path(
-                self.data, 'tags', filter=True) or () if v is not None)
+            rv = [(t, v) for t, v in get_path(
+                self.data, 'tags', filter=True) or () if t is not None and v is not None]
+            rv.sort()
+            return rv
         except ValueError:
             # at one point Sentry allowed invalid tag sets such as (foo, bar)
             # vs ((tag, foo), (tag, bar))
@@ -216,7 +218,7 @@ class Event(Model):
     tags = property(get_tags)
 
     def get_tag(self, key):
-        for t, v in (self.data.get('tags') or ()):
+        for t, v in self.get_tags():
             if t == key:
                 return v
         return None

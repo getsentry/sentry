@@ -103,15 +103,17 @@ def send_alert_event(event, rule, sentry_app_id):
     )
 
 
-@instrumented_task('sentry.tasks.process_resource_change', **TASK_OPTIONS)
-@retry()
-def process_resource_change(action, sender, instance_id, *args, **kwargs):
+def _process_resource_change(action, sender, instance_id, retryer=None, *args, **kwargs):
     # The class is serialized as a string when enqueueing the class.
     model = TYPES[sender]
 
     # Some resources are named differently than their model. eg. Group vs
     # Issue. Looks up the human name for the model. Defaults to the model name.
     name = RESOURCE_RENAMES.get(model.__name__, model.__name__.lower())
+
+    # By default, use Celery's `current` but allow a value to be passed for the
+    # bound Task.
+    retryer = retryer or current
 
     # We may run into a race condition where this task executes before the
     # transaction that creates the Group has committed.
@@ -120,7 +122,7 @@ def process_resource_change(action, sender, instance_id, *args, **kwargs):
     except model.DoesNotExist as e:
         # Explicitly requeue the task, so we don't report this to Sentry until
         # we hit the max number of retries.
-        return current.retry(exc=e)
+        return retryer.retry(exc=e)
 
     event = '{}.{}'.format(name, action)
 
@@ -139,6 +141,18 @@ def process_resource_change(action, sender, instance_id, *args, **kwargs):
 
     for installation in installations:
         send_webhooks(installation, event, data=serialize(instance))
+
+
+@instrumented_task('sentry.tasks.process_resource_change', **TASK_OPTIONS)
+@retry()
+def process_resource_change(action, sender, instance_id, *args, **kwargs):
+    _process_resource_change(action, sender, instance_id, *args, **kwargs)
+
+
+@instrumented_task('sentry.tasks.process_resource_change_bound', bind=True, **TASK_OPTIONS)
+@retry()
+def process_resource_change_bound(self, action, sender, instance_id, *args, **kwargs):
+    _process_resource_change(action, sender, instance_id, retryer=self, *args, **kwargs)
 
 
 @instrumented_task(name='sentry.tasks.sentry_apps.installation_webhook', **TASK_OPTIONS)
@@ -166,6 +180,7 @@ def installation_webhook(installation_id, user_id, *args, **kwargs):
     InstallationNotifier.run(
         install=install,
         user=user,
+        action='created',
     )
 
 

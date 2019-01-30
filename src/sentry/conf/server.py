@@ -441,7 +441,7 @@ CELERY_REDIRECT_STDOUTS = False
 CELERYD_HIJACK_ROOT_LOGGER = False
 CELERY_IMPORTS = (
     'sentry.tasks.auth', 'sentry.tasks.auto_resolve_issues', 'sentry.tasks.beacon',
-    'sentry.tasks.check_auth', 'sentry.tasks.clear_expired_snoozes',
+    'sentry.tasks.check_auth', 'sentry.tasks.check_monitors', 'sentry.tasks.clear_expired_snoozes',
     'sentry.tasks.collect_project_platforms', 'sentry.tasks.commits', 'sentry.tasks.deletion',
     'sentry.tasks.digests', 'sentry.tasks.email', 'sentry.tasks.merge',
     'sentry.tasks.options', 'sentry.tasks.ping', 'sentry.tasks.post_process',
@@ -557,6 +557,13 @@ CELERYBEAT_SCHEDULE = {
         'schedule': timedelta(seconds=30),
         'options': {
             'expires': 30,
+        },
+    },
+    'check-monitors': {
+        'task': 'sentry.tasks.check_monitors',
+        'schedule': timedelta(minutes=1),
+        'options': {
+            'expires': 60,
         },
     },
     'clear-expired-snoozes': {
@@ -1070,6 +1077,7 @@ SENTRY_METRICS_BACKEND = 'sentry.metrics.dummy.DummyMetricsBackend'
 SENTRY_METRICS_OPTIONS = {}
 SENTRY_METRICS_SAMPLE_RATE = 1.0
 SENTRY_METRICS_PREFIX = 'sentry.'
+SENTRY_METRICS_SKIP_INTERNAL_PREFIXES = []  # Order this by most frequent prefixes.
 
 # URI Prefixes for generating DSN URLs
 # (Defaults to URL_PREFIX by default)

@@ -9,7 +9,7 @@ const DEFAULTS = {
 };
 
 const withLatestContextMock = WrappedComponent =>
-  class WithLatestContextMockWrappeer extends React.Component {
+  class WithLatestContextMockWrapper extends React.Component {
     render() {
       return <WrappedComponent {...DEFAULTS} {...this.props} />;
     }

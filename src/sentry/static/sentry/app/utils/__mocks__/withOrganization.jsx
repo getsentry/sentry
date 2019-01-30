@@ -3,7 +3,7 @@ import React from 'react';
 import SentryTypes from 'app/sentryTypes';
 
 const withOrganizationMock = WrappedComponent =>
-  class WithOrganizationMockWrappeer extends React.Component {
+  class WithOrganizationMockWrapper extends React.Component {
     static contextTypes = {
       organization: SentryTypes.Organization,
     };

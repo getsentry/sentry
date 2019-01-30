@@ -9,6 +9,7 @@ from __future__ import absolute_import, print_function
 import logging
 import os
 import six
+import random
 import jsonschema
 
 from datetime import datetime, timedelta
@@ -461,19 +462,17 @@ class EventManager(object):
             if self._project.id in options.get('store.projects-normalize-in-rust-opt-in'):
                 return True
             opt_in_rate = options.get('store.projects-normalize-in-rust-percent-opt-in')
-            if opt_in_rate > 0.0:
-                bucket = ((self._project.id * 2654435761) % (2 ** 32)) % 1000
-                return bucket <= (opt_in_rate * 1000)
+            if opt_in_rate != 0:
+                if opt_in_rate > 0.0:
+                    bucket = ((self._project.id * 2654435761) % (2 ** 32)) % 1000
+                    return bucket <= (opt_in_rate * 1000)
+                else:
+                    return random.random() < -opt_in_rate
 
         return ENABLE_RUST
 
     def normalize(self):
         tags = {
-            'project_id': six.text_type(
-                self._project.id
-                if self._project and self.use_rust_normalize
-                else None
-            ),
             'use_rust_normalize': six.text_type(self.use_rust_normalize)
         }
 
@@ -502,7 +501,6 @@ class EventManager(object):
                 project_id=self._project.id if self._project else None,
                 client_ip=self._client_ip,
                 client=self._auth.client if self._auth else None,
-                is_public_auth=self._auth.is_public if self._auth else False,
                 key_id=six.text_type(self._key.id) if self._key else None,
                 protocol_version=six.text_type(self.version) if self.version is not None else None,
                 stacktrace_frames_hard_limit=settings.SENTRY_STACKTRACE_FRAMES_HARD_LIMIT,
@@ -513,7 +511,9 @@ class EventManager(object):
                 enable_trimming=ENABLE_TRIMMING,
             )
 
-            self._data = CanonicalKeyDict(rust_normalizer.normalize_event(dict(self._data)))
+            self._data = CanonicalKeyDict(
+                rust_normalizer.normalize_event(dict(self._data))
+            )
 
             normalize_user_agent(self._data)
             return
@@ -686,13 +686,10 @@ class EventManager(object):
         if not get_path(data, "user", "ip_address"):
             # If there is no User ip_address, update it either from the Http
             # interface or the client_ip of the request.
-            is_public = self._auth and self._auth.is_public
-            add_ip_platforms = ('javascript', 'cocoa', 'objc')
-
             http_ip = get_path(data, 'request', 'env', 'REMOTE_ADDR')
             if http_ip:
                 set_path(data, 'user', 'ip_address', value=http_ip)
-            elif self._client_ip and (is_public or data.get('platform') in add_ip_platforms):
+            elif self._client_ip:
                 set_path(data, 'user', 'ip_address', value=self._client_ip)
 
         # Trim values
@@ -1203,7 +1200,7 @@ class EventManager(object):
             Group.objects.add_tags,
             group,
             environment,
-            data['tags'],
+            event.get_tags(),
             _with_transaction=False)
 
         if not raw:

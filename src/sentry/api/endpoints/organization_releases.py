@@ -4,7 +4,7 @@ from django.db import IntegrityError, transaction
 
 from rest_framework.response import Response
 
-from sentry.api.bases import NoProjects
+from sentry.api.bases import NoProjects, OrganizationEventsError
 from .project_releases import ReleaseSerializer
 from sentry.api.base import DocSection, EnvironmentMixin
 from sentry.api.bases.organization import OrganizationReleasesBaseEndpoint
@@ -102,6 +102,8 @@ class OrganizationReleasesEndpoint(OrganizationReleasesBaseEndpoint, Environment
             )
         except NoProjects:
             return Response([])
+        except OrganizationEventsError as exc:
+            return Response({'detail': exc.message}, status=400)
 
         queryset = Release.objects.filter(
             organization=organization,

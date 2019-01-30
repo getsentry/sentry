@@ -2,6 +2,7 @@ from __future__ import absolute_import
 
 import six
 
+from celery import Task
 from collections import namedtuple
 from django.core.urlresolvers import reverse
 from mock import patch
@@ -16,6 +17,7 @@ from sentry.tasks.sentry_apps import (
     send_alert_event,
     notify_sentry_app,
     process_resource_change,
+    process_resource_change_bound,
     installation_webhook,
     workflow_notification,
 )
@@ -206,6 +208,15 @@ class TestProcessResourceChange(TestCase):
 
         assert len(safe_urlopen.mock_calls) == 0
 
+    @patch('sentry.tasks.sentry_apps._process_resource_change')
+    def test_process_resource_change_bound_passes_retry_object(self, process, safe_urlopen):
+        group = self.create_group(project=self.project)
+
+        process_resource_change_bound('created', 'Group', group.id)
+
+        task = faux(process).kwargs['retryer']
+        assert isinstance(task, Task)
+
 
 @patch('sentry.mediators.sentry_app_installations.InstallationNotifier.run')
 class TestInstallationWebhook(TestCase):
@@ -228,6 +239,7 @@ class TestInstallationWebhook(TestCase):
         run.assert_called_with(
             install=self.install,
             user=self.user,
+            action='created',
         )
 
     def test_gracefully_handles_missing_install(self, run):

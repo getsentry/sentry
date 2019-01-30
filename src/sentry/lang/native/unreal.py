@@ -11,9 +11,26 @@ _portable_callstack_regexp = re.compile(
     r'((?P<package>[\w]+) )?(?P<baseaddr>0x[\da-fA-F]+) \+ (?P<offset>[\da-fA-F]+)')
 
 
-def process_unreal_crash(data):
-    """Processes the raw bytes of the unreal crash"""
-    return Unreal4Crash.from_bytes(data)
+def process_unreal_crash(payload, user_id, environment, event):
+    """Initial processing of the event from the Unreal Crash Reporter data.
+    Processes the raw bytes of the unreal crash by returning a Unreal4Crash"""
+
+    event_id = uuid.uuid4().hex
+    event['event_id'] = event_id
+    event['environment'] = environment
+
+    if user_id:
+        # https://github.com/EpicGames/UnrealEngine/blob/f509bb2d6c62806882d9a10476f3654cf1ee0634/Engine/Source/Programs/CrashReportClient/Private/CrashUpload.cpp#L769
+        parts = user_id.split('|', 2)
+        login_id, epic_account_id, machine_id = parts + [''] * (3 - len(parts))
+        event['user'] = {
+            'id': login_id if login_id else user_id,
+        }
+        if epic_account_id:
+            set_path(event, 'tags', 'epic_account_id', value=epic_account_id)
+        if machine_id:
+            set_path(event, 'tags', 'machine_id', value=machine_id)
+    return Unreal4Crash.from_bytes(payload)
 
 
 def unreal_attachment_type(unreal_file):
@@ -21,6 +38,54 @@ def unreal_attachment_type(unreal_file):
     unreal file type or None if not recognized"""
     if unreal_file.type == "minidump":
         return MINIDUMP_ATTACHMENT_TYPE
+
+
+def merge_apple_crash_report(apple_crash_report, event):
+    event['platform'] = 'native'
+
+    timestamp = apple_crash_report.get('timestamp')
+    if timestamp:
+        event['timestamp'] = timestamp
+
+    event['threads'] = []
+    for thread in apple_crash_report['threads']:
+        crashed = thread.get('crashed')
+        event['threads'].append({
+            'id': thread.get('id'),
+            'name': thread.get('name'),
+            'crashed': crashed,
+            'stacktrace': {
+                'frames': [{
+                    'function': '<unknown>',  # Required by the interface
+                    'instruction_addr': frame.get('instruction_addr'),
+                    'package': frame.get('module'),
+                    'lineno': frame.get('lineno'),
+                    'filename': frame.get('filename'),
+                } for frame in reversed(thread.get('frames', []))],
+                'registers': thread.get('registers', []),
+            },
+        })
+        if crashed:
+            event['level'] = 'fatal'
+
+    if event.get('level') is None:
+        event['level'] = 'info'
+
+    metadata = apple_crash_report.get('metadata')
+    if metadata:
+        set_path(event, 'contexts', 'os', 'raw_description', value=metadata.get('OS Version'))
+        set_path(event, 'contexts', 'device', 'model', value=metadata.get('Hardware Model'))
+
+    # Extract referenced (not all loaded) images
+    images = [{
+        'type': 'symbolic',
+        'id': module.get('uuid'),
+        'image_addr': module.get('addr'),
+        'image_size': module.get('size'),
+        'arch': module.get('arch'),
+        'name': module.get('path'),
+    } for module in apple_crash_report.get('binary_images')]
+    event.setdefault('debug_meta', {})['images'] = images
 
 
 def merge_unreal_context_event(unreal_context, event, project):
@@ -66,28 +131,30 @@ def merge_unreal_context_event(unreal_context, event, project):
             comments=user_desc,
         )
 
-    portable_callstack = runtime_prop.pop('portable_call_stack', None)
-    if portable_callstack is not None:
-        frames = []
+    if not any(thread.get('stacktrace') and thread.get('crashed')
+               for thread in event.get('threads', [])):
+        portable_callstack = runtime_prop.pop('portable_call_stack', None)
+        if portable_callstack is not None:
+            frames = []
 
-        for match in _portable_callstack_regexp.finditer(portable_callstack):
-            baseaddr = int(match.group('baseaddr'), 16)
-            offset = int(match.group('offset'), 16)
-            # Crashes without PDB in the client report: 0x00000000ffffffff + ffffffff
-            if baseaddr == 0xffffffff and offset == 0xffffffff:
-                continue
+            for match in _portable_callstack_regexp.finditer(portable_callstack):
+                baseaddr = int(match.group('baseaddr'), 16)
+                offset = int(match.group('offset'), 16)
+                # Crashes without PDB in the client report: 0x00000000ffffffff + ffffffff
+                if baseaddr == 0xffffffff and offset == 0xffffffff:
+                    continue
 
-            frames.append({
-                'package': match.group('package'),
-                'instruction_addr': hex(baseaddr + offset),
-            })
+                frames.append({
+                    'package': match.group('package'),
+                    'instruction_addr': hex(baseaddr + offset),
+                })
 
-            frames.reverse()
+                frames.reverse()
 
-        if len(frames) > 0:
-            event['stacktrace'] = {
-                'frames': frames
-            }
+            if len(frames) > 0:
+                event['stacktrace'] = {
+                    'frames': frames
+                }
 
     # drop modules. minidump processing adds 'images loaded'
     runtime_prop.pop('modules', None)
@@ -108,8 +175,10 @@ def merge_unreal_logs_event(unreal_logs, event):
     breadcrumbs = event['breadcrumbs']['values']
 
     for log in unreal_logs:
-        breadcrumbs.append({
-            'timestamp': log.get('timestamp'),
-            'category': log.get('component'),
-            'message': log.get('message'),
-        })
+        message = log.get('message')
+        if message:
+            breadcrumbs.append({
+                'timestamp': log.get('timestamp'),
+                'category': log.get('component'),
+                'message': message,
+            })

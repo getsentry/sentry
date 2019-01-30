@@ -49,6 +49,7 @@ class Creator(Mediator):
             application_id=application_id,
             actor_id=self.actor.id,
             project_id=self.project.id,
+            organization_id=self.project.organization_id,
             events=expand_events(self.events),
             url=self.url,
         )

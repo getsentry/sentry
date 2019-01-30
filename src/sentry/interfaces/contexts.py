@@ -160,6 +160,14 @@ class GpuContextType(ContextType):
     }
 
 
+@contexttype
+class MonitorContextType(ContextType):
+    type = 'monitor'
+    indexed_fields = {
+        'id': u'{id}',
+    }
+
+
 class Contexts(Interface):
     """
     This interface stores context specific information.

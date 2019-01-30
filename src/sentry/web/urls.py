@@ -399,11 +399,25 @@ urlpatterns += patterns(
     url(r'^(?P<organization_slug>[\w_-]+)/$',
         react_page_view, name='sentry-organization-home'),
     url(r'^organizations/new/$', generic_react_page_view),
-
+    url(
+        r'^organizations/(?P<organization_slug>[\w_-]+)/$',
+        react_page_view,
+        name='sentry-organization-index'
+    ),
+    url(
+        r'^organizations/(?P<organization_slug>[\w_-]+)/issues/$',
+        react_page_view,
+        name='sentry-organization-issue-list'
+    ),
     url(
         r'^organizations/(?P<organization_slug>[\w_-]+)/issues/(?P<issue_id>\d+)/$',
         react_page_view,
         name='sentry-organization-issue-detail'
+    ),
+    url(
+        r'^organizations/(?P<organization_slug>[\w_-]+)/issues/(?P<group_id>\d+)/events/(?P<event_id_or_latest>(\d+|latest))/$',
+        react_page_view,
+        name='sentry-organization-event-detail'
     ),
     url(
         r'^organizations/(?P<organization_slug>[\w_-]+)/api-keys/$',

@@ -755,6 +755,14 @@ function routes() {
         <Route component={errorHandler(OrganizationRoot)}>
           <IndexRoute component={errorHandler(OrganizationDashboard)} />
           <Route
+            path="/organizations/:orgId/stats/"
+            component={errorHandler(OrganizationStats)}
+          />
+          <Route
+            path="/organizations/:orgId/activity/"
+            component={errorHandler(OrganizationActivity)}
+          />
+          <Route
             path="/organizations/:orgId/dashboards/"
             componentPromise={() =>
               import(/* webpackChunkName: "OrganizationDashboardContainer" */ './views/organizationDashboard')}
@@ -776,10 +784,6 @@ function routes() {
             <Route path="saved/:savedQueryId/" />
           </Route>
           <Route
-            path="/organizations/:orgId/activity/"
-            component={errorHandler(OrganizationActivity)}
-          />
-          <Route
             path="/organizations/:orgId/events/"
             componentPromise={() =>
               import(/* webpackChunkName: "OrganizationEventsContainer" */ './views/organizationEvents')}
@@ -797,6 +801,7 @@ function routes() {
               import(/* webpackChunkName: "OrganizationStreamContainer" */ './views/organizationStream/container')}
             component={errorHandler(LazyLoad)}
           >
+            <Redirect from="/organizations/:orgId/" to="/organizations/:orgId/issues/" />
             <IndexRoute
               componentPromise={() =>
                 import(/* webpackChunkName: "OrganizationStreamOverview" */ './views/organizationStream/overview')}
@@ -968,7 +973,6 @@ function routes() {
             />
             <Redirect path="rate-limits/" to="/settings/:orgId/rate-limits/" />
             <Redirect path="repos/" to="/settings/:orgId/repos/" />
-            <Route path="stats/" component={errorHandler(OrganizationStats)} />
           </Route>
           <Route
             path="/organizations/:orgId/projects/new/"

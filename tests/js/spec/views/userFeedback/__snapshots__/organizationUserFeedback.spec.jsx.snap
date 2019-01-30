@@ -229,7 +229,7 @@ exports[`OrganizationUserFeedback renders 1`] = `
                         "/org-slug/project-slug/issues/1/",
                       ],
                       Array [
-                        "/org-slug/project-slug/issues/",
+                        "/org-slug/project-slug/",
                       ],
                       Array [
                         "/org-slug/project-slug/issues/1/activity/",
@@ -366,7 +366,7 @@ exports[`OrganizationUserFeedback renders 1`] = `
                           "/org-slug/project-slug/issues/1/",
                         ],
                         Array [
-                          "/org-slug/project-slug/issues/",
+                          "/org-slug/project-slug/",
                         ],
                         Array [
                           "/org-slug/project-slug/issues/1/activity/",
@@ -1622,11 +1622,6 @@ exports[`OrganizationUserFeedback renders 1`] = `
                   }
                 }
                 pageLinks="<https://sentry.io/api/0/organizations/sentry/user-feedback/?statsPeriod=14d&cursor=0:0:1>; rel=\\"previous\\"; results=\\"false\\"; cursor=\\"0:0:1\\", <https://sentry.io/api/0/organizations/sentry/user-feedback/?statsPeriod=14d&cursor=0:100:0>; rel=\\"next\\"; results=\\"true\\"; cursor=\\"0:100:0\\""
-                params={
-                  Object {
-                    "orgId": "org-slug",
-                  }
-                }
                 status="unresolved"
               >
                 <div>
@@ -1726,7 +1721,7 @@ exports[`OrganizationUserFeedback renders 1`] = `
                           <div
                             className="css-9vq8an-textStyles issue-list"
                           >
-                            <WithOrganizationMockWrappeer
+                            <WithOrganizationMockWrapper
                               data={
                                 Object {
                                   "assignedTo": null,
@@ -1985,12 +1980,12 @@ exports[`OrganizationUserFeedback renders 1`] = `
                                             className="project-name"
                                           >
                                             <ProjectLink
-                                              to="/org-slug/project-slug/issues/"
+                                              to="/org-slug/project-slug/"
                                             >
                                               <Link
                                                 onlyActiveOnIndex={false}
                                                 style={Object {}}
-                                                to="/org-slug/project-slug/issues/"
+                                                to="/org-slug/project-slug/"
                                               >
                                                 <a
                                                   onClick={[Function]}
@@ -2339,7 +2334,7 @@ exports[`OrganizationUserFeedback renders 1`] = `
                                   </Base>
                                 </PanelItem>
                               </CompactIssue>
-                            </WithOrganizationMockWrappeer>
+                            </WithOrganizationMockWrapper>
                           </div>
                         </PanelBody>
                       </div>
