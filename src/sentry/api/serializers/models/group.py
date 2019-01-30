@@ -7,7 +7,7 @@ from datetime import timedelta
 import six
 from django.conf import settings
 from django.core.urlresolvers import reverse
-from django.db.models import Q
+from django.db.models import Min, Q
 from django.utils import timezone
 
 from sentry import tagstore, tsdb
@@ -16,9 +16,9 @@ from sentry.api.serializers.models.actor import ActorSerializer
 from sentry.api.fields.actor import Actor
 from sentry.constants import LOG_LEVELS, StatsPeriod
 from sentry.models import (
-    Commit, Environment, Group, GroupAssignee, GroupBookmark, GroupLink, GroupMeta, GroupResolution, GroupSeen, GroupSnooze,
-    GroupShare, GroupStatus, GroupSubscription, GroupSubscriptionReason, Integration, User, UserOption,
-    UserOptionValue
+    Commit, Environment, Group, GroupAssignee, GroupBookmark, GroupEnvironment, GroupLink, GroupMeta,
+    GroupResolution, GroupSeen, GroupSnooze, GroupShare, GroupStatus, GroupSubscription,
+    GroupSubscriptionReason, Integration, User, UserOption, UserOptionValue
 )
 from sentry.tagstore.snuba.backend import SnubaTagStorage
 from sentry.tsdb.snuba import SnubaTSDB
@@ -576,8 +576,16 @@ class GroupSerializerSnuba(GroupSerializerBase):
                 group_ids,
                 self.environment_ids,
             )
+
+            first_seen_data = {
+                ge['group_id']: ge['first_seen__min'] for ge in GroupEnvironment.objects.filter(
+                    group_id__in=[item.id for item in item_list],
+                    environment_id__in=self.environment_ids,
+                ).values('group_id').annotate(Min('first_seen'))
+            }
+
             for item_id, value in seen_data.items():
-                first_seen[item_id] = value['first_seen']
+                first_seen[item_id] = first_seen_data.get(item.id)
                 last_seen[item_id] = value['last_seen']
                 times_seen[item_id] = value['times_seen']
 

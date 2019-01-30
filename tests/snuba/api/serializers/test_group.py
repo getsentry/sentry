@@ -13,7 +13,7 @@ from mock import patch
 from sentry.api.serializers import serialize
 from sentry.api.serializers.models.group import GroupSerializerSnuba, StreamGroupSerializerSnuba, snuba_tsdb
 from sentry.models import (
-    Environment, GroupLink, GroupResolution, GroupSnooze, GroupStatus,
+    Environment, GroupEnvironment, GroupLink, GroupResolution, GroupSnooze, GroupStatus,
     GroupSubscription, UserOption, UserOptionValue
 )
 from sentry.testutils import APITestCase, SnubaTestCase
@@ -317,6 +317,13 @@ class GroupSerializerSnubaTest(APITestCase, SnubaTestCase):
             'c' * 32, group=group, datetime=self.min_ago, tags={'environment': environment2.name}
         )
 
+        # update this to something different to make sure it's being used
+        group_env = GroupEnvironment.objects.get(group_id=group.id, environment_id=environment.id)
+        group_env.first_seen = self.day_ago - timedelta(days=3)
+        group_env.save()
+
+        group_env2 = GroupEnvironment.objects.get(group_id=group.id, environment_id=environment2.id)
+
         result = serialize(
             group, serializer=GroupSerializerSnuba(
                 environment_ids=[environment.id, environment2.id])
@@ -324,8 +331,8 @@ class GroupSerializerSnubaTest(APITestCase, SnubaTestCase):
         assert result['count'] == '3'
         # result is rounded down to nearest second
         assert result['lastSeen'] == self.min_ago - timedelta(microseconds=self.min_ago.microsecond)
-        assert result['firstSeen'] == self.day_ago - \
-            timedelta(microseconds=self.day_ago.microsecond)
+        assert result['firstSeen'] == group_env.first_seen
+        assert group_env2.first_seen > group_env.first_seen
 
 
 class StreamGroupSerializerTestCase(APITestCase, SnubaTestCase):
