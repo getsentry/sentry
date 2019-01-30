@@ -45,7 +45,7 @@ def _capture_stats(event, is_new):
     if not platform:
         return
     platform = platform.split('-', 1)[0].split('_', 1)[0]
-    tags = {'platform': platform}
+    tags = {'platform': platform, 'use_rust_normalize': event.data['use_rust_normalize']}
 
     if is_new:
         metrics.incr('events.unique', tags=tags, skip_internal=False)
