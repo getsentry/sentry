@@ -247,7 +247,11 @@ class Sidebar extends React.Component {
           {hasOrganization && (
             <React.Fragment>
               <SidebarSection>
-                <Feature features={['sentry10']} renderDisabled={projectsSidebarItem}>
+                <Feature
+                  features={['sentry10']}
+                  renderDisabled={projectsSidebarItem}
+                  organization={organization}
+                >
                   <SidebarItem
                     {...sidebarItemProps}
                     index
@@ -283,7 +287,7 @@ class Sidebar extends React.Component {
                   />
                 </Feature>
 
-                <Feature features={['sentry10']}>
+                <Feature features={['sentry10']} organization={organization}>
                   <SidebarItem
                     {...sidebarItemProps}
                     onClick={(_id, evt) =>
