@@ -325,7 +325,7 @@ class UnmergeTestCase(TestCase):
 
         assert set(
             [(gtk.key, gtk.values_seen)
-             for gtk in tagstore.get_group_tag_keys(source.project_id, source.id, production_environment.id)]
+             for gtk in tagstore.get_group_tag_keys(source.project_id, source.id, [production_environment.id])]
         ) == set([
             (u'color', 3),
             (u'environment', 1),
@@ -463,7 +463,7 @@ class UnmergeTestCase(TestCase):
 
         assert set(
             [(gtk.key, gtk.values_seen)
-             for gtk in tagstore.get_group_tag_keys(source.project_id, source.id, production_environment.id)]
+             for gtk in tagstore.get_group_tag_keys(source.project_id, source.id, [production_environment.id])]
         ) == set([
             (u'color', 3),
             (u'environment', 1),
@@ -526,7 +526,7 @@ class UnmergeTestCase(TestCase):
         ])
 
         assert set([(gtk.key, gtk.values_seen)
-                    for gtk in tagstore.get_group_tag_keys(source.project_id, source.id, production_environment.id)]
+                    for gtk in tagstore.get_group_tag_keys(source.project_id, source.id, [production_environment.id])]
                    ) == set(
             [
                 (u'color', 3),

@@ -141,12 +141,12 @@ class SnubaTagStorage(TagStorage):
                 top_values=top_values
             )
 
-    def __get_tag_keys(self, project_id, group_id, environment_id, limit=1000, keys=None):
+    def __get_tag_keys(self, project_id, group_id, environment_ids, limit=1000, keys=None):
         start, end = self.get_time_range()
         return self.__get_tag_keys_for_projects(
             [project_id],
             group_id,
-            [environment_id] if environment_id else None,
+            environment_ids,
             start,
             end,
             limit,
@@ -225,7 +225,7 @@ class SnubaTagStorage(TagStorage):
 
     def get_tag_keys(self, project_id, environment_id, status=TagKeyStatus.VISIBLE):
         assert status is TagKeyStatus.VISIBLE
-        return self.__get_tag_keys(project_id, None, environment_id)
+        return self.__get_tag_keys(project_id, None, environment_id and [environment_id])
 
     def get_tag_keys_for_projects(self, projects, environments, start,
                                   end, status=TagKeyStatus.VISIBLE):
@@ -243,8 +243,8 @@ class SnubaTagStorage(TagStorage):
         return self.__get_tag_key_and_top_values(
             project_id, group_id, environment_id, key, limit=TOP_VALUES_DEFAULT_LIMIT)
 
-    def get_group_tag_keys(self, project_id, group_id, environment_id, limit=None, keys=None):
-        return self.__get_tag_keys(project_id, group_id, environment_id, limit=limit, keys=keys)
+    def get_group_tag_keys(self, project_id, group_id, environment_ids, limit=None, keys=None):
+        return self.__get_tag_keys(project_id, group_id, environment_ids, limit=limit, keys=keys)
 
     def get_group_tag_value(self, project_id, group_id, environment_id, key, value):
         return self.__get_tag_value(project_id, group_id, environment_id, key, value)
@@ -343,7 +343,9 @@ class SnubaTagStorage(TagStorage):
         start, end = self.get_time_range()
 
         # First get totals and unique counts by key.
-        keys_with_counts = self.get_group_tag_keys(project_id, group_id, environment_id, keys=keys)
+        keys_with_counts = self.get_group_tag_keys(
+            project_id, group_id, environment_id and [environment_id], keys=keys
+        )
 
         # Then get the top values with first_seen/last_seen/count for each
         filters = {
