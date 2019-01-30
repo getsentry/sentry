@@ -69,12 +69,20 @@ class OrganizationDashboardWidgetDetailsPutTestCase(OrganizationDashboardWidgetD
         )
 
     def test_widget_no_data_souces(self):
+        WidgetDataSource.objects.create(
+            name='knownUsersAffectedQuery_2',
+            data=self.known_users_query,
+            type='discover_saved_search',
+            order=1,
+            widget_id=self.widget.id,
+        )
         response = self.get_response(
             self.organization.slug,
             self.dashboard.id,
             self.widget.id,
             displayType='line',
             title='User Happiness',
+            dataSources=[],
         )
         assert response.status_code == 200
         self.assert_widget_data(

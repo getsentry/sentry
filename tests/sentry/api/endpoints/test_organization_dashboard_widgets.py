@@ -62,7 +62,7 @@ class OrganizationDashboardWidgetsPostTestCase(OrganizationDashboardWidgetTestCa
             self.dashboard.id,
             displayType='line',
             title='User Happiness',
-            # 'dataSources': [],
+            dataSources=[],
         )
         assert response.status_code == 201
         self.assert_widget_data(
