@@ -30,12 +30,12 @@ describe('PercentageTableChart', function() {
 
     it('renders headers', function() {
       expect(
-        wrapper.find('PanelHeader NameAndCountContainer').prop('children')
+        wrapper.find('TableHeader NameAndCountContainer').prop('children')
       ).toHaveLength(2);
 
-      expect(wrapper.find('PanelHeader').text()).toContain('User');
-      expect(wrapper.find('PanelHeader').text()).toContain('Count');
-      expect(wrapper.find('PanelHeader').text()).toContain('Percentage');
+      expect(wrapper.find('TableHeader').text()).toContain('User');
+      expect(wrapper.find('TableHeader').text()).toContain('Count');
+      expect(wrapper.find('TableHeader').text()).toContain('Percentage');
     });
 
     it('renders data rows', function() {
