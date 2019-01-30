@@ -37,7 +37,7 @@ const GroupReleaseStats = createReactClass({
     let envList = OrganizationEnvironmentsStore.getActive();
 
     let environments = [];
-    if (this.hasSentry10) {
+    if (this.hasSentry10()) {
       environments = envList.filter(env =>
         GlobalSelectionStore.get().environments.includes(env.name)
       );
