@@ -18,7 +18,7 @@ export default class OrganizationActivity extends AsyncView {
   }
 
   getTitle() {
-    return 'Activity';
+    return `Activity - ${this.props.params.orgId}`;
   }
 
   renderActivityFeed() {
@@ -37,7 +37,7 @@ export default class OrganizationActivity extends AsyncView {
     );
   }
 
-  render() {
+  renderBody() {
     const hasSentry10 = new Set(this.context.organization.features).has('sentry10');
 
     return hasSentry10 ? (
