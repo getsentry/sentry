@@ -110,3 +110,18 @@ class OrganizationUserReportListTest(APITestCase):
 
     def test_all_reports(self):
         self.run_test([self.report_1, self.report_2, self.report_resolved_1], status='')
+
+    def test_new_project(self):
+        org2 = self.create_organization()
+        self.team = self.create_team(organization=org2)
+        self.create_member(teams=[self.team], user=self.user, organization=org2)
+        response = self.get_response(org2.slug)
+        assert response.status_code == 200, response.content
+        assert response.data == []
+
+    def test_invalid_date_params(self):
+        response = self.get_response(
+            self.project_1.organization.slug,
+            **{'start': 'null', 'end': 'null'}
+        )
+        assert response.status_code == 400

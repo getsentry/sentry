@@ -8,15 +8,9 @@ exports[`projectUserFeedback renders 1`] = `
     }
   }
   pageLinks="<https://sentry.io/api/0/organizations/sentry/user-feedback/?statsPeriod=14d&cursor=0:0:1>; rel=\\"previous\\"; results=\\"false\\"; cursor=\\"0:0:1\\", <https://sentry.io/api/0/organizations/sentry/user-feedback/?statsPeriod=14d&cursor=0:100:0>; rel=\\"next\\"; results=\\"true\\"; cursor=\\"0:100:0\\""
-  params={
-    Object {
-      "orgId": "org-slug",
-      "projectId": "project-slug",
-    }
-  }
   status="unresolved"
 >
-  <CompactIssue
+  <WithOrganizationMockWrapper
     data={
       Object {
         "assignedTo": null,
@@ -52,8 +46,6 @@ exports[`projectUserFeedback renders 1`] = `
     }
     id="1"
     key="123"
-    orgId="org-slug"
-    projectId="project-slug"
   >
     <EventUserFeedback
       issueId="1"
@@ -106,6 +98,6 @@ exports[`projectUserFeedback renders 1`] = `
         }
       }
     />
-  </CompactIssue>
+  </WithOrganizationMockWrapper>
 </UserFeedbackContainer>
 `;

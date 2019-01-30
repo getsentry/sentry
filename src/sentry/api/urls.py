@@ -3,6 +3,7 @@ from __future__ import absolute_import, print_function
 from django.conf.urls import include, patterns, url
 
 from .endpoints.accept_project_transfer import AcceptProjectTransferEndpoint
+from .endpoints.organization_dashboards import OrganizationDashboardsEndpoint
 from .endpoints.relay_heartbeat import RelayHeartbeatEndpoint
 from .endpoints.relay_projectconfigs import RelayProjectConfigsEndpoint
 from .endpoints.relay_publickeys import RelayPublicKeysEndpoint
@@ -48,6 +49,8 @@ from .endpoints.index import IndexEndpoint
 from .endpoints.internal_queue_tasks import InternalQueueTasksEndpoint
 from .endpoints.internal_quotas import InternalQuotasEndpoint
 from .endpoints.internal_stats import InternalStatsEndpoint
+from .endpoints.monitor_checkins import MonitorCheckInsEndpoint
+from .endpoints.monitor_checkin_details import MonitorCheckInDetailsEndpoint
 from .endpoints.organization_access_request_details import OrganizationAccessRequestDetailsEndpoint
 from .endpoints.organization_activity import OrganizationActivityEndpoint
 from .endpoints.organization_auditlogs import OrganizationAuditLogsEndpoint
@@ -63,6 +66,7 @@ from .endpoints.organization_discover_saved_queries import OrganizationDiscoverS
 from .endpoints.organization_discover_saved_query_detail import OrganizationDiscoverSavedQueryDetailEndpoint
 from .endpoints.organization_events import OrganizationEventsEndpoint, OrganizationEventsMetaEndpoint, OrganizationEventsStatsEndpoint
 from .endpoints.organization_group_index import OrganizationGroupIndexEndpoint
+from .endpoints.organization_dashboard_details import OrganizationDashboardDetailsEndpoint
 from .endpoints.organization_health import OrganizationHealthTopEndpoint, OrganizationHealthGraphEndpoint
 from .endpoints.organization_shortid import ShortIdLookupEndpoint
 from .endpoints.organization_environments import OrganizationEnvironmentsEndpoint
@@ -77,10 +81,12 @@ from .endpoints.organization_member_issues_bookmarked import OrganizationMemberI
 from .endpoints.organization_member_issues_viewed import OrganizationMemberIssuesViewedEndpoint
 from .endpoints.organization_member_unreleased_commits import OrganizationMemberUnreleasedCommitsEndpoint
 from .endpoints.organization_member_team_details import OrganizationMemberTeamDetailsEndpoint
+from .endpoints.organization_monitors import OrganizationMonitorsEndpoint
 from .endpoints.organization_onboarding_tasks import OrganizationOnboardingTaskEndpoint
 from .endpoints.organization_index import OrganizationIndexEndpoint
-from .endpoints.organization_projects import OrganizationProjectsEndpoint
 from .endpoints.organization_plugins import OrganizationPluginsEndpoint
+from .endpoints.organization_processingissues import OrganizationProcessingIssuesEndpoint
+from .endpoints.organization_projects import OrganizationProjectsEndpoint
 from .endpoints.organization_releases import OrganizationReleasesEndpoint
 from .endpoints.organization_release_details import OrganizationReleaseDetailsEndpoint
 from .endpoints.organization_release_files import OrganizationReleaseFilesEndpoint
@@ -94,6 +100,7 @@ from .endpoints.organization_config_integrations import OrganizationConfigIntegr
 from .endpoints.organization_config_repositories import OrganizationConfigRepositoriesEndpoint
 from .endpoints.organization_repository_commits import OrganizationRepositoryCommitsEndpoint
 from .endpoints.organization_repository_details import OrganizationRepositoryDetailsEndpoint
+from .endpoints.organization_searches import OrganizationSearchesEndpoint
 from .endpoints.organization_sentry_apps import OrganizationSentryAppsEndpoint
 from .endpoints.organization_tagkey_values import OrganizationTagKeyValuesEndpoint
 from .endpoints.organization_tags import OrganizationTagsEndpoint
@@ -289,6 +296,11 @@ urlpatterns = patterns(
     url(r'^accept-transfer/$', AcceptProjectTransferEndpoint.as_view(),
         name='sentry-api-0-accept-project-transfer'),
 
+    # Monitors
+    url(r'^monitors/(?P<monitor_id>[^\/]+)/checkins/$', MonitorCheckInsEndpoint.as_view()),
+    url(r'^monitors/(?P<monitor_id>[^\/]+)/checkins/(?P<checkin_id>[^\/]+)/$',
+        MonitorCheckInDetailsEndpoint.as_view()),
+
     # Users
     url(r'^users/$', UserIndexEndpoint.as_view(), name='sentry-api-0-user-index'),
     url(
@@ -409,6 +421,16 @@ urlpatterns = patterns(
         r'^organizations/(?P<organization_slug>[^\/]+)/discover/saved/(?P<query_id>[^\/]+)/$',
         OrganizationDiscoverSavedQueryDetailEndpoint.as_view(),
         name='sentry-api-0-organization-discover-saved-query-detail'
+    ),
+    url(
+        r'^organizations/(?P<organization_slug>[^\/]+)/dashboards/(?P<dashboard_id>[^\/]+)/$',
+        OrganizationDashboardDetailsEndpoint.as_view(),
+        name='sentry-api-0-organization-dashboard-details',
+    ),
+    url(
+        r'^organizations/(?P<organization_slug>[^\/]+)/dashboards/$',
+        OrganizationDashboardsEndpoint.as_view(),
+        name='sentry-api-0-organization-dashboards'
     ),
     url(
         r'^organizations/(?P<organization_slug>[^\/]+)/health/top/$',
@@ -538,6 +560,15 @@ urlpatterns = patterns(
         name='sentry-api-0-organization-member-index'
     ),
     url(
+        r'^organizations/(?P<organization_slug>[^\/]+)/monitors/$',
+        OrganizationMonitorsEndpoint.as_view(),
+    ),
+    url(
+        r'^organizations/(?P<organization_slug>[^\/]+)/searches/$',
+        OrganizationSearchesEndpoint.as_view(),
+        name='sentry-api-0-organization-searches'
+    ),
+    url(
         r'^organizations/(?P<organization_slug>[^\/]+)/users/issues/$',
         OrganizationUserIssuesSearchEndpoint.as_view(),
         name='sentry-api-0-organization-issue-search'
@@ -581,6 +612,11 @@ urlpatterns = patterns(
         r'^organizations/(?P<organization_slug>[^\/]+)/members/(?P<member_id>[^\/]+)/teams/(?P<team_slug>[^\/]+)/$',
         OrganizationMemberTeamDetailsEndpoint.as_view(),
         name='sentry-api-0-organization-member-team-details'
+    ),
+    url(
+        r'^organizations/(?P<organization_slug>[^\/]+)/processingissues/$',
+        OrganizationProcessingIssuesEndpoint.as_view(),
+        name='sentry-api-0-organization-processing-issues'
     ),
     url(
         r'^organizations/(?P<organization_slug>[^\/]+)/projects/$',

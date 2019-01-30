@@ -13,7 +13,7 @@ describe('OrganizationDashboard', function() {
   const {organization, router, routerContext} = initializeOrg({
     projects: [{isMember: true}, {isMember: true, slug: 'new-project', id: 3}],
     organization: {
-      features: ['sentry10'],
+      features: ['sentry10', 'global-views'],
     },
     router: {
       location: {
@@ -34,12 +34,12 @@ describe('OrganizationDashboard', function() {
       body: TestStubs.Environments(),
     });
     discoverMock = MockApiClient.addMockResponse({
-      url: '/organizations/org-slug/discover/query/?per_page=1000&cursor=0:0:1',
+      url: '/organizations/org-slug/discover/query/',
       method: 'POST',
       body: {
         data: [],
         meta: [],
-        timing: [],
+        timing: {},
       },
     });
   });

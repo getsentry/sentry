@@ -23,7 +23,7 @@ describe('components/interfaces/utils', function() {
             ENV: 'prod',
           },
           fragment: '',
-          query: 'foo=bar',
+          query: [['foo', 'bar']],
           data: '{"hello": "world"}',
           method: 'GET',
         })
@@ -49,7 +49,7 @@ describe('components/interfaces/utils', function() {
             ENV: 'prod',
           },
           fragment: '',
-          query: 'foo=bar',
+          query: [['foo', 'bar']],
           data: '{"hello": "world"}',
           method: 'GET',
         })
@@ -72,10 +72,25 @@ describe('components/interfaces/utils', function() {
             ENV: 'prod',
           },
           fragment: '',
-          query: 'foo=bar',
+          query: [['foo', 'bar']],
           method: 'GET',
         })
       ).toEqual('curl \\\n "http://example.com/foo?foo=bar"');
+
+      // Do not add data if data is empty object
+      expect(
+        getCurlCommand({
+          url: 'http://example.com/foo',
+          headers: [],
+          env: {
+            ENV: 'prod',
+          },
+          inferredContentType: null,
+          fragment: '',
+          data: {},
+          method: 'GET',
+        })
+      ).toEqual('curl \\\n "http://example.com/foo"');
     });
 
     it('works with a Proxy', function() {
@@ -101,7 +116,7 @@ describe('components/interfaces/utils', function() {
           ['Accept-Encoding', 'gzip'],
         ],
         url: 'https://www.sentry.io',
-        query: '',
+        query: [],
         data: null,
         method: 'GET',
       };

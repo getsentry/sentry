@@ -1,7 +1,6 @@
 import PropTypes from 'prop-types';
 import React from 'react';
 import styled from 'react-emotion';
-import _ from 'lodash';
 import {Box} from 'grid-emotion';
 
 import {addErrorMessage, addSuccessMessage} from 'app/actionCreators/indicator';
@@ -18,8 +17,6 @@ class GroupTombstoneRow extends React.Component {
   static propTypes = {
     data: PropTypes.object.isRequired,
     onUndiscard: PropTypes.func.isRequired,
-    orgId: PropTypes.string.isRequired,
-    projectId: PropTypes.string.isRequired,
   };
 
   render() {
@@ -33,7 +30,7 @@ class GroupTombstoneRow extends React.Component {
             includeLink={false}
             hideIcons={true}
             className="truncate"
-            {..._.omit(this.props, 'undiscard')}
+            data={data}
           />
         </StyledBox>
         <Box w={20} mx={30}>
@@ -102,7 +99,6 @@ class GroupTombstones extends AsyncComponent {
   }
 
   renderBody() {
-    let {orgId, projectId} = this.props;
     let {tombstones} = this.state;
 
     return tombstones.length ? (
@@ -112,8 +108,6 @@ class GroupTombstones extends AsyncComponent {
             <GroupTombstoneRow
               key={data.id}
               data={data}
-              orgId={orgId}
-              projectId={projectId}
               onUndiscard={this.handleUndiscard}
             />
           );

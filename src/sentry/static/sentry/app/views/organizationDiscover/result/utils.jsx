@@ -66,7 +66,7 @@ export function getChartDataForWidget(data, query, options = {}) {
       data: data.map(res => {
         const obj = {
           value: res[aggregation[2]],
-          name: fields.map(field => `${res[field]}`).join(' '),
+          name: fields.map(field => `${res[field]}`).join(', '),
         };
 
         if (options.includePercentages && total) {

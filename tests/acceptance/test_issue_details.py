@@ -92,6 +92,9 @@ class IssueDetailsTest(AcceptanceTestCase):
         self.wait_until_loaded()
         self.browser.snapshot('issue details javascript - event details')
 
+        self.browser.find_element_by_xpath("//a//code[contains(text(), 'curl')]").click()
+        self.browser.snapshot('issue details javascript - event details - curl command')
+
     def test_rust_event(self):
         # TODO: This should become its own "rust" platform type
         event = self.create_sample_event(
@@ -135,7 +138,7 @@ class IssueDetailsTest(AcceptanceTestCase):
         self.browser.get(
             u'/{}/{}/issues/{}/'.format(self.org.slug, self.project.slug, event.group.id)
         )
-        self.wait_until_loaded()
+        self.wait_until_loaded(skip_assistant=True)
         self.browser.snapshot('issue details empty exception')
 
     def test_empty_stacktrace(self):
@@ -146,7 +149,7 @@ class IssueDetailsTest(AcceptanceTestCase):
         self.browser.get(
             u'/{}/{}/issues/{}/'.format(self.org.slug, self.project.slug, event.group.id)
         )
-        self.wait_until_loaded()
+        self.wait_until_loaded(skip_assistant=True)
         self.browser.snapshot('issue details empty stacktrace')
 
     def test_invalid_interfaces(self):
@@ -157,7 +160,7 @@ class IssueDetailsTest(AcceptanceTestCase):
         self.browser.get(
             u'/{}/{}/issues/{}/'.format(self.org.slug, self.project.slug, event.group.id)
         )
-        self.wait_until_loaded()
+        self.wait_until_loaded(skip_assistant=True)
         self.browser.click('.errors-toggle')
         self.browser.wait_until('.entries > .errors ul')
         self.browser.snapshot('issue details invalid interfaces')
@@ -173,8 +176,10 @@ class IssueDetailsTest(AcceptanceTestCase):
         self.browser.wait_until('.activity-item')
         self.browser.snapshot('issue activity python')
 
-    def wait_until_loaded(self):
+    def wait_until_loaded(self, skip_assistant=None):
         self.browser.wait_until('.entries')
         self.browser.wait_until('[data-test-id="linked-issues"]')
         self.browser.wait_until('[data-test-id="loaded-device-name"]')
+        if skip_assistant is None:
+            self.browser.wait_until('[data-test-id="assistant-cue"]')
         self.browser.wait_until_not('.loading-indicator')

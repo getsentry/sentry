@@ -1,6 +1,6 @@
+import $ from 'jquery';
 import PropTypes from 'prop-types';
 import React from 'react';
-import jQuery from 'jquery';
 import _ from 'lodash';
 
 import {isUrl} from 'app/utils';
@@ -81,7 +81,7 @@ class ContextData extends React.Component {
 
   renderValue = value => {
     function toggle(evt) {
-      jQuery(evt.target)
+      $(evt.target)
         .parent()
         .toggleClass('val-toggle-open');
       evt.preventDefault();
@@ -159,6 +159,8 @@ class ContextData extends React.Component {
             <span className="val-array-marker">{']'}</span>
           </span>
         );
+      } else if (React.isValidElement(value)) {
+        return value;
       } else {
         let keys = Object.keys(value);
         keys.sort(naturalCaseInsensitiveSort);

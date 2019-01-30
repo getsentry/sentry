@@ -20,6 +20,11 @@ export default class MultipleProjectSelector extends React.PureComponent {
     projects: PropTypes.array,
     onChange: PropTypes.func,
     onUpdate: PropTypes.func,
+    multi: PropTypes.bool,
+  };
+
+  static defaultProps = {
+    multi: true,
   };
 
   constructor() {
@@ -87,12 +92,8 @@ export default class MultipleProjectSelector extends React.PureComponent {
     this.setState({hasChanges: true});
   };
 
-  hasMultiSelect = () => {
-    return new Set(this.props.organization.features).has('global-views');
-  };
-
   render() {
-    const {value, projects} = this.props;
+    const {value, projects, multi} = this.props;
     const selectedProjectIds = new Set(value);
 
     const selected = projects.filter(project =>
@@ -102,7 +103,7 @@ export default class MultipleProjectSelector extends React.PureComponent {
     return (
       <StyledProjectSelector
         {...this.props}
-        multi={this.hasMultiSelect()}
+        multi={multi}
         selectedProjects={selected}
         projects={projects}
         onSelect={this.handleQuickSelect}
@@ -132,6 +133,7 @@ export default class MultipleProjectSelector extends React.PureComponent {
               isOpen={isOpen}
               onSubmit={() => this.handleUpdate(actions)}
               onClear={this.handleClear}
+              allowClear={multi}
               {...getActorProps()}
             >
               {title}

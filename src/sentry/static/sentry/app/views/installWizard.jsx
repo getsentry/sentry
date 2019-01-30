@@ -15,12 +15,12 @@ export default class InstallWizard extends AsyncView {
 
   componentWillMount() {
     super.componentWillMount();
-    jQuery(document.body).addClass('install-wizard');
+    document.body.classList.add('install-wizard');
   }
 
   componentWillUnmount() {
     super.componentWillUnmount();
-    jQuery(document.body).removeClass('install-wizard');
+    document.body.classList.remove('install-wizard');
   }
 
   getEndpoints() {

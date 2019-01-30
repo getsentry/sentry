@@ -61,3 +61,37 @@ class ProjectEventDetailsTest(APITestCase):
         assert response.data['nextEventID'] == six.text_type(next_event.event_id)
         assert response.data['previousEventID'] == six.text_type(prev_event.event_id)
         assert response.data['groupID'] == six.text_type(group.id)
+
+    def test_prev_has_no_prev(self):
+        # Test that the "previous" event does not itself have a "previousEventID"
+        # pointing back to the current event. i.e. test that there is not a redirect
+        # loop between next and previous events that occur within the same second.
+        self.login_as(user=self.user)
+
+        group = self.create_group()
+        prev_event = self.create_event(
+            event_id='a' * 32,
+            group=group,
+            datetime=datetime(2013, 8, 13, 3, 8, 24),
+        )
+        cur_event = self.create_event(
+            event_id='b' * 32,
+            group=group,
+            datetime=datetime(2013, 8, 13, 3, 8, 24),
+        )
+
+        url = reverse(
+            'sentry-api-0-project-event-details',
+            kwargs={
+                'event_id': prev_event.event_id,
+                'project_slug': prev_event.project.slug,
+                'organization_slug': prev_event.project.organization.slug,
+            }
+        )
+        response = self.client.get(url, format='json')
+
+        assert response.status_code == 200, response.content
+        assert response.data['id'] == six.text_type(prev_event.id)
+        assert response.data['previousEventID'] is None
+        assert response.data['nextEventID'] == cur_event.event_id
+        assert response.data['groupID'] == six.text_type(group.id)

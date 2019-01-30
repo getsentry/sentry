@@ -5,7 +5,6 @@ import {uniqBy, flatMap} from 'lodash';
 import styled from 'react-emotion';
 
 import ApiMixin from 'app/mixins/apiMixin';
-import GroupState from 'app/mixins/groupState';
 import CommitRow from 'app/components/commitRow';
 import InlineSvg from 'app/components/inlineSvg';
 
@@ -29,7 +28,7 @@ export default createReactClass({
     projectId: PropTypes.string.isRequired,
   },
 
-  mixins: [ApiMixin, GroupState],
+  mixins: [ApiMixin],
 
   getInitialState() {
     return {committers: undefined, expanded: false};

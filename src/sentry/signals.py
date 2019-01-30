@@ -78,6 +78,7 @@ mocks_loaded = BetterSignal(providing_args=["project"])
 
 user_feedback_received = BetterSignal(providing_args=["project"])
 issue_assigned = BetterSignal(providing_args=["project", "group", "user"])
+issue_resolved = BetterSignal(providing_args=["project", "group", "user"])
 issue_resolved_in_release = BetterSignal(
     providing_args=[
         "project",
@@ -103,3 +104,5 @@ integration_added = BetterSignal(providing_args=["integration", "organization", 
 integration_issue_created = BetterSignal(providing_args=["integration", "organization", "user"])
 integration_issue_linked = BetterSignal(providing_args=["integration", "organization", "user"])
 issue_deleted = BetterSignal(providing_args=["group", "user", "delete_type"])
+
+monitor_failed = BetterSignal(providing_args=["monitor"])

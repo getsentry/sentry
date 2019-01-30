@@ -25,6 +25,7 @@ import jQuery from 'jquery';
 import moment from 'moment';
 
 import {metric} from 'app/utils/analytics';
+import * as tracing from 'app/utils/tracing';
 import ConfigStore from 'app/stores/configStore';
 import Main from 'app/main';
 import ajaxCsrfSetup from 'app/utils/ajaxCsrfSetup';
@@ -43,6 +44,14 @@ Sentry.configureScope(scope => {
   if (window.__SENTRY__VERSION) {
     scope.setTag('sentry_version', window.__SENTRY__VERSION);
   }
+
+  // There's no setTransaction API *yet*, so we have to be explicit here
+  scope.addEventProcessor(event => {
+    return {
+      ...event,
+      transaction: tracing.getRoute(),
+    };
+  });
 });
 
 function __raven_deprecated() {
@@ -200,8 +209,6 @@ const globals = {
     Pagination: require('app/components/pagination').default,
     PluginConfig: require('app/components/pluginConfig').default,
     ProjectSelector: require('app/components/projectHeader/projectSelector').default,
-    CreateSampleEvent: require('app/components/createSampleEvent').default,
-    InstallPromptBanner: require('app/components/installPromptBanner').default,
     SentryTypes: require('app/sentryTypes').default,
     SettingsPageHeader: require('app/views/settings/components/settingsPageHeader')
       .default,
@@ -219,10 +226,13 @@ const globals = {
     Badge: require('app/components/badge').default,
     Tag: require('app/views/settings/components/tag').default,
     Switch: require('app/components/switch').default,
+    Search: require('app/components/search').default,
+    HelpSource: require('app/components/search/sources/helpSource').default,
     GlobalModal: require('app/components/globalModal').default,
     SetupWizard: require('app/components/setupWizard').default,
     Well: require('app/components/well').default,
     theme: require('app/utils/theme').default,
+    space: require('app/styles/space').default,
     utils: {
       errorHandler: require('app/utils/errorHandler').default,
       ajaxCsrfSetup: require('app/utils/ajaxCsrfSetup').default,
@@ -230,6 +240,8 @@ const globals = {
       descopeFeatureName: require('app/utils').descopeFeatureName,
       onboardingSteps: require('app/views/onboarding/utils').onboardingSteps,
       stepDescriptions: require('app/views/onboarding/utils').stepDescriptions,
+      withApi: require('app/utils/withApi').default,
+      getDisplayName: require('app/utils/getDisplayName').default,
     },
     passwordStrength: {load: loadPasswordStrength},
   },

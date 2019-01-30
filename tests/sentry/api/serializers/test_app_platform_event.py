@@ -24,7 +24,8 @@ class AppPlatformEventSerializerTest(TestCase):
             install=self.install,
             data={},
         )
-        assert result.body == {
+
+        assert result.body == json.dumps({
             'action': 'triggered',
             'installation': {
                 'uuid': self.install.uuid,
@@ -35,9 +36,9 @@ class AppPlatformEventSerializerTest(TestCase):
                 'id': 'sentry',
                 'name': 'Sentry',
             }
-        }
-        body = json.dumps(result.body)
-        signature = self.sentry_app.build_signature(body)
+        })
+
+        signature = self.sentry_app.build_signature(result.body)
 
         assert result.headers['Content-Type'] == 'application/json'
         assert result.headers['Sentry-Hook-Resource'] == 'event_alert'
@@ -51,13 +52,14 @@ class AppPlatformEventSerializerTest(TestCase):
             data={},
             actor=self.sentry_app.proxy_user,
         )
-        assert result.body['actor'] == {
+
+        assert json.loads(result.body)['actor'] == {
             'type': 'application',
             'id': self.sentry_app.uuid,
             'name': self.sentry_app.name,
         }
-        body = json.dumps(result.body)
-        signature = self.sentry_app.build_signature(body)
+
+        signature = self.sentry_app.build_signature(result.body)
 
         assert result.headers['Content-Type'] == 'application/json'
         assert result.headers['Sentry-Hook-Resource'] == 'issue'
@@ -71,13 +73,14 @@ class AppPlatformEventSerializerTest(TestCase):
             data={},
             actor=self.user,
         )
-        assert result.body['actor'] == {
+
+        assert json.loads(result.body)['actor'] == {
             'type': 'user',
             'id': self.user.id,
             'name': self.user.name,
         }
-        body = json.dumps(result.body)
-        signature = self.sentry_app.build_signature(body)
+
+        signature = self.sentry_app.build_signature(result.body)
 
         assert result.headers['Content-Type'] == 'application/json'
         assert result.headers['Sentry-Hook-Resource'] == 'installation'

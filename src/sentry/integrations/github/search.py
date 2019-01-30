@@ -3,6 +3,7 @@ from __future__ import absolute_import
 from rest_framework.response import Response
 
 from sentry.api.bases.integration import IntegrationEndpoint
+from sentry.integrations.exceptions import ApiError
 from sentry.models import Integration
 
 
@@ -34,9 +35,10 @@ class GitHubSearchEndpoint(IntegrationEndpoint):
                 response = installation.search_issues(
                     query=(u'repo:%s %s' % (repo, query)).encode('utf-8'),
                 )
-            except Exception as e:
-                return self.handle_api_error(e)
-
+            except ApiError as err:
+                if err.code == 403:
+                    return Response({'detail': 'Rate limit exceeded'}, status=429)
+                raise
             return Response([{
                 'label': '#%s %s' % (i['number'], i['title']),
                 'value': i['number']
@@ -45,11 +47,13 @@ class GitHubSearchEndpoint(IntegrationEndpoint):
         if field == 'repo':
             account_type = 'user' if integration.metadata['account_type'] == 'User' else 'org'
             full_query = (u'%s:%s %s' % (account_type, integration.name, query)).encode('utf-8')
+
             try:
                 response = installation.get_client().search_repositories(full_query)
-            except Exception as e:
-                return self.handle_api_error(e)
-
+            except ApiError as err:
+                if err.code == 403:
+                    return Response({'detail': 'Rate limit exceeded'}, status=429)
+                raise
             return Response([{
                 'label': i['name'],
                 'value': i['full_name']

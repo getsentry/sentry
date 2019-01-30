@@ -1,6 +1,7 @@
 import {
   getQueryFromQueryString,
   getQueryStringFromQuery,
+  queryHasChanged,
   getOrderbyFields,
   parseSavedQuery,
   generateQueryName,
@@ -52,6 +53,15 @@ describe('getQueryStringFromQuery()', function() {
   });
 });
 
+describe('queryHasChanged()', function() {
+  it('checks only query fields', function() {
+    const prev = '?fields=%5B"id"%5D&editing=true';
+    const next = '?fields=%5B"id"%5D';
+
+    expect(queryHasChanged(prev, next)).toBe(false);
+  });
+});
+
 describe('getOrderbyFields()', function() {
   const organization = TestStubs.Organization({projects: [TestStubs.Project()]});
   const queryBuilder = createQueryBuilder({}, organization);
@@ -82,7 +92,7 @@ describe('getOrderbyFields()', function() {
   });
 });
 
-describe('parseSavedQuery', function() {
+describe('parseSavedQuery()', function() {
   it('strips metadata', function() {
     const queryFromApi = {
       id: '1',
@@ -104,7 +114,7 @@ describe('parseSavedQuery', function() {
   });
 });
 
-describe('generateQueryName', function() {
+describe('generateQueryName()', function() {
   it('generates name', function() {
     expect(generateQueryName()).toBe('Result - Oct 17 02:41:20');
   });

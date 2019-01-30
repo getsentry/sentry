@@ -4,6 +4,7 @@ from django.db import IntegrityError, transaction
 
 from rest_framework.response import Response
 
+from sentry.api.bases import NoProjects, OrganizationEventsError
 from .project_releases import ReleaseSerializer
 from sentry.api.base import DocSection, EnvironmentMixin
 from sentry.api.bases.organization import OrganizationReleasesBaseEndpoint
@@ -13,11 +14,7 @@ from sentry.api.serializers import serialize
 from sentry.api.serializers.rest_framework import (
     ReleaseHeadCommitSerializer, ReleaseHeadCommitSerializerDeprecated, ListField
 )
-from sentry.models import (
-    Activity,
-    Project,
-    Release,
-)
+from sentry.models import Activity, Release
 from sentry.signals import release_created
 from sentry.utils.apidocs import scenario, attach_scenarios
 
@@ -97,11 +94,16 @@ class OrganizationReleasesEndpoint(OrganizationReleasesBaseEndpoint, Environment
         """
         query = request.GET.get('query')
 
-        filter_params = self.get_filter_params(
-            request,
-            organization,
-            date_filter_optional=True,
-        )
+        try:
+            filter_params = self.get_filter_params(
+                request,
+                organization,
+                date_filter_optional=True,
+            )
+        except NoProjects:
+            return Response([])
+        except OrganizationEventsError as exc:
+            return Response({'detail': exc.message}, status=400)
 
         queryset = Release.objects.filter(
             organization=organization,
@@ -182,9 +184,7 @@ class OrganizationReleasesEndpoint(OrganizationReleasesBaseEndpoint, Environment
             result = serializer.object
 
             allowed_projects = {
-                p.slug: p for p in Project.objects.filter(
-                    id__in=self.get_project_ids(request, organization)
-                )
+                p.slug: p for p in self.get_projects(request, organization)
             }
 
             projects = []

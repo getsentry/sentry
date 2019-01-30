@@ -1,6 +1,5 @@
-import React from 'react';
 import PropTypes from 'prop-types';
-import jQuery from 'jquery';
+import React from 'react';
 import createReactClass from 'create-react-class';
 
 import {ApiForm, RadioBooleanField} from 'app/components/forms';
@@ -14,11 +13,11 @@ export default createReactClass({
   },
 
   componentWillMount() {
-    jQuery(document.body).addClass('auth');
+    document.body.classList.add('auth');
   },
 
   componentWillUnmount() {
-    jQuery(document.body).removeClass('auth');
+    document.body.classList.remove('auth');
   },
 
   onSubmitSuccess() {

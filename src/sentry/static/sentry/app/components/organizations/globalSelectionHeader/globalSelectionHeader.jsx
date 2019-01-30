@@ -9,7 +9,6 @@ import {
 } from 'app/components/organizations/globalSelectionHeader/constants';
 import {callIfFunction} from 'app/utils/callIfFunction';
 import {defined} from 'app/utils';
-import {getLocalDateObject} from 'app/utils/dates';
 import {isEqualWithDates} from 'app/utils/isEqualWithDates';
 import {
   updateDateTime,
@@ -25,6 +24,8 @@ import MultipleProjectSelector from 'app/components/organizations/multipleProjec
 import SentryTypes from 'app/sentryTypes';
 import TimeRangeSelector from 'app/components/organizations/timeRangeSelector';
 import withGlobalSelection from 'app/utils/withGlobalSelection';
+
+import {getStateFromQuery} from './utils';
 
 class GlobalSelectionHeader extends React.Component {
   static propTypes = {
@@ -76,46 +77,6 @@ class GlobalSelectionHeader extends React.Component {
     resetParamsOnChange: [],
   };
 
-  // Parses URL query parameters for values relevant to global selection header
-  static getStateFromRouter(props) {
-    const {query} = props.location;
-    let start = query[URL_PARAM.START] !== 'null' && query[URL_PARAM.START];
-    let end = query[URL_PARAM.END] !== 'null' && query[URL_PARAM.END];
-    let project = query[URL_PARAM.PROJECT];
-    let environment = query[URL_PARAM.ENVIRONMENT];
-    let period = query[URL_PARAM.PERIOD];
-    let utc = query[URL_PARAM.UTC];
-
-    const hasAbsolute = !!start && !!end;
-
-    if (defined(project) && Array.isArray(project)) {
-      project = project.map(p => parseInt(p, 10));
-    } else if (defined(project)) {
-      const projectIdInt = parseInt(project, 10);
-      project = isNaN(projectIdInt) ? [] : [projectIdInt];
-    }
-
-    if (defined(environment) && !Array.isArray(environment)) {
-      environment = [environment];
-    }
-
-    if (hasAbsolute) {
-      start = getLocalDateObject(start);
-      end = getLocalDateObject(end);
-    }
-
-    return {
-      project,
-      environment,
-      period: period || null,
-      start: start || null,
-      end: end || null,
-
-      // params from URL will be a string
-      utc: typeof utc !== 'undefined' ? utc === 'true' : null,
-    };
-  }
-
   constructor(props) {
     super(props);
     this.state = {};
@@ -126,7 +87,9 @@ class GlobalSelectionHeader extends React.Component {
       return;
     }
 
-    const stateFromRouter = GlobalSelectionHeader.getStateFromRouter(this.props);
+    const hasMultipleProjectFeature = this.hasMultipleProjectSelection();
+
+    const stateFromRouter = getStateFromQuery(this.props.location.query);
     // We should update store if there are any relevant URL parameters when component
     // is mounted
     if (Object.values(stateFromRouter).some(i => !!i)) {
@@ -137,17 +100,39 @@ class GlobalSelectionHeader extends React.Component {
 
       // environment/project here can be null i.e. if only period is set in url params
       updateEnvironments(environment || []);
-      updateProjects(project || []);
+
+      const requestedProjects = project || [];
+
+      if (hasMultipleProjectFeature) {
+        updateProjects(requestedProjects);
+      } else {
+        const allowedProjects =
+          requestedProjects.length > 0
+            ? requestedProjects.slice(0, 1)
+            : this.getFirstProject();
+        updateProjects(allowedProjects);
+        updateParams({project: allowedProjects}, this.getRouter());
+      }
     } else {
       // Otherwise, we can update URL with values from store
       //
       // e.g. when switching to a new view that uses this component,
       // update URL parameters to reflect current store
       const {datetime, environments, projects} = this.props.selection;
-      updateParams(
-        {project: projects, environment: environments, ...datetime},
-        this.getRouter()
-      );
+
+      if (hasMultipleProjectFeature || projects.length === 1) {
+        updateParams(
+          {project: projects, environment: environments, ...datetime},
+          this.getRouter()
+        );
+      } else {
+        const allowedProjects = this.getFirstProject();
+        updateProjects(allowedProjects);
+        updateParams(
+          {project: allowedProjects, environment: environments, ...datetime},
+          this.getRouter()
+        );
+      }
     }
   }
 
@@ -190,12 +175,21 @@ class GlobalSelectionHeader extends React.Component {
     this.updateStoreIfChange(prevProps, this.props);
   }
 
+  hasMultipleProjectSelection = () => {
+    return new Set(this.props.organization.features).has('global-views');
+  };
+
   didQueryChange = (prevProps, nextProps) => {
     const urlParamKeys = Object.values(URL_PARAM);
-    return !isEqual(
-      pick(prevProps.location.query, urlParamKeys),
-      pick(nextProps.location.query, urlParamKeys)
-    );
+    const prevQuery = pick(prevProps.location.query, urlParamKeys);
+    const nextQuery = pick(nextProps.location.query, urlParamKeys);
+
+    // If no next query is specified keep the previous global selection values
+    if (Object.keys(nextQuery).length === 0) {
+      return false;
+    }
+
+    return !isEqual(prevQuery, nextQuery);
   };
 
   updateStoreIfChange = (prevProps, nextProps) => {
@@ -207,14 +201,9 @@ class GlobalSelectionHeader extends React.Component {
       return;
     }
 
-    const {
-      project,
-      environment,
-      period,
-      start,
-      end,
-      utc,
-    } = GlobalSelectionHeader.getStateFromRouter(nextProps);
+    const {project, environment, period, start, end, utc} = getStateFromQuery(
+      nextProps.location.query
+    );
 
     if (start || end || period || utc) {
       // Don't attempt to update date if all of these values are empty
@@ -285,6 +274,12 @@ class GlobalSelectionHeader extends React.Component {
     );
   };
 
+  getFirstProject = () => {
+    return this.getProjects()
+      .map(p => parseInt(p.id, 10))
+      .slice(0, 1);
+  };
+
   render() {
     const {
       className,
@@ -304,6 +299,7 @@ class GlobalSelectionHeader extends React.Component {
             value={this.state.projects || this.props.selection.projects}
             onChange={this.handleChangeProjects}
             onUpdate={this.handleUpdateProjects}
+            multi={this.hasMultipleProjectSelection()}
           />
         </HeaderItemPosition>
 

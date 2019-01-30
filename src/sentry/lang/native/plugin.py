@@ -37,7 +37,7 @@ class NativeStacktraceProcessor(StacktraceProcessor):
         self.difs_referenced = set()
 
         images = get_path(self.data, 'debug_meta', 'images', default=(),
-                          filter=(lambda img: img and img.get('type') in self.supported_images))
+                          filter=self._is_valid_image)
 
         if images:
             self.available = True
@@ -45,6 +45,13 @@ class NativeStacktraceProcessor(StacktraceProcessor):
             self.object_lookup = ObjectLookup(images)
         else:
             self.available = False
+
+    def _is_valid_image(self, image):
+        return bool(image) \
+            and image.get('type') in self.supported_images \
+            and image.get('image_addr') is not None \
+            and image.get('image_size') is not None \
+            and (image.get('id') or image.get('uuid')) is not None
 
     def close(self):
         StacktraceProcessor.close(self)

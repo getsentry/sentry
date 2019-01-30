@@ -10,8 +10,10 @@ import {t} from 'app/locale';
 import {openModal} from 'app/actionCreators/modal';
 
 import MissingProjectWarningModal from './missingProjectWarningModal';
-import {COLUMNS, PROMOTED_TAGS, SPECIAL_TAGS} from './data';
+import {COLUMNS, PROMOTED_TAGS, SPECIAL_TAGS, HIDDEN_TAGS} from './data';
 import {isValidAggregation} from './aggregations/utils';
+
+const API_LIMIT = 10000;
 
 const DEFAULTS = {
   projects: [],
@@ -38,6 +40,7 @@ function applyDefaults(query) {
  * initialization.
  */
 export default function createQueryBuilder(initial = {}, organization) {
+  const api = new Client();
   let query = applyDefaults(initial);
   const defaultProjects = organization.projects
     .filter(projects => projects.isMember)
@@ -50,6 +53,8 @@ export default function createQueryBuilder(initial = {}, organization) {
     getExternal,
     updateField,
     fetch,
+    fetchWithoutLimit,
+    cancelRequests,
     getQueryByType,
     getColumns,
     load,
@@ -73,7 +78,7 @@ export default function createQueryBuilder(initial = {}, organization) {
       turbo: true,
     })
       .then(res => {
-        tags = res.data.map(tag => {
+        tags = res.data.filter(tag => !HIDDEN_TAGS.includes(tag.tags_key)).map(tag => {
           const type = SPECIAL_TAGS[tags.tags_key] || 'string';
           return {name: tag.tags_key, type, isTag: true};
         });
@@ -175,7 +180,6 @@ export default function createQueryBuilder(initial = {}, organization) {
    * @returns {Promise<Object|Error>}
    */
   function fetch(data = getExternal(), cursor = '0:0:1') {
-    const api = new Client();
     const limit = data.limit || 1000;
     const endpoint = `/organizations/${organization.slug}/discover/query/?per_page=${limit}&cursor=${cursor}`;
 
@@ -203,6 +207,47 @@ export default function createQueryBuilder(initial = {}, organization) {
       .catch(err => {
         throw new Error(t('An error occurred'));
       });
+  }
+
+  /**
+   * Fetches either the query provided as an argument or the current query state
+   * if this is not provided and returns the result wrapped in a promise
+   *
+   * This is similar to `fetch` but does not support pagination and mirrors the API limit
+   *
+   * @param {Object} [data] Optional field to provide data to fetch
+   * @returns {Promise<Object|Error>}
+   */
+  function fetchWithoutLimit(data = getExternal()) {
+    const endpoint = `/organizations/${organization.slug}/discover/query/`;
+
+    // Reject immediately if no projects are available
+    if (!data.projects.length) {
+      return Promise.reject(new Error(t('No projects selected')));
+    }
+
+    if (typeof data.limit === 'number') {
+      if (data.limit < 1 || data.limit > API_LIMIT) {
+        return Promise.reject(new Error(t('Invalid limit parameter')));
+      }
+    }
+
+    if (moment.utc(data.start).isAfter(moment.utc(data.end))) {
+      return Promise.reject(new Error('Start date cannot be after end date'));
+    }
+
+    return api.requestPromise(endpoint, {method: 'POST', data}).catch(() => {
+      throw new Error(t('Error with query'));
+    });
+  }
+
+  /**
+   * Cancels any in-flight API requests made via `fetch` or `fetchWithoutLimit`
+   *
+   * @returns {Void}
+   */
+  function cancelRequests() {
+    api.clear();
   }
 
   /**

@@ -441,7 +441,7 @@ CELERY_REDIRECT_STDOUTS = False
 CELERYD_HIJACK_ROOT_LOGGER = False
 CELERY_IMPORTS = (
     'sentry.tasks.auth', 'sentry.tasks.auto_resolve_issues', 'sentry.tasks.beacon',
-    'sentry.tasks.check_auth', 'sentry.tasks.clear_expired_snoozes',
+    'sentry.tasks.check_auth', 'sentry.tasks.check_monitors', 'sentry.tasks.clear_expired_snoozes',
     'sentry.tasks.collect_project_platforms', 'sentry.tasks.commits', 'sentry.tasks.deletion',
     'sentry.tasks.digests', 'sentry.tasks.email', 'sentry.tasks.merge',
     'sentry.tasks.options', 'sentry.tasks.ping', 'sentry.tasks.post_process',
@@ -449,7 +449,7 @@ CELERY_IMPORTS = (
     'sentry.tasks.scheduler', 'sentry.tasks.signals', 'sentry.tasks.store', 'sentry.tasks.unmerge',
     'sentry.tasks.symcache_update', 'sentry.tasks.servicehooks',
     'sentry.tagstore.tasks', 'sentry.tasks.assemble', 'sentry.tasks.integrations',
-    'sentry.tasks.files', 'sentry.tasks.app_platform',
+    'sentry.tasks.files', 'sentry.tasks.sentry_apps',
 )
 CELERY_QUEUES = [
     Queue('activity.notify', routing_key='activity.notify'),
@@ -557,6 +557,13 @@ CELERYBEAT_SCHEDULE = {
         'schedule': timedelta(seconds=30),
         'options': {
             'expires': 30,
+        },
+    },
+    'check-monitors': {
+        'task': 'sentry.tasks.check_monitors',
+        'schedule': timedelta(minutes=1),
+        'options': {
+            'expires': 60,
         },
     },
     'clear-expired-snoozes': {
@@ -789,8 +796,10 @@ SENTRY_FEATURES = {
     'organizations:discover': False,
     # Enable attaching arbitrary files to events.
     'organizations:event-attachments': False,
-    # Enable the organization wide events stream interface.
+    # Enable multi project selection
     'organizations:global-views': False,
+    # Enable the events stream interface.
+    'organizations:events': False,
     # Enable integration functionality to create and link groups to issues on
     # external services.
     'organizations:integrations-issue-basic': False,
@@ -802,8 +811,6 @@ SENTRY_FEATURES = {
     'organizations:internal-catchall': False,
     # Enable inviting members to organizations.
     'organizations:invite-members': True,
-    # Enable jira server integration currently available to internal users only.
-    'organizations:jira-server-integration': False,
 
     # DEPRECATED: pending removal.
     'organizations:js-loader': False,
@@ -884,6 +891,9 @@ SENTRY_PROJECT_KEY = None
 
 # Project ID for recording frontend (javascript) exceptions
 SENTRY_FRONTEND_PROJECT = None
+# DSN for the frontend to use explicitly, which takes priority
+# over SENTRY_FRONTEND_PROJECT or SENTRY_PROJECT
+SENTRY_FRONTEND_DSN = None
 
 # Only store a portion of all messages per unique group.
 SENTRY_SAMPLE_DATA = True
@@ -1067,6 +1077,7 @@ SENTRY_METRICS_BACKEND = 'sentry.metrics.dummy.DummyMetricsBackend'
 SENTRY_METRICS_OPTIONS = {}
 SENTRY_METRICS_SAMPLE_RATE = 1.0
 SENTRY_METRICS_PREFIX = 'sentry.'
+SENTRY_METRICS_SKIP_INTERNAL_PREFIXES = []  # Order this by most frequent prefixes.
 
 # URI Prefixes for generating DSN URLs
 # (Defaults to URL_PREFIX by default)
@@ -1333,6 +1344,7 @@ def get_sentry_sdk_config():
         'environment': ENVIRONMENT,
         'in_app_include': [
             'sentry',
+            'sentry_plugins',
         ],
         'debug': True,
         'send_default_pii': True

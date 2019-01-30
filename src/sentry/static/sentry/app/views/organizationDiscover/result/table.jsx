@@ -8,6 +8,7 @@ import Link from 'app/components/link';
 import Tooltip from 'app/components/tooltip';
 import Panel from 'app/components/panels/panel';
 import EmptyStateWarning from 'app/components/emptyStateWarning';
+import withOrganization from 'app/utils/withOrganization';
 
 import {getDisplayValue, getDisplayText} from './utils';
 
@@ -25,16 +26,13 @@ const OTHER_ELEMENTS_HEIGHT = 70; // pagination buttons, query summary
  * Renders results in a table as well as a query summary (timing, rows returned)
  * from any Snuba result
  */
-export default class ResultTable extends React.Component {
+class ResultTable extends React.Component {
   static propTypes = {
+    organization: SentryTypes.Organization.isRequired,
     data: PropTypes.object.isRequired,
     query: PropTypes.object.isRequired,
     height: PropTypes.number,
     width: PropTypes.number,
-  };
-
-  static contextTypes = {
-    organization: SentryTypes.Organization,
   };
 
   componentDidUpdate(prevProps) {
@@ -86,14 +84,22 @@ export default class ResultTable extends React.Component {
     );
   };
 
+  hasSentry10 = () => {
+    return new Set(this.props.organization.features).has('sentry10');
+  };
+
   getEventLink = event => {
-    const {slug, projects} = this.context.organization;
+    const {slug, projects} = this.props.organization;
     const projectSlug = projects.find(project => project.id === `${event['project.id']}`)
       .slug;
 
+    const basePath = this.hasSentry10()
+      ? `/organizations/${slug}/projects/${projectSlug}/`
+      : `/${slug}/${projectSlug}/`;
+
     return (
       <Tooltip title={t('Open event')}>
-        <Link href={`/${slug}/${projectSlug}/events/${event.id}/`} target="_blank">
+        <Link href={`${basePath}events/${event.id}/`} target="_blank">
           {event.id}
         </Link>
       </Tooltip>
@@ -101,13 +107,17 @@ export default class ResultTable extends React.Component {
   };
 
   getIssueLink = event => {
-    const {slug, projects} = this.context.organization;
+    const {slug, projects} = this.props.organization;
     const projectSlug = projects.find(project => project.id === `${event['project.id']}`)
       .slug;
 
+    const basePath = this.hasSentry10()
+      ? `/organizations/${slug}/`
+      : `/${slug}/${projectSlug}/`;
+
     return (
       <Tooltip title={t('Open issue')}>
-        <Link to={`/${slug}/${projectSlug}/issues/${event['issue.id']}`} target="_blank">
+        <Link to={`${basePath}issues/${event['issue.id']}`} target="_blank">
           {event['issue.id']}
         </Link>
       </Tooltip>
@@ -134,7 +144,7 @@ export default class ResultTable extends React.Component {
         // We want to avoid calling measureText() too much so only do this
         // for the top 3 longest strings
         const uniqs = [...new Set(data.map(row => row[colName]))]
-          .map(colData => getDisplayText(colData, false))
+          .map(colData => getDisplayText(colData))
           .sort((a, b) => b.length - a.length)
           .slice(0, 3);
 
@@ -289,6 +299,9 @@ export default class ResultTable extends React.Component {
     return <div>{this.renderTable()}</div>;
   }
 }
+
+export {ResultTable};
+export default withOrganization(ResultTable);
 
 const Grid = styled(({visibleRows, ...props}) => <div {...props} />)`
   height: ${p =>

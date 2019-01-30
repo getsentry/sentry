@@ -1,13 +1,14 @@
 import PropTypes from 'prop-types';
 import React from 'react';
 import createReactClass from 'create-react-class';
-import jQuery from 'jquery';
-import SentryTypes from 'app/sentryTypes';
+import queryString from 'query-string';
+
+import {Panel, PanelHeader, PanelBody} from 'app/components/panels';
+import {t, tct} from 'app/locale';
 import ApiMixin from 'app/mixins/apiMixin';
 import LoadingError from 'app/components/loadingError';
 import LoadingIndicator from 'app/components/loadingIndicator';
-import {t, tct} from 'app/locale';
-import {Panel, PanelHeader, PanelBody} from 'app/components/panels';
+import SentryTypes from 'app/sentryTypes';
 
 import EventNode from './eventNode';
 
@@ -61,7 +62,9 @@ const EventList = createReactClass({
       qs.query = `${qs.query} environment:${environment.name}`;
     }
 
-    return `/projects/${params.orgId}/${params.projectId}/issues/?${jQuery.param(qs)}`;
+    return `/projects/${params.orgId}/${params.projectId}/issues/?${queryString.stringify(
+      qs
+    )}`;
   },
 
   getMinutes() {

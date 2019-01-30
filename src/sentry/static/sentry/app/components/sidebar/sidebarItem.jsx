@@ -50,7 +50,6 @@ class SidebarItem extends React.Component {
     let {
       router,
       href,
-      index,
       to,
       icon,
       label,
@@ -64,15 +63,7 @@ class SidebarItem extends React.Component {
 
     // If there is no active panel open and if path is active according to react-router
     let isActiveRouter =
-      (!hasPanel &&
-        router &&
-        to &&
-        router.isActive(
-          {
-            pathname: to,
-          },
-          index
-        )) ||
+      (!hasPanel && router && to && location.pathname.startsWith(to)) ||
       // TODO: this won't be necessary once we remove settingsHome
       (label === 'Settings' && location.pathname.startsWith('/settings/'));
 
@@ -146,9 +137,9 @@ const StyledSidebarItem = styled(({active, ...props}) => <Link {...props} />)`
     display: block;
     content: '';
     position: absolute;
-    top: 5px;
+    top: 4px;
     left: -20px;
-    bottom: 5px;
+    bottom: 6px;
     width: 5px;
     border-radius: 0 3px 3px 0;
     background-color: transparent;

@@ -40,6 +40,7 @@ class ServiceHook(Model):
     application = FlexibleForeignKey('sentry.ApiApplication', null=True)
     actor_id = BoundedPositiveIntegerField(db_index=True)
     project_id = BoundedPositiveIntegerField(db_index=True)
+    organization_id = BoundedPositiveIntegerField(db_index=True, null=True)
     url = models.URLField(max_length=512)
     secret = EncryptedTextField(default=generate_secret)
     events = ArrayField(of=models.TextField)
@@ -63,10 +64,14 @@ class ServiceHook(Model):
 
     @property
     def created_by_sentry_app(self):
-        return self.application_id and \
-            SentryApp.objects.filter(
-                application_id=self.application_id,
-            ).exists()
+        return (self.application_id and self.sentry_app)
+
+    @property
+    def sentry_app(self):
+        try:
+            return SentryApp.objects.get(application_id=self.application_id)
+        except SentryApp.DoesNotExist:
+            return
 
     def __init__(self, *args, **kwargs):
         super(ServiceHook, self).__init__(*args, **kwargs)

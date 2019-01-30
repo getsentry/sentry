@@ -108,7 +108,7 @@ const onboardingSteps = {organization: 0, project: 1, configure: 2};
 const stepDescriptions = {
   organization: t('Create an organization in Sentry'),
   project: t('Tell us about your project'),
-  configure: t('Configure your application and send an event'),
+  configure: t('Send an event from your application'),
 };
 
 function getPlatformName(platform) {

@@ -1,7 +1,6 @@
 import DocumentTitle from 'react-document-title';
 import React from 'react';
 import createReactClass from 'create-react-class';
-import jQuery from 'jquery';
 
 import {t} from 'app/locale';
 import ApiMixin from 'app/mixins/apiMixin';
@@ -38,11 +37,11 @@ const SharedGroupDetails = createReactClass({
 
   componentWillMount() {
     this.fetchData();
-    jQuery(document.body).addClass('shared-group');
+    document.body.classList.add('shared-group');
   },
 
   componentWillUnmount() {
-    jQuery(document.body).removeClass('shared-group');
+    document.body.classList.remove('shared-group');
   },
 
   getTitle() {

@@ -26,7 +26,7 @@ describe('OrganizationDetails', function() {
           }),
         });
         let tree = render(
-          <OrganizationDetails params={{orgId: 'org-slug'}} />,
+          <OrganizationDetails params={{orgId: 'org-slug'}} location={{}} />,
           TestStubs.routerContext()
         );
         expect(tree).toMatchSnapshot();
@@ -45,7 +45,7 @@ describe('OrganizationDetails', function() {
           }),
         });
         let tree = render(
-          <OrganizationDetails params={{orgId: 'org-slug'}} />,
+          <OrganizationDetails params={{orgId: 'org-slug'}} location={{}} />,
           TestStubs.routerContext()
         );
         expect(tree).toMatchSnapshot();
@@ -68,7 +68,7 @@ describe('OrganizationDetails', function() {
 
       it('should render a deletion in progress prompt', function() {
         let tree = render(
-          <OrganizationDetails params={{orgId: 'org-slug'}} />,
+          <OrganizationDetails params={{orgId: 'org-slug'}} location={{}} />,
           TestStubs.routerContext()
         );
         expect(tree).toMatchSnapshot();

@@ -180,13 +180,7 @@ const ProjectUserFeedback = createReactClass({
       const issue = item.issue;
 
       return (
-        <CompactIssue
-          key={item.id}
-          id={issue.id}
-          data={issue}
-          orgId={orgId}
-          projectId={projectId}
-        >
+        <CompactIssue key={item.id} id={issue.id} data={issue}>
           <EventUserFeedback
             report={item}
             orgId={orgId}
@@ -201,14 +195,13 @@ const ProjectUserFeedback = createReactClass({
   },
 
   render() {
-    const {location, params} = this.props;
+    const {location} = this.props;
 
     return (
       <UserFeedbackContainer
         pageLinks={this.state.pageLinks}
         status={this.state.status}
         location={location}
-        params={params}
       >
         {this.renderStreamBody()}
       </UserFeedbackContainer>

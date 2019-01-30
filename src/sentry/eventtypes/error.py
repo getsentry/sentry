@@ -10,7 +10,7 @@ from .base import BaseEvent
 
 def get_crash_file(stacktrace):
     default = None
-    for frame in reversed(stacktrace.get('frames') or ()):
+    for frame in reversed(get_path(stacktrace, 'frames', filter=True) or ()):
         fn = frame.get('filename') or frame.get('abs_path')
         if fn:
             if frame.get('in_app'):
@@ -37,11 +37,12 @@ class ErrorEvent(BaseEvent):
         }
 
         # Attach crash location
-        stacktrace = exception.get('stacktrace')
-        if stacktrace:
-            fn = get_crash_file(stacktrace)
-            if fn is not None:
-                rv['filename'] = fn
+        if exception:
+            stacktrace = exception.get('stacktrace')
+            if stacktrace:
+                fn = get_crash_file(stacktrace)
+                if fn is not None:
+                    rv['filename'] = fn
 
         return rv
 

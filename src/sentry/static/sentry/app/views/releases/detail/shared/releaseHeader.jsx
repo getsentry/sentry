@@ -29,8 +29,16 @@ export default class ReleaseHeader extends React.Component {
     const {release, orgId, projectId} = this.props;
 
     const releasePath = projectId
-      ? `/${orgId}/${projectId}/releases/${encodeURIComponent(release.version)}`
-      : `/organizations/${orgId}/releases/${encodeURIComponent(release.version)}`;
+      ? `/${orgId}/${projectId}/releases/${encodeURIComponent(release.version)}/`
+      : `/organizations/${orgId}/releases/${encodeURIComponent(release.version)}/`;
+
+    const links = [
+      {title: t('Overview'), to: releasePath},
+      {title: t('New Issues'), to: `${releasePath}new-events/`},
+      {title: t('All Issues'), to: `${releasePath}all-events/`},
+      {title: t('Artifacts'), to: `${releasePath}artifacts/`},
+      {title: t('Commits'), to: `${releasePath}commits/`},
+    ];
 
     return (
       <div className="release-details">
@@ -102,20 +110,15 @@ export default class ReleaseHeader extends React.Component {
           release={release}
         />
         <NavTabs>
-          <ListLink
-            to={`${releasePath}/`}
-            isActive={loc => {
-              // react-router isActive will return true for any route that is part of the active route
-              // e.g. parent routes. To avoid matching on sub-routes, insist on strict path equality.
-              return loc.pathname === this.context.location.pathname;
-            }}
-          >
-            {t('Overview')}
-          </ListLink>
-          <ListLink to={`${releasePath}/new-events/`}>{t('New Issues')}</ListLink>
-          <ListLink to={`${releasePath}/all-events/`}>{t('All Issues')}</ListLink>
-          <ListLink to={`${releasePath}/artifacts/`}>{t('Artifacts')}</ListLink>
-          <ListLink to={`${releasePath}/commits/`}>{t('Commits')}</ListLink>
+          {links.map(link => (
+            <ListLink
+              key={link.to}
+              to={`${link.to}${this.context.location.search}`}
+              isActive={() => link.to === this.context.location.pathname}
+            >
+              {link.title}
+            </ListLink>
+          ))}
         </NavTabs>
       </div>
     );

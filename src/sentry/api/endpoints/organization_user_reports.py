@@ -1,9 +1,11 @@
 from __future__ import absolute_import
 
+from rest_framework.response import Response
 from sentry.api.bases.organization import (
     OrganizationEndpoint,
     OrganizationUserReportsPermission,
 )
+from sentry.api.bases import NoProjects, OrganizationEventsError
 from sentry.api.paginator import DateTimePaginator
 from sentry.api.serializers import serialize
 from sentry.api.serializers.models import UserReportWithGroupSerializer
@@ -38,11 +40,16 @@ class OrganizationUserReportsEndpoint(OrganizationEndpoint):
         :pparam string project_slug: the slug of the project.
         :auth: required
         """
-        filter_params = self.get_filter_params(
-            request,
-            organization,
-            date_filter_optional=True,
-        )
+        try:
+            filter_params = self.get_filter_params(
+                request,
+                organization,
+                date_filter_optional=True,
+            )
+        except NoProjects:
+            return Response([])
+        except OrganizationEventsError as exc:
+            return Response({'detail': exc.message}, status=400)
 
         queryset = UserReport.objects.filter(
             project_id__in=filter_params['project_id'],

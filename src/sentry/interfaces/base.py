@@ -37,14 +37,16 @@ def get_interface(name):
 def get_interfaces(data):
     result = []
     for key, data in six.iteritems(data):
+        # Skip invalid interfaces that were nulled out during normalization
+        if data is None:
+            continue
+
         try:
             cls = get_interface(key)
         except ValueError:
             continue
 
-        value = safe_execute(
-            cls.to_python, data, _with_transaction=False
-        )
+        value = safe_execute(cls.to_python, data, _with_transaction=False)
         if not value:
             continue
 

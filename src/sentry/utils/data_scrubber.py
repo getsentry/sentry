@@ -75,33 +75,36 @@ class SensitiveDataFilter(object):
 
     def apply(self, data):
         # TODO(dcramer): move this into each interface
-        if 'stacktrace' in data:
+        if data.get('stacktrace'):
             self.filter_stacktrace(data['stacktrace'])
 
-        if 'exception' in data:
-            for exc in get_path(data, 'exception', 'values', filter=True) or ():
-                if exc.get('stacktrace'):
-                    self.filter_stacktrace(exc['stacktrace'])
+        for exc in get_path(data, 'exception', 'values', filter=True) or ():
+            if exc.get('stacktrace'):
+                self.filter_stacktrace(exc['stacktrace'])
 
-        if 'breadcrumbs' in data:
-            for crumb in data['breadcrumbs'].get('values') or ():
-                self.filter_crumb(crumb)
+        for exc in get_path(data, 'threads', 'values', filter=True) or ():
+            if exc.get('stacktrace'):
+                self.filter_stacktrace(exc['stacktrace'])
 
-        if 'request' in data:
+        for crumb in get_path(data, 'breadcrumbs', 'values', filter=True) or ():
+            self.filter_crumb(crumb)
+
+        if data.get('request'):
             self.filter_http(data['request'])
 
-        if 'user' in data:
+        if data.get('user'):
             self.filter_user(data['user'])
 
-        if 'csp' in data:
+        if data.get('csp'):
             self.filter_csp(data['csp'])
 
-        if 'extra' in data:
+        if data.get('extra'):
             data['extra'] = varmap(self.sanitize, data['extra'])
 
-        if 'contexts' in data:
+        if data.get('contexts'):
             for key, value in six.iteritems(data['contexts']):
-                data['contexts'][key] = varmap(self.sanitize, value)
+                if value:
+                    data['contexts'][key] = varmap(self.sanitize, value)
 
     def sanitize(self, key, value):
         if value is None or value == '':
@@ -138,16 +141,16 @@ class SensitiveDataFilter(object):
         return value
 
     def filter_stacktrace(self, data):
-        if 'frames' not in data:
+        if not data.get('frames'):
             return
         for frame in data['frames']:
-            if 'vars' not in frame:
+            if not frame or not frame.get('vars'):
                 continue
             frame['vars'] = varmap(self.sanitize, frame['vars'])
 
     def filter_http(self, data):
         for n in ('data', 'cookies', 'headers', 'env', 'query_string'):
-            if n not in data:
+            if not data.get(n):
                 continue
 
             if isinstance(data[n], six.string_types) and '=' in data[n]:
@@ -167,7 +170,7 @@ class SensitiveDataFilter(object):
                 data[n] = varmap(self.sanitize, data[n])
 
     def filter_user(self, data):
-        if 'data' not in data:
+        if not data.get('data'):
             return
         data['data'] = varmap(self.sanitize, data['data'])
 
@@ -179,7 +182,7 @@ class SensitiveDataFilter(object):
 
     def filter_csp(self, data):
         for key in 'blocked_uri', 'document_uri':
-            if key not in data:
+            if not data.get(key):
                 continue
             value = data[key]
             if not isinstance(value, six.string_types):

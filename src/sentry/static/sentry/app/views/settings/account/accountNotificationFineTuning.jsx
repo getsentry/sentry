@@ -62,6 +62,8 @@ const ACCOUNT_NOTIFICATION_FIELDS = {
       "Reports contain a summary of what's happened within the organization."
     ),
     type: 'select',
+    // API only saves organizations that have this disabled, so we should default to "On"
+    defaultValue: 1,
     choices: [[1, t('On')], [0, t('Off')]],
     defaultFieldName: 'weeklyReports',
   },

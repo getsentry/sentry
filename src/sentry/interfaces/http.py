@@ -22,7 +22,7 @@ from sentry.interfaces.base import Interface, InterfaceValidationError, prune_em
 from sentry.interfaces.schemas import validate_and_default_interface
 from sentry.utils import json
 from sentry.utils.strings import to_unicode
-from sentry.utils.safe import trim, trim_dict, trim_pairs
+from sentry.utils.safe import trim, trim_dict, trim_pairs, get_path
 from sentry.utils.http import heuristic_decode
 from sentry.utils.validators import validate_ip
 from sentry.web.helpers import render_to_string
@@ -184,9 +184,8 @@ class Http(Interface):
         cookies = data.get('cookies')
         # if cookies were [also] included in headers we
         # strip them out
-        headers = data.get('headers')
-        if headers:
-            headers, cookie_header = format_headers(headers)
+        if data.get("headers"):
+            headers, cookie_header = format_headers(get_path(data, "headers", filter=True))
             if not cookies and cookie_header:
                 cookies = cookie_header
         else:
@@ -248,10 +247,11 @@ class Http(Interface):
     @property
     def full_url(self):
         url = self.url
-        if self.query_string:
-            url = url + '?' + urlencode(self.query_string)
-        if self.fragment:
-            url = url + '#' + self.fragment
+        if url:
+            if self.query_string:
+                url = url + '?' + urlencode(self.query_string)
+            if self.fragment:
+                url = url + '#' + self.fragment
         return url
 
     def to_email_html(self, event, **kwargs):

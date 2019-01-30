@@ -3,6 +3,7 @@ from __future__ import absolute_import
 import six
 import uuid
 import hmac
+import itertools
 
 from django.db import models
 from django.db.models import Q
@@ -20,9 +21,34 @@ from sentry.db.models import (
     ParanoidModel,
 )
 
-VALID_EVENTS = (
+# When a developer selects to receive "<Resource> Webhooks" it really means
+# listening to a list of specific events. This is a mapping of what those
+# specific events are for each resource.
+EVENT_EXPANSION = {
+    'issue': ['issue.created', 'issue.resolved'],
+}
+
+# We present Webhook Subscriptions per-resource (Issue, Project, etc.), not
+# per-event-type (issue.created, project.deleted, etc.). These are valid
+# resources a Sentry App may subscribe to.
+VALID_EVENT_RESOURCES = (
     'issue',
 )
+
+REQUIRED_EVENT_PERMISSIONS = {
+    'issue': 'event:read',
+    'project': 'project:read',
+    'member': 'member:read',
+    'organization': 'org:read',
+    'team': 'team:read',
+}
+
+# The only events valid for Sentry Apps are the ones listed in the values of
+# EVENT_EXPANSION above. This list is likely a subset of all valid ServiceHook
+# events.
+VALID_EVENTS = tuple(itertools.chain(
+    *EVENT_EXPANSION.values()
+))
 
 
 def default_uuid():

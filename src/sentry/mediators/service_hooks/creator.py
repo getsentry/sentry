@@ -7,14 +7,7 @@ from itertools import chain
 
 from sentry.mediators import Mediator, Param
 from sentry.models import ServiceHook
-
-# Subscribing to these events via the UI is done in a resource-centric way.
-# This means you subscribe to "Issue" events. There are many types of Issue
-# events - this maps those resource-centric values to the actual events
-# emitted.
-EVENT_EXPANSION = {
-    'issue': ['issue.created'],
-}
+from sentry.models.sentryapp import EVENT_EXPANSION
 
 
 def expand_events(rolled_up_events):
@@ -50,10 +43,13 @@ class Creator(Mediator):
         return self.hook
 
     def _create_service_hook(self):
+        application_id = self.application.id if self.application else None
+
         return ServiceHook.objects.create(
-            application_id=self.application.id,
+            application_id=application_id,
             actor_id=self.actor.id,
             project_id=self.project.id,
+            organization_id=self.project.organization_id,
             events=expand_events(self.events),
             url=self.url,
         )

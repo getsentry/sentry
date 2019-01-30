@@ -55,10 +55,10 @@ exports[`OrganizationDetails render() deletion in progress should render a delet
                 </svg>
               </span>
               <div
-                class="css-a5a05a-NameAndOrgWrapper e1fowdfw4"
+                class="css-1mzb71u-OrgAndUserWrapper e1fowdfw4"
               >
                 <div
-                  class="css-1cbli9p-TextOverflow-DropdownOrgName e1fowdfw5"
+                  class="css-df1voe-TextOverflow-OrgOrUserName e1fowdfw5"
                 >
                   Organization Name 
                   <i
@@ -66,7 +66,7 @@ exports[`OrganizationDetails render() deletion in progress should render a delet
                   />
                 </div>
                 <div
-                  class="css-1djvv1k-TextOverflow-DropdownUserName e1fowdfw6"
+                  class="css-1b3lkmg-TextOverflow-UserNameOrEmail e1fowdfw6"
                 >
                   Foo Bar
                 </div>
@@ -79,7 +79,7 @@ exports[`OrganizationDetails render() deletion in progress should render a delet
         class="css-tlukoq-SidebarSectionGroup-responsiveFlex-SidebarSection e1sgxx352"
       >
         <a
-          class="css-1l9toro-StyledSidebarItem e1qdnaq70"
+          class="css-u8cmbr-StyledSidebarItem e1qdnaq70"
         >
           <div
             class="css-gn87gt-SidebarItemWrapper e1qdnaq71"
@@ -114,7 +114,7 @@ exports[`OrganizationDetails render() deletion in progress should render a delet
         class="css-tlukoq-SidebarSectionGroup-responsiveFlex-SidebarSection e1sgxx352"
       >
         <a
-          class="css-1l9toro-StyledSidebarItem e1qdnaq70"
+          class="css-u8cmbr-StyledSidebarItem e1qdnaq70"
         >
           <div
             class="css-gn87gt-SidebarItemWrapper e1qdnaq71"
@@ -145,7 +145,7 @@ exports[`OrganizationDetails render() deletion in progress should render a delet
           </div>
         </a>
         <a
-          class="css-1l9toro-StyledSidebarItem e1qdnaq70"
+          class="css-u8cmbr-StyledSidebarItem e1qdnaq70"
         >
           <div
             class="css-gn87gt-SidebarItemWrapper e1qdnaq71"
@@ -176,7 +176,7 @@ exports[`OrganizationDetails render() deletion in progress should render a delet
           </div>
         </a>
         <a
-          class="css-1l9toro-StyledSidebarItem e1qdnaq70"
+          class="css-u8cmbr-StyledSidebarItem e1qdnaq70"
         >
           <div
             class="css-gn87gt-SidebarItemWrapper e1qdnaq71"
@@ -211,7 +211,7 @@ exports[`OrganizationDetails render() deletion in progress should render a delet
         class="css-tlukoq-SidebarSectionGroup-responsiveFlex-SidebarSection e1sgxx352"
       >
         <a
-          class="css-1l9toro-StyledSidebarItem e1qdnaq70"
+          class="css-u8cmbr-StyledSidebarItem e1qdnaq70"
         >
           <div
             class="css-gn87gt-SidebarItemWrapper e1qdnaq71"
@@ -242,7 +242,7 @@ exports[`OrganizationDetails render() deletion in progress should render a delet
           </div>
         </a>
         <a
-          class="css-1l9toro-StyledSidebarItem e1qdnaq70"
+          class="css-u8cmbr-StyledSidebarItem e1qdnaq70"
         >
           <div
             class="css-gn87gt-SidebarItemWrapper e1qdnaq71"
@@ -277,7 +277,7 @@ exports[`OrganizationDetails render() deletion in progress should render a delet
         class="css-tlukoq-SidebarSectionGroup-responsiveFlex-SidebarSection e1sgxx352"
       >
         <a
-          class="css-1l9toro-StyledSidebarItem e1qdnaq70"
+          class="css-u8cmbr-StyledSidebarItem e1qdnaq70"
         >
           <div
             class="css-gn87gt-SidebarItemWrapper e1qdnaq71"
@@ -324,7 +324,7 @@ exports[`OrganizationDetails render() deletion in progress should render a delet
             tabindex="-1"
           >
             <a
-              class="css-1l9toro-StyledSidebarItem e1qdnaq70"
+              class="css-u8cmbr-StyledSidebarItem e1qdnaq70"
             >
               <div
                 class="css-gn87gt-SidebarItemWrapper e1qdnaq71"
@@ -357,7 +357,7 @@ exports[`OrganizationDetails render() deletion in progress should render a delet
           </div>
         </div>
         <a
-          class="css-1l9toro-StyledSidebarItem e1qdnaq70"
+          class="css-u8cmbr-StyledSidebarItem e1qdnaq70"
           data-test-id="sidebar-broadcasts"
         >
           <div
@@ -396,7 +396,7 @@ exports[`OrganizationDetails render() deletion in progress should render a delet
         class="css-tlukoq-SidebarSectionGroup-responsiveFlex-SidebarSection e1sgxx352"
       >
         <a
-          class="e1sgxx354 css-7c155y-StyledSidebarItem-SidebarCollapseItem e1qdnaq70"
+          class="e1sgxx354 css-ekfpov-StyledSidebarItem-SidebarCollapseItem e1qdnaq70"
           data-test-id="sidebar-collapse"
         >
           <div
@@ -531,10 +531,10 @@ exports[`OrganizationDetails render() pending deletion should render a restorati
                 </svg>
               </span>
               <div
-                class="css-a5a05a-NameAndOrgWrapper e1fowdfw4"
+                class="css-1mzb71u-OrgAndUserWrapper e1fowdfw4"
               >
                 <div
-                  class="css-1cbli9p-TextOverflow-DropdownOrgName e1fowdfw5"
+                  class="css-df1voe-TextOverflow-OrgOrUserName e1fowdfw5"
                 >
                   Organization Name 
                   <i
@@ -542,7 +542,7 @@ exports[`OrganizationDetails render() pending deletion should render a restorati
                   />
                 </div>
                 <div
-                  class="css-1djvv1k-TextOverflow-DropdownUserName e1fowdfw6"
+                  class="css-1b3lkmg-TextOverflow-UserNameOrEmail e1fowdfw6"
                 >
                   Foo Bar
                 </div>
@@ -555,7 +555,7 @@ exports[`OrganizationDetails render() pending deletion should render a restorati
         class="css-tlukoq-SidebarSectionGroup-responsiveFlex-SidebarSection e1sgxx352"
       >
         <a
-          class="css-1l9toro-StyledSidebarItem e1qdnaq70"
+          class="css-u8cmbr-StyledSidebarItem e1qdnaq70"
         >
           <div
             class="css-gn87gt-SidebarItemWrapper e1qdnaq71"
@@ -590,7 +590,7 @@ exports[`OrganizationDetails render() pending deletion should render a restorati
         class="css-tlukoq-SidebarSectionGroup-responsiveFlex-SidebarSection e1sgxx352"
       >
         <a
-          class="css-1l9toro-StyledSidebarItem e1qdnaq70"
+          class="css-u8cmbr-StyledSidebarItem e1qdnaq70"
         >
           <div
             class="css-gn87gt-SidebarItemWrapper e1qdnaq71"
@@ -621,7 +621,7 @@ exports[`OrganizationDetails render() pending deletion should render a restorati
           </div>
         </a>
         <a
-          class="css-1l9toro-StyledSidebarItem e1qdnaq70"
+          class="css-u8cmbr-StyledSidebarItem e1qdnaq70"
         >
           <div
             class="css-gn87gt-SidebarItemWrapper e1qdnaq71"
@@ -652,7 +652,7 @@ exports[`OrganizationDetails render() pending deletion should render a restorati
           </div>
         </a>
         <a
-          class="css-1l9toro-StyledSidebarItem e1qdnaq70"
+          class="css-u8cmbr-StyledSidebarItem e1qdnaq70"
         >
           <div
             class="css-gn87gt-SidebarItemWrapper e1qdnaq71"
@@ -687,7 +687,7 @@ exports[`OrganizationDetails render() pending deletion should render a restorati
         class="css-tlukoq-SidebarSectionGroup-responsiveFlex-SidebarSection e1sgxx352"
       >
         <a
-          class="css-1l9toro-StyledSidebarItem e1qdnaq70"
+          class="css-u8cmbr-StyledSidebarItem e1qdnaq70"
         >
           <div
             class="css-gn87gt-SidebarItemWrapper e1qdnaq71"
@@ -718,7 +718,7 @@ exports[`OrganizationDetails render() pending deletion should render a restorati
           </div>
         </a>
         <a
-          class="css-1l9toro-StyledSidebarItem e1qdnaq70"
+          class="css-u8cmbr-StyledSidebarItem e1qdnaq70"
         >
           <div
             class="css-gn87gt-SidebarItemWrapper e1qdnaq71"
@@ -753,7 +753,7 @@ exports[`OrganizationDetails render() pending deletion should render a restorati
         class="css-tlukoq-SidebarSectionGroup-responsiveFlex-SidebarSection e1sgxx352"
       >
         <a
-          class="css-1l9toro-StyledSidebarItem e1qdnaq70"
+          class="css-u8cmbr-StyledSidebarItem e1qdnaq70"
         >
           <div
             class="css-gn87gt-SidebarItemWrapper e1qdnaq71"
@@ -800,7 +800,7 @@ exports[`OrganizationDetails render() pending deletion should render a restorati
             tabindex="-1"
           >
             <a
-              class="css-1l9toro-StyledSidebarItem e1qdnaq70"
+              class="css-u8cmbr-StyledSidebarItem e1qdnaq70"
             >
               <div
                 class="css-gn87gt-SidebarItemWrapper e1qdnaq71"
@@ -833,7 +833,7 @@ exports[`OrganizationDetails render() pending deletion should render a restorati
           </div>
         </div>
         <a
-          class="css-1l9toro-StyledSidebarItem e1qdnaq70"
+          class="css-u8cmbr-StyledSidebarItem e1qdnaq70"
           data-test-id="sidebar-broadcasts"
         >
           <div
@@ -872,7 +872,7 @@ exports[`OrganizationDetails render() pending deletion should render a restorati
         class="css-tlukoq-SidebarSectionGroup-responsiveFlex-SidebarSection e1sgxx352"
       >
         <a
-          class="e1sgxx354 css-7c155y-StyledSidebarItem-SidebarCollapseItem e1qdnaq70"
+          class="e1sgxx354 css-ekfpov-StyledSidebarItem-SidebarCollapseItem e1qdnaq70"
           data-test-id="sidebar-collapse"
         >
           <div
@@ -1034,10 +1034,10 @@ exports[`OrganizationDetails render() pending deletion should render a restorati
                 </svg>
               </span>
               <div
-                class="css-a5a05a-NameAndOrgWrapper e1fowdfw4"
+                class="css-1mzb71u-OrgAndUserWrapper e1fowdfw4"
               >
                 <div
-                  class="css-1cbli9p-TextOverflow-DropdownOrgName e1fowdfw5"
+                  class="css-df1voe-TextOverflow-OrgOrUserName e1fowdfw5"
                 >
                   Organization Name 
                   <i
@@ -1045,7 +1045,7 @@ exports[`OrganizationDetails render() pending deletion should render a restorati
                   />
                 </div>
                 <div
-                  class="css-1djvv1k-TextOverflow-DropdownUserName e1fowdfw6"
+                  class="css-1b3lkmg-TextOverflow-UserNameOrEmail e1fowdfw6"
                 >
                   Foo Bar
                 </div>
@@ -1058,7 +1058,7 @@ exports[`OrganizationDetails render() pending deletion should render a restorati
         class="css-tlukoq-SidebarSectionGroup-responsiveFlex-SidebarSection e1sgxx352"
       >
         <a
-          class="css-1l9toro-StyledSidebarItem e1qdnaq70"
+          class="css-u8cmbr-StyledSidebarItem e1qdnaq70"
         >
           <div
             class="css-gn87gt-SidebarItemWrapper e1qdnaq71"
@@ -1093,7 +1093,7 @@ exports[`OrganizationDetails render() pending deletion should render a restorati
         class="css-tlukoq-SidebarSectionGroup-responsiveFlex-SidebarSection e1sgxx352"
       >
         <a
-          class="css-1l9toro-StyledSidebarItem e1qdnaq70"
+          class="css-u8cmbr-StyledSidebarItem e1qdnaq70"
         >
           <div
             class="css-gn87gt-SidebarItemWrapper e1qdnaq71"
@@ -1124,7 +1124,7 @@ exports[`OrganizationDetails render() pending deletion should render a restorati
           </div>
         </a>
         <a
-          class="css-1l9toro-StyledSidebarItem e1qdnaq70"
+          class="css-u8cmbr-StyledSidebarItem e1qdnaq70"
         >
           <div
             class="css-gn87gt-SidebarItemWrapper e1qdnaq71"
@@ -1155,7 +1155,7 @@ exports[`OrganizationDetails render() pending deletion should render a restorati
           </div>
         </a>
         <a
-          class="css-1l9toro-StyledSidebarItem e1qdnaq70"
+          class="css-u8cmbr-StyledSidebarItem e1qdnaq70"
         >
           <div
             class="css-gn87gt-SidebarItemWrapper e1qdnaq71"
@@ -1190,7 +1190,7 @@ exports[`OrganizationDetails render() pending deletion should render a restorati
         class="css-tlukoq-SidebarSectionGroup-responsiveFlex-SidebarSection e1sgxx352"
       >
         <a
-          class="css-1l9toro-StyledSidebarItem e1qdnaq70"
+          class="css-u8cmbr-StyledSidebarItem e1qdnaq70"
         >
           <div
             class="css-gn87gt-SidebarItemWrapper e1qdnaq71"
@@ -1221,7 +1221,7 @@ exports[`OrganizationDetails render() pending deletion should render a restorati
           </div>
         </a>
         <a
-          class="css-1l9toro-StyledSidebarItem e1qdnaq70"
+          class="css-u8cmbr-StyledSidebarItem e1qdnaq70"
         >
           <div
             class="css-gn87gt-SidebarItemWrapper e1qdnaq71"
@@ -1256,7 +1256,7 @@ exports[`OrganizationDetails render() pending deletion should render a restorati
         class="css-tlukoq-SidebarSectionGroup-responsiveFlex-SidebarSection e1sgxx352"
       >
         <a
-          class="css-1l9toro-StyledSidebarItem e1qdnaq70"
+          class="css-u8cmbr-StyledSidebarItem e1qdnaq70"
         >
           <div
             class="css-gn87gt-SidebarItemWrapper e1qdnaq71"
@@ -1303,7 +1303,7 @@ exports[`OrganizationDetails render() pending deletion should render a restorati
             tabindex="-1"
           >
             <a
-              class="css-1l9toro-StyledSidebarItem e1qdnaq70"
+              class="css-u8cmbr-StyledSidebarItem e1qdnaq70"
             >
               <div
                 class="css-gn87gt-SidebarItemWrapper e1qdnaq71"
@@ -1336,7 +1336,7 @@ exports[`OrganizationDetails render() pending deletion should render a restorati
           </div>
         </div>
         <a
-          class="css-1l9toro-StyledSidebarItem e1qdnaq70"
+          class="css-u8cmbr-StyledSidebarItem e1qdnaq70"
           data-test-id="sidebar-broadcasts"
         >
           <div
@@ -1375,7 +1375,7 @@ exports[`OrganizationDetails render() pending deletion should render a restorati
         class="css-tlukoq-SidebarSectionGroup-responsiveFlex-SidebarSection e1sgxx352"
       >
         <a
-          class="e1sgxx354 css-7c155y-StyledSidebarItem-SidebarCollapseItem e1qdnaq70"
+          class="e1sgxx354 css-ekfpov-StyledSidebarItem-SidebarCollapseItem e1qdnaq70"
           data-test-id="sidebar-collapse"
         >
           <div

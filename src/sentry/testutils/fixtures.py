@@ -305,7 +305,7 @@ class Fixtures(object):
             project_id=project.id,
             name=name,
         )
-        env.add_project(project)
+        env.add_project(project, is_hidden=kwargs.get('is_hidden'))
         return env
 
     def create_project(self, **kwargs):
@@ -333,13 +333,17 @@ class Fixtures(object):
         return project.key_set.get_or_create()[0]
 
     # TODO(maxbittker) make new fixtures less hardcoded
-    def create_release(self, project, user=None, version=None):
+    def create_release(self, project, user=None, version=None, date_added=None):
         if version is None:
             version = os.urandom(20).encode('hex')
+
+        if date_added is None:
+            date_added = timezone.now().replace(microsecond=0)
 
         release = Release.objects.create(
             version=version,
             organization_id=project.organization_id,
+            date_added=date_added,
         )
 
         release.add_project(project)

@@ -30,7 +30,7 @@ exports[`StreamGroup renders with anchors 1`] = `
       ]
     }
   >
-    <EventOrGroupHeader
+    <withRouter(EventOrGroupHeader)
       data={
         Object {
           "assignedTo": null,
@@ -65,23 +65,16 @@ exports[`StreamGroup renders with anchors 1`] = `
           "type": "error",
         }
       }
-      includeLink={true}
-      orgId="orgId"
-      projectId="test"
     />
-    <EventOrGroupExtraDetails
+    <withRouter(EventOrGroupExtraDetails)
       assignedTo={null}
-      group={true}
-      groupId="1L"
       id="1337"
-      orgId="orgId"
       project={
         Object {
           "id": "13",
           "slug": "test",
         }
       }
-      projectId="test"
       stats={
         Object {
           "24h": Array [
