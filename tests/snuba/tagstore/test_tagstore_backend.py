@@ -188,7 +188,7 @@ class TagStorageTest(SnubaTestCase):
             k.key: k for k in self.ts.get_group_tag_keys(
                 project_id=self.proj1.id,
                 group_id=self.proj1group1.id,
-                environment_id=self.proj1env1.id,
+                environment_ids=[self.proj1env1.id],
             )
         }
         assert set(keys) == set(['baz', 'environment', 'foo', 'sentry:release', 'sentry:user'])
