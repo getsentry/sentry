@@ -11,6 +11,7 @@ import DropdownLink from 'app/components/dropdownLink';
 import QueryCount from 'app/components/queryCount';
 import MenuItem from 'app/components/menuItem';
 import Tooltip from 'app/components/tooltip';
+import Tag from 'app/views/settings/components/tag';
 import {BooleanField, FormState, TextField} from 'app/components/forms';
 import withApi from 'app/utils/withApi';
 import space from 'app/styles/space';
@@ -250,7 +251,10 @@ const SavedSearchSelector = withApi(
       let children = this.props.savedSearchList.map(search => {
         return (
           <StyledMenuItem onSelect={() => onSavedSearchSelect(search)} key={search.id}>
-            <strong>{search.name}</strong>
+            <span>
+              <strong>{search.name}</strong>
+              {search.projectSlug && <StyledTag>{search.projectSlug}</StyledTag>}
+            </span>
             <code>{search.query}</code>
           </StyledMenuItem>
         );
@@ -315,11 +319,17 @@ const EmptyItem = styled.li`
   font-style: italic;
 `;
 
+const StyledTag = styled(Tag)`
+  display: inline-block;
+  margin-left: ${space(0.25)};
+`;
+
 const StyledMenuItem = styled(MenuItem)`
   & a {
-    padding: ${space(0.5)} ${space(1)};
+    /* override shared-components.less */
+    padding: ${space(0.25)} ${space(1)} !important;
   }
-  & strong,
+  & span,
   & code {
     display: block;
     max-width: 100%;

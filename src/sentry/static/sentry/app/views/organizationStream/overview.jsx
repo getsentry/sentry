@@ -522,9 +522,20 @@ const OrganizationStream = createReactClass({
 
   fetchSavedSearches() {
     let {orgId, searchId} = this.props.params;
+    let {organization} = this.props;
+    let projectMap = organization.projects.reduce((acc, project) => {
+      acc[project.id] = project.slug;
+      return acc;
+    }, {});
 
     fetchSavedSearches(this.api, orgId).then(
-      savedSearchList => {
+      data => {
+        // Add in project slugs so that we can display them in the picker bars.
+        let savedSearchList = data.map(search => {
+          search.projectSlug = projectMap[search.projectId];
+          return search;
+        });
+
         let newState = {
           savedSearchList,
           savedSearchLoading: false,
