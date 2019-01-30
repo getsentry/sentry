@@ -214,6 +214,7 @@ const SavedSearchSelector = withApi(
       projectId: PropTypes.string,
       searchId: PropTypes.string,
       access: PropTypes.object.isRequired,
+      query: PropTypes.string,
       savedSearchList: PropTypes.array.isRequired,
       queryCount: PropTypes.number,
       queryMaxCount: PropTypes.number,
@@ -222,12 +223,16 @@ const SavedSearchSelector = withApi(
     };
 
     getTitle() {
-      let searchId = this.props.searchId || null;
-      if (!searchId) return t('Custom Search');
-      let results = this.props.savedSearchList.filter(search => {
-        return searchId === search.id;
-      });
-      return results.length ? results[0].name : t('Custom Search');
+      let {searchId, query, savedSearchList} = this.props;
+      let result;
+
+      if (searchId) {
+        result = savedSearchList.find(search => searchId === search.id);
+      } else {
+        result = savedSearchList.find(search => query === search.query);
+      }
+
+      return result ? result.name : t('Custom Search');
     }
 
     render() {
