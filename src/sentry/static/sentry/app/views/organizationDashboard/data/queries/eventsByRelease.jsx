@@ -1,8 +1,10 @@
 /**
  * Events by Release
  */
+import {t} from 'app/locale';
+
 const eventsByRelease = {
-  name: 'Events by Release',
+  name: t('Events by Release'),
   fields: ['release'],
   conditions: [],
   aggregations: [['count()', null, 'Events']],

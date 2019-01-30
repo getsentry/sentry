@@ -1,8 +1,10 @@
 /**
  * Anonymous affected users
  */
+import {t} from 'app/locale';
+
 const anonymousUsersAffectedQuery = {
-  name: 'Anonymous Users',
+  name: t('Anonymous Users'),
   fields: [],
   conditions: [['user.email', 'IS NULL', null]],
   aggregations: [['count()', null, 'Anonymous Users']],

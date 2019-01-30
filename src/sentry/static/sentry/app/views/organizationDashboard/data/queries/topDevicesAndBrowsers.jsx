@@ -1,8 +1,10 @@
 /**
  * Top Errors by Device and Browsers
  */
+import {t} from 'app/locale';
+
 const topDevicesAndBrowsers = {
-  name: 'Top Devices and Browsers',
+  name: t('Top Devices and Browsers'),
   fields: ['device.family', 'browser.name'],
   conditions: [],
   aggregations: [['count()', null, 'count']],

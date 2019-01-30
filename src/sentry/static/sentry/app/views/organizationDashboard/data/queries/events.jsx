@@ -1,8 +1,10 @@
 /**
  * Events by day
  */
+import {t} from 'app/locale';
+
 const events = {
-  name: 'Events',
+  name: t('Events'),
   fields: [],
   conditions: [],
   aggregations: [['count()', null, 'Events']],
