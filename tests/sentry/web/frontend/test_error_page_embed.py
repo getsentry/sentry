@@ -188,15 +188,12 @@ class ErrorPageEmbedEnvironmentTest(TestCase):
             'tags': [],
         }
         result.update(kwargs)
-        manager = EventManager(result)
-        manager.normalize()
-        manager.save(self.project.id)
+        return self.create_event_endtoend(data=result, project_id=self.project.id)
 
     def test_environment_gets_user_report(self):
         self.make_event(
             environment=self.environment.name,
             event_id=self.event_id,
-            group=self.group,
         )
         self.login_as(user=self.user)
         response = self.client.post(
@@ -224,7 +221,6 @@ class ErrorPageEmbedEnvironmentTest(TestCase):
         self.make_event(
             environment=self.environment.name,
             event_id=self.event_id,
-            group=self.group,
         )
         assert response.status_code == 200, response.content
         assert UserReport.objects.get(event_id=self.event_id).environment == self.environment

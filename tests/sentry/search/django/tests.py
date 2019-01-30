@@ -26,55 +26,58 @@ class DjangoSearchBackendTest(TestCase):
     def setUp(self):
         self.backend = self.create_backend()
 
-        self.group1 = self.create_group(
-            project=self.project,
-            checksum='a' * 32,
-            message='foo',
-            times_seen=5,
-            status=GroupStatus.UNRESOLVED,
-            last_seen=datetime(2013, 8, 13, 3, 8, 24, 880386, tzinfo=pytz.utc),
-            first_seen=datetime(2013, 7, 13, 3, 8, 24, 880386, tzinfo=pytz.utc),
-        )
-
-        self.event1 = self.create_event(
-            event_id='a' * 32,
-            group=self.group1,
-            datetime=datetime(2013, 7, 13, 3, 8, 24, 880386, tzinfo=pytz.utc),
-            tags={
-                'server': 'example.com',
+        self.event1 = self.create_event_endtoend(
+            data={
+                'fingerprint': ['put-me-in-group1'],
+                'event_id': 'a' * 32,
+                'message': 'foo',
                 'environment': 'production',
-            }
+                'tags': {
+                    'server': 'example.com',
+                },
+                'timestamp': datetime(2013, 7, 13, 3, 8, 24, 880386, tzinfo=pytz.utc).isoformat(),
+            },
+            project_id=self.project.id
         )
-        self.event3 = self.create_event(
-            event_id='c' * 32,
-            group=self.group1,
-            datetime=datetime(2013, 8, 13, 3, 8, 24, 880386, tzinfo=pytz.utc),
-            tags={
-                'server': 'example.com',
+
+        self.event3 = self.create_event_endtoend(
+            data={
+                'fingerprint': ['put-me-in-group1'],
+                'event_id': 'c' * 32,
+                'message': 'foo',
+                'timestamp': datetime(2013, 8, 13, 3, 8, 24, 880386, tzinfo=pytz.utc).isoformat(),
                 'environment': 'production',
-            }
+                'tags': {
+                    'server': 'example.com',
+                }
+            },
+            project_id=self.project.id
         )
 
-        self.group2 = self.create_group(
-            project=self.project,
-            checksum='b' * 32,
-            message='bar',
-            times_seen=10,
-            status=GroupStatus.RESOLVED,
-            last_seen=datetime(2013, 7, 14, 3, 8, 24, 880386, tzinfo=pytz.utc),
-            first_seen=datetime(2013, 7, 14, 3, 8, 24, 880386, tzinfo=pytz.utc),
-        )
+        self.group1 = self.event1.group
+        assert self.event3.group == self.group1
 
-        self.event2 = self.create_event(
-            event_id='b' * 32,
-            group=self.group2,
-            datetime=datetime(2013, 7, 14, 3, 8, 24, 880386, tzinfo=pytz.utc),
-            tags={
-                'server': 'example.com',
+        self.group1.status = GroupStatus.UNRESOLVED
+        self.group1.times_seen = 5
+        self.group1.save()
+
+        self.event2 = self.create_event_endtoend(
+            data={
+                'event_id': 'b' * 32,
+                'timestamp': datetime(2013, 7, 14, 3, 8, 24, 880386, tzinfo=pytz.utc).isoformat(),
                 'environment': 'staging',
-                'url': 'http://example.com',
-            }
+                'tags': {
+                    'server': 'example.com',
+                    'url': 'http://example.com',
+                }
+            },
+            project_id=self.project.id
         )
+
+        self.group2 = self.event2.group
+        self.group2.status = GroupStatus.RESOLVED
+        self.group2.times_seen = 10
+        self.group2.save()
 
         self.environments = {}
 
