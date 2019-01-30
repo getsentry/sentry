@@ -249,9 +249,11 @@ export function isWebpackChunkLoadingError(error) {
  * and converts it into hours
  */
 export function parsePeriodToHours(str) {
-  const [, periodNumber, periodLength] = str.match(/([0-9]+)([mhdw])/);
+  const [, periodNumber, periodLength] = str.match(/([0-9]+)([smhdw])/);
 
   switch (periodLength) {
+    case 's':
+      return periodNumber / (60 * 60);
     case 'm':
       return periodNumber / 60;
     case 'h':
@@ -259,7 +261,7 @@ export function parsePeriodToHours(str) {
     case 'd':
       return periodNumber * 24;
     case 'w':
-      return periodLength * 24 * 7;
+      return periodNumber * 24 * 7;
     default:
       return -1;
   }

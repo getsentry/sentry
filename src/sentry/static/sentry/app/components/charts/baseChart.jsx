@@ -120,8 +120,8 @@ class BaseChart extends React.Component {
     // x-axis and tooltips.
     isGroupedByDate: PropTypes.bool,
 
-    // How is data grouped (affects formatting of axis labels and tooltips)
-    interval: PropTypes.oneOf(['hour', 'day']),
+    // Should we render hours on xaxis instead of day?
+    shouldXAxisRenderTimeOnly: PropTypes.bool,
 
     // Formats dates as UTC?
     utc: PropTypes.bool,
@@ -140,7 +140,7 @@ class BaseChart extends React.Component {
     xAxis: {},
     yAxis: {},
     isGroupedByDate: false,
-    interval: 'day',
+    shouldXAxisRenderTimeOnly: false,
   };
 
   getEventsMap = () => {
@@ -197,7 +197,7 @@ class BaseChart extends React.Component {
       toolBox,
 
       isGroupedByDate,
-      interval,
+      shouldXAxisRenderTimeOnly,
       previousPeriod,
       utc,
       yAxes,
@@ -243,17 +243,14 @@ class BaseChart extends React.Component {
           useUTC: utc,
           color: colors || this.getColorPalette(),
           grid: Grid(grid),
-          tooltip:
-            tooltip !== null
-              ? Tooltip({interval, isGroupedByDate, utc, ...tooltip})
-              : null,
+          tooltip: tooltip !== null ? Tooltip({isGroupedByDate, utc, ...tooltip}) : null,
           legend: legend ? Legend({...legend}) : null,
           yAxis: yAxisOrCustom,
           xAxis:
             xAxis !== null
               ? XAxis({
                   ...xAxis,
-                  interval,
+                  shouldRenderTimeOnly: shouldXAxisRenderTimeOnly,
                   isGroupedByDate,
                   utc,
                 })

@@ -1,11 +1,10 @@
-import {withRouter} from 'react-router';
 import PropTypes from 'prop-types';
 import React from 'react';
 import moment from 'moment';
 
 import {callIfFunction} from 'app/utils/callIfFunction';
 import {getFormattedDate} from 'app/utils/dates';
-import {getInterval, useShortInterval} from 'app/components/charts/utils';
+import {useShortInterval} from 'app/components/charts/utils';
 import {updateParams} from 'app/actionCreators/globalSelection';
 import DataZoom from 'app/components/charts/components/dataZoom';
 import SentryTypes from 'app/sentryTypes';
@@ -213,7 +212,6 @@ class ChartZoom extends React.Component {
     }
 
     const hasShortInterval = useShortInterval(this.props);
-    const interval = getInterval(this.props);
     const xAxisOptions = {
       axisLabel: {
         formatter: (value, index) => {
@@ -239,7 +237,6 @@ class ChartZoom extends React.Component {
       isGroupedByDate: true,
       onChartReady: this.handleChartReady,
       utc,
-      interval,
       dataZoom: DataZoom(),
       tooltip,
       toolBox: ToolBox(
@@ -269,4 +266,4 @@ class ChartZoom extends React.Component {
   }
 }
 
-export default withRouter(ChartZoom);
+export default ChartZoom;

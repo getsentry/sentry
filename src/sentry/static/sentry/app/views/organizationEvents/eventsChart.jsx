@@ -1,8 +1,10 @@
 import {isEqual} from 'lodash';
+import {withRouter} from 'react-router';
 import PropTypes from 'prop-types';
 import React from 'react';
 import styled from 'react-emotion';
 
+import {getInterval} from 'app/components/charts/utils';
 import {t} from 'app/locale';
 import ChartZoom from 'app/components/charts/chartZoom';
 import LineChart from 'app/components/charts/lineChart';
@@ -85,7 +87,7 @@ class EventsChart extends React.Component {
             {...props}
             api={api}
             period={period}
-            interval={interval}
+            interval={getInterval(this.props, true)}
             showLoading={false}
             query={query}
             getCategory={DEFAULT_GET_CATEGORY}
@@ -124,27 +126,29 @@ class EventsChart extends React.Component {
   }
 }
 
-const EventsChartContainer = withGlobalSelection(
-  withApi(
-    class EventsChartWithParams extends React.Component {
-      static propTypes = {
-        selection: SentryTypes.GlobalSelection,
-      };
+const EventsChartContainer = withRouter(
+  withGlobalSelection(
+    withApi(
+      class EventsChartWithParams extends React.Component {
+        static propTypes = {
+          selection: SentryTypes.GlobalSelection,
+        };
 
-      render() {
-        const {selection, ...props} = this.props;
-        const {datetime, projects, environments} = selection;
+        render() {
+          const {selection, ...props} = this.props;
+          const {datetime, projects, environments} = selection;
 
-        return (
-          <EventsChart
-            {...datetime}
-            project={projects || []}
-            environment={environments || []}
-            {...props}
-          />
-        );
+          return (
+            <EventsChart
+              {...datetime}
+              project={projects || []}
+              environment={environments || []}
+              {...props}
+            />
+          );
+        }
       }
-    }
+    )
   )
 );
 
