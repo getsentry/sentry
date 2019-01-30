@@ -1,9 +1,11 @@
 import React from 'react';
+import {browserHistory} from 'react-router';
 
 import {Client} from 'app/api';
 import {mount} from 'enzyme';
 import ConfigStore from 'app/stores/configStore';
 import OrganizationMembers from 'app/views/settings/organizationMembers';
+import OrganizationsStore from 'app/stores/organizationsStore';
 import {addSuccessMessage, addErrorMessage} from 'app/actionCreators/indicator';
 
 jest.mock('app/api');
@@ -28,6 +30,9 @@ describe('OrganizationMembers', function() {
   };
   let organization = TestStubs.Organization({
     access: ['member:admin', 'org:admin'],
+    status: {
+      id: 'active',
+    },
   });
   let getStub;
 
@@ -78,6 +83,8 @@ describe('OrganizationMembers', function() {
         require_link: true,
       },
     });
+    browserHistory.push.mockReset();
+    OrganizationsStore.load([organization]);
   });
 
   it('can remove a member', async function() {
@@ -109,6 +116,9 @@ describe('OrganizationMembers', function() {
 
     expect(deleteMock).toHaveBeenCalled();
     expect(addSuccessMessage).toHaveBeenCalled();
+
+    expect(browserHistory.push).not.toHaveBeenCalled();
+    expect(OrganizationsStore.getAll()).toEqual([organization]);
   });
 
   it('displays error message when failing to remove member', async function() {
@@ -141,6 +151,9 @@ describe('OrganizationMembers', function() {
     expect(deleteMock).toHaveBeenCalled();
     await tick();
     expect(addErrorMessage).toHaveBeenCalled();
+
+    expect(browserHistory.push).not.toHaveBeenCalled();
+    expect(OrganizationsStore.getAll()).toEqual([organization]);
   });
 
   it('can leave org', async function() {
@@ -172,6 +185,52 @@ describe('OrganizationMembers', function() {
 
     expect(deleteMock).toHaveBeenCalled();
     expect(addSuccessMessage).toHaveBeenCalled();
+
+    expect(browserHistory.push).toHaveBeenCalledTimes(1);
+    expect(browserHistory.push).toHaveBeenCalledWith('/organizations/new/');
+    expect(OrganizationsStore.getAll()).toEqual([]);
+  });
+
+  it('can redirect to remaining org after leaving', async function() {
+    let deleteMock = Client.addMockResponse({
+      url: `/organizations/org-id/members/${members[1].id}/`,
+      method: 'DELETE',
+    });
+    let secondOrg = TestStubs.Organization({
+      slug: 'org-two',
+      status: {
+        id: 'active',
+      },
+    });
+    OrganizationsStore.add(secondOrg);
+
+    let wrapper = mount(
+      <OrganizationMembers
+        {...defaultProps}
+        params={{
+          orgId: 'org-id',
+        }}
+      />,
+      TestStubs.routerContext([{organization}])
+    );
+
+    wrapper
+      .find('Button[priority="danger"]')
+      .at(0)
+      .simulate('click');
+
+    await tick();
+
+    // Confirm modal
+    wrapper.find('ModalDialog Button[priority="primary"]').simulate('click');
+    await tick();
+
+    expect(deleteMock).toHaveBeenCalled();
+    expect(addSuccessMessage).toHaveBeenCalled();
+
+    expect(browserHistory.push).toHaveBeenCalledTimes(1);
+    expect(browserHistory.push).toHaveBeenCalledWith(`/${secondOrg.slug}/`);
+    expect(OrganizationsStore.getAll()).toEqual([secondOrg]);
   });
 
   it('displays error message when failing to leave org', async function() {
@@ -204,6 +263,9 @@ describe('OrganizationMembers', function() {
     expect(deleteMock).toHaveBeenCalled();
     await tick();
     expect(addErrorMessage).toHaveBeenCalled();
+
+    expect(browserHistory.push).not.toHaveBeenCalled();
+    expect(OrganizationsStore.getAll()).toEqual([organization]);
   });
 
   it('can re-send invite to member', async function() {

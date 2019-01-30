@@ -78,6 +78,7 @@ class CompactIssueHeader extends React.Component {
     if (data.subscriptionDetails && data.subscriptionDetails.reason === 'mentioned') {
       styles = {color: '#57be8c'};
     }
+
     return (
       <React.Fragment>
         <Flex align="center">
