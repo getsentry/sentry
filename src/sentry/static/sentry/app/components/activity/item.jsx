@@ -11,6 +11,7 @@ import Avatar from 'app/components/avatar';
 import IssueLink from 'app/components/issueLink';
 import VersionHoverCard from 'app/components/versionHoverCard';
 import MemberListStore from 'app/stores/memberListStore';
+import SentryTypes from 'app/sentryTypes';
 import TeamStore from 'app/stores/teamStore';
 import TimeSince from 'app/components/timeSince';
 import Version from 'app/components/version';
@@ -19,10 +20,10 @@ import {t, tn, tct} from 'app/locale';
 
 class ActivityItem extends React.Component {
   static propTypes = {
+    organization: SentryTypes.Organization,
     clipHeight: PropTypes.number,
     defaultClipped: PropTypes.bool,
     item: PropTypes.object.isRequired,
-    orgId: PropTypes.string.isRequired,
   };
 
   static defaultProps = {
@@ -51,21 +52,41 @@ class ActivityItem extends React.Component {
     }
   }
 
+  hasSentry10 = () => {
+    return new Set(this.props.organization.features).has('sentry10');
+  };
+
   formatProjectActivity = (author, item) => {
     let data = item.data;
-    let orgId = this.props.orgId;
+    let orgId = this.props.organization.slug;
     let project = item.project;
     let issue = item.issue;
 
+    let hasSentry10 = this.hasSentry10();
+
+    let basePath = hasSentry10
+      ? `/organizations/${orgId}/issues/`
+      : `/${orgId}/${project.slug}/issues/`;
+
     let issueLink = issue ? (
-      <IssueLink orgId={orgId} projectId={project.slug} issue={issue}>
+      <IssueLink
+        organization={this.props.organization}
+        orgId={orgId}
+        projectId={project.slug}
+        issue={issue}
+        to={`${basePath}${issue.id}/`}
+      >
         {issue.shortId}
       </IssueLink>
     ) : null;
 
     let versionLink = data.version ? (
       <VersionHoverCard orgId={orgId} projectId={project.slug} version={data.version}>
-        <Version version={data.version} orgId={orgId} projectId={project.slug} />
+        <Version
+          version={data.version}
+          orgId={orgId}
+          projectId={hasSentry10 ? null : project.slug}
+        />
       </VersionHoverCard>
     ) : null;
 
@@ -75,6 +96,7 @@ class ActivityItem extends React.Component {
           author,
           issue: (
             <IssueLink
+              organization={this.props.organization}
               orgId={orgId}
               projectId={project.slug}
               issue={issue}
@@ -295,7 +317,7 @@ class ActivityItem extends React.Component {
 
   render() {
     let item = this.props.item;
-    let orgId = this.props.orgId;
+    let orgId = this.props.organization.slug;
 
     let bubbleClassName = 'activity-item-bubble';
     if (this.state.clipped) {
@@ -315,6 +337,8 @@ class ActivityItem extends React.Component {
       avatar,
     };
 
+    let hasSentry10 = this.hasSentry10();
+
     if (item.type === 'note') {
       let noteBody = marked(item.data.text);
       return (
@@ -333,9 +357,13 @@ class ActivityItem extends React.Component {
               dangerouslySetInnerHTML={{__html: noteBody}}
             />
             <div className="activity-meta">
-              <Link className="project" to={`/${orgId}/${item.project.slug}/`}>
-                {item.project.slug}
-              </Link>
+              {hasSentry10 ? (
+                <strong>{item.project.slug}</strong>
+              ) : (
+                <Link className="project" to={`/${orgId}/${item.project.slug}/`}>
+                  {item.project.slug}
+                </Link>
+              )}
               <span className="bullet" />
               <TimeSince date={item.dateCreated} />
             </div>
@@ -378,9 +406,13 @@ class ActivityItem extends React.Component {
               item
             )}
             <div className="activity-meta">
-              <Link className="project" to={`/${orgId}/${item.project.slug}/`}>
-                {item.project.slug}
-              </Link>
+              {hasSentry10 ? (
+                <strong>{item.project.slug}</strong>
+              ) : (
+                <Link className="project" to={`/${orgId}/${item.project.slug}/`}>
+                  {item.project.slug}
+                </Link>
+              )}
               <span className="bullet" />
               <TimeSince date={item.dateCreated} />
             </div>
