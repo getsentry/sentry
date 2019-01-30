@@ -2,6 +2,7 @@ import PropTypes from 'prop-types';
 import React from 'react';
 import styled from 'react-emotion';
 
+import {PanelItem} from 'app/components/panels';
 import {t} from 'app/locale';
 import Count from 'app/components/count';
 import InlineSvg from 'app/components/inlineSvg';
@@ -49,9 +50,6 @@ class PercentageTableChart extends React.Component {
     // Height of body
     height: PropTypes.string,
 
-    // props to pass to PanelHeader
-    headerProps: PropTypes.object,
-
     // Main title (left most column) should
     title: PropTypes.node,
 
@@ -83,13 +81,11 @@ class PercentageTableChart extends React.Component {
   };
 
   render() {
-    const {height, headerProps, title, countTitle, extraTitle, data} = this.props;
+    const {height, title, countTitle, extraTitle, data} = this.props;
 
     return (
       <TableChart
-        headerProps={headerProps}
         bodyHeight={height}
-        headers={[title, countTitle, t('Percentage'), extraTitle]}
         data={data.map(({value, lastValue, name, percentage}) => [
           <Name key="name">{name}</Name>,
           <CountColumn key="count">
@@ -115,7 +111,21 @@ class PercentageTableChart extends React.Component {
             </PercentageContainer>
           </Row>
         )}
-      />
+      >
+        {({renderRow, renderBody, ...props}) => (
+          <TableChartWrapper>
+            <TableHeader>
+              {renderRow({
+                isTableHeader: true,
+                items: [title, countTitle, t('Percentage'), extraTitle],
+                rowIndex: -1,
+                ...props,
+              })}
+            </TableHeader>
+            {renderBody({renderRow, ...props})}
+          </TableChartWrapper>
+        )}
+      </TableChart>
     );
   }
 }
@@ -132,11 +142,8 @@ const Row = styled(function RowComponent({className, data, rowIndex, onClick, ch
 })`
   display: flex;
   flex: 1;
-  cursor: pointer;
-`;
-
-const StyledPercentageTableChart = styled(PercentageTableChart)`
-  width: 100%;
+  ${p => p.rowIndex > -1 && 'cursor: pointer'};
+  font-size: 0.9em;
 `;
 
 const FlexContainers = styled('div')`
@@ -191,4 +198,20 @@ const CountColumn = styled(Name)`
   margin-left: ${space(0.5)};
 `;
 
-export default StyledPercentageTableChart;
+const TableHeader = styled(PanelItem)`
+  color: ${p => p.theme.gray2};
+  padding: ${space(1)};
+`;
+
+const TableChartWrapper = styled('div')`
+  margin-bottom: 0;
+  width: 100%;
+  padding: 0 ${space(2)};
+
+  /* stylelint-disable-next-line no-duplicate-selectors */
+  ${PanelItem} {
+    padding: ${space(1)};
+  }
+`;
+
+export default PercentageTableChart;

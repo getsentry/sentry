@@ -1,10 +1,11 @@
 import {WIDGET_DISPLAY} from 'app/views/organizationDashboard/constants';
 import {getChartDataFunc} from 'app/views/organizationDashboard/utils/getChartDataFunc';
 import {isTimeSeries} from 'app/views/organizationDashboard/utils/isTimeSeries';
+import {t} from 'app/locale';
 
 // TODO(billy): Currently only supports discover queries
 export function getData(results, widget) {
-  const {type, title, queries, yAxisMapping} = widget;
+  const {type, queries, yAxisMapping} = widget;
   const isTable = type === WIDGET_DISPLAY.TABLE;
   const [chartDataFunc, chartDataFuncArgs] = getChartDataFunc(widget);
   const hasYAxes = yAxisMapping && yAxisMapping.length === 2;
@@ -17,8 +18,8 @@ export function getData(results, widget) {
     );
 
     return {
-      title,
-      countTitle: 'Events',
+      title: t('Name'),
+      countTitle: t('Events'),
       height: '200px',
       data: series.data,
     };
