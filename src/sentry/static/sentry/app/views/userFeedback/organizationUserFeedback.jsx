@@ -111,15 +111,15 @@ class OrganizationUserFeedback extends AsyncView {
       >
         <GlobalSelectionHeader organization={organization} />
         <PageContent>
-          <UserFeedbackContainer
-            pageLinks={reportListPageLinks}
-            status={status}
-            location={location}
-          >
-            <NoProjectMessage organization={organization}>
+          <NoProjectMessage organization={organization}>
+            <UserFeedbackContainer
+              pageLinks={reportListPageLinks}
+              status={status}
+              location={location}
+            >
               {this.renderStreamBody()}
-            </NoProjectMessage>
-          </UserFeedbackContainer>
+            </UserFeedbackContainer>
+          </NoProjectMessage>
         </PageContent>
       </Feature>
     );
