@@ -132,6 +132,8 @@ class ProjectServiceHooksEndpoint(ProjectEndpoint):
                 application=getattr(request.auth, 'application', None) if request.auth else None,
             )
 
+            hook.add_project(project)
+
             self.create_audit_entry(
                 request=request,
                 organization=project.organization,

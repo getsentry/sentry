@@ -45,7 +45,7 @@ class Creator(Mediator):
     def _create_service_hook(self):
         application_id = self.application.id if self.application else None
 
-        return ServiceHook.objects.create(
+        hook = ServiceHook.objects.create(
             application_id=application_id,
             actor_id=self.actor.id,
             project_id=self.project.id,
@@ -53,3 +53,5 @@ class Creator(Mediator):
             events=expand_events(self.events),
             url=self.url,
         )
+        hook.add_project(self.project)
+        return hook

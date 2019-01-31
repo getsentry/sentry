@@ -28,6 +28,17 @@ SERVICE_HOOK_EVENTS = [
 ]
 
 
+class ServiceHookProject(Model):
+    __core__ = False
+
+    service_hook = FlexibleForeignKey('sentry.ServiceHook')
+    project = FlexibleForeignKey('sentry.Project')
+
+    class Meta:
+        app_label = 'sentry'
+        db_table = 'sentry_servicehookproject'
+
+
 def generate_secret():
     return uuid4().hex + uuid4().hex
 
@@ -90,3 +101,13 @@ class ServiceHook(Model):
 
     def get_audit_log_data(self):
         return {'url': self.url}
+
+    def add_project(self, project):
+        """
+        Add a project to the service hook.
+
+        """
+        ServiceHookProject.objects.create(
+            project_id=project.id,
+            service_hook_id=self.id,
+        )
