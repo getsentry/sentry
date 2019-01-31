@@ -252,11 +252,6 @@ matrix:
     - language: node_js
       env: STORYBOOK_BUILD=1
 
-    - language: python
-      env:
-        - TEST_SUITE=postgres DB=postgres
-        - SENTRY_USE_RUST_NORMALIZER=true
-
 notifications:
   webhooks:
     urls:
