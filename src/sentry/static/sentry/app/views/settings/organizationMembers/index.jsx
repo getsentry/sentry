@@ -14,7 +14,6 @@ import Pagination from 'app/components/pagination';
 import SentryTypes from 'app/sentryTypes';
 import SettingsPageHeader from 'app/views/settings/components/settingsPageHeader';
 import recreateRoute from 'app/utils/recreateRoute';
-import OrganizationsStore from 'app/stores/organizationsStore';
 import {redirectToRemainingOrganization} from 'app/actionCreators/organizations';
 
 import OrganizationAccessRequests from './organizationAccessRequests';
@@ -163,9 +162,7 @@ class OrganizationMembersView extends AsyncView {
 
     this.removeMember(id).then(
       () => {
-        // Remove org from dropdown and redirect to remaining org
-        OrganizationsStore.remove(orgName);
-        redirectToRemainingOrganization({orgId: orgName});
+        redirectToRemainingOrganization({orgId: orgName, removeOrg: true});
 
         addSuccessMessage(
           tct('You left [orgName]', {
