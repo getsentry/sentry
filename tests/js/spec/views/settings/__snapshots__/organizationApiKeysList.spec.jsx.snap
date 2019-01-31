@@ -258,12 +258,12 @@ exports[`OrganizationApiKeysList renders 1`] = `
         </span>
         <Link
           key="2"
-          to="/api/"
+          to="/settings/account/api/auth-tokens/"
         >
           <Link
             onlyActiveOnIndex={false}
             style={Object {}}
-            to="/api/"
+            to="/settings/account/api/auth-tokens/"
           >
             <a
               onClick={[Function]}
