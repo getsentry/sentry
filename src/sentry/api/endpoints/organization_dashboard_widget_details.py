@@ -19,7 +19,7 @@ class OrganizationDashboardWidgetDetailsEndpoint(OrganizationDashboardWidgetEndp
     def delete(self, request, organization, dashboard, widget):
         """
         Delete a Widget on an Organization's Dashboard
-        `````````````````````````````````````````````
+        ``````````````````````````````````````````````
 
         Delete a widget on an organization's dashboard.
 
@@ -54,7 +54,6 @@ class OrganizationDashboardWidgetDetailsEndpoint(OrganizationDashboardWidgetEndp
         :auth: required
         """
         # TODO(lb): better document displayType, displayOptions, and dataSources.
-
         serializer = WidgetSerializer(data=request.DATA, context={'organization': organization})
         if not serializer.is_valid():
             return Response(serializer.errors, status=400)
@@ -68,12 +67,11 @@ class OrganizationDashboardWidgetDetailsEndpoint(OrganizationDashboardWidgetEndp
                 display_options=data.get('displayOptions', widget.display_options)
             )
 
-            data_sources = data.get('dataSources', [])
-            if data_sources:
+            if 'dataSources' in data:
                 WidgetDataSource.objects.filter(
                     widget_id=widget.id
                 ).delete()
-            for widget_data in data_sources:
+            for widget_data in data.get('dataSources', []):
                 WidgetDataSource.objects.create(
                     name=widget_data['name'],
                     data=widget_data['data'],

@@ -21,10 +21,13 @@ class WidgetDataSourceSerializer(serializers.Serializer):
         return attrs
 
     def validate(self, data):
+        super(WidgetDataSourceSerializer, self).validate(data)
         if data['type'] == WidgetDataSourceTypes.DISCOVER_SAVED_SEARCH:
             serializer = DiscoverSavedQuerySerializer(data=data['data'], context=self.context)
             if not serializer.is_valid():
                 raise ValidationError('Error validating DiscoverSavedQuery: %s' % serializer.errors)
+        else:
+            raise ValidationError('Widget data source type %s not recognized.' % data['type'])
         return data
 
 

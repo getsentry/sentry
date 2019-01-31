@@ -1,6 +1,6 @@
 from __future__ import absolute_import
 
-from sentry.models import Widget, WidgetDataSource, WidgetDataSourceTypes, WidgetDisplayTypes
+from sentry.models import Dashboard, Widget, WidgetDataSource, WidgetDataSourceTypes, WidgetDisplayTypes
 from sentry.testutils import OrganizationDashboardWidgetTestCase
 
 
@@ -16,6 +16,11 @@ class OrganizationDashboardWidgetDetailsTestCase(OrganizationDashboardWidgetTest
             display_type=WidgetDisplayTypes.LINE_CHART,
             display_options={},
         )
+
+    def tearDown(self):
+        super(OrganizationDashboardWidgetDetailsTestCase, self).tearDown()
+        Widget.objects.all().delete()
+        WidgetDataSource.objects.all().delete()
 
 
 class OrganizationDashboardWidgetDetailsPutTestCase(OrganizationDashboardWidgetDetailsTestCase):
@@ -72,7 +77,7 @@ class OrganizationDashboardWidgetDetailsPutTestCase(OrganizationDashboardWidgetD
         WidgetDataSource.objects.create(
             name='knownUsersAffectedQuery_2',
             data=self.known_users_query,
-            type='discover_saved_search',
+            type=WidgetDataSourceTypes.DISCOVER_SAVED_SEARCH,
             order=1,
             widget_id=self.widget.id,
         )
@@ -116,7 +121,7 @@ class OrganizationDashboardWidgetDetailsPutTestCase(OrganizationDashboardWidgetD
             title='User Happiness',
         )
         assert response.status_code == 400
-        assert response.data == {'displayType': [u'Widget display_type happy-face not recognized.']}
+        assert response.data == {'displayType': [u'Widget displayType happy-face not recognized.']}
 
     def test_unrecognized_data_source_type(self):
         response = self.get_response(
@@ -126,7 +131,7 @@ class OrganizationDashboardWidgetDetailsPutTestCase(OrganizationDashboardWidgetD
             title='User Happiness',
             displayType='line',
             dataSources=[{
-                'name': 'knownUsersAffectedQuery_2',
+                'name': 'knownUsersAffectedQuery_3',
                 'data': self.known_users_query,
                 'type': 'not-real-type',
                 'order': 1,
@@ -135,6 +140,58 @@ class OrganizationDashboardWidgetDetailsPutTestCase(OrganizationDashboardWidgetD
         assert response.status_code == 400
         assert response.data == {'dataSources': [
             u'type: Widget data source type not-real-type not recognized.']}
+
+    def test_does_not_exists(self):
+        response = self.get_response(
+            self.organization.slug,
+            self.dashboard.id,
+            1234567890,
+            displayType='line',
+            title='User Happiness',
+        )
+        assert response.status_code == 404
+
+    def test_widget_does_not_belong_to_dashboard(self):
+        dashboard = Dashboard.objects.create(
+            title='Dashboard 2',
+            created_by=self.user,
+            organization=self.organization,
+        )
+        widget = Widget.objects.create(
+            dashboard_id=dashboard.id,
+            order=1,
+            title='Widget 2',
+            display_type=WidgetDisplayTypes.LINE_CHART,
+        )
+        response = self.get_response(
+            self.organization.slug,
+            self.dashboard.id,
+            widget.id,
+            displayType='line',
+            title='Happy Widget 2',
+        )
+        assert response.status_code == 404
+
+    def test_widget_does_not_belong_to_organization(self):
+        dashboard = Dashboard.objects.create(
+            title='Dashboard 2',
+            created_by=self.user,
+            organization=self.create_organization(),
+        )
+        widget = Widget.objects.create(
+            dashboard_id=dashboard.id,
+            order=1,
+            title='Widget 2',
+            display_type=WidgetDisplayTypes.LINE_CHART,
+        )
+        response = self.get_response(
+            self.organization.slug,
+            dashboard.id,
+            widget.id,
+            displayType='line',
+            title='Happy Widget 2',
+        )
+        assert response.status_code == 404
 
 
 class OrganizationDashboardWidgetsDeleteTestCase(OrganizationDashboardWidgetDetailsTestCase):
@@ -181,5 +238,47 @@ class OrganizationDashboardWidgetsDeleteTestCase(OrganizationDashboardWidgetDeta
             self.organization.slug,
             self.dashboard.id,
             1234567890,
+        )
+        assert response.status_code == 404
+
+    def test_widget_does_not_belong_to_dashboard(self):
+        dashboard = Dashboard.objects.create(
+            title='Dashboard 2',
+            created_by=self.user,
+            organization=self.organization,
+        )
+        widget = Widget.objects.create(
+            dashboard_id=dashboard.id,
+            order=1,
+            title='Widget 2',
+            display_type=WidgetDisplayTypes.LINE_CHART,
+        )
+        response = self.get_response(
+            self.organization.slug,
+            self.dashboard.id,
+            widget.id,
+            displayType='line',
+            title='Happy Widget 2',
+        )
+        assert response.status_code == 404
+
+    def test_widget_does_not_belong_to_organization(self):
+        dashboard = Dashboard.objects.create(
+            title='Dashboard 2',
+            created_by=self.user,
+            organization=self.create_organization(),
+        )
+        widget = Widget.objects.create(
+            dashboard_id=dashboard.id,
+            order=1,
+            title='Widget 2',
+            display_type=WidgetDisplayTypes.LINE_CHART,
+        )
+        response = self.get_response(
+            self.organization.slug,
+            dashboard.id,
+            widget.id,
+            displayType='line',
+            title='Happy Widget 2',
         )
         assert response.status_code == 404

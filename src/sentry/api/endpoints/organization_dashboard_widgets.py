@@ -20,7 +20,7 @@ class OrganizationDashboardWidgetsEndpoint(OrganizationDashboardEndpoint):
         """
         Create a New Widget for an Organization's Dashboard
         ```````````````````````````````````````````````````
-        Create a new dashboard for the given Organization
+        Create a new widget on the dashboard for the given Organization
         :pparam string organization_slug: the slug of the organization the
                                           dashboards belongs to.
         :pparam int dashboard_id: the id of the dashboard.
