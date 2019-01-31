@@ -25,12 +25,6 @@ class TestUpdater(TestCase):
         self.updater.call()
         assert self.service_hook.actor_id == actor.id
 
-    def test_updates_project(self):
-        project = self.create_project()
-        self.updater.project = project
-        self.updater.call()
-        assert self.service_hook.project_id == project.id
-
     def test_updates_events(self):
         self.updater.events = ('event.alert', )
         self.updater.call()
