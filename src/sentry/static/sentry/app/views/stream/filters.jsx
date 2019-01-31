@@ -26,7 +26,6 @@ class StreamFilters extends React.Component {
     onSidebarToggle: PropTypes.func,
     onSavedSearchCreate: PropTypes.func.isRequired,
     onSavedSearchSelect: PropTypes.func.isRequired,
-    showBeta: PropTypes.bool,
   };
 
   static contextTypes = {
@@ -40,7 +39,6 @@ class StreamFilters extends React.Component {
     onSortChange: function() {},
     onSearch: function() {},
     onSidebarToggle: function() {},
-    showBeta: false,
   };
 
   render() {
@@ -61,7 +59,6 @@ class StreamFilters extends React.Component {
       onSavedSearchCreate,
       onSavedSearchSelect,
       onSortChange,
-      showBeta,
     } = this.props;
 
     return (
@@ -79,7 +76,6 @@ class StreamFilters extends React.Component {
               onSavedSearchCreate={onSavedSearchCreate}
               onSavedSearchSelect={onSavedSearchSelect}
               savedSearchList={savedSearchList}
-              showBeta={showBeta}
             />
           </div>
           <div className="col-sm-7">

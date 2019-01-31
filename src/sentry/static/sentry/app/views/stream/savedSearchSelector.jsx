@@ -4,7 +4,6 @@ import Modal from 'react-bootstrap/lib/Modal';
 import styled from 'react-emotion';
 
 import {t} from 'app/locale';
-import BetaTag from 'app/components/betaTag';
 import Button from 'app/components/button';
 import IndicatorStore from 'app/stores/indicatorStore';
 import DropdownLink from 'app/components/dropdownLink';
@@ -221,11 +220,6 @@ const SavedSearchSelector = withApi(
       queryMaxCount: PropTypes.number,
       onSavedSearchCreate: PropTypes.func.isRequired,
       onSavedSearchSelect: PropTypes.func.isRequired,
-      showBeta: PropTypes.bool,
-    };
-
-    static defaultProps = {
-      showBeta: false,
     };
 
     getTitle() {
@@ -238,14 +232,7 @@ const SavedSearchSelector = withApi(
     }
 
     render() {
-      let {
-        orgId,
-        projectId,
-        queryCount,
-        queryMaxCount,
-        onSavedSearchSelect,
-        showBeta,
-      } = this.props;
+      let {orgId, projectId, queryCount, queryMaxCount, onSavedSearchSelect} = this.props;
       let hasProject = !!projectId;
 
       let children = this.props.savedSearchList.map(search => {
@@ -302,12 +289,6 @@ const SavedSearchSelector = withApi(
               </Tooltip>
             </ButtonBar>
           </DropdownLink>
-          {/* Hack padding to get alignment right */}
-          {showBeta && (
-            <span style={{paddingTop: '5px'}}>
-              <BetaTag />
-            </span>
-          )}
         </div>
       );
     }
