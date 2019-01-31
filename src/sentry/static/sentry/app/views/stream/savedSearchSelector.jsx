@@ -305,7 +305,7 @@ const Container = styled.div`
 const StyledDropdownLink = styled(DropdownLink)`
   display: inline-block;
   font-size: 22px;
-  color: ${p => p.theme.gray4};
+  color: ${p => p.theme.gray5};
   line-height: 36px;
   margin-right: 10px;
   max-width: 100%;
@@ -315,7 +315,7 @@ const StyledDropdownLink = styled(DropdownLink)`
 
   & :hover,
   & :focus {
-    color: ${p => p.theme.gray4};
+    color: ${p => p.theme.gray5};
   }
 
   & .icon-arrow-down {
