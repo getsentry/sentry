@@ -23,6 +23,12 @@ class ListFieldTest(TestCase):
         serializer = DummySerializer(data={'list_field': [1, 2, 3]})
         self.assert_success(serializer, {'list_field': [1, 2, 3]})
 
+    def test_simple_invalid(self):
+        class DummySerializer(serializers.Serializer):
+            list_field = ListField(child=serializers.IntegerField())
+        serializer = DummySerializer(data={'list_field': [1, 'q', 3]})
+        self.assert_unsuccessful(serializer, {'list_field': ['Enter a whole number.']})
+
     def test_single_element_list(self):
         class DummySerializer(serializers.Serializer):
             list_field = ListField(child=serializers.IntegerField())
@@ -100,9 +106,9 @@ class ListFieldTest(TestCase):
         self.assert_success(serializer, {'list_field': [1, 2, 3]})
 
 
-class ListFieldAPITest(APITestCase):
+class ListFieldMultipleValuesTest(APITestCase):
     def setUp(self):
-        super(ListFieldAPITest, self).setUp()
+        super(ListFieldMultipleValuesTest, self).setUp()
 
         class DummyChildSerializer(serializers.Serializer):
             age = serializers.IntegerField()
@@ -110,7 +116,7 @@ class ListFieldAPITest(APITestCase):
             def validate_age(self, attrs, source):
                 age = attrs[source]
                 if age > 5:
-                    raise ValidationError('age %d is not allowed', age)
+                    raise ValidationError('age %d is not allowed' % age)
                 return attrs
 
         class DummySerializer(serializers.Serializer):
@@ -138,6 +144,7 @@ class ListFieldAPITest(APITestCase):
             ]
         })
         assert not serializer.is_valid()
+        assert serializer._errors == {'list_field': [u'age: age 200 is not allowed']}
 
     def test_correct_value_before_incorrect_value(self):
         serializer = self.serializer_class(data={
@@ -147,8 +154,21 @@ class ListFieldAPITest(APITestCase):
             ]
         })
         assert not serializer.is_valid()
+        assert serializer._errors == {'list_field': [u'age: age 200 is not allowed']}
 
-    def test_clears_child_errors_between_use(self):
+    def test_mulitple_errors_in_child(self):
+        serializer = self.serializer_class(data={
+            'name': 'John',
+            'list_field': [
+                {'age': 3}, {'age': 200}, {'age': 5000}, {'age': 20}, {'age': 1}
+            ]
+        })
+        assert not serializer.is_valid()
+        assert serializer.fields['list_field']._child_errors == {
+            'age': ['age 200 is not allowed', 'age 5000 is not allowed', 'age 20 is not allowed']}
+        assert serializer._errors == {'list_field': ['age: age 200 is not allowed']}
+
+    def test_clears_child_errors_between_use_empty_list(self):
         serializer = self.serializer_class(data={
             'name': 'John',
             'list_field': [{'age': 200}]
@@ -157,5 +177,16 @@ class ListFieldAPITest(APITestCase):
         serializer = self.serializer_class(data={
             'name': 'John',
             'list_field': []
+        })
+        assert serializer.is_valid()
+
+    def test_clears_child_errors_between_use_not_supplied(self):
+        serializer = self.serializer_class(data={
+            'name': 'John',
+            'list_field': [{'age': 200}]
+        })
+        assert not serializer.is_valid()
+        serializer = self.serializer_class(data={
+            'name': 'John',
         })
         assert serializer.is_valid()
