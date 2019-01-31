@@ -71,27 +71,11 @@ class WidgetChart extends React.Component {
     const extra = {
       ...(isTable && {
         rowClassName: tableRowCss,
-        getRowLink: obj => {
-          if (!obj || typeof obj.name === 'undefined') return null;
-
+        getRowLink: rowObject => {
           // Table Charts don't support multiple queries
           const [query] = widget.queries.discover;
 
-          return getEventsUrlPathFromDiscoverQuery({
-            organization,
-            selection,
-            query: {
-              ...query,
-              conditions: [
-                ...query.conditions,
-                ...zipWith(query.groupby, obj.name.split(','), (field, value) => [
-                  field,
-                  OPERATOR.EQUAL,
-                  value,
-                ]),
-              ],
-            },
-          });
+          return getEventsUrlWithConditions({rowObject, query, organization, selection});
         },
       }),
     };
@@ -122,3 +106,39 @@ class WidgetChart extends React.Component {
 }
 
 export default WidgetChart;
+
+/**
+ * Generate a URL to the events page for a discover query that
+ * contains a condition.
+ *
+ * This is pretty specific to the table chart right now, so not exported,
+ * but can be adapted to be more generic
+ *
+ * @param {Object} query The discover query object
+ * @param {Object} rowObject The data object for a row in a `TableChart`
+ * @param {String} rowObject.name A comma separated string of labels for a row
+ *   e.g. if the query has multiple fields (browser, device) `name` could be "Chrome, iPhone"
+ * @return {String} Returns a url to the "events" page with any discover conditions tranformed to search query syntax
+ */
+function getEventsUrlWithConditions({rowObject, query, selection, organization}) {
+  if (!rowObject || typeof rowObject.name === 'undefined') return null;
+
+  return getEventsUrlPathFromDiscoverQuery({
+    organization,
+    selection,
+    query: {
+      ...query,
+      conditions: [
+        ...query.conditions,
+        // For each `groupby` field, create a condition that joins it with each `rowObject.name` value (separated by commas)
+        // e.g. groupby: ['browser', 'device'],  rowObject.name: "Chrome, iPhone"
+        //      ----> [['browser', '=', 'Chrome'], ['device', '=', 'iPhone']]
+        ...zipWith(query.groupby, rowObject.name.split(','), (field, value) => [
+          field,
+          OPERATOR.EQUAL,
+          value,
+        ]),
+      ],
+    },
+  });
+}
