@@ -149,7 +149,7 @@ const ExploreRow = styled('li')`
 `;
 
 const ExploreAction = styled(UnstyledButton)`
-  padding: ${space(1)} ${space(1)};
+  padding: ${space(1)};
   color: ${p => p.theme.purple};
   &:hover {
     color: ${p => p.theme.purpleDark};
