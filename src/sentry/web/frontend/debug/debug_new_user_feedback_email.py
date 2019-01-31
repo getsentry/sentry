@@ -2,7 +2,7 @@ from __future__ import absolute_import
 
 from django.views.generic import View
 
-from sentry.models import Group, Organization, Project, ProjectTeam, Team
+from sentry.models import Group, Organization, Project
 
 from .mail import MailPreview
 
@@ -19,10 +19,6 @@ class DebugNewUserFeedbackEmailView(View):
             organization=org,
             slug='project',
             name='My Project',
-        )
-        ProjectTeam(
-            project=project,
-            team=team
         )
         group = Group(
             id=1,
