@@ -57,7 +57,7 @@ class OrganizationApiKeysList extends React.Component {
           {tct(
             'psst. Until Sentry supports OAuth, you might want to switch to using [tokens:Auth Tokens] instead.',
             {
-              tokens: <Link to="/api/" />,
+              tokens: <Link to="/settings/account/api/auth-tokens/" />,
             }
           )}
         </div>
