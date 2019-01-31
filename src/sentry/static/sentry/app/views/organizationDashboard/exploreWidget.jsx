@@ -1,23 +1,17 @@
 import {pickBy} from 'lodash';
 import PropTypes from 'prop-types';
 import React from 'react';
-import styled, {css} from 'react-emotion';
+import styled from 'react-emotion';
 
 import {getEventsUrlPathFromDiscoverQuery} from 'app/views/organizationDashboard/utils/getEventsUrlPathFromDiscoverQuery';
 import {getQueryStringFromQuery} from 'app/views/organizationDiscover/utils';
 import {t} from 'app/locale';
 import Button from 'app/components/button';
-import DropdownLink from 'app/components/dropdownLink';
+import DropdownMenu from 'app/components/dropdownMenu';
 import InlineSvg from 'app/components/inlineSvg';
 import SentryTypes from 'app/sentryTypes';
 import space from 'app/styles/space';
 import withOrganization from 'app/utils/withOrganization';
-
-const exploreMenuCss = css`
-  font-weight: normal;
-  text-transform: none;
-  white-space: nowrap;
-`;
 
 class ExploreWidget extends React.Component {
   static propTypes = {
@@ -81,42 +75,96 @@ class ExploreWidget extends React.Component {
     const discoverQueries = widget.queries.discover;
 
     return (
-      <DropdownLink
-        anchorRight={true}
-        title={t('Explore')}
-        topLevelClasses={exploreMenuCss}
-      >
-        {discoverQueries.map(query => (
-          <ExploreRow key={query.name}>
-            <QueryName>{query.name}</QueryName>
+      <DropdownMenu>
+        {({isOpen, getRootProps, getActorProps, getMenuProps}) => {
+          return (
+            <ExploreRoot {...getRootProps()}>
+              <div {...getActorProps()}>
+                <ExploreButton isOpen={isOpen}>
+                  {t('Explore Data')}
+                  <Chevron isOpen={isOpen} src="icon-chevron-right" />
+                </ExploreButton>
+              </div>
+              <ExploreMenu {...getMenuProps({isStyled: true, isOpen})}>
+                {discoverQueries.map(query => (
+                  <ExploreRow key={query.name}>
+                    <QueryName>{query.name}</QueryName>
 
-            <ExploreActions>
-              <Button borderless size="zero" to={this.getExportToDiscover(query)}>
-                <InlineSvg src="icon-discover" />
-              </Button>
-              <Button borderless size="zero" to={this.getExportToEvents(query)}>
-                <InlineSvg src="icon-stack" />
-              </Button>
-            </ExploreActions>
-          </ExploreRow>
-        ))}
-      </DropdownLink>
+                    <ExploreAction to={this.getExportToDiscover(query)}>
+                      <InlineSvg src="icon-discover" />
+                    </ExploreAction>
+                    <ExploreAction to={this.getExportToEvents(query)}>
+                      <InlineSvg src="icon-stack" />
+                    </ExploreAction>
+                  </ExploreRow>
+                ))}
+              </ExploreMenu>
+            </ExploreRoot>
+          );
+        }}
+      </DropdownMenu>
     );
   }
 }
 export default withOrganization(ExploreWidget);
 
+const ExploreRoot = styled('div')`
+  border-left: 1px solid ${p => p.theme.borderLight};
+  position: relative;
+`;
+
+const UnstyledButton = props => <Button borderless size="zero" {...props} />;
+
+const ExploreButton = styled(({isOpen, ...props}) => <UnstyledButton {...props} />)`
+  position: relative;
+  color: ${p => (p.isOpen ? p.theme.purple : p.theme.gray2)};
+  padding: ${space(1)} ${space(2)};
+  border-radius: 0 0 ${p => p.theme.borderRadius} 0;
+  ${p => p.isOpen && `z-index: ${p.theme.zIndex.dropdownAutocomplete.actor}`};
+  ${p => p.isOpen && `box-shadow: ${p.theme.dropShadowHeavy}`};
+  &:hover {
+    color: ${p => (p.isOpen ? p.theme.purple : p.theme.gray2)};
+  }
+  transition: box-shadow 0.25s;
+`;
+
+const ExploreMenu = styled('div')`
+  display: ${p => (p.isOpen ? 'flex' : 'none')};
+  flex-direction: column;
+
+  position: absolute;
+  right: -1px;
+  bottom: calc(100% - 1px);
+  z-index: ${p => p.theme.zIndex.dropdownAutocomplete.menu};
+
+  background-color: white;
+  border: 1px solid ${p => p.theme.borderLight};
+  box-shadow: ${p => p.theme.dropShadowHeavy};
+`;
+
 const ExploreRow = styled('li')`
   display: flex;
-  justify-content: space-between;
   align-items: center;
   padding: 0 ${space(0.5)};
 `;
 
-const ExploreActions = styled('div')`
-  display: flex;
+const ExploreAction = styled(UnstyledButton)`
+  padding: ${space(1)} ${space(1)};
+  color: ${p => p.theme.purple};
+  &:hover {
+    color: ${p => p.theme.purple};
+  }
 `;
 
 const QueryName = styled('span')`
-  margin-right: ${space(1)};
+  flex-grow: 1;
+  white-space: nowrap;
+  font-size: 0.9em;
+  margin: ${space(1)};
+  margin-right: ${space(2)};
+`;
+
+const Chevron = styled(InlineSvg)`
+  ${p => (p.isOpen ? `transform: rotate(-90deg);` : '')};
+  transition: transform 0.25s;
 `;
