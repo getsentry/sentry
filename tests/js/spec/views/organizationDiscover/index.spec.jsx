@@ -134,7 +134,7 @@ describe('OrganizationDiscoverContainer', function() {
   });
 
   describe('no access', function() {
-    it('display coming soon message', async function() {
+    it('display no access message', async function() {
       const organization = TestStubs.Organization({projects: [TestStubs.Project()]});
       const wrapper = mount(
         <OrganizationDiscoverContainer
@@ -144,7 +144,7 @@ describe('OrganizationDiscoverContainer', function() {
         />,
         TestStubs.routerContext([{organization}])
       );
-      expect(wrapper.text()).toBe('something is happening here soon :)');
+      expect(wrapper.text()).toBe("You don't have access to this feature");
     });
   });
 });
