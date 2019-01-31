@@ -144,9 +144,8 @@ class MultipleEnvironmentSelector extends React.PureComponent {
     return (
       <FetchOrganizationEnvironments organization={organization}>
         {({environments}) => {
-          const envNames = new Set(environments || [].map(env => env.name));
+          const envNames = new Set((environments || []).map(env => env.name));
           const validatedValue = value.filter(env => envNames.has(env));
-
           const summary = validatedValue.length
             ? `${validatedValue.join(', ')}`
             : t('All Environments');
