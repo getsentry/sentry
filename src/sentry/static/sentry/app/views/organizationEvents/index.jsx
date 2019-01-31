@@ -63,11 +63,7 @@ class OrganizationEventsContainer extends React.Component {
                   onSearch={this.handleSearch}
                 />
               </PageHeader>
-                {hasProjects ? (
-                  children
-                ) : (
-                  <StyledNoProjectMessage organization={this.props.organization} />
-                )}
+              {children}
             </Body>
           </NoProjectMessage>
         </PageContent>

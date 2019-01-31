@@ -158,7 +158,7 @@ class OrganizationReleases extends AsyncView {
   }
 
   renderBody() {
-    const {location} = this.props;
+    const {location, organization} = this.props;
 
     return (
       <PageContent>
