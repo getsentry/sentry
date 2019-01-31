@@ -1612,7 +1612,7 @@ exports[`OrganizationUserFeedback renders 1`] = `
           </withRouter(withGlobalSelection(GlobalSelectionHeader))>
           <PageContent>
             <div
-              className="css-rejmra-PageContent e6lvex70"
+              className="css-16fe6ul-PageContent e6lvex70"
             >
               <UserFeedbackContainer
                 location={
