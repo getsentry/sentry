@@ -188,7 +188,6 @@ describe('OrganizationMembers', function() {
 
     expect(browserHistory.push).toHaveBeenCalledTimes(1);
     expect(browserHistory.push).toHaveBeenCalledWith('/organizations/new/');
-    expect(OrganizationsStore.getAll()).toEqual([]);
   });
 
   it('can redirect to remaining org after leaving', async function() {
