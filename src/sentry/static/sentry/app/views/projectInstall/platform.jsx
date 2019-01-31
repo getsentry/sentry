@@ -4,6 +4,7 @@ import React from 'react';
 import createReactClass from 'create-react-class';
 import styled from 'react-emotion';
 
+import SentryTypes from 'app/sentryTypes';
 import {Panel, PanelBody, PanelHeader} from 'app/components/panels';
 import {t, tct} from 'app/locale';
 import ApiMixin from 'app/mixins/apiMixin';
@@ -13,11 +14,13 @@ import LoadingError from 'app/components/loadingError';
 import LoadingIndicator from 'app/components/loadingIndicator';
 import NotFound from 'app/components/errors/notFound';
 import TextBlock from 'app/views/settings/components/text/textBlock';
+import withOrganization from 'app/utils/withOrganization';
 
 const ProjectInstallPlatform = createReactClass({
   displayName: 'ProjectInstallPlatform',
 
   propTypes: {
+    organization: SentryTypes.Organization.isRequired,
     // eslint-disable-next-line react/no-unused-prop-types
     platformData: PropTypes.object.isRequired,
     linkPath: PropTypes.func,
@@ -107,11 +110,15 @@ const ProjectInstallPlatform = createReactClass({
 
   render() {
     let {integration, platform} = this.state;
-    let {orgId, projectId} = this.props.params;
+    let {organization, params: {orgId, projectId}} = this.props;
 
     if (!integration || !platform) {
       return <NotFound />;
     }
+
+    let issueStreamLink = new Set(organization.features).has('sentry10')
+      ? `/organizations/${orgId}/issues/#welcome`
+      : `/${orgId}/${projectId}/#welcome`;
 
     return (
       <Panel>
@@ -158,7 +165,7 @@ const ProjectInstallPlatform = createReactClass({
             <Button
               priority="primary"
               size="large"
-              to={`/${orgId}/${projectId}/#welcome`}
+              to={issueStreamLink}
               style={{marginTop: 20}}
             >
               {t('Got it! Take me to the Issue Stream.')}
@@ -170,7 +177,8 @@ const ProjectInstallPlatform = createReactClass({
   },
 });
 
-export default ProjectInstallPlatform;
+export {ProjectInstallPlatform};
+export default withOrganization(ProjectInstallPlatform);
 
 const DocumentationWrapper = styled('div')`
   p {

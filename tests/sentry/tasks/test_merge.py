@@ -169,7 +169,7 @@ class MergeGroupTest(TestCase):
             tagstore.get_group_tag_keys(
                 other.project_id,
                 other.id,
-                environment_id=self.environment.id)) == 0
+                environment_ids=[self.environment.id])) == 0
         assert len(
             GroupTagValue.objects.filter(
                 project_id=other.project_id,

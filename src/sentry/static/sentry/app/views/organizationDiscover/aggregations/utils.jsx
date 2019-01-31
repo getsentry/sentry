@@ -5,11 +5,10 @@
  * @param {Object} cols List of column objects
  * @param {String} cols.name Column name
  * @param {String} cols.type Type of column
- * @returns {Boolean} True if valid aggregatoin, false if not
+ * @returns {Boolean} True if valid aggregation, false if not
  */
 export function isValidAggregation(aggregation, cols) {
   const columns = new Set(cols.map(({name}) => name));
-
   const [func, col] = aggregation;
 
   if (!func) {

@@ -141,12 +141,12 @@ class SnubaTagStorage(TagStorage):
                 top_values=top_values
             )
 
-    def __get_tag_keys(self, project_id, group_id, environment_id, limit=1000, keys=None):
+    def __get_tag_keys(self, project_id, group_id, environment_ids, limit=1000, keys=None):
         start, end = self.get_time_range()
         return self.__get_tag_keys_for_projects(
             [project_id],
             group_id,
-            [environment_id] if environment_id else None,
+            environment_ids,
             start,
             end,
             limit,
@@ -225,7 +225,7 @@ class SnubaTagStorage(TagStorage):
 
     def get_tag_keys(self, project_id, environment_id, status=TagKeyStatus.VISIBLE):
         assert status is TagKeyStatus.VISIBLE
-        return self.__get_tag_keys(project_id, None, environment_id)
+        return self.__get_tag_keys(project_id, None, environment_id and [environment_id])
 
     def get_tag_keys_for_projects(self, projects, environments, start,
                                   end, status=TagKeyStatus.VISIBLE):
@@ -243,8 +243,8 @@ class SnubaTagStorage(TagStorage):
         return self.__get_tag_key_and_top_values(
             project_id, group_id, environment_id, key, limit=TOP_VALUES_DEFAULT_LIMIT)
 
-    def get_group_tag_keys(self, project_id, group_id, environment_id, limit=None, keys=None):
-        return self.__get_tag_keys(project_id, group_id, environment_id, limit=limit, keys=keys)
+    def get_group_tag_keys(self, project_id, group_id, environment_ids, limit=None, keys=None):
+        return self.__get_tag_keys(project_id, group_id, environment_ids, limit=limit, keys=keys)
 
     def get_group_tag_value(self, project_id, group_id, environment_id, key, value):
         return self.__get_tag_value(project_id, group_id, environment_id, key, value)
@@ -343,7 +343,9 @@ class SnubaTagStorage(TagStorage):
         start, end = self.get_time_range()
 
         # First get totals and unique counts by key.
-        keys_with_counts = self.get_group_tag_keys(project_id, group_id, environment_id, keys=keys)
+        keys_with_counts = self.get_group_tag_keys(
+            project_id, group_id, environment_id and [environment_id], keys=keys
+        )
 
         # Then get the top values with first_seen/last_seen/count for each
         filters = {
@@ -688,3 +690,68 @@ class SnubaTagStorage(TagStorage):
         # exist in Snuba. This logic is implemented in the search backend
         # instead.
         raise NotImplementedError
+
+
+class SnubaCompatibilityTagStorage(SnubaTagStorage):
+    """
+    This class extends the read-only SnubaTagStorage backend, implementing the
+    subset of the ``TagStorage`` write interface that is actually used by
+    callers external to the ``tagstore`` module.
+
+    This is necessary since writes to Snuba occur via the event stream and an
+    external writer process, instead of through this service backend. However,
+    we need still to "implement" these methods (so that at least they do not
+    raise a ``NotImplementedError``, as well as providing compatibile return
+    types when required by the call site) so that other backends that *do*
+    require these methods in the application to be available can still be used.
+
+    If Snuba becomes the exclusive implementer of the ``TagStorage`` interface
+    in the future, this subclass can be removed (along with the entire
+    ``TagStorage`` write interface from the base implementation.)
+    """
+    def get_or_create_group_tag_key(self, project_id, group_id, environment_id, key, **kwargs):
+        # Called by ``unmerge.repair_tag_data``. The return value is not used.
+        pass
+
+    def get_or_create_group_tag_value(self, project_id, group_id,
+                                      environment_id, key, value, **kwargs):
+        # Called by ``unmerge.repair_tag_data``. The first member of the return
+        # value is not used, the second indicates whether or not an object was
+        # created (always False in our case.)
+        return None, False
+
+    def create_event_tags(self, project_id, group_id, environment_id,
+                          event_id, tags, date_added=None):
+        # Called by ``post_process.index_event_tags``. The return value is not
+        # used.
+        pass
+
+    def delete_all_group_tag_keys(self, project_id, group_id):
+        # Called by ``unmerge.truncate_denormalizations``. The return value is
+        # not used.
+        pass
+
+    def delete_all_group_tag_values(self, project_id, group_id):
+        # Called by ``unmerge.truncate_denormalizations``. The return value is
+        # not used.
+        pass
+
+    def incr_tag_value_times_seen(self, project_id, environment_id,
+                                  key, value, extra=None, count=1):
+        # Called by ``Group.add_tags``. The return value is not used.
+        pass
+
+    def incr_group_tag_value_times_seen(
+            self, project_id, group_id, environment_id, key, value, extra=None, count=1):
+        # Called by ``Group.add_tags`` (and ``unmerge.repair_tag_data`` if
+        # ``get_or_create_group_tag_value`` indicates an object is created --
+        # in our case this will never happen.) The return value is not used.
+        pass
+
+    def update_group_for_events(self, project_id, event_ids, destination_id):
+        # Called by ``unmerge.migrate_events``. The return value is not used.
+        pass
+
+    def update_group_tag_key_values_seen(self, project_id, group_ids):
+        # Called by ``unmerge``. The return value is not used.
+        pass

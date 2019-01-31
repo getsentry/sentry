@@ -2,11 +2,9 @@ import {isEqual} from 'lodash';
 import PropTypes from 'prop-types';
 import React from 'react';
 
-import {WIDGET_DISPLAY} from 'app/views/organizationDashboard/constants';
 import {getChartComponent} from 'app/views/organizationDashboard/utils/getChartComponent';
 import {getData} from 'app/views/organizationDashboard/utils/getData';
 import ChartZoom from 'app/components/charts/chartZoom';
-import ExploreWidget from 'app/views/organizationDashboard/exploreWidget';
 import ReleaseSeries from 'app/components/charts/releaseSeries';
 import SentryTypes from 'app/sentryTypes';
 
@@ -52,21 +50,13 @@ class WidgetChart extends React.Component {
   }
 
   render() {
-    const {results, releases, router, selection, widget} = this.props;
-    const isTable = widget.type === WIDGET_DISPLAY.TABLE;
+    const {results, releases, widget} = this.props;
 
     // get visualization based on widget data
     const ChartComponent = getChartComponent(widget);
 
     // get data func based on query
     const chartData = getData(results, widget);
-
-    const extra = {
-      ...(isTable && {
-        headerProps: {hasButtons: true},
-        extraTitle: <ExploreWidget {...{widget, router, selection}} />,
-      }),
-    };
 
     // Releases can only be added to time charts
     if (widget.includeReleases) {
@@ -75,7 +65,6 @@ class WidgetChart extends React.Component {
           {({releaseSeries}) =>
             this.renderZoomableChart(ChartComponent, {
               ...chartData,
-              ...extra,
               series: [...chartData.series, ...releaseSeries],
             })}
         </ReleaseSeries>
@@ -85,11 +74,10 @@ class WidgetChart extends React.Component {
     if (chartData.isGroupedByDate) {
       return this.renderZoomableChart(ChartComponent, {
         ...chartData,
-        ...extra,
       });
     }
 
-    return <ChartComponent {...chartData} {...extra} />;
+    return <ChartComponent {...chartData} />;
   }
 }
 

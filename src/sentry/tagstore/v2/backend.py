@@ -511,7 +511,13 @@ class V2TagStorage(TagStorage):
 
         return transformers[models.GroupTagKey](instance)
 
-    def get_group_tag_keys(self, project_id, group_id, environment_id, limit=None, keys=None):
+    def get_group_tag_keys(self, project_id, group_id, environment_ids, limit=None, keys=None):
+        # only the snuba backend supports multi env
+        if environment_ids and len(environment_ids) > 1:
+            raise NotImplementedError
+
+        environment_id = environment_ids and environment_ids[0]
+
         qs = models.GroupTagKey.objects.select_related('_key').filter(
             project_id=project_id,
             group_id=group_id,
