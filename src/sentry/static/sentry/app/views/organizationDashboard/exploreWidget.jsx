@@ -123,7 +123,7 @@ const ExploreButton = styled(({isOpen, ...props}) => <UnstyledButton {...props} 
   ${p => p.isOpen && `z-index: ${p.theme.zIndex.dropdownAutocomplete.actor}`};
   ${p => p.isOpen && `box-shadow: ${p.theme.dropShadowHeavy}`};
   &:hover {
-    color: ${p => (p.isOpen ? p.theme.purple : p.theme.gray2)};
+    color: ${p => p.theme.purple};
   }
   transition: box-shadow 0.25s;
 `;
@@ -152,7 +152,7 @@ const ExploreAction = styled(UnstyledButton)`
   padding: ${space(1)} ${space(1)};
   color: ${p => p.theme.purple};
   &:hover {
-    color: ${p => p.theme.purple};
+    color: ${p => p.theme.purpleDark};
   }
 `;
 
