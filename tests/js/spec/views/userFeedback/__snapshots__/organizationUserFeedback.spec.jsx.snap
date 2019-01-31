@@ -212,20 +212,6 @@ exports[`OrganizationUserFeedback renders 1`] = `
                   "createHref": [MockFunction] {
                     "calls": Array [
                       Array [
-                        Object {
-                          "pathname": undefined,
-                          "query": Object {},
-                        },
-                      ],
-                      Array [
-                        Object {
-                          "pathname": undefined,
-                          "query": Object {
-                            "status": "",
-                          },
-                        },
-                      ],
-                      Array [
                         "/settings/org-slug/teams/",
                       ],
                       Array [
@@ -233,14 +219,6 @@ exports[`OrganizationUserFeedback renders 1`] = `
                       ],
                     ],
                     "results": Array [
-                      Object {
-                        "isThrow": false,
-                        "value": undefined,
-                      },
-                      Object {
-                        "isThrow": false,
-                        "value": undefined,
-                      },
                       Object {
                         "isThrow": false,
                         "value": undefined,
@@ -335,20 +313,6 @@ exports[`OrganizationUserFeedback renders 1`] = `
                     "createHref": [MockFunction] {
                       "calls": Array [
                         Array [
-                          Object {
-                            "pathname": undefined,
-                            "query": Object {},
-                          },
-                        ],
-                        Array [
-                          Object {
-                            "pathname": undefined,
-                            "query": Object {
-                              "status": "",
-                            },
-                          },
-                        ],
-                        Array [
                           "/settings/org-slug/teams/",
                         ],
                         Array [
@@ -356,14 +320,6 @@ exports[`OrganizationUserFeedback renders 1`] = `
                         ],
                       ],
                       "results": Array [
-                        Object {
-                          "isThrow": false,
-                          "value": undefined,
-                        },
-                        Object {
-                          "isThrow": false,
-                          "value": undefined,
-                        },
                         Object {
                           "isThrow": false,
                           "value": undefined,
@@ -1589,415 +1545,267 @@ exports[`OrganizationUserFeedback renders 1`] = `
             <div
               className="css-16fe6ul-PageContent e6lvex70"
             >
-              <UserFeedbackContainer
-                location={
+              <NoProjectMessage
+                organization={
                   Object {
-                    "query": Object {},
-                    "search": "",
+                    "access": Array [
+                      "org:read",
+                      "org:write",
+                      "org:admin",
+                      "project:read",
+                      "project:write",
+                      "project:admin",
+                      "team:read",
+                      "team:write",
+                      "team:admin",
+                    ],
+                    "features": Array [
+                      "sentry10",
+                    ],
+                    "id": "3",
+                    "name": "Organization Name",
+                    "onboardingTasks": Array [],
+                    "projects": Array [],
+                    "scrapeJavaScript": true,
+                    "slug": "org-slug",
+                    "status": Object {
+                      "id": "active",
+                      "name": "active",
+                    },
+                    "teams": Array [],
                   }
                 }
-                pageLinks="<https://sentry.io/api/0/organizations/sentry/user-feedback/?statsPeriod=14d&cursor=0:0:1>; rel=\\"previous\\"; results=\\"false\\"; cursor=\\"0:0:1\\", <https://sentry.io/api/0/organizations/sentry/user-feedback/?statsPeriod=14d&cursor=0:100:0>; rel=\\"next\\"; results=\\"true\\"; cursor=\\"0:100:0\\""
-                status="unresolved"
               >
-                <div>
-                  <div
-                    className="row"
+                <Flex
+                  align="center"
+                  flex="1"
+                  justify="center"
+                >
+                  <Base
+                    align="center"
+                    className="css-m5n3g3"
+                    flex="1"
+                    justify="center"
                   >
                     <div
-                      className="col-sm-9"
-                      style={
-                        Object {
-                          "marginBottom": "5px",
-                        }
-                      }
+                      className="css-m5n3g3"
+                      is={null}
                     >
-                      <PageHeading
-                        withMargins={true}
-                      >
-                        <Wrapper
-                          withMargins={true}
-                        >
-                          <h1
-                            className="css-13ev48w-Wrapper e1f8hk460"
-                          >
-                            User Feedback
-                          </h1>
-                        </Wrapper>
-                      </PageHeading>
-                    </div>
-                    <div
-                      className="col-sm-3"
-                      style={
-                        Object {
-                          "marginTop": "4px",
-                          "textAlign": "right",
-                        }
-                      }
-                    >
-                      <div
-                        className="btn-group"
-                      >
-                        <Link
-                          className="btn btn-sm btn-default active"
-                          onlyActiveOnIndex={false}
-                          style={Object {}}
-                          to={
-                            Object {
-                              "pathname": undefined,
-                              "query": Object {},
-                            }
-                          }
-                        >
-                          <a
-                            className="btn btn-sm btn-default active"
-                            onClick={[Function]}
-                            style={Object {}}
-                          >
-                            Unresolved
-                          </a>
-                        </Link>
-                        <Link
-                          className="btn btn-sm btn-default"
-                          onlyActiveOnIndex={false}
-                          style={Object {}}
-                          to={
-                            Object {
-                              "pathname": undefined,
-                              "query": Object {
-                                "status": "",
-                              },
-                            }
-                          }
-                        >
-                          <a
-                            className="btn btn-sm btn-default"
-                            onClick={[Function]}
-                            style={Object {}}
-                          >
-                            All Issues
-                          </a>
-                        </Link>
-                      </div>
-                    </div>
-                  </div>
-                  <Panel>
-                    <Component
-                      className="css-yahxlu-Panel e1laxa7d0"
-                    >
-                      <div
-                        className="css-yahxlu-Panel e1laxa7d0"
-                      >
-                        <PanelBody
-                          className="issue-list"
-                          direction="column"
-                          disablePadding={true}
-                          flex={false}
+                      <Wrapper>
+                        <Base
+                          className="css-89h9m-Wrapper e1dt1knp3"
                         >
                           <div
-                            className="css-9vq8an-textStyles issue-list"
+                            className="css-89h9m-Wrapper e1dt1knp3"
+                            is={null}
                           >
-                            <NoProjectMessage
-                              organization={
+                            <img
+                              alt="Nothing to see"
+                              height={350}
+                              src={
                                 Object {
-                                  "access": Array [
-                                    "org:read",
-                                    "org:write",
-                                    "org:admin",
-                                    "project:read",
-                                    "project:write",
-                                    "project:admin",
-                                    "team:read",
-                                    "team:write",
-                                    "team:admin",
-                                  ],
-                                  "features": Array [
-                                    "sentry10",
-                                  ],
-                                  "id": "3",
-                                  "name": "Organization Name",
-                                  "onboardingTasks": Array [],
-                                  "projects": Array [],
-                                  "scrapeJavaScript": true,
-                                  "slug": "org-slug",
-                                  "status": Object {
-                                    "id": "active",
-                                    "name": "active",
+                                  "default": Object {
+                                    "id": "test",
+                                    "viewBox": Object {},
                                   },
-                                  "teams": Array [],
                                 }
                               }
+                            />
+                            <Content
+                              direction="column"
+                              justify="center"
                             >
-                              <Flex
-                                align="center"
-                                flex="1"
+                              <Base
+                                className="css-1m5wt6u-Content e1dt1knp4"
+                                direction="column"
                                 justify="center"
                               >
-                                <Base
-                                  align="center"
-                                  className="css-m5n3g3"
-                                  flex="1"
-                                  justify="center"
+                                <div
+                                  className="css-1m5wt6u-Content e1dt1knp4"
+                                  is={null}
                                 >
-                                  <div
-                                    className="css-m5n3g3"
-                                    is={null}
-                                  >
-                                    <Wrapper>
-                                      <Base
-                                        className="css-89h9m-Wrapper e1dt1knp3"
+                                  <StyledPageHeading>
+                                    <PageHeading
+                                      className="css-2r8p3v-StyledPageHeading e1dt1knp0"
+                                    >
+                                      <Wrapper
+                                        className="css-2r8p3v-StyledPageHeading e1dt1knp0"
                                       >
-                                        <div
-                                          className="css-89h9m-Wrapper e1dt1knp3"
-                                          is={null}
+                                        <h1
+                                          className="e1dt1knp0 css-16rx587-Wrapper-StyledPageHeading e1f8hk460"
                                         >
-                                          <img
-                                            alt="Nothing to see"
-                                            height={350}
-                                            src={
-                                              Object {
-                                                "default": Object {
-                                                  "id": "test",
-                                                  "viewBox": Object {},
-                                                },
-                                              }
-                                            }
-                                          />
-                                          <Content
-                                            direction="column"
-                                            justify="center"
+                                          Remain Calm
+                                        </h1>
+                                      </Wrapper>
+                                    </PageHeading>
+                                  </StyledPageHeading>
+                                  <HelpMessage>
+                                    <div
+                                      className="css-wki9h6-HelpMessage e1dt1knp2"
+                                    >
+                                      You need at least one project to use this view
+                                    </div>
+                                  </HelpMessage>
+                                  <Flex
+                                    align="center"
+                                  >
+                                    <Base
+                                      align="center"
+                                      className="css-5ipae5"
+                                    >
+                                      <div
+                                        className="css-5ipae5"
+                                        is={null}
+                                      >
+                                        <CallToAction>
+                                          <div
+                                            className="css-m47i18-CallToAction e1dt1knp1"
                                           >
-                                            <Base
-                                              className="css-1m5wt6u-Content e1dt1knp4"
-                                              direction="column"
-                                              justify="center"
+                                            <Tooltip
+                                              disabled={true}
+                                              title="You do not have permission to join a team."
                                             >
-                                              <div
-                                                className="css-1m5wt6u-Content e1dt1knp4"
-                                                is={null}
+                                              <Button
+                                                disabled={false}
+                                                priority="primary"
+                                                to="/settings/org-slug/teams/"
                                               >
-                                                <StyledPageHeading>
-                                                  <PageHeading
-                                                    className="css-2r8p3v-StyledPageHeading e1dt1knp0"
-                                                  >
-                                                    <Wrapper
-                                                      className="css-2r8p3v-StyledPageHeading e1dt1knp0"
-                                                    >
-                                                      <h1
-                                                        className="e1dt1knp0 css-16rx587-Wrapper-StyledPageHeading e1f8hk460"
-                                                      >
-                                                        Remain Calm
-                                                      </h1>
-                                                    </Wrapper>
-                                                  </PageHeading>
-                                                </StyledPageHeading>
-                                                <HelpMessage>
-                                                  <div
-                                                    className="css-wki9h6-HelpMessage e1dt1knp2"
-                                                  >
-                                                    You need at least one project to use this view
-                                                  </div>
-                                                </HelpMessage>
-                                                <Flex
-                                                  align="center"
+                                                <StyledButton
+                                                  aria-label="Join a Team"
+                                                  disabled={false}
+                                                  onClick={[Function]}
+                                                  priority="primary"
+                                                  role="button"
+                                                  to="/settings/org-slug/teams/"
                                                 >
-                                                  <Base
-                                                    align="center"
-                                                    className="css-5ipae5"
+                                                  <Component
+                                                    aria-label="Join a Team"
+                                                    className="css-1msljz8-StyledButton-getColors eqrebog0"
+                                                    disabled={false}
+                                                    onClick={[Function]}
+                                                    priority="primary"
+                                                    role="button"
+                                                    to="/settings/org-slug/teams/"
                                                   >
-                                                    <div
-                                                      className="css-5ipae5"
-                                                      is={null}
+                                                    <Link
+                                                      aria-label="Join a Team"
+                                                      className="css-1msljz8-StyledButton-getColors eqrebog0"
+                                                      disabled={false}
+                                                      onClick={[Function]}
+                                                      onlyActiveOnIndex={false}
+                                                      priority="primary"
+                                                      role="button"
+                                                      style={Object {}}
+                                                      to="/settings/org-slug/teams/"
                                                     >
-                                                      <CallToAction>
-                                                        <div
-                                                          className="css-m47i18-CallToAction e1dt1knp1"
+                                                      <a
+                                                        aria-label="Join a Team"
+                                                        className="css-1msljz8-StyledButton-getColors eqrebog0"
+                                                        disabled={false}
+                                                        onClick={[Function]}
+                                                        priority="primary"
+                                                        role="button"
+                                                        style={Object {}}
+                                                      >
+                                                        <ButtonLabel
+                                                          priority="primary"
                                                         >
-                                                          <Tooltip
-                                                            disabled={true}
-                                                            title="You do not have permission to join a team."
+                                                          <Component
+                                                            className="css-ga4b18-ButtonLabel eqrebog1"
+                                                            priority="primary"
                                                           >
-                                                            <Button
-                                                              disabled={false}
-                                                              priority="primary"
-                                                              to="/settings/org-slug/teams/"
+                                                            <span
+                                                              className="css-ga4b18-ButtonLabel eqrebog1"
                                                             >
-                                                              <StyledButton
-                                                                aria-label="Join a Team"
-                                                                disabled={false}
-                                                                onClick={[Function]}
-                                                                priority="primary"
-                                                                role="button"
-                                                                to="/settings/org-slug/teams/"
-                                                              >
-                                                                <Component
-                                                                  aria-label="Join a Team"
-                                                                  className="css-1msljz8-StyledButton-getColors eqrebog0"
-                                                                  disabled={false}
-                                                                  onClick={[Function]}
-                                                                  priority="primary"
-                                                                  role="button"
-                                                                  to="/settings/org-slug/teams/"
-                                                                >
-                                                                  <Link
-                                                                    aria-label="Join a Team"
-                                                                    className="css-1msljz8-StyledButton-getColors eqrebog0"
-                                                                    disabled={false}
-                                                                    onClick={[Function]}
-                                                                    onlyActiveOnIndex={false}
-                                                                    priority="primary"
-                                                                    role="button"
-                                                                    style={Object {}}
-                                                                    to="/settings/org-slug/teams/"
-                                                                  >
-                                                                    <a
-                                                                      aria-label="Join a Team"
-                                                                      className="css-1msljz8-StyledButton-getColors eqrebog0"
-                                                                      disabled={false}
-                                                                      onClick={[Function]}
-                                                                      priority="primary"
-                                                                      role="button"
-                                                                      style={Object {}}
-                                                                    >
-                                                                      <ButtonLabel
-                                                                        priority="primary"
-                                                                      >
-                                                                        <Component
-                                                                          className="css-ga4b18-ButtonLabel eqrebog1"
-                                                                          priority="primary"
-                                                                        >
-                                                                          <span
-                                                                            className="css-ga4b18-ButtonLabel eqrebog1"
-                                                                          >
-                                                                            Join a Team
-                                                                          </span>
-                                                                        </Component>
-                                                                      </ButtonLabel>
-                                                                    </a>
-                                                                  </Link>
-                                                                </Component>
-                                                              </StyledButton>
-                                                            </Button>
-                                                          </Tooltip>
-                                                        </div>
-                                                      </CallToAction>
-                                                      <CallToAction>
-                                                        <div
-                                                          className="css-m47i18-CallToAction e1dt1knp1"
-                                                        >
-                                                          <Tooltip
-                                                            disabled={true}
-                                                            title="You do not have permission to create a project."
+                                                              Join a Team
+                                                            </span>
+                                                          </Component>
+                                                        </ButtonLabel>
+                                                      </a>
+                                                    </Link>
+                                                  </Component>
+                                                </StyledButton>
+                                              </Button>
+                                            </Tooltip>
+                                          </div>
+                                        </CallToAction>
+                                        <CallToAction>
+                                          <div
+                                            className="css-m47i18-CallToAction e1dt1knp1"
+                                          >
+                                            <Tooltip
+                                              disabled={true}
+                                              title="You do not have permission to create a project."
+                                            >
+                                              <Button
+                                                disabled={false}
+                                                to="/organizations/org-slug/projects/new/"
+                                              >
+                                                <StyledButton
+                                                  aria-label="Create project"
+                                                  disabled={false}
+                                                  onClick={[Function]}
+                                                  role="button"
+                                                  to="/organizations/org-slug/projects/new/"
+                                                >
+                                                  <Component
+                                                    aria-label="Create project"
+                                                    className="css-cmo08-StyledButton-getColors eqrebog0"
+                                                    disabled={false}
+                                                    onClick={[Function]}
+                                                    role="button"
+                                                    to="/organizations/org-slug/projects/new/"
+                                                  >
+                                                    <Link
+                                                      aria-label="Create project"
+                                                      className="css-cmo08-StyledButton-getColors eqrebog0"
+                                                      disabled={false}
+                                                      onClick={[Function]}
+                                                      onlyActiveOnIndex={false}
+                                                      role="button"
+                                                      style={Object {}}
+                                                      to="/organizations/org-slug/projects/new/"
+                                                    >
+                                                      <a
+                                                        aria-label="Create project"
+                                                        className="css-cmo08-StyledButton-getColors eqrebog0"
+                                                        disabled={false}
+                                                        onClick={[Function]}
+                                                        role="button"
+                                                        style={Object {}}
+                                                      >
+                                                        <ButtonLabel>
+                                                          <Component
+                                                            className="css-ga4b18-ButtonLabel eqrebog1"
                                                           >
-                                                            <Button
-                                                              disabled={false}
-                                                              to="/organizations/org-slug/projects/new/"
+                                                            <span
+                                                              className="css-ga4b18-ButtonLabel eqrebog1"
                                                             >
-                                                              <StyledButton
-                                                                aria-label="Create project"
-                                                                disabled={false}
-                                                                onClick={[Function]}
-                                                                role="button"
-                                                                to="/organizations/org-slug/projects/new/"
-                                                              >
-                                                                <Component
-                                                                  aria-label="Create project"
-                                                                  className="css-cmo08-StyledButton-getColors eqrebog0"
-                                                                  disabled={false}
-                                                                  onClick={[Function]}
-                                                                  role="button"
-                                                                  to="/organizations/org-slug/projects/new/"
-                                                                >
-                                                                  <Link
-                                                                    aria-label="Create project"
-                                                                    className="css-cmo08-StyledButton-getColors eqrebog0"
-                                                                    disabled={false}
-                                                                    onClick={[Function]}
-                                                                    onlyActiveOnIndex={false}
-                                                                    role="button"
-                                                                    style={Object {}}
-                                                                    to="/organizations/org-slug/projects/new/"
-                                                                  >
-                                                                    <a
-                                                                      aria-label="Create project"
-                                                                      className="css-cmo08-StyledButton-getColors eqrebog0"
-                                                                      disabled={false}
-                                                                      onClick={[Function]}
-                                                                      role="button"
-                                                                      style={Object {}}
-                                                                    >
-                                                                      <ButtonLabel>
-                                                                        <Component
-                                                                          className="css-ga4b18-ButtonLabel eqrebog1"
-                                                                        >
-                                                                          <span
-                                                                            className="css-ga4b18-ButtonLabel eqrebog1"
-                                                                          >
-                                                                            Create project
-                                                                          </span>
-                                                                        </Component>
-                                                                      </ButtonLabel>
-                                                                    </a>
-                                                                  </Link>
-                                                                </Component>
-                                                              </StyledButton>
-                                                            </Button>
-                                                          </Tooltip>
-                                                        </div>
-                                                      </CallToAction>
-                                                    </div>
-                                                  </Base>
-                                                </Flex>
-                                              </div>
-                                            </Base>
-                                          </Content>
-                                        </div>
-                                      </Base>
-                                    </Wrapper>
-                                  </div>
-                                </Base>
-                              </Flex>
-                            </NoProjectMessage>
+                                                              Create project
+                                                            </span>
+                                                          </Component>
+                                                        </ButtonLabel>
+                                                      </a>
+                                                    </Link>
+                                                  </Component>
+                                                </StyledButton>
+                                              </Button>
+                                            </Tooltip>
+                                          </div>
+                                        </CallToAction>
+                                      </div>
+                                    </Base>
+                                  </Flex>
+                                </div>
+                              </Base>
+                            </Content>
                           </div>
-                        </PanelBody>
-                      </div>
-                    </Component>
-                  </Panel>
-                  <Pagination
-                    className="stream-pagination"
-                    onCursor={[Function]}
-                    pageLinks="<https://sentry.io/api/0/organizations/sentry/user-feedback/?statsPeriod=14d&cursor=0:0:1>; rel=\\"previous\\"; results=\\"false\\"; cursor=\\"0:0:1\\", <https://sentry.io/api/0/organizations/sentry/user-feedback/?statsPeriod=14d&cursor=0:100:0>; rel=\\"next\\"; results=\\"true\\"; cursor=\\"0:100:0\\""
-                  >
-                    <div
-                      className="clearfix stream-pagination"
-                    >
-                      <div
-                        className="btn-group pull-right"
-                      >
-                        <a
-                          className="btn btn-default btn-lg prev disabled"
-                          disabled={true}
-                          onClick={[Function]}
-                        >
-                          <span
-                            className="icon-arrow-left"
-                            title="Previous"
-                          />
-                        </a>
-                        <a
-                          className="btn btn-default btn-lg next"
-                          disabled={false}
-                          onClick={[Function]}
-                        >
-                          <span
-                            className="icon-arrow-right"
-                            title="Next"
-                          />
-                        </a>
-                      </div>
+                        </Base>
+                      </Wrapper>
                     </div>
-                  </Pagination>
-                </div>
-              </UserFeedbackContainer>
+                  </Base>
+                </Flex>
+              </NoProjectMessage>
             </div>
           </PageContent>
         </Feature>
