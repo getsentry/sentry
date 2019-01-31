@@ -4,7 +4,6 @@ import {mount} from 'enzyme';
 import SavedSearchSelector from 'app/views/stream/savedSearchSelector';
 
 describe('SavedSearchSelector', function() {
-  let sandbox;
   let wrapper;
   let props;
 
@@ -15,8 +14,6 @@ describe('SavedSearchSelector', function() {
   let onSelect = jest.fn();
 
   beforeEach(function() {
-    sandbox = sinon.sandbox.create();
-
     projectId = 'test-project';
     orgId = 'test-org';
     savedSearchList = [
@@ -45,11 +42,6 @@ describe('SavedSearchSelector', function() {
       onSavedSearchSelect: onSelect,
       query: '',
     };
-  });
-
-  afterEach(function() {
-    sandbox.restore();
-    MockApiClient.clearMockResponses();
   });
 
   describe('getTitle', function() {
