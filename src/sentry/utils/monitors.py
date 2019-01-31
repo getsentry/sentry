@@ -54,6 +54,7 @@ def suppress_errors(func):
             return func(*a, **k)
         except Exception:
             capture_exception()
+    return inner
 
 
 @suppress_errors
