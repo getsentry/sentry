@@ -247,8 +247,8 @@ const SavedSearchSelector = withApi(
         );
       });
       return (
-        <div className="saved-search-selector">
-          <DropdownLink
+        <Container>
+          <StyledDropdownLink
             title={
               <span>
                 <span>{this.getTitle()}</span>
@@ -288,12 +288,43 @@ const SavedSearchSelector = withApi(
                 </span>
               </Tooltip>
             </ButtonBar>
-          </DropdownLink>
-        </div>
+          </StyledDropdownLink>
+        </Container>
       );
     }
   }
 );
+
+const Container = styled.div`
+  & .dropdown-menu {
+    max-width: 350px;
+    min-width: 275px;
+  }
+`;
+
+const StyledDropdownLink = styled(DropdownLink)`
+  display: inline-block;
+  font-size: 22px;
+  color: ${p => p.theme.gray5};
+  line-height: 36px;
+  margin-right: 10px;
+  max-width: 100%;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  overflow: hidden;
+
+  & :hover,
+  & :focus {
+    color: ${p => p.theme.gray5};
+  }
+
+  & .icon-arrow-down {
+    display: inline-block;
+    margin-left: 5px;
+    top: 0;
+    vertical-align: middle;
+  }
+`;
 
 const EmptyItem = styled.li`
   padding: 8px 10px 5px;
