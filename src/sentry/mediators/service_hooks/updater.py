@@ -19,7 +19,6 @@ class Updater(Mediator):
     def call(self):
         self._update_application()
         self._update_actor()
-        self._update_project()
         self._update_events()
         self._update_url()
         return self.service_hook
