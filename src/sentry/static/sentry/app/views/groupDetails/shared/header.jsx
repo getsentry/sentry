@@ -156,13 +156,13 @@ const GroupHeader = createReactClass({
                   <ShortId shortId={group.shortId} />
                 </div>
               )}
-              <div className="count align-right">
+              <div className="count align-right m-l-1">
                 <h6 className="nav-header">{t('Events')}</h6>
                 <Link to={`${baseUrl}${groupId}/events/`}>
                   <Count className="count" value={group.count} />
                 </Link>
               </div>
-              <div className="count align-right">
+              <div className="count align-right m-l-1">
                 <h6 className="nav-header">{t('Users')}</h6>
                 {userCount !== 0 ? (
                   <Link to={`${baseUrl}${groupId}/tags/user/`}>
@@ -172,7 +172,7 @@ const GroupHeader = createReactClass({
                   <span>0</span>
                 )}
               </div>
-              <div className="assigned-to">
+              <div className="assigned-to m-l-1">
                 <h6 className="nav-header">{t('Assignee')}</h6>
                 <AssigneeSelector id={group.id} />
               </div>
