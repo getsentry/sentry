@@ -431,11 +431,12 @@ class TagStorage(Service):
             project_id, group_id, environment_ids, keys=keys
         )
 
+        environment_id = environment_ids and environment_ids[0]
         for tk in tag_keys:
             tk.top_values = self.get_top_group_tag_values(
-                project_id, group_id, environment_ids and environment_ids[0], tk.key, limit=value_limit)
+                project_id, group_id, environment_id, tk.key, limit=value_limit)
             if tk.count is None:
                 tk.count = self.get_group_tag_value_count(
-                    project_id, group_id, environment_ids and environment_ids[0], tk.key)
+                    project_id, group_id, environment_id, tk.key)
 
         return tag_keys
