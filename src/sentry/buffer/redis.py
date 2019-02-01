@@ -96,7 +96,7 @@ class RedisBuffer(Buffer):
         """
         if partition is None:
             return self.pending_key
-        assert partition >= 0 and partition < self.pending_partitions
+        assert partition >= 0
         return '%s:%d' % (self.pending_key, partition)
 
     def _make_pending_key_from_key(self, key):
