@@ -13,7 +13,7 @@ from sentry.integrations.jira.webhooks import (
 from sentry.models import Integration
 
 
-logger = logging.getLogger('sentry.integrations.jiraserver.webhooks')
+logger = logging.getLogger('sentry.integrations.jira_server.webhooks')
 
 
 def get_integration_from_token(token):
