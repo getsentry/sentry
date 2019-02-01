@@ -7,7 +7,6 @@ import logging
 
 from sentry.models import Environment, UserReport
 from sentry.testutils import TestCase
-from sentry.event_manager import EventManager
 
 
 class ErrorPageEmbedTest(TestCase):
@@ -188,7 +187,9 @@ class ErrorPageEmbedEnvironmentTest(TestCase):
             'tags': [],
         }
         result.update(kwargs)
-        return self.create_event_endtoend(data=result, project_id=self.project.id)
+        return self.create_event_endtoend(data=result,
+                                          project_id=self.project.id,
+                                          assert_no_errors=False)
 
     def test_environment_gets_user_report(self):
         self.make_event(
