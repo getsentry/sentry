@@ -44,6 +44,7 @@ class OrganizationDiscoverContainer extends React.Component {
     const {organization} = context;
 
     const query = getQueryFromQueryString(search);
+
     if (query.hasOwnProperty('projects')) {
       // Update global store with projects from querystring
       updateProjects(query.projects);
@@ -60,7 +61,7 @@ class OrganizationDiscoverContainer extends React.Component {
         period: query.range || null,
       });
     } else {
-      // Update query with global projects
+      // Update query with global datetime values
       query.start = props.selection.datetime.start;
       query.end = props.selection.datetime.end;
       query.range = props.selection.datetime.period;
