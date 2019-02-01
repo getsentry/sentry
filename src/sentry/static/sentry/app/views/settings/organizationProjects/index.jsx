@@ -128,7 +128,7 @@ export default class OrganizationProjects extends AsyncView {
                     <Button
                       icon="icon-settings"
                       size="small"
-                      to={`/settings/${organization.slug}/${project.slug}/`}
+                      to={`/settings/${organization.slug}/projects/${project.slug}/`}
                     >
                       {t('Settings')}
                     </Button>

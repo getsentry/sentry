@@ -70,7 +70,7 @@ const ProjectItem = createReactClass({
         <Link
           to={
             hasNewRoutes
-              ? `/settings/${organization.slug}/${project.slug}/`
+              ? `/settings/${organization.slug}/projects/${project.slug}/`
               : `/${organization.slug}/${project.slug}/`
           }
         >

@@ -41,7 +41,7 @@ class IntegrationAlertRules extends React.Component {
               </Box>
               <Box pr={1}>
                 <Button
-                  to={`/settings/${orgId}/${project.slug}/alerts/rules/new/`}
+                  to={`/settings/${orgId}/projects/${project.slug}/alerts/rules/new/`}
                   size="xsmall"
                 >
                   {t('Add Alert Rule')}

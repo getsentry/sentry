@@ -109,7 +109,7 @@ export default class ProjectServiceHookDetails extends AsyncView {
       method: 'DELETE',
       success: () => {
         IndicatorStore.remove(loadingIndicator);
-        browserHistory.push(`/settings/${orgId}/${projectId}/hooks/`);
+        browserHistory.push(`/settings/${orgId}/projects/${projectId}/hooks/`);
       },
       error: () => {
         IndicatorStore.remove(loadingIndicator);

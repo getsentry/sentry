@@ -223,7 +223,7 @@ describe('ApiSource', function() {
             }),
             sourceType: 'project',
             resultType: 'settings',
-            to: '/settings/org-slug/foo-project/',
+            to: '/settings/org-slug/projects/foo-project/',
           }),
           matches: expect.anything(),
           score: expect.anything(),

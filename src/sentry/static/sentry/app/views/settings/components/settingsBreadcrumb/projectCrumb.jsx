@@ -66,7 +66,7 @@ class ProjectCrumb extends React.Component {
               <LoadingIndicator mini />
             ) : (
               <TextLink
-                to={replaceRouterParams('/settings/:orgId/:projectId/', {
+                to={replaceRouterParams('/settings/:orgId/projects/:projectId/', {
                   orgId: latestOrganization.slug,
                   projectId: latestProject.slug,
                 })}

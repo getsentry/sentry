@@ -58,7 +58,7 @@ async function createProjectResults(projectsPromise, orgId) {
         model: project,
         sourceType: 'project',
         resultType: 'settings',
-        to: `/settings/${orgId}/${project.slug}/`,
+        to: `/settings/${orgId}/projects/${project.slug}/`,
       },
     ])
   );
@@ -95,7 +95,7 @@ async function createLegacyIntegrationResults(pluginsPromise, orgId) {
     model: plugin,
     sourceType: 'plugin',
     resultType: 'integration',
-    to: `/settings/${orgId}/:projectId/plugins/${plugin.id}/`,
+    to: `/settings/${orgId}/projects/:projectId/plugins/${plugin.id}/`,
   }));
 }
 
