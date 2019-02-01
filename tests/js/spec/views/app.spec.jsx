@@ -27,12 +27,12 @@ describe('App', function() {
   });
 
   it('renders newsletter consent with flag', async function() {
-    let user = ConfigStore.get('user');
+    const user = ConfigStore.get('user');
     user.flags.newsletter_consent_prompt = true;
     // XXX(dcramer): shouldnt need to re-set
     ConfigStore.set('user', user);
 
-    let wrapper = mount(
+    const wrapper = mount(
       <App params={{orgId: 'org-slug'}}>{<div>placeholder content</div>}</App>
     );
 
@@ -40,12 +40,12 @@ describe('App', function() {
   });
 
   it('does not render newsletter consent without flag', async function() {
-    let user = ConfigStore.get('user');
+    const user = ConfigStore.get('user');
     user.flags.newsletter_consent_prompt = false;
     // XXX(dcramer): shouldnt need to re-set
     ConfigStore.set('user', user);
 
-    let wrapper = mount(
+    const wrapper = mount(
       <App params={{orgId: 'org-slug'}}>{<div>placeholder content</div>}</App>
     );
 

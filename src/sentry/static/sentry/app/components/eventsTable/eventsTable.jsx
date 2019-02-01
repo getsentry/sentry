@@ -13,11 +13,11 @@ class EventsTable extends React.Component {
   };
 
   render() {
-    let {className, events, tagList} = this.props;
+    const {className, events, tagList} = this.props;
 
-    let cx = classNames('table events-table', className);
-    let hasUser = !!events.find(event => event.user);
-    let {orgId, projectId, groupId} = this.props.params;
+    const cx = classNames('table events-table', className);
+    const hasUser = !!events.find(event => event.user);
+    const {orgId, projectId, groupId} = this.props.params;
 
     return (
       <table className={cx}>

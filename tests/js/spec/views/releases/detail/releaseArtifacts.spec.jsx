@@ -7,7 +7,7 @@ import {ReleaseArtifacts} from 'app/views/releases/detail/shared/releaseArtifact
 describe('ReleaseArtifacts', function() {
   let wrapper;
   let wrapperWithPermission;
-  let api = new Client();
+  const api = new Client();
   let projectMock;
   let organizationMock;
   let deleteMock;

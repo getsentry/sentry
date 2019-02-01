@@ -57,7 +57,7 @@ class Confirm extends React.PureComponent {
   }
 
   openModal = () => {
-    let {onConfirming, disableConfirmButton} = this.props;
+    const {onConfirming, disableConfirmButton} = this.props;
     if (typeof onConfirming === 'function') {
       onConfirming();
     }
@@ -72,7 +72,7 @@ class Confirm extends React.PureComponent {
   };
 
   closeModal = () => {
-    let {onCancel, disableConfirmButton} = this.props;
+    const {onCancel, disableConfirmButton} = this.props;
     if (typeof onCancel === 'function') {
       onCancel();
     }
@@ -100,7 +100,7 @@ class Confirm extends React.PureComponent {
   };
 
   handleToggle = e => {
-    let {disabled, bypass} = this.props;
+    const {disabled, bypass} = this.props;
     if (disabled) return;
 
     if (bypass) {
@@ -117,7 +117,7 @@ class Confirm extends React.PureComponent {
   };
 
   render() {
-    let {
+    const {
       disabled,
       message,
       renderMessage,

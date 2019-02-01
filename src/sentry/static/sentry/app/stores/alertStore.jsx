@@ -18,8 +18,8 @@ const AlertStore = Reflux.createStore({
         expirations = JSON.parse(expirations);
 
         // Remove any objects that have passed their mute duration.
-        let now = Math.floor(new Date() / 1000);
-        for (let key in expirations) {
+        const now = Math.floor(new Date() / 1000);
+        for (const key in expirations) {
           if (expirations.hasOwnProperty(key) && expirations[key] < now) {
             delete expirations[key];
           }
@@ -53,7 +53,7 @@ const AlertStore = Reflux.createStore({
 
   onCloseAlert(alert, duration = 60 * 60 * 7 * 24) {
     if (defined(alert.id) && defined(duration)) {
-      let expiry = Math.floor(new Date() / 1000) + duration;
+      const expiry = Math.floor(new Date() / 1000) + duration;
       let expirations = localStorage.getItem('alerts:muted');
       if (defined(expirations)) {
         expirations = JSON.parse(expirations);

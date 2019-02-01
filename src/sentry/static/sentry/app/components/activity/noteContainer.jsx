@@ -34,7 +34,7 @@ class NoteContainer extends React.Component {
   };
 
   render() {
-    let {group, item, author, sessionUser, memberList} = this.props;
+    const {group, item, author, sessionUser, memberList} = this.props;
 
     return (
       <li className="activity-note">

@@ -26,7 +26,7 @@ describe('ProjectTeamsSettings', function() {
 
   describe('render()', function() {
     it('renders', function() {
-      let wrapper = shallow(
+      const wrapper = shallow(
         <ProjectOwnership
           params={{orgId: org.slug, projectId: project.slug}}
           organization={org}

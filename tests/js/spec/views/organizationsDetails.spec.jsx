@@ -29,7 +29,7 @@ describe('OrganizationDetails', function() {
             },
           }),
         });
-        let tree = mount(
+        const tree = mount(
           <OrganizationDetails params={{orgId: 'org-slug'}} location={{}} />,
           TestStubs.routerContext()
         );
@@ -55,7 +55,7 @@ describe('OrganizationDetails', function() {
             },
           }),
         });
-        let tree = mount(
+        const tree = mount(
           <OrganizationDetails params={{orgId: 'org-slug'}} location={{}} />,
           TestStubs.routerContext()
         );
@@ -87,7 +87,7 @@ describe('OrganizationDetails', function() {
       });
 
       it('should render a deletion in progress prompt', async function() {
-        let tree = mount(
+        const tree = mount(
           <OrganizationDetails params={{orgId: 'org-slug'}} location={{}} />
         );
         await tick();

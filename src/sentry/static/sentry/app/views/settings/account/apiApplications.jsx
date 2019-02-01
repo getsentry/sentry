@@ -41,14 +41,14 @@ const ApiApplicationRow = createReactClass({
   handleRemove() {
     if (this.state.loading) return;
 
-    let app = this.props.app;
+    const app = this.props.app;
 
     this.setState(
       {
         loading: true,
       },
       () => {
-        let loadingIndicator = IndicatorStore.add(t('Saving changes..'));
+        const loadingIndicator = IndicatorStore.add(t('Saving changes..'));
         this.api.request(`/api-applications/${app.id}/`, {
           method: 'DELETE',
           success: data => {
@@ -71,7 +71,7 @@ const ApiApplicationRow = createReactClass({
   },
 
   render() {
-    let app = this.props.app;
+    const app = this.props.app;
 
     let btnClassName = 'btn btn-default';
     if (this.state.loading) btnClassName += ' disabled';
@@ -119,7 +119,7 @@ class ApiApplications extends AsyncView {
   }
 
   handleCreateApplication = () => {
-    let indicator = addLoadingMessage();
+    const indicator = addLoadingMessage();
     this.api.request('/api-applications/', {
       method: 'POST',
       success: app => {
@@ -141,7 +141,7 @@ class ApiApplications extends AsyncView {
   };
 
   renderBody() {
-    let action = (
+    const action = (
       <Button
         priority="primary"
         size="small"
@@ -153,7 +153,7 @@ class ApiApplications extends AsyncView {
       </Button>
     );
 
-    let isEmpty = this.state.appList.length === 0;
+    const isEmpty = this.state.appList.length === 0;
 
     return (
       <div>

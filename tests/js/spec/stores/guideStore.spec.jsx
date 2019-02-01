@@ -5,8 +5,8 @@ import ConfigStore from 'app/stores/configStore';
 
 describe('GuideStore', function() {
   let sandbox;
-  let anchor1 = <GuideAnchor target="target 1" type="text" />;
-  let anchor2 = <GuideAnchor target="target 2" type="text" />;
+  const anchor1 = <GuideAnchor target="target 1" type="text" />;
+  const anchor2 = <GuideAnchor target="target 2" type="text" />;
   let data;
 
   beforeEach(function() {
@@ -103,7 +103,7 @@ describe('GuideStore', function() {
       },
     });
     expect(GuideStore.state.currentGuide).toEqual(null);
-    let spy = jest.spyOn(GuideStore, 'isDefaultAlert').mockImplementation(() => true);
+    const spy = jest.spyOn(GuideStore, 'isDefaultAlert').mockImplementation(() => true);
     GuideStore.onSetActiveOrganization({id: 1, slug: 'org'});
     GuideStore.onSetActiveProject({id: 1, slug: 'proj'});
     await tick();
@@ -112,7 +112,7 @@ describe('GuideStore', function() {
   });
 
   it('should record analytics events when guide is cued', async function() {
-    let spy = jest.spyOn(GuideStore, 'recordCue');
+    const spy = jest.spyOn(GuideStore, 'recordCue');
 
     GuideStore.onFetchSucceeded(data);
     await tick();
@@ -122,7 +122,7 @@ describe('GuideStore', function() {
   });
 
   it('should not send multiple cue analytics events for same guide', async function() {
-    let spy = jest.spyOn(GuideStore, 'recordCue');
+    const spy = jest.spyOn(GuideStore, 'recordCue');
 
     GuideStore.onFetchSucceeded(data);
     await tick();

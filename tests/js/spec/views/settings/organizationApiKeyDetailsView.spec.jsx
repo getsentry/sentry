@@ -29,7 +29,7 @@ describe('OrganizationApiKeyDetails', function() {
   });
 
   it('renders', function() {
-    let wrapper = mount(
+    const wrapper = mount(
       <OrganizationApiKeyDetails params={{apiKey: 1, orgId: 'org-slug'}} />,
       {
         context: {

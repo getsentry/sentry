@@ -15,7 +15,7 @@ class SidebarPanelItem extends React.Component {
   };
 
   render() {
-    let {hasSeen, title, image, message, link} = this.props;
+    const {hasSeen, title, image, message, link} = this.props;
 
     return (
       <SidebarPanelItemRoot>

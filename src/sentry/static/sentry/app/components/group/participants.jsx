@@ -15,7 +15,7 @@ const GroupParticipants = createReactClass({
   },
 
   render() {
-    let participants = this.props.participants;
+    const participants = this.props.participants;
 
     return (
       <div>

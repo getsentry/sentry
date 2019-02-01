@@ -45,7 +45,7 @@ const REMARKS = {
 
 function renderChunk(chunk) {
   if (chunk.type === 'redaction') {
-    let title = t('%s due to PII rule "%s"', REMARKS[chunk.remark], chunk.rule_id);
+    const title = t('%s due to PII rule "%s"', REMARKS[chunk.remark], chunk.rule_id);
     return (
       <Tooltip title={title}>
         <Redaction>{chunk.text}</Redaction>
@@ -61,7 +61,7 @@ function renderChunks(chunks) {
     return chunks[0].text;
   }
 
-  let spans = chunks.map((chunk, key) => React.cloneElement(renderChunk(chunk), {key}));
+  const spans = chunks.map((chunk, key) => React.cloneElement(renderChunk(chunk), {key}));
 
   return <Chunks>{spans}</Chunks>;
 }
@@ -81,7 +81,7 @@ function renderValue(value, chunks, errors, remarks) {
   }
 
   if (remarks && remarks.length) {
-    let title = t('%s due to PII rule "%s"', REMARKS[remarks[0][1]], remarks[0][0]);
+    const title = t('%s due to PII rule "%s"', REMARKS[remarks[0][1]], remarks[0][0]);
     element = <Tooltip title={title}>{element}</Tooltip>;
   }
 
@@ -93,7 +93,7 @@ function renderErrors(errors) {
     return null;
   }
 
-  let tooltip = `
+  const tooltip = `
   <div style="text-align: left">
     <strong>${tn('Processing Error:', 'Processing Errors:', errors.length)}</strong>
     <ul>

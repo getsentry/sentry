@@ -8,15 +8,15 @@ import {uniqueId} from 'app/utils/guid';
 export function assignToUser(params) {
   const api = new Client();
 
-  let endpoint = `/issues/${params.id}/`;
+  const endpoint = `/issues/${params.id}/`;
 
-  let id = uniqueId();
+  const id = uniqueId();
 
   GroupActions.assignTo(id, params.id, {
     email: (params.member && params.member.email) || '',
   });
 
-  let request = api.requestPromise(endpoint, {
+  const request = api.requestPromise(endpoint, {
     method: 'PUT',
     // Sending an empty value to assignedTo is the same as "clear",
     // so if no member exists, that implies that we want to clear the
@@ -40,15 +40,15 @@ export function assignToUser(params) {
 export function clearAssignment(groupId) {
   const api = new Client();
 
-  let endpoint = `/issues/${groupId}/`;
+  const endpoint = `/issues/${groupId}/`;
 
-  let id = uniqueId();
+  const id = uniqueId();
 
   GroupActions.assignTo(id, groupId, {
     email: '',
   });
 
-  let request = api.requestPromise(endpoint, {
+  const request = api.requestPromise(endpoint, {
     method: 'PUT',
     // Sending an empty value to assignedTo is the same as "clear"
     data: {
@@ -70,9 +70,9 @@ export function clearAssignment(groupId) {
 export function assignToActor({id, actor}) {
   const api = new Client();
 
-  let endpoint = `/issues/${id}/`;
+  const endpoint = `/issues/${id}/`;
 
-  let guid = uniqueId();
+  const guid = uniqueId();
   let actorId;
 
   GroupActions.assignTo(guid, id, {email: ''});

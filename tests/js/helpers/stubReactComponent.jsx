@@ -2,8 +2,8 @@
 // https://gist.github.com/TimothyRHuertas/d7d06313c5411fe242bb
 import React from 'react';
 
-let divFactory = React.createFactory('div');
-let originalCreateElement = React.createElement;
+const divFactory = React.createFactory('div');
+const originalCreateElement = React.createElement;
 
 // eslint-disable-next-line import/no-anonymous-default-export
 export default function(stubber, stubbedComponents) {
@@ -12,8 +12,8 @@ export default function(stubber, stubbedComponents) {
     if (stubbedComponents.indexOf(component) === -1) {
       return originalCreateElement.apply(React, arguments);
     } else {
-      let componentFactory = React.createFactory(component);
-      let displayName = componentFactory(props).type.displayName;
+      const componentFactory = React.createFactory(component);
+      const displayName = componentFactory(props).type.displayName;
 
       if (displayName) {
         if (props.className) {

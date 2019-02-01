@@ -51,7 +51,7 @@ const EventList = createReactClass({
   getEndpoint() {
     const {params, type, environment} = this.props;
 
-    let qs = {
+    const qs = {
       sort: type,
       query: 'is:unresolved',
       since: this.props.dateSince,

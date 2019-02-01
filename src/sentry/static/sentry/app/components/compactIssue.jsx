@@ -25,8 +25,8 @@ class CompactIssueHeader extends React.Component {
   };
 
   getTitle = () => {
-    let data = this.props.data;
-    let metadata = data.metadata;
+    const data = this.props.data;
+    const metadata = data.metadata;
     switch (data.type) {
       case 'error':
         return (
@@ -52,8 +52,8 @@ class CompactIssueHeader extends React.Component {
   };
 
   getMessage = () => {
-    let data = this.props.data;
-    let metadata = data.metadata;
+    const data = this.props.data;
+    const metadata = data.metadata;
     switch (data.type) {
       case 'error':
         return metadata.value;
@@ -65,13 +65,13 @@ class CompactIssueHeader extends React.Component {
   };
 
   render() {
-    let {data, organization, projectId} = this.props;
+    const {data, organization, projectId} = this.props;
 
-    let hasNewRoutes = new Set(organization.features).has('sentry10');
+    const hasNewRoutes = new Set(organization.features).has('sentry10');
 
     let styles = {};
 
-    let basePath = hasNewRoutes
+    const basePath = hasNewRoutes
       ? `/organizations/${organization.slug}/issues/`
       : `/${organization.slug}/${projectId}/issues/`;
 
@@ -149,15 +149,15 @@ const CompactIssue = createReactClass({
     if (!itemIds.has(this.props.id)) {
       return;
     }
-    let id = this.props.id;
-    let issue = GroupStore.get(id);
+    const id = this.props.id;
+    const issue = GroupStore.get(id);
     this.setState({
       issue,
     });
   },
 
   onSnooze(duration) {
-    let data = {
+    const data = {
       status: 'ignored',
     };
 
@@ -167,8 +167,8 @@ const CompactIssue = createReactClass({
   },
 
   onUpdate(data) {
-    let issue = this.state.issue;
-    let loadingIndicator = IndicatorStore.add(t('Saving changes..'));
+    const issue = this.state.issue;
+    const loadingIndicator = IndicatorStore.add(t('Saving changes..'));
 
     this.api.bulkUpdate(
       {
@@ -186,8 +186,8 @@ const CompactIssue = createReactClass({
   },
 
   render() {
-    let issue = this.state.issue;
-    let {id, organization} = this.props;
+    const issue = this.state.issue;
+    const {id, organization} = this.props;
 
     let className = 'issue';
     if (issue.isBookmarked) {
@@ -209,7 +209,7 @@ const CompactIssue = createReactClass({
       className += ' with-graph';
     }
 
-    let title = <span className="icon-more" />;
+    const title = <span className="icon-more" />;
 
     return (
       <PanelItem

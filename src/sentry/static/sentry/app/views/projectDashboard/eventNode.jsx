@@ -18,8 +18,8 @@ const EventNode = createReactClass({
   mixins: [ProjectState],
 
   render() {
-    let group = this.props.group;
-    let userCount = group.userCount;
+    const group = this.props.group;
+    const userCount = group.userCount;
 
     return (
       <li className="group row">

@@ -45,7 +45,7 @@ function getRubyFrame(frame) {
 }
 
 export function getPHPFrame(frame, idx) {
-  let funcName = frame.function === 'null' ? '{main}' : frame.function;
+  const funcName = frame.function === 'null' ? '{main}' : frame.function;
   return `#${idx} ${frame.filename || frame.module}(${frame.lineNo}): ${funcName}`;
 }
 
@@ -163,7 +163,7 @@ function getFrame(frame, frameIdx, platform) {
 
 export default function render(data, platform, exception) {
   let firstFrameOmitted, lastFrameOmitted;
-  let frames = [];
+  const frames = [];
 
   if (data.framesOmitted) {
     firstFrameOmitted = data.framesOmitted[0];

@@ -31,7 +31,7 @@ class U2fContainer extends React.Component {
   }
 
   render() {
-    let {className, authenticators} = this.state;
+    const {className, authenticators} = this.state;
     if (authenticators && authenticators.length) {
       return (
         <div className={className}>

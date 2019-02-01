@@ -7,7 +7,7 @@ class Duration extends React.Component {
   };
 
   getDuration = () => {
-    let value = Math.abs(this.props.seconds * 1000);
+    const value = Math.abs(this.props.seconds * 1000);
     let result = '';
 
     if (value >= 604800000) {

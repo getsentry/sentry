@@ -17,15 +17,15 @@ class ActorAvatar extends React.Component {
   };
 
   render() {
-    let {actor, ...props} = this.props;
+    const {actor, ...props} = this.props;
 
     if (actor.type == 'user') {
-      let user = actor.id ? MemberListStore.getById(actor.id) : actor;
+      const user = actor.id ? MemberListStore.getById(actor.id) : actor;
       return <Avatar user={user} hasTooltip {...props} />;
     }
 
     if (actor.type == 'team') {
-      let team = TeamStore.getById(actor.id);
+      const team = TeamStore.getById(actor.id);
       return <Avatar team={team} hasTooltip {...props} />;
     }
 

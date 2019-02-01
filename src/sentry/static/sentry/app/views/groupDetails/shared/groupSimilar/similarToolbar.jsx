@@ -36,7 +36,7 @@ const SimilarToolbar = createReactClass({
   },
 
   render() {
-    let {onMerge} = this.props;
+    const {onMerge} = this.props;
     return (
       <Toolbar className="similar-toolbar">
         <SpreadLayout responsive>

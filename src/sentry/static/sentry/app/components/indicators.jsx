@@ -40,7 +40,7 @@ class Indicators extends React.Component {
   };
 
   render() {
-    let {items, className, ...props} = this.props;
+    const {items, className, ...props} = this.props;
 
     return (
       <Toasts {...props} className={cx(className, 'ref-toasts')}>

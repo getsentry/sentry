@@ -63,7 +63,7 @@ class TextCopyInput extends React.Component {
   handleCopyClick = e => {
     if (!this.textRef.current) return;
 
-    let {onCopy} = this.props;
+    const {onCopy} = this.props;
 
     this.handleSelectText();
 
@@ -81,7 +81,7 @@ class TextCopyInput extends React.Component {
   };
 
   render() {
-    let {style, children} = this.props;
+    const {style, children} = this.props;
 
     return (
       <Flex>

@@ -12,8 +12,8 @@ describe('OrganizationMemberDetail', function() {
   let organization;
   let wrapper;
   let routerContext;
-  let team = TestStubs.Team();
-  let teams = [
+  const team = TestStubs.Team();
+  const teams = [
     team,
     TestStubs.Team({
       id: '2',
@@ -22,12 +22,12 @@ describe('OrganizationMemberDetail', function() {
       isMember: false,
     }),
   ];
-  let member = TestStubs.Member({
+  const member = TestStubs.Member({
     roles: TestStubs.RoleList(),
     dateCreated: new Date(),
     teams: [team.slug],
   });
-  let pendingMember = TestStubs.Member({
+  const pendingMember = TestStubs.Member({
     id: 2,
     roles: TestStubs.RoleList(),
     dateCreated: new Date(),
@@ -35,7 +35,7 @@ describe('OrganizationMemberDetail', function() {
     invite_link: 'http://example.com/i/abc123',
     pending: true,
   });
-  let expiredMember = TestStubs.Member({
+  const expiredMember = TestStubs.Member({
     id: 3,
     roles: TestStubs.RoleList(),
     dateCreated: new Date(),
@@ -153,9 +153,9 @@ describe('OrganizationMemberDetail', function() {
       routerContext
     );
 
-    let first = 'TeamSelect Checkbox[id="team-slug"]';
-    let last = 'TeamSelect Checkbox[id="new-team"]';
-    let selectAllButton = wrapper.find('Button[data-test-id="select-all"]');
+    const first = 'TeamSelect Checkbox[id="team-slug"]';
+    const last = 'TeamSelect Checkbox[id="new-team"]';
+    const selectAllButton = wrapper.find('Button[data-test-id="select-all"]');
 
     expect(selectAllButton).toHaveLength(1);
     expect(wrapper.find(first).prop('checked')).toBe(true);
@@ -255,7 +255,7 @@ describe('OrganizationMemberDetail', function() {
         routerContext
       );
 
-      let button = wrapper.find('Button[data-test-id="resend-invite"]');
+      const button = wrapper.find('Button[data-test-id="resend-invite"]');
       expect(button.text()).toEqual('Resend Invite');
     });
 
@@ -270,25 +270,25 @@ describe('OrganizationMemberDetail', function() {
   });
 
   describe('Reset member 2FA', function() {
-    let fields = {
+    const fields = {
       roles: TestStubs.RoleList(),
       dateCreated: new Date(),
       teams: [team.slug],
     };
 
-    let noAccess = TestStubs.Member({
+    const noAccess = TestStubs.Member({
       ...fields,
       id: '4',
       user: TestStubs.User({has2fa: false}),
     });
 
-    let no2fa = TestStubs.Member({
+    const no2fa = TestStubs.Member({
       ...fields,
       id: '5',
       user: TestStubs.User({has2fa: false, authenticators: [], canReset2fa: true}),
     });
 
-    let has2fa = TestStubs.Member({
+    const has2fa = TestStubs.Member({
       ...fields,
       id: '6',
       user: TestStubs.User({
@@ -302,7 +302,7 @@ describe('OrganizationMemberDetail', function() {
       }),
     });
 
-    let multipleOrgs = TestStubs.Member({
+    const multipleOrgs = TestStubs.Member({
       ...fields,
       id: '7',
       user: TestStubs.User({
@@ -339,8 +339,8 @@ describe('OrganizationMemberDetail', function() {
       });
     });
 
-    let button = 'Button[data-test-id="reset-2fa"]';
-    let tooltip = 'Tooltip[data-test-id="reset-2fa-tooltip"]';
+    const button = 'Button[data-test-id="reset-2fa"]';
+    const tooltip = 'Tooltip[data-test-id="reset-2fa-tooltip"]';
 
     const expectButtonEnabled = () => {
       expect(wrapper.find(button).text()).toEqual('Reset two-factor authentication');
@@ -383,7 +383,7 @@ describe('OrganizationMemberDetail', function() {
     });
 
     it('can reset member 2FA', function() {
-      let deleteMocks = has2fa.user.authenticators.map(auth => {
+      const deleteMocks = has2fa.user.authenticators.map(auth => {
         return MockApiClient.addMockResponse({
           url: `/users/${has2fa.user.id}/authenticators/${auth.id}/`,
           method: 'DELETE',

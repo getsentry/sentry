@@ -76,9 +76,9 @@ const StyledLoadingIndicator = styled(LoadingIndicator)`
 
 function ToastIndicator({indicator, onDismiss, className, ...props}) {
   let icon;
-  let {options, message, type} = indicator;
-  let {undo, disableDismiss} = options || {};
-  let showUndo = typeof undo === 'function';
+  const {options, message, type} = indicator;
+  const {undo, disableDismiss} = options || {};
+  const showUndo = typeof undo === 'function';
   const handleClick = e => {
     if (disableDismiss) return;
     if (typeof onDismiss === 'function') {

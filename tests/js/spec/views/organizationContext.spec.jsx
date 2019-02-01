@@ -17,7 +17,7 @@ jest.mock('app/actionCreators/modal', () => ({
 
 describe('OrganizationContext', function() {
   let wrapper;
-  let org = TestStubs.Organization({
+  const org = TestStubs.Organization({
     teams: [TestStubs.Team()],
     projects: [TestStubs.Project()],
   });
@@ -75,7 +75,7 @@ describe('OrganizationContext', function() {
   });
 
   it('fetches new org when router params change', function() {
-    let mock = MockApiClient.addMockResponse({
+    const mock = MockApiClient.addMockResponse({
       url: '/organizations/new-slug/',
       body: org,
     });

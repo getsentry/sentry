@@ -8,7 +8,7 @@ class PlatformiconTile extends React.Component {
   };
 
   render() {
-    let {platform, className} = this.props;
+    const {platform, className} = this.props;
 
     return (
       <li
