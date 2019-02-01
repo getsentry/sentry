@@ -4,6 +4,7 @@ import re
 import six
 
 from collections import namedtuple
+from django.utils.functional import cached_property
 from funcy.seqs import flatten
 from funcy.types import is_list
 
@@ -63,7 +64,9 @@ event_search_grammar = Grammar(r"""
 # raw_search must come at the end, otherwise other
 # search_terms will be treated as a raw query
 search          = search_term* raw_search?
-search_term     = space? (time_filter / rel_time_filter / specific_time_filter / has_filter / is_filter / basic_filter) space?
+search_term     = space? (time_filter / rel_time_filter / specific_time_filter
+                  / numeric_filter / has_filter / is_filter / basic_filter)
+                  space?
 raw_search      = ~r".+$"
 
 # standard key:val filter
@@ -74,6 +77,8 @@ time_filter     = search_key sep? operator date_format
 rel_time_filter = search_key sep rel_date_format
 # exact time filter for dates
 specific_time_filter = search_key sep date_format
+# Numeric comparison filter
+numeric_filter  = search_key sep operator ~r"[0-9]+"
 
 # has filter for not null type checks
 has_filter      = negation? "has" sep (search_key / search_value)
@@ -142,8 +147,19 @@ class SearchValue(namedtuple('SearchValue', 'raw_value')):
 
 
 class SearchVisitor(NodeVisitor):
+    # A list of mappers that map source keys to a target name. Format is
+    # <target_name>: [<list of source names>],
+    key_mappings = {}
 
     unwrapped_exceptions = (InvalidSearchQuery,)
+
+    @cached_property
+    def key_mappings_lookup(self):
+        lookup = {}
+        for target_field, source_fields in self.key_mappings.items():
+            for source_field in source_fields:
+                lookup[source_field] = target_field
+        return lookup
 
     def visit_search(self, node, children):
         # there is a list from search_term and one from raw_search, so flatten them.
@@ -161,6 +177,19 @@ class SearchVisitor(NodeVisitor):
             SearchKey('message'),
             "=",
             SearchValue(node.text),
+        )
+
+    def visit_numeric_filter(self, node, children):
+        search_key, _, operator, search_value = children
+        try:
+            search_value = int(search_value.text)
+        except ValueError:
+            raise InvalidSearchQuery('Invalid numeric query: %s' % (search_key,))
+
+        return SearchFilter(
+            search_key,
+            operator,
+            SearchValue(search_value),
         )
 
     def visit_time_filter(self, node, children):
@@ -265,7 +294,8 @@ class SearchVisitor(NodeVisitor):
         raise InvalidSearchQuery('"is" queries are not supported on this search')
 
     def visit_search_key(self, node, children):
-        return SearchKey(children[0])
+        key = children[0]
+        return SearchKey(self.key_mappings_lookup.get(key, key))
 
     def visit_search_value(self, node, children):
         return SearchValue(children[0])

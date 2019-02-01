@@ -8,8 +8,9 @@ from freezegun import freeze_time
 from parsimonious.exceptions import IncompleteParseError
 
 from sentry.api.event_search import (
-    convert_endpoint_params, get_snuba_query_args, parse_search_query,
-    InvalidSearchQuery, SearchFilter, SearchKey, SearchValue
+    convert_endpoint_params, event_search_grammar, get_snuba_query_args,
+    parse_search_query, InvalidSearchQuery, SearchFilter, SearchKey,
+    SearchValue, SearchVisitor,
 )
 from sentry.testutils import TestCase
 
@@ -359,6 +360,56 @@ class ParseSearchQueryTest(TestCase):
     def test_is_query_unsupported(self):
         with self.assertRaises(InvalidSearchQuery):
             parse_search_query('is:unassigned')
+
+    def test_key_remapping(self):
+        class RemapVisitor(SearchVisitor):
+            key_mappings = {
+                'target_value': ['someValue', 'legacy-value'],
+            }
+
+        tree = event_search_grammar.parse('someValue:123 legacy-value:456 normal_value:hello')
+        assert RemapVisitor().visit(tree) == [
+            SearchFilter(
+                key=SearchKey(name='target_value'),
+                operator='=',
+                value=SearchValue('123'),
+            ),
+            SearchFilter(
+                key=SearchKey(name='target_value'),
+                operator='=',
+                value=SearchValue('456'),
+            ),
+            SearchFilter(
+                key=SearchKey(name='normal_value'),
+                operator='=',
+                value=SearchValue('hello'),
+            ),
+        ]
+
+    def test_numeric_filter(self):
+        # test numeric format
+        assert parse_search_query('some_number:>500') == [
+            SearchFilter(
+                key=SearchKey(name='some_number'),
+                operator=">",
+                value=SearchValue(raw_value=500),
+            ),
+        ]
+        assert parse_search_query('some_number:<500') == [
+            SearchFilter(
+                key=SearchKey(name='some_number'),
+                operator="<",
+                value=SearchValue(raw_value=500),
+            ),
+        ]
+        # Non numeric shouldn't match
+        assert parse_search_query('some_number:<hello') == [
+            SearchFilter(
+                key=SearchKey(name='some_number'),
+                operator="=",
+                value=SearchValue(raw_value="<hello"),
+            ),
+        ]
 
 
 class GetSnubaQueryArgsTest(TestCase):
