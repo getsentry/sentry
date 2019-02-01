@@ -1,4 +1,3 @@
-import {withRouter} from 'react-router';
 import PropTypes from 'prop-types';
 import React from 'react';
 import styled from 'react-emotion';
@@ -69,9 +68,7 @@ class OrganizationEventsContainer extends React.Component {
     );
   }
 }
-export default withRouter(
-  withOrganization(withGlobalSelection(OrganizationEventsContainer))
-);
+export default withOrganization(withGlobalSelection(OrganizationEventsContainer));
 export {OrganizationEventsContainer};
 
 const Body = styled('div')`
