@@ -1,15 +1,16 @@
 from __future__ import absolute_import
 
 import datetime
+from datetime import timedelta
 
 from django.utils import timezone
+from freezegun import freeze_time
 from parsimonious.exceptions import IncompleteParseError
 
 from sentry.api.event_search import (
     convert_endpoint_params, get_snuba_query_args, parse_search_query,
     InvalidSearchQuery, SearchFilter, SearchKey, SearchValue
 )
-from sentry.constants import STATUS_CHOICES
 from sentry.testutils import TestCase
 
 
@@ -93,6 +94,100 @@ class ParseSearchQueryTest(TestCase):
                         1,
                         103000,
                         tzinfo=timezone.utc),
+                ),
+            ),
+        ]
+
+    def test_other_dates(self):
+        # test date format with other name
+        assert parse_search_query('some_date>2015-05-18') == [
+            SearchFilter(
+                key=SearchKey(name='some_date'),
+                operator=">",
+                value=SearchValue(
+                    raw_value=datetime.datetime(
+                        2015,
+                        5,
+                        18,
+                        0,
+                        0,
+                        tzinfo=timezone.utc,
+                    ),
+                ),
+            ),
+        ]
+
+        # test colon format
+        assert parse_search_query('some_date:>2015-05-18') == [
+            SearchFilter(
+                key=SearchKey(name='some_date'),
+                operator=">",
+                value=SearchValue(
+                    raw_value=datetime.datetime(
+                        2015,
+                        5,
+                        18,
+                        0,
+                        0,
+                        tzinfo=timezone.utc,
+                    ),
+                ),
+            ),
+        ]
+
+    def test_rel_time_filter(self):
+        now = timezone.now()
+        with freeze_time(now):
+            assert parse_search_query('some_rel_date:+7d') == [
+                SearchFilter(
+                    key=SearchKey(name='some_rel_date'),
+                    operator="<=",
+                    value=SearchValue(
+                        raw_value=now - timedelta(days=7),
+                    ),
+                ),
+            ]
+            assert parse_search_query('some_rel_date:-2w') == [
+                SearchFilter(
+                    key=SearchKey(name='some_rel_date'),
+                    operator=">=",
+                    value=SearchValue(
+                        raw_value=now - timedelta(days=14),
+                    ),
+                ),
+            ]
+
+    def test_specific_time_filter(self):
+        assert parse_search_query('some_rel_date:2018-01-01') == [
+            SearchFilter(
+                key=SearchKey(name='some_rel_date'),
+                operator=">=",
+                value=SearchValue(
+                    raw_value=datetime.datetime(2018, 1, 1, tzinfo=timezone.utc),
+                ),
+            ),
+            SearchFilter(
+                key=SearchKey(name='some_rel_date'),
+                operator="<",
+                value=SearchValue(
+                    raw_value=datetime.datetime(2018, 1, 2, tzinfo=timezone.utc),
+                ),
+            ),
+        ]
+
+        assert parse_search_query('some_rel_date:2018-01-01T05:06:07') == [
+            SearchFilter(
+                key=SearchKey(name='some_rel_date'),
+                operator=">=",
+                value=SearchValue(
+                    raw_value=datetime.datetime(2018, 1, 1, 5, 1, 7, tzinfo=timezone.utc),
+                ),
+            ),
+            SearchFilter(
+                key=SearchKey(name='some_rel_date'),
+                operator="<",
+                value=SearchValue(
+                    raw_value=datetime.datetime(2018, 1, 1, 5, 12, 7, tzinfo=timezone.utc),
                 ),
             ),
         ]
@@ -261,61 +356,9 @@ class ParseSearchQueryTest(TestCase):
             ),
         ]
 
-    def test_is_query_unassigned(self):
-        assert parse_search_query('is:unassigned') == [
-            SearchFilter(
-                key=SearchKey(name='unassigned'),
-                operator='=',
-                value=SearchValue(True),
-            ),
-        ]
-        assert parse_search_query('is:assigned') == [
-            SearchFilter(
-                key=SearchKey(name='unassigned'),
-                operator='=',
-                value=SearchValue(False),
-            ),
-        ]
-
-        assert parse_search_query('!is:unassigned') == [
-            SearchFilter(
-                key=SearchKey(name='unassigned'),
-                operator='!=',
-                value=SearchValue(True),
-            ),
-        ]
-        assert parse_search_query('!is:assigned') == [
-            SearchFilter(
-                key=SearchKey(name='unassigned'),
-                operator='!=',
-                value=SearchValue(False),
-            ),
-        ]
-
-    def test_is_query_status(self):
-        for status_string, status_val in STATUS_CHOICES.items():
-            assert parse_search_query('is:%s' % status_string) == [
-                SearchFilter(
-                    key=SearchKey(name='status'),
-                    operator='=',
-                    value=SearchValue(status_val),
-                ),
-            ]
-            assert parse_search_query('!is:%s' % status_string) == [
-                SearchFilter(
-                    key=SearchKey(name='status'),
-                    operator='!=',
-                    value=SearchValue(status_val),
-                ),
-            ]
-
-    def test_is_query_invalid(self):
-        with self.assertRaises(InvalidSearchQuery) as cm:
-            parse_search_query('is:wrong')
-
-        assert cm.exception.message.startswith(
-            'Invalid value for "is" search, valid values are',
-        )
+    def test_is_query_unsupported(self):
+        with self.assertRaises(InvalidSearchQuery):
+            parse_search_query('is:unassigned')
 
 
 class GetSnubaQueryArgsTest(TestCase):
