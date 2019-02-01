@@ -187,9 +187,9 @@ class ErrorPageEmbedEnvironmentTest(TestCase):
             'tags': [],
         }
         result.update(kwargs)
-        return self.create_event_endtoend(data=result,
-                                          project_id=self.project.id,
-                                          assert_no_errors=False)
+        return self.store_event(data=result,
+                                project_id=self.project.id,
+                                assert_no_errors=False)
 
     def test_environment_gets_user_report(self):
         self.make_event(

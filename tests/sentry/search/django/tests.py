@@ -26,7 +26,7 @@ class DjangoSearchBackendTest(TestCase):
         self.backend = self.create_backend()
         now = datetime.now()
 
-        self.event1 = self.create_event_endtoend(
+        self.event1 = self.store_event(
             data={
                 'fingerprint': ['put-me-in-group1'],
                 'event_id': 'a' * 32,
@@ -40,7 +40,7 @@ class DjangoSearchBackendTest(TestCase):
             project_id=self.project.id
         )
 
-        self.event3 = self.create_event_endtoend(
+        self.event3 = self.store_event(
             data={
                 'fingerprint': ['put-me-in-group1'],
                 'event_id': 'c' * 32,
@@ -64,7 +64,7 @@ class DjangoSearchBackendTest(TestCase):
         self.group1.times_seen = 5
         self.group1.save()
 
-        self.event2 = self.create_event_endtoend(
+        self.event2 = self.store_event(
             data={
                 'fingerprint': ['put-me-in-group2'],
                 'event_id': 'b' * 32,
@@ -216,7 +216,7 @@ class DjangoSearchBackendTest(TestCase):
                 self.group1.first_seen + timedelta(days=1),
                 self.group1.first_seen + timedelta(days=2),
                 self.group1.last_seen + timedelta(days=1)]:
-            event = self.create_event_endtoend(
+            event = self.store_event(
                 data={
                     'fingerprint': ['put-me-in-group2'],
                     'message': 'foo',
@@ -409,7 +409,7 @@ class DjangoSearchBackendTest(TestCase):
                 self.group1.first_seen + timedelta(days=1),
                 self.group1.first_seen + timedelta(days=2),
                 self.group1.last_seen + timedelta(days=1)]:
-            event = self.create_event_endtoend(
+            event = self.store_event(
                 data={
                     'environment': 'production',
                     'fingerprint': ['put-me-in-group2'],
@@ -501,7 +501,7 @@ class DjangoSearchBackendTest(TestCase):
         )
         assert set(results) == set([])
 
-        event = self.create_event_endtoend(
+        event = self.store_event(
             data={
                 'fingerprint': ['put-me-in-group1'],
                 'message': 'foo',
@@ -581,7 +581,7 @@ class DjangoSearchBackendTest(TestCase):
         )
         assert set(results) == set([])
 
-        event = self.create_event_endtoend(
+        event = self.store_event(
             data={
                 'fingerprint': ['put-me-in-group1'],
                 'message': 'foo',

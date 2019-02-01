@@ -522,7 +522,7 @@ class Fixtures(object):
         event.save()
         return event
 
-    def create_event_endtoend(self, data, project_id, assert_no_errors=True):
+    def store_event(self, data, project_id, assert_no_errors=True):
         # Like `create_event_legacy`, but closer to how events are actually
         # ingested. Prefer to use this method over `create_event`
         manager = EventManager(data)

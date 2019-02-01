@@ -122,7 +122,7 @@ class CreateProjectUserReportTest(APITestCase):
 
         project = self.create_project()
         environment = self.make_environment(project)
-        event = self.create_event_endtoend(
+        event = self.store_event(
             data={
                 'tags': {'environment': environment.name}
             },
@@ -159,7 +159,7 @@ class CreateProjectUserReportTest(APITestCase):
         project = self.create_project()
         project_key = self.create_project_key(project=project)
         environment = self.make_environment(project)
-        event = self.create_event_endtoend(
+        event = self.store_event(
             data={
                 'environment': environment.name
             },

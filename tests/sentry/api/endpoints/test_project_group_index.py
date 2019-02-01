@@ -219,7 +219,7 @@ class GroupListTest(APITestCase):
         project = self.project
         project.update_option('sentry:resolve_age', 1)
         self.create_environment(name="test", project=project)
-        event = self.create_event_endtoend(
+        event = self.store_event(
             data={
                 'environment': 'test',
             },
