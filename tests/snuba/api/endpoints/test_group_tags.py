@@ -10,8 +10,6 @@ class GroupTagsTest(APITestCase, SnubaTestCase):
         now = timezone.now()
         min_ago = now - timedelta(minutes=1)
         group = self.create_group(first_seen=min_ago, last_seen=now)
-        # group.data['tags'] = (['foo', 'bar'], ['biz', 'baz'])
-        # group.save()
         env = self.create_environment(project=group.project, name='prod')
         env2 = self.create_environment(project=group.project, name='staging')
         self.create_event(
