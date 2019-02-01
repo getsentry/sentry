@@ -438,3 +438,11 @@ class Organization(Model):
             actor_key_id=api_key_id,
             ip_address=ip_address
         )
+
+    def get_absolute_url(self):
+        from sentry import features
+        if features.has('organizations:sentry10', self):
+            url = reverse('sentry-organization-issue-list', args=[self.slug])
+        else:
+            url = reverse('sentry-organization-home', args=[self.slug])
+        return absolute_uri(url)

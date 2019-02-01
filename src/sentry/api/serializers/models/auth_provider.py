@@ -2,7 +2,6 @@ from __future__ import absolute_import
 
 import six
 
-from django.core.urlresolvers import reverse
 from django.db.models import F
 
 from sentry.api.serializers import Serializer, register
@@ -19,11 +18,13 @@ class AuthProviderSerializer(Serializer):
             flags=F('flags').bitand(~OrganizationMember.flags['sso:linked']),
         ).count()
 
+        login_url = organization.get_absolute_url()
+
         return {
             'id': six.text_type(obj.id),
             'provider_name': obj.provider,
             'pending_links_count': pending_links_count,
-            'login_url': absolute_uri(reverse('sentry-organization-home', args=[organization.slug])),
+            'login_url': absolute_uri(login_url),
             'default_role': organization.default_role,
             'require_link': not obj.flags.allow_unlinked,
         }
