@@ -30,9 +30,9 @@ class GroupTagsTest(APITestCase, SnubaTestCase):
             format='json'
         )
         assert response.status_code == 200
-        assert [
+        assert sorted([
             (tag['key'], tag['uniqueValues']) for tag in response.data
-        ] == [
-            ('environment', 2), ('biz', 1), ('foo', 1)
+        ], key=lambda x: x[0]) == [
+            ('biz', 1), ('environment', 2), ('foo', 1)
         ]
         assert len(response.data) == 3
