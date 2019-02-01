@@ -14,7 +14,7 @@ class OrganizationDiscoverQueryTest(APITestCase, SnubaTestCase):
         self.now = datetime.now()
         one_second_ago = self.now - timedelta(seconds=1)
 
-        self.login_as(user=self.user)
+        self.login_as(user=self.user, superuser=False)
 
         self.org = self.create_organization(owner=self.user, name='foo')
 
@@ -337,7 +337,6 @@ class OrganizationDiscoverQueryTest(APITestCase, SnubaTestCase):
 
     def test_invalid_project(self):
         with self.feature('organizations:discover'):
-
             url = reverse('sentry-api-0-organization-discover-query', args=[self.org.slug])
             response = self.client.post(url, {
                 'projects': [self.other_project.id],
@@ -349,3 +348,24 @@ class OrganizationDiscoverQueryTest(APITestCase, SnubaTestCase):
             })
 
         assert response.status_code == 403, response.content
+
+    def test_superuser(self):
+        self.new_org = self.create_organization(name='foo_new')
+        self.new_project = self.create_project(
+            name='bar_new',
+            organization=self.new_org,
+        )
+        self.login_as(user=self.user, superuser=True)
+
+        with self.feature('organizations:discover'):
+            url = reverse('sentry-api-0-organization-discover-query', args=[self.new_org.slug])
+            response = self.client.post(url, {
+                'projects': [self.new_project.id],
+                'fields': ['message', 'platform'],
+                'start': (datetime.now() - timedelta(seconds=10)).strftime('%Y-%m-%dT%H:%M:%S'),
+                'end': (datetime.now()).strftime('%Y-%m-%dT%H:%M:%S'),
+                'orderby': '-timestamp',
+                'range': None,
+            })
+
+        assert response.status_code == 200, response.content
