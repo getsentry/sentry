@@ -53,7 +53,7 @@ def normalize_runtime(data):
     # RuntimeInformation.FrameworkDescription doesn't return a very useful value.
     # example: .NET Framework 4.7.3056.0
     # Release key dug from registry and sent as #build
-    if data.get('name').startswith('.NET Framework'):
+    if (data.get('name') or "").startswith('.NET Framework'):
         build = data.get('build')
 
         if build is not None:
