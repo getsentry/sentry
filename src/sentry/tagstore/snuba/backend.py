@@ -759,4 +759,4 @@ class SnubaCompatibilityTagStorage(SnubaTagStorage):
                                environment_id, event_id, tags, date_added):
         # Called by ``EventManager.save``. The return value is not
         # used.
-        raise NotImplementedError
+        pass
