@@ -58,13 +58,14 @@ class Widget extends React.Component {
               <WidgetWrapperForMask>
                 {reloading && <ReloadingMask />}
                 <StyledPanel>
-                  <WidgetHeader>
-                    {title}
-                    <ExploreWidget {...{widget, queries, router, selection}} />
-                  </WidgetHeader>
+                  <WidgetHeader>{title}</WidgetHeader>
                   <StyledPanelBody>
                     <WidgetChart {...widgetChartProps} />
                   </StyledPanelBody>
+                  <WidgetFooter>
+                    <div />
+                    <ExploreWidget {...{widget, queries, router, selection}} />
+                  </WidgetFooter>
                 </StyledPanel>
               </WidgetWrapperForMask>
             );
@@ -108,6 +109,7 @@ const ErrorCard = styled(Placeholder)`
   border: 1px solid ${p => p.theme.alert.error.border};
   color: ${p => p.theme.alert.error.textLight};
   border-radius: ${p => p.theme.borderRadius};
+  margin-bottom: ${space(2)};
 `;
 
 const WidgetHeader = styled('div')`
@@ -115,4 +117,8 @@ const WidgetHeader = styled('div')`
   justify-content: space-between;
   align-items: center;
   padding: ${space(1)} ${space(2)};
+`;
+const WidgetFooter = styled(WidgetHeader)`
+  border-top: 1px solid ${p => p.theme.borderLight};
+  padding: 0;
 `;
