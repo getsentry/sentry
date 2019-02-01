@@ -13,7 +13,6 @@ import warnings
 
 from collections import OrderedDict
 from django.db import models
-from django.db.models import Q
 from django.utils import timezone
 from django.utils.translation import ugettext_lazy as _
 from hashlib import md5
@@ -204,7 +203,7 @@ class Event(Model):
     def interfaces(self):
         return self.get_interfaces()
 
-    def get_tags(self, sorted=True):
+    def get_tags(self):
         try:
             rv = [(t, v) for t, v in get_path(
                 self.data, 'tags', filter=True) or () if t is not None and v is not None]
@@ -337,37 +336,27 @@ class Event(Model):
     # in a given second.
     @property
     def next_event(self):
-        qs = self.__class__.objects.filter(
-            # To be 'after', an event needs either a higher datetime,
-            # or the same datetime and a higher id.
-            (
-                Q(datetime__gt=self.datetime) |
-                (Q(datetime=self.datetime) & Q(id__gt=self.id))
-            ),
+        events = self.__class__.objects.filter(
+            datetime__gte=self.datetime,
             group_id=self.group_id,
-        ).exclude(id=self.id).order_by('datetime')
+        ).exclude(id=self.id).order_by('datetime')[0:5]
 
-        try:
-            return sorted(qs[0:5], key=EVENT_ORDERING_KEY)[0]
-        except IndexError:
-            return None
+        events = [e for e in events if e.datetime == self.datetime and e.id > self.id
+                  or e.datetime > self.datetime]
+        events.sort(key=EVENT_ORDERING_KEY)
+        return events[0] if events else None
 
     @property
     def prev_event(self):
-        qs = self.__class__.objects.filter(
-            # To be 'before', an event needs either a lower datetime,
-            # or the same datetime and a lower id.
-            (
-                Q(datetime__lt=self.datetime) |
-                (Q(datetime=self.datetime) & Q(id__lt=self.id))
-            ),
+        events = self.__class__.objects.filter(
+            datetime__lte=self.datetime,
             group_id=self.group_id,
-        ).exclude(id=self.id).order_by('-datetime')
+        ).exclude(id=self.id).order_by('-datetime')[0:5]
 
-        try:
-            return sorted(qs[0:5], key=EVENT_ORDERING_KEY, reverse=True)[0]
-        except IndexError:
-            return None
+        events = [e for e in events if e.datetime == self.datetime and e.id < self.id
+                  or e.datetime < self.datetime]
+        events.sort(key=EVENT_ORDERING_KEY, reverse=True)
+        return events[0] if events else None
 
 
 class EventSubjectTemplate(string.Template):
