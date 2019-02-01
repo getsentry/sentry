@@ -431,7 +431,7 @@ class TagStorage(Service):
             project_id, group_id, environment_ids, keys=keys
         )
 
-        environment_id = environment_ids and environment_ids[0]
+        environment_id = environment_ids[0] if environment_ids else None
         for tk in tag_keys:
             tk.top_values = self.get_top_group_tag_values(
                 project_id, group_id, environment_id, tk.key, limit=value_limit)
