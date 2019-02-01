@@ -5,8 +5,8 @@ from rest_framework.response import Response
 from sentry import tagstore
 from sentry.api.base import EnvironmentMixin
 from sentry.api.bases.group import GroupEndpoint
+from sentry.api.helpers.environments import get_environments
 from sentry.api.serializers import serialize
-from sentry.models import Environment
 
 
 class GroupTagsEndpoint(GroupEndpoint, EnvironmentMixin):
@@ -25,14 +25,19 @@ class GroupTagsEndpoint(GroupEndpoint, EnvironmentMixin):
         else:
             value_limit = 10
 
-        try:
-            environment_id = self._get_environment_id_from_request(
-                request, group.project.organization_id)
-        except Environment.DoesNotExist:
-            tag_keys = []
-        else:
-            tag_keys = tagstore.get_group_tag_keys_and_top_values(
-                group.project_id, group.id, environment_id and [environment_id], keys=keys,
-                value_limit=value_limit)
+        use_snuba = request.GET.get('enable_snuba') == '1'
+
+        environment_ids = [e.id for e in get_environments(request, group.project.organization)]
+
+        if not use_snuba:
+            # TODO(jess): This is just to ensure we're not breaking the old
+            # issue page somehow -- non-snuba tagstore versions will raise
+            # if more than one env is passed
+            if environment_ids:
+                environment_ids = environment_ids[:1]
+
+        tag_keys = tagstore.get_group_tag_keys_and_top_values(
+            group.project_id, group.id, environment_ids, keys=keys,
+            value_limit=value_limit)
 
         return Response(serialize(tag_keys, request.user))
