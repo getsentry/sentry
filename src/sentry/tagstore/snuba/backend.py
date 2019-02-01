@@ -707,6 +707,7 @@ class SnubaCompatibilityTagStorage(SnubaTagStorage):
     in the future, this subclass can be removed (along with the entire
     ``TagStorage`` write interface from the base implementation.)
     """
+
     def get_or_create_group_tag_key(self, project_id, group_id, environment_id, key, **kwargs):
         # Called by ``unmerge.repair_tag_data``. The return value is not used.
         pass
@@ -753,3 +754,9 @@ class SnubaCompatibilityTagStorage(SnubaTagStorage):
     def update_group_tag_key_values_seen(self, project_id, group_ids):
         # Called by ``unmerge``. The return value is not used.
         pass
+
+    def delay_index_event_tags(self, organization_id, project_id, group_id,
+                               environment_id, event_id, tags, date_added):
+        # Called by ``EventManager.save``. The return value is not
+        # used.
+        raise NotImplementedError
