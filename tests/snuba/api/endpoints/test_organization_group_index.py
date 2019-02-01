@@ -219,16 +219,19 @@ class GroupListTest(APITestCase, SnubaTestCase):
 
         response = self.client.get(u'{}?query={}'.format(self.path, 'c' * 32), format='json')
         assert response.status_code == 200
+        assert response['X-Sentry-Direct-Hit'] == '1'
         assert len(response.data) == 1
         assert response.data[0]['id'] == six.text_type(group.id)
+        assert response.data[0]['matchingEventId'] == event_id
 
     def test_lookup_by_event_id_with_whitespace(self):
         project = self.project
         project.update_option('sentry:resolve_age', 1)
         group = self.create_group(checksum='a' * 32)
+        event_id = 'c' * 32
         self.create_group(checksum='b' * 32)
         EventMapping.objects.create(
-            event_id='c' * 32,
+            event_id=event_id,
             project=group.project,
             group=group,
         )
@@ -238,8 +241,10 @@ class GroupListTest(APITestCase, SnubaTestCase):
             u'{}?query=%20%20{}%20%20'.format(self.path, 'c' * 32), format='json'
         )
         assert response.status_code == 200
+        assert response['X-Sentry-Direct-Hit'] == '1'
         assert len(response.data) == 1
         assert response.data[0]['id'] == six.text_type(group.id)
+        assert response.data[0]['matchingEventId'] == event_id
 
     def test_lookup_by_unknown_event_id(self):
         project = self.project

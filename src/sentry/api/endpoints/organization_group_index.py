@@ -107,11 +107,18 @@ class OrganizationGroupIndexEndpoint(OrganizationEventsEndpointBase):
             # check to see if we've got an event ID
             if len(query) == 32:
                 groups = list(
-                    Group.objects.filter_by_event_id(
-                        project_ids,
-                        query,
-                    )
+                    Group.objects.filter_by_event_id(project_ids, query)
                 )
+                if len(groups) == 1:
+                    response = Response(
+                        serialize(
+                            groups, request.user, serializer(
+                                matching_event_id=query
+                            )
+                        )
+                    )
+                    response['X-Sentry-Direct-Hit'] = '1'
+                    return response
 
                 if groups:
                     return Response(serialize(groups, request.user, serializer()))

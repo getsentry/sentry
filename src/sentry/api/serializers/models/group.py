@@ -602,13 +602,15 @@ class GroupSerializerSnuba(GroupSerializerBase):
 
 
 class StreamGroupSerializerSnuba(GroupSerializerSnuba, GroupStatsMixin):
-    def __init__(self, environment_ids=None, stats_period=None):
+    def __init__(self, environment_ids=None, stats_period=None,
+                 matching_event_id=None):
         super(StreamGroupSerializerSnuba, self).__init__(environment_ids)
 
         if stats_period is not None:
             assert stats_period in self.STATS_PERIOD_CHOICES
 
         self.stats_period = stats_period
+        self.matching_event_id = matching_event_id
 
     def query_tsdb(self, group_ids, query_params):
         return snuba_tsdb.get_range(
@@ -637,5 +639,8 @@ class StreamGroupSerializerSnuba(GroupSerializerSnuba, GroupStatsMixin):
             result['stats'] = {
                 self.stats_period: attrs['stats'],
             }
+
+        if self.matching_event_id:
+            result['matchingEventId'] = self.matching_event_id
 
         return result
