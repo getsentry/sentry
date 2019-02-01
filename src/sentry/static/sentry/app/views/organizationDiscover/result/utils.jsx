@@ -1,8 +1,8 @@
 /*eslint no-use-before-define: ["error", { "functions": false }]*/
-import React from 'react';
-import styled from 'react-emotion';
 import {orderBy} from 'lodash';
 import Papa from 'papaparse';
+import React from 'react';
+import styled from 'react-emotion';
 
 import {NUMBER_OF_SERIES_BY_DAY} from '../data';
 
@@ -67,6 +67,7 @@ export function getChartDataForWidget(data, query, options = {}) {
         const obj = {
           value: res[aggregation[2]],
           name: fields.map(field => `${res[field]}`).join(', '),
+          fieldValues: fields.map(field => res[field]),
         };
 
         if (options.includePercentages && total) {
