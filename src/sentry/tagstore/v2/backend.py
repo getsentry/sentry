@@ -516,7 +516,7 @@ class V2TagStorage(TagStorage):
         if environment_ids and len(environment_ids) > 1:
             raise NotImplementedError
 
-        environment_id = environment_ids and environment_ids[0]
+        environment_id = environment_ids[0] if environment_ids else None
 
         qs = models.GroupTagKey.objects.select_related('_key').filter(
             project_id=project_id,
