@@ -113,7 +113,7 @@ class OrganizationGroupIndexEndpoint(OrganizationEventsEndpointBase):
                     response = Response(
                         serialize(
                             groups, request.user, serializer(
-                                matching_event_id=query.strip()
+                                matching_event_id=query
                             )
                         )
                     )
