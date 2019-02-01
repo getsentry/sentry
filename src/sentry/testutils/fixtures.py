@@ -522,12 +522,18 @@ class Fixtures(object):
         event.save()
         return event
 
-    def create_event_endtoend(self, data, project_id):
+    def create_event_endtoend(self, data, project_id, assert_no_errors=True):
         # Like `create_event_legacy`, but closer to how events are actually
         # ingested. Prefer to use this method over `create_event`
         manager = EventManager(data)
         manager.normalize()
-        return manager.save(project_id)
+        if assert_no_errors:
+            errors = manager.get_data().get('errors')
+            assert not errors, errors
+
+        event = manager.save(project_id)
+        event.group.save()
+        return event
 
     def create_full_event(self, event_id='a', **kwargs):
         payload = """
