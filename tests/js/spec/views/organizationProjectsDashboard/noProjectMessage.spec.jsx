@@ -7,7 +7,7 @@ describe('NoProjectMessage', function() {
   const org = TestStubs.Organization();
   it('shows "Create Project" button when there are no projects', function() {
     const wrapper = shallow(
-      <NoProjectMessage organization={org} projects={[]} />,
+      <NoProjectMessage organization={org} />,
       TestStubs.routerContext()
     );
     expect(
@@ -17,10 +17,7 @@ describe('NoProjectMessage', function() {
 
   it('"Create Project" is disabled when no access to `project:write`', function() {
     const wrapper = shallow(
-      <NoProjectMessage
-        organization={TestStubs.Organization({access: []})}
-        projects={[]}
-      />,
+      <NoProjectMessage organization={TestStubs.Organization({access: []})} />,
       TestStubs.routerContext()
     );
     expect(
@@ -30,7 +27,7 @@ describe('NoProjectMessage', function() {
 
   it('has "Join a Team" button', function() {
     const wrapper = shallow(
-      <NoProjectMessage organization={org} projects={[]} />,
+      <NoProjectMessage organization={org} />,
       TestStubs.routerContext()
     );
     expect(wrapper.find('Button[to="/settings/org-slug/teams/"]')).toHaveLength(1);
@@ -38,10 +35,7 @@ describe('NoProjectMessage', function() {
 
   it('has a disabled "Join a Team" button if no access to `team:read`', function() {
     const wrapper = shallow(
-      <NoProjectMessage
-        organization={TestStubs.Organization({access: []})}
-        projects={[]}
-      />,
+      <NoProjectMessage organization={TestStubs.Organization({access: []})} />,
       TestStubs.routerContext()
     );
     expect(wrapper.find('Button[to="/settings/org-slug/teams/"]').prop('disabled')).toBe(
