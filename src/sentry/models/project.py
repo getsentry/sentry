@@ -147,7 +147,12 @@ class Project(Model):
         self.update_rev_for_option()
 
     def get_absolute_url(self):
-        return absolute_uri(u'/{}/{}/'.format(self.organization.slug, self.slug))
+        from sentry import features
+        if features.has('organizations:sentry10', self.organization):
+            return absolute_uri(
+                u'/organizations/{}/issues/?project={}'.format(self.organization.slug, self.id))
+        else:
+            return absolute_uri(u'/{}/{}/'.format(self.organization.slug, self.slug))
 
     def is_internal_project(self):
         for value in (settings.SENTRY_FRONTEND_PROJECT, settings.SENTRY_PROJECT):
