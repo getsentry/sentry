@@ -96,10 +96,43 @@ exports[`Stream render() displays the group list 1`] = `
               "teams": Array [],
             }
           }
-          projectIds={
-            Array [
-              "3559",
-            ]
+          project={
+            Object {
+              "allowedDomains": Array [
+                "example.com",
+                "https://example.com",
+              ],
+              "dataScrubber": false,
+              "dataScrubberDefaults": false,
+              "digestsMaxDelay": 60,
+              "digestsMinDelay": 5,
+              "features": Array [],
+              "firstEvent": true,
+              "hasAccess": true,
+              "id": "3559",
+              "isBookmarked": false,
+              "isMember": true,
+              "name": "Foo Project",
+              "resolveAge": 48,
+              "safeFields": Array [
+                "business-email",
+                "company",
+              ],
+              "scrapeJavaScript": true,
+              "scrubIPAddresses": false,
+              "securityToken": "security-token",
+              "securityTokenHeader": "x-security-header",
+              "sensitiveFields": Array [
+                "creditcard",
+                "ssn",
+              ],
+              "slug": "project-slug",
+              "storeCrashReports": false,
+              "subjectPrefix": "[my-org]",
+              "subjectTemplate": "[$project] \${tag:level}: $title",
+              "teams": Array [],
+              "verifySSL": true,
+            }
           }
           showProject={false}
         />
@@ -305,10 +338,43 @@ exports[`Stream toggles environment select all environments 1`] = `
               "teams": Array [],
             }
           }
-          projectIds={
-            Array [
-              "3559",
-            ]
+          project={
+            Object {
+              "allowedDomains": Array [
+                "example.com",
+                "https://example.com",
+              ],
+              "dataScrubber": false,
+              "dataScrubberDefaults": false,
+              "digestsMaxDelay": 60,
+              "digestsMinDelay": 5,
+              "features": Array [],
+              "firstEvent": true,
+              "hasAccess": true,
+              "id": "3559",
+              "isBookmarked": false,
+              "isMember": true,
+              "name": "Foo Project",
+              "resolveAge": 48,
+              "safeFields": Array [
+                "business-email",
+                "company",
+              ],
+              "scrapeJavaScript": true,
+              "scrubIPAddresses": false,
+              "securityToken": "security-token",
+              "securityTokenHeader": "x-security-header",
+              "sensitiveFields": Array [
+                "creditcard",
+                "ssn",
+              ],
+              "slug": "project-slug",
+              "storeCrashReports": false,
+              "subjectPrefix": "[my-org]",
+              "subjectTemplate": "[$project] \${tag:level}: $title",
+              "teams": Array [],
+              "verifySSL": true,
+            }
           }
           showProject={false}
         />

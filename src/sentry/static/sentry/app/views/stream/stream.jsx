@@ -228,10 +228,6 @@ const Stream = createReactClass({
     );
   },
 
-  showingProcessingIssues() {
-    return this.state.query && this.state.query.trim() == 'is:unprocessed';
-  },
-
   onSavedSearchCreate(data) {
     let savedSearchList = this.state.savedSearchList;
     savedSearchList.push(data);
@@ -695,10 +691,7 @@ const Stream = createReactClass({
               allResultsVisible={this.allResultsVisible()}
             />
             <PanelBody>
-              <ProcessingIssueList
-                organization={organization}
-                projectIds={[project.id]}
-              />
+              <ProcessingIssueList organization={organization} project={project} />
               {this.renderStreamBody()}
             </PanelBody>
           </Panel>

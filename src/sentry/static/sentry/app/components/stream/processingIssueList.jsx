@@ -4,13 +4,17 @@ import PropTypes from 'prop-types';
 
 import {Client} from 'app/api';
 import {logAjaxError} from 'app/utils/logging';
-import {fetchProcessingIssues} from 'app/actionCreators/processingIssues';
+import {
+  fetchProcessingIssues,
+  fetchProjectProcessingIssues,
+} from 'app/actionCreators/processingIssues';
 import ProcessingIssueHint from 'app/components/stream/processingIssueHint';
 import SentryTypes from 'app/sentryTypes';
 
 class ProcessingIssueList extends React.Component {
   static propTypes = {
     organization: SentryTypes.Organization.isRequired,
+    project: SentryTypes.Project,
     projectIds: PropTypes.array,
     showProject: PropTypes.bool,
   };
@@ -43,11 +47,17 @@ class ProcessingIssueList extends React.Component {
   }
 
   fetchIssues() {
-    let {organization, projectIds} = this.props;
+    const {organization, project, projectIds} = this.props;
+    let promise;
+    if (project) {
+      promise = fetchProjectProcessingIssues(this.api, organization.slug, project.slug);
+    } else {
+      promise = fetchProcessingIssues(this.api, organization.slug, projectIds);
+    }
 
-    fetchProcessingIssues(this.api, organization.slug, projectIds).then(
+    promise.then(
       data => {
-        let hasIssues = data.some(
+        const hasIssues = data.some(
           p => p.hasIssues || p.resolveableIssues > 0 || p.issuesProcessing > 0
         );
 
@@ -63,8 +73,8 @@ class ProcessingIssueList extends React.Component {
   }
 
   render() {
-    let {issues} = this.state;
-    let {organization, showProject} = this.props;
+    const {issues} = this.state;
+    const {organization, showProject} = this.props;
 
     return (
       <React.Fragment>
