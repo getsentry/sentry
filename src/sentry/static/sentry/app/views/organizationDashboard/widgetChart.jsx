@@ -1,12 +1,20 @@
+import {css} from 'react-emotion';
 import {isEqual} from 'lodash';
 import PropTypes from 'prop-types';
 import React from 'react';
 
+import {WIDGET_DISPLAY} from 'app/views/organizationDashboard/constants';
 import {getChartComponent} from 'app/views/organizationDashboard/utils/getChartComponent';
 import {getData} from 'app/views/organizationDashboard/utils/getData';
+import {getEventsUrlFromDiscoverQueryWithConditions} from 'app/views/organizationDashboard/utils/getEventsUrlFromDiscoverQueryWithConditions';
 import ChartZoom from 'app/components/charts/chartZoom';
 import ReleaseSeries from 'app/components/charts/releaseSeries';
 import SentryTypes from 'app/sentryTypes';
+import theme from 'app/utils/theme';
+
+const tableRowCss = css`
+  color: ${theme.textColor};
+`;
 
 /**
  * Component that decides what Chart to render
@@ -50,7 +58,8 @@ class WidgetChart extends React.Component {
   }
 
   render() {
-    const {results, releases, widget} = this.props;
+    const {organization, results, releases, selection, widget} = this.props;
+    const isTable = widget.type === WIDGET_DISPLAY.TABLE;
 
     // get visualization based on widget data
     const ChartComponent = getChartComponent(widget);
@@ -58,12 +67,30 @@ class WidgetChart extends React.Component {
     // get data func based on query
     const chartData = getData(results, widget);
 
+    const extra = {
+      ...(isTable && {
+        rowClassName: tableRowCss,
+        getRowLink: rowObject => {
+          // Table Charts don't support multiple queries
+          const [query] = widget.queries.discover;
+
+          return getEventsUrlFromDiscoverQueryWithConditions({
+            values: rowObject.fieldValues,
+            query,
+            organization,
+            selection,
+          });
+        },
+      }),
+    };
+
     // Releases can only be added to time charts
     if (widget.includeReleases) {
       return (
         <ReleaseSeries releases={releases}>
           {({releaseSeries}) =>
             this.renderZoomableChart(ChartComponent, {
+              ...extra,
               ...chartData,
               series: [...chartData.series, ...releaseSeries],
             })}
@@ -73,11 +100,12 @@ class WidgetChart extends React.Component {
 
     if (chartData.isGroupedByDate) {
       return this.renderZoomableChart(ChartComponent, {
+        ...extra,
         ...chartData,
       });
     }
 
-    return <ChartComponent {...chartData} />;
+    return <ChartComponent {...extra} {...chartData} />;
   }
 }
 

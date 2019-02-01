@@ -60,24 +60,44 @@ describe('Utils', function() {
       fields: ['project.id', 'environment'],
     };
 
-    it('returns chart data with percentages', function() {
+    it('returns chart data for widgets with percentages', function() {
       const expected = [
         {
           seriesName: 'count',
           data: [
-            {value: 2, percentage: 16.67, name: '5, null'},
-            {value: 2, percentage: 16.67, name: '5, staging'},
-            {value: 2, percentage: 16.67, name: '5, alpha'},
-            {value: 6, percentage: 50, name: '5, production'},
+            {value: 2, percentage: 16.67, name: '5, null', fieldValues: [5, null]},
+            {
+              value: 2,
+              percentage: 16.67,
+              name: '5, staging',
+              fieldValues: [5, 'staging'],
+            },
+            {value: 2, percentage: 16.67, name: '5, alpha', fieldValues: [5, 'alpha']},
+            {
+              value: 6,
+              percentage: 50,
+              name: '5, production',
+              fieldValues: [5, 'production'],
+            },
           ],
         },
         {
           seriesName: 'uniq_id',
           data: [
-            {value: 1, percentage: 5.56, name: '5, null'},
-            {value: 3, percentage: 16.67, name: '5, staging'},
-            {value: 4, percentage: 22.22, name: '5, alpha'},
-            {value: 10, percentage: 55.56, name: '5, production'},
+            {value: 1, percentage: 5.56, name: '5, null', fieldValues: [5, null]},
+            {
+              value: 3,
+              percentage: 16.67,
+              name: '5, staging',
+              fieldValues: [5, 'staging'],
+            },
+            {value: 4, percentage: 22.22, name: '5, alpha', fieldValues: [5, 'alpha']},
+            {
+              value: 10,
+              percentage: 55.56,
+              name: '5, production',
+              fieldValues: [5, 'production'],
+            },
           ],
         },
       ];
