@@ -409,5 +409,6 @@ const Row = styled(Flex)`
 
 const TableBody = styled('div')`
   height: ${p => p.height};
+  flex-grow: 1;
   overflow-y: auto;
 `;

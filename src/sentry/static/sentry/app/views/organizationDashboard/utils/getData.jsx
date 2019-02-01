@@ -20,7 +20,6 @@ export function getData(results, widget) {
     return {
       title: t('Name'),
       countTitle: t('Events'),
-      height: '200px',
       data: series.data,
     };
   }

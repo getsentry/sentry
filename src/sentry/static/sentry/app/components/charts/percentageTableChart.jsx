@@ -47,9 +47,6 @@ const StyledDelta = styled('div')`
 
 class PercentageTableChart extends React.Component {
   static propTypes = {
-    // Height of body
-    height: PropTypes.string,
-
     // Main title (left most column) should
     title: PropTypes.node,
 
@@ -81,11 +78,10 @@ class PercentageTableChart extends React.Component {
   };
 
   render() {
-    const {height, title, countTitle, extraTitle, data} = this.props;
+    const {title, countTitle, extraTitle, data} = this.props;
 
     return (
       <TableChart
-        bodyHeight={height}
         data={data.map(({value, lastValue, name, percentage}) => [
           <Name key="name">{name}</Name>,
           <CountColumn key="count">
@@ -205,8 +201,13 @@ const TableHeader = styled(PanelItem)`
 
 const TableChartWrapper = styled('div')`
   margin-bottom: 0;
-  width: 100%;
   padding: 0 ${space(2)};
+
+  /* Fit to container dimensions */
+  width: 100%;
+  height: 100%;
+  display: flex;
+  flex-direction: column;
 
   /* stylelint-disable-next-line no-duplicate-selectors */
   ${PanelItem} {
