@@ -268,13 +268,13 @@ def test_bad_interfaces_no_exception():
 def test_event_pii():
     manager = EventManager(
         make_event(
-            message='foo bar',
-            _meta={'message': {'': {'err': ['invalid']}}},
+            user={"id": None},
+            _meta={'user': {"id": {'': {'err': ['invalid']}}}},
         )
     )
     manager.normalize()
     data = manager.get_data()
-    assert data['_meta']['message'] == {'': {'err': ['invalid']}}
+    assert data['_meta']['user']['id'] == {'': {'err': ['invalid']}}
 
 
 def test_event_id_lowercase():

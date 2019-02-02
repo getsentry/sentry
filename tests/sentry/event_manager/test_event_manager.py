@@ -31,7 +31,6 @@ def make_event(**kwargs):
     result = {
         'event_id': 'a' * 32,
         'message': 'foo',
-        'timestamp': 1403007314.570599,
         'level': logging.ERROR,
         'logger': 'default',
         'tags': [],
@@ -980,24 +979,25 @@ class EventManagerTest(TransactionTestCase):
             name='production',
         )
         environment.add_project(project)
+
         event_id = 'a' * 32
 
-        group = self.create_group(project=project)
         UserReport.objects.create(
-            group=group,
             project=project,
             event_id=event_id,
             name='foo',
             email='bar@example.com',
             comments='It Broke!!!',
         )
-        manager = EventManager(
-            make_event(
+
+        self.store_event(
+            data=make_event(
                 environment=environment.name,
-                event_id=event_id,
-                group=group))
-        manager.normalize()
-        manager.save(project.id)
+                event_id=event_id
+            ),
+            project_id=project.id
+        )
+
         assert UserReport.objects.get(event_id=event_id).environment == environment
 
     def test_default_event_type(self):
