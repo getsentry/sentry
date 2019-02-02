@@ -439,10 +439,10 @@ class Organization(Model):
             ip_address=ip_address
         )
 
-    def get_absolute_url(self):
+    def get_url(self):
         from sentry import features
         if features.has('organizations:sentry10', self):
             url = reverse('sentry-organization-issue-list', args=[self.slug])
         else:
             url = reverse('sentry-organization-home', args=[self.slug])
-        return absolute_uri(url)
+        return url

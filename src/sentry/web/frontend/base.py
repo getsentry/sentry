@@ -150,7 +150,7 @@ class OrganizationMixin(object):
         organization = self.get_active_organization(request)
 
         if organization:
-            url = organization.get_absolute_url()
+            url = organization.get_url()
         elif not features.has('organizations:create'):
             return self.respond('sentry/no-organization-access.html', status=403)
         else:

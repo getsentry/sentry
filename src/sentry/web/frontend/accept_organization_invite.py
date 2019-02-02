@@ -98,7 +98,7 @@ class AcceptOrganizationInviteView(BaseView):
             helper.accept_invite()
 
             request.session.pop('can_register', None)
-            response = self.redirect(organization.get_absolute_url())
+            response = self.redirect(organization.get_url())
             return helper.remove_invite_cookie(response)
 
         context['form'] = form

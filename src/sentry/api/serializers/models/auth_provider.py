@@ -18,7 +18,7 @@ class AuthProviderSerializer(Serializer):
             flags=F('flags').bitand(~OrganizationMember.flags['sso:linked']),
         ).count()
 
-        login_url = organization.get_absolute_url()
+        login_url = organization.get_url()
 
         return {
             'id': six.text_type(obj.id),

@@ -16,6 +16,7 @@ from sentry.models import AuditLogEntryEvent, AuthProvider, OrganizationMember, 
 from sentry.plugins import Response
 from sentry.tasks.auth import email_missing_links, email_unlink_notifications
 from sentry.utils import db
+from sentry.utils.http import absolute_uri
 from sentry.web.frontend.base import OrganizationView
 
 ERR_NO_SSO = _('The SSO feature is not enabled for this organization.')
@@ -146,7 +147,7 @@ class OrganizationAuthSettingsView(OrganizationView):
         context = {
             'form': form,
             'pending_links_count': pending_links_count,
-            'login_url': organization.get_absolute_url(),
+            'login_url': absolute_uri(organization.get_url()),
             'auth_provider': auth_provider,
             'provider_name': provider.name,
             'content': response,
@@ -174,7 +175,7 @@ class OrganizationAuthSettingsView(OrganizationView):
                 organization,
                 actor=request.user
             ) and not is_active_superuser(request):
-                home_url = organization.get_absolute_url()
+                home_url = organization.get_url()
                 messages.add_message(request, messages.ERROR, ERR_NO_SSO)
 
                 return HttpResponseRedirect(home_url)
@@ -212,5 +213,5 @@ class OrganizationAuthSettingsView(OrganizationView):
 
         # Otherwise user is in bad state since frontend/react should handle this case
         return HttpResponseRedirect(
-            organization.get_absolute_url()
+            organization.get_url()
         )

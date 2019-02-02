@@ -42,7 +42,7 @@ class RestoreOrganizationView(OrganizationView):
 
     def get(self, request, organization):
         if organization.status == OrganizationStatus.VISIBLE:
-            return self.redirect(organization.get_absolute_url())
+            return self.redirect(organization.get_url())
 
         context = {
             # If this were named 'organization', it triggers logic in the base
@@ -80,4 +80,4 @@ class RestoreOrganizationView(OrganizationView):
                     event=AuditLogEntryEvent.ORG_RESTORE,
                     data=organization.get_audit_log_data(),
                 )
-        return self.redirect(organization.get_absolute_url())
+        return self.redirect(organization.get_url())
