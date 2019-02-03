@@ -59,15 +59,18 @@ def suppress_errors(func):
 
 @suppress_errors
 def report_monitor_begin(task, **kwargs):
+    monitor_id = task.request.headers.get('X-Sentry-Monitor')
+    with configure_scope() as scope:
+        if monitor_id:
+            scope.set_context('monitor', {'id': monitor_id})
+        else:
+            scope.remove_context('monitor')
+
     if not SENTRY_DSN or not API_ROOT:
         return
 
-    monitor_id = task.request.headers.get('X-Sentry-Monitor')
     if not monitor_id:
         return
-
-    with configure_scope() as scope:
-        scope.set_context('monitor', {'id': monitor_id})
 
     session = SafeSession()
     req = session.post(u'{}/api/0/monitors/{}/checkins/'.format(API_ROOT, monitor_id), headers={
@@ -82,6 +85,9 @@ def report_monitor_begin(task, **kwargs):
 
 @suppress_errors
 def report_monitor_complete(task, retval, **kwargs):
+    with configure_scope() as scope:
+        scope.remove_context('monitor')
+
     if not SENTRY_DSN or not API_ROOT:
         return
 
