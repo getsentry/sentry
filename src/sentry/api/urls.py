@@ -51,6 +51,8 @@ from .endpoints.internal_quotas import InternalQuotasEndpoint
 from .endpoints.internal_stats import InternalStatsEndpoint
 from .endpoints.monitor_checkins import MonitorCheckInsEndpoint
 from .endpoints.monitor_checkin_details import MonitorCheckInDetailsEndpoint
+from .endpoints.monitor_details import MonitorDetailsEndpoint
+from .endpoints.monitor_stats import MonitorStatsEndpoint
 from .endpoints.organization_access_request_details import OrganizationAccessRequestDetailsEndpoint
 from .endpoints.organization_activity import OrganizationActivityEndpoint
 from .endpoints.organization_auditlogs import OrganizationAuditLogsEndpoint
@@ -299,9 +301,11 @@ urlpatterns = patterns(
         name='sentry-api-0-accept-project-transfer'),
 
     # Monitors
+    url(r'^monitors/(?P<monitor_id>[^\/]+)/$', MonitorDetailsEndpoint.as_view()),
     url(r'^monitors/(?P<monitor_id>[^\/]+)/checkins/$', MonitorCheckInsEndpoint.as_view()),
     url(r'^monitors/(?P<monitor_id>[^\/]+)/checkins/(?P<checkin_id>[^\/]+)/$',
         MonitorCheckInDetailsEndpoint.as_view()),
+    url(r'^monitors/(?P<monitor_id>[^\/]+)/stats/$', MonitorStatsEndpoint.as_view()),
 
     # Users
     url(r'^users/$', UserIndexEndpoint.as_view(), name='sentry-api-0-user-index'),

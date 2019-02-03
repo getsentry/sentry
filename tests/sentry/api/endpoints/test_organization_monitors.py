@@ -15,7 +15,7 @@ class OrganizationProjectsTest(APITestCase):
 
     @fixture
     def team(self):
-        return self.create_team(organization=self.org)
+        return self.create_team(organization=self.org, members=[self.user])
 
     @fixture
     def project(self):
