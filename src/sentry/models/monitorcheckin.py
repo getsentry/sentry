@@ -26,8 +26,8 @@ class CheckInStatus(object):
     def as_choices(cls):
         return (
             (cls.UNKNOWN, 'unknown'),
-            (cls.OK, 'success'),
-            (cls.ERROR, 'failure'),
+            (cls.OK, 'ok'),
+            (cls.ERROR, 'error'),
             (cls.IN_PROGRESS, 'in_progress'),
         )
 

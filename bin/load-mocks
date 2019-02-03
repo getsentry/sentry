@@ -26,7 +26,7 @@ from sentry.models import (
     Environment, File, Group, GroupMeta, GroupRelease, GroupTombstone, Organization,
     OrganizationAccessRequest, OrganizationMember, Project, Release,
     ReleaseCommit, ReleaseEnvironment, ReleaseProjectEnvironment, ReleaseFile, Repository,
-    Team, TOMBSTONE_FIELDS_FROM_GROUP, User, UserReport
+    Team, TOMBSTONE_FIELDS_FROM_GROUP, User, UserReport, Monitor, MonitorStatus, MonitorType, MonitorCheckIn, CheckInStatus
 )
 from sentry.signals import mocks_loaded
 from sentry.similarity import features
@@ -59,6 +59,14 @@ ENVIRONMENTS = itertools.cycle([
     'alpha',
     'beta',
     ''
+])
+
+MONITOR_NAMES = itertools.cycle(settings.CELERYBEAT_SCHEDULE.keys())
+
+MONITOR_SCHEDULES = itertools.cycle([
+    '* * * * *',
+    '0 * * * *',
+    '0 0 * * *',
 ])
 
 LONG_MESSAGE = """Code: 0.
@@ -389,6 +397,35 @@ def main(num_events=1, extra_events=False):
                 project.update(
                     flags=F('flags').bitor(Project.flags.has_releases),
                 )
+
+            monitor, created = Monitor.objects.get_or_create(
+                name=next(MONITOR_NAMES),
+                project_id=project.id,
+                organization_id=org.id,
+                type=MonitorType.CRON_JOB,
+                defaults={
+                    'config': {
+                        'schedule': next(MONITOR_SCHEDULES),
+                    },
+                    'next_checkin': timezone.now() + timedelta(minutes=60),
+                    'last_checkin': timezone.now(),
+                }
+            )
+            if not created:
+                if not (monitor.config or {}).get('schedule'):
+                    monitor.config = {'schedule': next(MONITOR_SCHEDULES)}
+                monitor.update(
+                    config=monitor.config,
+                    status=MonitorStatus.ACTIVE if randint(0, 10) < 7 else MonitorStatus.ERROR,
+                    last_checkin=timezone.now(),
+                    next_checkin=monitor.get_next_scheduled_checkin(timezone.now()),
+                )
+
+            MonitorCheckIn.objects.create(
+                project_id=monitor.project_id,
+                monitor=monitor,
+                status=CheckInStatus.OK if monitor.status == MonitorStatus.ACTIVE else CheckInStatus.ERROR,
+            )
 
             with transaction.atomic():
                 has_release = Release.objects.filter(

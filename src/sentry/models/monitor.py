@@ -1,6 +1,7 @@
 from __future__ import absolute_import, print_function
 
 import pytz
+import six
 
 from croniter import croniter
 from datetime import datetime, timedelta
@@ -124,7 +125,7 @@ class Monitor(Model):
                 },
                 'contexts': {
                     'monitor': {
-                        'id': self.id,
+                        'id': six.text_type(self.guid),
                     },
                 },
             },
