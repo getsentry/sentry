@@ -57,6 +57,9 @@ class GlobalSelectionHeader extends React.Component {
     // Display Environment selector?
     showEnvironmentSelector: PropTypes.bool,
 
+    // Display Environment selector?
+    showDateSelector: PropTypes.bool,
+
     // Disable automatic routing
     hasCustomRouting: PropTypes.bool,
 
@@ -86,6 +89,7 @@ class GlobalSelectionHeader extends React.Component {
   static defaultProps = {
     hasCustomRouting: false,
     showEnvironmentSelector: true,
+    showDateSelector: true,
     resetParamsOnChange: [],
   };
 
@@ -334,6 +338,7 @@ class GlobalSelectionHeader extends React.Component {
       organization,
       showAbsolute,
       showRelative,
+      showDateSelector,
       showEnvironmentSelector,
     } = this.props;
     const {period, start, end, utc} = this.props.selection.datetime || {};
@@ -366,20 +371,24 @@ class GlobalSelectionHeader extends React.Component {
           </React.Fragment>
         )}
 
-        <HeaderSeparator />
-        <HeaderItemPosition>
-          <TimeRangeSelector
-            key={`period:${period}-start:${start}-end:${end}-utc:${utc}`}
-            showAbsolute={showAbsolute}
-            showRelative={showRelative}
-            relative={period}
-            start={start}
-            end={end}
-            utc={utc}
-            onChange={this.handleChangeTime}
-            onUpdate={this.handleUpdateTime}
-          />
-        </HeaderItemPosition>
+        {showDateSelector && (
+          <React.Fragment>
+            <HeaderSeparator />
+            <HeaderItemPosition>
+              <TimeRangeSelector
+                key={`period:${period}-start:${start}-end:${end}-utc:${utc}`}
+                showAbsolute={showAbsolute}
+                showRelative={showRelative}
+                relative={period}
+                start={start}
+                end={end}
+                utc={utc}
+                onChange={this.handleChangeTime}
+                onUpdate={this.handleUpdateTime}
+              />
+            </HeaderItemPosition>
+          </React.Fragment>
+        )}
       </Header>
     );
   }

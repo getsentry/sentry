@@ -315,6 +315,9 @@ class StatsMixin(object):
         else:
             start = end - timedelta(days=1, seconds=-1)
 
+        if not resolution:
+            resolution = tsdb.get_optimal_rollup(start, end)
+
         return {
             'start': start,
             'end': end,

@@ -795,7 +795,30 @@ function routes() {
               component={errorHandler(LazyLoad)}
             />
           </Route>
-
+          <Route
+            path="/organizations/:orgId/monitors/"
+            componentPromise={() =>
+              import(/* webpackChunkName: "OrganizationMonitorsContainer" */ './views/organizationMonitors')}
+            component={errorHandler(LazyLoad)}
+          >
+            <IndexRoute
+              componentPromise={() =>
+                import(/* webpackChunkName: "OrganizationMonitors" */ './views/organizationMonitors/monitors')}
+              component={errorHandler(LazyLoad)}
+            />
+            <Route
+              path="/organizations/:orgId/monitors/:monitorId/"
+              componentPromise={() =>
+                import(/* webpackChunkName: "OrganizationMonitorDetails" */ './views/organizationMonitors/details')}
+              component={errorHandler(LazyLoad)}
+            />
+            <Route
+              path="/organizations/:orgId/monitors/:monitorId/edit/"
+              componentPromise={() =>
+                import(/* webpackChunkName: "OrganizationMonitorEdit" */ './views/organizationMonitors/edit')}
+              component={errorHandler(LazyLoad)}
+            />
+          </Route>
           <Route
             path="/organizations/:orgId/projects/:projectId/getting-started/"
             component={errorHandler(ProjectGettingStarted)}

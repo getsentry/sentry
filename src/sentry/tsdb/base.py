@@ -130,11 +130,13 @@ class BaseTSDB(Service):
 
     __all__ = frozenset([
         'get_earliest_timestamp',
+        'get_optimal_rollup',
         'get_optimal_rollup_series',
         'get_rollups',
         'make_series',
         'models',
         'models_with_environment_support',
+        'normalize_to_epoch',
         'rollup',
     ]) | __write_methods__ | __read_methods__
 

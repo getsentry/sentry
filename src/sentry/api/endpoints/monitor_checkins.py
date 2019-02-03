@@ -3,15 +3,11 @@ from __future__ import absolute_import
 from django.db import transaction
 from rest_framework import serializers
 
-from sentry import features
 from sentry.api.authentication import DSNAuthentication
-from sentry.api.base import Endpoint
-from sentry.api.exceptions import ResourceDoesNotExist
+from sentry.api.bases.monitor import MonitorEndpoint
 from sentry.api.paginator import OffsetPaginator
-from sentry.api.bases.project import ProjectPermission
 from sentry.api.serializers import serialize
-from sentry.models import Monitor, MonitorCheckIn, MonitorStatus, CheckInStatus, Project, ProjectKey, ProjectStatus
-from sentry.utils.sdk import configure_scope
+from sentry.models import Monitor, MonitorCheckIn, MonitorStatus, CheckInStatus, ProjectKey
 
 
 class CheckInSerializer(serializers.Serializer):
@@ -25,44 +21,8 @@ class CheckInSerializer(serializers.Serializer):
     duration = serializers.IntegerField(required=False)
 
 
-class MonitorCheckInsEndpoint(Endpoint):
-    authentication_classes = Endpoint.authentication_classes + (DSNAuthentication,)
-    permission_classes = (ProjectPermission,)
-
-    # TODO(dcramer): this code needs shared with other endpoints as its security focused
-    # TODO(dcramer): this doesnt handle is_global roles
-    def convert_args(self, request, monitor_id, *args, **kwargs):
-        try:
-            monitor = Monitor.objects.get(
-                guid=monitor_id,
-            )
-        except Monitor.DoesNotExist:
-            raise ResourceDoesNotExist
-
-        project = Project.objects.get_from_cache(id=monitor.project_id)
-        if project.status != ProjectStatus.VISIBLE:
-            raise ResourceDoesNotExist
-
-        if hasattr(request.auth, 'project_id') and project.id != request.auth.project_id:
-            return self.respond(status=400)
-
-        if not features.has('organizations:monitors',
-                            project.organization, actor=request.user):
-            raise ResourceDoesNotExist
-
-        self.check_object_permissions(request, project)
-
-        with configure_scope() as scope:
-            scope.set_tag("organization", project.organization_id)
-            scope.set_tag("project", project.id)
-
-        request._request.organization = project.organization
-
-        kwargs.update({
-            'monitor': monitor,
-            'project': project,
-        })
-        return (args, kwargs)
+class MonitorCheckInsEndpoint(MonitorEndpoint):
+    authentication_classes = MonitorEndpoint.authentication_classes + (DSNAuthentication,)
 
     def get(self, request, project, monitor):
         """
@@ -83,7 +43,7 @@ class MonitorCheckInsEndpoint(Endpoint):
         return self.paginate(
             request=request,
             queryset=queryset,
-            order_by='name',
+            order_by='-date_added',
             on_results=lambda x: serialize(x, request.user),
             paginator_cls=OffsetPaginator,
         )

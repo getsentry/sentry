@@ -12,6 +12,9 @@ class MonitorSerializer(Serializer):
         return {
             'id': six.text_type(obj.guid),
             'status': obj.get_status_display(),
+            'type': obj.get_type_display(),
             'name': obj.name,
+            'lastCheckIn': obj.last_checkin,
+            'nextCheckIn': obj.next_checkin,
             'dateCreated': obj.date_added,
         }

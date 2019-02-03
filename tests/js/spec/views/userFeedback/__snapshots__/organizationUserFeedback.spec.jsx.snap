@@ -514,6 +514,7 @@ exports[`OrganizationUserFeedback renders 1`] = `
                     "projects": Array [],
                   }
                 }
+                showDateSelector={true}
                 showEnvironmentSelector={true}
               >
                 <Header>
