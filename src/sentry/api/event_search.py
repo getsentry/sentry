@@ -165,7 +165,7 @@ class SearchVisitor(NodeVisitor):
         # Flatten each group in the list, since nodes can return multiple items
         def _flatten(x):
             if isinstance(x, list):
-                return chain.from_iterable(imap(_flatten, x))
+                return list(chain.from_iterable(imap(_flatten, x)))
             return [x]
         return filter(None, _flatten(children))
 
