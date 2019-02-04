@@ -410,6 +410,11 @@ urlpatterns += patterns(
         name='sentry-organization-issue-list'
     ),
     url(
+        r'^organizations/(?P<organization_slug>[\w_-]+)/issues/(?P<group_id>\d+)/$',
+        react_page_view,
+        name='sentry-organization-issue'
+    ),
+    url(
         r'^organizations/(?P<organization_slug>[\w_-]+)/issues/(?P<issue_id>\d+)/$',
         react_page_view,
         name='sentry-organization-issue-detail'
@@ -418,6 +423,11 @@ urlpatterns += patterns(
         r'^organizations/(?P<organization_slug>[\w_-]+)/issues/(?P<group_id>\d+)/events/(?P<event_id_or_latest>(\d+|latest))/$',
         react_page_view,
         name='sentry-organization-event-detail'
+    ),
+    url(
+        r'^organizations/(?P<organization_slug>[\w_-]+)/projects/(?P<project_slug>[\w_-]+)/events/(?P<client_event_id>[\w_-]+)/$',
+        ProjectEventRedirect.as_view(),
+        name='sentry-project-event-redirect'
     ),
     url(
         r'^organizations/(?P<organization_slug>[\w_-]+)/api-keys/$',

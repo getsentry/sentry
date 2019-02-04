@@ -107,7 +107,7 @@ class TagStorageTest(SnubaTestCase):
         result = list(self.ts.get_group_tag_keys_and_top_values(
             self.proj1.id,
             self.proj1group1.id,
-            self.proj1env1.id,
+            [self.proj1env1.id],
         ))
         tags = [r.key for r in result]
         assert set(tags) == set(['foo', 'baz', 'environment', 'sentry:release', 'sentry:user'])
@@ -130,7 +130,7 @@ class TagStorageTest(SnubaTestCase):
         result = list(self.ts.get_group_tag_keys_and_top_values(
             self.proj1.id,
             self.proj1group1.id,
-            self.proj1env1.id,
+            [self.proj1env1.id],
             keys=['environment', 'sentry:release'],
         ))
         tags = [r.key for r in result]
@@ -188,7 +188,7 @@ class TagStorageTest(SnubaTestCase):
             k.key: k for k in self.ts.get_group_tag_keys(
                 project_id=self.proj1.id,
                 group_id=self.proj1group1.id,
-                environment_id=self.proj1env1.id,
+                environment_ids=[self.proj1env1.id],
             )
         }
         assert set(keys) == set(['baz', 'environment', 'foo', 'sentry:release', 'sentry:user'])
@@ -500,3 +500,13 @@ class TagStorageTest(SnubaTestCase):
                 last_seen=self.now - timedelta(seconds=2)
             )
         ]
+
+    def test_get_group_seen_values_for_environments(self):
+        assert self.ts.get_group_seen_values_for_environments(
+            [self.proj1.id], [self.proj1group1.id], [self.proj1env1.id]
+        ) == {self.proj1group1.id: {
+            'first_seen': self.now - timedelta(seconds=2),
+            'last_seen': self.now - timedelta(seconds=1),
+            'times_seen': 2,
+        }
+        }

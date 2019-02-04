@@ -1,7 +1,10 @@
 /**
- * Events by day
+ * Handled vs Unhandled Events
  */
+import {t} from 'app/locale';
+
 const handledVsUnhandledQuery = {
+  name: t('Handled vs. Unhandled'),
   fields: ['error.handled'],
   conditions: [],
   aggregations: [['count()', null, 'count']],

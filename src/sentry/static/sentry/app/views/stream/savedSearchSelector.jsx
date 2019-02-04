@@ -10,6 +10,7 @@ import DropdownLink from 'app/components/dropdownLink';
 import QueryCount from 'app/components/queryCount';
 import MenuItem from 'app/components/menuItem';
 import Tooltip from 'app/components/tooltip';
+import Tag from 'app/views/settings/components/tag';
 import {BooleanField, FormState, TextField} from 'app/components/forms';
 import withApi from 'app/utils/withApi';
 import space from 'app/styles/space';
@@ -214,6 +215,7 @@ const SavedSearchSelector = withApi(
       projectId: PropTypes.string,
       searchId: PropTypes.string,
       access: PropTypes.object.isRequired,
+      query: PropTypes.string,
       savedSearchList: PropTypes.array.isRequired,
       queryCount: PropTypes.number,
       queryMaxCount: PropTypes.number,
@@ -222,12 +224,16 @@ const SavedSearchSelector = withApi(
     };
 
     getTitle() {
-      let searchId = this.props.searchId || null;
-      if (!searchId) return t('Custom Search');
-      let results = this.props.savedSearchList.filter(search => {
-        return searchId === search.id;
-      });
-      return results.length ? results[0].name : t('Custom Search');
+      let {searchId, query, savedSearchList} = this.props;
+      let result;
+
+      if (searchId) {
+        result = savedSearchList.find(search => searchId === search.id);
+      } else {
+        result = savedSearchList.find(search => query === search.query);
+      }
+
+      return result ? result.name : t('Custom Search');
     }
 
     render() {
@@ -235,18 +241,19 @@ const SavedSearchSelector = withApi(
       let hasProject = !!projectId;
 
       let children = this.props.savedSearchList.map(search => {
-        // let url = this.createUrl(search, hasProject);
-
         return (
           <StyledMenuItem onSelect={() => onSavedSearchSelect(search)} key={search.id}>
-            <strong>{search.name}</strong>
+            <span>
+              <strong>{search.name}</strong>
+              {search.projectSlug && <StyledTag>{search.projectSlug}</StyledTag>}
+            </span>
             <code>{search.query}</code>
           </StyledMenuItem>
         );
       });
       return (
-        <div className="saved-search-selector">
-          <DropdownLink
+        <Container>
+          <StyledDropdownLink
             title={
               <span>
                 <span>{this.getTitle()}</span>
@@ -286,23 +293,60 @@ const SavedSearchSelector = withApi(
                 </span>
               </Tooltip>
             </ButtonBar>
-          </DropdownLink>
-        </div>
+          </StyledDropdownLink>
+        </Container>
       );
     }
   }
 );
+
+const Container = styled.div`
+  & .dropdown-menu {
+    max-width: 350px;
+    min-width: 275px;
+  }
+`;
+
+const StyledDropdownLink = styled(DropdownLink)`
+  display: inline-block;
+  font-size: 22px;
+  color: ${p => p.theme.gray5};
+  line-height: 36px;
+  margin-right: 10px;
+  max-width: 100%;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  overflow: hidden;
+
+  & :hover,
+  & :focus {
+    color: ${p => p.theme.gray5};
+  }
+
+  & .icon-arrow-down {
+    display: inline-block;
+    margin-left: 5px;
+    top: 0;
+    vertical-align: middle;
+  }
+`;
 
 const EmptyItem = styled.li`
   padding: 8px 10px 5px;
   font-style: italic;
 `;
 
+const StyledTag = styled(Tag)`
+  display: inline-block;
+  margin-left: ${space(0.25)};
+`;
+
 const StyledMenuItem = styled(MenuItem)`
   & a {
-    padding: ${space(0.5)} ${space(1)};
+    /* override shared-components.less */
+    padding: ${space(0.25)} ${space(1)} !important;
   }
-  & strong,
+  & span,
   & code {
     display: block;
     max-width: 100%;

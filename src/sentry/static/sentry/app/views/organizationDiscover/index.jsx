@@ -1,12 +1,14 @@
 import React from 'react';
 import PropTypes from 'prop-types';
-import {Flex} from 'grid-emotion';
 import {browserHistory} from 'react-router';
 import DocumentTitle from 'react-document-title';
 import SentryTypes from 'app/sentryTypes';
 
+import {t} from 'app/locale';
 import {updateProjects, updateDateTime} from 'app/actionCreators/globalSelection';
 import withGlobalSelection from 'app/utils/withGlobalSelection';
+import Feature from 'app/components/acl/feature';
+import Alert from 'app/components/alert';
 
 import Discover from './discover';
 import createQueryBuilder from './queryBuilder';
@@ -42,6 +44,7 @@ class OrganizationDiscoverContainer extends React.Component {
     const {organization} = context;
 
     const query = getQueryFromQueryString(search);
+
     if (query.hasOwnProperty('projects')) {
       // Update global store with projects from querystring
       updateProjects(query.projects);
@@ -58,7 +61,7 @@ class OrganizationDiscoverContainer extends React.Component {
         period: query.range || null,
       });
     } else {
-      // Update query with global projects
+      // Update query with global datetime values
       query.start = props.selection.datetime.start;
       query.end = props.selection.datetime.end;
       query.range = props.selection.datetime.period;
@@ -154,12 +157,8 @@ class OrganizationDiscoverContainer extends React.Component {
     });
   };
 
-  renderComingSoon() {
-    return (
-      <Flex className="organization-home" justify="center" align="center">
-        something is happening here soon :)
-      </Flex>
-    );
+  renderNoAccess() {
+    return <Alert type="warning">{t("You don't have access to this feature")}</Alert>;
   }
 
   render() {
@@ -168,26 +167,29 @@ class OrganizationDiscoverContainer extends React.Component {
     const {location, params} = this.props;
 
     const {organization} = this.context;
-    const hasFeature = new Set(organization.features).has('discover');
-
-    if (!hasFeature) return this.renderComingSoon();
 
     return (
       <DocumentTitle title={`Discover - ${organization.slug} - Sentry`}>
-        <DiscoverWrapper>
-          <Discover
-            isLoading={isLoading}
-            organization={organization}
-            queryBuilder={this.queryBuilder}
-            location={location}
-            params={params}
-            savedQuery={savedQuery}
-            isEditingSavedQuery={this.props.location.query.editing === 'true'}
-            updateSavedQueryData={this.updateSavedQuery}
-            view={view}
-            toggleEditMode={this.toggleEditMode}
-          />
-        </DiscoverWrapper>
+        <Feature
+          features={['organizations:discover']}
+          organization={organization}
+          renderDisabled={this.renderNoAccess}
+        >
+          <DiscoverWrapper>
+            <Discover
+              isLoading={isLoading}
+              organization={organization}
+              queryBuilder={this.queryBuilder}
+              location={location}
+              params={params}
+              savedQuery={savedQuery}
+              isEditingSavedQuery={this.props.location.query.editing === 'true'}
+              updateSavedQueryData={this.updateSavedQuery}
+              view={view}
+              toggleEditMode={this.toggleEditMode}
+            />
+          </DiscoverWrapper>
+        </Feature>
       </DocumentTitle>
     );
   }

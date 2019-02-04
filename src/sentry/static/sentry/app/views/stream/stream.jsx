@@ -25,7 +25,7 @@ import GroupStore from 'app/stores/groupStore';
 import LoadingError from 'app/components/loadingError';
 import LoadingIndicator from 'app/components/loadingIndicator';
 import Pagination from 'app/components/pagination';
-import ProcessingIssueHint from 'app/views/stream/processingIssueHint';
+import ProcessingIssueList from 'app/components/stream/processingIssueList';
 import ProjectState from 'app/mixins/projectState';
 import SentryTypes from 'app/sentryTypes';
 import StreamActions from 'app/views/stream/actions';
@@ -91,7 +91,6 @@ const Stream = createReactClass({
       query: hasQuery ? currentQuery.query : '',
       sort,
       isSidebarVisible: false,
-      processingIssues: null,
       environment: this.props.environment,
     };
   },
@@ -103,7 +102,6 @@ const Stream = createReactClass({
     });
 
     this.fetchSavedSearches();
-    this.fetchProcessingIssues();
     if (!this.state.loading) {
       this.fetchData();
     }
@@ -228,27 +226,6 @@ const Stream = createReactClass({
         });
       }
     );
-  },
-
-  fetchProcessingIssues() {
-    let {orgId, projectId} = this.props.params;
-    this.api.request(`/projects/${orgId}/${projectId}/processingissues/`, {
-      success: data => {
-        if (data.hasIssues || data.resolveableIssues > 0 || data.issuesProcessing > 0) {
-          this.setState({
-            processingIssues: data,
-          });
-        }
-      },
-      error: error => {
-        logAjaxError(error);
-        // this is okay. it's just a ui hint
-      },
-    });
-  },
-
-  showingProcessingIssues() {
-    return this.state.query && this.state.query.trim() == 'is:unprocessed';
   },
 
   onSavedSearchCreate(data) {
@@ -581,15 +558,6 @@ const Stream = createReactClass({
     });
   },
 
-  renderProcessingIssuesHint() {
-    let pi = this.state.processingIssues;
-    if (!pi || this.showingProcessingIssues()) {
-      return null;
-    }
-    let {orgId, projectId} = this.props.params;
-    return <ProcessingIssueHint issue={pi} projectId={projectId} orgId={orgId} />;
-  },
-
   renderGroupNodes(ids, statsPeriod) {
     // Restrict this guide to only show for new users (joined<30 days) and add guide anhor only to the first issue
     let userDateJoined = new Date(ConfigStore.get('user').dateJoined);
@@ -679,9 +647,13 @@ const Stream = createReactClass({
     let classes = ['stream-row'];
     if (this.state.isSidebarVisible) classes.push('show-sidebar');
     let {orgId, projectId} = this.props.params;
+    let {organization} = this.context;
+
     let searchId = this.state.searchId;
     let access = this.getAccess();
     let projectFeatures = this.getProjectFeatures();
+    let project = this.getProject();
+
     return (
       <div className={classNames(classes)}>
         <div className="stream-content">
@@ -719,7 +691,7 @@ const Stream = createReactClass({
               allResultsVisible={this.allResultsVisible()}
             />
             <PanelBody>
-              {this.renderProcessingIssuesHint()}
+              <ProcessingIssueList organization={organization} project={project} />
               {this.renderStreamBody()}
             </PanelBody>
           </Panel>

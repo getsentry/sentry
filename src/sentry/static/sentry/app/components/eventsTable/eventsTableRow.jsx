@@ -2,20 +2,22 @@ import PropTypes from 'prop-types';
 import React from 'react';
 import {Link} from 'react-router';
 
-import CustomPropTypes from 'app/sentryTypes';
+import SentryTypes from 'app/sentryTypes';
 import Avatar from 'app/components/avatar';
 import DateTime from 'app/components/dateTime';
 import DeviceName from 'app/components/deviceName';
 import FileSize from 'app/components/fileSize';
+import withOrganization from 'app/utils/withOrganization';
 
 class EventsTableRow extends React.Component {
   static propTypes = {
+    organization: SentryTypes.Organization.isRequired,
     hasUser: PropTypes.bool,
     orgId: PropTypes.string.isRequired,
     groupId: PropTypes.string.isRequired,
-    projectId: PropTypes.string.isRequired,
-    event: CustomPropTypes.Event.isRequired,
-    tagList: PropTypes.arrayOf(CustomPropTypes.Tag),
+    projectId: PropTypes.string,
+    event: SentryTypes.Event.isRequired,
+    tagList: PropTypes.arrayOf(SentryTypes.Tag),
   };
 
   getEventTitle = event => {
@@ -50,17 +52,30 @@ class EventsTableRow extends React.Component {
   }
 
   render() {
-    let {className, event, orgId, projectId, groupId, tagList, hasUser} = this.props;
+    let {
+      organization,
+      className,
+      event,
+      orgId,
+      projectId,
+      groupId,
+      tagList,
+      hasUser,
+    } = this.props;
     let tagMap = {};
     event.tags.forEach(tag => {
       tagMap[tag.key] = tag.value;
     });
 
+    const basePath = new Set(organization.features).has('sentry10')
+      ? `/organizations/${orgId}/issues/`
+      : `/${orgId}/${projectId}/issues/`;
+
     return (
       <tr key={event.id} className={className}>
         <td>
           <h5>
-            <Link to={`/${orgId}/${projectId}/issues/${groupId}/events/${event.id}/`}>
+            <Link to={`${basePath}${groupId}/events/${event.id}/`}>
               <DateTime date={event.dateCreated} />
             </Link>
             <small>{(this.getEventTitle(event) || '').substr(0, 100)}</small>
@@ -99,4 +114,5 @@ class EventsTableRow extends React.Component {
   }
 }
 
-export default EventsTableRow;
+export {EventsTableRow};
+export default withOrganization(EventsTableRow);

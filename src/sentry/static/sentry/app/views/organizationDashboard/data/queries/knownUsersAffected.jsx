@@ -1,9 +1,13 @@
 /**
  * Known affected users
  */
+import {OPERATOR} from 'app/views/organizationDiscover/data';
+import {t} from 'app/locale';
+
 const knownUsersAffectedQuery = {
+  name: t('Known Users'),
   fields: [],
-  conditions: [['user.email', 'IS NOT NULL', null]],
+  conditions: [['user.email', OPERATOR.IS_NOT_NULL, null]],
   aggregations: [['uniq', 'user.email', 'Known Users']],
   limit: 2000,
 

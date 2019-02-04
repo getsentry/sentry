@@ -29,13 +29,15 @@ describe('OrganizationDiscoverContainer', function() {
         method: 'POST',
         body: {
           data: [{tags_key: 'tag1', count: 5}, {tags_key: 'tag2', count: 1}],
+          timing: {},
+          meta: [],
         },
       });
       wrapper = mount(
         <OrganizationDiscoverContainer
           location={{query: {}, search: ''}}
           params={{}}
-          selection={{datetime: {}}}
+          selection={{projects: [], environments: [], datetime: {}}}
         />,
         TestStubs.routerContext([{organization}])
       );
@@ -134,7 +136,7 @@ describe('OrganizationDiscoverContainer', function() {
   });
 
   describe('no access', function() {
-    it('display coming soon message', async function() {
+    it('display no access message', async function() {
       const organization = TestStubs.Organization({projects: [TestStubs.Project()]});
       const wrapper = mount(
         <OrganizationDiscoverContainer
@@ -144,7 +146,7 @@ describe('OrganizationDiscoverContainer', function() {
         />,
         TestStubs.routerContext([{organization}])
       );
-      expect(wrapper.text()).toBe('something is happening here soon :)');
+      expect(wrapper.text()).toBe("You don't have access to this feature");
     });
   });
 });

@@ -318,19 +318,19 @@ export const TableChart = styled(
         showColumnTotal,
         shadeRowPercentage,
         widths,
+        renderBody,
+        renderTableHeader,
         ...props,
       };
 
+      if (isRenderProp) {
+        return children(renderProps);
+      }
+
       return (
         <Panel className={className}>
-          {isRenderProp ? (
-            children(renderProps)
-          ) : (
-            <React.Fragment>
-              {renderTableHeader(renderProps)}
-              {renderBody(renderProps)}
-            </React.Fragment>
-          )}
+          {renderTableHeader(renderProps)}
+          {renderBody(renderProps)}
         </Panel>
       );
     }
@@ -409,5 +409,6 @@ const Row = styled(Flex)`
 
 const TableBody = styled('div')`
   height: ${p => p.height};
+  flex-grow: 1;
   overflow-y: auto;
 `;

@@ -14,6 +14,7 @@ import {
   updateDateTime,
   updateEnvironments,
   updateParams,
+  updateParamsWithoutHistory,
   updateProjects,
 } from 'app/actionCreators/globalSelection';
 import Header from 'app/components/organizations/header';
@@ -121,7 +122,7 @@ class GlobalSelectionHeader extends React.Component {
       const {datetime, environments, projects} = this.props.selection;
 
       if (hasMultipleProjectFeature || projects.length === 1) {
-        updateParams(
+        updateParamsWithoutHistory(
           {project: projects, environment: environments, ...datetime},
           this.getRouter()
         );

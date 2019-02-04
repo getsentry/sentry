@@ -14,14 +14,18 @@ class GettingStartedBody extends React.Component {
   };
 
   render() {
-    let {project, organization} = this.context;
+    const {project, organization} = this.context;
+    const hasSentry10 = new Set(organization.features).has('sentry10');
+
     return (
       <Container>
-        <div className="sub-header flex flex-container flex-vertically-centered">
-          <div className="p-t-1 p-b-1">
-            <ProjectSelector organization={organization} projectId={project.slug} />
+        {!hasSentry10 && (
+          <div className="sub-header flex flex-container flex-vertically-centered">
+            <div className="p-t-1 p-b-1">
+              <ProjectSelector organization={organization} projectId={project.slug} />
+            </div>
           </div>
-        </div>
+        )}
         <div className="container">
           <Content>
             <ProjectDocsContext>
@@ -39,7 +43,7 @@ class GettingStartedBody extends React.Component {
 
 class GettingStarted extends React.Component {
   render() {
-    let {projectId, orgId} = this.props.params;
+    const {projectId, orgId} = this.props.params;
     return (
       <ProjectContext orgId={orgId} projectId={projectId}>
         <GettingStartedBody>{this.props.children}</GettingStartedBody>

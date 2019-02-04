@@ -90,7 +90,7 @@ def pop_tag(data, key):
 
 def set_tag(data, key, value):
     pop_tag(data, key)
-    data['tags'].append((key, value))
+    data['tags'].append((key, trim(value, MAX_TAG_VALUE_LENGTH)))
 
 
 def get_tag(data, key):
@@ -923,9 +923,9 @@ class EventManager(object):
         if logger_name:
             set_tag(data, 'logger', logger_name)
         if environment:
-            set_tag(data, 'environment', trim(environment, MAX_TAG_VALUE_LENGTH))
+            set_tag(data, 'environment', environment)
         if transaction_name:
-            set_tag(data, 'transaction', trim(transaction_name, MAX_TAG_VALUE_LENGTH))
+            set_tag(data, 'transaction', transaction_name)
 
         if release:
             # dont allow a conflicting 'release' tag

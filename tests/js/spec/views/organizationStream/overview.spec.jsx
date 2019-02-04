@@ -1,6 +1,7 @@
 import React from 'react';
 import {browserHistory} from 'react-router';
 import {shallow} from 'enzyme';
+import {clonedeep} from 'lodash';
 
 import TagStore from 'app/stores/tagStore';
 import GroupStore from 'app/stores/groupStore';
@@ -214,6 +215,45 @@ describe('OrganizationStream', function() {
     });
   });
 
+  describe('componentDidUpdate', function() {
+    let fetchDataMock;
+    beforeEach(function() {
+      fetchDataMock = jest.fn();
+      wrapper = shallow(<OrganizationStream {...props} />, {
+        disableLifecycleMethods: false,
+      });
+      wrapper.instance().fetchData = fetchDataMock;
+    });
+
+    it('fetches data on selection change', function() {
+      let selection = {projects: [99], environments: [], datetime: {period: '24h'}};
+      wrapper.setProps({selection, foo: 'bar'});
+
+      expect(fetchDataMock).toHaveBeenCalled();
+    });
+
+    it('fetches data on savedSearch change', function() {
+      savedSearch = {id: 1, query: 'is:resolved'};
+      wrapper.setState({savedSearch});
+
+      expect(fetchDataMock).toHaveBeenCalled();
+    });
+
+    it('fetches data on location change', function() {
+      let queryAttrs = ['query', 'sort', 'statsPeriod', 'cursor', 'groupStatsPeriod'];
+      let location = clonedeep(props.location);
+      queryAttrs.forEach((attr, i) => {
+        // reclone each iteration so that only one property changes.
+        location = clonedeep(location);
+        location.query[attr] = 'newValue';
+        wrapper.setProps({location});
+
+        // Each propery change should cause a new fetch incrementing the call count.
+        expect(fetchDataMock).toHaveBeenCalledTimes(i + 1);
+      });
+    });
+  });
+
   describe('processingIssues', function() {
     beforeEach(function() {
       wrapper = shallow(<OrganizationStream {...props} />);
@@ -230,7 +270,7 @@ describe('OrganizationStream', function() {
         loading: false,
       });
 
-      let issues = wrapper.find('ProcessingIssueHint');
+      let issues = wrapper.find('ProcessingIssueList');
       expect(issues).toHaveLength(1);
     });
   });

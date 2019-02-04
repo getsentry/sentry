@@ -7,6 +7,7 @@ from cryptography.hazmat.primitives.serialization import load_pem_private_key
 from cryptography.hazmat.backends import default_backend
 from django import forms
 from django.core.urlresolvers import reverse
+from django.core.validators import URLValidator
 from django.utils.translation import ugettext as _
 from django.views.decorators.csrf import csrf_exempt
 from six.moves.urllib.parse import urlparse
@@ -89,6 +90,7 @@ class InstallationForm(forms.Form):
         widget=forms.TextInput(
             attrs={'placeholder': 'https://jira.example.com'}
         ),
+        validators=[URLValidator()]
     )
     verify_ssl = forms.BooleanField(
         label=_('Verify SSL'),

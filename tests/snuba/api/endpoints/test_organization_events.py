@@ -2,7 +2,7 @@ from __future__ import absolute_import
 
 from six.moves.urllib.parse import urlencode
 
-from datetime import datetime, timedelta
+from datetime import timedelta
 from django.utils import timezone
 from django.core.urlresolvers import reverse
 
@@ -511,6 +511,8 @@ class OrganizationEventsStatsEndpointTest(OrganizationEventsTestBase):
     def test_simple(self):
         self.login_as(user=self.user)
 
+        day_ago = self.day_ago.replace(hour=10, minute=0, second=0, microsecond=0)
+
         project = self.create_project()
         project2 = self.create_project()
         group = self.create_group(project=project)
@@ -518,36 +520,18 @@ class OrganizationEventsStatsEndpointTest(OrganizationEventsTestBase):
         self.create_event(
             'a' * 32,
             group=group,
-            datetime=datetime(
-                2018,
-                11,
-                1,
-                10,
-                59,
-                00,
-                tzinfo=timezone.utc))
+            datetime=day_ago + timedelta(minutes=1)
+        )
         self.create_event(
             'b' * 32,
             group=group2,
-            datetime=datetime(
-                2018,
-                11,
-                1,
-                11,
-                30,
-                00,
-                tzinfo=timezone.utc))
+            datetime=day_ago + timedelta(hours=1, minutes=1)
+        )
         self.create_event(
             'c' * 32,
             group=group2,
-            datetime=datetime(
-                2018,
-                11,
-                1,
-                11,
-                45,
-                00,
-                tzinfo=timezone.utc))
+            datetime=day_ago + timedelta(hours=1, minutes=2)
+        )
 
         url = reverse(
             'sentry-api-0-organization-events-stats',
@@ -556,16 +540,16 @@ class OrganizationEventsStatsEndpointTest(OrganizationEventsTestBase):
             }
         )
         response = self.client.get('%s?%s' % (url, urlencode({
-            'start': '2018-11-01T10:00:00',
-            'end': '2018-11-01T11:59:00',
+            'start': day_ago.isoformat()[:19],
+            'end': (day_ago + timedelta(hours=1, minutes=59)).isoformat()[:19],
             'interval': '1h',
         })), format='json')
 
         assert response.status_code == 200, response.content
-        assert response.data['data'] == [
-            (1541062800, []),
-            (1541066400, [{'count': 1}]),
-            (1541070000, [{'count': 2}]),
+        assert [attrs for time, attrs in response.data['data']] == [
+            [],
+            [{'count': 1}],
+            [{'count': 2}],
         ]
 
     def test_no_projects(self):

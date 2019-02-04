@@ -9,7 +9,7 @@ from rest_framework.response import Response
 
 from sentry.api.bases import OrganizationEventsEndpointBase
 from sentry.api.helpers.group_index import (
-    build_query_params_from_request, get_by_short_id, update_groups, ValidationError
+    build_query_params_from_request, delete_groups, get_by_short_id, update_groups, ValidationError
 )
 from sentry.api.serializers import serialize
 from sentry.api.serializers.models.group import StreamGroupSerializerSnuba
@@ -107,11 +107,18 @@ class OrganizationGroupIndexEndpoint(OrganizationEventsEndpointBase):
             # check to see if we've got an event ID
             if len(query) == 32:
                 groups = list(
-                    Group.objects.filter_by_event_id(
-                        project_ids,
-                        query,
-                    )
+                    Group.objects.filter_by_event_id(project_ids, query)
                 )
+                if len(groups) == 1:
+                    response = Response(
+                        serialize(
+                            groups, request.user, serializer(
+                                matching_event_id=query
+                            )
+                        )
+                    )
+                    response['X-Sentry-Direct-Hit'] = '1'
+                    return response
 
                 if groups:
                     return Response(serialize(groups, request.user, serializer()))
@@ -221,12 +228,44 @@ class OrganizationGroupIndexEndpoint(OrganizationEventsEndpointBase):
         projects = self.get_projects(request, organization)
 
         search_fn = functools.partial(
-            self._search, request, organization, projects, self.get_environments(request, organization), {
-                'limit': 1000,
-                'paginator_options': {'max_limit': 1000},
-            }
+            self._search, request, organization, projects,
+            self.get_environments(request, organization),
         )
         return update_groups(
+            request,
+            projects,
+            organization.id,
+            search_fn,
+        )
+
+    def delete(self, request, organization):
+        """
+        Bulk Remove a List of Issues
+        ````````````````````````````
+
+        Permanently remove the given issues. The list of issues to
+        modify is given through the `id` query parameter.  It is repeated
+        for each issue that should be removed.
+
+        Only queries by 'id' are accepted.
+
+        If any ids are out of scope this operation will succeed without
+        any data mutation.
+
+        :qparam int id: a list of IDs of the issues to be removed.  This
+                        parameter shall be repeated for each issue.
+        :pparam string organization_slug: the slug of the organization the
+                                          issues belong to.
+        :auth: required
+        """
+        projects = self.get_projects(request, organization)
+
+        search_fn = functools.partial(
+            self._search, request, organization, projects,
+            self.get_environments(request, organization),
+        )
+
+        return delete_groups(
             request,
             projects,
             organization.id,

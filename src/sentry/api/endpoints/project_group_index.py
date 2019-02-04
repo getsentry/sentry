@@ -263,12 +263,7 @@ class ProjectGroupIndexEndpoint(ProjectEndpoint, EnvironmentMixin):
         :auth: required
         """
 
-        search_fn = functools.partial(
-            self._search, request, project, {
-                'limit': 1000,
-                'paginator_options': {'max_limit': 1000},
-            }
-        )
+        search_fn = functools.partial(self._search, request, project)
         return update_groups(
             request,
             [project],
@@ -298,36 +293,10 @@ class ProjectGroupIndexEndpoint(ProjectEndpoint, EnvironmentMixin):
                                      belong to.
         :auth: required
         """
-        group_ids = request.GET.getlist('id')
-        if group_ids:
-            group_list = list(
-                Group.objects.filter(
-                    project=project,
-                    id__in=set(group_ids),
-                ).exclude(
-                    status__in=[
-                        GroupStatus.PENDING_DELETION,
-                        GroupStatus.DELETION_IN_PROGRESS,
-                    ]
-                )
-            )
-        else:
-            try:
-                # bulk mutations are limited to 1000 items
-                # TODO(dcramer): it'd be nice to support more than this, but its
-                # a bit too complicated right now
-                cursor_result, _ = self._search(request, project, {
-                    'limit': 1000,
-                    'paginator_options': {'max_limit': 1000},
-                })
-            except ValidationError as exc:
-                return Response({'detail': six.text_type(exc)}, status=400)
-
-            group_list = list(cursor_result)
-
-        if not group_list:
-            return Response(status=204)
-
-        delete_groups(request, project, group_list, delete_type='delete')
-
-        return Response(status=204)
+        search_fn = functools.partial(self._search, request, project)
+        return delete_groups(
+            request,
+            [project],
+            project.organization_id,
+            search_fn,
+        )

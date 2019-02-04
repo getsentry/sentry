@@ -274,12 +274,12 @@ def handle_discard(request, group_list, projects, user):
                 )
 
     for project in projects:
-        delete_groups(request, project, groups_to_delete.get(project.id), delete_type='discard')
+        _delete_groups(request, project, groups_to_delete.get(project.id), delete_type='discard')
 
     return Response(status=204)
 
 
-def delete_groups(request, project, group_list, delete_type):
+def _delete_groups(request, project, group_list, delete_type):
     if not group_list:
         return
 
@@ -334,7 +334,53 @@ def delete_groups(request, project, group_list, delete_type):
             group=group,
             user=request.user,
             delete_type=delete_type,
-            sender=delete_groups)
+            sender=_delete_groups)
+
+
+def delete_groups(request, projects, organization_id, search_fn):
+    """
+    `search_fn` refers to the `search.query` method with the appropriate
+    project, org, environment, and search params already bound
+    """
+    group_ids = request.GET.getlist('id')
+    if group_ids:
+        group_list = list(
+            Group.objects.filter(
+                project__in=projects,
+                project__organization_id=organization_id,
+                id__in=set(group_ids),
+            ).exclude(
+                status__in=[
+                    GroupStatus.PENDING_DELETION,
+                    GroupStatus.DELETION_IN_PROGRESS,
+                ]
+            )
+        )
+    else:
+        try:
+            # bulk mutations are limited to 1000 items
+            # TODO(dcramer): it'd be nice to support more than this, but its
+            # a bit too complicated right now
+            cursor_result, _ = search_fn({
+                'limit': 1000,
+                'paginator_options': {'max_limit': 1000},
+            })
+        except ValidationError as exc:
+            return Response({'detail': six.text_type(exc)}, status=400)
+
+        group_list = list(cursor_result)
+
+    if not group_list:
+        return Response(status=204)
+
+    groups_by_project_id = defaultdict(list)
+    for group in group_list:
+        groups_by_project_id[group.project_id].append(group)
+
+    for project in projects:
+        _delete_groups(request, project, groups_by_project_id.get(project.id), delete_type='delete')
+
+    return Response(status=204)
 
 
 def self_subscribe_and_assign_issue(acting_user, group):
@@ -394,7 +440,10 @@ def update_groups(request, projects, organization_id, search_fn):
             # bulk mutations are limited to 1000 items
             # TODO(dcramer): it'd be nice to support more than this, but its
             # a bit too complicated right now
-            cursor_result, _ = search_fn()
+            cursor_result, _ = search_fn({
+                'limit': 1000,
+                'paginator_options': {'max_limit': 1000},
+            })
         except ValidationError as exc:
             return Response({'detail': six.text_type(exc)}, status=400)
 

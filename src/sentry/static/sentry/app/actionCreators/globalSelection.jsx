@@ -111,6 +111,34 @@ export function updateParams(obj, router, options) {
 }
 
 /**
+ * Like updateParams but just replaces the current URL and does not create a
+ * new browser history entry
+ *
+ * @param {Object} obj New query params
+ * @param {Object} [router] React router object
+ * @param {Object} [options] Options object
+ * @param {String[]} [options.resetParams] List of parameters to remove when changing URL params
+ */
+export function updateParamsWithoutHistory(obj, router, options) {
+  // Allow another component to handle routing
+  if (!router) {
+    return;
+  }
+
+  const newQuery = getNewQueryParams(obj, router.location.query, options);
+
+  // Only push new location if query params have changed because this will cause a heavy re-render
+  if (isEqualWithEmptyArrays(newQuery, router.location.query)) {
+    return;
+  }
+
+  router.replace({
+    pathname: router.location.pathname,
+    query: newQuery,
+  });
+}
+
+/**
  * Creates a new query parameter object given new params and old params
  * Preserves the old query params, except for `cursor`
  *
