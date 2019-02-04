@@ -9,7 +9,6 @@ from sentry.api.bases.project import ProjectEndpoint
 from sentry.api.serializers import DetailedEventSerializer, serialize
 from sentry.models import Event
 from sentry.utils.apidocs import scenario, attach_scenarios
-from sentry.utils.validators import is_event_id
 
 
 @scenario('RetrieveEventForProject')
@@ -42,26 +41,7 @@ class ProjectEventDetailsEndpoint(ProjectEndpoint):
         :auth: required
         """
 
-        event = None
-        # If its a numeric string, check if it's an event Primary Key first
-        if event_id.isdigit():
-            try:
-                event = Event.objects.get(
-                    id=event_id,
-                    project_id=project.id,
-                )
-            except Event.DoesNotExist:
-                pass
-        # If it was not found as a PK, and its a possible event_id, search by that instead.
-        if event is None and is_event_id(event_id):
-            try:
-                event = Event.objects.get(
-                    event_id=event_id,
-                    project_id=project.id,
-                )
-            except Event.DoesNotExist:
-                pass
-
+        event = Event.get_event(event_id, project.id)
         if event is None:
             return Response({'detail': 'Event not found'}, status=404)
 

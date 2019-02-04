@@ -27,6 +27,7 @@ from sentry.utils.cache import memoize
 from sentry.utils.canonical import CanonicalKeyDict, CanonicalKeyView
 from sentry.utils.safe import get_path
 from sentry.utils.strings import truncatechars
+from sentry.utils.validators import is_event_id
 
 
 class Event(Model):
@@ -341,8 +342,8 @@ class Event(Model):
             group_id=self.group_id,
         ).exclude(id=self.id).order_by('datetime')[0:5]
 
-        events = [e for e in events if e.datetime == self.datetime and e.id > self.id
-                  or e.datetime > self.datetime]
+        events = [e for e in events if e.datetime == self.datetime and e.id > self.id or
+                  e.datetime > self.datetime]
         events.sort(key=EVENT_ORDERING_KEY)
         return events[0] if events else None
 
@@ -353,10 +354,52 @@ class Event(Model):
             group_id=self.group_id,
         ).exclude(id=self.id).order_by('-datetime')[0:5]
 
-        events = [e for e in events if e.datetime == self.datetime and e.id < self.id
-                  or e.datetime < self.datetime]
+        events = [e for e in events if e.datetime == self.datetime and e.id < self.id or
+                  e.datetime < self.datetime]
         events.sort(key=EVENT_ORDERING_KEY, reverse=True)
         return events[0] if events else None
+
+    @classmethod
+    def get_event(cls, id_or_event_id, project_id=None):
+        """
+        Get an Event by either its id primary key or its hex event_id.
+
+        Will automatically try to infer the type of id, and grab the correct
+        event.  If the provided id is a hex event_id, the project_id must also
+        be provided to disambiguate it.
+
+        Returns None if the event cannot be found under either scheme.
+        """
+        # TODO (alexh) instrument this to report any times we are still trying
+        # to get events by id.
+        # TODO (alexh) deprecate lookup by id so we can move to snuba.
+
+        event = None
+        if id_or_event_id.isdigit():
+            # If its a numeric string, check if it's an event Primary Key first
+            try:
+                if project_id is None:
+                    event = cls.objects.get(
+                        id=id_or_event_id,
+                    )
+                else:
+                    event = cls.objects.get(
+                        id=id_or_event_id,
+                        project_id=project_id,
+                    )
+            except Event.DoesNotExist:
+                pass
+        # If it was not found as a PK, and its a possible event_id, search by that instead.
+        if project_id is not None and event is None and is_event_id(id_or_event_id):
+            try:
+                event = cls.objects.get(
+                    event_id=id_or_event_id,
+                    project_id=project_id,
+                )
+            except Event.DoesNotExist:
+                pass
+
+        return event
 
 
 class EventSubjectTemplate(string.Template):

@@ -20,12 +20,9 @@ class EventOwnersEndpoint(ProjectEndpoint):
         :pparam string event_id: the id of the event.
         :auth: required
         """
-        try:
-            event = Event.objects.get(
-                id=event_id,
-                project_id=project.id,
-            )
-        except Event.DoesNotExist:
+
+        event = Event.get_event(event_id, project.id)
+        if event is None:
             return Response({'detail': 'Event not found'}, status=404)
 
         # populate event data

@@ -146,12 +146,8 @@ class ProjectGroupIndexEndpoint(ProjectEndpoint, EnvironmentMixin):
                 except Group.DoesNotExist:
                     pass
                 else:
-                    try:
-                        matching_event = Event.objects.get(
-                            event_id=query, project_id=project.id)
-                    except Event.DoesNotExist:
-                        pass
-                    else:
+                    matching_event = Event.get_event(query, project.id)
+                    if matching_event is not None:
                         Event.objects.bind_nodes([matching_event], 'data')
             elif matching_group is None:
                 matching_group = get_by_short_id(
