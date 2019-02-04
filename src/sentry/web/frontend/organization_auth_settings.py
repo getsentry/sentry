@@ -147,8 +147,7 @@ class OrganizationAuthSettingsView(OrganizationView):
         context = {
             'form': form,
             'pending_links_count': pending_links_count,
-            'login_url':
-            absolute_uri(reverse('sentry-organization-home', args=[organization.slug])),
+            'login_url': absolute_uri(organization.get_url()),
             'auth_provider': auth_provider,
             'provider_name': provider.name,
             'content': response,
@@ -176,7 +175,7 @@ class OrganizationAuthSettingsView(OrganizationView):
                 organization,
                 actor=request.user
             ) and not is_active_superuser(request):
-                home_url = reverse('sentry-organization-home', args=[organization.slug])
+                home_url = organization.get_url()
                 messages.add_message(request, messages.ERROR, ERR_NO_SSO)
 
                 return HttpResponseRedirect(home_url)
@@ -214,5 +213,5 @@ class OrganizationAuthSettingsView(OrganizationView):
 
         # Otherwise user is in bad state since frontend/react should handle this case
         return HttpResponseRedirect(
-            reverse('sentry-organization-home', args=[organization.slug])
+            organization.get_url()
         )
