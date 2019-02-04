@@ -20,7 +20,7 @@ export function fetchOrgMembers(api, orgId) {
  */
 export function indexMembersByProject(members) {
   return members.reduce((acc, member) => {
-    for (let project of member.projects) {
+    for (const project of member.projects) {
       if (acc[project] === undefined) {
         acc[project] = [];
       }
