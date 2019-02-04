@@ -5,7 +5,7 @@ import queryString from 'query-string';
 import {defined} from 'app/utils';
 
 export function escapeQuotes(v) {
-  return v.replace(/"/g, '\\"');
+  return v.replace(/\\/g, '\\\\').replace(/"/g, '\\"');
 }
 
 // TODO(dcramer): support cookies
