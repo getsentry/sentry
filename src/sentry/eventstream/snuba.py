@@ -10,10 +10,11 @@ class SnubaEventStream(EventStream):
         snuba.insert_raw([{
             'group_id': event.group_id,
             'event_id': event.event_id,
+            'organization_id': event.project.organization_id,
             'project_id': event.project_id,
-            # TODO(mitsuhiko): We do not want to send this incorrect
-            # message but this is what snuba needs at the moment.
-            'message': event.search_message,
+            'title': event.title,
+            'location': event.location,
+            'search_message': event.search_message,
             'platform': event.platform,
             'datetime': event.datetime,
             'data': dict(event.data.items()),
