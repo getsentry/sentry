@@ -162,13 +162,11 @@ class SearchVisitor(NodeVisitor):
     def visit_search(self, node, children):
         # there is a list from search_term and one from raw_search, so flatten them.
         # Flatten each group in the list, since nodes can return multiple items
-        rv = []
-        for group in children:
-            if isinstance(group, list):
-                rv.extend(x for x in group if x is not None)
-            elif group is not None:
-                rv.append(group)
-        return rv
+        def _flatten(x):
+            if isinstance(x, list):
+                return map(_flatten, x)
+            return x
+        return filter(None, _flatten(children))
 
     def visit_search_term(self, node, children):
         _, search_term, _ = children
