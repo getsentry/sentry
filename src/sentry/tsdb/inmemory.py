@@ -83,7 +83,7 @@ class InMemoryTSDB(BaseTSDB):
             norm_epoch = self.normalize_to_rollup(timestamp, rollup)
 
             for key in keys:
-                if environment_ids is None:
+                if not environment_ids:
                     value = self.data[model][(key, None)][norm_epoch]
                 else:
                     value = sum(int(self.data[model][(key, environment_id)][norm_epoch])
