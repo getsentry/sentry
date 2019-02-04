@@ -67,6 +67,8 @@ from .endpoints.organization_discover_saved_query_detail import OrganizationDisc
 from .endpoints.organization_events import OrganizationEventsEndpoint, OrganizationEventsMetaEndpoint, OrganizationEventsStatsEndpoint
 from .endpoints.organization_group_index import OrganizationGroupIndexEndpoint
 from .endpoints.organization_dashboard_details import OrganizationDashboardDetailsEndpoint
+from .endpoints.organization_dashboard_widget_details import OrganizationDashboardWidgetDetailsEndpoint
+from .endpoints.organization_dashboard_widgets import OrganizationDashboardWidgetsEndpoint
 from .endpoints.organization_health import OrganizationHealthTopEndpoint, OrganizationHealthGraphEndpoint
 from .endpoints.organization_shortid import ShortIdLookupEndpoint
 from .endpoints.organization_environments import OrganizationEnvironmentsEndpoint
@@ -431,6 +433,16 @@ urlpatterns = patterns(
         r'^organizations/(?P<organization_slug>[^\/]+)/dashboards/$',
         OrganizationDashboardsEndpoint.as_view(),
         name='sentry-api-0-organization-dashboards'
+    ),
+    url(
+        r'^organizations/(?P<organization_slug>[^\/]+)/dashboards/(?P<dashboard_id>[^\/]+)/widgets/$',
+        OrganizationDashboardWidgetsEndpoint.as_view(),
+        name='sentry-api-0-organization-dashboard-widgets',
+    ),
+    url(
+        r'^organizations/(?P<organization_slug>[^\/]+)/dashboards/(?P<dashboard_id>[^\/]+)/widgets/(?P<widget_id>[^\/]+)$',
+        OrganizationDashboardWidgetDetailsEndpoint.as_view(),
+        name='sentry-api-0-organization-dashboard-widget-details',
     ),
     url(
         r'^organizations/(?P<organization_slug>[^\/]+)/health/top/$',
