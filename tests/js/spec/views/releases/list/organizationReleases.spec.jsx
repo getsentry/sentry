@@ -24,8 +24,17 @@ describe('OrganizationReleases', function() {
       body: TestStubs.Environments(),
     });
 
+    MockApiClient.addMockResponse({
+      url: '/promptsactivity/',
+    });
+
+    MockApiClient.addMockResponse({
+      url: '/projects/org-slug/project-slug/releases/completion/',
+    });
+
     props = {
       organization,
+      selection: {projects: [2]},
       params: {orgId: organization.slug},
       location: {query: {per_page: 0, query: 'derp'}},
     };
@@ -47,7 +56,21 @@ describe('OrganizationReleases', function() {
     expect(releases.map(item => item.text())).toEqual(['abc', 'def']);
   });
 
-  it('renders empty state', function() {
+  it('renders no query state if project has a release', function() {
+    MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/releases/',
+      body: [],
+    });
+    organization.projects = [TestStubs.Project({latestRelease: 'abcdef'})];
+    wrapper = mount(
+      <OrganizationReleases {...props} />,
+      TestStubs.routerContext([{organization}])
+    );
+    const content = wrapper.find('PageContent');
+    expect(content.text()).toContain('Sorry, no releases match your filters');
+  });
+
+  it('renders landing state if project does not have a release', function() {
     MockApiClient.addMockResponse({
       url: '/organizations/org-slug/releases/',
       body: [],
@@ -56,7 +79,7 @@ describe('OrganizationReleases', function() {
       <OrganizationReleases {...props} />,
       TestStubs.routerContext([{organization}])
     );
-    const content = wrapper.find('PageContent');
-    expect(content.text()).toContain('Sorry, no releases match your filters');
+    const landing = wrapper.find('ReleaseLanding');
+    expect(landing).toHaveLength(1);
   });
 });
