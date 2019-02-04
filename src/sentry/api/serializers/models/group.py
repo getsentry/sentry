@@ -6,7 +6,6 @@ from datetime import timedelta
 
 import six
 from django.conf import settings
-from django.core.urlresolvers import reverse
 from django.db.models import Min, Q
 from django.utils import timezone
 
@@ -23,7 +22,6 @@ from sentry.models import (
 from sentry.tagstore.snuba.backend import SnubaTagStorage
 from sentry.tsdb.snuba import SnubaTSDB
 from sentry.utils.db import attach_foreignkey
-from sentry.utils.http import absolute_uri
 from sentry.utils.safe import safe_execute
 
 SUBSCRIPTION_REASON_MAP = {
