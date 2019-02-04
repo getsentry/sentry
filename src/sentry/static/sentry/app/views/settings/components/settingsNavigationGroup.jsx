@@ -33,7 +33,7 @@ export default class NavigationGroup extends React.Component {
   };
 
   render() {
-    let {organization, project, name, items} = this.props;
+    const {organization, project, name, items} = this.props;
 
     return (
       <NavSection data-test-id={name}>
@@ -41,8 +41,8 @@ export default class NavigationGroup extends React.Component {
         {items.map(({path, title, index, show, badge}) => {
           if (typeof show === 'function' && !show(this.props)) return null;
           if (typeof show !== 'undefined' && !show) return null;
-          let badgeResult = typeof badge === 'function' ? badge(this.props) : null;
-          let to = replaceRouterParams(path, {
+          const badgeResult = typeof badge === 'function' ? badge(this.props) : null;
+          const to = replaceRouterParams(path, {
             orgId: organization && organization.slug,
             projectId: project && project.slug,
           });

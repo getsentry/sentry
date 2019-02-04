@@ -24,14 +24,14 @@ export default class OrganizationProjects extends AsyncView {
 
   componentWillReceiveProps(nextProps, nextContext) {
     super.componentWillReceiveProps(nextProps, nextContext);
-    let searchQuery = nextProps?.location?.query?.query;
+    const searchQuery = nextProps?.location?.query?.query;
     if (searchQuery !== this.props?.location?.query?.query) {
       this.setState({searchQuery});
     }
   }
 
   getEndpoints() {
-    let {orgId} = this.props.params;
+    const {orgId} = this.props.params;
     return [
       [
         'projectList',
@@ -64,20 +64,20 @@ export default class OrganizationProjects extends AsyncView {
   }
 
   getTitle() {
-    let org = this.context.organization;
+    const org = this.context.organization;
     return `${org.name} Projects`;
   }
 
   renderBody() {
-    let {projectList, projectListPageLinks, projectStats} = this.state;
-    let {organization} = this.context;
-    let canCreateProjects = getOrganizationState(this.context.organization)
+    const {projectList, projectListPageLinks, projectStats} = this.state;
+    const {organization} = this.context;
+    const canCreateProjects = getOrganizationState(this.context.organization)
       .getAccess()
       .has('project:admin');
 
-    let hasNewRoutes = new Set(organization.features).has('sentry10');
+    const hasNewRoutes = new Set(organization.features).has('sentry10');
 
-    let action = (
+    const action = (
       <Button
         priority="primary"
         size="small"

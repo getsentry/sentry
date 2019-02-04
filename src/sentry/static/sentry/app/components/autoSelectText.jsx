@@ -27,7 +27,7 @@ class AutoSelectText extends React.Component {
   };
 
   render() {
-    let {children, ...props} = this.props;
+    const {children, ...props} = this.props;
 
     if (typeof children === 'function') {
       return children({

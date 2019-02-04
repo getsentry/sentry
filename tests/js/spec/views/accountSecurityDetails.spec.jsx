@@ -52,7 +52,7 @@ describe('AccountSecurityDetails', function() {
     });
 
     it('can remove method', function() {
-      let deleteMock = Client.addMockResponse({
+      const deleteMock = Client.addMockResponse({
         url: `${ENDPOINT}15/`,
         method: 'DELETE',
       });
@@ -71,7 +71,7 @@ describe('AccountSecurityDetails', function() {
         url: ORG_ENDPOINT,
         body: TestStubs.Organizations({require2FA: true}),
       });
-      let deleteMock = Client.addMockResponse({
+      const deleteMock = Client.addMockResponse({
         url: `${ENDPOINT}15/`,
         method: 'DELETE',
       });
@@ -110,7 +110,7 @@ describe('AccountSecurityDetails', function() {
         url: ENDPOINT,
         body: [TestStubs.Authenticators().Totp()],
       });
-      let deleteMock = Client.addMockResponse({
+      const deleteMock = Client.addMockResponse({
         url: `${ENDPOINT}15/`,
         method: 'DELETE',
       });
@@ -182,7 +182,7 @@ describe('AccountSecurityDetails', function() {
     });
 
     it('regenerates codes', function() {
-      let deleteMock = Client.addMockResponse({
+      const deleteMock = Client.addMockResponse({
         url: `${ENDPOINT}16/`,
         method: 'PUT',
       });
@@ -193,9 +193,9 @@ describe('AccountSecurityDetails', function() {
     });
 
     it('has copy, print and download buttons', function() {
-      let codes = 'ABCD-1234 \nEFGH-5678';
+      const codes = 'ABCD-1234 \nEFGH-5678';
 
-      let downloadCodes = `Button[href="data:text/plain;charset=utf-8,${codes}"]`;
+      const downloadCodes = `Button[href="data:text/plain;charset=utf-8,${codes}"]`;
       expect(wrapper.find(downloadCodes)).toHaveLength(1);
       wrapper.find(downloadCodes).simulate('click');
 

@@ -18,11 +18,11 @@ class ProjectFilters extends React.Component {
   };
 
   render() {
-    let {project} = this.context;
-    let {orgId, projectId, filterType} = this.props.params;
+    const {project} = this.context;
+    const {orgId, projectId, filterType} = this.props.params;
     if (!project) return null;
 
-    let features = new Set(project.features);
+    const features = new Set(project.features);
 
     return (
       <div>

@@ -4,7 +4,7 @@ import AlertLink from 'app/components/alertLink';
 
 describe('AlertLink', function() {
   it('renders', function() {
-    let wrapper = shallow(
+    const wrapper = shallow(
       <AlertLink to="/settings/accounts/notifications">
         This is an external link button
       </AlertLink>
@@ -13,7 +13,7 @@ describe('AlertLink', function() {
   });
 
   it('renders with icon', function() {
-    let wrapper = shallow(
+    const wrapper = shallow(
       <AlertLink to="/settings/accounts/notifications" icon="icon-mail">
         This is an external link button
       </AlertLink>

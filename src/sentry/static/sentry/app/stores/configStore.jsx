@@ -14,7 +14,7 @@ const ConfigStore = Reflux.createStore({
 
   set(key, value) {
     this.config[key] = value;
-    let out = {};
+    const out = {};
     out[key] = value;
     this.trigger(out);
   },
@@ -33,7 +33,7 @@ const ConfigStore = Reflux.createStore({
       moment.tz.setDefault(config.user.options.timezone);
 
       // Parse query string for `lang`
-      let queryString = qs.parse(window.location.search) || {};
+      const queryString = qs.parse(window.location.search) || {};
 
       // Priority:
       // "?lang=en" --> user configuration options --> django request.LANGUAGE_CODE --> "en"

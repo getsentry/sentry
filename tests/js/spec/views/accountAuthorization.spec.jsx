@@ -17,7 +17,7 @@ describe('AccountAuthorizations', function() {
       body: [],
     });
 
-    let wrapper = shallow(<AccountAuthorizations />, {
+    const wrapper = shallow(<AccountAuthorizations />, {
       context: {
         location: TestStubs.location(),
         router: TestStubs.router(),

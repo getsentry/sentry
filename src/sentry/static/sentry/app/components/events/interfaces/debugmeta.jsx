@@ -19,7 +19,7 @@ class DebugMetaInterface extends React.Component {
       return null;
     }
 
-    let name = img.name.split(/^([a-z]:\\|\\\\)/i.test(img.name) ? '\\' : '/').pop();
+    const name = img.name.split(/^([a-z]:\\|\\\\)/i.test(img.name) ? '\\' : '/').pop();
     if (name == 'dyld_sim') return null; // this is only for simulator builds
 
     let version = null;
@@ -41,8 +41,8 @@ class DebugMetaInterface extends React.Component {
   }
 
   render() {
-    let data = this.props.data;
-    let images = data.images
+    const data = this.props.data;
+    const images = data.images
       .map(img => this.getImageDetail(img, this.props.event))
       .filter(img => img); // removes null values
 

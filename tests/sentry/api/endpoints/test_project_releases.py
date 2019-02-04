@@ -688,5 +688,5 @@ class ProjectReleaseCreateCommitPatch(ReleaseCommitPatchTest):
         )
 
         assert response.status_code == 400
-        # TODO(lb): What happened to my ValidationError??? this is not as helpful
-        assert response.content == '{"commits": ["patch_set: Incorrect type. Expected value, but got null"]}'
+        assert response.data == {
+            'commits': [u'patch_set: type: Commit patch_set type Z is not supported.']}

@@ -8,7 +8,7 @@ jest.mock('app/actionCreators/plugins');
 
 describe('ProjectPluginsContainer', function() {
   let org, project, plugins, wrapper, params, organization;
-  let routerContext = TestStubs.routerContext();
+  const routerContext = TestStubs.routerContext();
 
   beforeEach(function() {
     org = TestStubs.Organization();
@@ -57,7 +57,7 @@ describe('ProjectPluginsContainer', function() {
   });
 
   it('calls `enablePlugin` action creator when enabling plugin', function() {
-    let onChange = wrapper.find('ProjectPlugins').prop('onChange');
+    const onChange = wrapper.find('ProjectPlugins').prop('onChange');
 
     expect(enablePlugin).not.toHaveBeenCalled();
 
@@ -67,7 +67,7 @@ describe('ProjectPluginsContainer', function() {
   });
 
   it('calls `disablePlugin` action creator when disabling plugin', function() {
-    let onChange = wrapper.find('ProjectPlugins').prop('onChange');
+    const onChange = wrapper.find('ProjectPlugins').prop('onChange');
 
     expect(disablePlugin).not.toHaveBeenCalled();
 

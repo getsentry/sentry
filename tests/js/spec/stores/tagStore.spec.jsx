@@ -68,7 +68,7 @@ describe('TagStore', function() {
     });
 
     it('should not overwrite predefined filters', () => {
-      let isTag = TagStore.tags.is;
+      const isTag = TagStore.tags.is;
       TagStore.onLoadTagsSuccess([
         {
           key: 'is',

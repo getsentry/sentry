@@ -81,7 +81,7 @@ describe('PanelChart', function() {
   });
 
   it('shows legend without a title', function() {
-    let wrapper = mount(
+    const wrapper = mount(
       <PanelChart series={SERIES} previousPeriod={PREVIOUS}>
         <div />
       </PanelChart>,

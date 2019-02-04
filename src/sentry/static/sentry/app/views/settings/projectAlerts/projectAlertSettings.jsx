@@ -29,7 +29,7 @@ export default class ProjectAlertSettings extends AsyncView {
   };
 
   getEndpoints() {
-    let {orgId, projectId} = this.props.params;
+    const {orgId, projectId} = this.props.params;
     return [
       ['project', `/projects/${orgId}/${projectId}/`],
       ['pluginList', `/projects/${orgId}/${projectId}/plugins/`],
@@ -67,9 +67,9 @@ export default class ProjectAlertSettings extends AsyncView {
   }
 
   renderBody() {
-    let {orgId, projectId} = this.props.params;
-    let {organization} = this.props;
-    let canEditRule = organization.access.includes('project:write');
+    const {orgId, projectId} = this.props.params;
+    const {organization} = this.props;
+    const canEditRule = organization.access.includes('project:write');
 
     return (
       <Access access={['project:write']}>

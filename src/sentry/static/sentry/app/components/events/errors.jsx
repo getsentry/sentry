@@ -37,12 +37,12 @@ class EventErrors extends React.Component {
   };
 
   render() {
-    let eventErrors = this.props.event.errors;
+    const eventErrors = this.props.event.errors;
     // XXX: uniqueErrors is not performant with large datasets
-    let errors =
+    const errors =
       eventErrors.length > MAX_ERRORS ? eventErrors : this.uniqueErrors(eventErrors);
-    let numErrors = errors.length;
-    let isOpen = this.state.isOpen;
+    const numErrors = errors.length;
+    const isOpen = this.state.isOpen;
     return (
       <EventDataSection
         group={this.props.group}

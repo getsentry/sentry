@@ -30,7 +30,7 @@ export default class PercentageAreaChart extends React.Component {
   }
 
   getSeries() {
-    let {series, getDataItemName, getValue} = this.props;
+    const {series, getDataItemName, getValue} = this.props;
 
     const totalsArray = series.length
       ? series[0].data.map(({name, value}, i) => {

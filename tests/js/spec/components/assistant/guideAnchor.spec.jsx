@@ -4,7 +4,7 @@ import GuideAnchor from 'app/components/assistant/guideAnchor';
 
 describe('GuideAnchor', function() {
   let sandbox;
-  let data = {
+  const data = {
     currentGuide: {steps: [{message: 'abc', target: 'target 1', title: 'title 1'}]},
     currentStep: 1,
     anchors: null,
@@ -21,7 +21,7 @@ describe('GuideAnchor', function() {
   });
 
   it('renders', function() {
-    let component = shallow(<GuideAnchor target="target 1" type="text" />);
+    const component = shallow(<GuideAnchor target="target 1" type="text" />);
     expect(component).toMatchSnapshot();
   });
 

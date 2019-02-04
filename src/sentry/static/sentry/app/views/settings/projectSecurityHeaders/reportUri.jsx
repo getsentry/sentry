@@ -11,7 +11,7 @@ import TextCopyInput from 'app/views/settings/components/forms/textCopyInput';
 const DEFAULT_ENDPOINT = 'https://sentry.example.com/api/security-report/';
 
 export const getSecurityDsn = keyList => {
-  let endpoint = keyList.length ? keyList[0].dsn.security : DEFAULT_ENDPOINT;
+  const endpoint = keyList.length ? keyList[0].dsn.security : DEFAULT_ENDPOINT;
   return getDynamicText({
     value: endpoint,
     fixed: DEFAULT_ENDPOINT,
@@ -24,7 +24,7 @@ export default class ReportUri extends React.Component {
   };
 
   render() {
-    let {orgId, projectId} = this.props.params;
+    const {orgId, projectId} = this.props.params;
     return (
       <Panel>
         <PanelHeader>{'Report URI'}</PanelHeader>

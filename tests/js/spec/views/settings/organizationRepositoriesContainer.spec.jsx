@@ -29,7 +29,7 @@ describe('OrganizationRepositoriesContainer', function() {
       });
 
       it('is loading when initially rendering', function() {
-        let wrapper = shallow(
+        const wrapper = shallow(
           <OrganizationRepositoriesContainer params={{orgId: 'org-slug'}} />,
           {
             context: {

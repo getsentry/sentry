@@ -4,10 +4,10 @@ import {mount, shallow} from 'enzyme';
 import ProjectCspReports from 'app/views/settings/projectSecurityHeaders/csp';
 
 describe('ProjectCspReports', function() {
-  let org = TestStubs.Organization();
-  let project = TestStubs.Project();
-  let projectUrl = `/projects/${org.slug}/${project.slug}/`;
-  let routeUrl = `/projects/${org.slug}/${project.slug}/csp/`;
+  const org = TestStubs.Organization();
+  const project = TestStubs.Project();
+  const projectUrl = `/projects/${org.slug}/${project.slug}/`;
+  const routeUrl = `/projects/${org.slug}/${project.slug}/csp/`;
 
   beforeEach(function() {
     MockApiClient.clearMockResponses();
@@ -26,7 +26,7 @@ describe('ProjectCspReports', function() {
   });
 
   it('renders', function() {
-    let wrapper = shallow(
+    const wrapper = shallow(
       <ProjectCspReports
         organization={org}
         project={project}
@@ -42,7 +42,7 @@ describe('ProjectCspReports', function() {
   });
 
   it('can enable default ignored sources', function() {
-    let wrapper = mount(
+    const wrapper = mount(
       <ProjectCspReports
         organization={org}
         project={project}
@@ -55,7 +55,7 @@ describe('ProjectCspReports', function() {
       TestStubs.routerContext()
     );
 
-    let mock = MockApiClient.addMockResponse({
+    const mock = MockApiClient.addMockResponse({
       url: projectUrl,
       method: 'PUT',
     });
@@ -79,7 +79,7 @@ describe('ProjectCspReports', function() {
   });
 
   it('can set additional ignored sources', function() {
-    let wrapper = mount(
+    const wrapper = mount(
       <ProjectCspReports
         organization={org}
         project={project}
@@ -92,7 +92,7 @@ describe('ProjectCspReports', function() {
       TestStubs.routerContext()
     );
 
-    let mock = MockApiClient.addMockResponse({
+    const mock = MockApiClient.addMockResponse({
       url: projectUrl,
       method: 'PUT',
     });

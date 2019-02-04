@@ -31,20 +31,25 @@ describe('Discover', function() {
       queryBuilder.fetch = jest.fn(() => Promise.resolve(mockResponse));
     });
 
-    it('auto-runs saved query', async function() {
+    it('auto-runs saved query after tags are loaded', async function() {
       const savedQuery = TestStubs.DiscoverSavedQuery();
       wrapper = mount(
         <Discover
+          location={{}}
           queryBuilder={queryBuilder}
           organization={organization}
           savedQuery={savedQuery}
           params={{savedQueryId: savedQuery.id}}
           updateSavedQueryData={jest.fn()}
           toggleEditMode={jest.fn()}
-          isLoading={false}
+          isLoading={true}
         />,
         TestStubs.routerContext([{organization}])
       );
+      await tick();
+      expect(wrapper.state().data.baseQuery.query).toBe(null);
+      expect(wrapper.state().data.baseQuery.data).toBe(null);
+      wrapper.setProps({isLoading: false});
       await tick();
       expect(wrapper.state().data.baseQuery.query).toEqual(queryBuilder.getExternal());
       expect(wrapper.state().data.baseQuery.data).toEqual(
@@ -52,7 +57,7 @@ describe('Discover', function() {
       );
     });
 
-    it('auto-runs when there is a query string', async function() {
+    it('auto-runs when there is a query string after tags are loaded', async function() {
       wrapper = mount(
         <Discover
           location={{
@@ -63,10 +68,14 @@ describe('Discover', function() {
           organization={organization}
           updateSavedQueryData={jest.fn()}
           toggleEditMode={jest.fn()}
-          isLoading={false}
+          isLoading={true}
         />,
         TestStubs.routerContext([{organization}])
       );
+      await tick();
+      expect(wrapper.state().data.baseQuery.query).toBe(null);
+      expect(wrapper.state().data.baseQuery.data).toBe(null);
+      wrapper.setProps({isLoading: false});
       await tick();
       expect(wrapper.state().data.baseQuery.query).toEqual(queryBuilder.getExternal());
       expect(wrapper.state().data.baseQuery.data).toEqual(

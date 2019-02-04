@@ -46,7 +46,7 @@ const TeamRow = createReactClass({
   handleRemove() {
     if (this.state.loading) return;
 
-    let {orgId, projectId, team} = this.props;
+    const {orgId, projectId, team} = this.props;
 
     removeTeamFromProject(this.api, orgId, projectId, team.slug)
       .then(() => this.props.onRemove())
@@ -59,8 +59,8 @@ const TeamRow = createReactClass({
   },
 
   render() {
-    let {team, access, orgId, projectId} = this.props;
-    let hasAccess = access.has('project:write');
+    const {team, access, orgId, projectId} = this.props;
+    const hasAccess = access.has('project:write');
 
     return (
       <PanelItem p={2} align="center">
@@ -93,7 +93,7 @@ const TeamRow = createReactClass({
 
 class ProjectTeams extends AsyncView {
   getEndpoints() {
-    let {orgId, projectId} = this.props.params;
+    const {orgId, projectId} = this.props.params;
     return [
       ['projectTeams', `/projects/${orgId}/${projectId}/teams/`],
       ['allTeams', `/organizations/${orgId}/teams/`],
@@ -101,8 +101,8 @@ class ProjectTeams extends AsyncView {
   }
 
   canCreateTeam = () => {
-    let {organization} = this.props;
-    let access = getOrganizationState(organization).getAccess();
+    const {organization} = this.props;
+    const access = getOrganizationState(organization).getAccess();
     return (
       access.has('org:write') && access.has('team:write') && access.has('project:write')
     );
@@ -129,9 +129,9 @@ class ProjectTeams extends AsyncView {
   handleAdd = selection => {
     if (this.state.loading) return;
 
-    let team = this.state.allTeams.find(tm => tm.id === selection.value);
+    const team = this.state.allTeams.find(tm => tm.id === selection.value);
 
-    let {orgId, projectId} = this.props.params;
+    const {orgId, projectId} = this.props.params;
 
     addTeamToProject(this.api, orgId, projectId, team).then(
       () => {
@@ -147,7 +147,7 @@ class ProjectTeams extends AsyncView {
   };
 
   handleCreateTeam = e => {
-    let {project, organization} = this.props;
+    const {project, organization} = this.props;
 
     if (!this.canCreateTeam()) return;
 
@@ -167,9 +167,9 @@ class ProjectTeams extends AsyncView {
   };
 
   renderAddTeamToProject() {
-    let projectTeams = new Set(this.state.projectTeams.map(team => team.slug));
-    let canAddTeam = this.props.organization.access.includes('project:write');
-    let canCreateTeam = this.canCreateTeam();
+    const projectTeams = new Set(this.state.projectTeams.map(team => team.slug));
+    const canAddTeam = this.props.organization.access.includes('project:write');
+    const canCreateTeam = this.canCreateTeam();
     let teamsToAdd;
 
     if (!this.state.allTeams) {
@@ -190,7 +190,7 @@ class ProjectTeams extends AsyncView {
         }));
     }
 
-    let menuHeader = (
+    const menuHeader = (
       <StyledTeamsLabel>
         {t('Teams')}
         <Tooltip
@@ -229,8 +229,8 @@ class ProjectTeams extends AsyncView {
   }
 
   renderResults() {
-    let {orgId, projectId} = this.props.params;
-    let access = new Set(this.props.organization.access);
+    const {orgId, projectId} = this.props.params;
+    const access = new Set(this.props.organization.access);
 
     return this.state.projectTeams.map(team => {
       return (
@@ -248,8 +248,8 @@ class ProjectTeams extends AsyncView {
   }
 
   renderBody() {
-    let {params} = this.props;
-    let body =
+    const {params} = this.props;
+    const body =
       this.state.projectTeams.length > 0 ? this.renderResults() : this.renderEmpty();
 
     return (

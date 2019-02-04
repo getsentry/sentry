@@ -29,13 +29,15 @@ describe('OrganizationDiscoverContainer', function() {
         method: 'POST',
         body: {
           data: [{tags_key: 'tag1', count: 5}, {tags_key: 'tag2', count: 1}],
+          timing: {},
+          meta: [],
         },
       });
       wrapper = mount(
         <OrganizationDiscoverContainer
           location={{query: {}, search: ''}}
           params={{}}
-          selection={{datetime: {}}}
+          selection={{projects: [], environments: [], datetime: {}}}
         />,
         TestStubs.routerContext([{organization}])
       );

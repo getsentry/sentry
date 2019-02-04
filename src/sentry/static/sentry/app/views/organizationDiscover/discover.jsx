@@ -71,15 +71,6 @@ export default class OrganizationDiscover extends React.Component {
     };
   }
 
-  componentDidMount() {
-    const {savedQuery, location} = this.props;
-
-    // Run query if there is *any* querystring
-    if (savedQuery || (location && !!location.search)) {
-      this.runQuery();
-    }
-  }
-
   componentWillReceiveProps(nextProps) {
     const {
       queryBuilder,
@@ -87,8 +78,16 @@ export default class OrganizationDiscover extends React.Component {
       savedQuery,
       isEditingSavedQuery,
       params,
+      isLoading,
     } = nextProps;
     const {resultManager} = this.state;
+
+    // Run query on isLoading change if there is a querystring or saved search
+    const loadingStatusChanged = isLoading !== this.props.isLoading;
+    if (loadingStatusChanged && (savedQuery || !!search)) {
+      this.runQuery();
+      return;
+    }
 
     if (savedQuery && savedQuery !== this.props.savedQuery) {
       this.setState({view: 'saved'});

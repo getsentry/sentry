@@ -22,7 +22,7 @@ class SessionRow extends React.Component {
   };
 
   render() {
-    let {ipAddress, countryCode, regionCode, lastSeen, firstSeen} = this.props;
+    const {ipAddress, countryCode, regionCode, lastSeen, firstSeen} = this.props;
 
     return (
       <PanelItem justify="space-between">
@@ -66,7 +66,7 @@ class AccountSecuritySessionHistory extends AsyncView {
   }
 
   renderBody() {
-    let {ipList} = this.state;
+    const {ipList} = this.state;
 
     return (
       <React.Fragment>

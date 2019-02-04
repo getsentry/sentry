@@ -335,7 +335,7 @@ class SnubaTagStorage(TagStorage):
         return tag.top_values
 
     def get_group_tag_keys_and_top_values(
-            self, project_id, group_id, environment_id, user=None, keys=None, value_limit=TOP_VALUES_DEFAULT_LIMIT):
+            self, project_id, group_id, environment_ids, user=None, keys=None, value_limit=TOP_VALUES_DEFAULT_LIMIT):
         # Similar to __get_tag_key_and_top_values except we get the top values
         # for all the keys provided. value_limit in this case means the number
         # of top values for each key, so the total rows returned should be
@@ -343,16 +343,14 @@ class SnubaTagStorage(TagStorage):
         start, end = self.get_time_range()
 
         # First get totals and unique counts by key.
-        keys_with_counts = self.get_group_tag_keys(
-            project_id, group_id, environment_id and [environment_id], keys=keys
-        )
+        keys_with_counts = self.get_group_tag_keys(project_id, group_id, environment_ids, keys=keys)
 
         # Then get the top values with first_seen/last_seen/count for each
         filters = {
             'project_id': [project_id],
         }
-        if environment_id:
-            filters['environment'] = [environment_id]
+        if environment_ids:
+            filters['environment'] = environment_ids
         if keys is not None:
             filters['tags_key'] = keys
         if group_id is not None:
@@ -709,6 +707,7 @@ class SnubaCompatibilityTagStorage(SnubaTagStorage):
     in the future, this subclass can be removed (along with the entire
     ``TagStorage`` write interface from the base implementation.)
     """
+
     def get_or_create_group_tag_key(self, project_id, group_id, environment_id, key, **kwargs):
         # Called by ``unmerge.repair_tag_data``. The return value is not used.
         pass
@@ -754,4 +753,10 @@ class SnubaCompatibilityTagStorage(SnubaTagStorage):
 
     def update_group_tag_key_values_seen(self, project_id, group_ids):
         # Called by ``unmerge``. The return value is not used.
+        pass
+
+    def delay_index_event_tags(self, organization_id, project_id, group_id,
+                               environment_id, event_id, tags, date_added):
+        # Called by ``EventManager.save``. The return value is not
+        # used.
         pass

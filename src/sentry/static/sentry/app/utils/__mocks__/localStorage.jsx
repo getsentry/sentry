@@ -1,4 +1,4 @@
-let localStorageMock = function() {
+const localStorageMock = function() {
   let store = {};
   return {
     getItem: function(key) {

@@ -7,7 +7,7 @@ import LoadingIndicator from 'app/components/loadingIndicator';
 import {queryToObj, objToQuery} from 'app/utils/stream';
 import {t} from 'app/locale';
 
-let TEXT_FILTER_DEBOUNCE_IN_MS = 300;
+const TEXT_FILTER_DEBOUNCE_IN_MS = 300;
 
 const StreamSidebar = createReactClass({
   displayName: 'StreamSidebar',
@@ -31,7 +31,7 @@ const StreamSidebar = createReactClass({
   },
 
   getInitialState() {
-    let queryObj = queryToObj(this.props.query);
+    const queryObj = queryToObj(this.props.query);
     return {
       queryObj,
       textFilter: queryObj.__text,
@@ -41,10 +41,10 @@ const StreamSidebar = createReactClass({
   componentWillReceiveProps(nextProps) {
     // If query was updated by another source (e.g. SearchBar),
     // clobber state of sidebar with new query.
-    let query = objToQuery(this.state.queryObj);
+    const query = objToQuery(this.state.queryObj);
 
     if (!_.isEqual(nextProps.query, query)) {
-      let queryObj = queryToObj(nextProps.query);
+      const queryObj = queryToObj(nextProps.query);
       this.setState({
         queryObj,
         textFilter: queryObj.__text,
@@ -53,7 +53,7 @@ const StreamSidebar = createReactClass({
   },
 
   onSelectTag(tag, value) {
-    let newQuery = {...this.state.queryObj};
+    const newQuery = {...this.state.queryObj};
     if (value) newQuery[tag.key] = value;
     else delete newQuery[tag.key];
 
@@ -81,7 +81,7 @@ const StreamSidebar = createReactClass({
   onTextFilterSubmit(evt) {
     evt && evt.preventDefault();
 
-    let newQueryObj = {
+    const newQueryObj = {
       ...this.state.queryObj,
       __text: this.state.textFilter,
     };
@@ -95,7 +95,7 @@ const StreamSidebar = createReactClass({
   },
 
   onQueryChange() {
-    let query = objToQuery(this.state.queryObj);
+    const query = objToQuery(this.state.queryObj);
     this.props.onQueryChange && this.props.onQueryChange(query);
   },
 
@@ -109,7 +109,7 @@ const StreamSidebar = createReactClass({
   },
 
   render() {
-    let {loading, orgId, projectId, tags} = this.props;
+    const {loading, orgId, projectId, tags} = this.props;
     return (
       <div className="stream-sidebar">
         {loading ? (

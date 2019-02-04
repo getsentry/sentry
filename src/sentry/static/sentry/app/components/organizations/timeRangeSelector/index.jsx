@@ -143,6 +143,18 @@ class TimeRangeSelector extends React.PureComponent {
     this.handleUpdate(newDateTime);
   };
 
+  handleClear = () => {
+    const {onChange} = this.props;
+    const newDateTime = {
+      relative: DEFAULT_STATS_PERIOD,
+      start: null,
+      end: null,
+      utc: this.state.utc,
+    };
+    callIfFunction(onChange, newDateTime);
+    this.handleUpdate(newDateTime);
+  };
+
   handleSelectDateRange = ({start, end}) => {
     const {onChange} = this.props;
 
@@ -157,7 +169,8 @@ class TimeRangeSelector extends React.PureComponent {
   };
 
   handleUseUtc = () => {
-    let {onChange, start, end} = this.props;
+    const {onChange} = this.props;
+    let {start, end} = this.props;
 
     start = start || this.state.start;
     end = end || this.state.end;
@@ -208,9 +221,10 @@ class TimeRangeSelector extends React.PureComponent {
             <StyledHeaderItem
               icon={<StyledInlineSvg src="icon-calendar" />}
               isOpen={isOpen}
-              hasSelected={true}
+              hasSelected={this.props.relative !== DEFAULT_STATS_PERIOD}
               hasChanges={this.state.hasChanges}
-              allowClear={false}
+              onClear={this.handleClear}
+              allowClear={true}
               onSubmit={this.handleCloseMenu}
               {...getActorProps({isStyled: true})}
             >

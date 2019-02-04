@@ -51,7 +51,7 @@ const ProjectDashboard = createReactClass({
 
   getQueryStringState(props) {
     props = props || this.props;
-    let currentQuery = props.location.query;
+    const currentQuery = props.location.query;
     let statsPeriod = currentQuery.statsPeriod;
 
     if (!PERIODS.has(statsPeriod)) {
@@ -64,7 +64,7 @@ const ProjectDashboard = createReactClass({
   },
 
   getStatsPeriodBeginTimestamp(statsPeriod) {
-    let now = new Date().getTime() / 1000;
+    const now = new Date().getTime() / 1000;
     switch (statsPeriod) {
       case PERIOD_WEEK:
         return now - 3600 * 24 * 7;
@@ -89,12 +89,12 @@ const ProjectDashboard = createReactClass({
   },
 
   render() {
-    let {statsPeriod} = this.state;
-    let dateSince = this.getStatsPeriodBeginTimestamp(statsPeriod);
-    let resolution = this.getStatsPeriodResolution(statsPeriod);
-    let {orgId, projectId} = this.props.params;
-    let url = `/${orgId}/${projectId}/dashboard/`;
-    let routeQuery = this.props.location.query;
+    const {statsPeriod} = this.state;
+    const dateSince = this.getStatsPeriodBeginTimestamp(statsPeriod);
+    const resolution = this.getStatsPeriodResolution(statsPeriod);
+    const {orgId, projectId} = this.props.params;
+    const url = `/${orgId}/${projectId}/dashboard/`;
+    const routeQuery = this.props.location.query;
 
     return (
       <div>

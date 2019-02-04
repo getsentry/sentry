@@ -8,9 +8,9 @@ import {t} from 'app/locale';
 import Alert from 'app/components/alert';
 import DetailedError from 'app/components/errors/detailedError';
 
-let exclamation = ['Raspberries', 'Snap', 'Frig', 'Welp', 'Uhhhh', 'Hmmm'];
+const exclamation = ['Raspberries', 'Snap', 'Frig', 'Welp', 'Uhhhh', 'Hmmm'];
 
-let getExclamation = () => {
+const getExclamation = () => {
   return exclamation[Math.floor(Math.random() * exclamation.length)];
 };
 
@@ -53,7 +53,7 @@ class ErrorBoundary extends React.Component {
 
   render() {
     if (this.state.error) {
-      let {customComponent, mini, message, className} = this.props;
+      const {customComponent, mini, message, className} = this.props;
 
       if (customComponent) {
         return customComponent;

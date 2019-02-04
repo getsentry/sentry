@@ -11,7 +11,7 @@ class SidebarPanel extends React.Component {
   };
 
   render() {
-    let {orientation, collapsed, hidePanel, title, children, ...props} = this.props;
+    const {orientation, collapsed, hidePanel, title, children, ...props} = this.props;
     return (
       <StyledSidebarPanel collapsed={collapsed} orientation={orientation} {...props}>
         <SidebarPanelHeader>

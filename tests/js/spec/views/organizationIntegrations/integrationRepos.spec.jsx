@@ -16,7 +16,7 @@ describe('IntegrationRepos', function() {
 
   describe('Adding repositories', function() {
     it('can save successfully', async function() {
-      let addRepo = Client.addMockResponse({
+      const addRepo = Client.addMockResponse({
         url: `/organizations/${org.slug}/repos/`,
         method: 'POST',
         body: TestStubs.Repository({integrationId: '1'}),
@@ -53,7 +53,7 @@ describe('IntegrationRepos', function() {
           },
         })
       );
-      let name = wrapper
+      const name = wrapper
         .find('RepositoryRow')
         .find('strong')
         .first();
@@ -62,7 +62,7 @@ describe('IntegrationRepos', function() {
     });
 
     it('handles failure during save', async function() {
-      let addRepo = Client.addMockResponse({
+      const addRepo = Client.addMockResponse({
         url: `/organizations/${org.slug}/repos/`,
         method: 'POST',
         statusCode: 400,

@@ -41,7 +41,7 @@ class ConfirmDelete extends React.PureComponent {
   }
 
   handleChange = evt => {
-    let input = evt.target.value;
+    const input = evt.target.value;
     if (input === this.props.confirmInput) {
       this.setState({disableConfirmButton: false, confirmInput: input});
     } else {
@@ -50,8 +50,8 @@ class ConfirmDelete extends React.PureComponent {
   };
 
   render() {
-    let {confirmInput, message, ...props} = this.props;
-    let {disableConfirmButton} = this.state;
+    const {confirmInput, message, ...props} = this.props;
+    const {disableConfirmButton} = this.state;
 
     return (
       <Confirm

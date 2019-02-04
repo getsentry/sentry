@@ -53,7 +53,7 @@ class Form extends React.Component {
   }
 
   getChildContext() {
-    let {data, errors} = this.state;
+    const {data, errors} = this.state;
     return {
       form: {
         data,
@@ -69,7 +69,7 @@ class Form extends React.Component {
   };
 
   onSubmitSuccess = data => {
-    let curData = this.state.data;
+    const curData = this.state.data;
     let newData = {};
     if (data) {
       Object.keys(curData).forEach(k => {
@@ -113,14 +113,14 @@ class Form extends React.Component {
   };
 
   render() {
-    let isSaving = this.state.state === FormState.SAVING;
-    let {initialData, data} = this.state;
-    let {errorMessage, hideErrors, requireChanges} = this.props;
-    let hasChanges = requireChanges
+    const isSaving = this.state.state === FormState.SAVING;
+    const {initialData, data} = this.state;
+    const {errorMessage, hideErrors, requireChanges} = this.props;
+    const hasChanges = requireChanges
       ? Object.keys(data).length && !_.isEqual(data, initialData)
       : true;
-    let isError = this.state.state == FormState.ERROR;
-    let nonFieldErrors = this.state.errors && this.state.errors.non_field_errors;
+    const isError = this.state.state == FormState.ERROR;
+    const nonFieldErrors = this.state.errors && this.state.errors.non_field_errors;
 
     return (
       <StyledForm onSubmit={this.onSubmit} className={this.props.className}>

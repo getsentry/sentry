@@ -15,8 +15,8 @@ class OrganizationRoot extends React.Component {
     setActiveProject(null);
   }
   componentWillUnmount() {
-    let {location} = this.props;
-    let {pathname, search} = location;
+    const {location} = this.props;
+    const {pathname, search} = location;
     // Save last route so that we can jump back to view from settings
     setLastRoute(`${pathname}${search || ''}`);
   }

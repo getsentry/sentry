@@ -22,7 +22,7 @@ export default class ProjectExpectCtReports extends AsyncView {
   }
 
   getEndpoints() {
-    let {orgId, projectId} = this.props.params;
+    const {orgId, projectId} = this.props.params;
     return [['keyList', `/projects/${orgId}/${projectId}/keys/`]];
   }
 
