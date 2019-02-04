@@ -11,6 +11,7 @@ import Alert from 'app/components/alert';
 import EmptyStateWarning from 'app/components/emptyStateWarning';
 import Feature from 'app/components/acl/feature';
 import GlobalSelectionHeader from 'app/components/organizations/globalSelectionHeader';
+import NoProjectMessage from 'app/components/noProjectMessage';
 import AsyncView from 'app/views/asyncView';
 import withOrganization from 'app/utils/withOrganization';
 import withGlobalSelection from 'app/utils/withGlobalSelection';
@@ -157,28 +158,30 @@ class OrganizationReleases extends AsyncView {
   }
 
   renderBody() {
-    const {location} = this.props;
+    const {location, organization} = this.props;
 
     return (
       <PageContent>
-        <PageHeader>
-          <PageHeading>{t('Releases')}</PageHeading>
+        <NoProjectMessage organization={organization}>
+          <PageHeader>
+            <PageHeading>{t('Releases')}</PageHeading>
+            <div>
+              <SearchBar
+                defaultQuery=""
+                placeholder={t('Search for a release')}
+                query={location.query.query}
+                onSearch={this.onSearch}
+              />
+            </div>
+          </PageHeader>
           <div>
-            <SearchBar
-              defaultQuery=""
-              placeholder={t('Search for a release')}
-              query={location.query.query}
-              onSearch={this.onSearch}
-            />
+            <Panel>
+              <ReleaseListHeader />
+              <PanelBody>{this.renderStreamBody()}</PanelBody>
+            </Panel>
+            <Pagination pageLinks={this.state.releaseListPageLinks} />
           </div>
-        </PageHeader>
-        <div>
-          <Panel>
-            <ReleaseListHeader />
-            <PanelBody>{this.renderStreamBody()}</PanelBody>
-          </Panel>
-          <Pagination pageLinks={this.state.releaseListPageLinks} />
-        </div>
+        </NoProjectMessage>
       </PageContent>
     );
   }

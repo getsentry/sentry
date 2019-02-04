@@ -12,7 +12,10 @@ class OrganizationReleasesTest(AcceptanceTestCase):
         self.org = self.create_organization(
             owner=self.user, name='Rowdy Tiger')
         self.team = self.create_team(
-            organization=self.org, name='Mariachi Band')
+            organization=self.org,
+            name='Mariachi Band',
+            members=[self.user],
+        )
         self.project = self.create_project(
             organization=self.org,
             teams=[self.team],

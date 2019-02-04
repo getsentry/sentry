@@ -37,7 +37,10 @@ describe('OrganizationUserFeedback', function() {
 
   it('renders', function() {
     const params = {
-      organization: TestStubs.Organization({features: ['sentry10']}),
+      organization: TestStubs.Organization({
+        features: ['sentry10'],
+        projects: [TestStubs.Project({isMember: true})],
+      }),
       location: {query: {}, search: ''},
       params: {
         orgId: organization.slug,
