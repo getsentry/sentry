@@ -14,7 +14,7 @@ describe('SimilarSpectrum', function() {
   });
 
   it('renders', function() {
-    let wrapper = shallow(<SimilarSpectrum />);
+    const wrapper = shallow(<SimilarSpectrum />);
     expect(wrapper).toMatchSnapshot();
   });
 });

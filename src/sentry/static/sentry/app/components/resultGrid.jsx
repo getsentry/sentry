@@ -19,7 +19,7 @@ class Filter extends React.Component {
   };
 
   getCurrentLabel = () => {
-    let selected = this.props.options.filter(item => {
+    const selected = this.props.options.filter(item => {
       return item[0] === (this.props.value || '');
     })[0];
     if (selected) return this.props.name + ': ' + selected[1];
@@ -27,7 +27,7 @@ class Filter extends React.Component {
   };
 
   getDefaultItem = () => {
-    let query = $.extend({}, this.props.location.query, {
+    const query = $.extend({}, this.props.location.query, {
       cursor: '',
     });
     delete query[this.props.queryKey];
@@ -49,10 +49,10 @@ class Filter extends React.Component {
       <DropdownLink title={this.getCurrentLabel()}>
         {this.getDefaultItem()}
         {this.props.options.map(item => {
-          let filterQuery = {};
+          const filterQuery = {};
           filterQuery[this.props.queryKey] = item[0];
           filterQuery.cursor = '';
-          let query = $.extend({}, this.props.location.query, filterQuery);
+          const query = $.extend({}, this.props.location.query, filterQuery);
           return (
             <MenuItem
               key={item[0]}
@@ -99,7 +99,7 @@ class SortBy extends React.Component {
     return (
       <DropdownLink title={this.getCurrentSortLabel()} className="sorted-by">
         {this.props.options.map(item => {
-          let query = $.extend({}, this.props.location.query, {
+          const query = $.extend({}, this.props.location.query, {
             sortBy: item[0],
             cursor: '',
           });
@@ -180,7 +180,7 @@ const ResultGrid = createReactClass({
   },
 
   getInitialState() {
-    let queryParams = (this.props.location || {}).query || {};
+    const queryParams = (this.props.location || {}).query || {};
 
     return {
       rows: [],
@@ -198,7 +198,7 @@ const ResultGrid = createReactClass({
   },
 
   componentWillReceiveProps(nextProps) {
-    let queryParams = (nextProps.location || {}).query || {};
+    const queryParams = (nextProps.location || {}).query || {};
     this.setState(
       {
         query: queryParams.query || '',
@@ -227,7 +227,7 @@ const ResultGrid = createReactClass({
 
   fetchData() {
     // TODO(dcramer): this should whitelist filters/sortBy/cursor/perPage
-    let queryParams = $.extend(
+    const queryParams = $.extend(
       {},
       this.props.defaultParams,
       {sortBy: this.state.sortBy},
@@ -255,9 +255,9 @@ const ResultGrid = createReactClass({
   },
 
   onSearch(e) {
-    let location = this.props.location || {};
-    let {query} = this.state;
-    let targetQueryParams = jQuery.extend({}, location.query || {}, {
+    const location = this.props.location || {};
+    const {query} = this.state;
+    const targetQueryParams = jQuery.extend({}, location.query || {}, {
       query,
       cursor: '',
     });
@@ -312,7 +312,7 @@ const ResultGrid = createReactClass({
   },
 
   render() {
-    let {filters} = this.props;
+    const {filters} = this.props;
     return (
       <div className="result-grid">
         <div className="table-options">

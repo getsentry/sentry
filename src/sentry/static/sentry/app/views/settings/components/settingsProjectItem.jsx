@@ -34,8 +34,8 @@ const ProjectItem = createReactClass({
   },
 
   handleToggleBookmark() {
-    let {project, organization} = this.props;
-    let {isBookmarked} = this.state;
+    const {project, organization} = this.props;
+    const {isBookmarked} = this.state;
 
     this.setState({isBookmarked: !isBookmarked}, () =>
       update(this.api, {
@@ -51,10 +51,10 @@ const ProjectItem = createReactClass({
   },
 
   render() {
-    let {project, organization} = this.props;
-    let {isBookmarked} = this.state;
+    const {project, organization} = this.props;
+    const {isBookmarked} = this.state;
 
-    let hasNewRoutes = new Set(organization.features).has('sentry10');
+    const hasNewRoutes = new Set(organization.features).has('sentry10');
 
     return (
       <div key={project.id} className={isBookmarked ? 'isBookmarked' : null}>

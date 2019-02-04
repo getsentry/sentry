@@ -5,7 +5,7 @@ import {ApiSource} from 'app/components/search/sources/apiSource';
 
 describe('ApiSource', function() {
   let wrapper;
-  let org = TestStubs.Organization();
+  const org = TestStubs.Organization();
   let orgsMock;
   let projectsMock;
   let teamsMock;
@@ -56,7 +56,7 @@ describe('ApiSource', function() {
   });
 
   it('queries all API endpoints', function() {
-    let mock = jest.fn().mockReturnValue(null);
+    const mock = jest.fn().mockReturnValue(null);
     wrapper = mount(
       <ApiSource params={{orgId: org.slug}} query="foo">
         {mock}
@@ -73,7 +73,7 @@ describe('ApiSource', function() {
   });
 
   it('only queries for shortids when query matches shortid format', async function() {
-    let mock = jest.fn().mockReturnValue(null);
+    const mock = jest.fn().mockReturnValue(null);
     wrapper = mount(
       <ApiSource params={{orgId: org.slug}} query="test-">
         {mock}
@@ -117,7 +117,7 @@ describe('ApiSource', function() {
   });
 
   it('only queries for eventids when query matches eventid format of 32 chars', async function() {
-    let mock = jest.fn().mockReturnValue(null);
+    const mock = jest.fn().mockReturnValue(null);
     wrapper = mount(
       <ApiSource params={{orgId: org.slug}} query="1234567890123456789012345678901">
         {mock}
@@ -163,7 +163,7 @@ describe('ApiSource', function() {
   });
 
   it('only queries org endpoint if there is no org in context', function() {
-    let mock = jest.fn().mockReturnValue(null);
+    const mock = jest.fn().mockReturnValue(null);
     wrapper = mount(
       <ApiSource params={{}} query="foo">
         {mock}
@@ -178,7 +178,7 @@ describe('ApiSource', function() {
   });
 
   it('render function is called with correct results', async function() {
-    let mock = jest.fn().mockReturnValue(null);
+    const mock = jest.fn().mockReturnValue(null);
     wrapper = mount(
       <ApiSource params={{orgId: org.slug}} query="foo">
         {mock}
@@ -260,7 +260,7 @@ describe('ApiSource', function() {
   });
 
   it('render function is called with correct results when API requests partially succeed', async function() {
-    let mock = jest.fn().mockReturnValue(null);
+    const mock = jest.fn().mockReturnValue(null);
 
     MockApiClient.addMockResponse({
       url: '/organizations/org-slug/projects/',
@@ -309,7 +309,7 @@ describe('ApiSource', function() {
   });
 
   it('render function is updated as query changes', async function() {
-    let mock = jest.fn().mockReturnValue(null);
+    const mock = jest.fn().mockReturnValue(null);
     wrapper = mount(
       <ApiSource params={{orgId: org.slug}} query="foo">
         {mock}

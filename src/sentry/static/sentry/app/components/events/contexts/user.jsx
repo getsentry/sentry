@@ -15,9 +15,9 @@ class UserContextType extends React.Component {
   };
 
   render() {
-    let user = this.props.data;
-    let builtins = [];
-    let children = [];
+    const user = this.props.data;
+    const builtins = [];
+    const children = [];
 
     // Handle our native attributes special
     user.id && builtins.push(['ID', <pre>{user.id}</pre>]);

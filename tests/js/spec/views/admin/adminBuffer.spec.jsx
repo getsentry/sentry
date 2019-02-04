@@ -8,7 +8,7 @@ import AdminBuffer from 'app/views/admin/adminBuffer';
 describe('AdminBuffer', function() {
   describe('render()', function() {
     it('renders', function() {
-      let wrapper = shallow(<AdminBuffer params={{}} />, {
+      const wrapper = shallow(<AdminBuffer params={{}} />, {
         context: {
           router: TestStubs.router(),
         },

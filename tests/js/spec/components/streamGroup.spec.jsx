@@ -28,7 +28,7 @@ describe('StreamGroup', function() {
   });
 
   it('renders with anchors', function() {
-    let component = shallow(
+    const component = shallow(
       <StreamGroup
         id="1L"
         orgId="orgId"

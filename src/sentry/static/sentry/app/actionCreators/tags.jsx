@@ -10,13 +10,13 @@ export function fetchTags(orgId, projectId = null) {
   TagStore.reset();
   TagActions.loadTags();
   const api = new Client();
-  let url = projectId
+  const url = projectId
     ? `/projects/${orgId}/${projectId}/tags/`
     : `/organizations/${orgId}/tags/`;
 
   api.request(url, {
     success: tags => {
-      let trimmedTags = tags.slice(0, MAX_TAGS);
+      const trimmedTags = tags.slice(0, MAX_TAGS);
 
       if (tags.length > MAX_TAGS) {
         AlertActions.addAlert({
@@ -31,7 +31,7 @@ export function fetchTags(orgId, projectId = null) {
 }
 
 export function fetchTagValues(api, tagKey, orgId, projectId = null, query = null) {
-  let url = projectId
+  const url = projectId
     ? `/projects/${orgId}/${projectId}/tags/${tagKey}/values/`
     : `/organizations/${orgId}/tags/${tagKey}/values/`;
 

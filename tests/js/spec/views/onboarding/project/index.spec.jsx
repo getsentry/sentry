@@ -32,25 +32,25 @@ describe('Project', function() {
     };
 
     it('should render NotFound if no matching organization', function() {
-      let props = {
+      const props = {
         ...baseProps,
         params: {
           orgId: 'my-cool-org',
         },
       };
 
-      let wrapper = shallow(<Project {...props} />, {
+      const wrapper = shallow(<Project {...props} />, {
         organization: {id: '1337', slug: 'testOrg'},
       });
       expect(wrapper).toMatchSnapshot();
     });
 
     it('should set required class on empty submit', function() {
-      let props = {
+      const props = {
         ...baseProps,
       };
 
-      let wrapper = mount(<Project {...props} />, {
+      const wrapper = mount(<Project {...props} />, {
         context: {
           organization: {id: '1337', slug: 'testOrg'},
           router: TestStubs.router(),
@@ -61,7 +61,7 @@ describe('Project', function() {
         },
       });
 
-      let submit = wrapper.find('button').last();
+      const submit = wrapper.find('button').last();
       expect(wrapper.state().projectRequired).toBe(false);
       submit.simulate('click');
       expect(wrapper.state().projectRequired).toBe(true);

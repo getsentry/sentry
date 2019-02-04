@@ -20,10 +20,10 @@ class ProcessingIssueHint extends React.Component {
   };
 
   render() {
-    let {orgId, projectId, issue, showProject} = this.props;
-    let link = `/settings/${orgId}/${projectId}/processing-issues/`;
+    const {orgId, projectId, issue, showProject} = this.props;
+    const link = `/settings/${orgId}/${projectId}/processing-issues/`;
     let showButton = false;
-    let className = {
+    const className = {
       'processing-issues': true,
       alert: true,
     };

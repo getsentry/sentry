@@ -63,10 +63,10 @@ export default class TeamSettings extends AsyncView {
   };
 
   renderBody() {
-    let {location, organization} = this.context;
-    let {team} = this.props;
+    const {location, organization} = this.context;
+    const {team} = this.props;
 
-    let access = new Set(organization.access);
+    const access = new Set(organization.access);
 
     return (
       <React.Fragment>

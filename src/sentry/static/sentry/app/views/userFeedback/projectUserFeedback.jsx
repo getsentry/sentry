@@ -74,9 +74,9 @@ const ProjectUserFeedback = createReactClass({
   },
 
   getQueryStringState(props) {
-    let q = props.location.query;
-    let status = 'status' in q ? q.status : this.props.defaultStatus;
-    let query = 'query' in q ? q.query : this.props.defaultQuery;
+    const q = props.location.query;
+    const status = 'status' in q ? q.status : this.props.defaultStatus;
+    const query = 'query' in q ? q.query : this.props.defaultQuery;
 
     return {
       query,
@@ -90,9 +90,9 @@ const ProjectUserFeedback = createReactClass({
       error: false,
     });
 
-    let params = this.props.params;
+    const params = this.props.params;
 
-    let query = {
+    const query = {
       ...this.props.location.query,
       per_page: 50,
       query: this.state.query,
@@ -108,7 +108,7 @@ const ProjectUserFeedback = createReactClass({
     this.api.request(`/projects/${params.orgId}/${params.projectId}/user-reports/`, {
       query,
       success: (data, _, jqXHR) => {
-        let issues = data.map(r => r.issue);
+        const issues = data.map(r => r.issue);
         GroupStore.add(issues);
         this.setState({
           error: false,
@@ -127,7 +127,7 @@ const ProjectUserFeedback = createReactClass({
   },
 
   getUserFeedbackUrl() {
-    let params = this.props.params;
+    const params = this.props.params;
 
     return `/${params.orgId}/${params.projectId}/settings/user-feedback/`;
   },

@@ -56,7 +56,7 @@ class U2fInterface extends React.Component {
     if (this.props.flowMode === 'sign') {
       promise = u2f.sign(this.props.challengeData.authenticateRequests);
     } else if (this.props.flowMode === 'enroll') {
-      let {registerRequests, authenticateRequests} = this.props.challengeData;
+      const {registerRequests, authenticateRequests} = this.props.challengeData;
       promise = u2f.register(registerRequests, authenticateRequests);
     } else {
       throw new Error(`Unsupported flow mode '${this.props.flowMode}'`);
@@ -68,8 +68,8 @@ class U2fInterface extends React.Component {
             hasBeenTapped: true,
           },
           () => {
-            let u2fResponse = JSON.stringify(data);
-            let challenge = JSON.stringify(this.props.challengeData);
+            const u2fResponse = JSON.stringify(data);
+            const challenge = JSON.stringify(this.props.challengeData);
 
             // eslint-disable-next-line react/no-direct-mutation-state
             this.state.responseElement.value = u2fResponse;
@@ -162,9 +162,9 @@ class U2fInterface extends React.Component {
   };
 
   renderFailure = () => {
-    let {deviceFailure} = this.state;
-    let supportMail = ConfigStore.get('supportEmail');
-    let support = supportMail ? (
+    const {deviceFailure} = this.state;
+    const supportMail = ConfigStore.get('supportEmail');
+    const support = supportMail ? (
       <a href={'mailto:' + supportMail}>{supportMail}</a>
     ) : (
       <span>{t('Support')}</span>
@@ -214,7 +214,7 @@ class U2fInterface extends React.Component {
   };
 
   renderPrompt = () => {
-    let {style} = this.props;
+    const {style} = this.props;
     return (
       <div
         style={style}
@@ -241,7 +241,7 @@ class U2fInterface extends React.Component {
   };
 
   render() {
-    let {isSupported} = this.state;
+    const {isSupported} = this.state;
     // if we are still waiting for the browser to tell us if we can do u2f
     // this will be null.
     if (isSupported === null) {

@@ -55,7 +55,7 @@ class DeviceContextType extends React.Component {
   };
 
   render() {
-    let {
+    const {
       name,
       family,
       model,
@@ -78,15 +78,15 @@ class DeviceContextType extends React.Component {
       device_type,
       ...data
     } = this.props.data;
-    let memory = this.formatMemory(memory_size, free_memory, usable_memory);
-    let storage = this.formatStorage(
+    const memory = this.formatMemory(memory_size, free_memory, usable_memory);
+    const storage = this.formatStorage(
       storage_size,
       free_storage,
       external_storage_size,
       external_free_storage
     );
 
-    let renderedModel = isString(model) ? (
+    const renderedModel = isString(model) ? (
       <DeviceName>{model + (model_id ? ` (${model_id})` : '')}</DeviceName>
     ) : null;
 

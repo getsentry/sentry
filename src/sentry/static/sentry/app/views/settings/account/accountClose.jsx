@@ -68,13 +68,13 @@ class AccountClose extends AsyncView {
   };
 
   handleChange = ({slug}, isSingle, event) => {
-    let checked = event.target.checked;
+    const checked = event.target.checked;
 
     // Can't unselect an org where you are the single owner
     if (isSingle) return;
 
     this.setState(state => {
-      let set = state.orgsToRemove || new Set(this.getSingleOwners());
+      const set = state.orgsToRemove || new Set(this.getSingleOwners());
       if (checked) {
         set.add(slug);
       } else {
@@ -88,8 +88,9 @@ class AccountClose extends AsyncView {
   };
 
   handleRemoveAccount = () => {
-    let {orgsToRemove} = this.state;
-    let orgs = orgsToRemove === null ? this.getSingleOwners() : Array.from(orgsToRemove);
+    const {orgsToRemove} = this.state;
+    const orgs =
+      orgsToRemove === null ? this.getSingleOwners() : Array.from(orgsToRemove);
 
     addMessage('Closing account...');
 
@@ -114,7 +115,7 @@ class AccountClose extends AsyncView {
   };
 
   renderBody() {
-    let {organizations, orgsToRemove} = this.state;
+    const {organizations, orgsToRemove} = this.state;
 
     return (
       <div>

@@ -27,11 +27,11 @@ const StacktraceContent = createReactClass({
   },
 
   renderOmittedFrames(firstFrameOmitted, lastFrameOmitted) {
-    let props = {
+    const props = {
       className: 'frame frames-omitted',
       key: 'omitted',
     };
-    let text = t(
+    const text = t(
       'Frames %d until %d were omitted and not available.',
       firstFrameOmitted,
       lastFrameOmitted
@@ -46,7 +46,7 @@ const StacktraceContent = createReactClass({
   },
 
   render() {
-    let data = this.props.data;
+    const data = this.props.data;
     let firstFrameOmitted, lastFrameOmitted;
 
     if (data.framesOmitted) {
@@ -65,13 +65,13 @@ const StacktraceContent = createReactClass({
       lastFrameIdx = data.frames.length - 1;
     }
 
-    let expandFirstFrame = this.props.expandFirstFrame;
-    let frames = [];
+    const expandFirstFrame = this.props.expandFirstFrame;
+    const frames = [];
     let nRepeats = 0;
     data.frames.forEach((frame, frameIdx) => {
-      let prevFrame = data.frames[frameIdx - 1];
-      let nextFrame = data.frames[frameIdx + 1];
-      let repeatedFrame =
+      const prevFrame = data.frames[frameIdx - 1];
+      const nextFrame = data.frames[frameIdx + 1];
+      const repeatedFrame =
         nextFrame &&
         frame.lineNo === nextFrame.lineNo &&
         frame.instructionAddr === nextFrame.instructionAddr &&
@@ -109,7 +109,7 @@ const StacktraceContent = createReactClass({
     });
 
     if (frames.length > 0 && data.registers) {
-      let lastFrame = frames.length - 1;
+      const lastFrame = frames.length - 1;
       frames[lastFrame] = React.cloneElement(frames[lastFrame], {
         registers: data.registers,
       });

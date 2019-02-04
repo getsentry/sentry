@@ -15,7 +15,7 @@ export default class MigrationWarnings extends AsyncComponent {
   };
 
   getEndpoints() {
-    let {orgId} = this.props;
+    const {orgId} = this.props;
 
     return [['unmigratableRepos', `/organizations/${orgId}/repos/?status=unmigratable`]];
   }

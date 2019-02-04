@@ -10,7 +10,7 @@ import {t, tct} from 'app/locale';
 
 class AcceptProjectTransfer extends AsyncView {
   getEndpoints() {
-    let query = this.props.location.query;
+    const query = this.props.location.query;
     return [['transferDetails', '/accept-transfer/', {query}]];
   }
 
@@ -26,13 +26,13 @@ class AcceptProjectTransfer extends AsyncView {
         organization: formData.organization,
       },
       success: () => {
-        let orgSlug = formData.organization;
+        const orgSlug = formData.organization;
 
         this.props.router.push(`/${orgSlug}`);
         addSuccessMessage(t('Project successfully transferred'));
       },
       error: error => {
-        let errorMsg =
+        const errorMsg =
           error && error.responseJSON && typeof error.responseJSON.detail === 'string'
             ? error.responseJSON.detail
             : '';
@@ -57,8 +57,8 @@ class AcceptProjectTransfer extends AsyncView {
   }
 
   renderBody() {
-    let {transferDetails} = this.state;
-    let choices = [];
+    const {transferDetails} = this.state;
+    const choices = [];
 
     transferDetails.organizations.forEach(org => {
       choices.push([org.slug, org.slug]);

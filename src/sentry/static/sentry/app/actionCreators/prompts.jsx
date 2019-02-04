@@ -1,5 +1,5 @@
 export function promptsUpdate(api, params) {
-  let endpoint = '/promptsactivity/';
+  const endpoint = '/promptsactivity/';
   return api.requestPromise(endpoint, {
     method: 'PUT',
     data: {

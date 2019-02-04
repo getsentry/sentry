@@ -40,12 +40,12 @@ const RawExceptionContent = createReactClass({
   },
 
   isNative() {
-    let {platform} = this.props;
+    const {platform} = this.props;
     return platform === 'cocoa' || platform === 'native';
   },
 
   getAppleCrashReportEndpoint() {
-    let minified = this.props.type == 'minified';
+    const minified = this.props.type == 'minified';
     return `/events/${this.props.eventId}/apple-crash-report?minified=${minified}`;
   },
 
@@ -74,9 +74,9 @@ const RawExceptionContent = createReactClass({
   },
 
   render() {
-    let {type} = this.props;
+    const {type} = this.props;
     let downloadButton;
-    let children = this.props.values.map((exc, excIdx) => {
+    const children = this.props.values.map((exc, excIdx) => {
       let content =
         exc.stacktrace &&
         rawStacktraceContent(

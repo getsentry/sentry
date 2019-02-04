@@ -63,7 +63,7 @@ class SearchBar extends React.PureComponent {
   };
 
   render() {
-    let {className} = this.props;
+    const {className} = this.props;
     return (
       <div className={cx('search', className)}>
         <form className="form-horizontal" onSubmit={this.onSubmit}>

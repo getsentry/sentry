@@ -49,7 +49,7 @@ const App = createReactClass({
   mixins: [ApiMixin, Reflux.listenTo(ConfigStore, 'onConfigStoreChange')],
 
   getInitialState() {
-    let user = ConfigStore.get('user');
+    const user = ConfigStore.get('user');
     return {
       loading: false,
       error: false,
@@ -109,13 +109,13 @@ const App = createReactClass({
     $(document).ajaxError(function(evt, jqXHR) {
       // TODO: Need better way of identifying anonymous pages
       //       that don't trigger redirect
-      let pageAllowsAnon = /^\/share\//.test(window.location.pathname);
+      const pageAllowsAnon = /^\/share\//.test(window.location.pathname);
 
       // Ignore error unless it is a 401
       if (!jqXHR || jqXHR.status !== 401 || pageAllowsAnon) return;
 
-      let code = jqXHR?.responseJSON?.detail?.code;
-      let extra = jqXHR?.responseJSON?.detail?.extra;
+      const code = jqXHR?.responseJSON?.detail?.code;
+      const extra = jqXHR?.responseJSON?.detail?.extra;
 
       // 401s can also mean sudo is required or it's a request that is allowed to fail
       // Ignore if these are the cases
@@ -156,7 +156,7 @@ const App = createReactClass({
   },
 
   onConfigStoreChange(config) {
-    let newState = {};
+    const newState = {};
     if (config.needsUpgrade !== undefined) newState.needsUpgrade = config.needsUpgrade;
     if (config.user !== undefined) newState.user = config.user;
     if (Object.keys(newState).length > 0) this.setState(newState);
@@ -189,7 +189,7 @@ const App = createReactClass({
   },
 
   renderBody() {
-    let {needsUpgrade, newsletterConsentPrompt} = this.state;
+    const {needsUpgrade, newsletterConsentPrompt} = this.state;
     if (needsUpgrade) {
       return <InstallWizard onConfigured={this.onConfigured} />;
     }

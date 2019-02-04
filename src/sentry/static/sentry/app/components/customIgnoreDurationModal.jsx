@@ -56,7 +56,7 @@ export default class CustomIgnoreDurationModal extends React.Component {
   render() {
     // Give the user a sane starting point to select a date
     // (prettier than the empty date/time inputs):
-    let defaultDate = new Date();
+    const defaultDate = new Date();
     defaultDate.setDate(defaultDate.getDate() + 14);
     defaultDate.setSeconds(0);
     defaultDate.setMilliseconds(0);

@@ -37,7 +37,7 @@ class ListLink extends React.Component {
   };
 
   getClassName = () => {
-    let _classNames = {};
+    const _classNames = {};
 
     if (this.props.className) _classNames[this.props.className] = true;
 
@@ -47,7 +47,7 @@ class ListLink extends React.Component {
   };
 
   render() {
-    let carriedProps = _.omit(this.props, 'activeClassName', 'isActive', 'index');
+    const carriedProps = _.omit(this.props, 'activeClassName', 'isActive', 'index');
     return (
       <li className={this.getClassName()}>
         <Link {...carriedProps} onlyActiveOnIndex={this.props.index}>

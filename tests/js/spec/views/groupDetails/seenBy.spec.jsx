@@ -19,12 +19,14 @@ describe('GroupSeenBy', function() {
 
   describe('render()', function() {
     it('should return null if seenBy is falsy', function() {
-      let wrapper = shallow(<GroupSeenBy group={TestStubs.Group({seenBy: undefined})} />);
+      const wrapper = shallow(
+        <GroupSeenBy group={TestStubs.Group({seenBy: undefined})} />
+      );
       expect(wrapper.children()).toHaveLength(0);
     });
 
     it('should return a list of each user that saw', function() {
-      let wrapper = shallow(
+      const wrapper = shallow(
         <GroupSeenBy
           group={TestStubs.Group({
             seenBy: [

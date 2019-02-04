@@ -151,7 +151,7 @@ const GroupList = createReactClass({
         </Panel>
       );
 
-    let {orgId} = this.props;
+    const {orgId} = this.props;
 
     return (
       <Panel>

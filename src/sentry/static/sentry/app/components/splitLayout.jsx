@@ -5,18 +5,18 @@ import SpreadLayout from 'app/components/spreadLayout';
 
 // Flexbox, use when you want your children to be equal sizes
 const SplitLayout = ({children, className, responsive, splitWidth, ...props}) => {
-  let cx = classNames('split-layout', className, {
+  const cx = classNames('split-layout', className, {
     'allow-responsive': responsive,
   });
   let childCount = 0;
-  let totalChildren = React.Children.count(children);
+  const totalChildren = React.Children.count(children);
 
   return (
     <SpreadLayout {...props} className={cx}>
       {React.Children.map(children, child => {
-        let childProps = (child && child.props) || {};
+        const childProps = (child && child.props) || {};
         childCount++;
-        let isLastChild = childCount === totalChildren;
+        const isLastChild = childCount === totalChildren;
 
         return React.cloneElement(child, {
           style: {

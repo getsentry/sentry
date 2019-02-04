@@ -28,7 +28,7 @@ export default class InstallWizard extends AsyncView {
   }
 
   renderFormFields() {
-    let options = this.state.data;
+    const options = this.state.data;
 
     let missingOptions = new Set(
       Object.keys(options).filter(option => !options[option].field.isSet)
@@ -43,10 +43,10 @@ export default class InstallWizard extends AsyncView {
     }
 
     // A mapping of option name to Field object
-    let fields = {};
+    const fields = {};
 
-    for (let key of missingOptions) {
-      let option = options[key];
+    for (const key of missingOptions) {
+      const option = options[key];
       if (option.field.disabled) {
         continue;
       }
@@ -57,10 +57,10 @@ export default class InstallWizard extends AsyncView {
   }
 
   getInitialData() {
-    let options = this.state.data;
-    let data = {};
+    const options = this.state.data;
+    const data = {};
     Object.keys(options).forEach(optionName => {
-      let option = options[optionName];
+      const option = options[optionName];
       if (!option.field.isSet) {
         data[optionName] = option.value;
       }
@@ -73,7 +73,7 @@ export default class InstallWizard extends AsyncView {
   }
 
   render() {
-    let version = ConfigStore.get('version');
+    const version = ConfigStore.get('version');
     return (
       <DocumentTitle title={this.getTitle()}>
         <div className="app">

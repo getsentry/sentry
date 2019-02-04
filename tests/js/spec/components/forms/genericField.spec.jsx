@@ -5,7 +5,7 @@ import {GenericField, FormState} from 'app/components/forms';
 
 describe('GenericField', function() {
   it('renders text as TextInput', function() {
-    let wrapper = shallow(
+    const wrapper = shallow(
       <GenericField
         formState={FormState.READY}
         config={{
@@ -20,7 +20,7 @@ describe('GenericField', function() {
   });
 
   it('renders text with choices as SelectCreatableField', function() {
-    let wrapper = shallow(
+    const wrapper = shallow(
       <GenericField
         formState={FormState.READY}
         config={{

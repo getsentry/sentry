@@ -63,7 +63,6 @@ describe('EventsChart', function() {
   });
 
   it('has correct history entries when zooming', function() {
-    let newParams;
     const chartZoomInstance = wrapper.find('ChartZoom').instance();
 
     doZoom(wrapper, chart);
@@ -99,7 +98,7 @@ describe('EventsChart', function() {
     expect(chartZoomInstance.currentPeriod.period).toEqual(null);
     expect(chartZoomInstance.currentPeriod.start).toEqual('2018-11-29T00:00:00');
     expect(chartZoomInstance.currentPeriod.end).toEqual('2018-12-02T00:00:00');
-    newParams = {
+    const newParams = {
       period: null,
       start: '2018-11-29T00:00:00',
       end: '2018-12-02T00:00:00',
@@ -114,8 +113,6 @@ describe('EventsChart', function() {
   });
 
   it('updates url params when restoring zoom level on chart', function() {
-    let newParams;
-
     doZoom(wrapper, chart);
     // Zoom again
     mockZoomRange(1543536000000, 1543708800000);
@@ -134,7 +131,7 @@ describe('EventsChart', function() {
       start: null,
       end: null,
     });
-    newParams = {
+    const newParams = {
       period: '14d',
       start: null,
       end: null,

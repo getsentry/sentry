@@ -83,7 +83,7 @@ const CrashHeader = createReactClass({
   },
 
   render() {
-    let {stackView, stackType, newestFirst} = this.props;
+    const {stackView, stackType, newestFirst} = this.props;
 
     return (
       <div className="crash-title">

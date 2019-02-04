@@ -42,16 +42,16 @@ const NoteInput = createReactClass({
   mixins: [ApiMixin, OrganizationState],
 
   getInitialState() {
-    let {item, group} = this.props;
-    let updating = !!item;
+    const {item, group} = this.props;
+    const updating = !!item;
     let defaultText = '';
 
     if (updating) {
       defaultText = item.data.text;
     } else {
-      let storage = localStorage.getItem(localStorageKey);
+      const storage = localStorage.getItem(localStorageKey);
       if (storage) {
-        let {groupId, value} = JSON.parse(storage);
+        const {groupId, value} = JSON.parse(storage);
         if (groupId === group.id) {
           defaultText = value;
         }
@@ -135,9 +135,9 @@ const NoteInput = createReactClass({
   },
 
   create() {
-    let {group} = this.props;
+    const {group} = this.props;
 
-    let loadingIndicator = IndicatorStore.add(t('Posting comment..'));
+    const loadingIndicator = IndicatorStore.add(t('Posting comment..'));
 
     this.api.request('/issues/' + group.id + '/comments/', {
       method: 'POST',
@@ -171,9 +171,9 @@ const NoteInput = createReactClass({
   },
 
   update() {
-    let {group, item} = this.props;
+    const {group, item} = this.props;
 
-    let loadingIndicator = IndicatorStore.add(t('Updating comment..'));
+    const loadingIndicator = IndicatorStore.add(t('Updating comment..'));
 
     this.api.request('/issues/' + group.id + '/comments/' + item.id + '/', {
       method: 'PUT',
@@ -235,7 +235,7 @@ const NoteInput = createReactClass({
   },
 
   finalizeMentions() {
-    let {memberMentions, teamMentions} = this.state;
+    const {memberMentions, teamMentions} = this.state;
 
     // each mention looks like [id, display]
     return [...memberMentions, ...teamMentions]
@@ -251,7 +251,7 @@ const NoteInput = createReactClass({
     // onFocus event
     if (!this.state._hasFocused) {
       this.setState({_hasFocused: true});
-      let value = e.target.value;
+      const value = e.target.value;
       e.target.value = '';
       e.target.value = value;
     }
@@ -264,7 +264,7 @@ const NoteInput = createReactClass({
   },
 
   mentionableUsers() {
-    let {memberList, sessionUser} = this.props;
+    const {memberList, sessionUser} = this.props;
     return _.uniqBy(memberList, ({id}) => id)
       .filter(member => sessionUser.id !== member.id)
       .map(member => ({
@@ -275,7 +275,7 @@ const NoteInput = createReactClass({
   },
 
   mentionableTeams() {
-    let {group} = this.props;
+    const {group} = this.props;
     return (ProjectsStore.getBySlug(group.project.slug) || {
       teams: [],
     }).teams.map(team => ({
@@ -286,7 +286,7 @@ const NoteInput = createReactClass({
   },
 
   render() {
-    let {
+    const {
       error,
       errorJSON,
       loading,
@@ -297,13 +297,13 @@ const NoteInput = createReactClass({
       mentionableTeams,
     } = this.state;
 
-    let placeHolderText = t(
+    const placeHolderText = t(
       'Add details or updates to this event. \nTag users with @, or teams with #'
     );
 
-    let btnText = updating ? t('Save Comment') : t('Post Comment');
+    const btnText = updating ? t('Save Comment') : t('Post Comment');
 
-    let errorMessage =
+    const errorMessage =
       (errorJSON &&
         (typeof errorJSON.detail === 'string'
           ? errorJSON.detail

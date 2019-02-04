@@ -73,7 +73,7 @@ const ReleaseLanding = withApi(
     }
 
     componentDidMount() {
-      let {organization, project} = this.context;
+      const {organization, project} = this.context;
       analytics('releases.landing_card_viewed', {
         org_id: parseInt(organization.id, 10),
         project_id: project && parseInt(project.id, 10),
@@ -81,10 +81,10 @@ const ReleaseLanding = withApi(
     }
 
     handleClick = () => {
-      let {stepId} = this.state;
-      let {organization, project} = this.context;
+      const {stepId} = this.state;
+      const {organization, project} = this.context;
 
-      let title = cards[stepId].title;
+      const title = cards[stepId].title;
       if (stepId >= cards.length - 1) return;
       this.setState(state => ({
         stepId: state.stepId + 1,
@@ -103,8 +103,8 @@ const ReleaseLanding = withApi(
     };
 
     render() {
-      let {stepId} = this.state;
-      let card = this.getCard(stepId);
+      const {stepId} = this.state;
+      const card = this.getCard(stepId);
 
       return (
         <div className="container">

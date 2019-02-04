@@ -86,7 +86,7 @@ class LazyLoad extends React.Component {
   };
 
   async fetchComponent() {
-    let getComponent = this.getComponentGetter();
+    const getComponent = this.getComponentGetter();
 
     try {
       const Component = await retryableImport(getComponent);
@@ -108,9 +108,9 @@ class LazyLoad extends React.Component {
   };
 
   render() {
-    let {Component, error} = this.state;
+    const {Component, error} = this.state;
     // eslint-disable-next-line no-unused-vars
-    let {hideBusy, hideError, component, ...otherProps} = this.props;
+    const {hideBusy, hideError, component, ...otherProps} = this.props;
 
     if (error && !hideError) {
       return (

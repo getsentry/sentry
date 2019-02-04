@@ -53,7 +53,7 @@ export default class AlertMessage extends React.PureComponent {
   };
 
   render = () => {
-    let {alert, system} = this.props;
+    const {alert, system} = this.props;
     let icon;
 
     if (alert.type == 'success') {

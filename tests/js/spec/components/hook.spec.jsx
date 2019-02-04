@@ -26,7 +26,7 @@ describe('Hook', function() {
   });
 
   it('renders component from a hook', function() {
-    let wrapper = mount(
+    const wrapper = mount(
       <div>
         <Hook name="footer" organization={TestStubs.Organization()} />
       </div>,
@@ -39,7 +39,7 @@ describe('Hook', function() {
   });
 
   it('renders an invalid hook', function() {
-    let wrapper = mount(
+    const wrapper = mount(
       <div>
         <Hook name="invalid-hook" organization={TestStubs.Organization()} />
       </div>,
@@ -51,7 +51,7 @@ describe('Hook', function() {
   });
 
   it('can re-render when hooks get after initial render', function() {
-    let wrapper = mount(
+    const wrapper = mount(
       <div>
         <Hook name="footer" organization={TestStubs.Organization()} />
       </div>,
@@ -81,7 +81,7 @@ describe('Hook', function() {
   });
 
   it('can use children as a render prop', function() {
-    let wrapper = mount(
+    const wrapper = mount(
       <div>
         <Hook name="footer" organization={TestStubs.Organization()}>
           {({hooks}) => hooks.map((hook, i) => <Wrapper key={i}>{hook}</Wrapper>)}

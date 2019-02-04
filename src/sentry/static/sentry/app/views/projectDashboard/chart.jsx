@@ -54,14 +54,14 @@ const ProjectChart = createReactClass({
   },
 
   getStatsEndpoint() {
-    let org = this.getOrganization();
-    let project = this.getProject();
+    const org = this.getOrganization();
+    const project = this.getProject();
     return '/projects/' + org.slug + '/' + project.slug + '/stats/';
   },
 
   getProjectReleasesEndpoint() {
-    let org = this.getOrganization();
-    let project = this.getProject();
+    const org = this.getOrganization();
+    const project = this.getProject();
     return '/projects/' + org.slug + '/' + project.slug + '/releases/';
   },
 
@@ -106,13 +106,13 @@ const ProjectChart = createReactClass({
   },
 
   renderChart() {
-    let points = this.state.stats.map(point => {
+    const points = this.state.stats.map(point => {
       return {x: point[0], y: point[1]};
     });
-    let startX = this.props.dateSince;
-    let markers = this.state.releaseList
+    const startX = this.props.dateSince;
+    const markers = this.state.releaseList
       .filter(release => {
-        let date = new Date(release.dateCreated).getTime() / 1000;
+        const date = new Date(release.dateCreated).getTime() / 1000;
         return date >= startX;
       })
       .map(release => {

@@ -17,10 +17,10 @@ class LastCommit extends React.Component {
       return t('No message provided');
     }
 
-    let firstLine = message.split(/\n/)[0];
+    const firstLine = message.split(/\n/)[0];
     if (firstLine.length > 100) {
       let truncated = firstLine.substr(0, 90);
-      let words = truncated.split(/ /);
+      const words = truncated.split(/ /);
       // try to not have elipsis mid-word
       if (words.length > 1) {
         words.pop();
@@ -32,8 +32,8 @@ class LastCommit extends React.Component {
   };
 
   render() {
-    let {commit, headerClass} = this.props;
-    let commitAuthor = commit && commit.author;
+    const {commit, headerClass} = this.props;
+    const commitAuthor = commit && commit.author;
     return (
       <div>
         <h6 className={headerClass}>Last commit</h6>

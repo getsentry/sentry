@@ -26,7 +26,7 @@ describe('ProjectAlertSettings', function() {
 
   describe('render()', function() {
     it('renders', function() {
-      let wrapper = shallow(
+      const wrapper = shallow(
         <ProjectAlertSettings
           params={{orgId: org.slug, projectId: project.slug}}
           organization={org}

@@ -18,7 +18,7 @@ describe('NewProjectPlatform', function() {
 
   describe('render()', function() {
     it('should render', function() {
-      let wrapper = shallow(<NewProject />, {
+      const wrapper = shallow(<NewProject />, {
         context: {
           organization: {
             id: '1337',

@@ -52,7 +52,7 @@ class Button extends React.Component {
 
   // Intercept onClick and propagate
   handleClick = (...args) => {
-    let {disabled, busy, onClick} = this.props;
+    const {disabled, busy, onClick} = this.props;
 
     // Don't allow clicks when disabled or busy
     if (disabled || busy) return;
@@ -63,13 +63,13 @@ class Button extends React.Component {
   };
 
   getUrl = prop => {
-    let {disabled} = this.props;
+    const {disabled} = this.props;
     if (disabled) return null;
     return prop;
   };
 
   render() {
-    let {
+    const {
       size,
       to,
       href,
@@ -88,13 +88,13 @@ class Button extends React.Component {
     } = this.props;
 
     // For `aria-label`
-    let screenReaderLabel =
+    const screenReaderLabel =
       label || (typeof children === 'string' ? children : undefined);
 
     // Buttons come in 4 flavors: <Link>, <ExternalLink>, <a>, and <button>.
     // Let's use props to determine which to serve up, so we don't have to think about it.
     // *Note* you must still handle tabindex manually.
-    let button = (
+    const button = (
       <StyledButton
         aria-label={screenReaderLabel}
         to={this.getUrl(to)}
@@ -155,8 +155,8 @@ const getBoxShadow = active => ({priority, borderless, disabled}) => {
 };
 
 const getColors = ({priority, disabled, borderless, theme}) => {
-  let themeName = disabled ? 'disabled' : priority || 'default';
-  let {
+  const themeName = disabled ? 'disabled' : priority || 'default';
+  const {
     color,
     colorActive,
     background,

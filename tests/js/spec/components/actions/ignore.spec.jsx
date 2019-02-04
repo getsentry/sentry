@@ -4,10 +4,10 @@ import $ from 'jquery';
 import IgnoreActions from 'app/components/actions/ignore';
 
 describe('IgnoreActions', function() {
-  let routerContext = TestStubs.routerContext();
+  const routerContext = TestStubs.routerContext();
   describe('disabled', function() {
     let component, button;
-    let spy = sinon.stub();
+    const spy = sinon.stub();
 
     beforeEach(function() {
       component = mount(<IgnoreActions onUpdate={spy} disabled={true} />, routerContext);
@@ -26,13 +26,13 @@ describe('IgnoreActions', function() {
 
   describe('ignored', function() {
     let component;
-    let spy = sinon.spy();
+    const spy = sinon.spy();
     beforeEach(function() {
       component = mount(<IgnoreActions onUpdate={spy} isIgnored={true} />, routerContext);
     });
 
     it('displays ignored view', function() {
-      let button = component.find('a.btn.active');
+      const button = component.find('a.btn.active');
       expect(button).toHaveLength(1);
       expect(button.text()).toBe('');
     });
@@ -45,7 +45,7 @@ describe('IgnoreActions', function() {
 
   describe('without confirmation', function() {
     let component;
-    let spy = sinon.stub();
+    const spy = sinon.stub();
 
     beforeEach(function() {
       component = mount(<IgnoreActions onUpdate={spy} />, routerContext);
@@ -56,7 +56,7 @@ describe('IgnoreActions', function() {
     });
 
     it('calls spy with ignore details when clicked', function() {
-      let button = component.find('a.btn.btn-default').first();
+      const button = component.find('a.btn.btn-default').first();
       button.simulate('click');
       expect(spy.calledOnce).toBe(true);
       expect(spy.calledWith({status: 'ignored'})).toBe(true);
@@ -65,7 +65,7 @@ describe('IgnoreActions', function() {
 
   describe('with confirmation step', function() {
     let component, button;
-    let spy = sinon.stub();
+    const spy = sinon.stub();
 
     beforeEach(function() {
       component = mount(
@@ -82,7 +82,7 @@ describe('IgnoreActions', function() {
     it('displays confirmation modal with message provided', function() {
       button.simulate('click');
 
-      let modal = $(document.body).find('.modal');
+      const modal = $(document.body).find('.modal');
       expect(modal.text()).toContain('Yoooooo');
       expect(spy.notCalled).toBe(true);
       $(document.body)

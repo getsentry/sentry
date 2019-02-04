@@ -23,7 +23,7 @@ function getSourcePlugin(pluginContexts, contextType) {
   if (CONTEXT_TYPES[contextType]) {
     return null;
   }
-  for (let plugin of pluginContexts) {
+  for (const plugin of pluginContexts) {
     if (plugin.contexts.indexOf(contextType) >= 0) {
       return plugin;
     }
@@ -58,7 +58,10 @@ class ContextChunk extends React.Component {
   }
 
   syncPlugin = () => {
-    let sourcePlugin = getSourcePlugin(this.props.group.pluginContexts, this.props.type);
+    const sourcePlugin = getSourcePlugin(
+      this.props.group.pluginContexts,
+      this.props.type
+    );
     if (!sourcePlugin) {
       this.setState({
         pluginLoading: false,
@@ -78,7 +81,7 @@ class ContextChunk extends React.Component {
   };
 
   renderTitle = component => {
-    let {value, alias, type} = this.props;
+    const {value, alias, type} = this.props;
     let title = null;
     if (defined(value.title)) {
       title = value.title;
@@ -105,10 +108,10 @@ class ContextChunk extends React.Component {
       return null;
     }
 
-    let group = this.props.group;
-    let evt = this.props.event;
-    let {type, alias, value} = this.props;
-    let Component = getContextComponent(type);
+    const group = this.props.group;
+    const evt = this.props.event;
+    const {type, alias, value} = this.props;
+    const Component = getContextComponent(type);
 
     // this can happen if the component does not exist
     if (!Component) {
@@ -136,9 +139,9 @@ class ContextsInterface extends React.Component {
   };
 
   render() {
-    let group = this.props.group;
-    let evt = this.props.event;
-    let children = [];
+    const group = this.props.group;
+    const evt = this.props.event;
+    const children = [];
     if (!objectIsEmpty(evt.user)) {
       children.push(
         <ContextChunk
@@ -153,7 +156,7 @@ class ContextsInterface extends React.Component {
     }
 
     let value = null;
-    for (let key in evt.contexts) {
+    for (const key in evt.contexts) {
       value = evt.contexts[key];
       children.push(
         <ContextChunk

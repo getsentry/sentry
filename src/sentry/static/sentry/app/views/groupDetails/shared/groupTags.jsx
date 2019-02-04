@@ -89,8 +89,8 @@ class GroupTags extends React.Component {
 
     if (this.state.tagList) {
       children = this.state.tagList.map((tag, tagIdx) => {
-        let valueChildren = tag.topValues.map((tagValue, tagValueIdx) => {
-          let pct = percent(tagValue.count, tag.totalValues);
+        const valueChildren = tag.topValues.map((tagValue, tagValueIdx) => {
+          const pct = percent(tagValue.count, tag.totalValues);
           return (
             <li key={tagValueIdx}>
               <Link

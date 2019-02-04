@@ -9,7 +9,7 @@ describe('AccountSettingsLayout', function() {
   let spy;
   let api;
 
-  let organization = {
+  const organization = {
     id: '44',
     name: 'Org Index',
     slug: 'org-index',

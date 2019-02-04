@@ -886,7 +886,7 @@ export const SeriesUnit = PropTypes.shape({
 
 export const Series = PropTypes.arrayOf(SeriesUnit);
 
-let SentryTypes = {
+const SentryTypes = {
   AnyModel: PropTypes.shape({
     id: PropTypes.string.isRequired,
   }),

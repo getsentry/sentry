@@ -113,7 +113,7 @@ class LegacyBrowserFilterRow extends React.Component {
   };
 
   render() {
-    let {disabled} = this.props;
+    const {disabled} = this.props;
     return (
       <div>
         {!disabled && (
@@ -130,7 +130,7 @@ class LegacyBrowserFilterRow extends React.Component {
 
         <FilterGrid>
           {LEGACY_BROWSER_KEYS.map(key => {
-            let subfilter = LEGACY_BROWSER_SUBFILTERS[key];
+            const subfilter = LEGACY_BROWSER_SUBFILTERS[key];
             return (
               <FilterGridItemWrapper key={key}>
                 <FilterGridItem>
@@ -172,7 +172,7 @@ class ProjectFiltersSettings extends AsyncComponent {
     };
   }
   getEndpoints() {
-    let {orgId, projectId} = this.props.params;
+    const {orgId, projectId} = this.props.params;
     return [
       ['filterList', `/projects/${orgId}/${projectId}/filters/`],
       ['project', `/projects/${orgId}/${projectId}/`],
@@ -218,13 +218,13 @@ class ProjectFiltersSettings extends AsyncComponent {
   );
 
   renderBody() {
-    let {features, params} = this.props;
-    let {orgId, projectId} = params;
-    let {project} = this.state;
+    const {features, params} = this.props;
+    const {orgId, projectId} = params;
+    const {project} = this.state;
 
     if (!project) return null;
-    let projectEndpoint = `/projects/${orgId}/${projectId}/`;
-    let filtersEndpoint = `${projectEndpoint}filters/`;
+    const projectEndpoint = `/projects/${orgId}/${projectId}/`;
+    const filtersEndpoint = `${projectEndpoint}filters/`;
 
     return (
       <Access access={['project:write']}>
@@ -234,7 +234,7 @@ class ProjectFiltersSettings extends AsyncComponent {
               <PanelHeader>{t('Filters')}</PanelHeader>
               <PanelBody>
                 {this.state.filterList.map((filter, idx) => {
-                  let fieldProps = {
+                  const fieldProps = {
                     name: filter.id,
                     label: filter.name,
                     help: filter.description,

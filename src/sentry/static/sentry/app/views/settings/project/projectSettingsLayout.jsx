@@ -11,7 +11,7 @@ class ProjectSettingsLayout extends React.Component {
   };
 
   render() {
-    let {orgId, projectId} = this.props.params;
+    const {orgId, projectId} = this.props.params;
 
     return (
       <ProjectContext

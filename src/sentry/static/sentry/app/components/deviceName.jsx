@@ -63,8 +63,8 @@ export default class DeviceName extends React.Component {
   }
 
   render() {
-    let {children} = this.props;
-    let {iOSDeviceList} = this.state;
+    const {children} = this.props;
+    const {iOSDeviceList} = this.state;
 
     // Children can be undefined, need to return null or else react throws
     if (!children) return null;

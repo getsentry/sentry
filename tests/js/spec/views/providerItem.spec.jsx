@@ -12,7 +12,7 @@ describe('ProviderItem', function() {
   const routerContext = TestStubs.routerContext([{organization: org}]);
 
   it('renders', function() {
-    let wrapper = mount(
+    const wrapper = mount(
       <ProviderItem organization={org} provider={provider} onConfigure={() => {}} />,
       routerContext
     );
@@ -24,8 +24,8 @@ describe('ProviderItem', function() {
   });
 
   it('calls configure callback', function() {
-    let mock = jest.fn();
-    let wrapper = mount(
+    const mock = jest.fn();
+    const wrapper = mount(
       <ProviderItem organization={org} provider={provider} onConfigure={mock} />,
       routerContext
     );
@@ -36,7 +36,7 @@ describe('ProviderItem', function() {
 
   it('renders a disabled Tag when disabled', function() {
     const noFeatureRouterContext = TestStubs.routerContext();
-    let wrapper = mount(
+    const wrapper = mount(
       <ProviderItem organization={org} provider={provider} onConfigure={() => {}} />,
       noFeatureRouterContext
     );

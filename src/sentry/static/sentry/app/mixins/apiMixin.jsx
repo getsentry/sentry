@@ -1,6 +1,6 @@
 import {Client} from 'app/api';
 
-let ApiMixin = {
+const ApiMixin = {
   componentWillMount() {
     this.api = new Client();
   },

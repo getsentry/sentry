@@ -9,8 +9,8 @@ export function getStateFromQuery(query) {
   let end = query[URL_PARAM.END] !== 'null' && query[URL_PARAM.END];
   let project = query[URL_PARAM.PROJECT];
   let environment = query[URL_PARAM.ENVIRONMENT];
-  let period = query[URL_PARAM.PERIOD];
-  let utc = query[URL_PARAM.UTC];
+  const period = query[URL_PARAM.PERIOD];
+  const utc = query[URL_PARAM.UTC];
 
   const hasAbsolute = !!start && !!end;
 

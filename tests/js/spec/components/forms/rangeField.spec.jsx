@@ -6,12 +6,12 @@ import {RangeField} from 'app/components/forms';
 describe('RangeField', function() {
   describe('render()', function() {
     it('renders', function() {
-      let wrapper = shallow(<RangeField name="fieldName" />);
+      const wrapper = shallow(<RangeField name="fieldName" />);
       expect(wrapper).toMatchSnapshot();
     });
 
     it('renders with optional attributes', function() {
-      let wrapper = shallow(
+      const wrapper = shallow(
         <RangeField
           name="fieldName"
           min={0}
@@ -25,12 +25,12 @@ describe('RangeField', function() {
     });
 
     it('renders with value', function() {
-      let wrapper = shallow(<RangeField name="fieldName" value={2} />);
+      const wrapper = shallow(<RangeField name="fieldName" value={2} />);
       expect(wrapper).toMatchSnapshot();
     });
 
     it('renders with form context', function() {
-      let wrapper = shallow(<RangeField name="fieldName" />, {
+      const wrapper = shallow(<RangeField name="fieldName" />, {
         context: {
           form: {
             data: {
@@ -44,7 +44,7 @@ describe('RangeField', function() {
     });
 
     it('renders with value=0 in form context', function() {
-      let wrapper = shallow(<RangeField name="fieldName" />, {
+      const wrapper = shallow(<RangeField name="fieldName" />, {
         context: {
           form: {
             data: {

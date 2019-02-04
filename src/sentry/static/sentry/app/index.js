@@ -90,8 +90,8 @@ if (window.__initialData) {
 // these get exported to a global variable, which is important as its the only
 // way we can call into scoped objects
 
-let render = Component => {
-  let rootEl = document.getElementById('blk_router');
+const render = Component => {
+  const rootEl = document.getElementById('blk_router');
   ReactDOM.render(<Component />, rootEl);
 };
 
@@ -99,7 +99,7 @@ let render = Component => {
 // zxcvbn, a relatively byte-heavy password strength estimation library. Load
 // it on demand.
 async function loadPasswordStrength(callback) {
-  let module = await import(/* webpackChunkName: "passwordStrength" */ 'app/components/passwordStrength');
+  const module = await import(/* webpackChunkName: "passwordStrength" */ 'app/components/passwordStrength');
   callback(module);
 }
 

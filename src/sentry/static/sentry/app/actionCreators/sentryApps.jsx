@@ -14,7 +14,7 @@ import {t} from 'app/locale';
  */
 export function removeSentryApp(client, app) {
   addLoadingMessage();
-  let promise = client.requestPromise(`/sentry-apps/${app.slug}/`, {
+  const promise = client.requestPromise(`/sentry-apps/${app.slug}/`, {
     method: 'DELETE',
   });
   promise.then(

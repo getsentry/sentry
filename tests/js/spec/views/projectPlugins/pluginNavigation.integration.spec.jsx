@@ -7,10 +7,10 @@ jest.mock('app/api');
 
 describe('PluginNavigation Integration', function() {
   let wrapper;
-  let routerContext = TestStubs.routerContext();
-  let org = routerContext.context.organization;
-  let project = routerContext.context.project;
-  let plugins = TestStubs.Plugins();
+  const routerContext = TestStubs.routerContext();
+  const org = routerContext.context.organization;
+  const project = routerContext.context.project;
+  const plugins = TestStubs.Plugins();
 
   beforeEach(function() {
     MockApiClient.addMockResponse({
@@ -41,8 +41,8 @@ describe('PluginNavigation Integration', function() {
   // Integration test with PluginNavigation
   describe('with PluginNavigation', function() {
     beforeEach(function() {
-      let params = {orgId: org.slug, projectId: project.slug};
-      let organization = {...org, id: org.slug, features: []};
+      const params = {orgId: org.slug, projectId: project.slug};
+      const organization = {...org, id: org.slug, features: []};
       wrapper = mount(
         <div>
           <ProjectPlugins params={params} organization={organization} />

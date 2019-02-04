@@ -13,12 +13,12 @@ class SelectorItem extends React.PureComponent {
   };
 
   handleClick = e => {
-    let {onClick, value} = this.props;
+    const {onClick, value} = this.props;
     onClick(value, e);
   };
 
   render() {
-    let {className, label} = this.props;
+    const {className, label} = this.props;
     return (
       <Flex className={className} onClick={this.handleClick}>
         <Label>{label}</Label>

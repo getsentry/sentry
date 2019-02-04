@@ -15,15 +15,15 @@ describe('TeamSettings', function() {
   });
 
   it('can change name and slug', async function() {
-    let team = TestStubs.Team();
-    let putMock = MockApiClient.addMockResponse({
+    const team = TestStubs.Team();
+    const putMock = MockApiClient.addMockResponse({
       url: `/teams/org/${team.slug}/`,
       method: 'PUT',
     });
-    let mountOptions = TestStubs.routerContext();
-    let {router} = mountOptions.context;
+    const mountOptions = TestStubs.routerContext();
+    const {router} = mountOptions.context;
 
-    let wrapper = mount(
+    const wrapper = mount(
       <TeamSettings
         routes={[]}
         router={router}
@@ -69,9 +69,9 @@ describe('TeamSettings', function() {
   });
 
   it('needs team:admin in order to see an enabled Remove Team button', function() {
-    let team = TestStubs.Team();
+    const team = TestStubs.Team();
 
-    let wrapper = mount(
+    const wrapper = mount(
       <TeamSettings
         routes={[]}
         params={{orgId: 'org', teamId: team.slug}}
@@ -90,13 +90,13 @@ describe('TeamSettings', function() {
   });
 
   it('can remove team', async function() {
-    let team = TestStubs.Team();
-    let deleteMock = MockApiClient.addMockResponse({
+    const team = TestStubs.Team();
+    const deleteMock = MockApiClient.addMockResponse({
       url: `/teams/org/${team.slug}/`,
       method: 'DELETE',
     });
-    let routerPushMock = jest.fn();
-    let teamStoreTriggerMock = jest.fn();
+    const routerPushMock = jest.fn();
+    const teamStoreTriggerMock = jest.fn();
     sinon.stub(TeamStore, 'trigger', teamStoreTriggerMock);
     TeamStore.loadInitialData([
       {
@@ -104,7 +104,7 @@ describe('TeamSettings', function() {
       },
     ]);
 
-    let wrapper = mount(
+    const wrapper = mount(
       <TeamSettings
         router={{push: routerPushMock}}
         routes={[]}

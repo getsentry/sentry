@@ -19,7 +19,7 @@ class EventPackageData extends React.Component {
   }
 
   render() {
-    let packages = objectToArray(this.props.event.packages);
+    const packages = objectToArray(this.props.event.packages);
 
     return (
       <EventDataSection

@@ -15,7 +15,7 @@ export default class ShortId extends React.Component {
   }
 
   render() {
-    let shortId = this.props.shortId;
+    const shortId = this.props.shortId;
     if (!shortId) {
       return null;
     }

@@ -19,7 +19,7 @@ const Legend = styled(
     };
 
     render() {
-      let {className, series, previousPeriod} = this.props;
+      const {className, series, previousPeriod} = this.props;
 
       return (
         <Flex className={className}>

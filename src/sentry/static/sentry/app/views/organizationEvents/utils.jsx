@@ -8,20 +8,20 @@ import {defined} from 'app/utils';
 //
 // TODO(billy): Make period parameter name consistent
 export function getParams(params = {}) {
-  let {start, end, period, statsPeriod, ...otherParams} = params;
+  const {start, end, period, statsPeriod, ...otherParams} = params;
 
   // `statsPeriod` takes precendence for now
-  period = statsPeriod || period;
+  let coercedPeriod = statsPeriod || period;
 
-  if (!start && !end && !period) {
-    period = DEFAULT_STATS_PERIOD;
+  if (!start && !end && !coercedPeriod) {
+    coercedPeriod = DEFAULT_STATS_PERIOD;
   }
 
   // Filter null values
   return Object.entries({
-    statsPeriod: period,
-    start: period ? null : start,
-    end: period ? null : end,
+    statsPeriod: coercedPeriod,
+    start: coercedPeriod ? null : start,
+    end: coercedPeriod ? null : end,
     ...otherParams,
   })
     .filter(([key, value]) => defined(value))

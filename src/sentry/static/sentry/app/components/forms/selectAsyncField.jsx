@@ -35,8 +35,8 @@ class SelectAsyncField extends SelectField {
   };
 
   onResults = data => {
-    let {name} = this.props;
-    let results = data && data[name];
+    const {name} = this.props;
+    const results = data && data[name];
 
     return (results && results.map(({id, text}) => ({value: id, label: text}))) || [];
   };

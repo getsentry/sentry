@@ -42,8 +42,8 @@ class ReleaseProgress extends AsyncComponent {
   };
 
   getEndpoints() {
-    let {project, organization} = this.props;
-    let data = {
+    const {project, organization} = this.props;
+    const data = {
       organization_id: organization.id,
       project_id: project.id,
       feature: 'releases',
@@ -65,7 +65,7 @@ class ReleaseProgress extends AsyncComponent {
   }
 
   buildMessage(remainingSteps) {
-    let keys = remainingSteps.map(step => step.step);
+    const keys = remainingSteps.map(step => step.step);
     let message = "You're missing out on ";
 
     if (keys.includes('tag')) {
@@ -88,7 +88,7 @@ class ReleaseProgress extends AsyncComponent {
     if (setupStatus) {
       remainingSteps = setupStatus.filter(step => step.complete === false);
 
-      let nextStep = remainingSteps[0] && STEPS[remainingSteps[0].step];
+      const nextStep = remainingSteps[0] && STEPS[remainingSteps[0].step];
 
       this.buildMessage(remainingSteps);
 
@@ -108,8 +108,8 @@ class ReleaseProgress extends AsyncComponent {
     let show;
     if (data && data.snoozed_ts) {
       // check if more than 3 days have passed since snooze
-      let now = Date.now() / 1000;
-      let snoozingTime = (now - data.snoozed_ts) / (60 * 24);
+      const now = Date.now() / 1000;
+      const snoozingTime = (now - data.snoozed_ts) / (60 * 24);
       show = snoozingTime > 3 ? true : false;
     } else if (data && data.dismissed_ts) {
       show = false;
@@ -121,9 +121,9 @@ class ReleaseProgress extends AsyncComponent {
   }
 
   handleClick(action) {
-    let {project, organization} = this.props;
+    const {project, organization} = this.props;
 
-    let params = {
+    const params = {
       projectId: project.id,
       organizationId: organization.id,
       feature: 'releases',
@@ -136,7 +136,7 @@ class ReleaseProgress extends AsyncComponent {
   }
 
   recordAnalytics(action, data) {
-    let {project, organization} = this.props;
+    const {project, organization} = this.props;
 
     data.org_id = parseInt(organization.id, 10);
     data.project_id = parseInt(project.id, 10);
@@ -151,15 +151,15 @@ class ReleaseProgress extends AsyncComponent {
   }
 
   getWidth() {
-    let {remainingSteps} = this.state;
-    let width =
+    const {remainingSteps} = this.state;
+    const width =
       100 * (Object.keys(STEPS).length - remainingSteps) / Object.keys(STEPS).length;
 
     return width === 0 ? 25 : width;
   }
 
   renderBody() {
-    let {remainingSteps, showBar, nextStep, message} = this.state;
+    const {remainingSteps, showBar, nextStep, message} = this.state;
 
     if (!remainingSteps || remainingSteps === 0 || !showBar) {
       return null;

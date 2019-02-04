@@ -65,9 +65,9 @@ class ContextPickerModal extends React.Component {
   constructor(props) {
     super(props);
 
-    let {needProject, latestContext} = props;
+    const {needProject, latestContext} = props;
 
-    let shouldHaveEmptyOrgSelector = !needProject || !latestContext.organization;
+    const shouldHaveEmptyOrgSelector = !needProject || !latestContext.organization;
     this.state = {
       // Initialize loading to true if there is only 1 organization because component will immediately
       // attempt to fetch org details for that org. Otherwise we'd have to change state in `DidMount`
@@ -82,7 +82,7 @@ class ContextPickerModal extends React.Component {
   }
 
   componentDidMount() {
-    let {latestContext, organizations} = this.props;
+    const {latestContext, organizations} = this.props;
 
     // Don't make any assumptions if there are multiple organizations
     if (organizations.length !== 1) {
@@ -110,7 +110,7 @@ class ContextPickerModal extends React.Component {
   componentWillReceiveProps(nextProps) {
     // Should only check the case where there is no latestContext.organization and we're waiting
     // for it to be set (after fetch in DidMount)
-    let {latestContext} = this.props;
+    const {latestContext} = this.props;
     if (
       (!latestContext.organization &&
         latestContext.organization !== nextProps.latestContext.organization) ||
@@ -135,7 +135,7 @@ class ContextPickerModal extends React.Component {
     projects,
     latestOrg = this.props.latestContext && this.props.latestContext.organization
   ) => {
-    let {needProject, onFinish, nextPath} = this.props;
+    const {needProject, onFinish, nextPath} = this.props;
 
     // If no project is needed and theres only 1 org OR
     // if we need a project and there's only 1 project
@@ -209,7 +209,7 @@ class ContextPickerModal extends React.Component {
   };
 
   handleSelectProject = ({value}) => {
-    let {latestContext} = this.props;
+    const {latestContext} = this.props;
 
     if (!value || !latestContext.organization) return;
 
@@ -217,18 +217,19 @@ class ContextPickerModal extends React.Component {
   };
 
   render() {
-    let {latestContext, needOrg, needProject, organizations, Header, Body} = this.props;
-    let {loading} = this.state;
+    const {latestContext, needOrg, needProject, organizations, Header, Body} = this.props;
+    const {loading} = this.state;
 
-    let shouldShowPicker = needOrg || needProject;
+    const shouldShowPicker = needOrg || needProject;
 
-    let projects = latestContext.organization && latestContext.organization.projects;
+    const projects = latestContext.organization && latestContext.organization.projects;
 
     if (!shouldShowPicker) return null;
 
-    let shouldShowProjectSelector = latestContext.organization && needProject && projects;
+    const shouldShowProjectSelector =
+      latestContext.organization && needProject && projects;
 
-    let orgChoices = organizations
+    const orgChoices = organizations
       .filter(({status}) => status.id !== 'pending_deletion')
       .map(({slug}) => ({label: slug, value: slug}));
 

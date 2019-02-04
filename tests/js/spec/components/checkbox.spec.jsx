@@ -5,7 +5,7 @@ import Checkbox from 'app/components/checkbox';
 
 describe('Checkbox', function() {
   it('renders', function() {
-    let component = shallow(<Checkbox />);
+    const component = shallow(<Checkbox />);
 
     expect(toJson(component)).toMatchSnapshot();
   });

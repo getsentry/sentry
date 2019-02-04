@@ -5,8 +5,8 @@ import GroupSidebar from 'app/components/group/sidebar';
 
 describe('GroupSidebar', function() {
   let group = TestStubs.Group({tags: TestStubs.Tags()});
-  let project = TestStubs.Project();
-  let environment = {name: 'production', displayName: 'Production', id: '1'};
+  const project = TestStubs.Project();
+  const environment = {name: 'production', displayName: 'Production', id: '1'};
   let wrapper;
   let tagValuesMock;
 

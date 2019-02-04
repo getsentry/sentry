@@ -78,9 +78,9 @@ const EnvironmentStore = Reflux.createStore({
   // Default environment is either the first based on the set of common names
   // or the first in the environment list if none match
   getDefault() {
-    let allEnvs = this.items;
+    const allEnvs = this.items;
 
-    let defaultEnv = allEnvs.find(e => e.name === this.defaultEnvironment);
+    const defaultEnv = allEnvs.find(e => e.name === this.defaultEnvironment);
 
     return defaultEnv || null;
   },

@@ -51,7 +51,7 @@ describe('StreamActions', function() {
       });
 
       it('bulk resolves', async function() {
-        let apiMock = MockApiClient.addMockResponse({
+        const apiMock = MockApiClient.addMockResponse({
           url: '/projects/1337/1/issues/',
           method: 'PUT',
         });
@@ -107,7 +107,7 @@ describe('StreamActions', function() {
       });
 
       it('bulk resolves', async function() {
-        let apiMock = MockApiClient.addMockResponse({
+        const apiMock = MockApiClient.addMockResponse({
           url: '/projects/1337/1/issues/',
           method: 'PUT',
         });
@@ -150,7 +150,7 @@ describe('StreamActions', function() {
     describe('for all items', function() {
       it("should invoke the callback with 'undefined' and deselect all", function() {
         sandbox.stub(SelectedGroupStore, 'deselectAll');
-        let callback = sandbox.stub();
+        const callback = sandbox.stub();
 
         actions.state.allInQuerySelected = true;
 
@@ -170,7 +170,7 @@ describe('StreamActions', function() {
         sandbox.stub(SelectedGroupStore, 'getSelectedIds').returns(new Set([1, 2, 3]));
 
         actions.state.allInQuerySelected = false;
-        let callback = sandbox.stub();
+        const callback = sandbox.stub();
         actions.actionSelectedGroups(callback);
 
         expect(callback.withArgs([1, 2, 3]).calledOnce).toBeTruthy();
@@ -196,12 +196,12 @@ describe('StreamActions', function() {
     });
 
     it('should disable resolve picker', function() {
-      let resolve = wrapper.find('ResolveActions').first();
+      const resolve = wrapper.find('ResolveActions').first();
       expect(resolve.props().disabled).toBeTruthy();
     });
 
     it('should disable merge button', function() {
-      let merge = wrapper.find('ActionLink[className~="action-merge"]').first();
+      const merge = wrapper.find('ActionLink[className~="action-merge"]').first();
       expect(merge.props().disabled).toBeTruthy();
     });
   });

@@ -12,7 +12,7 @@ jest.unmock('app/utils/recreateRoute');
 
 describe('ProjectLayout', function() {
   it('calls `setLastRoute` when unmounting', function() {
-    let wrapper = mount(
+    const wrapper = mount(
       <ProjectDetailsLayout location={{pathname: '/org-slug/dashboard/'}} />
     );
 

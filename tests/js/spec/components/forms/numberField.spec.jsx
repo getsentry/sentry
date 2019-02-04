@@ -9,22 +9,22 @@ jest.mock('jquery');
 describe('NumberField', function() {
   describe('render()', function() {
     it('renders', function() {
-      let wrapper = shallow(<NumberField name="fieldName" />);
+      const wrapper = shallow(<NumberField name="fieldName" />);
       expect(wrapper).toMatchSnapshot();
     });
 
     it('renders with optional attributes', function() {
-      let wrapper = shallow(<NumberField name="fieldName" min={0} max={100} />);
+      const wrapper = shallow(<NumberField name="fieldName" min={0} max={100} />);
       expect(wrapper).toMatchSnapshot();
     });
 
     it('renders with value', function() {
-      let wrapper = shallow(<NumberField name="fieldName" value={5} />);
+      const wrapper = shallow(<NumberField name="fieldName" value={5} />);
       expect(wrapper).toMatchSnapshot();
     });
 
     it('renders with form context', function() {
-      let wrapper = shallow(<NumberField name="fieldName" />, {
+      const wrapper = shallow(<NumberField name="fieldName" />, {
         context: {
           form: {
             data: {
@@ -38,7 +38,7 @@ describe('NumberField', function() {
     });
 
     it('doesnt save `NaN` when new value is empty string', function() {
-      let wrapper = mount(
+      const wrapper = mount(
         <Form onSubmit={() => {}}>
           <NumberField name="fieldName" defaultValue="2" />
         </Form>

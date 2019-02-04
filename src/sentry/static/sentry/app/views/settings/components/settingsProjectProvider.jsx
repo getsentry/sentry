@@ -14,8 +14,8 @@ class SettingsProjectProvider extends React.Component {
   };
 
   render() {
-    let {children} = this.props;
-    let {project} = this.context;
+    const {children} = this.props;
+    const {project} = this.context;
 
     return React.cloneElement(children, {
       ...this.props,

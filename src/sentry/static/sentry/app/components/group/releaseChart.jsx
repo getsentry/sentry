@@ -32,16 +32,16 @@ const GroupReleaseChart = createReactClass({
   },
 
   getNextState(props) {
-    let releaseStats = props.releaseStats;
-    let releasePoints = {};
+    const releaseStats = props.releaseStats;
+    const releasePoints = {};
     if (releaseStats) {
       releaseStats[props.statsPeriod].forEach(point => {
         releasePoints[point[0]] = point[1];
       });
     }
 
-    let envStats = props.environmentStats;
-    let envPoints = {};
+    const envStats = props.environmentStats;
+    const envPoints = {};
     if (envStats) {
       envStats[props.statsPeriod].forEach(point => {
         envPoints[point[0]] = point[1];
@@ -55,14 +55,14 @@ const GroupReleaseChart = createReactClass({
   },
 
   renderTooltip(point, pointIdx, chart) {
-    let timeLabel = chart.getTimeLabel(point);
+    const timeLabel = chart.getTimeLabel(point);
     let totalY = 0;
     for (let i = 0; i < point.y.length; i++) {
       totalY += point.y[i];
     }
 
-    let {environment, release} = this.props;
-    let {releasePoints, envPoints} = this.state;
+    const {environment, release} = this.props;
+    const {releasePoints, envPoints} = this.state;
 
     return (
       '<div style="width:150px">' +
@@ -91,29 +91,29 @@ const GroupReleaseChart = createReactClass({
   },
 
   render() {
-    let className = 'bar-chart group-chart ' + (this.props.className || '');
+    const className = 'bar-chart group-chart ' + (this.props.className || '');
 
-    let group = this.props.group;
-    let stats = group.stats[this.props.statsPeriod];
+    const group = this.props.group;
+    const stats = group.stats[this.props.statsPeriod];
     if (!stats || !stats.length) return null;
 
-    let {releasePoints, envPoints} = this.state;
+    const {releasePoints, envPoints} = this.state;
 
-    let points = stats.map(point => {
-      let rData = releasePoints[point[0]] || 0;
+    const points = stats.map(point => {
+      const rData = releasePoints[point[0]] || 0;
       let eData = (envPoints[point[0]] || 0) - rData;
       if (eData < 0) eData = 0;
-      let remaining = point[1] - rData - eData;
+      const remaining = point[1] - rData - eData;
       return {
         x: point[0],
         y: [rData, eData, remaining >= 0 ? remaining : 0],
       };
     });
 
-    let markers = [];
+    const markers = [];
 
     if (this.props.firstSeen) {
-      let firstSeenX = new Date(this.props.firstSeen).getTime() / 1000;
+      const firstSeenX = new Date(this.props.firstSeen).getTime() / 1000;
       if (firstSeenX >= points[0].x) {
         markers.push({
           label: t('First seen'),
@@ -126,7 +126,7 @@ const GroupReleaseChart = createReactClass({
     }
 
     if (this.props.lastSeen) {
-      let lastSeenX = new Date(this.props.lastSeen).getTime() / 1000;
+      const lastSeenX = new Date(this.props.lastSeen).getTime() / 1000;
       if (lastSeenX >= points[0].x) {
         markers.push({
           label: t('Last seen'),

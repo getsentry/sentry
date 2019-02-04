@@ -7,7 +7,7 @@ describe('OrganizationAccessRequests', function() {
   beforeEach(function() {});
 
   it('renders empty', function() {
-    let wrapper = shallow(
+    const wrapper = shallow(
       <OrganizationAccessRequests
         params={{apiKey: 1, orgId: 'org-slug'}}
         onApprove={() => {}}
@@ -18,7 +18,7 @@ describe('OrganizationAccessRequests', function() {
   });
 
   it('renders list', function() {
-    let wrapper = shallow(
+    const wrapper = shallow(
       <OrganizationAccessRequests
         params={{apiKey: 1, orgId: 'org-slug'}}
         accessRequestBusy={new Map()}
@@ -47,8 +47,8 @@ describe('OrganizationAccessRequests', function() {
   });
 
   it('can approve', function() {
-    let mock = jest.fn();
-    let wrapper = mount(
+    const mock = jest.fn();
+    const wrapper = mount(
       <OrganizationAccessRequests
         params={{apiKey: 1, orgId: 'org-slug'}}
         accessRequestBusy={new Map()}
@@ -83,8 +83,8 @@ describe('OrganizationAccessRequests', function() {
   });
 
   it('can deny', function() {
-    let mock = jest.fn();
-    let wrapper = mount(
+    const mock = jest.fn();
+    const wrapper = mount(
       <OrganizationAccessRequests
         params={{apiKey: 1, orgId: 'org-slug'}}
         accessRequestBusy={new Map()}

@@ -50,8 +50,8 @@ const IssueList = createReactClass({
   },
 
   componentWillReceiveProps(nextProps) {
-    let location = this.props.location;
-    let nextLocation = nextProps.location;
+    const location = this.props.location;
+    const nextLocation = nextProps.location;
     if (!location) return;
 
     if (
@@ -67,7 +67,7 @@ const IssueList = createReactClass({
   },
 
   fetchData() {
-    let location = this.props.location;
+    const location = this.props.location;
     this.api.clear();
     this.api.request(this.props.endpoint, {
       method: 'GET',

@@ -30,7 +30,7 @@ describe('EventDataSection', function() {
     culprit: undefined,
   };
   it('renders formatted', function() {
-    let component = shallow(
+    const component = shallow(
       <EventDataSection
         group={groupData}
         event={eventData}
@@ -44,7 +44,7 @@ describe('EventDataSection', function() {
   });
 
   it('renders raw', function() {
-    let component = shallow(
+    const component = shallow(
       <EventDataSection
         group={groupData}
         event={eventData}
@@ -66,7 +66,7 @@ describe('KeyValueList', function() {
   const extraDataArray = objectToArray(context);
 
   it('renders formatted', function() {
-    let component = shallow(
+    const component = shallow(
       <KeyValueList data={extraDataArray} isContextData={true} raw={false} />
     );
 
@@ -74,7 +74,7 @@ describe('KeyValueList', function() {
   });
 
   it('renders raw', function() {
-    let component = shallow(
+    const component = shallow(
       <KeyValueList data={extraDataArray} isContextData={true} raw={true} />
     );
 

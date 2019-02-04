@@ -5,8 +5,8 @@ import ChartZoom from 'app/components/charts/chartZoom';
 import ConfigStore from 'app/stores/configStore';
 
 describe('ChartZoom', function() {
-  let renderFunc = jest.fn(() => null);
-  let routerContext = TestStubs.routerContext();
+  const renderFunc = jest.fn(() => null);
+  const routerContext = TestStubs.routerContext();
   let axisLabelFormatter;
   let tooltipFormatter;
   const timestamp = 1531094400000;

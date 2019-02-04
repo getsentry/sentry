@@ -59,7 +59,7 @@ export default class Form extends React.Component {
 
   constructor(props, context) {
     super(props, context);
-    let {
+    const {
       saveOnBlur,
       apiEndpoint,
       apiMethod,
@@ -127,7 +127,7 @@ export default class Form extends React.Component {
   };
 
   render() {
-    let {
+    const {
       className,
       children,
       footerClass,
@@ -142,7 +142,8 @@ export default class Form extends React.Component {
       saveOnBlur,
       hideFooter,
     } = this.props;
-    let shouldShowFooter = typeof hideFooter !== 'undefined' ? !hideFooter : !saveOnBlur;
+    const shouldShowFooter =
+      typeof hideFooter !== 'undefined' ? !hideFooter : !saveOnBlur;
 
     return (
       <form

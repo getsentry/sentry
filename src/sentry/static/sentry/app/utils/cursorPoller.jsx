@@ -14,7 +14,7 @@ class CursorPoller {
   }
 
   getDelay() {
-    let delay = this._baseDelay * (this._reqsWithoutData + 1);
+    const delay = this._baseDelay * (this._reqsWithoutData + 1);
     return Math.min(delay, this._maxDelay);
   }
 
@@ -59,7 +59,7 @@ class CursorPoller {
           this._reqsWithoutData -= 1;
         }
 
-        let links = parseLinkHeader(jqXHR.getResponseHeader('Link'));
+        const links = parseLinkHeader(jqXHR.getResponseHeader('Link'));
         this._pollingEndpoint = links.previous.href;
 
         this.options.success(data, jqXHR.getResponseHeader('Link'));

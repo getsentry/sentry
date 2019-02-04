@@ -7,11 +7,11 @@ import entries from '../../mocks/entries';
 jest.mock('app/api');
 
 describe('IssueDiff', function() {
-  let routerContext = TestStubs.routerContext();
-  let api = new MockApiClient();
+  const routerContext = TestStubs.routerContext();
+  const api = new MockApiClient();
 
   it('is loading when initially rendering', function() {
-    let wrapper = shallow(<IssueDiff baseIssueId="base" targetIssueId="target" />);
+    const wrapper = shallow(<IssueDiff baseIssueId="base" targetIssueId="target" />);
     expect(wrapper.find('SplitDiff')).toHaveLength(0);
     expect(wrapper).toMatchSnapshot();
   });
@@ -32,7 +32,7 @@ describe('IssueDiff', function() {
     });
 
     // Need `mount` because of componentDidMount in <IssueDiff>
-    let wrapper = mount(
+    const wrapper = mount(
       <IssueDiff api={api} baseIssueId="base" targetIssueId="target" />,
       routerContext
     );
@@ -60,7 +60,7 @@ describe('IssueDiff', function() {
     });
 
     // Need `mount` because of componentDidMount in <IssueDiff>
-    let wrapper = mount(
+    const wrapper = mount(
       <IssueDiff api={api} baseIssueId="base" targetIssueId="target" />,
       routerContext
     );

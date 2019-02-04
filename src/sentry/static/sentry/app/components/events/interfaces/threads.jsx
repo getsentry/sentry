@@ -13,7 +13,7 @@ import Pills from 'app/components/pills';
 import Pill from 'app/components/pill';
 
 function trimFilename(fn) {
-  let pieces = fn.split(/\//g);
+  const pieces = fn.split(/\//g);
   return pieces[pieces.length - 1];
 }
 
@@ -22,7 +22,7 @@ function findRelevantFrame(stacktrace) {
     return stacktrace.frames[stacktrace.frames.length - 1];
   }
   for (let i = stacktrace.frames.length - 1; i >= 0; i--) {
-    let frame = stacktrace.frames[i];
+    const frame = stacktrace.frames[i];
     if (frame.inApp) {
       return frame;
     }
@@ -32,11 +32,11 @@ function findRelevantFrame(stacktrace) {
 }
 
 function findThreadException(thread, event) {
-  for (let entry of event.entries) {
+  for (const entry of event.entries) {
     if (entry.type !== 'exception') {
       continue;
     }
-    for (let exc of entry.data.values) {
+    for (const exc of entry.data.values) {
       if (exc.threadId === thread.id) {
         return entry.data;
       }
@@ -51,10 +51,10 @@ function findThreadStacktrace(thread, event, raw) {
   } else if (thread.stacktrace) {
     return thread.stacktrace;
   }
-  let exc = findThreadException(thread, event);
+  const exc = findThreadException(thread, event);
   if (exc) {
     let rv = null;
-    for (let singleExc of exc.values) {
+    for (const singleExc of exc.values) {
       if (singleExc.threadId === thread.id) {
         rv = (raw && singleExc.rawStacktrace) || singleExc.stacktrace;
       }
@@ -65,8 +65,8 @@ function findThreadStacktrace(thread, event, raw) {
 }
 
 function getThreadTitle(thread, event, simplified) {
-  let stacktrace = findThreadStacktrace(thread, event, false);
-  let bits = ['Thread'];
+  const stacktrace = findThreadStacktrace(thread, event, false);
+  const bits = ['Thread'];
   if (defined(thread.name)) {
     bits.push(` "${thread.name}"`);
   }
@@ -76,7 +76,7 @@ function getThreadTitle(thread, event, simplified) {
 
   if (!simplified) {
     if (stacktrace) {
-      let frame = findRelevantFrame(stacktrace);
+      const frame = findRelevantFrame(stacktrace);
       bits.push(' — ');
       bits.push(
         <em key="location">
@@ -90,7 +90,7 @@ function getThreadTitle(thread, event, simplified) {
     }
 
     if (thread.crashed) {
-      let exc = findThreadException(thread, event);
+      const exc = findThreadException(thread, event);
       bits.push(' — ');
       bits.push(
         <small key="crashed">
@@ -109,12 +109,12 @@ function getIntendedStackView(thread, event) {
 }
 
 function findBestThread(threads) {
-  for (let thread of threads) {
+  for (const thread of threads) {
     if (thread.crashed) {
       return thread;
     }
   }
-  for (let thread of threads) {
+  for (const thread of threads) {
     if (thread.stacktrace) {
       return thread;
     }
@@ -204,7 +204,7 @@ class ThreadsInterface extends React.Component {
 
   constructor(props) {
     super(props);
-    let thread = findBestThread(props.data.values);
+    const thread = findBestThread(props.data.values);
 
     this.state = {
       activeThread: thread,
@@ -245,13 +245,13 @@ class ThreadsInterface extends React.Component {
   };
 
   render() {
-    let group = this.props.group;
-    let evt = this.props.event;
-    let {stackView, stackType, newestFirst, activeThread} = this.state;
-    let exception = this.getException();
-    let stacktrace = this.getStacktrace();
+    const group = this.props.group;
+    const evt = this.props.event;
+    const {stackView, stackType, newestFirst, activeThread} = this.state;
+    const exception = this.getException();
+    const stacktrace = this.getStacktrace();
 
-    let threadSelector = (
+    const threadSelector = (
       <div className="pull-left btn-group">
         <DropdownLink
           btnGroup={true}
@@ -272,7 +272,7 @@ class ThreadsInterface extends React.Component {
       </div>
     );
 
-    let title = (
+    const title = (
       <CrashHeader
         title={null}
         beforeTitle={threadSelector}

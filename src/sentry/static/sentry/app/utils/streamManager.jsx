@@ -1,5 +1,5 @@
-let removeFromList = (item, list) => {
-  let idx = list.indexOf(item);
+const removeFromList = (item, list) => {
+  const idx = list.indexOf(item);
 
   if (idx !== -1) {
     list.splice(idx, 1);
@@ -16,7 +16,7 @@ class StreamManager {
   }
 
   trim() {
-    let excess = this.idList.splice(this.limit, this.idList.length - this.limit);
+    const excess = this.idList.splice(this.limit, this.idList.length - this.limit);
     excess.forEach(this.store.remove);
   }
 
@@ -27,7 +27,7 @@ class StreamManager {
     items = items.filter(item => item.hasOwnProperty('id'));
 
     items.forEach(item => removeFromList(item.id, this.idList));
-    let ids = items.map(item => item.id);
+    const ids = items.map(item => item.id);
     this.idList = [].concat(this.idList, ids);
 
     this.trim();
@@ -49,7 +49,7 @@ class StreamManager {
     if (items.length === 0) return this;
 
     items.forEach(item => removeFromList(item.id, this.idList));
-    let ids = items.map(item => item.id);
+    const ids = items.map(item => item.id);
     this.idList = [].concat(ids, this.idList);
 
     this.trim();

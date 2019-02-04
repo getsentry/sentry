@@ -9,7 +9,7 @@ class DiffModal extends React.Component {
   };
 
   render() {
-    let {className, Body} = this.props;
+    const {className, Body} = this.props;
 
     return (
       <Body>

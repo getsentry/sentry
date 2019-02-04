@@ -14,9 +14,9 @@ class ErrorRenderer extends React.Component {
   };
 
   render() {
-    let {crumb} = this.props;
-    let {type, value, ...extra} = crumb.data || {};
-    let messages = [];
+    const {crumb} = this.props;
+    const {type, value, ...extra} = crumb.data || {};
+    const messages = [];
 
     if (value) {
       messages.push(value);
@@ -25,7 +25,7 @@ class ErrorRenderer extends React.Component {
       messages.push(crumb.message);
     }
 
-    let summary = (
+    const summary = (
       <SummaryLine crumb={crumb}>
         <pre>
           <code>

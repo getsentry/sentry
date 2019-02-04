@@ -160,13 +160,13 @@ class FormModel {
    * will save Map to `snapshots
    */
   createSnapshot() {
-    let snapshot = new Map(this.fields);
+    const snapshot = new Map(this.fields);
     return () => this.snapshots.unshift(snapshot);
   }
 
   getDescriptor(id, key) {
     // Needs to call `has` or else component will not be reactive if `id` doesn't exist in observable map
-    let descriptor = this.fieldDescriptor.has(id) && this.fieldDescriptor.get(id);
+    const descriptor = this.fieldDescriptor.has(id) && this.fieldDescriptor.get(id);
     if (!descriptor) {
       return null;
     }
@@ -176,7 +176,7 @@ class FormModel {
 
   getFieldState(id, key) {
     // Needs to call `has` or else component will not be reactive if `id` doesn't exist in observable map
-    let fieldState = this.fieldState.has(id) && this.fieldState.get(id);
+    const fieldState = this.fieldState.has(id) && this.fieldState.get(id);
     if (!fieldState) {
       return null;
     }
@@ -193,12 +193,12 @@ class FormModel {
   }
 
   getTransformedValue(id) {
-    let fieldDescriptor = this.fieldDescriptor.get(id);
-    let transformer =
+    const fieldDescriptor = this.fieldDescriptor.get(id);
+    const transformer =
       fieldDescriptor && typeof fieldDescriptor.getValue === 'function'
         ? fieldDescriptor.getValue
         : null;
-    let value = this.getValue(id);
+    const value = this.getValue(id);
 
     return transformer ? transformer(value) : value;
   }
@@ -214,7 +214,7 @@ class FormModel {
    * Form data that will be sent to API endpoint (i.e. after transforms)
    */
   getTransformedData() {
-    let form = this.getData();
+    const form = this.getData();
 
     return Object.keys(form)
       .map(id => [id, this.getTransformedValue(id)])
@@ -231,7 +231,7 @@ class FormModel {
   // Returns true if not required or is required and is not empty
   isValidRequiredField(id) {
     // Check field descriptor to see if field is required
-    let isRequired = this.getDescriptor(id, 'required');
+    const isRequired = this.getDescriptor(id, 'required');
     return !isRequired || this.getValue(id) !== '';
   }
 
@@ -240,8 +240,8 @@ class FormModel {
   }
 
   doApiRequest({apiEndpoint, apiMethod, data}) {
-    let endpoint = apiEndpoint || this.options.apiEndpoint;
-    let method = apiMethod || this.options.apiMethod;
+    const endpoint = apiEndpoint || this.options.apiEndpoint;
+    const method = apiMethod || this.options.apiMethod;
     return new Promise((resolve, reject) => {
       this.api.request(endpoint, {
         method,
@@ -254,7 +254,7 @@ class FormModel {
 
   @action
   setValue(id, value) {
-    let fieldDescriptor = this.fieldDescriptor.get(id);
+    const fieldDescriptor = this.fieldDescriptor.get(id);
     let finalValue = value;
 
     if (fieldDescriptor && typeof fieldDescriptor.transformInput === 'function') {
@@ -274,7 +274,7 @@ class FormModel {
 
   @action
   validateField(id) {
-    let validate = this.getDescriptor(id, 'validate');
+    const validate = this.getDescriptor(id, 'validate');
     let errors = [];
 
     if (typeof validate === 'function') {
@@ -282,7 +282,7 @@ class FormModel {
       errors = validate({model: this, id, form: this.getData()}) || [];
     }
 
-    let fieldIsRequiredMessage = t('Field is required');
+    const fieldIsRequiredMessage = t('Field is required');
 
     if (!this.isValidRequiredField(id)) {
       errors.push([id, fieldIsRequiredMessage]);
@@ -296,10 +296,10 @@ class FormModel {
 
   @action
   updateShowSaveState(id, value) {
-    let isValueChanged = value !== this.initialData[id];
+    const isValueChanged = value !== this.initialData[id];
     // Update field state to "show save" if save on blur is disabled for this field
     // (only if contents of field differs from initial value)
-    let saveOnBlurFieldOverride = this.getDescriptor(id, 'saveOnBlur');
+    const saveOnBlurFieldOverride = this.getDescriptor(id, 'saveOnBlur');
     if (typeof saveOnBlurFieldOverride === 'undefined' || saveOnBlurFieldOverride) return;
     if (this.getFieldState(id, 'showSave') === isValueChanged) return;
 
@@ -308,8 +308,8 @@ class FormModel {
 
   @action
   updateShowReturnButtonState(id, value) {
-    let isValueChanged = value !== this.initialData[id];
-    let shouldShowReturnButton = this.getDescriptor(id, 'showReturnButton');
+    const isValueChanged = value !== this.initialData[id];
+    const shouldShowReturnButton = this.getDescriptor(id, 'showReturnButton');
 
     if (!shouldShowReturnButton) return;
     // Only update state if state has changed
@@ -341,7 +341,7 @@ class FormModel {
     if (this.isError) return null;
     let saveSnapshot = this.createSnapshot();
 
-    let request = this.doApiRequest({
+    const request = this.doApiRequest({
       data: this.getTransformedData(),
     });
 
@@ -380,15 +380,15 @@ class FormModel {
    */
   @action
   saveField(id, currentValue) {
-    let oldValue = this.initialData[id];
-    let savePromise = this.saveFieldRequest(id, currentValue);
+    const oldValue = this.initialData[id];
+    const savePromise = this.saveFieldRequest(id, currentValue);
 
     if (!savePromise) return null;
 
     return savePromise
       .then(resp => {
-        let newValue = this.getValue(id);
-        let change = {old: oldValue, new: newValue};
+        const newValue = this.getValue(id);
+        const change = {old: oldValue, new: newValue};
 
         // Only use `allowUndo` option if explicity defined
         if (typeof this.options.allowUndo === 'undefined' || this.options.allowUndo) {
@@ -420,7 +420,7 @@ class FormModel {
    */
   @action
   saveFieldRequest(id, currentValue) {
-    let initialValue = this.initialData[id];
+    const initialValue = this.initialData[id];
 
     // Don't save if field hasn't changed
     // Don't need to check for error state since initialData wouldn't have updated since last error
@@ -437,13 +437,13 @@ class FormModel {
     // Save field + value
     this.setSaving(id, true);
 
-    let fieldDescriptor = this.fieldDescriptor.get(id);
+    const fieldDescriptor = this.fieldDescriptor.get(id);
 
     // Check if field needs to handle transforming request object
-    let getData =
+    const getData =
       typeof fieldDescriptor.getData === 'function' ? fieldDescriptor.getData : a => a;
 
-    let request = this.doApiRequest({
+    const request = this.doApiRequest({
       data: getData(
         {[id]: this.getTransformedValue(id)},
         {model: this, id, form: this.getData()}
@@ -471,7 +471,7 @@ class FormModel {
 
         // Field can be configured to reset on error
         // e.g. BooleanFields
-        let shouldReset = this.getDescriptor(id, 'resetOnError');
+        const shouldReset = this.getDescriptor(id, 'resetOnError');
         if (shouldReset) {
           this.setValue(id, initialValue);
         }
@@ -517,7 +517,7 @@ class FormModel {
     if (!this.options.saveOnBlur) return null;
 
     // Fields can individually set `saveOnBlur` to `false` (note this is ignored when `undefined`)
-    let saveOnBlurFieldOverride = this.getDescriptor(id, 'saveOnBlur');
+    const saveOnBlurFieldOverride = this.getDescriptor(id, 'saveOnBlur');
     if (typeof saveOnBlurFieldOverride !== 'undefined' && !saveOnBlurFieldOverride) {
       return null;
     }
@@ -550,7 +550,7 @@ class FormModel {
 
   @action
   setFieldState(id, key, value) {
-    let state = {
+    const state = {
       ...(this.fieldState.get(id) || {}),
       [key]: value,
     };

@@ -56,7 +56,7 @@ const SaveSearchButton = withApi(
     }
 
     onFieldChange(name, value) {
-      let formData = this.state.formData;
+      const formData = this.state.formData;
       formData[name] = value;
       this.setState({
         formData,
@@ -77,15 +77,15 @@ const SaveSearchButton = withApi(
       if (this.state.state == FormState.SAVING) {
         return;
       }
-      let {api} = this.props;
+      const {api} = this.props;
 
       this.setState(
         {
           state: FormState.SAVING,
         },
         () => {
-          let loadingIndicator = IndicatorStore.add(t('Saving changes..'));
-          let {orgId, projectId} = this.props;
+          const loadingIndicator = IndicatorStore.add(t('Saving changes..'));
+          const {orgId, projectId} = this.props;
           api.request(`/projects/${orgId}/${projectId}/searches/`, {
             method: 'POST',
             data: this.state.formData,
@@ -114,8 +114,8 @@ const SaveSearchButton = withApi(
     }
 
     render() {
-      let isSaving = this.state.state === FormState.SAVING;
-      let {tooltip, buttonTitle, style, children, disabled} = this.props;
+      const isSaving = this.state.state === FormState.SAVING;
+      const {tooltip, buttonTitle, style, children, disabled} = this.props;
       return (
         <React.Fragment>
           <Tooltip
@@ -224,7 +224,7 @@ const SavedSearchSelector = withApi(
     };
 
     getTitle() {
-      let {searchId, query, savedSearchList} = this.props;
+      const {searchId, query, savedSearchList} = this.props;
       let result;
 
       if (searchId) {
@@ -237,10 +237,16 @@ const SavedSearchSelector = withApi(
     }
 
     render() {
-      let {orgId, projectId, queryCount, queryMaxCount, onSavedSearchSelect} = this.props;
-      let hasProject = !!projectId;
+      const {
+        orgId,
+        projectId,
+        queryCount,
+        queryMaxCount,
+        onSavedSearchSelect,
+      } = this.props;
+      const hasProject = !!projectId;
 
-      let children = this.props.savedSearchList.map(search => {
+      const children = this.props.savedSearchList.map(search => {
         return (
           <StyledMenuItem onSelect={() => onSavedSearchSelect(search)} key={search.id}>
             <span>

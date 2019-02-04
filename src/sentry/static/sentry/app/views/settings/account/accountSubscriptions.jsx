@@ -37,11 +37,11 @@ class AccountSubscriptions extends AsyncView {
   }
 
   handleToggle = (subscription, index, e) => {
-    let subscribed = !subscription.subscribed;
-    let oldSubscriptions = this.state.subscriptions;
+    const subscribed = !subscription.subscribed;
+    const oldSubscriptions = this.state.subscriptions;
 
     this.setState(state => {
-      let newSubscriptions = state.subscriptions.slice();
+      const newSubscriptions = state.subscriptions.slice();
       newSubscriptions[index] = {
         ...subscription,
         subscribed,

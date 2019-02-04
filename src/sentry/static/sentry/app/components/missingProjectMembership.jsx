@@ -20,8 +20,8 @@ const MissingProjectMembership = createReactClass({
   mixins: [ApiMixin],
 
   getInitialState() {
-    let {organization, projectId} = this.props;
-    let project = organization.projects.find(p => p.slug === projectId);
+    const {organization, projectId} = this.props;
+    const project = organization.projects.find(p => p.slug === projectId);
 
     return {
       loading: false,
@@ -95,7 +95,7 @@ const MissingProjectMembership = createReactClass({
   },
 
   renderJoinTeams(features) {
-    let {teams} = this.state.project;
+    const {teams} = this.state.project;
     if (!teams.length) {
       return (
         <EmptyMessage>
@@ -116,8 +116,8 @@ const MissingProjectMembership = createReactClass({
   },
 
   render() {
-    let {organization} = this.props;
-    let features = new Set(organization.features);
+    const {organization} = this.props;
+    const features = new Set(organization.features);
 
     return (
       <div className="container">

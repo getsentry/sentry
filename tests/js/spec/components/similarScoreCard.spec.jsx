@@ -14,12 +14,12 @@ describe('SimilarScoreCard', function() {
   });
 
   it('renders', function() {
-    let wrapper = shallow(<SimilarScoreCard />);
+    const wrapper = shallow(<SimilarScoreCard />);
     expect(wrapper).toMatchSnapshot();
   });
 
   it('renders with score list', function() {
-    let wrapper = shallow(
+    const wrapper = shallow(
       <SimilarScoreCard
         scoreList={[
           ['exception,message,character-shingles', null],

@@ -67,7 +67,7 @@ const PluginActions = createReactClass({
       },
       () => {
         plugins.load(data, () => {
-          let issue = data.issue || null;
+          const issue = data.issue || null;
           this.setState({pluginLoading: false, issue});
         });
       }

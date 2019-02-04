@@ -7,7 +7,7 @@ import * as ActionCreators from 'app/actionCreators/formSearch';
 
 describe('FormSource', function() {
   let wrapper;
-  let searchMap = [
+  const searchMap = [
     {
       title: 'Test Field',
       description: 'test-help',
@@ -41,13 +41,13 @@ describe('FormSource', function() {
   });
 
   it('can find a form field', async function() {
-    let mock = jest.fn().mockReturnValue(null);
+    const mock = jest.fn().mockReturnValue(null);
     wrapper = mount(<FormSource query="te">{mock}</FormSource>);
 
     await tick();
     await tick();
     wrapper.update();
-    let calls = mock.mock.calls;
+    const calls = mock.mock.calls;
     expect(calls[calls.length - 1][0].results[0].item).toEqual({
       field: {
         label: 'Test Field',
@@ -64,7 +64,7 @@ describe('FormSource', function() {
   });
 
   it('does not find any form field ', async function() {
-    let mock = jest.fn().mockReturnValue(null);
+    const mock = jest.fn().mockReturnValue(null);
     wrapper = mount(<FormSource query="invalid">{mock}</FormSource>);
 
     await tick();

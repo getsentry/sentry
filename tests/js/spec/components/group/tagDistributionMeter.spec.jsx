@@ -75,7 +75,7 @@ describe('TagDistributionMeter', function() {
           loading: false,
         },
         () => {
-          let out = emptyElement.renderBody();
+          const out = emptyElement.renderBody();
           expect(ReactDOMServer.renderToStaticMarkup(out)).toEqual(
             '<p>No recent data.</p>'
           );

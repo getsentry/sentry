@@ -5,7 +5,7 @@ import {t} from 'app/locale';
 
 class SimilarSpectrum extends React.Component {
   render() {
-    let {className} = this.props;
+    const {className} = this.props;
 
     return (
       <div className={className}>

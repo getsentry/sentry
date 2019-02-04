@@ -28,13 +28,13 @@ class ProjectOwnership extends AsyncView {
   }
 
   getEndpoints() {
-    let {organization, project} = this.props;
+    const {organization, project} = this.props;
     return [['ownership', `/projects/${organization.slug}/${project.slug}/ownership/`]];
   }
 
   renderBody() {
-    let {project, organization} = this.props;
-    let {ownership} = this.state;
+    const {project, organization} = this.props;
+    const {ownership} = this.state;
 
     const disabled = !organization.access.includes('project:write');
 

@@ -38,7 +38,7 @@ export default class ApiForm extends Form {
       return;
     }
 
-    let {data} = this.state;
+    const {data} = this.state;
 
     this.props.onSubmit && this.props.onSubmit(data);
     this.setState(
@@ -46,7 +46,7 @@ export default class ApiForm extends Form {
         state: FormState.SAVING,
       },
       () => {
-        let loadingIndicator = IndicatorStore.add(this.props.submitLoadingMessage);
+        const loadingIndicator = IndicatorStore.add(this.props.submitLoadingMessage);
         this.api.request(this.props.apiEndpoint, {
           method: this.props.apiMethod,
           data,

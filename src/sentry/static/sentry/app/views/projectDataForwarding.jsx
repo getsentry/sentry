@@ -18,11 +18,11 @@ import withProjects from 'app/utils/withProjects';
 
 class DataForwardingStats extends AsyncComponent {
   getEndpoints() {
-    let {orgId, projectId} = this.props.params;
-    let until = Math.floor(new Date().getTime() / 1000);
-    let since = until - 3600 * 24 * 30;
+    const {orgId, projectId} = this.props.params;
+    const until = Math.floor(new Date().getTime() / 1000);
+    const since = until - 3600 * 24 * 30;
 
-    let options = {
+    const options = {
       query: {
         since,
         until,
@@ -68,7 +68,7 @@ class DataForwardingStats extends AsyncComponent {
 
 class ProjectDataForwarding extends AsyncComponent {
   getEndpoints() {
-    let {orgId, projectId} = this.props.params;
+    const {orgId, projectId} = this.props.params;
 
     return [['plugins', `/projects/${orgId}/${projectId}/plugins/`]];
   }
@@ -80,7 +80,7 @@ class ProjectDataForwarding extends AsyncComponent {
   }
 
   updatePlugin(plugin, enabled) {
-    let plugins = this.state.plugins.map(p => ({
+    const plugins = this.state.plugins.map(p => ({
       ...p,
       enabled: p.id === plugin.id ? enabled : p.enabled,
     }));
@@ -92,11 +92,11 @@ class ProjectDataForwarding extends AsyncComponent {
   onDisablePlugin = plugin => this.updatePlugin(plugin, false);
 
   renderBody() {
-    let {params, organization, project} = this.props;
-    let plugins = this.forwardingPlugins;
-    let hasAccess = organization.access.includes('project:write');
+    const {params, organization, project} = this.props;
+    const plugins = this.forwardingPlugins;
+    const hasAccess = organization.access.includes('project:write');
 
-    let pluginsPanel =
+    const pluginsPanel =
       plugins.length > 0 ? (
         <PluginList
           organization={organization}

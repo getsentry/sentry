@@ -55,10 +55,10 @@ class SimilarList extends React.Component {
   };
 
   render() {
-    let {groupId, items, filteredItems, pageLinks, onMerge} = this.props;
-    let hasHiddenItems = !!filteredItems.length;
-    let hasResults = items.length > 0 || hasHiddenItems;
-    let itemsWithFiltered = items.concat(
+    const {groupId, items, filteredItems, pageLinks, onMerge} = this.props;
+    const hasHiddenItems = !!filteredItems.length;
+    const hasResults = items.length > 0 || hasHiddenItems;
+    const itemsWithFiltered = items.concat(
       (this.state.showAllItems && filteredItems) || []
     );
 

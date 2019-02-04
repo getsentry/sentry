@@ -14,8 +14,8 @@ export default class ResolutionBox extends React.Component {
   };
 
   renderReason = () => {
-    let {orgId, projectId, statusDetails} = this.props;
-    let actor = statusDetails.actor ? (
+    const {orgId, projectId, statusDetails} = this.props;
+    const actor = statusDetails.actor ? (
       <strong>
         <Avatar user={statusDetails.actor} size={20} className="avatar" />
         <span style={{marginLeft: 5}}>{statusDetails.actor.name}</span>

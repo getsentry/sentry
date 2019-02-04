@@ -86,8 +86,8 @@ class SentryAppInstallations extends React.Component {
   }
 
   render() {
-    let {orgId} = this.props;
-    let isEmpty = this.state.applications.length === 0;
+    const {orgId} = this.props;
+    const isEmpty = this.state.applications.length === 0;
 
     return (
       <React.Fragment>

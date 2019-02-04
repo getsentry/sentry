@@ -33,15 +33,15 @@ class RecoveryOptionsModal extends AsyncComponent {
   };
 
   renderBody() {
-    let {authenticatorName, closeModal, Body, Header} = this.props;
-    let {authenticators, skipSms} = this.state;
+    const {authenticatorName, closeModal, Body, Header} = this.props;
+    const {authenticators, skipSms} = this.state;
 
-    let {recovery, sms} = authenticators.reduce((obj, item) => {
+    const {recovery, sms} = authenticators.reduce((obj, item) => {
       obj[item.id] = item;
       return obj;
     }, {});
-    let recoveryEnrolled = recovery && recovery.isEnrolled;
-    let displaySmsPrompt = sms && !sms.isEnrolled && !skipSms;
+    const recoveryEnrolled = recovery && recovery.isEnrolled;
+    const displaySmsPrompt = sms && !sms.isEnrolled && !skipSms;
 
     return (
       <React.Fragment>

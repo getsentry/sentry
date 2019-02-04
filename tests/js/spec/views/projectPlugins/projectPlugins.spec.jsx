@@ -4,11 +4,11 @@ import ProjectPlugins from 'app/views/projectPlugins/projectPlugins';
 
 describe('ProjectPlugins', function() {
   let wrapper;
-  let routerContext = TestStubs.routerContext();
-  let plugins = TestStubs.Plugins();
-  let org = TestStubs.Organization();
-  let project = TestStubs.Project();
-  let params = {
+  const routerContext = TestStubs.routerContext();
+  const plugins = TestStubs.Plugins();
+  const org = TestStubs.Organization();
+  const project = TestStubs.Project();
+  const params = {
     orgId: org.slug,
     projectId: project.slug,
   };

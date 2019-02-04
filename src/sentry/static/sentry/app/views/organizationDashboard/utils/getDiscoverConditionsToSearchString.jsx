@@ -10,7 +10,7 @@ const checkIsNull = operator => NULL_OPERATORS.includes(operator);
 const checkIsWildcard = operator => WILDCARD_OPERATORS.includes(operator);
 
 function getDiscoverConditionToSearchString(condition = []) {
-  let [field, operator, value] = condition;
+  const [field, operator, value] = condition;
   const isNegation = checkIsNegation(operator);
   const negationStr = isNegation ? '!' : '';
 
@@ -18,17 +18,19 @@ function getDiscoverConditionToSearchString(condition = []) {
     return `${negationStr}${field}:""`;
   }
 
-  if (!defined(value)) {
-    value = '';
+  let coercedValue = value;
+
+  if (!defined(coercedValue)) {
+    coercedValue = '';
   }
 
   if (checkIsWildcard(operator)) {
     // Do we support both?
-    value = value.replace(/%/g, '*');
+    coercedValue = coercedValue.replace(/%/g, '*');
   }
 
   // TODO(billy): Handle number operators on server
-  return `${negationStr}${field}:${value}`;
+  return `${negationStr}${field}:${coercedValue}`;
 }
 
 export function getDiscoverConditionsToSearchString(conditions = []) {

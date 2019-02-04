@@ -50,7 +50,7 @@ import Stream from 'app/views/stream';
 import errorHandler from 'app/utils/errorHandler';
 
 function appendTrailingSlash(nextState, replace) {
-  let lastChar = nextState.location.pathname.slice(-1);
+  const lastChar = nextState.location.pathname.slice(-1);
   if (lastChar !== '/') {
     replace(nextState.location.pathname + '/');
   }
@@ -66,22 +66,22 @@ function appendTrailingSlash(nextState, replace) {
 const lazyLoad = cb => m => cb(null, m.default);
 
 function routes() {
-  let hooksRoutes = [];
+  const hooksRoutes = [];
   HookStore.get('routes').forEach(cb => {
     hooksRoutes.push(cb());
   });
 
-  let hooksAdminRoutes = [];
+  const hooksAdminRoutes = [];
   HookStore.get('routes:admin').forEach(cb => {
     hooksAdminRoutes.push(cb());
   });
 
-  let hooksOrgRoutes = [];
+  const hooksOrgRoutes = [];
   HookStore.get('routes:organization').forEach(cb => {
     hooksOrgRoutes.push(cb());
   });
 
-  let hooksSurveyRoute = [];
+  const hooksSurveyRoute = [];
   HookStore.get('routes:onboarding-survey').forEach(cb => {
     hooksSurveyRoute.push(cb());
   });

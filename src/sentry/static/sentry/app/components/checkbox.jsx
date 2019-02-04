@@ -7,8 +7,8 @@ class Checkbox extends React.Component {
   };
 
   render() {
-    let {className, ...otherProps} = this.props;
-    let cx = classNames('chk-select', className);
+    const {className, ...otherProps} = this.props;
+    const cx = classNames('chk-select', className);
     return <input type="checkbox" className={cx} {...otherProps} />;
   }
 }

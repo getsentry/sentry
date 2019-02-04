@@ -16,14 +16,14 @@ class Note extends React.Component {
   };
 
   canEdit = () => {
-    let user = ConfigStore.get('user');
+    const user = ConfigStore.get('user');
     return user.isSuperuser || user.id === this.props.item.user.id;
   };
 
   render() {
-    let {item, author, onEdit, onDelete} = this.props;
+    const {item, author, onEdit, onDelete} = this.props;
 
-    let noteBody = marked(item.data.text);
+    const noteBody = marked(item.data.text);
     return (
       <div>
         <TimeSince date={item.dateCreated} />

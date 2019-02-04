@@ -48,24 +48,24 @@ class BackButton extends React.Component {
   };
 
   render() {
-    let {params, organization, lastRoute} = this.props;
-    let {lastAppContext} = this.context;
+    const {params, organization, lastRoute} = this.props;
+    const {lastAppContext} = this.context;
     // lastAppContext is set when Settings is initial loaded,
     // so if that is truthy, determine if we have project context at that point
     // otherwise use what we have in latest context (e.g. if you navigated to settings directly)
-    let shouldGoBackToProject = lastRoute && lastAppContext === 'project';
+    const shouldGoBackToProject = lastRoute && lastAppContext === 'project';
 
-    let projectId = shouldGoBackToProject || !lastAppContext ? params.projectId : null;
-    let orgId = params.orgId || (organization && organization.slug);
-    let url = projectId ? '/:orgId/:projectId/' : '/:orgId/';
-    let label =
+    const projectId = shouldGoBackToProject || !lastAppContext ? params.projectId : null;
+    const orgId = params.orgId || (organization && organization.slug);
+    const url = projectId ? '/:orgId/:projectId/' : '/:orgId/';
+    const label =
       shouldGoBackToProject || (!lastAppContext && projectId)
         ? t('Project')
         : t('Organization');
 
     // if the user needs to setup 2fa as part of the org invite flow,
     // send them back to accept the invite
-    let pendingInvite = Cookies.get('pending-invite');
+    const pendingInvite = Cookies.get('pending-invite');
 
     if (pendingInvite) {
       return (

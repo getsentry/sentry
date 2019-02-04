@@ -69,7 +69,7 @@ const AdminRelays = createReactClass({
   },
 
   render() {
-    let columns = [
+    const columns = [
       <th style={{width: 350, textAlign: 'left'}}>Relay</th>,
       <th>Public Key</th>,
       <th style={{width: 150, textAlign: 'right'}}>First seen</th>,

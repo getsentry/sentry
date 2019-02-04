@@ -21,7 +21,7 @@ describe('OrganizationCreate', function() {
     it('renders without terms', function() {
       ConfigStore.set('termsUrl', null);
       ConfigStore.set('privacyUrl', null);
-      let wrapper = shallow(<OrganizationCreate />, {
+      const wrapper = shallow(<OrganizationCreate />, {
         context: {router: TestStubs.router()},
       });
       expect(wrapper).toMatchSnapshot();
@@ -30,7 +30,7 @@ describe('OrganizationCreate', function() {
     it('renders with terms', function() {
       ConfigStore.set('termsUrl', 'https://example.com/terms');
       ConfigStore.set('privacyUrl', 'https://example.com/privacy');
-      let wrapper = shallow(<OrganizationCreate />, {
+      const wrapper = shallow(<OrganizationCreate />, {
         context: {router: TestStubs.router()},
       });
       expect(wrapper).toMatchSnapshot();

@@ -11,16 +11,16 @@ jest.mock('app/actionCreators/modal', () => ({
 }));
 
 describe('Sentry App Installations', function() {
-  let org = TestStubs.Organization();
-  let sentryApp = TestStubs.SentryApp();
-  let install = TestStubs.SentryAppInstallation({
+  const org = TestStubs.Organization();
+  const sentryApp = TestStubs.SentryApp();
+  const install = TestStubs.SentryAppInstallation({
     organization: {slug: org.slug},
     app: {slug: sentryApp.slug, uuid: 'f4d972ba-1177-4974-943e-4800fe8c7d05'},
     code: '50624ecb-7aac-49d6-934a-83e53677560f',
   });
-  let api = new Client();
+  const api = new Client();
 
-  let routerContext = TestStubs.routerContext();
+  const routerContext = TestStubs.routerContext();
 
   beforeEach(() => {
     Client.clearMockResponses();

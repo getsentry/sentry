@@ -22,8 +22,8 @@ export default class OrganizationCreate extends AsyncView {
   }
 
   renderBody() {
-    let termsUrl = ConfigStore.get('termsUrl');
-    let privacyUrl = ConfigStore.get('privacyUrl');
+    const termsUrl = ConfigStore.get('termsUrl');
+    const privacyUrl = ConfigStore.get('privacyUrl');
 
     return (
       <NarrowLayout showLogout>

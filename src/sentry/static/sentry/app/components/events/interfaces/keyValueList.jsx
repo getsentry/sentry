@@ -31,7 +31,7 @@ class KeyValueList extends React.Component {
     }
 
     data = this.props.isSorted ? _.sortBy(data, [([key]) => key]) : data;
-    let raw = this.props.raw;
+    const raw = this.props.raw;
     const props = this.props.onClick ? {onClick: this.props.onClick} : {};
     return (
       <table className="table key-value" {...props}>

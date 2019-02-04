@@ -32,7 +32,7 @@ export default class MultipleCheckbox extends React.Component {
   };
 
   onChange = (selectedValue, e) => {
-    let {value, onChange} = this.props;
+    const {value, onChange} = this.props;
     let newValue;
 
     if (typeof onChange !== 'function') return;
@@ -47,7 +47,7 @@ export default class MultipleCheckbox extends React.Component {
   };
 
   render() {
-    let {disabled, choices, value} = this.props;
+    const {disabled, choices, value} = this.props;
 
     return (
       <MultipleCheckboxWrapper>

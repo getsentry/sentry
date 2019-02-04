@@ -6,7 +6,7 @@ import OrganizationRepositories from 'app/views/settings/organizationRepositorie
 
 describe('OrganizationRepositories', function() {
   it('renders without providers', function() {
-    let wrapper = shallow(
+    const wrapper = shallow(
       <OrganizationRepositories
         params={{orgId: 'org-slug'}}
         itemList={[]}
@@ -17,7 +17,7 @@ describe('OrganizationRepositories', function() {
   });
 
   it('renders with github provider', function() {
-    let wrapper = shallow(
+    const wrapper = shallow(
       <OrganizationRepositories
         params={{orgId: 'org-slug'}}
         repoConfig={{providers: [TestStubs.GitHubRepositoryProvider({id: 'github'})]}}
@@ -32,7 +32,7 @@ describe('OrganizationRepositories', function() {
       url: '/organizations/org-slug/repos/',
       body: [TestStubs.Repository()],
     });
-    let wrapper = shallow(
+    const wrapper = shallow(
       <OrganizationRepositories
         api={new Client()}
         params={{orgId: 'org-slug'}}

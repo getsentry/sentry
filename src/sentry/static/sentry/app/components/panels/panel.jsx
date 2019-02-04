@@ -7,7 +7,7 @@ import PanelHeader from 'app/components/panels/panelHeader';
 import space from 'app/styles/space';
 
 const Panel = styled(({title, body, dashedBorder, ...props}) => {
-  let hasHeaderAndBody = !!title && !!body;
+  const hasHeaderAndBody = !!title && !!body;
 
   return !hasHeaderAndBody ? (
     <div {...props} />

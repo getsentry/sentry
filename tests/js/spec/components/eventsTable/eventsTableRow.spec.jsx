@@ -5,7 +5,7 @@ import events from '../../../mocks/events';
 
 describe('EventsTableRow', function() {
   it('renders', function() {
-    let wrapper = shallow(
+    const wrapper = shallow(
       <EventsTableRow
         organization={TestStubs.Organization()}
         tagList={[]}

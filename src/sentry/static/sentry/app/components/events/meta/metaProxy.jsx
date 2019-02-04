@@ -66,7 +66,7 @@ export function withMeta(event) {
     return event;
   }
 
-  let _meta = event._meta;
+  const _meta = event._meta;
   return new Proxy(event, new MetaProxy(_meta));
 }
 

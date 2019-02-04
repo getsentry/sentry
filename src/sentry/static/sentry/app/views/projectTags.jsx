@@ -16,17 +16,17 @@ import Tooltip from 'app/components/tooltip';
 
 export default class ProjectTags extends AsyncView {
   getEndpoints() {
-    let {projectId, orgId} = this.props.params;
+    const {projectId, orgId} = this.props.params;
     return [['tags', `/projects/${orgId}/${projectId}/tags/`]];
   }
 
   onDelete(key, idx) {
-    let {projectId, orgId} = this.props.params;
+    const {projectId, orgId} = this.props.params;
 
     this.api.request(`/projects/${orgId}/${projectId}/tags/${key}/`, {
       method: 'DELETE',
       success: () => {
-        let tags = this.state.tags.slice();
+        const tags = this.state.tags.slice();
         tags.splice(idx, 1);
         this.setState({tags});
       },
@@ -40,8 +40,8 @@ export default class ProjectTags extends AsyncView {
   }
 
   renderBody() {
-    let {tags} = this.state;
-    let isEmpty = !tags || tags.length === 0;
+    const {tags} = this.state;
+    const isEmpty = !tags || tags.length === 0;
 
     return (
       <React.Fragment>

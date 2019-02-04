@@ -5,10 +5,10 @@ import {Client} from 'app/api';
 import TeamMembers from 'app/views/settings/organizationTeams/teamMembers';
 
 describe('TeamMembers', function() {
-  let routerContext = TestStubs.routerContext();
-  let org = routerContext.context.organization;
-  let team = TestStubs.Team();
-  let members = TestStubs.Members();
+  const routerContext = TestStubs.routerContext();
+  const org = routerContext.context.organization;
+  const team = TestStubs.Team();
+  const members = TestStubs.Members();
 
   beforeEach(function() {
     Client.clearMockResponses();
@@ -25,7 +25,7 @@ describe('TeamMembers', function() {
   });
 
   it('renders', function() {
-    let wrapper = shallow(
+    const wrapper = shallow(
       <TeamMembers params={{orgId: org.slug, teamId: team.slug}} organization={org} />,
       routerContext
     );
@@ -33,15 +33,15 @@ describe('TeamMembers', function() {
   });
 
   it('can remove a team', function() {
-    let endpoint = `/organizations/${org.slug}/members/${members[0]
+    const endpoint = `/organizations/${org.slug}/members/${members[0]
       .id}/teams/${team.slug}/`;
-    let mock = Client.addMockResponse({
+    const mock = Client.addMockResponse({
       url: endpoint,
       method: 'DELETE',
       statusCode: 200,
     });
 
-    let wrapper = mount(
+    const wrapper = mount(
       <TeamMembers params={{orgId: org.slug, teamId: team.slug}} organization={org} />,
       routerContext
     );

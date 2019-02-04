@@ -59,14 +59,14 @@ class RuleBuilder extends React.Component {
   };
 
   handleAddRule = () => {
-    let {type, text, owners, isValid} = this.state;
+    const {type, text, owners, isValid} = this.state;
 
     if (!isValid) {
       addErrorMessage('A Rule needs a type, a value, and one or more owners.');
       return;
     }
 
-    let ownerText = owners
+    const ownerText = owners
       .map(
         owner =>
           owner.actor.type === 'team'
@@ -75,7 +75,7 @@ class RuleBuilder extends React.Component {
       )
       .join(' ');
 
-    let rule = `${type}:${text} ${ownerText}`;
+    const rule = `${type}:${text} ${ownerText}`;
     this.props.onAddRule(rule);
     this.setState(initialState);
   };
@@ -86,8 +86,8 @@ class RuleBuilder extends React.Component {
   };
 
   render() {
-    let {urls, paths, disabled, project, organization} = this.props;
-    let {type, text, owners, isValid} = this.state;
+    const {urls, paths, disabled, project, organization} = this.props;
+    const {type, text, owners, isValid} = this.state;
 
     return (
       <React.Fragment>

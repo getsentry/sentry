@@ -29,8 +29,8 @@ const TeamProjects = createReactClass({
   ],
 
   getInitialState() {
-    let {teamId} = this.props.params;
-    let projectList = ProjectsStore.getAll();
+    const {teamId} = this.props.params;
+    const projectList = ProjectsStore.getAll();
     return {
       allProjects: projectList,
       error: false,
@@ -39,7 +39,7 @@ const TeamProjects = createReactClass({
   },
 
   componentWillReceiveProps(nextProps) {
-    let params = this.props.params;
+    const params = this.props.params;
     if (
       nextProps.params.teamId !== params.teamId ||
       nextProps.params.orgId !== params.orgId
@@ -49,8 +49,8 @@ const TeamProjects = createReactClass({
   },
 
   onProjectUpdate() {
-    let {teamId} = this.props.params;
-    let projectList = ProjectsStore.getAll();
+    const {teamId} = this.props.params;
+    const projectList = ProjectsStore.getAll();
     this.setState({
       allProjects: projectList,
       projectListLinked: projectList.filter(p => p.teams.find(t1 => teamId === t1.slug)),
@@ -58,7 +58,7 @@ const TeamProjects = createReactClass({
   },
 
   handleLinkProject(project, action) {
-    let {orgId, teamId} = this.props.params;
+    const {orgId, teamId} = this.props.params;
     this.api.request(`/projects/${orgId}/${project.slug}/teams/${teamId}/`, {
       method: action === 'add' ? 'POST' : 'DELETE',
       success: data => {
@@ -76,7 +76,7 @@ const TeamProjects = createReactClass({
   },
 
   handleProjectSelected(selection) {
-    let project = this.state.allProjects.find(p => {
+    const project = this.state.allProjects.find(p => {
       return p.id === selection.value;
     });
 
@@ -84,8 +84,8 @@ const TeamProjects = createReactClass({
   },
 
   projectPanelcontents(projects) {
-    let access = this.getAccess();
-    let canWrite = access.has('org:write');
+    const access = this.getAccess();
+    const canWrite = access.has('org:write');
 
     return projects.length ? (
       sortProjects(projects).map((project, i) => (
@@ -117,12 +117,12 @@ const TeamProjects = createReactClass({
   render() {
     if (this.state.error) return <LoadingError onRetry={this.fetchData} />;
 
-    let {projectListLinked, allProjects} = this.state;
-    let access = this.getAccess();
+    const {projectListLinked, allProjects} = this.state;
+    const access = this.getAccess();
 
-    let linkedProjectIds = new Set(projectListLinked.map(p => p.id));
-    let linkedProjects = allProjects.filter(p => linkedProjectIds.has(p.id));
-    let otherProjects = allProjects
+    const linkedProjectIds = new Set(projectListLinked.map(p => p.id));
+    const linkedProjects = allProjects.filter(p => linkedProjectIds.has(p.id));
+    const otherProjects = allProjects
       .filter(p => {
         return !linkedProjectIds.has(p.id);
       })

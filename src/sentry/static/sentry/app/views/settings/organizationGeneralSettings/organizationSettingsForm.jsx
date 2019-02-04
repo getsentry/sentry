@@ -26,8 +26,8 @@ const OrganizationSettingsForm = createReactClass({
   mixins: [ApiMixin, OrganizationState],
 
   render() {
-    let {initialData, orgId, onSave, access} = this.props;
-    let endpoint = `/organizations/${orgId}/`;
+    const {initialData, orgId, onSave, access} = this.props;
+    const endpoint = `/organizations/${orgId}/`;
     return (
       <Form
         className="ref-organization-settings"

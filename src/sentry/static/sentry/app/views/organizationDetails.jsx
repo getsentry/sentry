@@ -17,7 +17,7 @@ class DeletionInProgress extends Component {
   };
 
   render() {
-    let {organization} = this.props;
+    const {organization} = this.props;
     return (
       <NarrowLayout>
         <p>
@@ -72,8 +72,8 @@ class DeletionPending extends Component {
   };
 
   render() {
-    let {organization} = this.props;
-    let access = new Set(organization.access);
+    const {organization} = this.props;
+    const access = new Set(organization.access);
     return (
       <NarrowLayout>
         <h3>{t('Deletion Scheduled')}</h3>
@@ -125,7 +125,7 @@ class OrganizationDetailsBody extends Component {
   };
 
   render() {
-    let {organization} = this.context;
+    const {organization} = this.context;
 
     if (organization.status)
       if (organization.status.id === 'pending_deletion') {

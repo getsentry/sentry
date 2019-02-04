@@ -11,8 +11,8 @@ describe('withGlobalSelection HoC', function() {
 
   it('handles projects', function() {
     const MyComponent = () => null;
-    let Container = withGlobalSelection(MyComponent);
-    let wrapper = mount(<Container />);
+    const Container = withGlobalSelection(MyComponent);
+    const wrapper = mount(<Container />);
 
     expect(wrapper.find('MyComponent').prop('selection').projects).toEqual([]);
 
@@ -24,8 +24,8 @@ describe('withGlobalSelection HoC', function() {
 
   it('handles datetime', function() {
     const MyComponent = () => null;
-    let Container = withGlobalSelection(MyComponent);
-    let wrapper = mount(<Container />);
+    const Container = withGlobalSelection(MyComponent);
+    const wrapper = mount(<Container />);
 
     expect(wrapper.find('MyComponent').prop('selection').datetime.period).toEqual('14d');
 
@@ -47,8 +47,8 @@ describe('withGlobalSelection HoC', function() {
 
   it('handles environments', function() {
     const MyComponent = () => null;
-    let Container = withGlobalSelection(MyComponent);
-    let wrapper = mount(<Container />);
+    const Container = withGlobalSelection(MyComponent);
+    const wrapper = mount(<Container />);
 
     expect(wrapper.find('MyComponent').prop('selection').environments).toEqual([]);
 

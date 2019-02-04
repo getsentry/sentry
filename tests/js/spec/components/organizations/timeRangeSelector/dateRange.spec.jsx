@@ -34,8 +34,8 @@ const getSelectedRange = wrapper => {
 
 describe('DateRange', function() {
   let wrapper;
-  let onChange = jest.fn();
-  let routerContext = TestStubs.routerContext();
+  const onChange = jest.fn();
+  const routerContext = TestStubs.routerContext();
 
   beforeAll(function() {
     MockDate.set(new Date('2017-10-16T23:41:20.000Z'));

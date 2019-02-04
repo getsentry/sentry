@@ -8,9 +8,9 @@ jest.mock('jquery');
 jest.mock('app/actionCreators/indicator');
 
 describe('OrganizationSettingsForm', function() {
-  let organization = TestStubs.Organization();
+  const organization = TestStubs.Organization();
   let putMock;
-  let onSave = jest.fn();
+  const onSave = jest.fn();
 
   beforeEach(function() {
     MockApiClient.clearMockResponses();
@@ -26,7 +26,7 @@ describe('OrganizationSettingsForm', function() {
       },
     });
 
-    let wrapper = mount(
+    const wrapper = mount(
       <OrganizationSettingsForm
         location={TestStubs.location()}
         orgId={organization.id}
@@ -37,7 +37,7 @@ describe('OrganizationSettingsForm', function() {
       TestStubs.routerContext()
     );
 
-    let input = wrapper.find('input[name="name"]');
+    const input = wrapper.find('input[name="name"]');
     expect(input).toHaveLength(1);
 
     input.simulate('change', {target: {value: 'New Name'}});
@@ -91,7 +91,7 @@ describe('OrganizationSettingsForm', function() {
       method: 'PUT',
     });
 
-    let wrapper = mount(
+    const wrapper = mount(
       <OrganizationSettingsForm
         location={TestStubs.location()}
         orgId={organization.slug}

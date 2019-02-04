@@ -8,9 +8,9 @@ import CrashHeader from 'app/components/events/interfaces/crashHeader';
 import CrashContent from 'app/components/events/interfaces/crashContent';
 
 export function isStacktraceNewestFirst() {
-  let user = ConfigStore.get('user');
+  const user = ConfigStore.get('user');
   // user may not be authenticated
-  let options = user ? user.options : {};
+  const options = user ? user.options : {};
   switch (options.stacktraceOrder) {
     case 2:
       return true;
@@ -45,13 +45,13 @@ class StacktraceInterface extends React.Component {
   };
 
   render() {
-    let group = this.props.group;
-    let evt = this.props.event;
-    let data = this.props.data;
-    let stackView = this.state.stackView;
-    let newestFirst = this.state.newestFirst;
+    const group = this.props.group;
+    const evt = this.props.event;
+    const data = this.props.data;
+    const stackView = this.state.stackView;
+    const newestFirst = this.state.newestFirst;
 
-    let title = (
+    const title = (
       <CrashHeader
         title={t('Stacktrace')}
         group={group}

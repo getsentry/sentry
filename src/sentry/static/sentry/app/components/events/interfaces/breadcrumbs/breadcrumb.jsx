@@ -18,11 +18,11 @@ class Breadcrumb extends React.Component {
   };
 
   getClassName = () => {
-    let {crumb} = this.props;
+    const {crumb} = this.props;
 
     // use Set to avoid duplicate crumb classes (was previously adding
     // values like "crumb-default" as many as three times)
-    let classes = new Set(['crumb', 'crumb-default', 'crumb-' + crumb.level]);
+    const classes = new Set(['crumb', 'crumb-default', 'crumb-' + crumb.level]);
 
     if (crumb.type !== 'default') {
       classes.add('crumb-' + crumb.type.replace(/[\s_]+/g, '-').toLowerCase());
@@ -41,13 +41,13 @@ class Breadcrumb extends React.Component {
   };
 
   renderType = () => {
-    let {crumb} = this.props;
-    let Renderer = CUSTOM_RENDERERS[crumb.type] || DefaultRenderer;
+    const {crumb} = this.props;
+    const Renderer = CUSTOM_RENDERERS[crumb.type] || DefaultRenderer;
     return <Renderer crumb={crumb} />;
   };
 
   render() {
-    let {crumb} = this.props;
+    const {crumb} = this.props;
     return (
       <li className={this.getClassName()}>
         <span className="icon-container">

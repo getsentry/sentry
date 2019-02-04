@@ -11,7 +11,7 @@ class DefaultRenderer extends React.Component {
   };
 
   getTitle = () => {
-    let crumb = this.props.crumb;
+    const crumb = this.props.crumb;
     if (crumb.type === 'default') {
       return null;
     }
@@ -24,7 +24,7 @@ class DefaultRenderer extends React.Component {
   };
 
   renderSummary = () => {
-    let {crumb} = this.props;
+    const {crumb} = this.props;
 
     return (
       <SummaryLine crumb={crumb}>

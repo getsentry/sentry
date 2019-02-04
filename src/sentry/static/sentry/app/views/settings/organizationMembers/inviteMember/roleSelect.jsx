@@ -28,7 +28,7 @@ class RoleSelect extends React.Component {
   };
 
   render() {
-    let {disabled, enforceAllowed, roleList, selectedRole} = this.props;
+    const {disabled, enforceAllowed, roleList, selectedRole} = this.props;
 
     return (
       <Panel className="new-invite-team">
@@ -36,8 +36,8 @@ class RoleSelect extends React.Component {
 
         <PanelBody>
           {roleList.map((role, i) => {
-            let {desc, name, id, allowed} = role;
-            let isDisabled = disabled || (enforceAllowed && !allowed);
+            const {desc, name, id, allowed} = role;
+            const isDisabled = disabled || (enforceAllowed && !allowed);
             return (
               <PanelItem
                 key={id}

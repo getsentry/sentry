@@ -6,7 +6,7 @@ describe('Highlight', function() {
   it('highlights text', function() {
     // shallow because `mount` and React Fragments don't work when accessing children
     // it will only return first child
-    let wrapper = shallow(
+    const wrapper = shallow(
       <HighlightComponent text="ILL">billy@sentry.io</HighlightComponent>,
       TestStubs.routerContext()
     );
@@ -28,7 +28,7 @@ describe('Highlight', function() {
   it('does not have highlighted text if `text` prop is not found in main text', function() {
     // shallow because `mount` and React Fragments don't work when accessing children
     // it will only return first child
-    let wrapper = shallow(
+    const wrapper = shallow(
       <HighlightComponent text="invalid">billy@sentry.io</HighlightComponent>,
       TestStubs.routerContext()
     );
@@ -39,7 +39,7 @@ describe('Highlight', function() {
   it('does not have highlighted text if `text` prop is empty', function() {
     // shallow because `mount` and React Fragments don't work when accessing children
     // it will only return first child
-    let wrapper = shallow(
+    const wrapper = shallow(
       <HighlightComponent text="">billy@sentry.io</HighlightComponent>,
       TestStubs.routerContext()
     );
@@ -50,7 +50,7 @@ describe('Highlight', function() {
   it('does not have highlighted text if `disabled` prop is true', function() {
     // shallow because `mount` and React Fragments don't work when accessing children
     // it will only return first child
-    let wrapper = shallow(
+    const wrapper = shallow(
       <HighlightComponent text="">billy@sentry.io</HighlightComponent>,
       TestStubs.routerContext()
     );

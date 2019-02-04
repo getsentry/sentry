@@ -9,7 +9,7 @@ export function mockRouterPush(wrapper, router) {
       query,
       search: qs.stringify(query),
     };
-    let newRouter = {
+    const newRouter = {
       router: {
         ...router,
         location,

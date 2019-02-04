@@ -38,13 +38,13 @@ const SeenInfo = createReactClass({
   },
 
   getReleaseTrackingUrl() {
-    let {orgId, projectId} = this.props;
+    const {orgId, projectId} = this.props;
 
     return `/${orgId}/${projectId}/settings/release-tracking/`;
   },
 
   getTooltipTitle() {
-    let {date, dateGlobal, environment, title} = this.props;
+    const {date, dateGlobal, environment, title} = this.props;
 
     return componentToString(
       <div style={{width: 170}}>
@@ -68,7 +68,7 @@ const SeenInfo = createReactClass({
   },
 
   render() {
-    let {date, dateGlobal, environment, release, orgId, projectId} = this.props;
+    const {date, dateGlobal, environment, release, orgId, projectId} = this.props;
     return (
       <dl className="seen-info">
         <dt key={0}>{t('When')}:</dt>

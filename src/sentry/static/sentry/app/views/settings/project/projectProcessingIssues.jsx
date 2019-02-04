@@ -63,13 +63,13 @@ const ProjectProcessingIssues = createReactClass({
   },
 
   fetchData() {
-    let {orgId, projectId} = this.props.params;
+    const {orgId, projectId} = this.props.params;
     this.setState({
       expected: this.state.expected + 2,
     });
     this.api.request(`/projects/${orgId}/${projectId}/`, {
       success: (data, _, jqXHR) => {
-        let expected = this.state.expected - 1;
+        const expected = this.state.expected - 1;
         this.setState({
           expected,
           loading: expected > 0,
@@ -77,7 +77,7 @@ const ProjectProcessingIssues = createReactClass({
         });
       },
       error: () => {
-        let expected = this.state.expected - 1;
+        const expected = this.state.expected - 1;
         this.setState({
           expected,
           error: true,
@@ -88,7 +88,7 @@ const ProjectProcessingIssues = createReactClass({
 
     this.api.request(`/projects/${orgId}/${projectId}/processingissues/?detailed=1`, {
       success: (data, _, jqXHR) => {
-        let expected = this.state.expected - 1;
+        const expected = this.state.expected - 1;
         this.setState({
           expected,
           error: false,
@@ -98,7 +98,7 @@ const ProjectProcessingIssues = createReactClass({
         });
       },
       error: () => {
-        let expected = this.state.expected - 1;
+        const expected = this.state.expected - 1;
         this.setState({
           expected,
           error: true,
@@ -112,8 +112,8 @@ const ProjectProcessingIssues = createReactClass({
     this.setState({
       reprocessing: true,
     });
-    let loadingIndicator = addLoadingMessage(t('Started reprocessing..'));
-    let {orgId, projectId} = this.props.params;
+    const loadingIndicator = addLoadingMessage(t('Started reprocessing..'));
+    const {orgId, projectId} = this.props.params;
     this.api.request(`/projects/${orgId}/${projectId}/reprocessing/`, {
       method: 'POST',
       success: (data, _, jqXHR) => {
@@ -134,14 +134,14 @@ const ProjectProcessingIssues = createReactClass({
   },
 
   discardEvents() {
-    let {orgId, projectId} = this.props.params;
+    const {orgId, projectId} = this.props.params;
     this.setState({
       expected: this.state.expected + 1,
     });
     this.api.request(`/projects/${orgId}/${projectId}/processingissues/discard/`, {
       method: 'DELETE',
       success: (data, _, jqXHR) => {
-        let expected = this.state.expected - 1;
+        const expected = this.state.expected - 1;
         this.setState({
           expected,
           error: false,
@@ -152,7 +152,7 @@ const ProjectProcessingIssues = createReactClass({
         window.location.reload();
       },
       error: () => {
-        let expected = this.state.expected - 1;
+        const expected = this.state.expected - 1;
         this.setState({
           expected,
           error: true,
@@ -163,14 +163,14 @@ const ProjectProcessingIssues = createReactClass({
   },
 
   deleteProcessingIssues() {
-    let {orgId, projectId} = this.props.params;
+    const {orgId, projectId} = this.props.params;
     this.setState({
       expected: this.state.expected + 1,
     });
     this.api.request(`/projects/${orgId}/${projectId}/processingissues/`, {
       method: 'DELETE',
       success: (data, _, jqXHR) => {
-        let expected = this.state.expected - 1;
+        const expected = this.state.expected - 1;
         this.setState({
           expected,
           error: false,
@@ -181,7 +181,7 @@ const ProjectProcessingIssues = createReactClass({
         window.location.reload();
       },
       error: () => {
-        let expected = this.state.expected - 1;
+        const expected = this.state.expected - 1;
         this.setState({
           expected,
           error: true,
@@ -225,18 +225,18 @@ const ProjectProcessingIssues = createReactClass({
   },
 
   getProblemDescription(item) {
-    let msg = MESSAGES[item.type];
+    const msg = MESSAGES[item.type];
     return msg || item.message || 'Unknown Error';
   },
 
   getImageName(path) {
-    let pathSegments = path.split(/^([a-z]:\\|\\\\)/i.test(path) ? '\\' : '/');
+    const pathSegments = path.split(/^([a-z]:\\|\\\\)/i.test(path) ? '\\' : '/');
     return pathSegments[pathSegments.length - 1];
   },
 
   renderProblem(item) {
-    let description = this.getProblemDescription(item);
-    let helpLink = HELP_LINKS[item.type];
+    const description = this.getProblemDescription(item);
+    const helpLink = HELP_LINKS[item.type];
     return (
       <div className="processing-issue">
         <span className="description">{description}</span>{' '}
@@ -276,14 +276,14 @@ const ProjectProcessingIssues = createReactClass({
   },
 
   renderResolveButton() {
-    let issues = this.state.processingIssues;
+    const issues = this.state.processingIssues;
     if (issues === null || this.state.reprocessing) {
       return null;
     }
     if (issues.resolveableIssues <= 0) {
       return null;
     }
-    let fixButton = tn(
+    const fixButton = tn(
       'Click here to trigger processing for %s pending event',
       'Click here to trigger processing for %s pending events',
       issues.resolveableIssues
@@ -396,13 +396,13 @@ const ProjectProcessingIssues = createReactClass({
   },
 
   renderReprocessingSettings() {
-    let access = this.getAccess();
+    const access = this.getAccess();
     if (this.state.loading) {
       return this.renderLoading();
     }
 
-    let {formData} = this.state;
-    let {orgId, projectId} = this.props.params;
+    const {formData} = this.state;
+    const {orgId, projectId} = this.props.params;
     return (
       <Form
         saveOnBlur

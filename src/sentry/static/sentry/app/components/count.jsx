@@ -17,7 +17,7 @@ export default createReactClass({
   numberFormats: [[1000000000, 'b'], [1000000, 'm'], [1000, 'k']],
 
   floatFormat(number, places) {
-    let multi = Math.pow(10, places);
+    const multi = Math.pow(10, places);
     return parseInt(number * multi, 10) / multi;
   },
 
@@ -41,7 +41,7 @@ export default createReactClass({
   },
 
   render() {
-    let {value, className} = this.props;
+    const {value, className} = this.props;
 
     return <span className={className}>{this.formatNumber(value)}</span>;
   },

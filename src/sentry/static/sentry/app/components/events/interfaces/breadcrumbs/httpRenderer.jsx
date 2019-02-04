@@ -18,9 +18,9 @@ class HttpRenderer extends React.Component {
   };
 
   render() {
-    let {crumb} = this.props;
-    let {method, status_code, url, ...extra} = crumb.data || {};
-    let summary = (
+    const {crumb} = this.props;
+    const {method, status_code, url, ...extra} = crumb.data || {};
+    const summary = (
       <SummaryLine crumb={crumb}>
         <pre>
           <code>

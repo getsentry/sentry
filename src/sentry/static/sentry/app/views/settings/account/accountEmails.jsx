@@ -42,7 +42,7 @@ class EmailRow extends React.Component {
   };
 
   render() {
-    let {email, isPrimary, isVerified, hideRemove} = this.props;
+    const {email, isPrimary, isVerified, hideRemove} = this.props;
 
     return (
       <PanelItem justify="space-between">
@@ -148,9 +148,9 @@ class AccountEmails extends AsyncView {
   };
 
   renderBody() {
-    let {emails} = this.state;
-    let primary = emails.find(({isPrimary}) => isPrimary);
-    let secondary = emails.filter(({isPrimary}) => !isPrimary);
+    const {emails} = this.state;
+    const primary = emails.find(({isPrimary}) => isPrimary);
+    const secondary = emails.filter(({isPrimary}) => !isPrimary);
 
     return (
       <div>

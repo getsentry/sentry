@@ -89,12 +89,12 @@ describe('Configure should render correctly', function() {
     };
 
     it("shouldn't redirect for a found platform", function() {
-      let props = {
+      const props = {
         ...baseProps,
       };
       props.params.platform = 'node';
 
-      let wrapper = shallow(
+      const wrapper = shallow(
         <Configure {...props} />,
         TestStubs.routerContext([
           {
@@ -105,7 +105,7 @@ describe('Configure should render correctly', function() {
 
       const component = wrapper.instance();
 
-      let handleSubmitStub = sandbox.stub(component, 'redirectToNeutralDocs', () => {});
+      const handleSubmitStub = sandbox.stub(component, 'redirectToNeutralDocs', () => {});
 
       wrapper.update();
       expect(wrapper).toMatchSnapshot();
@@ -113,19 +113,19 @@ describe('Configure should render correctly', function() {
     });
 
     it('should redirect to if no matching platform', function() {
-      let props = {
+      const props = {
         ...baseProps,
       };
       props.params.platform = 'other';
 
-      let handleSubmitStub = sandbox.stub(Configure.prototype, 'redirectToNeutralDocs');
+      const handleSubmitStub = sandbox.stub(Configure.prototype, 'redirectToNeutralDocs');
 
       // 👺 ⚠️ this is a hack to defeat the method auto binding so we can fully stub the method. It would not be neccessary with es6 class components and it relies on react internals so it's fragile - maxbittker
       const index =
         Configure.prototype.__reactAutoBindPairs.indexOf('redirectToNeutralDocs') + 1;
       Configure.prototype.__reactAutoBindPairs[index] = handleSubmitStub;
 
-      let wrapper = shallow(
+      const wrapper = shallow(
         <Configure {...props} />,
         TestStubs.routerContext([
           {
@@ -139,12 +139,12 @@ describe('Configure should render correctly', function() {
     });
 
     it('should render platform docs', async function() {
-      let props = {
+      const props = {
         ...baseProps,
       };
       props.params.platform = 'node';
 
-      let wrapper = mount(
+      const wrapper = mount(
         <Configure {...props} />,
         TestStubs.routerContext([
           {

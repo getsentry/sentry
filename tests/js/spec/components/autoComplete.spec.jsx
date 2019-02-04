@@ -23,7 +23,7 @@ describe('AutoComplete', function() {
   let wrapper;
   let input;
   let autoCompleteState = [];
-  let mocks = {
+  const mocks = {
     onSelect: jest.fn(),
     onClose: jest.fn(),
     onOpen: jest.fn(),
@@ -36,7 +36,7 @@ describe('AutoComplete', function() {
     wrapper = mount(
       <AutoComplete {...mocks} itemToString={item => item.name} {...props}>
         {injectedProps => {
-          let {
+          const {
             getRootProps,
             getInputProps,
             getMenuProps,
@@ -150,7 +150,7 @@ describe('AutoComplete', function() {
     });
 
     it('can open and close dropdown menu using injected actions', function() {
-      let [injectedProps] = autoCompleteState;
+      const [injectedProps] = autoCompleteState;
       injectedProps.actions.open();
       expect(wrapper.state('isOpen')).toBe(true);
       expect(mocks.onOpen).toHaveBeenCalledTimes(1);
@@ -367,7 +367,7 @@ describe('AutoComplete', function() {
     });
 
     it('does not open and close dropdown menu using injected actions', function() {
-      let [injectedProps] = autoCompleteState;
+      const [injectedProps] = autoCompleteState;
       injectedProps.actions.open();
       expect(wrapper.state('isOpen')).toBe(true);
       expect(mocks.onOpen).toHaveBeenCalledTimes(1);

@@ -26,7 +26,7 @@ const Hook = createReactClass({
   mixins: [Reflux.listenTo(HookStore, 'handleHooks')],
 
   getInitialState() {
-    let {name, ...props} = this.props;
+    const {name, ...props} = this.props;
 
     return {
       hooks: HookStore.get(name).map(cb => cb(props)),
@@ -34,7 +34,7 @@ const Hook = createReactClass({
   },
 
   handleHooks(hookName, hooks) {
-    let {name, ...props} = this.props;
+    const {name, ...props} = this.props;
 
     // Make sure that the incoming hook update matches this component's hook name
     if (hookName !== name) return;
@@ -45,7 +45,7 @@ const Hook = createReactClass({
   },
 
   render() {
-    let {children} = this.props;
+    const {children} = this.props;
 
     if (!this.state.hooks || !this.state.hooks.length) return null;
 

@@ -4,7 +4,7 @@ import Tooltip from 'app/components/tooltip';
 
 describe('Tooltip', function() {
   it('renders', function() {
-    let wrapper = mount(
+    const wrapper = mount(
       <Tooltip title="test">
         <span>My Button</span>
       </Tooltip>
@@ -13,7 +13,7 @@ describe('Tooltip', function() {
   });
 
   it('updates title', function() {
-    let wrapper = mount(
+    const wrapper = mount(
       <Tooltip title="test">
         <span>My Button</span>
       </Tooltip>
@@ -28,7 +28,7 @@ describe('Tooltip', function() {
   });
 
   it('disables and re-enables', function() {
-    let wrapper = mount(
+    const wrapper = mount(
       <Tooltip title="test">
         <span>My Button</span>
       </Tooltip>
@@ -45,14 +45,14 @@ describe('Tooltip', function() {
   });
 
   it('simultaneous enable and text change', function() {
-    let wrapper = mount(
+    const wrapper = mount(
       <Tooltip title="test">
         <span>My Button</span>
       </Tooltip>
     );
 
     wrapper.setProps({disabled: true, title: 'bar'});
-    let tip = wrapper.find('span');
+    const tip = wrapper.find('span');
 
     expect(tip.props().title).toBeUndefined();
     wrapper.setProps({disabled: false});

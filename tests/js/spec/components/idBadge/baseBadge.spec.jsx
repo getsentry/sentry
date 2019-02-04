@@ -4,7 +4,7 @@ import BaseBadge from 'app/components/idBadge/baseBadge';
 
 describe('BadgeBadge', function() {
   it('has a display name', function() {
-    let wrapper = shallow(
+    const wrapper = shallow(
       <BaseBadge
         organization={TestStubs.Organization()}
         displayName={<span id="test">display name</span>}
@@ -16,7 +16,7 @@ describe('BadgeBadge', function() {
   });
 
   it('can hide avatar', function() {
-    let wrapper = shallow(
+    const wrapper = shallow(
       <BaseBadge organization={TestStubs.Organization()} hideAvatar />,
       TestStubs.routerContext()
     );
@@ -24,7 +24,7 @@ describe('BadgeBadge', function() {
   });
 
   it('can hide name', function() {
-    let wrapper = shallow(
+    const wrapper = shallow(
       <BaseBadge
         organization={TestStubs.Organization()}
         hideName

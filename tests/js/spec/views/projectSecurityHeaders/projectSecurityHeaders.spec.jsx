@@ -4,9 +4,9 @@ import {shallow} from 'enzyme';
 import ProjectSecurityHeaders from 'app/views/settings/projectSecurityHeaders';
 
 describe('ProjectSecurityHeaders', function() {
-  let org = TestStubs.Organization();
-  let project = TestStubs.Project();
-  let url = `/projects/${org.slug}/${project.slug}/`;
+  const org = TestStubs.Organization();
+  const project = TestStubs.Project();
+  const url = `/projects/${org.slug}/${project.slug}/`;
 
   beforeEach(function() {
     MockApiClient.clearMockResponses();
@@ -18,7 +18,7 @@ describe('ProjectSecurityHeaders', function() {
   });
 
   it('renders', function() {
-    let wrapper = shallow(
+    const wrapper = shallow(
       <ProjectSecurityHeaders
         organization={org}
         project={project}

@@ -14,7 +14,7 @@ class SettingsNavItem extends React.Component {
   };
 
   render() {
-    let {badge, label, index, ...props} = this.props;
+    const {badge, label, index, ...props} = this.props;
 
     let renderedBadge = '';
 

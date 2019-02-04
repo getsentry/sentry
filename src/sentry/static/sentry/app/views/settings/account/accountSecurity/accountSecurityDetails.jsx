@@ -46,7 +46,7 @@ class AuthenticatorDate extends React.Component {
     date: PropTypes.string,
   };
   render() {
-    let {label, date} = this.props;
+    const {label, date} = this.props;
 
     return (
       <Flex mb={1}>
@@ -81,11 +81,11 @@ class AccountSecurityDetails extends AsyncView {
   }
 
   handleRemove = device => {
-    let {authenticator} = this.state;
+    const {authenticator} = this.state;
 
     if (!authenticator || !authenticator.authId) return;
-    let isRemovingU2fDevice = !!device;
-    let deviceId = isRemovingU2fDevice ? `${device.key_handle}/` : '';
+    const isRemovingU2fDevice = !!device;
+    const deviceId = isRemovingU2fDevice ? `${device.key_handle}/` : '';
 
     this.setState(
       {
@@ -99,12 +99,12 @@ class AccountSecurityDetails extends AsyncView {
           .then(
             () => {
               this.props.router.push('/settings/account/security');
-              let deviceName = isRemovingU2fDevice ? device.name : 'Authenticator';
+              const deviceName = isRemovingU2fDevice ? device.name : 'Authenticator';
               addSuccessMessage(t('%s has been removed', deviceName));
             },
             () => {
               // Error deleting authenticator
-              let deviceName = isRemovingU2fDevice ? device.name : 'authenticator';
+              const deviceName = isRemovingU2fDevice ? device.name : 'authenticator';
               this.addError(t('Error removing %s', deviceName));
             }
           )
@@ -116,8 +116,8 @@ class AccountSecurityDetails extends AsyncView {
   };
 
   renderBody() {
-    let {authenticator} = this.state;
-    let {deleteDisabled, onRegenerateBackupCodes} = this.props;
+    const {authenticator} = this.state;
+    const {deleteDisabled, onRegenerateBackupCodes} = this.props;
 
     return (
       <div>

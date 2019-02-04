@@ -96,13 +96,16 @@ const GroupTagValues = createReactClass({
       return <LoadingError onRetry={this.fetchData} />;
     }
 
-    let {orgId, projectId} = this.props.params;
-    let tagKey = this.state.tagKey;
+    const {orgId, projectId} = this.props.params;
+    const tagKey = this.state.tagKey;
 
-    let sortedTagValueList = sortBy(this.state.tagValueList, property('count')).reverse();
+    const sortedTagValueList = sortBy(
+      this.state.tagValueList,
+      property('count')
+    ).reverse();
 
-    let children = sortedTagValueList.map((tagValue, tagValueIdx) => {
-      let pct = percent(tagValue.count, tagKey.totalValues).toFixed(2);
+    const children = sortedTagValueList.map((tagValue, tagValueIdx) => {
+      const pct = percent(tagValue.count, tagKey.totalValues).toFixed(2);
       return (
         <tr key={tagValueIdx}>
           <td className="bar-cell">

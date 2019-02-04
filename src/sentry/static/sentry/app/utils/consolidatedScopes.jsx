@@ -39,8 +39,8 @@ export default class ConsolidatedScopes {
    *    }
    */
   toResourcePermissions() {
-    let scopes = [...this.scopes];
-    let permissions = this.defaultResourcePermissions;
+    const scopes = [...this.scopes];
+    const permissions = this.defaultResourcePermissions;
 
     // The scope for releases is `project:releases`, but instead of displaying
     // it as a permission of Project, we want to separate it out into its own
@@ -51,7 +51,7 @@ export default class ConsolidatedScopes {
     }
 
     this.topScopes(scopes).forEach(scope => {
-      let [resource, permission] = scope.split(':');
+      const [resource, permission] = scope.split(':');
       permissions[HUMAN_RESOURCE_NAMES[resource]] = permission;
     });
 
@@ -76,8 +76,8 @@ export default class ConsolidatedScopes {
    *    }
    */
   toPermissions() {
-    let scopes = [...this.scopes];
-    let permissions = {read: [], write: [], admin: []};
+    const scopes = [...this.scopes];
+    const permissions = {read: [], write: [], admin: []};
 
     // The scope for releases is `project:releases`, but instead of displaying
     // it as a permission of Project, we want to separate it out into its own
@@ -88,7 +88,7 @@ export default class ConsolidatedScopes {
     }
 
     this.topScopes(scopes).forEach(scope => {
-      let [resource, permission] = scope.split(':');
+      const [resource, permission] = scope.split(':');
       permissions[permission].push(HUMAN_RESOURCE_NAMES[resource]);
     });
 
@@ -120,7 +120,7 @@ export default class ConsolidatedScopes {
    * which is higher than Read. Used to sort scopes by access.
    */
   permissionLevel = scope => {
-    let permission = scope.split(':')[1];
+    const permission = scope.split(':')[1];
     return PERMISSION_LEVELS[permission];
   };
 

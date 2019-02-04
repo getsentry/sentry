@@ -26,7 +26,7 @@ class AdminUsers extends React.Component {
   };
 
   render() {
-    let columns = [
+    const columns = [
       <th>User</th>,
       <th style={{textAlign: 'center', width: 150}}>Joined</th>,
       <th style={{textAlign: 'center', width: 150}}>Last Login</th>,

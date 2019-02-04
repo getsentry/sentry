@@ -1,6 +1,6 @@
 import Reflux from 'reflux';
 
-let EnvironmentActions = Reflux.createActions([
+const EnvironmentActions = Reflux.createActions([
   'setActive',
   'clearActive',
   'loadData',

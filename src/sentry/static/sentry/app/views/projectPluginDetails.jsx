@@ -21,7 +21,7 @@ import withPlugins from 'app/utils/withPlugins';
  */
 class ProjectPluginDetails extends AsyncView {
   getTitle() {
-    let {plugin} = this.state;
+    const {plugin} = this.state;
     if (plugin && plugin.name) {
       return plugin.name;
     } else {
@@ -30,7 +30,7 @@ class ProjectPluginDetails extends AsyncView {
   }
 
   getEndpoints() {
-    let {projectId, orgId, pluginId} = this.props.params;
+    const {projectId, orgId, pluginId} = this.props.params;
     return [['pluginDetails', `/projects/${orgId}/${projectId}/plugins/${pluginId}/`]];
   }
 
@@ -39,8 +39,8 @@ class ProjectPluginDetails extends AsyncView {
   }
 
   handleReset = () => {
-    let {projectId, orgId, pluginId} = this.props.params;
-    let loadingIndicator = IndicatorStore.add(t('Saving changes..'));
+    const {projectId, orgId, pluginId} = this.props.params;
+    const loadingIndicator = IndicatorStore.add(t('Saving changes..'));
     this.api.request(`/projects/${orgId}/${projectId}/plugins/${pluginId}/`, {
       method: 'POST',
       data: {reset: true},
@@ -65,10 +65,10 @@ class ProjectPluginDetails extends AsyncView {
 
   // Enabled state is handled via PluginsStore and not via plugins detail
   getEnabled() {
-    let {pluginDetails} = this.state;
-    let {plugins} = this.props;
+    const {pluginDetails} = this.state;
+    const {plugins} = this.props;
 
-    let plugin =
+    const plugin =
       plugins &&
       plugins.plugins &&
       plugins.plugins.find(({slug}) => slug === this.props.params.pluginId);
@@ -77,16 +77,16 @@ class ProjectPluginDetails extends AsyncView {
   }
 
   renderActions() {
-    let {pluginDetails} = this.state;
-    let enabled = this.getEnabled();
+    const {pluginDetails} = this.state;
+    const enabled = this.getEnabled();
 
-    let enable = (
+    const enable = (
       <Button size="small" onClick={this.handleEnable} style={{marginRight: '6px'}}>
         {t('Enable Plugin')}
       </Button>
     );
 
-    let disable = (
+    const disable = (
       <Button
         size="small"
         priority="danger"
@@ -97,7 +97,7 @@ class ProjectPluginDetails extends AsyncView {
       </Button>
     );
 
-    let toggleEnable = enabled ? disable : enable;
+    const toggleEnable = enabled ? disable : enable;
 
     return (
       <div className="pull-right">
@@ -110,8 +110,8 @@ class ProjectPluginDetails extends AsyncView {
   }
 
   renderBody() {
-    let {organization, project} = this.props;
-    let {pluginDetails} = this.state;
+    const {organization, project} = this.props;
+    const {pluginDetails} = this.state;
 
     return (
       <div>

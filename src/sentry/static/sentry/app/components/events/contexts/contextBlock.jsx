@@ -14,7 +14,7 @@ class ContextBlock extends React.Component {
 
   render() {
     let data = [];
-    let className = `context-block context-block-${this.props.data.type}`;
+    const className = `context-block context-block-${this.props.data.type}`;
 
     (this.props.knownData || []).forEach(([key, value]) => {
       let allowSkip = false;
@@ -31,8 +31,8 @@ class ContextBlock extends React.Component {
       data.push([key, value]);
     });
 
-    let extraData = [];
-    for (let key in this.props.data) {
+    const extraData = [];
+    for (const key in this.props.data) {
       if (key !== 'type' && key !== 'title') {
         extraData.push([key, this.props.data[key]]);
       }

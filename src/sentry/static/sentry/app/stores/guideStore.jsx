@@ -75,7 +75,7 @@ const GuideStore = Reflux.createStore({
   },
 
   onCloseGuide() {
-    let {currentGuide} = this.state;
+    const {currentGuide} = this.state;
     this.state.guides[
       Object.keys(this.state.guides).find(key => {
         return this.state.guides[key].id == currentGuide.id;
@@ -107,7 +107,7 @@ const GuideStore = Reflux.createStore({
   },
 
   recordCue(id, cue) {
-    let data = {
+    const data = {
       guide: id,
       cue,
     };
@@ -140,13 +140,13 @@ const GuideStore = Reflux.createStore({
   },
 
   async getProjectStats(projectId) {
-    let {org, project, projectStats} = this.state;
+    const {org, project, projectStats} = this.state;
 
     if (projectStats.has(projectId)) {
       return Promise.resolve(projectStats.get(projectId));
     }
 
-    let path = `/projects/${org.slug}/${project.slug}/stats/`;
+    const path = `/projects/${org.slug}/${project.slug}/stats/`;
     return this.api
       .requestPromise(path, {
         query: {
@@ -155,20 +155,20 @@ const GuideStore = Reflux.createStore({
         },
       })
       .then(data => {
-        let eventsReceived = data.reduce((sum, point) => sum + point[1], 0);
+        const eventsReceived = data.reduce((sum, point) => sum + point[1], 0);
         projectStats.set(projectId, eventsReceived);
         return eventsReceived;
       });
   },
 
   async getProjectRules(projectId) {
-    let {org, project, projectRules} = this.state;
+    const {org, project, projectRules} = this.state;
 
     if (projectRules.has(projectId)) {
       return Promise.resolve(projectRules.get(projectId));
     }
 
-    let path = `/projects/${org.slug}/${project.slug}/rules/`;
+    const path = `/projects/${org.slug}/${project.slug}/rules/`;
     return this.api
       .requestPromise(path, {
         query: {
@@ -177,7 +177,7 @@ const GuideStore = Reflux.createStore({
         },
       })
       .then(data => {
-        let result = !this.isDefaultAlert(data);
+        const result = !this.isDefaultAlert(data);
         projectRules.set(projectId, result);
         return result;
       });
@@ -186,13 +186,13 @@ const GuideStore = Reflux.createStore({
   async checkAlertTipData() {
     // Check if we have the data needed to determine if the alert-reminder tip should be shown.
     // If not, take the necessary actions to fetch the data.
-    let {org, project} = this.state;
+    const {org, project} = this.state;
 
     if (!org || !project) {
       return Promise.resolve([]);
     }
 
-    let projectId = parseInt(project.id, 10);
+    const projectId = parseInt(project.id, 10);
     return Promise.all([
       this.getProjectStats(projectId),
       this.getProjectRules(projectId),
@@ -201,7 +201,7 @@ const GuideStore = Reflux.createStore({
 
   async getBestGuideKey(guideKeys) {
     // Pick the first guide that satisfies conditions.
-    let user = ConfigStore.get('user');
+    const user = ConfigStore.get('user');
 
     return new Promise(async (resolve, reject) => {
       let projectData = [];
@@ -214,7 +214,7 @@ const GuideStore = Reflux.createStore({
         guideKeys.find(key => {
           // Pick the first guide that satisfies conditions.
           if (key === ALERT_REMINDER_1) {
-            let [stats, rules] = projectData;
+            const [stats, rules] = projectData;
             return !rules && stats > 1000;
           } else if (
             user.isSuperuser ||
@@ -238,7 +238,7 @@ const GuideStore = Reflux.createStore({
     // 5. If the user has seen the guide, don't show it.
     // 6. Otherwise show the guide.
 
-    let availableTargets = [...this.state.anchors].map(a => a.props.target);
+    const availableTargets = [...this.state.anchors].map(a => a.props.target);
 
     // sort() so that we pick a guide deterministically every time this function is called.
     let guideKeys = Object.keys(this.state.guides)
@@ -254,7 +254,7 @@ const GuideStore = Reflux.createStore({
     }
 
     // Pick the first guide that satisfies conditions.
-    let bestGuideKey = await this.getBestGuideKey(guideKeys);
+    const bestGuideKey = await this.getBestGuideKey(guideKeys);
 
     let bestGuide = null;
     if (bestGuideKey) {

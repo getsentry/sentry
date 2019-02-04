@@ -58,7 +58,7 @@ export default class SentryApplicationDetails extends AsyncView {
   }
 
   getEndpoints() {
-    let {appSlug} = this.props.params;
+    const {appSlug} = this.props.params;
 
     if (appSlug) {
       return [['app', `/sentry-apps/${appSlug}/`]];
@@ -92,8 +92,8 @@ export default class SentryApplicationDetails extends AsyncView {
     const scopes = (app && [...app.scopes]) || [];
     const events = (app && this.normalize(app.events)) || [];
 
-    let method = app ? 'PUT' : 'POST';
-    let endpoint = app ? `/sentry-apps/${app.slug}/` : '/sentry-apps/';
+    const method = app ? 'PUT' : 'POST';
+    const endpoint = app ? `/sentry-apps/${app.slug}/` : '/sentry-apps/';
 
     return (
       <div>

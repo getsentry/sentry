@@ -22,15 +22,15 @@ const withLatestContext = WrappedComponent =>
       mixins: [Reflux.connect(LatestContextStore, 'latestContext')],
 
       render() {
-        let {organizations} = this.props;
-        let {latestContext} = this.state;
-        let {organization, project, lastRoute} = latestContext || {};
+        const {organizations} = this.props;
+        const {latestContext} = this.state;
+        const {organization, project, lastRoute} = latestContext || {};
 
         // Even though org details exists in LatestContextStore,
         // fetch organization from OrganizationsStore so that we can
         // expect consistent data structure because OrganizationsStore has a list
         // of orgs but not full org details
-        let latestOrganization =
+        const latestOrganization =
           organization ||
           (organizations && organizations.length
             ? organizations.find(

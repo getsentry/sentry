@@ -35,7 +35,7 @@ describe('OrganizationGeneralSettings', function() {
       statusCode: 500,
       body: {},
     });
-    let wrapper = mount(
+    const wrapper = mount(
       <OrganizationGeneralSettings params={{orgId: org.slug}} />,
       TestStubs.routerContext()
     );
@@ -47,11 +47,11 @@ describe('OrganizationGeneralSettings', function() {
   });
 
   it('can enable "early adopter"', async function() {
-    let wrapper = mount(
+    const wrapper = mount(
       <OrganizationGeneralSettings params={{orgId: org.slug}} />,
       TestStubs.routerContext()
     );
-    let mock = MockApiClient.addMockResponse({
+    const mock = MockApiClient.addMockResponse({
       url: ENDPOINT,
       method: 'PUT',
     });
@@ -69,11 +69,11 @@ describe('OrganizationGeneralSettings', function() {
   });
 
   it('changes org slug and redirects to new slug', async function() {
-    let wrapper = mount(
+    const wrapper = mount(
       <OrganizationGeneralSettings params={{orgId: org.slug}} />,
       TestStubs.routerContext()
     );
-    let mock = MockApiClient.addMockResponse({
+    const mock = MockApiClient.addMockResponse({
       url: ENDPOINT,
       method: 'PUT',
     });
@@ -108,7 +108,7 @@ describe('OrganizationGeneralSettings', function() {
       url: ENDPOINT,
       body: readOnlyOrg,
     });
-    let wrapper = mount(
+    const wrapper = mount(
       <OrganizationGeneralSettings routes={[]} params={{orgId: readOnlyOrg.slug}} />,
       TestStubs.routerContext([{organization: readOnlyOrg}])
     );
@@ -137,7 +137,7 @@ describe('OrganizationGeneralSettings', function() {
         access: ['org:write'],
       }),
     });
-    let wrapper = mount(
+    const wrapper = mount(
       <OrganizationGeneralSettings params={{orgId: org.slug}} />,
       TestStubs.routerContext()
     );
@@ -157,11 +157,11 @@ describe('OrganizationGeneralSettings', function() {
         access: ['org:admin'],
       }),
     });
-    let wrapper = mount(
+    const wrapper = mount(
       <OrganizationGeneralSettings params={{orgId: org.slug}} />,
       TestStubs.routerContext()
     );
-    let mock = MockApiClient.addMockResponse({
+    const mock = MockApiClient.addMockResponse({
       url: ENDPOINT,
       method: 'DELETE',
     });
@@ -186,7 +186,7 @@ describe('OrganizationGeneralSettings', function() {
   });
 
   it('shows require2fa switch w/ feature flag', async function() {
-    let wrapper = mount(
+    const wrapper = mount(
       <OrganizationGeneralSettings params={{orgId: org.slug}} />,
       TestStubs.routerContext([
         {
@@ -204,11 +204,11 @@ describe('OrganizationGeneralSettings', function() {
   });
 
   it('enables require2fa but cancels confirm modal', async function() {
-    let mock = MockApiClient.addMockResponse({
+    const mock = MockApiClient.addMockResponse({
       url: '/organizations/org-slug/',
       method: 'PUT',
     });
-    let wrapper = mount(
+    const wrapper = mount(
       <OrganizationGeneralSettings params={{orgId: org.slug}} />,
       TestStubs.routerContext([
         {
@@ -237,12 +237,12 @@ describe('OrganizationGeneralSettings', function() {
   });
 
   it('enables require2fa with confirm modal', async function() {
-    let mock = MockApiClient.addMockResponse({
+    const mock = MockApiClient.addMockResponse({
       url: '/organizations/org-slug/',
       method: 'PUT',
     });
 
-    let wrapper = mount(
+    const wrapper = mount(
       <OrganizationGeneralSettings params={{orgId: org.slug}} />,
       TestStubs.routerContext([
         {
@@ -286,7 +286,7 @@ describe('OrganizationGeneralSettings', function() {
       statusCode: 500,
     });
 
-    let wrapper = mount(
+    const wrapper = mount(
       <OrganizationGeneralSettings params={{orgId: org.slug}} />,
       TestStubs.routerContext([
         {

@@ -64,7 +64,7 @@ const OrganizationGeneralSettings = createReactClass({
   },
 
   handleRemoveOrganization() {
-    let {data} = this.state || {};
+    const {data} = this.state || {};
     if (!data) return;
 
     addLoadingMessage();
@@ -88,11 +88,11 @@ const OrganizationGeneralSettings = createReactClass({
   },
 
   render() {
-    let {data, loading, error} = this.state;
-    let orgId = this.props.params.orgId;
-    let access = data && new Set(data.access);
+    const {data, loading, error} = this.state;
+    const orgId = this.props.params.orgId;
+    const access = data && new Set(data.access);
 
-    let hasProjects = data && data.projects && !!data.projects.length;
+    const hasProjects = data && data.projects && !!data.projects.length;
 
     return (
       <div>

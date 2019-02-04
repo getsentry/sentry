@@ -18,7 +18,7 @@ class FileChange extends React.PureComponent {
   }
 
   render() {
-    let {filename, authors} = this.props;
+    const {filename, authors} = this.props;
     return (
       <li className="list-group-item list-group-item-sm release-file-change">
         <div className="row row-flex row-center-vertically">

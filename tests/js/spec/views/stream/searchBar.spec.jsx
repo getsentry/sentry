@@ -49,13 +49,13 @@ describe('SearchBar', function() {
     });
 
     it('sets state with complete tag', function() {
-      let props = {
+      const props = {
         orgId: '123',
         projectId: '456',
         query: 'url:"fu"',
         supportedTags,
       };
-      let searchBar = mount(<SearchBar {...props} />, options);
+      const searchBar = mount(<SearchBar {...props} />, options);
       clickInput(searchBar);
       clock.tick(301);
       expect(searchBar.find('SearchDropdown').prop('searchSubstring')).toEqual('"fu"');
@@ -67,14 +67,14 @@ describe('SearchBar', function() {
     });
 
     it('sets state when value has colon', function() {
-      let props = {
+      const props = {
         orgId: '123',
         projectId: '456',
         query: 'url:"http://example.com"',
         supportedTags,
       };
 
-      let searchBar = mount(<SearchBar {...props} />, options);
+      const searchBar = mount(<SearchBar {...props} />, options);
       clickInput(searchBar);
       expect(searchBar.state.searchTerm).toEqual();
       expect(searchBar.find('SearchDropdown').prop('searchSubstring')).toEqual(
@@ -92,29 +92,29 @@ describe('SearchBar', function() {
 
     it('does not request values when tag is `timesSeen`', function() {
       // This should never get called
-      let mock = MockApiClient.addMockResponse({
+      const mock = MockApiClient.addMockResponse({
         url: '/projects/123/456/tags/timesSeen/values/',
         body: [],
       });
-      let props = {
+      const props = {
         orgId: '123',
         projectId: '456',
         query: 'timesSeen:',
         supportedTags,
       };
-      let searchBar = mount(<SearchBar {...props} />, options);
+      const searchBar = mount(<SearchBar {...props} />, options);
       clickInput(searchBar);
       clock.tick(301);
       expect(mock).not.toHaveBeenCalled();
     });
 
     it('sets state with complete tag when there is no projectid', function() {
-      let props = {
+      const props = {
         orgId: '123',
         query: 'url:"fu"',
         supportedTags,
       };
-      let searchBar = mount(<SearchBar {...props} />, options);
+      const searchBar = mount(<SearchBar {...props} />, options);
       clickInput(searchBar);
       clock.tick(301);
       expect(searchBar.find('SearchDropdown').prop('searchSubstring')).toEqual('"fu"');

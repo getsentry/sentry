@@ -20,7 +20,7 @@ class AdminOrganizations extends React.Component {
   };
 
   render() {
-    let columns = [<th>Organization</th>];
+    const columns = [<th>Organization</th>];
 
     return (
       <div>

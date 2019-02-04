@@ -9,7 +9,7 @@ const ENDPOINT = '/users/me/password/';
 describe('PasswordForm', function() {
   let wrapper;
   let putMock;
-  let routerContext = TestStubs.routerContext([
+  const routerContext = TestStubs.routerContext([
     {
       router: {
         ...TestStubs.router(),

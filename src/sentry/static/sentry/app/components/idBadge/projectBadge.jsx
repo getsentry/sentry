@@ -23,7 +23,7 @@ export default class ProjectBadge extends React.PureComponent {
   };
 
   render() {
-    let {hideOverflow, project, ...props} = this.props;
+    const {hideOverflow, project, ...props} = this.props;
 
     return (
       <BaseBadge

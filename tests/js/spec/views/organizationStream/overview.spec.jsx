@@ -113,7 +113,7 @@ describe('OrganizationStream', function() {
           datetime: {period: '14d'},
         },
       });
-      let value = wrapper.instance().getEndpointParams();
+      const value = wrapper.instance().getEndpointParams();
 
       expect(value.project).toBeUndefined();
       expect(value.projects).toBeUndefined();
@@ -131,7 +131,7 @@ describe('OrganizationStream', function() {
           },
         },
       });
-      let value = wrapper.instance().getEndpointParams();
+      const value = wrapper.instance().getEndpointParams();
 
       expect(value.groupStatsPeriod).toBeUndefined();
       expect(value.sort).toBeUndefined();
@@ -139,7 +139,7 @@ describe('OrganizationStream', function() {
 
     it('uses saved search data', function() {
       wrapper.setState({savedSearch});
-      let value = wrapper.instance().getEndpointParams();
+      const value = wrapper.instance().getEndpointParams();
 
       expect(value.query).toEqual(savedSearch.query);
       expect(value.project).toEqual([parseInt(savedSearch.projectId, 10)]);
@@ -152,7 +152,7 @@ describe('OrganizationStream', function() {
     });
 
     it('fetches tags and sets state', async function() {
-      let instance = wrapper.instance();
+      const instance = wrapper.instance();
       await instance.componentDidMount();
 
       expect(fetchTagsRequest).toHaveBeenCalled();
@@ -161,11 +161,11 @@ describe('OrganizationStream', function() {
     });
 
     it('fetches members and sets state', async function() {
-      let instance = wrapper.instance();
+      const instance = wrapper.instance();
       await instance.componentDidMount();
       await wrapper.update();
 
-      let members = instance.state.memberList;
+      const members = instance.state.memberList;
       // Spot check the resulting structure as we munge it a bit.
       expect(members).toBeTruthy();
       expect(members[project.slug]).toBeTruthy();
@@ -184,7 +184,7 @@ describe('OrganizationStream', function() {
     });
 
     it('fetches searches and sets the savedSearch', async function() {
-      let instance = wrapper.instance();
+      const instance = wrapper.instance();
       await instance.componentDidMount();
       await wrapper.update();
 
@@ -192,7 +192,7 @@ describe('OrganizationStream', function() {
     });
 
     it('uses the saved search query', async function() {
-      let instance = wrapper.instance();
+      const instance = wrapper.instance();
       await instance.componentDidMount();
       await wrapper.update();
 
@@ -207,7 +207,7 @@ describe('OrganizationStream', function() {
     });
 
     it('does not set the savedSearch state', async function() {
-      let instance = wrapper.instance();
+      const instance = wrapper.instance();
       await instance.componentDidMount();
       await wrapper.update();
 
@@ -226,7 +226,7 @@ describe('OrganizationStream', function() {
     });
 
     it('fetches data on selection change', function() {
-      let selection = {projects: [99], environments: [], datetime: {period: '24h'}};
+      const selection = {projects: [99], environments: [], datetime: {period: '24h'}};
       wrapper.setProps({selection, foo: 'bar'});
 
       expect(fetchDataMock).toHaveBeenCalled();
@@ -240,7 +240,7 @@ describe('OrganizationStream', function() {
     });
 
     it('fetches data on location change', function() {
-      let queryAttrs = ['query', 'sort', 'statsPeriod', 'cursor', 'groupStatsPeriod'];
+      const queryAttrs = ['query', 'sort', 'statsPeriod', 'cursor', 'groupStatsPeriod'];
       let location = clonedeep(props.location);
       queryAttrs.forEach((attr, i) => {
         // reclone each iteration so that only one property changes.
@@ -260,7 +260,7 @@ describe('OrganizationStream', function() {
     });
 
     it('fetches and displays processing issues', async function() {
-      let instance = wrapper.instance();
+      const instance = wrapper.instance();
       instance.componentDidMount();
       await wrapper.update();
 
@@ -270,7 +270,7 @@ describe('OrganizationStream', function() {
         loading: false,
       });
 
-      let issues = wrapper.find('ProcessingIssueList');
+      const issues = wrapper.find('ProcessingIssueList');
       expect(issues).toHaveLength(1);
     });
   });
@@ -292,7 +292,7 @@ describe('OrganizationStream', function() {
         issuesLoading: false,
       });
 
-      let error = wrapper.find('LoadingError');
+      const error = wrapper.find('LoadingError');
       expect(error).toHaveLength(1);
       expect(error.props().message).toEqual('Things broke');
     });
@@ -308,10 +308,10 @@ describe('OrganizationStream', function() {
     });
 
     it('displays the getting started state', function() {
-      let proj = TestStubs.ProjectDetails({
+      const proj = TestStubs.ProjectDetails({
         firstEvent: false,
       });
-      let org = TestStubs.Organization({
+      const org = TestStubs.Organization({
         access: ['releases'],
         projects: [proj],
       });
@@ -335,7 +335,7 @@ describe('OrganizationStream', function() {
         issuesLoading: false,
         groupIds: ['1'],
       });
-      let groups = wrapper.find('StreamGroup');
+      const groups = wrapper.find('StreamGroup');
       expect(groups).toHaveLength(1);
     });
   });

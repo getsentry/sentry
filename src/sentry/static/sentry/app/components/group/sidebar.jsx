@@ -38,7 +38,7 @@ const GroupSidebar = createReactClass({
   },
 
   componentWillMount() {
-    let {group} = this.props;
+    const {group} = this.props;
     this.api.request(`/issues/${group.id}/participants/`, {
       success: data => {
         this.setState({
@@ -77,7 +77,7 @@ const GroupSidebar = createReactClass({
   },
 
   fetchTagData() {
-    let {group} = this.props;
+    const {group} = this.props;
 
     // Fetch the top values for the current group's top tags.
     this.api.request(`/issues/${group.id}/tags/`, {
@@ -111,9 +111,9 @@ const GroupSidebar = createReactClass({
   },
 
   toggleSubscription() {
-    let {group, project} = this.props;
-    let org = this.getOrganization();
-    let loadingIndicator = IndicatorStore.add(t('Saving changes..'));
+    const {group, project} = this.props;
+    const org = this.getOrganization();
+    const loadingIndicator = IndicatorStore.add(t('Saving changes..'));
 
     this.api.bulkUpdate(
       {
@@ -147,9 +147,9 @@ const GroupSidebar = createReactClass({
   },
 
   renderPluginIssue() {
-    let issues = [];
+    const issues = [];
     (this.props.group.pluginIssues || []).forEach(plugin => {
-      let issue = plugin.issue;
+      const issue = plugin.issue;
       // # TODO(dcramer): remove plugin.title check in Sentry 8.22+
       if (issue) {
         issues.push(
@@ -182,14 +182,14 @@ const GroupSidebar = createReactClass({
   },
 
   getNotificationText() {
-    let {group} = this.props;
+    const {group} = this.props;
 
     if (group.isSubscribed) {
       let result = t(
         "You're receiving updates because you are subscribed to this issue."
       );
       if (group.subscriptionDetails) {
-        let reason = group.subscriptionDetails.reason;
+        const reason = group.subscriptionDetails.reason;
         if (this.subscriptionReasons.hasOwnProperty(reason)) {
           result = this.subscriptionReasons[reason];
         }
@@ -214,8 +214,8 @@ const GroupSidebar = createReactClass({
   },
 
   renderParticipantData() {
-    let error = this.state.error;
-    let participants = (this.state || {}).participants || [];
+    const error = this.state.error;
+    const participants = (this.state || {}).participants || [];
 
     if (!error) {
       return (
@@ -231,11 +231,11 @@ const GroupSidebar = createReactClass({
   },
 
   render() {
-    let {group, project} = this.props;
-    let projectId = project.slug;
-    let orgId = this.getOrganization().slug;
+    const {group, project} = this.props;
+    const projectId = project.slug;
+    const orgId = this.getOrganization().slug;
 
-    let subscribeBtnClass = classNames('btn btn-default btn-subscribe', {
+    const subscribeBtnClass = classNames('btn btn-default btn-subscribe', {
       subscribed: group.isSubscribed,
     });
 
@@ -256,9 +256,9 @@ const GroupSidebar = createReactClass({
         </h6>
         {this.state.tagsWithTopValues &&
           group.tags.map(tag => {
-            let tagWithTopValues = this.state.tagsWithTopValues[tag.key];
-            let topValues = tagWithTopValues ? tagWithTopValues.topValues : [];
-            let topValuesTotal = tagWithTopValues ? tagWithTopValues.totalValues : 0;
+            const tagWithTopValues = this.state.tagsWithTopValues[tag.key];
+            const topValues = tagWithTopValues ? tagWithTopValues.topValues : [];
+            const topValuesTotal = tagWithTopValues ? tagWithTopValues.totalValues : 0;
             return (
               <TagDistributionMeter
                 key={tag.key}

@@ -52,7 +52,7 @@ describe('Command Palette Modal', function() {
   });
 
   it('can open command palette modal and search', async function() {
-    let wrapper = mount(
+    const wrapper = mount(
       <App params={{orgId: 'org-slug'}}>{<div>placeholder content</div>}</App>,
       TestStubs.routerContext([
         {

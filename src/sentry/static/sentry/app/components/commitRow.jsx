@@ -21,13 +21,13 @@ export default class CommitRow extends React.Component {
       return t('No message provided');
     }
 
-    let firstLine = message.split(/\n/)[0];
+    const firstLine = message.split(/\n/)[0];
 
     return firstLine;
   };
 
   render() {
-    let {id, dateCreated, message, author, repository} = this.props.commit;
+    const {id, dateCreated, message, author, repository} = this.props.commit;
     return (
       <PanelItem key={id} align="center">
         <AvatarWrapper mr={2}>

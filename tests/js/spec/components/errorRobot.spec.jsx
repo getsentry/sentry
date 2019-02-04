@@ -25,7 +25,7 @@ describe('ErrorRobot', function() {
     });
 
     it('Renders a button for creating an event', function() {
-      let button = wrapper.find('Button[priority="link"]');
+      const button = wrapper.find('Button[priority="link"]');
       expect(button).toHaveLength(1);
       expect(button.props().onClick).toBeDefined();
       expect(button.props().disabled).toBeFalsy();
@@ -33,7 +33,7 @@ describe('ErrorRobot', function() {
     });
 
     it('Renders installation instructions', function() {
-      let button = wrapper.find('Button[priority="primary"]');
+      const button = wrapper.find('Button[priority="primary"]');
       expect(button).toHaveLength(1);
       expect(button.props().to).toEqual(expect.stringContaining('getting-started'));
     });
@@ -59,14 +59,14 @@ describe('ErrorRobot', function() {
     });
 
     it('Renders a disabled create event button', function() {
-      let button = wrapper.find('Button[priority="link"]');
+      const button = wrapper.find('Button[priority="link"]');
       expect(button).toHaveLength(1);
       expect(button.props().disabled).toBeTruthy();
       expect(getIssues).toHaveBeenCalledTimes(0);
     });
 
     it('does not display install instructions', function() {
-      let button = wrapper.find('Button[priority="primary"]');
+      const button = wrapper.find('Button[priority="primary"]');
       expect(button).toHaveLength(0);
     });
   });

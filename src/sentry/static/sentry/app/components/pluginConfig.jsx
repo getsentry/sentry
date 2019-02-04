@@ -67,7 +67,7 @@ const PluginConfig = createReactClass({
   },
 
   getPluginEndpoint() {
-    let {organization, project, data} = this.props;
+    const {organization, project, data} = this.props;
     return `/projects/${organization.slug}/${project.slug}/plugins/${data.id}/`;
   },
 
@@ -76,7 +76,7 @@ const PluginConfig = createReactClass({
   },
 
   testPlugin() {
-    let loadingIndicator = IndicatorStore.add(t('Sending test..'));
+    const loadingIndicator = IndicatorStore.add(t('Sending test..'));
     this.api.request(this.getPluginEndpoint(), {
       method: 'POST',
       data: {
@@ -101,9 +101,9 @@ const PluginConfig = createReactClass({
   },
 
   render() {
-    let {data} = this.props;
+    const {data} = this.props;
     // If passed via props, use that value instead of from `data`
-    let enabled =
+    const enabled =
       typeof this.props.enabled !== 'undefined' ? this.props.enabled : data.enabled;
 
     return (

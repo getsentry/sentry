@@ -7,24 +7,24 @@ import FrameRegisters, {
 
 describe('FrameRegisters', () => {
   it('should render registers', () => {
-    let registers = {
+    const registers = {
       r10: '0x00007fff9300bf70',
       r11: '0xffffffffffffffff',
       r12: '0x0000000000000000',
     };
 
-    let wrapper = shallow(<FrameRegisters data={registers} />);
+    const wrapper = shallow(<FrameRegisters data={registers} />);
     expect(wrapper.find('RegisterValue')).toMatchSnapshot();
   });
 
   it('should skip registers without a value', () => {
-    let registers = {
+    const registers = {
       r10: '0x00007fff9300bf70',
       r11: null,
       r12: '0x0000000000000000',
     };
 
-    let wrapper = shallow(<FrameRegisters data={registers} />);
+    const wrapper = shallow(<FrameRegisters data={registers} />);
     expect(wrapper.find('RegisterValue')).toMatchSnapshot();
   });
 });

@@ -15,7 +15,7 @@ import {t} from 'app/locale';
  */
 export function installSentryApp(client, orgId, app) {
   addLoadingMessage();
-  let promise = client.requestPromise(
+  const promise = client.requestPromise(
     `/organizations/${orgId}/sentry-app-installations/`,
     {
       method: 'POST',
@@ -37,7 +37,7 @@ export function installSentryApp(client, orgId, app) {
  */
 export function uninstallSentryApp(client, install) {
   addLoadingMessage();
-  let promise = client.requestPromise(`/sentry-app-installations/${install.uuid}/`, {
+  const promise = client.requestPromise(`/sentry-app-installations/${install.uuid}/`, {
     method: 'DELETE',
   });
   promise.then(

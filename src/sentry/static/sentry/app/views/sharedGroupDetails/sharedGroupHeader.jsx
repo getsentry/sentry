@@ -7,7 +7,7 @@ class SharedGroupHeader extends React.Component {
   };
 
   render() {
-    let group = this.props.group;
+    const group = this.props.group;
 
     return (
       <div className="group-detail" style={{paddingBottom: 20}}>

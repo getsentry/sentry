@@ -26,7 +26,7 @@ class AdminProjects extends React.Component {
   };
 
   render() {
-    let columns = [
+    const columns = [
       <th>Project</th>,
       <th style={{width: 150, textAlign: 'center'}}>Status</th>,
       <th style={{width: 200, textAlign: 'right'}}>Created</th>,

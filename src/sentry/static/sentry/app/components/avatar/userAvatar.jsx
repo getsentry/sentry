@@ -33,11 +33,11 @@ class UserAvatar extends React.Component {
   };
 
   render() {
-    let {user, gravatar, renderTooltip, ...props} = this.props;
+    const {user, gravatar, renderTooltip, ...props} = this.props;
 
     if (!user) return null;
 
-    let type = this.getType(user, gravatar);
+    const type = this.getType(user, gravatar);
 
     return (
       <BaseAvatar

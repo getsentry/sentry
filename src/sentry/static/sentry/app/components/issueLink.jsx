@@ -107,7 +107,7 @@ export default class IssueLink extends React.Component {
   }
 
   render() {
-    let {card, issue, to} = this.props;
+    const {card, issue, to} = this.props;
     if (!card) return <Link to={to}>{this.props.children}</Link>;
 
     return (

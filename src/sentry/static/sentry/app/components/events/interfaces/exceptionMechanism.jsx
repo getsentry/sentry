@@ -37,17 +37,17 @@ class ExceptionMechanism extends React.Component {
   };
 
   render() {
-    let mechanism = this.props.data;
-    let {type, description, help_link, handled, meta = {}, data = {}} = mechanism;
-    let {errno, signal, mach_exception} = meta;
+    const mechanism = this.props.data;
+    const {type, description, help_link, handled, meta = {}, data = {}} = mechanism;
+    const {errno, signal, mach_exception} = meta;
 
-    let linkElement = help_link && (
+    const linkElement = help_link && (
       <a href={help_link} className="external-icon">
         <em className="icon-open" />
       </a>
     );
 
-    let descriptionElement = description && (
+    const descriptionElement = description && (
       <Hovercard
         header={
           <span>
@@ -61,7 +61,7 @@ class ExceptionMechanism extends React.Component {
       </Hovercard>
     );
 
-    let pills = [
+    const pills = [
       <Pill key="mechanism" name="mechanism" value={type}>
         {descriptionElement || linkElement}
       </Pill>,
@@ -72,19 +72,19 @@ class ExceptionMechanism extends React.Component {
     }
 
     if (errno) {
-      let value = errno.name || errno.number;
+      const value = errno.name || errno.number;
       pills.push(<Pill key="errno" name="errno" value={value} />);
     }
 
     if (mach_exception) {
-      let value = mach_exception.name || mach_exception.exception;
+      const value = mach_exception.name || mach_exception.exception;
       pills.push(<Pill key="mach" name="mach exception" value={value} />);
     }
 
     if (signal) {
-      let code = signal.code_name || `${t('code')} ${signal.code}`;
-      let name = signal.name || signal.number;
-      let value = _.isNil(signal.code) ? name : `${name} (${code})`;
+      const code = signal.code_name || `${t('code')} ${signal.code}`;
+      const name = signal.name || signal.number;
+      const value = _.isNil(signal.code) ? name : `${name} (${code})`;
       pills.push(<Pill key="signal" name="signal" value={value} />);
     }
 

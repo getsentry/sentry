@@ -27,8 +27,8 @@ const ProjectHeaderProjectSelector = withRouter(
      * If not, passed as an absolute URL via the 'href' property.
      */
     getProjectUrlProps(project) {
-      let org = this.props.organization;
-      let path = `/${org.slug}/${project.slug}/`;
+      const org = this.props.organization;
+      const path = `/${org.slug}/${project.slug}/`;
 
       if (this.context.location) {
         return {to: path};
@@ -42,8 +42,8 @@ const ProjectHeaderProjectSelector = withRouter(
     }
 
     handleSelect = project => {
-      let {router} = this.props;
-      let {to, href} = this.getProjectUrlProps(project);
+      const {router} = this.props;
+      const {to, href} = this.getProjectUrlProps(project);
       if (to) {
         router.push(to);
       } else {

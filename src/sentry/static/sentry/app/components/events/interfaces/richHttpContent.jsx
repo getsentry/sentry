@@ -39,7 +39,7 @@ class RichHttpContent extends React.Component {
   };
 
   render() {
-    let data = this.props.data;
+    const data = this.props.data;
     return (
       <div>
         {!objectIsEmpty(data.query) && (

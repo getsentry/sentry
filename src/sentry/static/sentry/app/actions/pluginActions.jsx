@@ -1,6 +1,6 @@
 import Reflux from 'reflux';
 
-let PluginActions = Reflux.createActions([
+const PluginActions = Reflux.createActions([
   'update',
   'updateError',
   'updateSuccess',

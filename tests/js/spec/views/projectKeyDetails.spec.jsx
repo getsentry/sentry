@@ -74,7 +74,7 @@ describe('ProjectKeyDetails', function() {
       url: `/projects/${org.slug}/${project.slug}/keys/${projectKeys[0].id}/`,
       method: 'DELETE',
     });
-    let routerContext = TestStubs.routerContext();
+    const routerContext = TestStubs.routerContext();
 
     wrapper = mount(
       <ProjectKeyDetails

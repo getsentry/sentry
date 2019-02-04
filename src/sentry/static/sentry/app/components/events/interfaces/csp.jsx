@@ -29,7 +29,7 @@ export default class CspInterface extends React.Component {
 
   constructor(props) {
     super(props);
-    let {data} = props;
+    const {data} = props;
     // hide the report-uri since this is redundant and silly
     data.original_policy = data.original_policy.replace(/(;\s+)?report-uri [^;]+/, '');
 
@@ -46,10 +46,10 @@ export default class CspInterface extends React.Component {
   };
 
   render() {
-    let {view, data} = this.state;
-    let {group, event} = this.props;
+    const {view, data} = this.state;
+    const {group, event} = this.props;
 
-    let title = (
+    const title = (
       <div>
         <div className="btn-group">
           <a
@@ -75,7 +75,7 @@ export default class CspInterface extends React.Component {
       </div>
     );
 
-    let children = getView(view, data);
+    const children = getView(view, data);
 
     return (
       <GroupEventDataSection

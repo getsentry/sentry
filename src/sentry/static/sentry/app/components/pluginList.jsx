@@ -21,7 +21,7 @@ export default class PluginList extends React.Component {
   };
 
   handleEnablePlugin = plugin => {
-    let {organization, project} = this.props;
+    const {organization, project} = this.props;
     enablePlugin({
       projectId: project.slug,
       orgId: organization.slug,
@@ -32,7 +32,7 @@ export default class PluginList extends React.Component {
   };
 
   handleDisablePlugin = plugin => {
-    let {organization, project} = this.props;
+    const {organization, project} = this.props;
     disablePlugin({
       projectId: project.slug,
       orgId: organization.slug,
@@ -43,7 +43,7 @@ export default class PluginList extends React.Component {
   };
 
   render() {
-    let {organization, pluginList, project} = this.props;
+    const {organization, pluginList, project} = this.props;
 
     if (!pluginList.length) {
       return (

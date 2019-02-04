@@ -41,7 +41,7 @@ class ActivityItem extends React.Component {
 
   componentDidMount() {
     if (this.activityBubbleRef.current) {
-      let bubbleHeight = this.activityBubbleRef.current.offsetHeight;
+      const bubbleHeight = this.activityBubbleRef.current.offsetHeight;
 
       if (bubbleHeight > this.props.clipHeight) {
         // okay if this causes re-render; cannot determine until
@@ -57,18 +57,18 @@ class ActivityItem extends React.Component {
   };
 
   formatProjectActivity = (author, item) => {
-    let data = item.data;
-    let orgId = this.props.organization.slug;
-    let project = item.project;
-    let issue = item.issue;
+    const data = item.data;
+    const orgId = this.props.organization.slug;
+    const project = item.project;
+    const issue = item.issue;
 
-    let hasSentry10 = this.hasSentry10();
+    const hasSentry10 = this.hasSentry10();
 
-    let basePath = hasSentry10
+    const basePath = hasSentry10
       ? `/organizations/${orgId}/issues/`
       : `/${orgId}/${project.slug}/issues/`;
 
-    let issueLink = issue ? (
+    const issueLink = issue ? (
       <IssueLink
         organization={this.props.organization}
         orgId={orgId}
@@ -80,7 +80,7 @@ class ActivityItem extends React.Component {
       </IssueLink>
     ) : null;
 
-    let versionLink = data.version ? (
+    const versionLink = data.version ? (
       <VersionHoverCard orgId={orgId} projectId={project.slug} version={data.version}>
         <Version
           version={data.version}
@@ -253,7 +253,7 @@ class ActivityItem extends React.Component {
         let assignee;
 
         if (data.assigneeType == 'team') {
-          let team = TeamStore.getById(data.assignee);
+          const team = TeamStore.getById(data.assignee);
           assignee = team ? team.slug : '<unknown-team>';
 
           return tct('[author] assigned [issue] to #[assignee]', {
@@ -316,15 +316,15 @@ class ActivityItem extends React.Component {
   };
 
   render() {
-    let item = this.props.item;
-    let orgId = this.props.organization.slug;
+    const item = this.props.item;
+    const orgId = this.props.organization.slug;
 
     let bubbleClassName = 'activity-item-bubble';
     if (this.state.clipped) {
       bubbleClassName += ' clipped';
     }
 
-    let avatar = item.user ? (
+    const avatar = item.user ? (
       <Avatar user={item.user} size={36} className="activity-avatar" />
     ) : (
       <div className="activity-avatar avatar sentry">
@@ -332,15 +332,15 @@ class ActivityItem extends React.Component {
       </div>
     );
 
-    let author = {
+    const author = {
       name: item.user ? item.user.name : 'Sentry',
       avatar,
     };
 
-    let hasSentry10 = this.hasSentry10();
+    const hasSentry10 = this.hasSentry10();
 
     if (item.type === 'note') {
-      let noteBody = marked(item.data.text);
+      const noteBody = marked(item.data.text);
       return (
         <li className="activity-item activity-item-compact">
           <div className="activity-item-content">

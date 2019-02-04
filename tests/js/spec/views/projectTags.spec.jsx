@@ -63,7 +63,7 @@ describe('ProjectTags', function() {
   });
 
   it('deletes tag', function() {
-    let tags = wrapper.state('tags').length;
+    const tags = wrapper.state('tags').length;
 
     wrapper
       .find('Button')

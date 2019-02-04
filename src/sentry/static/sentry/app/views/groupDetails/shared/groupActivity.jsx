@@ -32,8 +32,8 @@ class GroupActivityItem extends React.Component {
   };
 
   render() {
-    let {author, item, orgId, projectId} = this.props;
-    let {data} = item;
+    const {author, item, orgId, projectId} = this.props;
+    const {data} = item;
 
     switch (item.type) {
       case 'note':
@@ -166,7 +166,7 @@ class GroupActivityItem extends React.Component {
         let assignee;
 
         if (data.assigneeType == 'team') {
-          let team = TeamStore.getById(data.assignee);
+          const team = TeamStore.getById(data.assignee);
           assignee = team ? team.slug : '<unknown-team>';
 
           return t('%(author)s assigned this issue to #%(assignee)s', {
@@ -214,10 +214,10 @@ const GroupActivity = createReactClass({
   mixins: [ApiMixin],
 
   onNoteDelete(item) {
-    let {group} = this.props;
+    const {group} = this.props;
 
     // Optimistically remove from UI
-    let index = GroupStore.removeActivity(group.id, item.id);
+    const index = GroupStore.removeActivity(group.id, item.id);
     if (index === -1) {
       // I dunno, the id wasn't found in the GroupStore
       return;
@@ -239,12 +239,12 @@ const GroupActivity = createReactClass({
   },
 
   render() {
-    let group = this.props.group;
-    let me = ConfigStore.get('user');
-    let memberList = MemberListStore.getAll();
+    const group = this.props.group;
+    const me = ConfigStore.get('user');
+    const memberList = MemberListStore.getAll();
 
-    let children = group.activity.map((item, itemIdx) => {
-      let authorName = item.user ? item.user.name : 'Sentry';
+    const children = group.activity.map((item, itemIdx) => {
+      const authorName = item.user ? item.user.name : 'Sentry';
 
       if (item.type === 'note') {
         return (
@@ -262,7 +262,7 @@ const GroupActivity = createReactClass({
           />
         );
       } else {
-        let avatar = item.user ? (
+        const avatar = item.user ? (
           <Avatar user={item.user} size={18} className="activity-avatar" />
         ) : (
           <div className="activity-avatar avatar sentry">
@@ -270,7 +270,7 @@ const GroupActivity = createReactClass({
           </div>
         );
 
-        let author = {
+        const author = {
           name: authorName,
           avatar,
         };

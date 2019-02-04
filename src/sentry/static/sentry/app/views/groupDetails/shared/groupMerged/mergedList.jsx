@@ -29,9 +29,9 @@ class MergedList extends React.Component {
   };
 
   render() {
-    let {items, pageLinks, onToggleCollapse, onUnmerge} = this.props;
-    let itemsWithLatestEvent = items.filter(({latestEvent}) => !!latestEvent);
-    let hasResults = itemsWithLatestEvent.length > 0;
+    const {items, pageLinks, onToggleCollapse, onUnmerge} = this.props;
+    const itemsWithLatestEvent = items.filter(({latestEvent}) => !!latestEvent);
+    const hasResults = itemsWithLatestEvent.length > 0;
 
     if (!hasResults) {
       return <Panel>{this.renderEmpty()}</Panel>;

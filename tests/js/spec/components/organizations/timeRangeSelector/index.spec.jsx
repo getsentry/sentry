@@ -6,8 +6,8 @@ import TimeRangeSelector from 'app/components/organizations/timeRangeSelector';
 
 describe('TimeRangeSelector', function() {
   let wrapper;
-  let onChange = jest.fn();
-  let routerContext = TestStubs.routerContext();
+  const onChange = jest.fn();
+  const routerContext = TestStubs.routerContext();
 
   const createWrapper = (props = {}) =>
     mount(

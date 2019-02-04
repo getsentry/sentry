@@ -5,7 +5,7 @@ import {Client} from 'app/api';
 import ApiTokens from 'app/views/settings/account/apiTokens';
 
 describe('ApiTokens', function() {
-  let routerContext = TestStubs.routerContext();
+  const routerContext = TestStubs.routerContext();
 
   beforeEach(function() {
     Client.clearMockResponses();
@@ -16,7 +16,7 @@ describe('ApiTokens', function() {
       url: '/api-tokens/',
     });
 
-    let wrapper = shallow(<ApiTokens />, routerContext);
+    const wrapper = shallow(<ApiTokens />, routerContext);
 
     // Should be loading
     expect(wrapper).toMatchSnapshot();
@@ -28,7 +28,7 @@ describe('ApiTokens', function() {
       body: [TestStubs.ApiToken()],
     });
 
-    let wrapper = shallow(<ApiTokens />, routerContext);
+    const wrapper = shallow(<ApiTokens />, routerContext);
 
     // Should be loading
     expect(wrapper).toMatchSnapshot();
@@ -40,14 +40,14 @@ describe('ApiTokens', function() {
       body: [TestStubs.ApiToken()],
     });
 
-    let mock = Client.addMockResponse({
+    const mock = Client.addMockResponse({
       url: '/api-tokens/',
       method: 'DELETE',
     });
 
     expect(mock).not.toHaveBeenCalled();
 
-    let wrapper = mount(<ApiTokens />, routerContext);
+    const wrapper = mount(<ApiTokens />, routerContext);
 
     wrapper.find('.ref-delete-api-token').simulate('click');
 

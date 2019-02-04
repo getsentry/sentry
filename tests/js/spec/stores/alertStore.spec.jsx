@@ -41,7 +41,7 @@ describe('AlertStore', function() {
       expect(AlertStore.alerts[1].key).toEqual(3);
     });
     it('should persist removal of persistent alerts', function() {
-      let alert = {key: 1, id: 'test', message: 'foo', type: 'error'};
+      const alert = {key: 1, id: 'test', message: 'foo', type: 'error'};
       AlertStore.onCloseAlert(alert);
       AlertStore.onAddAlert(alert);
       expect(AlertStore.alerts).toHaveLength(0);
