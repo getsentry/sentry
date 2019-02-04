@@ -14,6 +14,22 @@ export function fetchOrgMembers(api, orgId) {
   });
 }
 
+/**
+ * Convert a list of members with user & project data
+ * into a object that maps project slugs : users in that project.
+ */
+export function indexMembersByProject(members) {
+  return members.reduce((acc, member) => {
+    for (const project of member.projects) {
+      if (acc[project] === undefined) {
+        acc[project] = [];
+      }
+      acc[project].push(member.user);
+    }
+    return acc;
+  }, {});
+}
+
 export function updateMember(api, params) {
   MemberActions.update(params.memberId, params.data);
 
