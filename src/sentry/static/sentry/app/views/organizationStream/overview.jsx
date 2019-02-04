@@ -24,7 +24,6 @@ import ConfigStore from 'app/stores/configStore';
 import GroupStore from 'app/stores/groupStore';
 import SelectedGroupStore from 'app/stores/selectedGroupStore';
 import TagStore from 'app/stores/tagStore';
-import EventsChart from 'app/views/organizationEvents/eventsChart';
 import SentryTypes from 'app/sentryTypes';
 import StreamActions from 'app/views/stream/actions';
 import StreamFilters from 'app/views/stream/filters';
@@ -632,10 +631,6 @@ const OrganizationStream = createReactClass({
             isSearchDisabled={this.state.isSidebarVisible}
             savedSearchList={this.state.savedSearchList}
           />
-
-          <Panel>
-            <EventsChart query="" organization={this.props.organization} />
-          </Panel>
 
           <Panel>
             <StreamActions
