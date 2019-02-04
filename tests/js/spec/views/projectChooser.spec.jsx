@@ -70,7 +70,7 @@ describe('ProjectChooser', function() {
   };
 
   it('renders', function() {
-    let wrapper = shallow(
+    const wrapper = shallow(
       <ProjectChooser
         location={{
           pathname: 'https://sentry.io/organizations/tester1/projects/choose/',

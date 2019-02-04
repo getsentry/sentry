@@ -70,9 +70,9 @@ export default createReactClass({
   },
 
   getUniqueCommitsWithAuthors() {
-    let {committers} = this.state;
+    const {committers} = this.state;
     //get a list of commits with author information attached
-    let commitsWithAuthors = flatMap(committers, ({commits, author}) =>
+    const commitsWithAuthors = flatMap(committers, ({commits, author}) =>
       commits.map(commit => ({
         ...commit,
         author,
@@ -80,17 +80,17 @@ export default createReactClass({
     );
 
     //remove duplicate commits
-    let uniqueCommitsWithAuthors = uniqBy(commitsWithAuthors, commit => commit.id);
+    const uniqueCommitsWithAuthors = uniqBy(commitsWithAuthors, commit => commit.id);
     return uniqueCommitsWithAuthors;
   },
 
   render() {
-    let {committers, expanded} = this.state;
+    const {committers, expanded} = this.state;
     if (!(committers && committers.length)) {
       return null;
     }
 
-    let commits = this.getUniqueCommitsWithAuthors();
+    const commits = this.getUniqueCommitsWithAuthors();
 
     return (
       <div className="box">

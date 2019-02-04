@@ -25,9 +25,9 @@ const parseRowFromLinks = (links, numRows) => {
   if (!links.previous.results) {
     return `1-${numRows}`;
   }
-  let prevStart = links.previous.cursor.split(':')[1];
-  let nextStart = links.next.cursor.split(':')[1];
-  let currentStart = (prevStart + nextStart) / 2 + 1;
+  const prevStart = links.previous.cursor.split(':')[1];
+  const nextStart = links.next.cursor.split(':')[1];
+  const currentStart = (prevStart + nextStart) / 2 + 1;
   return `${currentStart}-${currentStart + numRows - 1}`;
 };
 
@@ -41,7 +41,7 @@ class TotalEventCount extends AsyncComponent {
 
   getEndpoints() {
     const {organization, location} = this.props;
-    let {statsPeriod, ...query} = location.query;
+    const {statsPeriod, ...query} = location.query;
 
     return [
       [
@@ -67,9 +67,9 @@ class TotalEventCount extends AsyncComponent {
   }
 
   renderBody() {
-    let {eventsMeta} = this.state;
-    let {isAllResults, numRows} = this.props;
-    let count = isAllResults ? numRows : eventsMeta.count;
+    const {eventsMeta} = this.state;
+    const {isAllResults, numRows} = this.props;
+    const count = isAllResults ? numRows : eventsMeta.count;
     return t(` of ${count.toLocaleString()}${isAllResults ? '' : ' (estimated)'}`);
   }
 }
@@ -108,7 +108,7 @@ class OrganizationEvents extends AsyncView {
 
   getEndpoints() {
     const {organization, location} = this.props;
-    let {statsPeriod, ...query} = location.query;
+    const {statsPeriod, ...query} = location.query;
 
     return [
       [
@@ -150,7 +150,7 @@ class OrganizationEvents extends AsyncView {
   renderBody() {
     const {organization, location} = this.props;
     const {error, loading, reloading, events, eventsPageLinks} = this.state;
-    let parsedLinks = !loading && !error ? utils.parseLinkHeader(eventsPageLinks) : {};
+    const parsedLinks = !loading && !error ? utils.parseLinkHeader(eventsPageLinks) : {};
 
     return (
       <React.Fragment>

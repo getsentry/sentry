@@ -59,9 +59,9 @@ export default class FieldFromConfig extends React.Component {
   };
 
   render() {
-    let {field, ...otherProps} = this.props;
+    const {field, ...otherProps} = this.props;
 
-    let props = {
+    const props = {
       ...otherProps,
       ...field,
     };

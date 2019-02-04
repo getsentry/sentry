@@ -53,7 +53,7 @@ describe('OrganizationTeamProjects', function() {
   });
 
   it('Should render', function() {
-    let wrapper = mount(
+    const wrapper = mount(
       <OrganizationTeamProjects params={{orgId: 'org-slug', teamId: team.slug}} />,
       TestStubs.routerContext()
     );
@@ -63,7 +63,7 @@ describe('OrganizationTeamProjects', function() {
   });
 
   it('Should allow bookmarking', function() {
-    let wrapper = mount(
+    const wrapper = mount(
       <OrganizationTeamProjects params={{orgId: 'org-slug', teamId: team.slug}} />,
       TestStubs.routerContext()
     );
@@ -81,15 +81,15 @@ describe('OrganizationTeamProjects', function() {
   });
 
   it('Should allow adding and removing projects', async function() {
-    let wrapper = mount(
+    const wrapper = mount(
       <OrganizationTeamProjects params={{orgId: 'org-slug', teamId: team.slug}} />,
       TestStubs.routerContext()
     );
 
-    let add = wrapper.find('DropdownButton').first();
+    const add = wrapper.find('DropdownButton').first();
     add.simulate('click');
 
-    let el = wrapper.find('AutoCompleteItem').first();
+    const el = wrapper.find('AutoCompleteItem').first();
     el.simulate('click');
 
     wrapper.update();
@@ -100,7 +100,7 @@ describe('OrganizationTeamProjects', function() {
     wrapper.update();
 
     // find second project's remove button
-    let remove = wrapper.find('PanelBody Button').at(1);
+    const remove = wrapper.find('PanelBody Button').at(1);
     remove.simulate('click');
 
     expect(deleteMock).toHaveBeenCalledTimes(1);

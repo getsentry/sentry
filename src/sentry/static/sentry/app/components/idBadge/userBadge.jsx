@@ -18,7 +18,7 @@ const UserBadge = ({
   hideEmail,
   ...props
 }) => {
-  let userFromPropsOrMember = user || (member && member.user) || member;
+  const userFromPropsOrMember = user || (member && member.user) || member;
   return (
     <StyledUserBadge {...props}>
       <StyledAvatar user={userFromPropsOrMember} size={avatarSize} />

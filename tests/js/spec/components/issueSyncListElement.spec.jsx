@@ -4,13 +4,13 @@ import IssueSyncListElement from 'app/components/issueSyncListElement';
 
 describe('AlertLink', function() {
   it('renders', function() {
-    let wrapper = shallow(<IssueSyncListElement integrationType="github" />);
+    const wrapper = shallow(<IssueSyncListElement integrationType="github" />);
     expect(wrapper).toMatchSnapshot();
   });
 
   it('can open', function() {
-    let onOpen = jest.fn();
-    let wrapper = shallow(
+    const onOpen = jest.fn();
+    const wrapper = shallow(
       <IssueSyncListElement integrationType="github" onOpen={onOpen} />
     );
     expect(onOpen).not.toHaveBeenCalled();
@@ -19,10 +19,10 @@ describe('AlertLink', function() {
   });
 
   it('can close', function() {
-    let onClose = jest.fn();
-    let onOpen = jest.fn();
+    const onClose = jest.fn();
+    const onOpen = jest.fn();
 
-    let wrapper = mount(
+    const wrapper = mount(
       <IssueSyncListElement
         integrationType="github"
         externalIssueLink="github.com/issues/gh-101"

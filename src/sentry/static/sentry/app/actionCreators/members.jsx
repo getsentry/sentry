@@ -2,8 +2,8 @@ import MemberActions from 'app/actions/memberActions';
 import MemberListStore from 'app/stores/memberListStore';
 
 export function fetchOrgMembers(api, orgId) {
-  let endpoint = `/organizations/${orgId}/users/`;
-  let promise = api.requestPromise(endpoint, {method: 'GET'});
+  const endpoint = `/organizations/${orgId}/users/`;
+  const promise = api.requestPromise(endpoint, {method: 'GET'});
   return promise.then(members => {
     members = members.filter(m => m.user);
 
@@ -17,7 +17,7 @@ export function fetchOrgMembers(api, orgId) {
 export function updateMember(api, params) {
   MemberActions.update(params.memberId, params.data);
 
-  let endpoint = `/organizations/${params.orgId}/members/${params.memberId}/`;
+  const endpoint = `/organizations/${params.orgId}/members/${params.memberId}/`;
   return new Promise((resolve, reject) =>
     api.request(endpoint, {
       method: 'PUT',
@@ -37,7 +37,7 @@ export function updateMember(api, params) {
 export function resendMemberInvite(api, params) {
   MemberActions.resendMemberInvite(params.orgId, params.data);
 
-  let endpoint = `/organizations/${params.orgId}/members/${params.memberId}/`;
+  const endpoint = `/organizations/${params.orgId}/members/${params.memberId}/`;
   return new Promise((resolve, reject) =>
     api.request(endpoint, {
       method: 'PUT',

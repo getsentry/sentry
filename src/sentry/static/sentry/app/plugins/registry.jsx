@@ -15,7 +15,7 @@ export default class Registry {
 
   loadAll(dataList, callback) {
     let remaining = dataList.length;
-    let pluginList = [];
+    const pluginList = [];
     dataList.map(data => {
       this.load(data, plugin => {
         remaining--;
@@ -30,7 +30,7 @@ export default class Registry {
   load(data, callback) {
     // TODO(dcramer): we should probably register all valid plugins
     let remainingAssets = data.assets.length;
-    let finishLoad = function() {
+    const finishLoad = function() {
       if (!defined(this.plugins[data.id])) {
         if (data.type === 'issue-tracking') {
           this.plugins[data.id] = DefaultIssuePlugin;
@@ -49,14 +49,14 @@ export default class Registry {
       return;
     }
 
-    let onAssetLoaded = function(asset) {
+    const onAssetLoaded = function(asset) {
       remainingAssets--;
       if (remainingAssets === 0) {
         finishLoad();
       }
     };
 
-    let onAssetFailed = function(asset) {
+    const onAssetFailed = function(asset) {
       remainingAssets--;
       console.error('[plugins] Failed to load asset ' + asset.url);
       if (remainingAssets === 0) {
@@ -68,7 +68,7 @@ export default class Registry {
     data.assets.forEach(asset => {
       if (!defined(this.assetCache[asset.url])) {
         console.info('[plugins] Loading asset for ' + data.id + ': ' + asset.url);
-        let s = document.createElement('script');
+        const s = document.createElement('script');
         s.src = asset.url;
         s.onload = onAssetLoaded.bind(this, asset);
         s.onerror = onAssetFailed.bind(this, asset);
@@ -82,7 +82,7 @@ export default class Registry {
   }
 
   get(data) {
-    let cls = this.plugins[data.id];
+    const cls = this.plugins[data.id];
     if (!defined(cls)) {
       throw new Error('Attempted to ``get`` an unloaded plugin: ' + data.id);
     }

@@ -23,10 +23,10 @@ export default class MetaData extends React.Component {
   };
 
   render() {
-    let {children, object, prop, required} = this.props;
+    const {children, object, prop, required} = this.props;
 
-    let value = object[prop];
-    let meta = getMeta(object, prop);
+    const value = object[prop];
+    const meta = getMeta(object, prop);
 
     return (
       <ErrorBoundary mini>

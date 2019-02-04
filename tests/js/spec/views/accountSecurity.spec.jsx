@@ -24,7 +24,7 @@ describe('AccountSecurity', function() {
       body: [],
     });
 
-    let wrapper = mount(
+    const wrapper = mount(
       <AccountSecurityWrapper>
         <AccountSecurity />
       </AccountSecurityWrapper>,
@@ -41,7 +41,7 @@ describe('AccountSecurity', function() {
       body: [TestStubs.Authenticators().Totp({configureButton: 'Info'})],
     });
 
-    let wrapper = mount(
+    const wrapper = mount(
       <AccountSecurityWrapper>
         <AccountSecurity />
       </AccountSecurityWrapper>,
@@ -76,14 +76,14 @@ describe('AccountSecurity', function() {
       ],
     });
 
-    let deleteMock = Client.addMockResponse({
+    const deleteMock = Client.addMockResponse({
       url: `${ENDPOINT}15/`,
       method: 'DELETE',
     });
 
     expect(deleteMock).not.toHaveBeenCalled();
 
-    let wrapper = mount(
+    const wrapper = mount(
       <AccountSecurityWrapper>
         <AccountSecurity />
       </AccountSecurityWrapper>,
@@ -124,14 +124,14 @@ describe('AccountSecurity', function() {
       url: ORG_ENDPOINT,
       body: TestStubs.Organizations({require2FA: true}),
     });
-    let deleteMock = Client.addMockResponse({
+    const deleteMock = Client.addMockResponse({
       url: `${ENDPOINT}15/`,
       method: 'DELETE',
     });
 
     expect(deleteMock).not.toHaveBeenCalled();
 
-    let wrapper = mount(
+    const wrapper = mount(
       <AccountSecurityWrapper>
         <AccountSecurity />
       </AccountSecurityWrapper>,
@@ -173,14 +173,14 @@ describe('AccountSecurity', function() {
       url: ORG_ENDPOINT,
       body: TestStubs.Organizations({require2FA: true}),
     });
-    let deleteMock = Client.addMockResponse({
+    const deleteMock = Client.addMockResponse({
       url: `${ENDPOINT}15/`,
       method: 'DELETE',
     });
 
     expect(deleteMock).not.toHaveBeenCalled();
 
-    let wrapper = mount(
+    const wrapper = mount(
       <AccountSecurityWrapper>
         <AccountSecurity />
       </AccountSecurityWrapper>,
@@ -201,7 +201,7 @@ describe('AccountSecurity', function() {
       body: [TestStubs.Authenticators().Totp({isEnrolled: false})],
     });
 
-    let wrapper = mount(
+    const wrapper = mount(
       <AccountSecurityWrapper>
         <AccountSecurity />
       </AccountSecurityWrapper>,
@@ -227,7 +227,7 @@ describe('AccountSecurity', function() {
       body: [TestStubs.Authenticators().Recovery({isEnrolled: false})],
     });
 
-    let wrapper = mount(
+    const wrapper = mount(
       <AccountSecurityWrapper>
         <AccountSecurity />
       </AccountSecurityWrapper>,
@@ -249,7 +249,7 @@ describe('AccountSecurity', function() {
       body: [TestStubs.Authenticators().Recovery({isEnrolled: true})],
     });
 
-    let wrapper = mount(
+    const wrapper = mount(
       <AccountSecurityWrapper>
         <AccountSecurity />
       </AccountSecurityWrapper>,
@@ -273,13 +273,13 @@ describe('AccountSecurity', function() {
       body: [TestStubs.Authenticators().Recovery({isEnrolled: false})],
     });
 
-    let url = '/users/me/password/';
-    let mock = Client.addMockResponse({
+    const url = '/users/me/password/';
+    const mock = Client.addMockResponse({
       url,
       method: 'PUT',
     });
 
-    let wrapper = mount(
+    const wrapper = mount(
       <AccountSecurityWrapper>
         <AccountSecurity />
       </AccountSecurityWrapper>,
@@ -317,13 +317,13 @@ describe('AccountSecurity', function() {
       url: ENDPOINT,
       body: [TestStubs.Authenticators().Recovery({isEnrolled: false})],
     });
-    let url = '/users/me/password/';
-    let mock = Client.addMockResponse({
+    const url = '/users/me/password/';
+    const mock = Client.addMockResponse({
       url,
       method: 'PUT',
     });
 
-    let wrapper = mount(
+    const wrapper = mount(
       <AccountSecurityWrapper>
         <AccountSecurity />
       </AccountSecurityWrapper>,
@@ -348,14 +348,14 @@ describe('AccountSecurity', function() {
       url: ENDPOINT,
       body: [TestStubs.Authenticators().Recovery({isEnrolled: false})],
     });
-    let mock = Client.addMockResponse({
+    const mock = Client.addMockResponse({
       url: AUTH_ENDPOINT,
       body: {all: true},
       method: 'DELETE',
       status: 204,
     });
 
-    let wrapper = mount(
+    const wrapper = mount(
       <AccountSecurityWrapper>
         <AccountSecurity />
       </AccountSecurityWrapper>,

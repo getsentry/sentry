@@ -44,8 +44,8 @@ class EventOrGroupHeader extends React.Component {
   };
 
   getMessage() {
-    let {data} = this.props;
-    let {metadata, type, culprit} = data || {};
+    const {data} = this.props;
+    const {metadata, type, culprit} = data || {};
 
     switch (type) {
       case 'error':
@@ -62,22 +62,22 @@ class EventOrGroupHeader extends React.Component {
   }
 
   getLocation() {
-    let {data} = this.props;
-    let {metadata} = data || {};
+    const {data} = this.props;
+    const {metadata} = data || {};
     return metadata.filename || null;
   }
 
   getTitle() {
-    let {hideIcons, hideLevel, includeLink, data, params} = this.props;
-    let {orgId, projectId} = params;
+    const {hideIcons, hideLevel, includeLink, data, params} = this.props;
+    const {orgId, projectId} = params;
 
-    let {id, level, groupID} = data || {};
-    let isEvent = !!data.eventID;
+    const {id, level, groupID} = data || {};
+    const isEvent = !!data.eventID;
 
-    let props = {};
+    const props = {};
     let Wrapper;
 
-    let basePath = projectId
+    const basePath = projectId
       ? `/${orgId}/${projectId}/issues/`
       : `/organizations/${orgId}/issues/`;
 
@@ -121,10 +121,10 @@ class EventOrGroupHeader extends React.Component {
   }
 
   render() {
-    let {className} = this.props;
-    let cx = classNames('event-issue-header', className);
-    let message = this.getMessage();
-    let location = this.getLocation();
+    const {className} = this.props;
+    const cx = classNames('event-issue-header', className);
+    const message = this.getMessage();
+    const location = this.getLocation();
 
     return (
       <div className={cx}>
@@ -167,7 +167,7 @@ const LocationWrapper = styled.div`
 `;
 
 function Location(props) {
-  let {children, ...rest} = props;
+  const {children, ...rest} = props;
   return (
     <LocationWrapper {...rest}>
       in <span>{children}</span>

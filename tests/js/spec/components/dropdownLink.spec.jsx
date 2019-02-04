@@ -20,7 +20,7 @@ describe('DropdownLink', function() {
 
   describe('renders', function() {
     it('and anchors to left by default', function() {
-      let component = mount(
+      const component = mount(
         <DropdownLink {...INPUT_1}>
           <div>1</div>
           <div>2</div>
@@ -31,7 +31,7 @@ describe('DropdownLink', function() {
     });
 
     it('and anchors to right', function() {
-      let component = mount(
+      const component = mount(
         <DropdownLink {...INPUT_1} anchorRight>
           <div>1</div>
           <div>2</div>

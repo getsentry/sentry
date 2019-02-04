@@ -17,8 +17,8 @@ import Truncate from 'app/components/truncate';
 import space from 'app/styles/space';
 
 export function trimPackage(pkg) {
-  let pieces = pkg.split(/^([a-z]:\\|\\\\)/i.test(pkg) ? '\\' : '/');
-  let filename = pieces[pieces.length - 1] || pieces[pieces.length - 2] || pkg;
+  const pieces = pkg.split(/^([a-z]:\\|\\\\)/i.test(pkg) ? '\\' : '/');
+  const filename = pieces[pieces.length - 1] || pieces[pieces.length - 2] || pkg;
   return filename.replace(/\.(dylib|so|a|dll|exe)$/, '');
 }
 
@@ -83,9 +83,9 @@ const Frame = createReactClass({
   },
 
   renderOriginalSourceInfo() {
-    let data = this.props.data;
+    const data = this.props.data;
 
-    let sourceMapText = t('Source Map');
+    const sourceMapText = t('Source Map');
 
     let out = `
     <div>
@@ -121,16 +121,16 @@ const Frame = createReactClass({
   },
 
   renderDefaultTitle() {
-    let data = this.props.data;
-    let title = [];
+    const data = this.props.data;
+    const title = [];
 
     // TODO(dcramer): this needs to use a formatted string so it can be
     // localized correctly
 
     if (defined(data.filename || data.module)) {
       // prioritize module name for Java as filename is often only basename
-      let shouldPrioritizeModuleName = this.shouldPrioritizeModuleName();
-      let pathName = shouldPrioritizeModuleName
+      const shouldPrioritizeModuleName = this.shouldPrioritizeModuleName();
+      const pathName = shouldPrioritizeModuleName
         ? data.module || data.filename
         : data.filename || data.module;
 
@@ -230,26 +230,26 @@ const Frame = createReactClass({
   },
 
   renderContext() {
-    let data = this.props.data;
+    const data = this.props.data;
     let context = '';
-    let {isExpanded} = this.state;
+    const {isExpanded} = this.state;
 
     let outerClassName = 'context';
     if (isExpanded) {
       outerClassName += ' expanded';
     }
 
-    let hasContextSource = this.hasContextSource();
-    let hasContextVars = this.hasContextVars();
-    let hasContextRegisters = this.hasContextRegisters();
-    let expandable = this.isExpandable();
+    const hasContextSource = this.hasContextSource();
+    const hasContextVars = this.hasContextVars();
+    const hasContextRegisters = this.hasContextRegisters();
+    const expandable = this.isExpandable();
 
-    let contextLines = isExpanded
+    const contextLines = isExpanded
       ? data.context
       : data.context && data.context.filter(l => l[0] === data.lineNo);
 
     if (hasContextSource || hasContextVars || hasContextRegisters) {
-      let startLineNo = hasContextSource ? data.context[0][0] : '';
+      const startLineNo = hasContextSource ? data.context[0][0] : '';
       context = (
         <ol start={startLineNo} className={outerClassName}>
           {defined(data.errors) && (
@@ -322,7 +322,7 @@ const Frame = createReactClass({
       return t('Found by stack scanning');
     }
     if (this.getPlatform() == 'cocoa') {
-      let func = this.props.data.function || '<unknown>';
+      const func = this.props.data.function || '<unknown>';
       if (func.match(/^@objc\s/)) {
         return t('Objective-C -> Swift shim frame');
       }
@@ -343,7 +343,7 @@ const Frame = createReactClass({
   },
 
   renderRepeats() {
-    let timesRepeated = this.props.timesRepeated;
+    const timesRepeated = this.props.timesRepeated;
     if (timesRepeated > 0) {
       return (
         <RepeatedFrames
@@ -376,8 +376,8 @@ const Frame = createReactClass({
   },
 
   renderNativeLine() {
-    let data = this.props.data;
-    let hint = this.getFrameHint();
+    const data = this.props.data;
+    const hint = this.getFrameHint();
     return (
       <StrictClick onClick={this.isExpandable() ? this.toggleContext : null}>
         <DefaultLine className="title as-table">
@@ -428,8 +428,8 @@ const Frame = createReactClass({
   },
 
   render() {
-    let data = this.props.data;
-    let className = classNames({
+    const data = this.props.data;
+    const className = classNames({
       frame: true,
       'is-expandable': this.isExpandable(),
       expanded: this.state.isExpanded,
@@ -439,9 +439,9 @@ const Frame = createReactClass({
       'leads-to-app': this.leadsToApp(),
       [this.getPlatform()]: true,
     });
-    let props = {className};
+    const props = {className};
 
-    let context = this.renderContext();
+    const context = this.renderContext();
 
     return (
       <li {...props}>

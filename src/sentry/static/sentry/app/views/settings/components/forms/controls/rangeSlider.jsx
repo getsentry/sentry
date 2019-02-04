@@ -50,7 +50,7 @@ class RangeSlider extends React.Component {
   constructor(props) {
     super(props);
 
-    let state = {sliderValue: props.value};
+    const state = {sliderValue: props.value};
     if (props.allowedValues) {
       // With `allowedValues` sliderValue will be the index to value in `allowedValues`
       // This is so we can snap the rangeSlider using `step`
@@ -67,7 +67,7 @@ class RangeSlider extends React.Component {
   componentWillReceiveProps(nextProps) {
     // Update local state when re-rendered with next `props.value` (e.g if this is controlled)
     if (typeof nextProps.value !== 'undefined') {
-      let {allowedValues} = this.props;
+      const {allowedValues} = this.props;
       let sliderValue = nextProps.value;
 
       // If `allowedValues` is defined, then `sliderValue` represents index to `allowedValues`
@@ -79,7 +79,7 @@ class RangeSlider extends React.Component {
   }
 
   getActualValue = sliderValue => {
-    let {allowedValues} = this.props;
+    const {allowedValues} = this.props;
     let value;
 
     if (allowedValues) {
@@ -93,28 +93,29 @@ class RangeSlider extends React.Component {
   };
 
   handleInput = e => {
-    let sliderValue = parseInt(e.target.value, 10);
+    const sliderValue = parseInt(e.target.value, 10);
 
     this.setState({
       sliderValue,
     });
 
     if (this.props.onChange) {
-      let value = this.getActualValue(sliderValue);
+      const value = this.getActualValue(sliderValue);
       this.props.onChange(value, e);
     }
   };
 
   handleBlur = e => {
-    let {onBlur} = this.props;
+    const {onBlur} = this.props;
     if (typeof onBlur !== 'function') return;
 
     onBlur(e);
   };
 
   render() {
-    let {name, min, max, step, disabled, allowedValues, formatLabel} = this.props;
-    let {sliderValue} = this.state;
+    let {min, max, step} = this.props;
+    const {name, disabled, allowedValues, formatLabel} = this.props;
+    const {sliderValue} = this.state;
     let actualValue = sliderValue;
     let displayValue = actualValue;
 

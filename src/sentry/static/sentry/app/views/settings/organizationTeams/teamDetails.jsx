@@ -26,7 +26,7 @@ const TeamDetails = createReactClass({
   mixins: [ApiMixin, OrganizationState, Reflux.listenTo(TeamStore, 'onTeamStoreUpdate')],
 
   getInitialState() {
-    let team = TeamStore.getBySlug(this.props.params.teamId);
+    const team = TeamStore.getBySlug(this.props.params.teamId);
 
     return {
       loading: !TeamStore.initialized,
@@ -36,7 +36,7 @@ const TeamDetails = createReactClass({
   },
 
   componentWillReceiveProps(nextProps) {
-    let params = this.props.params;
+    const params = this.props.params;
     if (
       nextProps.params.teamId !== params.teamId ||
       nextProps.params.orgId !== params.orgId
@@ -52,9 +52,9 @@ const TeamDetails = createReactClass({
   },
 
   onTeamStoreUpdate(...args) {
-    let team = TeamStore.getBySlug(this.props.params.teamId);
-    let loading = !TeamStore.initialized;
-    let error = !loading && !team;
+    const team = TeamStore.getBySlug(this.props.params.teamId);
+    const loading = !TeamStore.initialized;
+    const error = !loading && !team;
     this.setState({
       team,
       error,
@@ -67,9 +67,9 @@ const TeamDetails = createReactClass({
   },
 
   onTeamChange(data) {
-    let team = this.state.team;
+    const team = this.state.team;
     if (data.slug !== team.slug) {
-      let orgId = this.props.params.orgId;
+      const orgId = this.props.params.orgId;
       browserHistory.push(`/organizations/${orgId}/teams/${data.slug}/settings/`);
     } else {
       this.setState({
@@ -82,13 +82,13 @@ const TeamDetails = createReactClass({
   },
 
   render() {
-    let {params, routes, children} = this.props;
-    let team = this.state.team;
+    const {params, routes, children} = this.props;
+    const team = this.state.team;
 
     if (this.state.loading) return <LoadingIndicator />;
     else if (!team || this.state.error) return <LoadingError onRetry={this.fetchData} />;
 
-    let routePrefix = recreateRoute('', {routes, params, stepBack: -1}); //`/organizations/${orgId}/teams/${teamId}`;
+    const routePrefix = recreateRoute('', {routes, params, stepBack: -1}); //`/organizations/${orgId}/teams/${teamId}`;
 
     return (
       <div>

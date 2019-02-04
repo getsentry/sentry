@@ -23,10 +23,10 @@ class EventTags extends React.Component {
   };
 
   render() {
-    let tags = this.props.event.tags;
+    const tags = this.props.event.tags;
     if (_.isEmpty(tags)) return null;
 
-    let {orgId, projectId} = this.props;
+    const {orgId, projectId} = this.props;
     return (
       <EventDataSection
         group={this.props.group}

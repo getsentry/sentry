@@ -24,12 +24,12 @@ class ProjectPluginRow extends React.PureComponent {
   };
 
   handleChange = () => {
-    let {onChange, id, enabled} = this.props;
+    const {onChange, id, enabled} = this.props;
     onChange(id, !enabled);
   };
 
   render() {
-    let {
+    const {
       id,
       name,
       slug,
@@ -40,7 +40,7 @@ class ProjectPluginRow extends React.PureComponent {
       canDisable,
     } = this.props;
 
-    let configureUrl = recreateRoute(id, this.props);
+    const configureUrl = recreateRoute(id, this.props);
     return (
       <Access access={['project:write']}>
         {({hasAccess}) => {

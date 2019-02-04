@@ -19,9 +19,9 @@ export default class OrganizationRepositories extends React.Component {
   };
 
   render() {
-    let {params, itemList, api, onRepositoryChange} = this.props;
-    let {orgId} = params;
-    let hasItemList = itemList && itemList.length > 0;
+    const {params, itemList, api, onRepositoryChange} = this.props;
+    const {orgId} = params;
+    const hasItemList = itemList && itemList.length > 0;
 
     return (
       <div>

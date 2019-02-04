@@ -28,7 +28,7 @@ class OrganizationBadge extends React.Component {
   };
 
   render() {
-    let {hideOverflow, organization, ...props} = this.props;
+    const {hideOverflow, organization, ...props} = this.props;
 
     return (
       <BaseBadge
@@ -66,7 +66,7 @@ const OrganizationBadgeContainer = createReactClass({
   },
 
   onOrganizationStoreUpdate() {
-    let org = OrganizationStore.get(this.state.organization.slug);
+    const org = OrganizationStore.get(this.state.organization.slug);
     if (isEqual(org.avatar, this.state.organization.avatar)) return;
 
     this.setState({

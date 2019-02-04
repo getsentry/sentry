@@ -110,7 +110,7 @@ describe('PluginsStore', function() {
   });
 
   describe('update', function() {
-    let plugin = TestStubs.Plugin();
+    const plugin = TestStubs.Plugin();
     beforeEach(function() {
       PluginsStore.reset();
       PluginsStore.plugins = new Map(TestStubs.Plugins().map(p => [p.id, p]));
@@ -119,7 +119,7 @@ describe('PluginsStore', function() {
     it('has optimistic state when updating', function() {
       PluginActions.update.trigger('amazon-sqs', {name: 'Amazon Sqs'});
 
-      let state = PluginsStore.getState();
+      const state = PluginsStore.getState();
       expect(state).toMatchObject({
         error: null,
         pageLinks: null,
@@ -141,7 +141,7 @@ describe('PluginsStore', function() {
     it('saves old plugin state', function() {
       PluginActions.update.trigger('amazon-sqs', {name: 'Amazon Sqs'});
 
-      let state = PluginsStore.getState();
+      const state = PluginsStore.getState();
       expect(state).toMatchObject({
         error: null,
         pageLinks: null,

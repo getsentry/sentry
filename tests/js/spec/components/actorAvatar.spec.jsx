@@ -34,7 +34,7 @@ describe('Avatar', function() {
 
   describe('render()', function() {
     it('should show a gravatar when actor type is a user', function() {
-      let avatar = shallow(
+      const avatar = shallow(
         <ActorAvatar
           actor={{
             id: '1',
@@ -47,7 +47,7 @@ describe('Avatar', function() {
     });
 
     it('should show a gravatar when actor type is a team', function() {
-      let avatar = shallow(
+      const avatar = shallow(
         <ActorAvatar
           actor={{
             id: '3',
@@ -62,7 +62,7 @@ describe('Avatar', function() {
     it('should return null when actor type is a unknown', function() {
       window.console.error = jest.fn();
 
-      let avatar = mount(
+      const avatar = mount(
         <ActorAvatar
           actor={{
             id: '3',

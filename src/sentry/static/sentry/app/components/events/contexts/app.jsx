@@ -10,7 +10,7 @@ class AppContextType extends React.Component {
   };
 
   render() {
-    let {
+    const {
       app_id,
       app_start_time,
       device_app_hash,

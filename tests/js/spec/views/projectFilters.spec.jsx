@@ -4,9 +4,9 @@ import {mount} from 'enzyme';
 import ProjectFilters from 'app/views/settings/project/projectFilters';
 
 describe('ProjectFilters', function() {
-  let org = TestStubs.Organization();
-  let project = TestStubs.Project({options: {}});
-  let PROJECT_URL = `/projects/${org.slug}/${project.slug}/`;
+  const org = TestStubs.Organization();
+  const project = TestStubs.Project({options: {}});
+  const PROJECT_URL = `/projects/${org.slug}/${project.slug}/`;
   let wrapper;
 
   const getFilterEndpoint = filter => `${PROJECT_URL}filters/${filter}/`;
@@ -60,8 +60,8 @@ describe('ProjectFilters', function() {
   });
 
   it('has browser extensions enabled initially', function() {
-    let filter = 'browser-extensions';
-    let mock = createFilterMock(filter);
+    const filter = 'browser-extensions';
+    const mock = createFilterMock(filter);
     const Switch = wrapper.find(`BooleanField[name="${filter}"] Switch`);
 
     expect(Switch.prop('isActive')).toBe(true);
@@ -81,7 +81,7 @@ describe('ProjectFilters', function() {
 
   it('can toggle filters: localhost, web crawlers', function() {
     ['localhost', 'web-crawlers'].map((filter, i) => {
-      let mock = createFilterMock(filter);
+      const mock = createFilterMock(filter);
       const Switch = wrapper.find(`BooleanField[name="${filter}"] Switch`);
 
       // Toggle filter on
@@ -120,8 +120,8 @@ describe('ProjectFilters', function() {
   });
 
   it('can toggle legacy browser', function() {
-    let filter = 'legacy-browsers';
-    let mock = createFilterMock(filter);
+    const filter = 'legacy-browsers';
+    const mock = createFilterMock(filter);
 
     // default stubs ie_pre_9 and ie9 selected (first 2 switches)
     const Switch = wrapper.find('LegacyBrowserFilterRow Switch').at(4);
@@ -167,8 +167,8 @@ describe('ProjectFilters', function() {
   });
 
   it('can toggle all/none for legacy browser', function() {
-    let filter = 'legacy-browsers';
-    let mock = createFilterMock(filter);
+    const filter = 'legacy-browsers';
+    const mock = createFilterMock(filter);
     const All = wrapper.find('BulkFilterItem').at(0);
     const None = wrapper.find('BulkFilterItem').at(1);
 
@@ -191,7 +191,7 @@ describe('ProjectFilters', function() {
   });
 
   it('can set ip address filter', function() {
-    let mock = MockApiClient.addMockResponse({
+    const mock = MockApiClient.addMockResponse({
       url: PROJECT_URL,
       method: 'PUT',
     });
@@ -236,7 +236,7 @@ describe('ProjectFilters', function() {
     expect(wrapper.find('TextArea[id="filters:releases"]')).toHaveLength(1);
     expect(wrapper.find('TextArea[id="filters:error_messages"]')).toHaveLength(1);
 
-    let mock = MockApiClient.addMockResponse({
+    const mock = MockApiClient.addMockResponse({
       url: PROJECT_URL,
       method: 'PUT',
     });

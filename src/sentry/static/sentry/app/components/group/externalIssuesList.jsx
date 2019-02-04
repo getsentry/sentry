@@ -18,7 +18,7 @@ class ExternalIssueList extends AsyncComponent {
   };
 
   getEndpoints() {
-    let {group} = this.props;
+    const {group} = this.props;
     return [['integrations', `/groups/${group.id}/integrations/`]];
   }
 

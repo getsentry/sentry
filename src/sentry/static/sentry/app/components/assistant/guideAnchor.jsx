@@ -36,7 +36,7 @@ const GuideAnchor = createReactClass({
 
   componentDidUpdate(prevProps, prevState) {
     if (!prevState.active && this.state.active && this.props.type !== 'invisible') {
-      let windowHeight = $(window).height();
+      const windowHeight = $(window).height();
       $('html,body').animate({
         scrollTop: $(this.anchorElement).offset().top - windowHeight / 4,
       });
@@ -63,7 +63,7 @@ const GuideAnchor = createReactClass({
   },
 
   render() {
-    let {target, type} = this.props;
+    const {target, type} = this.props;
 
     return (
       <GuideAnchorContainer innerRef={el => (this.anchorElement = el)} type={type}>

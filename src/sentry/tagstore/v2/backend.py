@@ -27,6 +27,7 @@ from sentry.utils import db
 
 from . import models
 from sentry.tagstore.types import TagKey, TagValue, GroupTagKey, GroupTagValue
+from sentry.tasks.post_process import index_event_tags
 
 
 logger = logging.getLogger('sentry.tagstore.v2')
@@ -516,7 +517,7 @@ class V2TagStorage(TagStorage):
         if environment_ids and len(environment_ids) > 1:
             raise NotImplementedError
 
-        environment_id = environment_ids and environment_ids[0]
+        environment_id = environment_ids[0] if environment_ids else None
 
         qs = models.GroupTagKey.objects.select_related('_key').filter(
             project_id=project_id,
@@ -1121,3 +1122,15 @@ class V2TagStorage(TagStorage):
             return queryset.filter(_key__environment_id=environment_id)
         else:
             raise ValueError("queryset of unsupported model '%s' provided" % queryset.model)
+
+    def delay_index_event_tags(self, organization_id, project_id, group_id,
+                               environment_id, event_id, tags, date_added):
+        index_event_tags.delay(
+            organization_id=organization_id,
+            project_id=project_id,
+            group_id=group_id,
+            environment_id=environment_id,
+            event_id=event_id,
+            tags=tags,
+            date_added=date_added,
+        )

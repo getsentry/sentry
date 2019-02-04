@@ -20,11 +20,11 @@ class OrganizationCrumb extends React.Component {
   };
 
   render() {
-    let {organizations, organization, params, routes, route, ...props} = this.props;
+    const {organizations, organization, params, routes, route, ...props} = this.props;
 
     if (!organization) return null;
 
-    let hasMenu = organizations.length > 1;
+    const hasMenu = organizations.length > 1;
 
     return (
       <BreadcrumbDropdown
@@ -45,8 +45,8 @@ class OrganizationCrumb extends React.Component {
           // then we need to default to index route (e.g. `route`)
           //
           // Otherwise, using empty string ('') will keep the current route path but with target org
-          let hasProjectParam = !!params.projectId;
-          let destination = hasProjectParam ? route : '';
+          const hasProjectParam = !!params.projectId;
+          const destination = hasProjectParam ? route : '';
           browserHistory.push(
             recreateRoute(destination, {
               routes,

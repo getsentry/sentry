@@ -27,10 +27,10 @@ class ProjectPlugins extends Component {
   };
 
   render() {
-    let {plugins, loading, error, onError, onChange, routes, params} = this.props;
-    let {orgId} = this.props.params;
-    let hasError = error;
-    let isLoading = !hasError && loading;
+    const {plugins, loading, error, onError, onChange, routes, params} = this.props;
+    const {orgId} = this.props.params;
+    const hasError = error;
+    const isLoading = !hasError && loading;
 
     if (hasError) {
       return <RouteError error={error} component={this} onRetry={onError} />;

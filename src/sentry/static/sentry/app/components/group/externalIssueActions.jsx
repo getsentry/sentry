@@ -39,7 +39,7 @@ class ExternalIssueForm extends AsyncComponent {
   shouldRenderBadRequests = true;
 
   getEndpoints() {
-    let {action, group, integration} = this.props;
+    const {action, group, integration} = this.props;
     return [
       [
         'integrationDetails',
@@ -62,10 +62,10 @@ class ExternalIssueForm extends AsyncComponent {
   }
 
   refetchConfig = () => {
-    let {dynamicFieldValues} = this.state;
-    let {action, group, integration} = this.props;
-    let endpoint = `/groups/${group.id}/integrations/${integration.id}/`;
-    let query = {action, ...dynamicFieldValues};
+    const {dynamicFieldValues} = this.state;
+    const {action, group, integration} = this.props;
+    const endpoint = `/groups/${group.id}/integrations/${integration.id}/`;
+    const query = {action, ...dynamicFieldValues};
 
     this.api.request(endpoint, {
       method: 'GET',
@@ -81,8 +81,8 @@ class ExternalIssueForm extends AsyncComponent {
 
   getDynamicFields(integrationDetails) {
     integrationDetails = integrationDetails || this.state.integrationDetails;
-    let {action} = this.props;
-    let config = integrationDetails[`${action}IssueConfig`];
+    const {action} = this.props;
+    const config = integrationDetails[`${action}IssueConfig`];
 
     return config
       .filter(field => field.updatesForm)
@@ -90,9 +90,9 @@ class ExternalIssueForm extends AsyncComponent {
   }
 
   onFieldChange = (label, value) => {
-    let dynamicFields = this.getDynamicFields();
+    const dynamicFields = this.getDynamicFields();
     if (label in dynamicFields) {
-      let dynamicFieldValues = this.state.dynamicFieldValues || {};
+      const dynamicFieldValues = this.state.dynamicFieldValues || {};
       dynamicFieldValues[label] = value;
 
       this.setState(
@@ -119,16 +119,16 @@ class ExternalIssueForm extends AsyncComponent {
 
   debouncedOptionLoad = debounce(
     (field, input, resolve) => {
-      let query = queryString.stringify({
+      const query = queryString.stringify({
         ...this.state.dynamicFieldValues,
         field: field.name,
         query: input,
       });
 
-      let url = field.url;
-      let separator = url.includes('?') ? '&' : '?';
+      const url = field.url;
+      const separator = url.includes('?') ? '&' : '?';
 
-      let request = {
+      const request = {
         url: [url, separator, query].join(''),
         method: 'GET',
       };
@@ -155,11 +155,11 @@ class ExternalIssueForm extends AsyncComponent {
       : {};
 
   renderBody() {
-    let {integrationDetails} = this.state;
-    let {action, group, integration} = this.props;
-    let config = integrationDetails[`${action}IssueConfig`];
+    const {integrationDetails} = this.state;
+    const {action, group, integration} = this.props;
+    const config = integrationDetails[`${action}IssueConfig`];
 
-    let initialData = {};
+    const initialData = {};
     config.forEach(field => {
       // passing an empty array breaks multi select
       // TODO(jess): figure out why this is breaking and fix
@@ -222,8 +222,8 @@ class ExternalIssueActions extends AsyncComponent {
   }
 
   deleteIssue(issueId) {
-    let {group, integration} = this.props;
-    let endpoint = `/groups/${group.id}/integrations/${integration.id}/?externalIssue=${issueId}`;
+    const {group, integration} = this.props;
+    const endpoint = `/groups/${group.id}/integrations/${integration.id}/?externalIssue=${issueId}`;
     this.api.request(endpoint, {
       method: 'DELETE',
       success: (data, _, jqXHR) => {
@@ -260,7 +260,7 @@ class ExternalIssueActions extends AsyncComponent {
   };
 
   renderBody() {
-    let {action, selectedIntegration, issue} = this.state;
+    const {action, selectedIntegration, issue} = this.state;
     return (
       <React.Fragment>
         <IssueSyncListElement

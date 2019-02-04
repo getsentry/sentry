@@ -11,7 +11,7 @@ describe('Access', function() {
   const routerContext = TestStubs.routerContext([{organization}]);
 
   describe('as render prop', function() {
-    let childrenMock = jest.fn().mockReturnValue(null);
+    const childrenMock = jest.fn().mockReturnValue(null);
     beforeEach(function() {
       childrenMock.mockClear();
     });

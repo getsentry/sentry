@@ -7,7 +7,7 @@ import OrganizationAuditLog from 'app/views/settings/organizationAuditLog';
 jest.mock('jquery');
 
 describe('OrganizationAuditLog', function() {
-  let org = TestStubs.Organization();
+  const org = TestStubs.Organization();
   const ENDPOINT = `/organizations/${org.slug}/audit-logs/`;
 
   beforeEach(function() {
@@ -19,7 +19,7 @@ describe('OrganizationAuditLog', function() {
   });
 
   it('renders', function(done) {
-    let wrapper = shallow(
+    const wrapper = shallow(
       <OrganizationAuditLog location={{query: ''}} params={{orgId: org.slug}} />,
       TestStubs.routerContext()
     );
@@ -33,7 +33,7 @@ describe('OrganizationAuditLog', function() {
   });
 
   it('displays whether an action was done by a superuser', function() {
-    let wrapper = mount(
+    const wrapper = mount(
       <OrganizationAuditLog location={{query: ''}} params={{orgId: org.slug}} />,
       TestStubs.routerContext()
     );

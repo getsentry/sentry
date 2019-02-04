@@ -6,7 +6,7 @@ import EmptyState from 'app/views/organizationProjectsDashboard/emptyState';
 describe('EmptyState', function() {
   const org = TestStubs.Organization();
   it('shows "Create Project" button when there are no projects', function() {
-    let wrapper = shallow(
+    const wrapper = shallow(
       <EmptyState organization={org} projects={[]} />,
       TestStubs.routerContext()
     );
@@ -16,7 +16,7 @@ describe('EmptyState', function() {
   });
 
   it('"Create Project" is disabled when no access to `project:write`', function() {
-    let wrapper = shallow(
+    const wrapper = shallow(
       <EmptyState organization={TestStubs.Organization({access: []})} projects={[]} />,
       TestStubs.routerContext()
     );
@@ -26,7 +26,7 @@ describe('EmptyState', function() {
   });
 
   it('has "Join a Team" button', function() {
-    let wrapper = shallow(
+    const wrapper = shallow(
       <EmptyState organization={org} projects={[]} />,
       TestStubs.routerContext()
     );
@@ -34,7 +34,7 @@ describe('EmptyState', function() {
   });
 
   it('has a disabled "Join a Team" button if no access to `team:read`', function() {
-    let wrapper = shallow(
+    const wrapper = shallow(
       <EmptyState organization={TestStubs.Organization({access: []})} projects={[]} />,
       TestStubs.routerContext()
     );

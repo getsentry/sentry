@@ -81,7 +81,7 @@ class BreadcrumbDropdown extends React.Component {
   };
 
   render() {
-    let {hasMenu, route, isLast, name, items, onSelect} = this.props;
+    const {hasMenu, route, isLast, name, items, onSelect} = this.props;
     return (
       <DropdownAutoCompleteMenu
         blendCorner={false}
