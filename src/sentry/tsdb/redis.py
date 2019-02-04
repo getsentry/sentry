@@ -254,7 +254,7 @@ class RedisTSDB(BaseTSDB):
         # redis backend doesn't support multiple envs
         if environment_ids is not None and len(environment_ids) > 1:
             raise NotImplementedError
-        environment_id = environment_ids[0] if environment_ids is not None else None
+        environment_id = environment_ids[0] if environment_ids else None
 
         self.validate_arguments([model], [environment_id])
 
