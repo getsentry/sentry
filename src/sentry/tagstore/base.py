@@ -89,6 +89,8 @@ class TagStorage(Service):
         'incr_group_tag_value_times_seen',
         'update_group_tag_key_values_seen',
         'update_group_for_events',
+
+        'delay_index_event_tags',
     ])
 
     __all__ = frozenset([
@@ -440,3 +442,7 @@ class TagStorage(Service):
                     project_id, group_id, environment_id, tk.key)
 
         return tag_keys
+
+    def delay_index_event_tags(self, organization_id, project_id, group_id,
+                               environment_id, event_id, tags, date_added):
+        raise NotImplementedError
