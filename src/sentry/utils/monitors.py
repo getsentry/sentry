@@ -15,7 +15,9 @@ def get_api_root_from_dsn(dsn):
     if not dsn:
         return
     parsed = urlparse(dsn)
-    return u'{}://{}:{}'.format(parsed.scheme, parsed.hostname, parsed.port)
+    if parsed.port:
+        return u'{}://{}:{}'.format(parsed.scheme, parsed.hostname, parsed.port)
+    return u'{}://{}'.format(parsed.scheme, parsed.hostname)
 
 
 SENTRY_DSN = settings.SENTRY_MONITOR_DSN
@@ -52,6 +54,7 @@ def suppress_errors(func):
             return func(*a, **k)
         except Exception:
             capture_exception()
+    return inner
 
 
 @suppress_errors

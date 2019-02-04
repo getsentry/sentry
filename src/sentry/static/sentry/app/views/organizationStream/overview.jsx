@@ -309,10 +309,6 @@ const OrganizationStream = createReactClass({
     });
   },
 
-  showingProcessingIssues() {
-    return this.state.query && this.state.query.trim() == 'is:unprocessed';
-  },
-
   resumePolling() {
     if (!this.state.pageLinks) return;
 

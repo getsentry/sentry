@@ -174,7 +174,7 @@ export const HeadingContainer = styled(Flex)`
 `;
 
 export const Fieldset = styled.fieldset`
-  margin: ${space(3)} ${space(3)} 0;
+  margin: ${space(2)} ${space(3)};
 `;
 
 export const SelectListItem = styled(Flex)`

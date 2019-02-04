@@ -5,12 +5,18 @@ import six
 
 from collections import namedtuple
 from django.utils.functional import cached_property
+from funcy.seqs import flatten
+from funcy.types import is_list
 
 from parsimonious.exceptions import ParseError
 from parsimonious.grammar import Grammar, NodeVisitor
 
-from sentry.constants import STATUS_CHOICES
-from sentry.search.utils import parse_datetime_string, InvalidQuery
+from sentry.search.utils import (
+    parse_datetime_range,
+    parse_datetime_string,
+    parse_datetime_value,
+    InvalidQuery,
+)
 from sentry.utils.snuba import SENTRY_SNUBA_MAP
 
 WILDCARD_CHARS = re.compile(r'[\*\[\]\?]')
@@ -58,16 +64,25 @@ event_search_grammar = Grammar(r"""
 # raw_search must come at the end, otherwise other
 # search_terms will be treated as a raw query
 search          = search_term* raw_search?
-search_term     = space? (time_filter / has_filter / is_filter / basic_filter) space?
+search_term     = space? (time_filter / rel_time_filter / specific_time_filter
+                  / numeric_filter / has_filter / is_filter / basic_filter)
+                  space?
 raw_search      = ~r".+$"
 
 # standard key:val filter
 basic_filter    = negation? search_key sep search_value
-# filter specifically for the timestamp
-time_filter     = "timestamp" operator date_format
+# filter for dates
+time_filter     = search_key sep? operator date_format
+# filter for relative dates
+rel_time_filter = search_key sep rel_date_format
+# exact time filter for dates
+specific_time_filter = search_key sep date_format
+# Numeric comparison filter
+numeric_filter  = search_key sep operator ~r"[0-9]+"
+
 # has filter for not null type checks
 has_filter      = negation? "has" sep (search_key / search_value)
-is_filter      = negation? "is" sep (search_key / search_value)
+is_filter       = negation? "is" sep (search_key / search_value)
 
 search_key      = key / quoted_key
 search_value    = quoted_value / value
@@ -77,7 +92,8 @@ key             = ~r"[a-zA-Z0-9_\.-]+"
 # only allow colons in quoted keys
 quoted_key      = ~r"\"([a-zA-Z0-9_\.:-]+)\""
 
-date_format    = ~r"\d{4}-\d{2}-\d{2}(T\d{2}:\d{2}:\d{2}(\.\d{1,6})?)?"
+date_format     = ~r"\d{4}-\d{2}-\d{2}(T\d{2}:\d{2}:\d{2}(\.\d{1,6})?)?"
+rel_date_format = ~r"[\+\-][0-9]+[wdhs]"
 
 # NOTE: the order in which these operators are listed matters
 # because for example, if < comes before <= it will match that
@@ -131,22 +147,24 @@ class SearchValue(namedtuple('SearchValue', 'raw_value')):
 
 
 class SearchVisitor(NodeVisitor):
-
-    @cached_property
-    def is_filter_translators(self):
-        is_filter_translators = {
-            'assigned': (SearchKey('unassigned'), SearchValue(False)),
-            'unassigned': (SearchKey('unassigned'), SearchValue(True)),
-        }
-        for status_key, status_value in STATUS_CHOICES.items():
-            is_filter_translators[status_key] = (SearchKey('status'), SearchValue(status_value))
-        return is_filter_translators
+    # A list of mappers that map source keys to a target name. Format is
+    # <target_name>: [<list of source names>],
+    key_mappings = {}
 
     unwrapped_exceptions = (InvalidSearchQuery,)
 
+    @cached_property
+    def key_mappings_lookup(self):
+        lookup = {}
+        for target_field, source_fields in self.key_mappings.items():
+            for source_field in source_fields:
+                lookup[source_field] = target_field
+        return lookup
+
     def visit_search(self, node, children):
-        # there is a list from search_term and one from raw_search, so flatten them
-        children = [child for group in children for child in group]
+        # there is a list from search_term and one from raw_search, so flatten them.
+        # Flatten each group in the list, since nodes can return multiple items
+        children = [child for group in children for child in flatten(group, follow=is_list)]
         return filter(None, children)
 
     def visit_search_term(self, node, children):
@@ -161,9 +179,21 @@ class SearchVisitor(NodeVisitor):
             SearchValue(node.text),
         )
 
+    def visit_numeric_filter(self, node, children):
+        search_key, _, operator, search_value = children
+        try:
+            search_value = int(search_value.text)
+        except ValueError:
+            raise InvalidSearchQuery('Invalid numeric query: %s' % (search_key,))
+
+        return SearchFilter(
+            search_key,
+            operator,
+            SearchValue(search_value),
+        )
+
     def visit_time_filter(self, node, children):
-        search_key_node, operator, search_value = children
-        search_key = search_key_node.text
+        search_key, _, operator, search_value = children
         try:
             search_value = parse_datetime_string(search_value)
         except InvalidQuery as exc:
@@ -171,12 +201,56 @@ class SearchVisitor(NodeVisitor):
 
         try:
             return SearchFilter(
-                SearchKey(search_key),
+                search_key,
                 operator,
                 SearchValue(search_value),
             )
         except KeyError:
             raise InvalidSearchQuery('Unsupported search term: %s' % (search_key,))
+
+    def visit_rel_time_filter(self, node, children):
+        search_key, _, value = children
+        try:
+            from_val, to_val = parse_datetime_range(value.text)
+        except InvalidQuery as exc:
+            raise InvalidSearchQuery(exc.message)
+
+        if from_val is not None:
+            operator = '>='
+            search_value = from_val[0]
+        else:
+            operator = '<='
+            search_value = to_val[0]
+
+        return SearchFilter(
+            search_key,
+            operator,
+            SearchValue(search_value),
+        )
+
+    def visit_specific_time_filter(self, node, children):
+        # Note that this is a behaviour implemented for dates in our current
+        # searches. If we specify a specific date, it means any event on that
+        # day, and if we specify a specific datetime then it means a few minutes
+        # interval on either side of that datetime
+        search_key, _, date_value = children
+        try:
+            from_val, to_val = parse_datetime_value(date_value)
+        except InvalidQuery as exc:
+            raise InvalidSearchQuery(exc.message)
+
+        return [
+            SearchFilter(
+                search_key,
+                '>=',
+                SearchValue(from_val[0]),
+            ),
+            SearchFilter(
+                search_key,
+                '<',
+                SearchValue(to_val[0]),
+            ),
+        ]
 
     def visit_operator(self, node, children):
         return node.text
@@ -217,34 +291,11 @@ class SearchVisitor(NodeVisitor):
         )
 
     def visit_is_filter(self, node, children):
-        # the key is "is" here, which we don't need
-        negation, _, _, (search_key,) = children
-
-        # if it matched search value instead, it's not a valid key
-        if isinstance(search_key, SearchValue):
-            raise InvalidSearchQuery(
-                'Invalid format for "is" search: %s' %
-                (search_key.raw_value,))
-
-        if search_key.name not in self.is_filter_translators:
-            raise InvalidSearchQuery(
-                'Invalid value for "is" search, valid values are {}'.format(
-                    sorted(self.is_filter_translators.keys()),
-                ),
-            )
-
-        search_key, search_value = self.is_filter_translators[search_key.name]
-
-        operator = '!=' if self.is_negated(negation) else '='
-
-        return SearchFilter(
-            search_key,
-            operator,
-            search_value,
-        )
+        raise InvalidSearchQuery('"is" queries are not supported on this search')
 
     def visit_search_key(self, node, children):
-        return SearchKey(children[0])
+        key = children[0]
+        return SearchKey(self.key_mappings_lookup.get(key, key))
 
     def visit_search_value(self, node, children):
         return SearchValue(children[0])

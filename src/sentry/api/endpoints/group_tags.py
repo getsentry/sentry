@@ -32,7 +32,7 @@ class GroupTagsEndpoint(GroupEndpoint, EnvironmentMixin):
             tag_keys = []
         else:
             tag_keys = tagstore.get_group_tag_keys_and_top_values(
-                group.project_id, group.id, environment_id, keys=keys,
+                group.project_id, group.id, environment_id and [environment_id], keys=keys,
                 value_limit=value_limit)
 
         return Response(serialize(tag_keys, request.user))
