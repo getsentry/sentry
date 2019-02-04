@@ -134,7 +134,7 @@ class OrganizationDashboardWidgetsPostTestCase(OrganizationDashboardWidgetTestCa
             title='User Happiness',
         )
         assert response.status_code == 400
-        assert response.data == {'displayType': [u'Widget display_type happy-face not recognized.']}
+        assert response.data == {'displayType': [u'Widget displayType happy-face not recognized.']}
 
     def test_unrecognized_data_source_type(self):
         response = self.get_response(
