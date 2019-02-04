@@ -466,6 +466,7 @@ class Fixtures(object):
         return useremail
 
     def create_event(self, event_id=None, normalize=True, **kwargs):
+        # XXX: Do not use this method for new tests! Prefer `store_event`.
         if event_id is None:
             event_id = uuid4().hex
         if 'group' not in kwargs:
@@ -520,7 +521,7 @@ class Fixtures(object):
         return event
 
     def store_event(self, data, project_id, assert_no_errors=True):
-        # Like `create_event_legacy`, but closer to how events are actually
+        # Like `create_event`, but closer to how events are actually
         # ingested. Prefer to use this method over `create_event`
         manager = EventManager(data)
         manager.normalize()
