@@ -20,7 +20,7 @@ class TestIssueSaved(TestCase):
     def test_does_not_process_unless_created(self, delay):
         issue = self.create_group()
         delay.reset_mock()
-        issue.update(message='Stuff blew up')
+        issue.update(search_message='Stuff blew up')
         assert len(delay.mock_calls) == 0
 
 

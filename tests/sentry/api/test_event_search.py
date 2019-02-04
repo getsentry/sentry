@@ -484,7 +484,8 @@ class GetSnubaQueryArgsTest(TestCase):
         assert get_snuba_query_args('!message:"post_process.process_error HTTPError 403"') == {
             'filter_keys': {},
             'conditions': [[
-                ['positionCaseInsensitive', ['message', "'post_process.process_error HTTPError 403'"]],
+                ['positionCaseInsensitive', [['coalesce', ['search_message', 'message']],
+                                             "'post_process.process_error HTTPError 403'"]],
                 '=',
                 0,
             ]]
