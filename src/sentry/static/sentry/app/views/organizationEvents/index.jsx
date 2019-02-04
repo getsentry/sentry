@@ -8,6 +8,7 @@ import {t} from 'app/locale';
 import BetaTag from 'app/components/betaTag';
 import Feature from 'app/components/acl/feature';
 import GlobalSelectionHeader from 'app/components/organizations/globalSelectionHeader';
+import NoProjectMessage from 'app/components/noProjectMessage';
 import SentryTypes from 'app/sentryTypes';
 import PageHeading from 'app/components/pageHeading';
 import withGlobalSelection from 'app/utils/withGlobalSelection';
@@ -49,21 +50,22 @@ class OrganizationEventsContainer extends React.Component {
           resetParamsOnChange={['cursor']}
         />
         <PageContent>
-          <Body>
-            <PageHeader>
-              <HeaderTitle>
-                {t('Events')} <BetaTag />
-              </HeaderTitle>
-              <StyledSearchBar
-                organization={organization}
-                query={(location.query && location.query.query) || ''}
-                placeholder={t('Search for events, users, tags, and everything else.')}
-                onSearch={this.handleSearch}
-              />
-            </PageHeader>
-
-            {children}
-          </Body>
+          <NoProjectMessage organization={organization}>
+            <Body>
+              <PageHeader>
+                <HeaderTitle>
+                  {t('Events')} <BetaTag />
+                </HeaderTitle>
+                <StyledSearchBar
+                  organization={organization}
+                  query={(location.query && location.query.query) || ''}
+                  placeholder={t('Search for events, users, tags, and everything else.')}
+                  onSearch={this.handleSearch}
+                />
+              </PageHeader>
+              {children}
+            </Body>
+          </NoProjectMessage>
         </PageContent>
       </Feature>
     );
