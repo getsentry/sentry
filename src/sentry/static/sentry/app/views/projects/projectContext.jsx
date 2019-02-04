@@ -104,7 +104,7 @@ const ProjectContext = createReactClass({
       prevState.organization !== this.state.organization
     ) {
       if (!this.docTitle) return;
-      let docTitle = this.docTitleRef.docTitle;
+      const docTitle = this.docTitleRef.docTitle;
       if (docTitle) docTitle.forceUpdate();
     }
   },
@@ -128,16 +128,16 @@ const ProjectContext = createReactClass({
   },
 
   identifyProject() {
-    let {projects, projectId} = this.props;
-    let projectSlug = projectId;
+    const {projects, projectId} = this.props;
+    const projectSlug = projectId;
     return projects.find(({slug}) => slug === projectSlug) || null;
   },
 
   fetchData() {
-    let {orgId, projectId, location, skipReload} = this.props;
+    const {orgId, projectId, location, skipReload} = this.props;
     // we fetch core access/information from the global organization data
-    let activeProject = this.identifyProject();
-    let hasAccess = activeProject && activeProject.hasAccess;
+    const activeProject = this.identifyProject();
+    const hasAccess = activeProject && activeProject.hasAccess;
 
     this.setState(state => ({
       // if `skipReload` is true, then don't change loading state
@@ -209,12 +209,12 @@ const ProjectContext = createReactClass({
   },
 
   getEnvironmentListEndpoint() {
-    let {orgId, projectId} = this.props;
+    const {orgId, projectId} = this.props;
     return `/projects/${orgId}/${projectId}/environments/`;
   },
 
   getMemberListEndpoint() {
-    let {orgId, projectId} = this.props;
+    const {orgId, projectId} = this.props;
     return `/projects/${orgId}/${projectId}/members/`;
   },
 

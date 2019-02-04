@@ -22,7 +22,7 @@ export default class ActionLink extends React.Component {
   };
 
   render() {
-    let {
+    const {
       shouldConfirm,
       message,
       className,

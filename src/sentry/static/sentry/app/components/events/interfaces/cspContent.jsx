@@ -10,7 +10,7 @@ class CSPContent extends React.Component {
   };
 
   render() {
-    let {data} = this.props;
+    const {data} = this.props;
     return (
       <div>
         <h4>

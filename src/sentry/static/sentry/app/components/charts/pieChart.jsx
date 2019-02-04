@@ -24,7 +24,7 @@ class PieChart extends React.Component {
   }
 
   componentDidMount() {
-    let {selectOnRender} = this.props;
+    const {selectOnRender} = this.props;
 
     if (!selectOnRender) return;
 

@@ -53,7 +53,7 @@ const OrganizationTeamsContainer = createReactClass({
   },
 
   onTeamListChange() {
-    let newTeamList = TeamStore.getAll();
+    const newTeamList = TeamStore.getAll();
 
     this.setState({
       teamList: sortArray(newTeamList, function(o) {
@@ -63,7 +63,7 @@ const OrganizationTeamsContainer = createReactClass({
   },
 
   onProjectListChange() {
-    let newProjectList = ProjectsStore.getAll();
+    const newProjectList = ProjectsStore.getAll();
 
     this.setState({
       projectList: sortArray(newProjectList, function(o) {
@@ -75,12 +75,12 @@ const OrganizationTeamsContainer = createReactClass({
   render() {
     if (!this.context.organization) return null;
 
-    let access = this.getAccess();
-    let features = this.getFeatures();
-    let org = this.getOrganization();
+    const access = this.getAccess();
+    const features = this.getFeatures();
+    const org = this.getOrganization();
 
-    let allTeams = this.state.teamList;
-    let activeTeams = this.state.teamList.filter(team => team.isMember);
+    const allTeams = this.state.teamList;
+    const activeTeams = this.state.teamList.filter(team => team.isMember);
 
     return (
       <OrganizationTeams

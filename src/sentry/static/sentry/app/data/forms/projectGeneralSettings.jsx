@@ -15,7 +15,7 @@ export const route = '/settings/:orgId/:projectId/';
 
 const getResolveAgeAllowedValues = () => {
   let i = 0;
-  let values = [];
+  const values = [];
   while (i <= 720) {
     values.push(i);
     if (i < 12) {

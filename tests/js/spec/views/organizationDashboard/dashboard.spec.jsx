@@ -45,7 +45,7 @@ describe('OrganizationDashboard', function() {
   });
 
   it('queries and renders discover-based widgets grouped by time', async function() {
-    let wrapper = mount(
+    const wrapper = mount(
       <OrganizationDashboardContainer>
         <Dashboard {...TestStubs.Dashboard()} />
       </OrganizationDashboardContainer>,
@@ -99,7 +99,7 @@ describe('OrganizationDashboard', function() {
   });
 
   it('queries and renders discover-based widgets not grouped by time', async function() {
-    let wrapper = mount(
+    const wrapper = mount(
       <OrganizationDashboardContainer>
         <Dashboard
           {...TestStubs.Dashboard([

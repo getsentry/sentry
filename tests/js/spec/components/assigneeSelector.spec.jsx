@@ -101,7 +101,7 @@ describe('AssigneeSelector', function() {
       expect(assigneeSelector.find('UserAvatar')).toHaveLength(2);
       expect(assigneeSelector.find('TeamAvatar')).toHaveLength(1);
 
-      let names = assigneeSelector
+      const names = assigneeSelector
         .find('MenuItemWrapper Label Highlight')
         .map(el => el.text());
       expect(names).toEqual([`#${TEAM_1.slug}`, USER_2.name, USER_3.name]);
@@ -267,7 +267,7 @@ describe('AssigneeSelector', function() {
   });
 
   it('shows invite member button', async function() {
-    let routerContext = TestStubs.routerContext();
+    const routerContext = TestStubs.routerContext();
 
     openMenu();
     MemberListStore.loadInitialData([USER_1, USER_2]);

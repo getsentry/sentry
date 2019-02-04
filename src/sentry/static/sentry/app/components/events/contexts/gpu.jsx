@@ -22,7 +22,7 @@ class GpuContextType extends React.Component {
   };
 
   render() {
-    let {
+    const {
       id,
       name,
       version,
@@ -35,8 +35,8 @@ class GpuContextType extends React.Component {
       ...data
     } = this.props.data;
 
-    let memory = this.formatMemory(memory_size);
-    let knownData = [
+    const memory = this.formatMemory(memory_size);
+    const knownData = [
       ['?Name', name],
       ['?Version', version],
       ['?Vendor', vendor_name],

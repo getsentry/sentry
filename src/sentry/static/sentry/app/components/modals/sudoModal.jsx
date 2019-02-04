@@ -41,7 +41,7 @@ class SudoModal extends React.Component {
   }
 
   handleSuccess = () => {
-    let {closeModal, superuser, router, retryRequest} = this.props;
+    const {closeModal, superuser, router, retryRequest} = this.props;
 
     if (!retryRequest) {
       closeModal();
@@ -97,7 +97,7 @@ class SudoModal extends React.Component {
   };
 
   render() {
-    let {closeModal, superuser, user, Header, Body} = this.props;
+    const {closeModal, superuser, user, Header, Body} = this.props;
 
     return (
       <React.Fragment>
@@ -175,7 +175,7 @@ const SudoModalContainer = createReactClass({
   mixins: [ApiMixin],
 
   render() {
-    let user = ConfigStore.get('user');
+    const user = ConfigStore.get('user');
     return <SudoModal {...this.props} user={user} api={this.api} />;
   },
 });

@@ -58,7 +58,7 @@ describe('AdminQueue', function() {
     });
 
     it('renders', function() {
-      let wrapper = shallow(<AdminQueue params={{}} />, {
+      const wrapper = shallow(<AdminQueue params={{}} />, {
         context: {
           router: TestStubs.router(),
         },

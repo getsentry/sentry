@@ -7,8 +7,8 @@ import MultipleEnvironmentSelector from 'app/components/organizations/multipleEn
 describe('MultipleEnvironmentSelector', function() {
   let getMock;
   let wrapper;
-  let onChange = jest.fn();
-  let onUpdate = jest.fn();
+  const onChange = jest.fn();
+  const onUpdate = jest.fn();
   const organization = TestStubs.Organization({});
   const envs = TestStubs.Environments();
   const routerContext = TestStubs.routerContext([

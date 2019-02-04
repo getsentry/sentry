@@ -27,12 +27,12 @@ const withPlugins = WrappedComponent =>
     },
 
     componentDidUpdate(prevProps, prevState, prevContext) {
-      let organization = this.props.organization || this.getOrganization();
-      let project = this.props.project || this.getProject();
+      const organization = this.props.organization || this.getOrganization();
+      const project = this.props.project || this.getProject();
 
       // Only fetch plugins when a org slug or project slug has changed
-      let prevOrg = prevProps.organization || (prevContext && prevContext.organization);
-      let prevProject = prevProps.project || (prevContext && prevContext.project);
+      const prevOrg = prevProps.organization || (prevContext && prevContext.organization);
+      const prevProject = prevProps.project || (prevContext && prevContext.project);
 
       // If previous org/project is undefined then it means:
       // the HoC has mounted, `fetchPlugins` has been called (via cDM), and
@@ -42,8 +42,8 @@ const withPlugins = WrappedComponent =>
       // e.g. when switching projects via breadcrumbs in settings.
       if (!defined(prevProject) || !defined(prevOrg)) return;
 
-      let isOrgSame = prevOrg.slug === organization.slug;
-      let isProjectSame = prevProject.slug === project.slug;
+      const isOrgSame = prevOrg.slug === organization.slug;
+      const isProjectSame = prevProject.slug === project.slug;
 
       // Don't do anything if org and project are the same
       if (isOrgSame && isProjectSame) return;
@@ -52,8 +52,8 @@ const withPlugins = WrappedComponent =>
     },
 
     fetchPlugins() {
-      let organization = this.props.organization || this.getOrganization();
-      let project = this.props.project || this.getProject();
+      const organization = this.props.organization || this.getOrganization();
+      const project = this.props.project || this.getProject();
 
       if (!project || !organization) return;
 

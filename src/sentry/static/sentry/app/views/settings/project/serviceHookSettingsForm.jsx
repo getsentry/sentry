@@ -24,14 +24,14 @@ export default createReactClass({
   },
 
   onSubmitSuccess() {
-    let {orgId, projectId} = this.props;
+    const {orgId, projectId} = this.props;
     browserHistory.push(`/settings/${orgId}/${projectId}/hooks/`);
   },
 
   render() {
-    let {initialData, orgId, projectId, hookId} = this.props;
+    const {initialData, orgId, projectId, hookId} = this.props;
 
-    let endpoint = hookId
+    const endpoint = hookId
       ? `/projects/${orgId}/${projectId}/hooks/${hookId}/`
       : `/projects/${orgId}/${projectId}/hooks/`;
 

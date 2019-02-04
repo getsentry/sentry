@@ -16,11 +16,11 @@ describe('CreateProject', function() {
   };
 
   it('should block if you have access to no teams', function() {
-    let props = {
+    const props = {
       ...baseProps,
     };
 
-    let wrapper = shallow(
+    const wrapper = shallow(
       <CreateProject {...props} />,
       TestStubs.routerContext([
         {
@@ -38,11 +38,11 @@ describe('CreateProject', function() {
   });
 
   it('can create a new team if no access to teams', function() {
-    let props = {
+    const props = {
       ...baseProps,
     };
 
-    let wrapper = mount(
+    const wrapper = mount(
       <CreateProject {...props} />,
       TestStubs.routerContext([
         {
@@ -60,11 +60,11 @@ describe('CreateProject', function() {
   });
 
   it('should fill in project name if its empty when platform is chosen', function() {
-    let props = {
+    const props = {
       ...baseProps,
     };
 
-    let wrapper = mount(
+    const wrapper = mount(
       <CreateProject {...props} />,
       TestStubs.routerContext([
         {
@@ -97,11 +97,11 @@ describe('CreateProject', function() {
   });
 
   it('should fill in platform name if its provided by url', function() {
-    let props = {
+    const props = {
       ...baseProps,
     };
 
-    let wrapper = mount(
+    const wrapper = mount(
       <CreateProject {...props} />,
       TestStubs.routerContext([
         {
@@ -121,11 +121,11 @@ describe('CreateProject', function() {
   });
 
   it('should deal with incorrect platform name if its provided by url', function() {
-    let props = {
+    const props = {
       ...baseProps,
     };
 
-    let wrapper = mount(
+    const wrapper = mount(
       <CreateProject {...props} />,
       TestStubs.routerContext([
         {

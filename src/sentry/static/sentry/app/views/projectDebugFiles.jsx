@@ -95,14 +95,14 @@ class ProjectDebugSymbols extends AsyncComponent {
   }
 
   renderDsyms() {
-    let {orgId, projectId} = this.props.params;
+    const {orgId, projectId} = this.props.params;
 
-    let rows = this.state.debugFiles.map((dsym, key) => {
-      let url = `${this.api
+    const rows = this.state.debugFiles.map((dsym, key) => {
+      const url = `${this.api
         .baseUrl}/projects/${orgId}/${projectId}/files/dsyms/?id=${dsym.id}`;
-      let fileType = getFileType(dsym);
-      let symbolType = fileType ? `${dsym.symbolType} ${fileType}` : dsym.symbolType;
-      let features = dsym.data && dsym.data.features;
+      const fileType = getFileType(dsym);
+      const symbolType = fileType ? `${dsym.symbolType} ${fileType}` : dsym.symbolType;
+      const features = dsym.data && dsym.data.features;
 
       return (
         <PanelItem key={key} align="center" px={2} py={1}>

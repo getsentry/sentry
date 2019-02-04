@@ -36,8 +36,8 @@ const TodoItem = createReactClass({
   },
 
   formatDescription() {
-    let {task} = this.props;
-    let {isExpanded} = this.state;
+    const {task} = this.props;
+    const {isExpanded} = this.state;
 
     return (
       <p>
@@ -47,8 +47,8 @@ const TodoItem = createReactClass({
   },
 
   learnMoreUrlCreator() {
-    let org = this.getOrganization();
-    let {task} = this.props;
+    const org = this.getOrganization();
+    const {task} = this.props;
     let learnMoreUrl;
     if (task.featureLocation === 'project') {
       learnMoreUrl = `/organizations/${org.slug}/projects/choose/?onboarding=1&task=${task.task}`;
@@ -67,8 +67,8 @@ const TodoItem = createReactClass({
   },
 
   recordAnalytics(action) {
-    let org = this.getOrganization();
-    let {task} = this.props;
+    const org = this.getOrganization();
+    const {task} = this.props;
     analytics('onboarding.wizard_clicked', {
       org_id: parseInt(org.id, 10),
       todo_id: parseInt(task.task, 10),
@@ -89,9 +89,9 @@ const TodoItem = createReactClass({
   },
 
   render() {
-    let {task, className} = this.props;
-    let {showConfirmation} = this.state;
-    let learnMoreUrl = this.learnMoreUrlCreator();
+    const {task, className} = this.props;
+    const {showConfirmation} = this.state;
+    const learnMoreUrl = this.learnMoreUrlCreator();
     let description;
 
     switch (task.status) {
@@ -117,11 +117,11 @@ const TodoItem = createReactClass({
         description = this.formatDescription();
     }
 
-    let classes = classNames(className, task.status, {
+    const classes = classNames(className, task.status, {
       blur: showConfirmation,
     });
 
-    let showSkipButton =
+    const showSkipButton =
       task.skippable &&
       task.status !== 'skipped' &&
       task.status !== 'complete' &&

@@ -5,7 +5,7 @@ import {Form, SelectCreatableField} from 'app/components/forms';
 
 describe('SelectCreatableField', function() {
   it('can add user input into select field when using options', function() {
-    let wrapper = mount(
+    const wrapper = mount(
       <SelectCreatableField options={[{value: 'foo', label: 'Foo'}]} name="fieldName" />
     );
 
@@ -32,7 +32,7 @@ describe('SelectCreatableField', function() {
   });
 
   it('can add user input into select field when using choices', function() {
-    let wrapper = mount(<SelectCreatableField choices={['foo']} name="fieldName" />);
+    const wrapper = mount(<SelectCreatableField choices={['foo']} name="fieldName" />);
 
     wrapper
       .find('input[id="id-fieldName"]')
@@ -57,7 +57,7 @@ describe('SelectCreatableField', function() {
   });
 
   it('can add user input into select field when using paired choices', function() {
-    let wrapper = mount(
+    const wrapper = mount(
       <SelectCreatableField choices={[['foo', 'foo']]} name="fieldName" />
     );
 
@@ -84,8 +84,8 @@ describe('SelectCreatableField', function() {
   });
 
   it('with Form context', function() {
-    let submitMock = jest.fn();
-    let wrapper = mount(
+    const submitMock = jest.fn();
+    const wrapper = mount(
       <Form onSubmit={submitMock}>
         <SelectCreatableField choices={[['foo', 'foo']]} name="fieldName" />
       </Form>,

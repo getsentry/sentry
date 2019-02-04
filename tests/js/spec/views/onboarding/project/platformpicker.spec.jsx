@@ -26,13 +26,13 @@ describe('PlatformPicker', function() {
     };
 
     it('should only render Mobile platforms under Mobile tab', function() {
-      let props = {
+      const props = {
         ...baseProps,
       };
 
-      let wrapper = shallow(<PlatformPicker {...props} />);
+      const wrapper = shallow(<PlatformPicker {...props} />);
       wrapper.setState({tab: 'mobile'});
-      let filteredPlatforms = wrapper
+      const filteredPlatforms = wrapper
         .find('PlatformCard')
         .map(node => node.prop('platform'));
 
@@ -43,15 +43,15 @@ describe('PlatformPicker', function() {
     });
 
     it('should render renderPlatformList with Python when filtered with py', function() {
-      let props = {
+      const props = {
         ...baseProps,
       };
 
-      let wrapper = shallow(<PlatformPicker {...props} />);
+      const wrapper = shallow(<PlatformPicker {...props} />);
 
       wrapper.setState({tab: 'all', filter: 'py'});
 
-      let filteredPlatforms = wrapper
+      const filteredPlatforms = wrapper
         .find('PlatformCard')
         .map(node => node.prop('platform'));
       expect(filteredPlatforms).not.toContain('java');
@@ -61,11 +61,11 @@ describe('PlatformPicker', function() {
     });
 
     it('should render renderPlatformList with community SDKs message if platform not found', function() {
-      let props = {
+      const props = {
         ...baseProps,
       };
 
-      let wrapper = shallow(<PlatformPicker {...props} />);
+      const wrapper = shallow(<PlatformPicker {...props} />);
       wrapper.setState({filter: 'aaaaaa'});
 
       expect(wrapper.text()).toContain('Not finding your platform?');
@@ -74,11 +74,11 @@ describe('PlatformPicker', function() {
     });
 
     it('should update State.tab onClick when particular tab is clicked', function() {
-      let props = {
+      const props = {
         ...baseProps,
       };
 
-      let wrapper = mount(<PlatformPicker {...props} />, {
+      const wrapper = mount(<PlatformPicker {...props} />, {
         context: {
           router: TestStubs.router(),
         },
@@ -87,7 +87,7 @@ describe('PlatformPicker', function() {
         },
       });
 
-      let testListLink = wrapper
+      const testListLink = wrapper
         .find('ListLink')
         .last()
         .find('a');

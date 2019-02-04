@@ -16,7 +16,7 @@ class PullRequestLink extends React.Component {
       return null;
     }
 
-    let id = this.props.repository.provider.id;
+    const id = this.props.repository.provider.id;
     if (id.indexOf(':') > -1) {
       return id.split(':').pop();
     }
@@ -24,9 +24,9 @@ class PullRequestLink extends React.Component {
   }
 
   render() {
-    let {pullRequest, repository} = this.props;
-    let providerId = this.providerId;
-    let displayId = `${repository.name} #${pullRequest.id}: ${pullRequest.title}`;
+    const {pullRequest, repository} = this.props;
+    const providerId = this.providerId;
+    const displayId = `${repository.name} #${pullRequest.id}: ${pullRequest.title}`;
 
     let icon = '';
     if (['github', 'gitlab', 'bitbucket'].indexOf(providerId) > -1) {

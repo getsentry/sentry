@@ -35,7 +35,7 @@ class ProjectKeyCredentials extends React.Component {
   };
 
   render() {
-    let {
+    const {
       projectId,
       data,
       showDsn,

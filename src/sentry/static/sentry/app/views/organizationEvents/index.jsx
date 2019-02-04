@@ -29,7 +29,7 @@ class OrganizationEventsContainer extends React.Component {
   }
 
   handleSearch = query => {
-    let {router, location} = this.props;
+    const {router, location} = this.props;
     router.push({
       pathname: location.pathname,
       query: getParams({

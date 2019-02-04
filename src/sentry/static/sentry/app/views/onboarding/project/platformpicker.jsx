@@ -39,13 +39,13 @@ class PlatformPicker extends React.Component {
   }, 300);
 
   getPlatformList = () => {
-    let subsetMatch = ({id}) => id.includes(this.state.filter.toLowerCase());
+    const subsetMatch = ({id}) => id.includes(this.state.filter.toLowerCase());
     let filtered;
 
     if (this.state.filter) {
       filtered = flattenedPlatforms.filter(subsetMatch);
     } else {
-      let {tab} = this.state;
+      const {tab} = this.state;
       const currentCategory = categoryList.find(({id}) => id === tab);
       const tabSubset = flattenedPlatforms.filter(platform => {
         return tab === 'all' || currentCategory.platforms.includes(platform.id);
@@ -61,8 +61,8 @@ class PlatformPicker extends React.Component {
   };
 
   render() {
-    let {filter} = this.state;
-    let filtered = this.getPlatformList();
+    const {filter} = this.state;
+    const filtered = this.getPlatformList();
     return (
       <div className="platform-picker">
         <NavTabs>

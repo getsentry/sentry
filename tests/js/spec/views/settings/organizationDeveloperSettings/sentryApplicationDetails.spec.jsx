@@ -67,7 +67,7 @@ describe('Sentry Application Details', function() {
           .simulate('change', {target: {checked: true}});
         wrapper.find('form').simulate('submit');
 
-        let data = {
+        const data = {
           name: 'Test App',
           organization: org.slug,
           redirectUrl: 'https://webhook.com/setup',

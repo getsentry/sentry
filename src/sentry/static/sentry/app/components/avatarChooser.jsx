@@ -77,19 +77,19 @@ const AvatarChooser = createReactClass({
   },
 
   handleSuccess(model) {
-    let {onSave} = this.props;
+    const {onSave} = this.props;
     this.setState({model});
     onSave(model);
     addSuccessMessage(t('Successfully saved avatar preferences'));
   },
 
   handleSaveSettings(ev) {
-    let {endpoint} = this.props;
-    let {model, dataUrl} = this.state;
+    const {endpoint} = this.props;
+    const {model, dataUrl} = this.state;
     ev.preventDefault();
     let data = {};
-    let avatarType = model && model.avatar ? model.avatar.avatarType : undefined;
-    let avatarPhoto = dataUrl ? dataUrl.split(',')[1] : null;
+    const avatarType = model && model.avatar ? model.avatar.avatarType : undefined;
+    const avatarPhoto = dataUrl ? dataUrl.split(',')[1] : null;
 
     data = {
       avatar_photo: avatarPhoto,
@@ -108,13 +108,13 @@ const AvatarChooser = createReactClass({
   },
 
   handleChange(id) {
-    let model = {...this.state.model};
+    const model = {...this.state.model};
     model.avatar.avatarType = id;
     this.updateState(model);
   },
 
   render() {
-    let {
+    const {
       allowGravatar,
       allowUpload,
       allowLetter,
@@ -123,7 +123,7 @@ const AvatarChooser = createReactClass({
       isUser,
       disabled,
     } = this.props;
-    let {hasError, model} = this.state;
+    const {hasError, model} = this.state;
 
     if (hasError) {
       return <LoadingError />;
@@ -132,13 +132,13 @@ const AvatarChooser = createReactClass({
       return <LoadingIndicator />;
     }
 
-    let avatarType = (model.avatar && model.avatar.avatarType) || 'letter_avatar';
-    let isLetter = avatarType === 'letter_avatar';
+    const avatarType = (model.avatar && model.avatar.avatarType) || 'letter_avatar';
+    const isLetter = avatarType === 'letter_avatar';
     // let isUpload = avatarType === 'upload';
-    let isTeam = type === 'team';
-    let isOrganization = type === 'organization';
-    let isProject = type === 'project';
-    let choices = [];
+    const isTeam = type === 'team';
+    const isOrganization = type === 'organization';
+    const isProject = type === 'project';
+    const choices = [];
 
     if (allowLetter) {
       choices.push(['letter_avatar', 'Use initials']);

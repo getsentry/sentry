@@ -12,7 +12,7 @@ recreateRoute.mockReturnValue('/org-slug/project-slug/settings/environments/');
 function mountComponent(isHidden) {
   const org = TestStubs.Organization();
   const project = TestStubs.Project();
-  let pathname = isHidden ? 'environments/hidden/' : 'environments/';
+  const pathname = isHidden ? 'environments/hidden/' : 'environments/';
   return mount(
     <ProjectEnvironments
       params={{
@@ -52,7 +52,7 @@ describe('ProjectEnvironments', function() {
     it('renders empty message', function() {
       EnvironmentStore.loadInitialData([]);
       const wrapper = mountComponent(false);
-      let errorMessage = wrapper.find('div').first();
+      const errorMessage = wrapper.find('div').first();
 
       expect(errorMessage.text()).toContain("You don't have any environments yet");
       expect(wrapper.find('ProjectEnvironments')).toMatchSnapshot();
@@ -201,7 +201,7 @@ describe('ProjectEnvironments', function() {
       EnvironmentStore.loadHiddenData([]);
 
       const wrapper = mountComponent(true);
-      let errorMessage = wrapper.find('div').first();
+      const errorMessage = wrapper.find('div').first();
 
       expect(errorMessage.text()).toContain("You don't have any hidden environments");
 

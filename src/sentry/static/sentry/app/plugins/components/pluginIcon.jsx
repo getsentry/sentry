@@ -101,8 +101,8 @@ class PluginIcon extends React.Component {
   };
 
   render() {
-    let {pluginId, size, ...props} = this.props;
-    let src = ICON_PATHS[pluginId] || DEFAULT_ICON;
+    const {pluginId, size, ...props} = this.props;
+    const src = ICON_PATHS[pluginId] || DEFAULT_ICON;
 
     return <IntegrationIcon {...props} image={src} size={size} />;
   }

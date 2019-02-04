@@ -5,9 +5,9 @@ import ProjectSavedSearches from 'app/views/projectSavedSearches';
 
 describe('ProjectSavedSearches', function() {
   let wrapper;
-  let routerContext = TestStubs.routerContext();
-  let org = routerContext.context.organization;
-  let project = routerContext.context.project;
+  const routerContext = TestStubs.routerContext();
+  const org = routerContext.context.organization;
+  const project = routerContext.context.project;
 
   beforeEach(function() {
     MockApiClient.mockAsync = false;
@@ -45,7 +45,7 @@ describe('ProjectSavedSearches', function() {
   });
 
   it('removes a search query', function() {
-    let removed = MockApiClient.addMockResponse({
+    const removed = MockApiClient.addMockResponse({
       url: `/projects/${org.slug}/${project.slug}/searches/2/`,
       method: 'DELETE',
     });
@@ -65,8 +65,8 @@ describe('ProjectSavedSearches', function() {
   });
 
   it('rolls back update default on error', function() {
-    let url = `/projects/${org.slug}/${project.slug}/searches/2/`;
-    let remove = MockApiClient.addMockResponse({
+    const url = `/projects/${org.slug}/${project.slug}/searches/2/`;
+    const remove = MockApiClient.addMockResponse({
       url,
       method: 'DELETE',
       statusCode: 400,
@@ -107,8 +107,8 @@ describe('ProjectSavedSearches', function() {
   });
 
   it('updates a search query to default', function() {
-    let url = `/projects/${org.slug}/${project.slug}/searches/2/`;
-    let update = MockApiClient.addMockResponse({
+    const url = `/projects/${org.slug}/${project.slug}/searches/2/`;
+    const update = MockApiClient.addMockResponse({
       url,
       method: 'PUT',
     });
@@ -162,8 +162,8 @@ describe('ProjectSavedSearches', function() {
   });
 
   it('rolls back update default on PUT error', function() {
-    let url = `/projects/${org.slug}/${project.slug}/searches/2/`;
-    let update = MockApiClient.addMockResponse({
+    const url = `/projects/${org.slug}/${project.slug}/searches/2/`;
+    const update = MockApiClient.addMockResponse({
       url,
       method: 'PUT',
       statusCode: 400,

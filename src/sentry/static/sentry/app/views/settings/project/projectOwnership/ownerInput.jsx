@@ -40,7 +40,7 @@ class OwnerInput extends React.Component {
   }
 
   parseError(error) {
-    let text = error && error.raw && error.raw[0];
+    const text = error && error.raw && error.raw[0];
     if (!text) {
       return null;
     }
@@ -53,12 +53,12 @@ class OwnerInput extends React.Component {
   }
 
   handleUpdateOwnership = () => {
-    let {organization, project} = this.props;
-    let {text} = this.state;
+    const {organization, project} = this.props;
+    const {text} = this.state;
     this.setState({error: null});
 
     const api = new Client();
-    let request = api.requestPromise(
+    const request = api.requestPromise(
       `/projects/${organization.slug}/${project.slug}/ownership/`,
       {
         method: 'PUT',
@@ -104,7 +104,7 @@ class OwnerInput extends React.Component {
   }
 
   mentionableTeams() {
-    let {project} = this.props;
+    const {project} = this.props;
     return (ProjectsStore.getBySlug(project.slug) || {
       teams: [],
     }).teams.map(team => ({
@@ -128,8 +128,8 @@ class OwnerInput extends React.Component {
   };
 
   render() {
-    let {project, organization, disabled, urls, paths} = this.props;
-    let {text, error, initialText} = this.state;
+    const {project, organization, disabled, urls, paths} = this.props;
+    const {text, error, initialText} = this.state;
 
     return (
       <React.Fragment>

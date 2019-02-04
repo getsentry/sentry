@@ -27,7 +27,7 @@ export default class GenericInterface extends Component {
 
   constructor(props) {
     super(props);
-    let {data} = props;
+    const {data} = props;
     this.state = {
       view: 'report',
       data,
@@ -41,10 +41,10 @@ export default class GenericInterface extends Component {
   };
 
   render() {
-    let {view, data} = this.state;
-    let {group, event, type} = this.props;
+    const {view, data} = this.state;
+    const {group, event, type} = this.props;
 
-    let title = (
+    const title = (
       <div>
         <div className="btn-group">
           <a
@@ -64,7 +64,7 @@ export default class GenericInterface extends Component {
       </div>
     );
 
-    let children = getView(view, data);
+    const children = getView(view, data);
 
     return (
       <GroupEventDataSection

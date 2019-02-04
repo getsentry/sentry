@@ -35,7 +35,7 @@ describe('Indicators', function() {
 
   it('adds and removes a toast by calling IndicatorStore directly', function() {
     // when "type" is empty, we should treat it as loading state
-    let indicator = IndicatorStore.add('Loading');
+    const indicator = IndicatorStore.add('Loading');
     wrapper.update();
     expect(wrapper.find('ToastIndicator')).toHaveLength(1);
     expect(wrapper.find('Message').text()).toBe('Loading');

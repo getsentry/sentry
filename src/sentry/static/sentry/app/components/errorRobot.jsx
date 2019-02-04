@@ -40,16 +40,16 @@ const ErrorRobot = createReactClass({
   },
 
   fetchData() {
-    let {org, project} = this.props;
-    let {sampleIssueId} = this.state;
+    const {org, project} = this.props;
+    const {sampleIssueId} = this.state;
 
     if (!project) {
       return;
     }
 
     if (sampleIssueId === null || sampleIssueId === undefined) {
-      let url = '/projects/' + org.slug + '/' + project.slug + '/issues/';
-      let requestParams = {limit: 1};
+      const url = '/projects/' + org.slug + '/' + project.slug + '/issues/';
+      const requestParams = {limit: 1};
 
       this.setState({loading: true});
       this.api.request(url, {
@@ -74,7 +74,7 @@ const ErrorRobot = createReactClass({
   },
 
   createSampleEvent() {
-    let {org, project} = this.props;
+    const {org, project} = this.props;
 
     analytics('sample_event.created', {
       org_id: parseInt(org.id, 10),
@@ -90,8 +90,8 @@ const ErrorRobot = createReactClass({
   },
 
   render() {
-    let {loading, error, sampleIssueId} = this.state;
-    let {org, project, gradient} = this.props;
+    const {loading, error, sampleIssueId} = this.state;
+    const {org, project, gradient} = this.props;
     let sampleLink;
 
     if (!loading && !error) {

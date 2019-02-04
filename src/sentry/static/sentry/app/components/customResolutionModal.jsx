@@ -41,8 +41,8 @@ export default class CustomResolutionModal extends React.Component {
   };
 
   render() {
-    let {orgId, projectId} = this.props;
-    let url = projectId
+    const {orgId, projectId} = this.props;
+    const url = projectId
       ? `/projects/${orgId}/${projectId}/releases/`
       : `/organizations/${orgId}/releases/`;
 

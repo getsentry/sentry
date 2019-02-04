@@ -55,14 +55,14 @@ class AccountSecurity extends AsyncView {
   };
 
   renderBody() {
-    let {
+    const {
       authenticators,
       orgsRequire2fa,
       countEnrolled,
       deleteDisabled,
       onDisable,
     } = this.props;
-    let isEmpty = !authenticators.length;
+    const isEmpty = !authenticators.length;
 
     return (
       <div>
@@ -115,7 +115,7 @@ class AccountSecurity extends AsyncView {
           <PanelBody>
             {!isEmpty &&
               authenticators.map(auth => {
-                let {
+                const {
                   id,
                   authId,
                   description,

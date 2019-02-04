@@ -57,8 +57,8 @@ const ReleaseOverview = createReactClass({
   },
 
   fetchAll() {
-    let {orgId, version} = this.props.params;
-    let query = {
+    const {orgId, version} = this.props.params;
+    const query = {
       ...this.props.location.query,
     };
 
@@ -68,7 +68,7 @@ const ReleaseOverview = createReactClass({
       delete query.environment;
     }
 
-    let path = `/organizations/${orgId}/releases/${encodeURIComponent(
+    const path = `/organizations/${orgId}/releases/${encodeURIComponent(
       version
     )}/commitfiles/`;
     this.api.request(path, {
@@ -91,10 +91,12 @@ const ReleaseOverview = createReactClass({
   },
 
   getReleaseProjects() {
-    let {orgId, version} = this.props.params;
-    let query = this.props.environment ? {environment: this.props.environment.name} : {};
+    const {orgId, version} = this.props.params;
+    const query = this.props.environment
+      ? {environment: this.props.environment.name}
+      : {};
 
-    let path = `/organizations/${orgId}/releases/${encodeURIComponent(version)}/`;
+    const path = `/organizations/${orgId}/releases/${encodeURIComponent(version)}/`;
     this.api.request(path, {
       query,
       method: 'GET',
@@ -112,9 +114,11 @@ const ReleaseOverview = createReactClass({
   },
 
   getDeploys() {
-    let {orgId, version} = this.props.params;
+    const {orgId, version} = this.props.params;
 
-    let path = `/organizations/${orgId}/releases/${encodeURIComponent(version)}/deploys/`;
+    const path = `/organizations/${orgId}/releases/${encodeURIComponent(
+      version
+    )}/deploys/`;
     this.api.request(path, {
       method: 'GET',
       success: (data, _, jqXHR) => {
@@ -132,10 +136,12 @@ const ReleaseOverview = createReactClass({
   },
 
   getRepos() {
-    let {orgId} = this.props.params;
-    let query = this.props.environment ? {environment: this.props.environment.name} : {};
+    const {orgId} = this.props.params;
+    const query = this.props.environment
+      ? {environment: this.props.environment.name}
+      : {};
 
-    let path = `/organizations/${orgId}/repos/`;
+    const path = `/organizations/${orgId}/repos/`;
     this.api.request(path, {
       method: 'GET',
       query,
@@ -157,19 +163,21 @@ const ReleaseOverview = createReactClass({
   },
 
   render() {
-    let {orgId, projectId, version} = this.props.params;
-    let {release} = this.context;
-    let lastCommit = release.lastCommit;
+    const {orgId, projectId, version} = this.props.params;
+    const {release} = this.context;
+    const lastCommit = release.lastCommit;
 
     if (this.state.loading) return <LoadingIndicator />;
 
     if (this.state.error) return <LoadingError />;
 
-    let {fileList, projects, hasRepos} = this.state;
+    const {fileList, projects, hasRepos} = this.state;
 
-    let filesByRepository = getFilesByRepository(fileList);
+    const filesByRepository = getFilesByRepository(fileList);
 
-    let query = this.props.environment ? {environment: this.props.environment.name} : {};
+    const query = this.props.environment
+      ? {environment: this.props.environment.name}
+      : {};
 
     return (
       <div>

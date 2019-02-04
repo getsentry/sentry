@@ -12,8 +12,8 @@ jest.mock('app/actionCreators/modal', () => ({
 }));
 
 describe('OrganizationTeams', function() {
-  let org = TestStubs.Organization();
-  let project = TestStubs.Project();
+  const org = TestStubs.Organization();
+  const project = TestStubs.Project();
   beforeEach(function() {
     MockApiClient.addMockResponse({
       url: '/organizations/org-slug/stats/',
@@ -22,7 +22,7 @@ describe('OrganizationTeams', function() {
   });
 
   it('opens "create team modal" when creating a new team from header', function() {
-    let wrapper = mount(
+    const wrapper = mount(
       <OrganizationTeams
         params={{orgId: org.slug, projectId: project.slug}}
         routes={[]}

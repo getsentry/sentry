@@ -30,7 +30,7 @@ describe('ReleaseSeries', function() {
   });
 
   it('fetches releases if no releases passed through props', async function() {
-    let wrapper = mount(<ReleaseSeries>{renderFunc}</ReleaseSeries>, routerContext);
+    const wrapper = mount(<ReleaseSeries>{renderFunc}</ReleaseSeries>, routerContext);
 
     await tick();
     wrapper.update();
@@ -45,7 +45,7 @@ describe('ReleaseSeries', function() {
   });
 
   it('generates an eCharts `markLine` series from releases', async function() {
-    let wrapper = mount(<ReleaseSeries>{renderFunc}</ReleaseSeries>, routerContext);
+    const wrapper = mount(<ReleaseSeries>{renderFunc}</ReleaseSeries>, routerContext);
 
     await tick();
     wrapper.update();

@@ -1,7 +1,7 @@
 import {Group} from './group';
 
 export function ShortIdQueryResult(params = {}) {
-  let group = Group({
+  const group = Group({
     metadata: {
       type: 'group type',
       value: 'group description',

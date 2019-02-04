@@ -78,7 +78,7 @@ describe('OrganizationEventsErrors', function() {
       statusCode: 500,
       body: {details: 'Error'},
     });
-    let wrapper = mount(
+    const wrapper = mount(
       <OrganizationEvents organization={org} location={{query: {}}} />,
       routerContext
     );
@@ -91,7 +91,7 @@ describe('OrganizationEventsErrors', function() {
   });
 
   it('renders events table', async function() {
-    let wrapper = mount(
+    const wrapper = mount(
       <OrganizationEvents organization={org} location={{query: {}}} />,
       routerContext
     );
@@ -121,7 +121,7 @@ describe('OrganizationEventsErrors', function() {
   // This tests the component's `shouldComponentUpdate`
   // Use `search` to compare instead of `query` because that's what we check in `AsyncComponent`
   it('location.query changes updates events table', async function() {
-    let wrapper = mount(
+    const wrapper = mount(
       <OrganizationEvents
         organization={org}
         location={{

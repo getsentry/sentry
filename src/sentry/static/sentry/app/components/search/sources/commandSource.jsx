@@ -84,9 +84,9 @@ class CommandSource extends React.Component {
   }
 
   render() {
-    let {searchMap, query, isSuperuser, children} = this.props;
+    const {searchMap, query, isSuperuser, children} = this.props;
 
-    let results =
+    const results =
       (this.state.fuzzy &&
         this.state.fuzzy
           .search(query)
