@@ -55,7 +55,7 @@ class EventSerializerTest(TestCase):
         event = self.create_event(
             data={
                 'extra': {'extra': True},
-                'modules': {'modules': True},
+                'modules': {'modules': 'foobar'},
                 '_meta': {
                     'extra': {'': {'err': ['extra error']}},
                     'modules': {'': {'err': ['modules error']}},
@@ -66,7 +66,7 @@ class EventSerializerTest(TestCase):
         result = serialize(event)
         assert result['context'] == {'extra': True}
         assert result['_meta']['context'] == {'': {'err': ['extra error']}}
-        assert result['packages'] == {'modules': True}
+        assert result['packages'] == {'modules': 'foobar'}
         assert result['_meta']['packages'] == {'': {'err': ['modules error']}}
 
     def test_message_interface(self):
@@ -137,12 +137,11 @@ class EventSerializerTest(TestCase):
     def test_tags_dict(self):
         event = self.create_event(
             data={
-                # Sentry normalizes this internally, it is actually passed in as
-                # object {"foo": "foo", "bar": "bar"}
-                'tags': [
-                    ['foo', 'foo'],
-                    ['bar', 'bar'],
-                ],
+                # Sentry normalizes this internally
+                'tags': {
+                    'foo': 'foo',
+                    'bar': 'bar',
+                },
                 '_meta': {
                     'tags': {
                         'foo': {'': {'err': ['foo error']}},
