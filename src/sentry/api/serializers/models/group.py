@@ -6,7 +6,6 @@ from datetime import timedelta
 
 import six
 from django.conf import settings
-from django.core.urlresolvers import reverse
 from django.db.models import Min, Q
 from django.utils import timezone
 
@@ -23,7 +22,6 @@ from sentry.models import (
 from sentry.tagstore.snuba.backend import SnubaTagStorage
 from sentry.tsdb.snuba import SnubaTSDB
 from sentry.utils.db import attach_foreignkey
-from sentry.utils.http import absolute_uri
 from sentry.utils.safe import safe_execute
 
 SUBSCRIPTION_REASON_MAP = {
@@ -335,9 +333,7 @@ class GroupSerializerBase(Serializer):
         # If user is not logged in and member of the organization,
         # do not return the permalink which contains private information i.e. org name.
         if user.is_authenticated() and user.get_orgs().filter(id=obj.organization.id).exists():
-            permalink = absolute_uri(
-                reverse('sentry-group', args=[obj.organization.slug, obj.project.slug, obj.id])
-            )
+            permalink = obj.get_absolute_url()
         else:
             permalink = None
 
