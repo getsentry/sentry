@@ -1,6 +1,5 @@
 from __future__ import absolute_import
 
-import pytest
 import responses
 import six
 
@@ -380,7 +379,7 @@ class GitlabIssuesTest(GitLabTestCase):
             integration_id=self.integration.id,
             key='#',
         )
-        with pytest.raises(IntegrationError):
+        with self.assertRaises(IntegrationError):
             self.installation.after_link_issue(external_issue, data=data)
 
     @responses.activate
@@ -396,5 +395,5 @@ class GitlabIssuesTest(GitLabTestCase):
             integration_id=self.integration.id,
             key='2#321',
         )
-        with pytest.raises(IntegrationError):
+        with self.assertRaises(IntegrationError):
             self.installation.after_link_issue(external_issue, data=data)
