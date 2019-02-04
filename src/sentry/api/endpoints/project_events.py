@@ -2,6 +2,7 @@ from __future__ import absolute_import
 
 from datetime import timedelta
 from django.utils import timezone
+from functools import partial
 
 from sentry import options
 from sentry.api.base import DocSection
@@ -52,7 +53,6 @@ class ProjectEventsEndpoint(ProjectEndpoint):
         )
 
     def _get_events_snuba(self, request, project):
-        from functools32 import partial
         from sentry.api.paginator import GenericOffsetPaginator
         from sentry.api.serializers.models.event import SnubaEvent
         from sentry.utils.snuba import raw_query
