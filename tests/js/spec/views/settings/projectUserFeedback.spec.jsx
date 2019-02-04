@@ -4,9 +4,9 @@ import {mount} from 'enzyme';
 import ProjectUserFeedback from 'app/views/settings/project/projectUserFeedback';
 
 describe('ProjectUserFeedback', function() {
-  let org = TestStubs.Organization();
-  let project = TestStubs.ProjectDetails();
-  let url = `/projects/${org.slug}/${project.slug}/`;
+  const org = TestStubs.Organization();
+  const project = TestStubs.ProjectDetails();
+  const url = `/projects/${org.slug}/${project.slug}/`;
 
   beforeEach(function() {
     MockApiClient.clearMockResponses();
@@ -23,7 +23,7 @@ describe('ProjectUserFeedback', function() {
   });
 
   it('can toggle sentry branding option', function() {
-    let wrapper = mount(
+    const wrapper = mount(
       <ProjectUserFeedback
         organization={org}
         project={project}
@@ -33,7 +33,7 @@ describe('ProjectUserFeedback', function() {
       TestStubs.routerContext()
     );
 
-    let mock = MockApiClient.addMockResponse({
+    const mock = MockApiClient.addMockResponse({
       url,
       method: 'PUT',
     });

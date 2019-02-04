@@ -22,7 +22,7 @@ class SimilarScoreCard extends React.Component {
   };
 
   render() {
-    let {scoreList} = this.props;
+    const {scoreList} = this.props;
 
     if (!scoreList.length) {
       return null;

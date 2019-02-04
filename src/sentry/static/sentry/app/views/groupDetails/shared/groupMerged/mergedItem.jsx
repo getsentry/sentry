@@ -39,8 +39,8 @@ const MergedItem = createReactClass({
   onGroupingChange({unmergeState}) {
     if (!unmergeState) return;
 
-    let {fingerprint} = this.props;
-    let stateForId = unmergeState.has(fingerprint) && unmergeState.get(fingerprint);
+    const {fingerprint} = this.props;
+    const stateForId = unmergeState.has(fingerprint) && unmergeState.get(fingerprint);
     if (!stateForId) return;
 
     Object.keys(stateForId).forEach(key => {
@@ -53,7 +53,7 @@ const MergedItem = createReactClass({
   },
 
   handleToggleEvents() {
-    let {fingerprint} = this.props;
+    const {fingerprint} = this.props;
     GroupingActions.toggleCollapseFingerprint(fingerprint);
   },
 
@@ -63,7 +63,7 @@ const MergedItem = createReactClass({
   },
 
   handleToggle(e) {
-    let {disabled, fingerprint, event} = this.props;
+    const {disabled, fingerprint, event} = this.props;
 
     if (disabled || this.state.busy) return;
 
@@ -77,8 +77,8 @@ const MergedItem = createReactClass({
   },
 
   render() {
-    let {disabled, event, fingerprint} = this.props;
-    let checkboxDisabled = disabled || this.state.disabled;
+    const {disabled, event, fingerprint} = this.props;
+    const checkboxDisabled = disabled || this.state.disabled;
 
     // `event` can be null if last event w/ fingerprint is not within retention period
     return (

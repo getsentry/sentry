@@ -16,7 +16,7 @@ describe('ProjectDebugFiles', function() {
       url: ENDPOINT,
       body: [],
     });
-    let wrapper = shallow(
+    const wrapper = shallow(
       <ProjectDebugFiles params={{orgId: 'org', projectId: 'project'}} />,
       TestStubs.routerContext()
     );
@@ -34,7 +34,7 @@ describe('ProjectDebugFiles', function() {
       method: 'PUT',
     });
 
-    let wrapper = mount(
+    const wrapper = mount(
       <ProjectDebugFiles params={{orgId: 'org', projectId: 'project'}} />,
       TestStubs.routerContext()
     );

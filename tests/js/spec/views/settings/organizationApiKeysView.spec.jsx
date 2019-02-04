@@ -12,7 +12,7 @@ const routes = [
 ];
 
 describe('OrganizationApiKeys', function() {
-  let routerContext = TestStubs.routerContext();
+  const routerContext = TestStubs.routerContext();
 
   beforeEach(function() {
     Client.clearMockResponses();
@@ -33,7 +33,7 @@ describe('OrganizationApiKeys', function() {
   });
 
   it('fetches api keys', function() {
-    let wrapper = mount(
+    const wrapper = mount(
       <OrganizationApiKeys
         location={TestStubs.location()}
         params={{orgId: 'org-slug'}}
@@ -46,7 +46,7 @@ describe('OrganizationApiKeys', function() {
   });
 
   it('can delete a key', function() {
-    let wrapper = mount(
+    const wrapper = mount(
       <OrganizationApiKeys
         location={TestStubs.location()}
         params={{orgId: 'org-slug'}}

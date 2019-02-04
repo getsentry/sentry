@@ -5,7 +5,7 @@ import DetailedError from 'app/components/errors/detailedError';
 
 describe('DetailedError', function() {
   it('renders', function() {
-    let wrapper = shallow(
+    const wrapper = shallow(
       <DetailedError heading="Error heading" message={<div>Message</div>} />
     );
 
@@ -13,7 +13,7 @@ describe('DetailedError', function() {
   });
 
   it('renders with "Retry" button', function() {
-    let wrapper = shallow(
+    const wrapper = shallow(
       <DetailedError
         onRetry={() => {}}
         heading="Error heading"
@@ -25,7 +25,7 @@ describe('DetailedError', function() {
   });
 
   it('can hide support links', function() {
-    let wrapper = shallow(
+    const wrapper = shallow(
       <DetailedError
         hideSupportLinks
         onRetry={() => {}}
@@ -38,7 +38,7 @@ describe('DetailedError', function() {
   });
 
   it('hides footer when no "Retry" and no support links', function() {
-    let wrapper = shallow(
+    const wrapper = shallow(
       <DetailedError
         hideSupportLinks
         heading="Error heading"

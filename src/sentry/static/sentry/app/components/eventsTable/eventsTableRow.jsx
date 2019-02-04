@@ -36,13 +36,13 @@ class EventsTableRow extends React.Component {
   };
 
   renderCrashFileLink() {
-    let {orgId, event, projectId} = this.props;
+    const {orgId, event, projectId} = this.props;
     if (!event.crashFile) {
       return null;
     }
-    let url = `/api/0/projects/${orgId}/${projectId}/events/${event.id}/attachments/${event
+    const url = `/api/0/projects/${orgId}/${projectId}/events/${event.id}/attachments/${event
       .crashFile.id}/?download=1`;
-    let crashFileType =
+    const crashFileType =
       event.crashFile.type === 'event.minidump' ? 'Minidump' : 'Crash file';
     return (
       <small>
@@ -52,7 +52,7 @@ class EventsTableRow extends React.Component {
   }
 
   render() {
-    let {
+    const {
       organization,
       className,
       event,
@@ -62,7 +62,7 @@ class EventsTableRow extends React.Component {
       tagList,
       hasUser,
     } = this.props;
-    let tagMap = {};
+    const tagMap = {};
     event.tags.forEach(tag => {
       tagMap[tag.key] = tag.value;
     });

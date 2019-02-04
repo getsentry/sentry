@@ -20,7 +20,7 @@ class CommitBar extends React.Component {
   };
 
   render() {
-    let barStyle = {};
+    const barStyle = {};
     barStyle.width = this.props.authorCommits / this.props.totalCommits * 100 + '%';
 
     return <div className="commit-bar" style={barStyle} />;
@@ -84,10 +84,10 @@ const CommitAuthorStats = createReactClass({
 
     if (this.state.error) return <LoadingError />;
 
-    let {commitList} = this.state;
+    const {commitList} = this.state;
 
-    let commitAuthors = commitList.reduce((_commitAuthors, commit) => {
-      let {author} = commit;
+    const commitAuthors = commitList.reduce((_commitAuthors, commit) => {
+      const {author} = commit;
       if (!_commitAuthors.hasOwnProperty(author.email)) {
         _commitAuthors[author.email] = {
           commitCount: 1,
@@ -99,7 +99,7 @@ const CommitAuthorStats = createReactClass({
       return _commitAuthors;
     }, {});
 
-    let commitAuthorValues = Object.values(commitAuthors);
+    const commitAuthorValues = Object.values(commitAuthors);
 
     // sort commitAuthors by highest commitCount to lowest commitCount
     commitAuthorValues.sort((a, b) => {
@@ -113,7 +113,7 @@ const CommitAuthorStats = createReactClass({
         <Panel>
           <PanelBody>
             {commitAuthorValues.map((commitAuthor, i) => {
-              let {author, commitCount} = commitAuthor;
+              const {author, commitCount} = commitAuthor;
               return (
                 <PanelItem key={i} p={1} align="center">
                   <Flex>

@@ -159,7 +159,7 @@ const GroupList = createReactClass({
       );
     }
 
-    let {orgId} = this.props;
+    const {orgId} = this.props;
 
     return (
       <Panel>

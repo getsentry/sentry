@@ -72,13 +72,13 @@ const SharedGroupDetails = createReactClass({
   },
 
   getGroupDetailsEndpoint() {
-    let id = this.props.params.shareId;
+    const id = this.props.params.shareId;
 
     return '/shared/issues/' + id + '/';
   },
 
   render() {
-    let group = this.state.group;
+    const group = this.state.group;
 
     if (this.state.loading) {
       return <LoadingIndicator />;
@@ -88,7 +88,7 @@ const SharedGroupDetails = createReactClass({
       return <LoadingError onRetry={this.fetchData} />;
     }
 
-    let evt = this.state.group.latestEvent;
+    const evt = this.state.group.latestEvent;
 
     return (
       <DocumentTitle title={this.getTitle()}>

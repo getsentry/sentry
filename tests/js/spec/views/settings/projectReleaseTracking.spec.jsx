@@ -11,9 +11,9 @@ jest.mock('app/actionCreators/plugins', () => ({
 }));
 
 describe('ProjectReleaseTracking', function() {
-  let org = TestStubs.Organization();
-  let project = TestStubs.Project();
-  let url = `/projects/${org.slug}/${project.slug}/releases/token/`;
+  const org = TestStubs.Organization();
+  const project = TestStubs.Project();
+  const url = `/projects/${org.slug}/${project.slug}/releases/token/`;
 
   beforeEach(function() {
     MockApiClient.clearMockResponses();
@@ -33,7 +33,7 @@ describe('ProjectReleaseTracking', function() {
   });
 
   it('renders with token', function() {
-    let wrapper = mount(
+    const wrapper = mount(
       <ProjectReleaseTracking
         organization={org}
         project={project}
@@ -47,7 +47,7 @@ describe('ProjectReleaseTracking', function() {
   });
 
   it('can regenerate token', function(done) {
-    let wrapper = mount(
+    const wrapper = mount(
       <ProjectReleaseTracking
         organization={org}
         project={project}
@@ -57,7 +57,7 @@ describe('ProjectReleaseTracking', function() {
       TestStubs.routerContext()
     );
 
-    let mock = MockApiClient.addMockResponse({
+    const mock = MockApiClient.addMockResponse({
       url,
       method: 'POST',
     });
@@ -85,7 +85,7 @@ describe('ProjectReleaseTracking', function() {
   });
 
   it('fetches new plugins when project changes', function() {
-    let wrapper = mount(
+    const wrapper = mount(
       <ProjectReleaseTrackingContainer
         organization={org}
         project={project}

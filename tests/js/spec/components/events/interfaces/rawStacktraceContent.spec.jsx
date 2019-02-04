@@ -56,7 +56,7 @@ describe('RawStacktraceContent', function() {
   });
 
   describe('render()', function() {
-    let exception = {
+    const exception = {
         module: 'example.application',
         type: 'Error',
         value: 'an error occurred',

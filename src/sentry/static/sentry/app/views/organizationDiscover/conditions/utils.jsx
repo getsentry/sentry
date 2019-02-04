@@ -121,7 +121,7 @@ export function ignoreCase(input = '') {
 
   // Strip column name from the start
   const match = input.match(/^[\w._]+\s(.*)/);
-  let remaining = match ? match[1] : null;
+  const remaining = match ? match[1] : null;
 
   if (!remaining) {
     return input;

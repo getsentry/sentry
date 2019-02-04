@@ -121,7 +121,7 @@ describe('DiscoverQuery', function() {
 
   it('does not re-render if `props.children` "changes" (e.g. new function instance gets passed every render)', function() {
     renderMock.mockClear();
-    let newRender = jest.fn(() => null);
+    const newRender = jest.fn(() => null);
     wrapper.setProps({children: newRender});
     wrapper.update();
 

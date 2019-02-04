@@ -26,13 +26,13 @@ const CreateSampleEvent = createReactClass({
   mixins: [ApiMixin],
 
   componentDidMount() {
-    let {projectId} = this.props.params;
-    let {organization} = this.context;
-    let project = organization.projects.find(proj => proj.slug === projectId);
+    const {projectId} = this.props.params;
+    const {organization} = this.context;
+    const project = organization.projects.find(proj => proj.slug === projectId);
 
     if (!project) return;
 
-    let data = {
+    const data = {
       org_id: parseInt(organization.id, 10),
       source: this.props.source,
       project_id: parseInt(project.id, 10),
@@ -42,10 +42,10 @@ const CreateSampleEvent = createReactClass({
 
   createSampleEvent() {
     // TODO(DENA): swap out for action creator
-    let {orgId, projectId} = this.props.params;
-    let {organization} = this.context;
-    let url = `/projects/${orgId}/${projectId}/create-sample/`;
-    let project = organization.projects.find(proj => proj.slug === projectId);
+    const {orgId, projectId} = this.props.params;
+    const {organization} = this.context;
+    const url = `/projects/${orgId}/${projectId}/create-sample/`;
+    const project = organization.projects.find(proj => proj.slug === projectId);
 
     analytics('sample_event.created', {
       org_id: parseInt(organization.id, 10),

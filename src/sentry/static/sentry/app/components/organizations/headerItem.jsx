@@ -96,8 +96,10 @@ const StyledClose = styled(InlineSvg)`
   color: ${p => p.theme.gray2};
   height: 10px;
   width: 10px;
-  margin-right: ${p => space(1)};
   stroke-width: 1.5;
+  padding: ${space(1)};
+  box-sizing: content-box;
+  margin: -${space(1)} 0px -${space(1)} -${space(1)};
 `;
 
 const StyledChevron = styled('div')`

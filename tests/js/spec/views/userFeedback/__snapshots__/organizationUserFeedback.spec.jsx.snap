@@ -1421,9 +1421,9 @@ exports[`OrganizationUserFeedback renders 1`] = `
                                   className="css-1lz3nth-TimeRangeRoot e1u8612l0"
                                 >
                                   <StyledHeaderItem
-                                    allowClear={false}
+                                    allowClear={true}
                                     hasChanges={false}
-                                    hasSelected={true}
+                                    hasSelected={false}
                                     icon={
                                       <StyledInlineSvg
                                         src="icon-calendar"
@@ -1431,6 +1431,7 @@ exports[`OrganizationUserFeedback renders 1`] = `
                                     }
                                     innerRef={[Function]}
                                     isOpen={false}
+                                    onClear={[Function]}
                                     onClick={[Function]}
                                     onKeyDown={[Function]}
                                     onMouseEnter={[Function]}
@@ -1444,16 +1445,17 @@ exports[`OrganizationUserFeedback renders 1`] = `
                                     tabIndex={-1}
                                   >
                                     <ForwardRef
-                                      allowClear={false}
+                                      allowClear={true}
                                       className="css-22y332-StyledHeaderItem e1u8612l1"
                                       hasChanges={false}
-                                      hasSelected={true}
+                                      hasSelected={false}
                                       icon={
                                         <StyledInlineSvg
                                           src="icon-calendar"
                                         />
                                       }
                                       isOpen={false}
+                                      onClear={[Function]}
                                       onClick={[Function]}
                                       onKeyDown={[Function]}
                                       onMouseEnter={[Function]}
@@ -1467,10 +1469,10 @@ exports[`OrganizationUserFeedback renders 1`] = `
                                       tabIndex={-1}
                                     >
                                       <HeaderItem
-                                        allowClear={false}
+                                        allowClear={true}
                                         className="css-22y332-StyledHeaderItem e1u8612l1"
                                         hasChanges={false}
-                                        hasSelected={true}
+                                        hasSelected={false}
                                         icon={
                                           <StyledInlineSvg
                                             src="icon-calendar"
@@ -1478,6 +1480,7 @@ exports[`OrganizationUserFeedback renders 1`] = `
                                         }
                                         innerRef={[Function]}
                                         isOpen={false}
+                                        onClear={[Function]}
                                         onClick={[Function]}
                                         onKeyDown={[Function]}
                                         onMouseEnter={[Function]}
@@ -1492,7 +1495,7 @@ exports[`OrganizationUserFeedback renders 1`] = `
                                       >
                                         <StyledHeaderItem
                                           className="css-22y332-StyledHeaderItem e1u8612l1"
-                                          hasSelected={true}
+                                          hasSelected={false}
                                           innerRef={[Function]}
                                           isOpen={false}
                                           onClick={[Function]}
@@ -1507,7 +1510,7 @@ exports[`OrganizationUserFeedback renders 1`] = `
                                           tabIndex={-1}
                                         >
                                           <div
-                                            className="e1u8612l1 css-xvcre7-StyledHeaderItem-StyledHeaderItem enk2k7v0"
+                                            className="e1u8612l1 css-1v6igws-StyledHeaderItem-StyledHeaderItem enk2k7v0"
                                             onClick={[Function]}
                                             onKeyDown={[Function]}
                                             onMouseEnter={[Function]}
@@ -1520,10 +1523,10 @@ exports[`OrganizationUserFeedback renders 1`] = `
                                             tabIndex={-1}
                                           >
                                             <IconContainer
-                                              hasSelected={true}
+                                              hasSelected={false}
                                             >
                                               <span
-                                                className="css-mzutvw-IconContainer enk2k7v2"
+                                                className="css-1af7peg-IconContainer enk2k7v2"
                                               >
                                                 <StyledInlineSvg
                                                   src="icon-calendar"
@@ -1612,7 +1615,7 @@ exports[`OrganizationUserFeedback renders 1`] = `
           </withRouter(withGlobalSelection(GlobalSelectionHeader))>
           <PageContent>
             <div
-              className="css-rejmra-PageContent e6lvex70"
+              className="css-16fe6ul-PageContent e6lvex70"
             >
               <UserFeedbackContainer
                 location={

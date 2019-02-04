@@ -31,9 +31,9 @@ class OrganizationIntegrations extends AsyncComponent {
   }
 
   getEndpoints() {
-    let {orgId} = this.props.params;
+    const {orgId} = this.props.params;
     const query = {plugins: ['vsts', 'github', 'bitbucket']};
-    let endpoints = [
+    const endpoints = [
       ['config', `/organizations/${orgId}/config/integrations/`],
       ['integrations', `/organizations/${orgId}/integrations/`],
       ['plugins', `/organizations/${orgId}/plugins/`, {query}],
@@ -119,7 +119,7 @@ class OrganizationIntegrations extends AsyncComponent {
 
   onDisable = integration => {
     let url;
-    let [domainName, orgName] = integration.domainName.split('/');
+    const [domainName, orgName] = integration.domainName.split('/');
 
     if (integration.accountType === 'User') {
       url = `https://${domainName}/settings/installations/`;

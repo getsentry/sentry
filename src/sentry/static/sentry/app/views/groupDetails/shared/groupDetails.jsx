@@ -89,7 +89,7 @@ const GroupDetails = createReactClass({
         // `formatPattern` isn't actually exported until `react-router` 2.0.1:
         // https://github.com/reactjs/react-router/blob/v2.0.1/modules/index.js#L25
         if (this.props.params.groupId != data.id) {
-          let location = this.props.location;
+          const location = this.props.location;
           return void browserHistory.push(
             location.pathname.replace(
               `/issues/${this.props.params.groupId}/`,
@@ -100,7 +100,7 @@ const GroupDetails = createReactClass({
           );
         }
 
-        let project = this.props.project || ProjectsStore.getById(data.project.id);
+        const project = this.props.project || ProjectsStore.getById(data.project.id);
 
         if (!project) {
           Sentry.withScope(scope => {
@@ -135,9 +135,9 @@ const GroupDetails = createReactClass({
   },
 
   onGroupChange(itemIds) {
-    let id = this.props.params.groupId;
+    const id = this.props.params.groupId;
     if (itemIds.has(id)) {
-      let group = GroupStore.get(id);
+      const group = GroupStore.get(id);
       if (group) {
         if (group.stale) {
           this.fetchData();
@@ -151,13 +151,13 @@ const GroupDetails = createReactClass({
   },
 
   getGroupDetailsEndpoint() {
-    let id = this.props.params.groupId;
+    const id = this.props.params.groupId;
 
     return '/issues/' + id + '/';
   },
 
   getTitle() {
-    let group = this.state.group;
+    const group = this.state.group;
 
     if (!group) return 'Sentry';
 
@@ -180,8 +180,8 @@ const GroupDetails = createReactClass({
   },
 
   render() {
-    let params = this.props.params;
-    let {group, project} = this.state;
+    const params = this.props.params;
+    const {group, project} = this.state;
 
     if (this.state.error) {
       switch (this.state.errorType) {

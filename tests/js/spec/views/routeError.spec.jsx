@@ -10,8 +10,8 @@ describe('RouteError', function() {
   beforeEach(function() {});
 
   it('captures errors with raven', async function() {
-    let error = new Error('Big Bad Error');
-    let routes = TestStubs.routes();
+    const error = new Error('Big Bad Error');
+    const routes = TestStubs.routes();
     mount(<RouteError routes={routes} error={error} />, TestStubs.routerContext());
 
     await tick();

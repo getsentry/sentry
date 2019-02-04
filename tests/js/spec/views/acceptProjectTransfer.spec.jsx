@@ -8,7 +8,7 @@ jest.mock('jquery');
 describe('AcceptProjectTransfer', function() {
   let getMock;
   let postMock;
-  let endpoint = '/accept-transfer/';
+  const endpoint = '/accept-transfer/';
   beforeEach(function() {
     MockApiClient.clearMockResponses();
 
@@ -43,7 +43,7 @@ describe('AcceptProjectTransfer', function() {
   });
 
   it('submits', function() {
-    let wrapper = mount(
+    const wrapper = mount(
       <AcceptProjectTransfer
         location={{
           pathame: 'endpoint',

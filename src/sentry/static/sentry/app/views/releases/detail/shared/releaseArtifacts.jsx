@@ -43,8 +43,8 @@ class ReleaseArtifacts extends React.Component {
   }
 
   getFilesEndpoint() {
-    let {orgId, projectId, version} = this.props.params;
-    let encodedVersion = encodeURIComponent(version);
+    const {orgId, projectId, version} = this.props.params;
+    const encodedVersion = encodeURIComponent(version);
 
     return projectId
       ? `/projects/${orgId}/${projectId}/releases/${encodedVersion}/files/`
@@ -78,12 +78,12 @@ class ReleaseArtifacts extends React.Component {
   };
 
   handleRemove(id) {
-    let loadingIndicator = IndicatorStore.add(t('Removing artifact..'));
+    const loadingIndicator = IndicatorStore.add(t('Removing artifact..'));
 
     this.props.api.request(this.getFilesEndpoint() + `${id}/`, {
       method: 'DELETE',
       success: () => {
-        let fileList = this.state.fileList.filter(file => {
+        const fileList = this.state.fileList.filter(file => {
           return file.id !== id;
         });
 
@@ -118,7 +118,7 @@ class ReleaseArtifacts extends React.Component {
         </Panel>
       );
 
-    let access = new Set(this.props.organization.access);
+    const access = new Set(this.props.organization.access);
 
     // TODO(dcramer): files should allow you to download them
     return (

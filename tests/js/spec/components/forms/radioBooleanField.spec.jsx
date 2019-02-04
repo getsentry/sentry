@@ -7,14 +7,14 @@ import NewRadioBooleanField from 'app/views/settings/components/forms/radioBoole
 describe('RadioBooleanField', function() {
   describe('render()', function() {
     it('renders without form context', function() {
-      let wrapper = shallow(
+      const wrapper = shallow(
         <RadioBooleanField name="fieldName" yesLabel="Yes" noLabel="No" />
       );
       expect(wrapper).toMatchSnapshot();
     });
 
     it('renders with form context', function() {
-      let wrapper = shallow(
+      const wrapper = shallow(
         <RadioBooleanField name="fieldName" yesLabel="Yes" noLabel="No" />,
         {
           context: {
@@ -31,15 +31,15 @@ describe('RadioBooleanField', function() {
     });
 
     it('renders new field without form context', function() {
-      let wrapper = mount(
+      const wrapper = mount(
         <NewRadioBooleanField name="fieldName" yesLabel="Yes" noLabel="No" />
       );
       expect(wrapper).toMatchSnapshot();
     });
 
     it('can change values', function() {
-      let mock = jest.fn();
-      let wrapper = mount(
+      const mock = jest.fn();
+      const wrapper = mount(
         <NewRadioBooleanField
           onChange={mock}
           name="fieldName"

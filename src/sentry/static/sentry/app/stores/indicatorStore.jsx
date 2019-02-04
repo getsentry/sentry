@@ -21,7 +21,7 @@ const IndicatorStore = Reflux.createStore({
   },
 
   addMessage(message, type, {append, ...options} = {}) {
-    let indicator = {
+    const indicator = {
       id: this.lastId++,
       message,
       type,
@@ -35,7 +35,7 @@ const IndicatorStore = Reflux.createStore({
       }, options.duration);
     }
 
-    let newItems = append ? [...this.items, indicator] : [indicator];
+    const newItems = append ? [...this.items, indicator] : [indicator];
 
     this.items = newItems;
     this.trigger(this.items);

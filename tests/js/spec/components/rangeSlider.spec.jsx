@@ -3,26 +3,26 @@ import {mount, shallow} from 'enzyme';
 import RangeSlider from 'app/views/settings/components/forms/controls/rangeSlider';
 
 describe('RangeSlider', function() {
-  let creator = props => (
+  const creator = props => (
     <RangeSlider name="test" value={5} min={0} max={10} onChange={() => {}} {...props} />
   );
 
   it('changes value', function() {
-    let wrapper = shallow(creator());
+    const wrapper = shallow(creator());
     expect(wrapper.state('sliderValue')).toBe(5);
     wrapper.find('Slider').simulate('input', {target: {value: 7}});
     expect(wrapper.state('sliderValue')).toBe(7);
   });
 
   it('has right label', function() {
-    let wrapper = mount(creator());
+    const wrapper = mount(creator());
     expect(wrapper.find('Label').text()).toBe('5');
     wrapper.find('Slider').simulate('input', {target: {value: 7}});
     expect(wrapper.find('Label').text()).toBe('7');
   });
 
   it('can use formatLabel', function() {
-    let wrapper = mount(
+    const wrapper = mount(
       creator({
         formatLabel: value => (
           <div className="test">{value === 7 ? 'SEVEN!' : value + 1}</div>
@@ -36,8 +36,8 @@ describe('RangeSlider', function() {
   });
 
   it('calls onChange', function() {
-    let onChange = jest.fn();
-    let wrapper = shallow(
+    const onChange = jest.fn();
+    const wrapper = shallow(
       creator({
         onChange,
       })
@@ -48,8 +48,8 @@ describe('RangeSlider', function() {
   });
 
   it('can provide a list of allowedValues', function() {
-    let onChange = jest.fn();
-    let wrapper = mount(
+    const onChange = jest.fn();
+    const wrapper = mount(
       creator({
         // support unsorted arrays?
         allowedValues: [0, 100, 1000, 10000, 20000],
@@ -71,8 +71,8 @@ describe('RangeSlider', function() {
   });
 
   it('handles invalid values', function() {
-    let onChange = jest.fn();
-    let wrapper = mount(
+    const onChange = jest.fn();
+    const wrapper = mount(
       creator({
         // support unsorted arrays?
         allowedValues: [0, 100, 1000, 10000, 20000],

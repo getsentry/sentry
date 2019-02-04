@@ -18,6 +18,7 @@ email-reply-parser>=0.2.0,<0.3.0
 enum34>=1.1.6,<1.2.0
 exam>=0.5.1
 functools32>=3.2.3,<3.3
+funcy>=1.1<=1.2
 futures>=3.2.0,<4.0.0
 # broken on python3
 hiredis>=0.1.0,<0.2.0
@@ -56,7 +57,7 @@ requests-oauthlib==0.3.3
 requests[security]>=2.20.0,<2.21.0
 selenium==3.11.0
 semaphore>=0.4.6,<0.5.0
-sentry-sdk>=0.6.0,!=0.6.5
+sentry-sdk>=0.7.0
 setproctitle>=1.1.7,<1.2.0
 simplejson>=3.2.0,<3.9.0
 six>=1.10.0,<1.11.0

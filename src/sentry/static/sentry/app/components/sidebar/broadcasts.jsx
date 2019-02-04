@@ -120,7 +120,7 @@ const Broadcasts = createReactClass({
   },
 
   markSeen() {
-    let unseenBroadcastIds = this.getUnseenIds();
+    const unseenBroadcastIds = this.getUnseenIds();
     if (unseenBroadcastIds.length === 0) return;
 
     markBroadcastsAsSeen(this.api, unseenBroadcastIds).then(data => {
@@ -134,10 +134,10 @@ const Broadcasts = createReactClass({
   },
 
   render() {
-    let {orientation, collapsed, currentPanel, showPanel, hidePanel} = this.props;
-    let {broadcasts, loading} = this.state;
+    const {orientation, collapsed, currentPanel, showPanel, hidePanel} = this.props;
+    const {broadcasts, loading} = this.state;
 
-    let unseenPosts = this.getUnseenIds();
+    const unseenPosts = this.getUnseenIds();
 
     return (
       <React.Fragment>

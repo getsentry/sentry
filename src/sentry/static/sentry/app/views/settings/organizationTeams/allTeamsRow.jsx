@@ -34,7 +34,7 @@ const AllTeamsRow = createReactClass({
   },
 
   joinTeam() {
-    let {organization, team} = this.props;
+    const {organization, team} = this.props;
 
     this.setState({
       loading: true,
@@ -74,7 +74,7 @@ const AllTeamsRow = createReactClass({
   },
 
   leaveTeam() {
-    let {organization, team} = this.props;
+    const {organization, team} = this.props;
 
     this.setState({
       loading: true,
@@ -114,8 +114,8 @@ const AllTeamsRow = createReactClass({
   },
 
   render() {
-    let {access, team, urlPrefix, openMembership} = this.props;
-    let display = (
+    const {access, team, urlPrefix, openMembership} = this.props;
+    const display = (
       <IdBadge
         team={team}
         avatarSize={36}

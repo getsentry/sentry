@@ -21,14 +21,14 @@ class HighlightComponent extends React.Component {
   };
 
   render() {
-    let {className, children, disabled, text} = this.props;
+    const {className, children, disabled, text} = this.props;
 
     if (!text || disabled) {
       return children;
     }
 
-    let highlightText = text.toLowerCase();
-    let idx = children.toLowerCase().indexOf(highlightText);
+    const highlightText = text.toLowerCase();
+    const idx = children.toLowerCase().indexOf(highlightText);
 
     if (idx === -1) {
       return children;

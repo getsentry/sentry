@@ -9,12 +9,12 @@ jest.mock('jquery');
 
 describe('ProjectPluginDetails', function() {
   let component;
-  let routerContext = TestStubs.routerContext();
-  let {organization, project} = routerContext.context;
-  let org = organization;
-  let plugins = TestStubs.Plugins();
-  let plugin = TestStubs.Plugin();
-  let pluginId = plugin.id;
+  const routerContext = TestStubs.routerContext();
+  const {organization, project} = routerContext.context;
+  const org = organization;
+  const plugins = TestStubs.Plugins();
+  const plugin = TestStubs.Plugin();
+  const pluginId = plugin.id;
 
   beforeAll(function() {
     sinon.stub(console, 'info');
@@ -69,7 +69,7 @@ describe('ProjectPluginDetails', function() {
 
   it('resets plugin', function() {
     // Test component instead of container so that we can access state
-    let wrapper = mount(
+    const wrapper = mount(
       <ProjectPluginDetails
         organization={org}
         project={project}
@@ -80,13 +80,13 @@ describe('ProjectPluginDetails', function() {
       routerContext
     );
 
-    let btn = wrapper.find('button').at(1);
+    const btn = wrapper.find('button').at(1);
     btn.simulate('click');
     expect(wrapper.state().pluginDetails.config[0].value).toBe('default');
   });
 
   it('enables/disables plugin', function(done) {
-    let btn = component.find('button').first();
+    const btn = component.find('button').first();
     expect(btn.text()).toBe('Enable Plugin');
 
     btn.simulate('click');

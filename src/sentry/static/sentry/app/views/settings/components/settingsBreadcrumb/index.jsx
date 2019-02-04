@@ -44,18 +44,18 @@ class SettingsBreadcrumb extends React.Component {
   }
 
   render() {
-    let {routes, params, pathMap} = this.props;
-    let lastRouteIndex = routes.map(r => !!r.name).lastIndexOf(true);
+    const {routes, params, pathMap} = this.props;
+    const lastRouteIndex = routes.map(r => !!r.name).lastIndexOf(true);
     return (
       <Breadcrumbs>
         {routes.map((route, i) => {
           if (!route.name) return null;
-          let pathTitle = pathMap[getRouteStringFromRoutes(routes.slice(0, i + 1))];
-          let isLast = i === lastRouteIndex;
-          let createMenu = MENUS[route.name];
-          let Menu = typeof createMenu === 'function' && createMenu;
-          let hasMenu = !!Menu;
-          let CrumbPicker = hasMenu
+          const pathTitle = pathMap[getRouteStringFromRoutes(routes.slice(0, i + 1))];
+          const isLast = i === lastRouteIndex;
+          const createMenu = MENUS[route.name];
+          const Menu = typeof createMenu === 'function' && createMenu;
+          const hasMenu = !!Menu;
+          const CrumbPicker = hasMenu
             ? Menu
             : () => (
                 <Crumb route={route} isLast={isLast}>

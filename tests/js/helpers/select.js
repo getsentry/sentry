@@ -5,12 +5,12 @@ export function getSelector(options = {}) {
     selector = `[name="${options.name}"]`;
   }
 
-  let field = `Select${options.control ? 'Control' : 'Field'}`;
+  const field = `Select${options.control ? 'Control' : 'Field'}`;
   return `${field}${selector}`;
 }
 
 export function openMenu(wrapper, options = {}) {
-  let selector = getSelector(options);
+  const selector = getSelector(options);
   wrapper.find(`${selector} input[role="combobox"]`).simulate('focus');
   wrapper.find(`${selector} .Select-control`).simulate('mouseDown', {button: 0});
 
@@ -22,8 +22,8 @@ export function clearValue(wrapper) {
 }
 
 export function findOption(wrapper, {value, label} = {}, options) {
-  let selector = getSelector(options);
-  let valueSelector = !!value ? 'value' : 'label';
+  const selector = getSelector(options);
+  const valueSelector = !!value ? 'value' : 'label';
 
   return wrapper
     .find(`${selector} Option`)

@@ -66,7 +66,7 @@ class JsonForm extends React.Component {
 
   componentWillReceiveProps(nextProps, e) {
     if (this.getLocation(this.props).hash !== this.getLocation(nextProps).hash) {
-      let hash = this.getLocation(nextProps).hash;
+      const hash = this.getLocation(nextProps).hash;
       this.scrollToHash(hash);
       this.setState({highlighted: hash});
     }
@@ -77,7 +77,7 @@ class JsonForm extends React.Component {
   };
 
   scrollToHash(toHash) {
-    let hash = toHash || this.getLocation(this.props).hash;
+    const hash = toHash || this.getLocation(this.props).hash;
 
     if (!hash) return;
 
@@ -88,7 +88,7 @@ class JsonForm extends React.Component {
   }
 
   render() {
-    let {
+    const {
       forms,
       title,
       fields,
@@ -104,8 +104,8 @@ class JsonForm extends React.Component {
       ...otherProps
     } = this.props;
 
-    let hasFormGroups = defined(forms);
-    let formPanelProps = {
+    const hasFormGroups = defined(forms);
+    const formPanelProps = {
       access,
       disabled,
       features,
@@ -172,7 +172,7 @@ class FormPanel extends React.Component {
   };
 
   render() {
-    let {
+    const {
       title,
       fields,
       access,
@@ -184,8 +184,8 @@ class FormPanel extends React.Component {
       location,
       ...otherProps
     } = this.props;
-    let shouldRenderFooter = typeof renderFooter === 'function';
-    let shouldRenderHeader = typeof renderHeader === 'function';
+    const shouldRenderFooter = typeof renderFooter === 'function';
+    const shouldRenderHeader = typeof renderHeader === 'function';
 
     return (
       <Panel key={title} id={title}>
@@ -199,7 +199,7 @@ class FormPanel extends React.Component {
             }
 
             // eslint-disable-next-line no-unused-vars
-            let {defaultValue, ...fieldWithoutDefaultValue} = field;
+            const {defaultValue, ...fieldWithoutDefaultValue} = field;
 
             // Allow the form panel disabled prop to override the fields
             // disabled prop, with fallback to the fields disabled state.

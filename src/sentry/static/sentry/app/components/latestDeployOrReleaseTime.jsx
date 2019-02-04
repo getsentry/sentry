@@ -16,9 +16,9 @@ const LatestDeployOrReleaseTime = createReactClass({
   mixins: [ApiMixin],
 
   render() {
-    let {release} = this.props;
-    let earlierDeploysNum = release.totalDeploys - 1;
-    let latestDeploy = release.lastDeploy;
+    const {release} = this.props;
+    const earlierDeploysNum = release.totalDeploys - 1;
+    const latestDeploy = release.lastDeploy;
     // if there are deploys associated with the release
     // render the most recent deploy (API will return data ordered by dateFinished)
     // otherwise, render the dateCreated associated with release

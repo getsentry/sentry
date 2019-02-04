@@ -23,7 +23,7 @@ describe('EventOrGroupHeader', function() {
       id: 'id',
     };
     it('renders with `type = error`', function() {
-      let component = shallow(
+      const component = shallow(
         <EventOrGroupHeader
           orgId="orgId"
           projectId="projectId"
@@ -40,7 +40,7 @@ describe('EventOrGroupHeader', function() {
     });
 
     it('renders with `type = csp`', function() {
-      let component = shallow(
+      const component = shallow(
         <EventOrGroupHeader
           orgId="orgId"
           projectId="projectId"
@@ -57,7 +57,7 @@ describe('EventOrGroupHeader', function() {
     });
 
     it('renders with `type = default`', function() {
-      let component = shallow(
+      const component = shallow(
         <EventOrGroupHeader
           orgId="orgId"
           projectId="projectId"
@@ -84,7 +84,7 @@ describe('EventOrGroupHeader', function() {
     };
 
     it('renders with `type = error`', function() {
-      let component = shallow(
+      const component = shallow(
         <EventOrGroupHeader
           orgId="orgId"
           projectId="projectId"
@@ -101,7 +101,7 @@ describe('EventOrGroupHeader', function() {
     });
 
     it('renders with `type = csp`', function() {
-      let component = shallow(
+      const component = shallow(
         <EventOrGroupHeader
           orgId="orgId"
           projectId="projectId"
@@ -118,7 +118,7 @@ describe('EventOrGroupHeader', function() {
     });
 
     it('renders with `type = default`', function() {
-      let component = shallow(
+      const component = shallow(
         <EventOrGroupHeader
           orgId="orgId"
           projectId="projectId"
@@ -135,7 +135,7 @@ describe('EventOrGroupHeader', function() {
     });
 
     it('hides level tag', function() {
-      let component = shallow(
+      const component = shallow(
         <EventOrGroupHeader
           orgId="orgId"
           projectId="projectId"

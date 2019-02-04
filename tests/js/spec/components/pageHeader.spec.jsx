@@ -4,7 +4,7 @@ import PageHeading from 'app/components/pageHeading';
 
 describe('PageHeading', function() {
   it('renders', function() {
-    let wrapper = shallow(<PageHeading>New Header</PageHeading>);
+    const wrapper = shallow(<PageHeading>New Header</PageHeading>);
     expect(wrapper).toMatchSnapshot();
   });
 });

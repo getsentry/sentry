@@ -21,11 +21,11 @@ class SettingsLayout extends React.Component {
   };
 
   render() {
-    let {params, routes, route, router, renderNavigation, children} = this.props;
+    const {params, routes, route, router, renderNavigation, children} = this.props;
     // We want child's view's props
-    let childProps = (children && children.props) || this.props;
-    let childRoutes = childProps.routes || routes || [];
-    let childRoute = childProps.route || route || {};
+    const childProps = (children && children.props) || this.props;
+    const childRoutes = childProps.routes || routes || [];
+    const childRoute = childProps.route || route || {};
     return (
       <React.Fragment>
         <Sidebar />

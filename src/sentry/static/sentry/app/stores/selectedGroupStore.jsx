@@ -15,7 +15,7 @@ const SelectedGroupStore = Reflux.createStore({
   },
 
   add(ids) {
-    let allSelected = this.allSelected();
+    const allSelected = this.allSelected();
     ids.forEach(id => {
       if (!this.records.hasOwnProperty(id)) {
         this.records[id] = allSelected;
@@ -24,10 +24,10 @@ const SelectedGroupStore = Reflux.createStore({
   },
 
   prune() {
-    let existingIds = new Set(GroupStore.getAllItemIds());
+    const existingIds = new Set(GroupStore.getAllItemIds());
 
     // Remove ids that no longer exist
-    for (let itemId in this.records) {
+    for (const itemId in this.records) {
       if (!existingIds.has(itemId)) {
         delete this.records[itemId];
       }
@@ -35,8 +35,8 @@ const SelectedGroupStore = Reflux.createStore({
   },
 
   allSelected() {
-    let itemIds = this.getSelectedIds();
-    let numRecords = this.numSelected();
+    const itemIds = this.getSelectedIds();
+    const numRecords = this.numSelected();
     return itemIds.size > 0 && itemIds.size === numRecords;
   },
 
@@ -45,18 +45,18 @@ const SelectedGroupStore = Reflux.createStore({
   },
 
   anySelected() {
-    let itemIds = this.getSelectedIds();
+    const itemIds = this.getSelectedIds();
     return itemIds.size > 0;
   },
 
   multiSelected() {
-    let itemIds = this.getSelectedIds();
+    const itemIds = this.getSelectedIds();
     return itemIds.size > 1;
   },
 
   getSelectedIds() {
-    let selected = new Set();
-    for (let itemId in this.records) {
+    const selected = new Set();
+    for (const itemId in this.records) {
       if (this.records[itemId]) {
         selected.add(itemId);
       }
@@ -69,7 +69,7 @@ const SelectedGroupStore = Reflux.createStore({
   },
 
   deselectAll() {
-    for (let itemId in this.records) {
+    for (const itemId in this.records) {
       this.records[itemId] = false;
     }
     this.trigger();
@@ -82,9 +82,9 @@ const SelectedGroupStore = Reflux.createStore({
   },
 
   toggleSelectAll() {
-    let allSelected = !this.allSelected();
+    const allSelected = !this.allSelected();
 
-    for (let itemId in this.records) {
+    for (const itemId in this.records) {
       this.records[itemId] = allSelected;
     }
 

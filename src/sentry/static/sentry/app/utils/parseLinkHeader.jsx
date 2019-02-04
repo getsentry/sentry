@@ -3,14 +3,14 @@ export default function parseLinkHeader(header) {
     return {};
   }
 
-  let header_vals = header.split(','),
+  const header_vals = header.split(','),
     links = {};
 
   header_vals.forEach(val => {
-    let match = /<([^>]+)>; rel="([^"]+)"(?:; results="([^"]+)")?(?:; cursor="([^"]+)")?/g.exec(
+    const match = /<([^>]+)>; rel="([^"]+)"(?:; results="([^"]+)")?(?:; cursor="([^"]+)")?/g.exec(
       val
     );
-    let hasResults = match[3] === 'true' ? true : match[3] === 'false' ? false : null;
+    const hasResults = match[3] === 'true' ? true : match[3] === 'false' ? false : null;
 
     links[match[2]] = {
       href: match[1],
