@@ -134,8 +134,6 @@ class KafkaEventStream(EventStream):
             'event_id': event.event_id,
             'organization_id': project.organization_id,
             'project_id': event.project_id,
-            'title': event.title,
-            'location': event.location,
             'search_message': event.search_message,
             'platform': event.platform,
             'datetime': event.datetime,

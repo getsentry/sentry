@@ -296,6 +296,7 @@ class SnubaEvent(object):
         'event_id',
         'project_id',
         'message',
+        'search_message',
         'title',
         'location',
         'culprit',
@@ -336,10 +337,13 @@ class SnubaEventSerializer(Serializer):
         title = obj.title
         if LEGACY_MESSAGE_FALLBACK:
             title = title or obj.message
+        message = obj.message
+        if LEGACY_MESSAGE_FALLBACK:
+            message = message or obj.search_message
         result = {
             'eventID': six.text_type(obj.event_id),
             'projectID': six.text_type(obj.project_id),
-            'message': obj.message,
+            'message': message,
             'title': title,
             'location': obj.location,
             'culprit': obj.culprit,

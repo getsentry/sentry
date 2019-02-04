@@ -12,12 +12,10 @@ class SnubaEventStream(EventStream):
             'event_id': event.event_id,
             'organization_id': event.project.organization_id,
             'project_id': event.project_id,
-            'title': event.title,
-            'location': event.location,
             'search_message': event.search_message,
             'platform': event.platform,
             'datetime': event.datetime,
-            'data': dict(event.data.items()),
+            'data': event.as_dict(),
             'primary_hash': primary_hash,
         }])
         super(SnubaEventStream, self).insert(
