@@ -5,8 +5,6 @@ import six
 
 from collections import namedtuple
 from django.utils.functional import cached_property
-from funcy.seqs import flatten
-from funcy.types import is_list
 
 from parsimonious.exceptions import ParseError
 from parsimonious.grammar import Grammar, NodeVisitor
@@ -164,8 +162,13 @@ class SearchVisitor(NodeVisitor):
     def visit_search(self, node, children):
         # there is a list from search_term and one from raw_search, so flatten them.
         # Flatten each group in the list, since nodes can return multiple items
-        children = [child for group in children for child in flatten(group, follow=is_list)]
-        return filter(None, children)
+        rv = []
+        for group in children:
+            if isinstance(group, list):
+                rv.extend(x for x in group if x is not None)
+            elif group is not None:
+                rv.append(group)
+        return rv
 
     def visit_search_term(self, node, children):
         _, search_term, _ = children
