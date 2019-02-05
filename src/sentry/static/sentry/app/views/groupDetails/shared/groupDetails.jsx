@@ -23,7 +23,8 @@ const GroupDetails = createReactClass({
   propTypes: {
     // Provided in the project version of group details
     project: SentryTypes.Project,
-    environment: SentryTypes.Environment,
+    // environment: SentryTypes.Environment,
+    environments: PropTypes.arrayOf(PropTypes.string),
   },
 
   childContextTypes: {
@@ -62,7 +63,7 @@ const GroupDetails = createReactClass({
   componentDidUpdate(prevProps) {
     if (
       prevProps.params.groupId !== this.props.params.groupId ||
-      prevProps.environment !== this.props.environment
+      prevProps.environments !== this.props.environments
     ) {
       this.fetchData();
     }
@@ -75,8 +76,8 @@ const GroupDetails = createReactClass({
   fetchData() {
     const query = {};
 
-    if (this.props.environment) {
-      query.environment = this.props.environment.name;
+    if (this.props.environments) {
+      query.environment = this.props.environments;
     }
 
     this.api.request(this.getGroupDetailsEndpoint(), {
