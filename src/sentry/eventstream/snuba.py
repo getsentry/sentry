@@ -42,3 +42,9 @@ class SnubaEventStream(EventStream):
 
     def end_unmerge(self, state):
         pass
+
+    def start_delete_tag(self, project_id, tag):
+        pass
+
+    def end_delete_tag(self, state):
+        pass
