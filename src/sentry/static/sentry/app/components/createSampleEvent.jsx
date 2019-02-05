@@ -10,6 +10,7 @@ import ApiMixin from 'app/mixins/apiMixin';
 import Button from 'app/components/button';
 import IndicatorStore from 'app/stores/indicatorStore';
 import SentryTypes from 'app/sentryTypes';
+import {t} from 'app/locale';
 
 const CreateSampleEvent = createReactClass({
   displayName: 'createSampleEvent',
@@ -46,6 +47,7 @@ const CreateSampleEvent = createReactClass({
     const {organization} = this.context;
     const url = `/projects/${orgId}/${projectId}/create-sample/`;
     const project = organization.projects.find(proj => proj.slug === projectId);
+    const hasSentry10 = new Set(organization.features).has('sentry10');
 
     analytics('sample_event.created', {
       org_id: parseInt(organization.id, 10),
@@ -56,7 +58,10 @@ const CreateSampleEvent = createReactClass({
     this.api.request(url, {
       method: 'POST',
       success: data => {
-        browserHistory.push(`/${orgId}/${projectId}/issues/${data.groupID}/`);
+        const issueUrl = hasSentry10
+          ? `/organizations/${orgId}/issues/${data.groupID}/`
+          : `/${orgId}/${projectId}/issues/${data.groupID}/`;
+        browserHistory.push(issueUrl);
       },
       error: err => {
         Sentry.withScope(scope => {
@@ -75,7 +80,7 @@ const CreateSampleEvent = createReactClass({
     return (
       <div className="pull-right">
         <StyledButton priority="primary" onClick={this.createSampleEvent}>
-          Or See Sample Event
+          {t('Or See Sample Event')}
         </StyledButton>
       </div>
     );
