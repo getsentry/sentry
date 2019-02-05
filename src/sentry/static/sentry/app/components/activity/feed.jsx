@@ -20,7 +20,6 @@ const ActivityFeed = createReactClass({
     organization: SentryTypes.Organization,
     endpoint: PropTypes.string,
     query: PropTypes.object,
-    renderEmpty: PropTypes.func,
     pagination: PropTypes.bool,
   },
 
@@ -117,7 +116,7 @@ const ActivityFeed = createReactClass({
           </ul>
         </div>
       );
-    } else body = (this.props.renderEmpty || this.renderEmpty)();
+    } else body = this.renderEmpty();
 
     return body;
   },
