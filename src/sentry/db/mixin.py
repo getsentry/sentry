@@ -1,11 +1,13 @@
 from __future__ import absolute_import
 
+import logging
 import six
 
 from uuid import uuid4
 
-from sentry.api.base import logger
 from sentry.models import OrganizationOption
+
+logger = logging.getLogger('sentry.deletions')
 
 
 def delete_pending_deletion_option(instance, **kwargs):
@@ -55,7 +57,7 @@ class PendingDeletionMixin(object):
             original_data = self.get_pending_deletion_option().value
         except self.__class__.DoesNotExist:
             logger.info(
-                'reset-on-pending-deletion:does-not-exist',
+                'reset-on-pending-deletion.does-not-exist',
                 extra={
                     'organization_id': self.organization_id,
                     'model': self.__class__.__name__,
@@ -70,7 +72,7 @@ class PendingDeletionMixin(object):
             setattr(self, field_name, field_value)
         self.save()
         logger.info(
-            'reset-on-pending-deletion:success',
+            'reset-on-pending-deletion.success',
             extra={
                 'organization_id': self.organization_id,
                 'model': self.__class__.__name__,
@@ -84,7 +86,7 @@ class PendingDeletionMixin(object):
             option = self.get_pending_deletion_option()
         except self.__class__.DoesNotExist:
             logger.info(
-                'delete-pending-deletion-option:does-not-exist',
+                'delete-pending-deletion-option.does-not-exist',
                 extra={
                     'organization_id': self.organization_id,
                     'model': self.__class__.__name__,
@@ -94,7 +96,7 @@ class PendingDeletionMixin(object):
             return
         option.delete()
         logger.info(
-            'delete-pending-deletion-option:success',
+            'delete-pending-deletion-option.success',
             extra={
                 'organization_id': self.organization_id,
                 'model': self.__class__.__name__,

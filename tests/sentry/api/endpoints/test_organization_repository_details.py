@@ -5,7 +5,7 @@ from mock import patch
 from django.core.urlresolvers import reverse
 
 from sentry.constants import ObjectStatus
-from sentry.models import Commit, Integration, Repository
+from sentry.models import Commit, Integration, OrganizationOption, Repository
 from sentry.testutils import APITestCase
 
 
@@ -92,6 +92,7 @@ class OrganizationRepositoryDeleteTest(APITestCase):
         org = self.create_organization(owner=self.user, name='baz')
         repo = Repository.objects.create(
             name='example',
+            external_id='12345',
             organization_id=org.id,
             status=ObjectStatus.DISABLED,
         )
@@ -107,6 +108,10 @@ class OrganizationRepositoryDeleteTest(APITestCase):
 
         repo = Repository.objects.get(id=repo.id)
         assert repo.status == ObjectStatus.PENDING_DELETION
+
+        # renamed on pending delete
+        assert repo.name != 'example'
+        assert repo.external_id != '12345'
 
         mock_delete_repository.apply_async.assert_called_with(
             kwargs={
@@ -147,6 +152,10 @@ class OrganizationRepositoryDeleteTest(APITestCase):
 
         repo = Repository.objects.get(id=repo.id)
         assert repo.status == ObjectStatus.PENDING_DELETION
+
+        # renamed on pending delete
+        assert repo.name != 'example'
+
         mock_delete_repository.apply_async.assert_called_with(
             kwargs={
                 'object_id': repo.id,
@@ -188,7 +197,54 @@ class OrganizationRepositoryDeleteTest(APITestCase):
         repo = Repository.objects.get(id=repo.id)
         assert repo.status == ObjectStatus.VISIBLE
         assert repo.integration_id == integration.id
+
+    def test_put_cancel_deletion(self):
+        self.login_as(user=self.user)
+
+        org = self.create_organization(owner=self.user, name='baz')
+        integration = Integration.objects.create(
+            provider='example',
+            name='example',
+        )
+        integration.add_organization(org)
+
+        repo = Repository.objects.create(
+            name='uuid-name',
+            external_id='uuid-external-id',
+            organization_id=org.id,
+            status=ObjectStatus.PENDING_DELETION,
+        )
+
+        OrganizationOption.objects.create(
+            organization_id=org.id,
+            key=repo.build_pending_deletion_key(),
+            value={
+                'name': 'example-name',
+                'external_id': 'example-external-id',
+                'id': repo.id,
+                'model': Repository.__name__
+            }
+        )
+
+        url = reverse(
+            'sentry-api-0-organization-repository-details', args=[
+                org.slug,
+                repo.id,
+            ]
+        )
+        response = self.client.put(url, data={
+            'status': 'visible',
+            'integrationId': integration.id,
+        })
+
+        assert response.status_code == 200
+
+        repo = Repository.objects.get(id=repo.id)
+        assert repo.status == ObjectStatus.VISIBLE
+        assert repo.integration_id == integration.id
         assert repo.provider == 'integrations:example'
+        assert repo.name == 'example-name'
+        assert repo.external_id == 'example-external-id'
 
     def test_put_bad_integration_org(self):
         self.login_as(user=self.user)
@@ -218,6 +274,11 @@ class OrganizationRepositoryDeleteTest(APITestCase):
 
         assert response.status_code == 400
         assert response.data['detail'] == 'Invalid integration id'
+        assert Repository.objects.get(id=repo.id).name == 'example'
+        assert not OrganizationOption.objects.filter(
+            organization_id=org.id,
+            key=repo.build_pending_deletion_key()
+        ).exists()
 
     def test_put_bad_integration_id(self):
         self.login_as(user=self.user)
@@ -243,3 +304,8 @@ class OrganizationRepositoryDeleteTest(APITestCase):
 
         assert response.status_code == 400
         assert response.data == {'integrationId': ['Enter a whole number.']}
+        assert Repository.objects.get(id=repo.id).name == 'example'
+        assert not OrganizationOption.objects.filter(
+            organization_id=org.id,
+            key=repo.build_pending_deletion_key()
+        ).exists()
