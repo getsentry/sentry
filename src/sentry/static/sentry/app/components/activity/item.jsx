@@ -100,7 +100,7 @@ class ActivityItem extends React.Component {
               orgId={orgId}
               projectId={project.slug}
               issue={issue}
-              to={`/${orgId}/${project.slug}/issues/${issue.id}/activity/#event_${item.id}`}
+              to={`${basePath}${issue.id}/activity/#event_${item.id}`}
             >
               {issue.shortId}
             </IssueLink>
@@ -236,9 +236,7 @@ class ActivityItem extends React.Component {
           data.fingerprints.length,
           author,
           data.source ? (
-            <a href={`/${orgId}/${project.slug}/issues/${data.source.id}`}>
-              {data.source.shortId}
-            </a>
+            <a href={`/${basePath}${data.source.id}`}>{data.source.shortId}</a>
           ) : (
             t('a group')
           ),
@@ -297,7 +295,7 @@ class ActivityItem extends React.Component {
         return tct('[author] merged [count] [link:issues]', {
           author,
           count: data.issues.length + 1,
-          link: <Link to={`/${orgId}/${project.slug}/issues/${issue.id}/`} />,
+          link: <Link to={`${basePath}${issue.id}/`} />,
         });
       case 'release':
         return tct('[author] released version [version]', {
