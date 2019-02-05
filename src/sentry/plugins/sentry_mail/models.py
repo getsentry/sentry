@@ -214,7 +214,8 @@ class MailPlugin(NotificationPlugin):
 
         rules = []
         for rule in notification.rules:
-            rule_link = '/%s/%s/settings/alerts/rules/%s/' % (org.slug, project.slug, rule.id)
+            rule_link = '/settings/%s/projects/%s/alerts/rules/%s/' % (
+                org.slug, project.slug, rule.id)
 
             rules.append((rule.label, rule_link))
 

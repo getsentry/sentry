@@ -1,6 +1,6 @@
 import {t} from 'app/locale';
 
-const pathPrefix = '/settings/:orgId/:projectId';
+const pathPrefix = '/settings/:orgId/projects/:projectId';
 
 export default function getConfiguration({project}) {
   const plugins = ((project && project.plugins) || []).filter(plugin => plugin.enabled);

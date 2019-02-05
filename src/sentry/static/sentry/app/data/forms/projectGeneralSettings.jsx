@@ -11,7 +11,7 @@ import slugify from 'app/utils/slugify';
 import space from 'app/styles/space';
 
 // Export route to make these forms searchable by label/help
-export const route = '/settings/:orgId/:projectId/';
+export const route = '/settings/:orgId/projects/:projectId/';
 
 const getResolveAgeAllowedValues = () => {
   let i = 0;
