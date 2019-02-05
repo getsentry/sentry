@@ -20,8 +20,13 @@ from hashlib import md5
 from sentry import eventtypes
 from sentry.constants import EVENT_ORDERING_KEY
 from sentry.db.models import (
-    BoundedBigIntegerField, BoundedIntegerField, Model, NodeField, sane_repr
+    BoundedBigIntegerField,
+    BoundedIntegerField,
+    Model,
+    NodeField,
+    sane_repr
 )
+from sentry.db.models.manager import EventManager
 from sentry.interfaces.base import get_interfaces
 from sentry.utils.cache import memoize
 from sentry.utils.canonical import CanonicalKeyDict, CanonicalKeyView
@@ -49,6 +54,8 @@ class Event(Model):
         ref_version=2,
         wrapper=CanonicalKeyDict,
     )
+
+    objects = EventManager()
 
     class Meta:
         app_label = 'sentry'

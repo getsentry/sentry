@@ -30,9 +30,8 @@ class EventAppleCrashReportEndpoint(Endpoint):
         and not the event ID that is reported by the client upon submission.
         This works only if the event.platform == cocoa
         """
-        try:
-            event = Event.objects.get(id=event_id)
-        except Event.DoesNotExist:
+        event = Event.objects.from_event_id(event_id, project_id=None)
+        if event is None:
             raise ResourceDoesNotExist
 
         self.check_object_permissions(request, event.group)
