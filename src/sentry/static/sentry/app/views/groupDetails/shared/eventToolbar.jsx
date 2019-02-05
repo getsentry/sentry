@@ -87,15 +87,15 @@ const GroupEventToolbar = createReactClass({
     const groupId = this.props.group.id;
 
     const hasSentry10 = new Set(organization.features).has('sentry10');
-    const baseIssuesPath = hasSentry10
-      ? `/organizations/${orgId}/issues/`
-      : `/${orgId}/${projectId}/issues/`;
+    const baseEventsPath = hasSentry10
+      ? `/organizations/${orgId}/issues/${groupId}/events/`
+      : `/${orgId}/${projectId}/issues/${groupId}/events/`;
 
     const eventNavNodes = [
       evt.previousEventID ? (
         <Link
           key="oldest"
-          to={`${baseIssuesPath}${groupId}/events/oldest/`}
+          to={`${baseEventsPath}oldest/`}
           className="btn btn-default"
           title={t('Oldest')}
         >
@@ -109,7 +109,7 @@ const GroupEventToolbar = createReactClass({
       evt.previousEventID ? (
         <Link
           key="prev"
-          to={`${baseIssuesPath}${groupId}/events/${evt.previousEventID}/`}
+          to={`${baseEventsPath}${evt.previousEventID}/`}
           className="btn btn-default"
         >
           {t('Older')}
@@ -122,7 +122,7 @@ const GroupEventToolbar = createReactClass({
       evt.nextEventID ? (
         <Link
           key="next"
-          to={`${baseIssuesPath}${groupId}/events/${evt.nextEventID}/`}
+          to={`${baseEventsPath}${evt.nextEventID}/`}
           className="btn btn-default"
         >
           {t('Newer')}
@@ -135,7 +135,7 @@ const GroupEventToolbar = createReactClass({
       evt.nextEventID ? (
         <Link
           key="latest"
-          to={`${baseIssuesPath}${groupId}/events/latest/`}
+          to={`${baseEventsPath}latest/`}
           className="btn btn-default"
           title={t('Newest')}
         >
@@ -167,7 +167,7 @@ const GroupEventToolbar = createReactClass({
         </div>
         <h4>
           {t('Event')}{' '}
-          <Link to={`${baseIssuesPath}${groupId}/events/${evt.id}/`} className="event-id">
+          <Link to={`${baseEventsPath}${evt.id}/`} className="event-id">
             {evt.eventID}
           </Link>
         </h4>
