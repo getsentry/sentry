@@ -5,8 +5,6 @@ import six
 
 from collections import namedtuple
 from django.utils.functional import cached_property
-from funcy.seqs import flatten
-from funcy.types import is_list
 
 from parsimonious.exceptions import ParseError
 from parsimonious.grammar import Grammar, NodeVisitor
@@ -164,8 +162,19 @@ class SearchVisitor(NodeVisitor):
     def visit_search(self, node, children):
         # there is a list from search_term and one from raw_search, so flatten them.
         # Flatten each group in the list, since nodes can return multiple items
-        children = [child for group in children for child in flatten(group, follow=is_list)]
-        return filter(None, children)
+        #
+        # XXX(mitsuhiko): I do not comprehend why this is not just
+        # _flatten(children) but when I do that nothing works.  I only
+        # inherited this code.
+        def _flatten(seq):
+            for item in seq:
+                if isinstance(item, list):
+                    for sub in _flatten(item):
+                        yield sub
+                else:
+                    yield item
+        children = [child for group in children for child in _flatten(group)]
+        return filter(None, _flatten(children))
 
     def visit_search_term(self, node, children):
         _, search_term, _ = children
