@@ -337,6 +337,14 @@ class ActivityItem extends React.Component {
 
     const hasSentry10 = this.hasSentry10();
 
+    const projectLink = hasSentry10 ? (
+      <strong>{item.project.slug}</strong>
+    ) : (
+      <Link className="project" to={`/${orgId}/${item.project.slug}/`}>
+        {item.project.slug}
+      </Link>
+    );
+
     if (item.type === 'note') {
       const noteBody = marked(item.data.text);
       return (
@@ -355,13 +363,7 @@ class ActivityItem extends React.Component {
               dangerouslySetInnerHTML={{__html: noteBody}}
             />
             <div className="activity-meta">
-              {hasSentry10 ? (
-                <strong>{item.project.slug}</strong>
-              ) : (
-                <Link className="project" to={`/${orgId}/${item.project.slug}/`}>
-                  {item.project.slug}
-                </Link>
-              )}
+              {projectLink}
               <span className="bullet" />
               <TimeSince date={item.dateCreated} />
             </div>
@@ -383,9 +385,7 @@ class ActivityItem extends React.Component {
               <a href={item.data.location}>{item.data.title}</a>
             </div>
             <div className="activity-meta">
-              <Link className="project" to={`/${orgId}/${item.project.slug}/`}>
-                {item.project.slug}
-              </Link>
+              {projectLink}
               <span className="bullet" />
               <TimeSince date={item.dateCreated} />
             </div>
@@ -404,13 +404,7 @@ class ActivityItem extends React.Component {
               item
             )}
             <div className="activity-meta">
-              {hasSentry10 ? (
-                <strong>{item.project.slug}</strong>
-              ) : (
-                <Link className="project" to={`/${orgId}/${item.project.slug}/`}>
-                  {item.project.slug}
-                </Link>
-              )}
+              {projectLink}
               <span className="bullet" />
               <TimeSince date={item.dateCreated} />
             </div>
