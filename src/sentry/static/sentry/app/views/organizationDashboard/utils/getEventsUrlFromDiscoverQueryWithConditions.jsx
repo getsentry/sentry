@@ -10,6 +10,7 @@
 import {zipWith} from 'lodash';
 
 import {OPERATOR} from 'app/views/organizationDiscover/data';
+import {escapeQuotes} from 'app/components/events/interfaces/utils';
 import {getEventsUrlPathFromDiscoverQuery} from 'app/views/organizationDashboard/utils/getEventsUrlPathFromDiscoverQuery';
 
 export function getEventsUrlFromDiscoverQueryWithConditions({
@@ -31,7 +32,7 @@ export function getEventsUrlFromDiscoverQueryWithConditions({
         ...zipWith(query.fields, values, (field, value) => [
           field,
           OPERATOR.EQUAL,
-          value === null ? '""' : `"${value}"`,
+          value === null ? '""' : `"${escapeQuotes(value)}"`,
         ]),
       ],
     },
