@@ -164,7 +164,13 @@ class EventEntries extends React.Component {
           />
         )}
         {hasContext && <EventContextSummary group={group} event={event} />}
-        <EventTags group={group} event={event} orgId={orgId} projectId={project.slug} />
+        <EventTags
+          organization={organization}
+          group={group}
+          event={event}
+          orgId={orgId}
+          projectId={project.slug}
+        />
         {this.renderEntries()}
         {hasContext && <EventContexts group={group} event={event} />}
         {!utils.objectIsEmpty(event.context) && (
