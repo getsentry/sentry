@@ -70,8 +70,12 @@ class PushEventWebhook(Webhook):
         except Repository.DoesNotExist:
             raise Http404()
 
-        if repo.config.get('name') != event['repository']['full_name']:
-            repo.config['name'] = event['repository']['full_name']
+        # update our data if repo name has changed
+        repo_full_name = event['repository']['full_name']
+        if repo.config.get('name') != repo_full_name:
+            repo.config['name'] = repo_full_name
+            repo.name = repo_full_name
+            repo.url = u'https://bitbucket.org/{}'.format(repo_full_name)
             repo.save()
 
         for change in event['push']['changes']:
