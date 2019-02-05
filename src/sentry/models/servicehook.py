@@ -32,7 +32,7 @@ class ServiceHookProject(Model):
     __core__ = False
 
     service_hook = FlexibleForeignKey('sentry.ServiceHook')
-    project = FlexibleForeignKey('sentry.Project')
+    project_id = BoundedPositiveIntegerField(db_index=True)
 
     class Meta:
         app_label = 'sentry'
