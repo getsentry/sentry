@@ -689,11 +689,6 @@ class SnubaTagStorage(TagStorage):
         # instead.
         raise NotImplementedError
 
-    def delete_tag_key(self, project_id, key):
-        from sentry import eventstream
-        eventstream_state = eventstream.start_delete_tag(project_id, key)
-        eventstream.end_delete_tag(eventstream_state)
-
 
 class SnubaCompatibilityTagStorage(SnubaTagStorage):
     """
@@ -738,6 +733,11 @@ class SnubaCompatibilityTagStorage(SnubaTagStorage):
     def delete_all_group_tag_values(self, project_id, group_id):
         # Called by ``unmerge.truncate_denormalizations``. The return value is
         # not used.
+        pass
+
+    def delete_tag_key(self, project_id, key):
+        # Called by ``ProjectTagKeyDetailsEndpoint.delete``. The return value
+        # is not used.
         pass
 
     def incr_tag_value_times_seen(self, project_id, environment_id,

@@ -41,7 +41,12 @@ class ProjectTagKeyDetailsEndpoint(ProjectEndpoint, EnvironmentMixin):
         lookup_key = tagstore.prefix_reserved_key(key)
 
         try:
+            from sentry import eventstream
+            eventstream_state = eventstream.start_delete_tag(project.id, key)
+
             deleted = tagstore.delete_tag_key(project.id, lookup_key)
+
+            eventstream.end_delete_tag(eventstream_state)
         except tagstore.TagKeyNotFound:
             raise ResourceDoesNotExist
 
