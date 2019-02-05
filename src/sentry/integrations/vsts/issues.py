@@ -262,9 +262,6 @@ class VstsIssueSync(IssueSyncMixin):
         quoted_comment = self.create_comment_attribution(user_id, comment)
         self.get_client().update_work_item(self.instance, issue_id, comment=quoted_comment)
 
-    def get_comment_id(self, comment):
-        return comment['id']
-
     def create_comment_attribution(self, user_id, comment_text):
         # VSTS uses markdown or xml
         # https://docs.microsoft.com/en-us/microsoftteams/platform/concepts/bots/bots-text-formats
