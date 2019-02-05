@@ -19,12 +19,15 @@ import MemberListStore from 'app/stores/memberListStore';
 import NoteContainer from 'app/components/activity/noteContainer';
 import NoteInput from 'app/components/activity/noteInput';
 import PullRequestLink from 'app/components/pullRequestLink';
+import SentryTypes from 'app/sentryTypes';
 import TeamStore from 'app/stores/teamStore';
 import TimeSince from 'app/components/timeSince';
 import Version from 'app/components/version';
+import withOrganization from 'app/utils/withOrganization';
 
 class GroupActivityItem extends React.Component {
   static propTypes = {
+    organization: SentryTypes.Organization.isRequired,
     author: PropTypes.node,
     item: PropTypes.object,
     orgId: PropTypes.string,
@@ -32,8 +35,14 @@ class GroupActivityItem extends React.Component {
   };
 
   render() {
-    const {author, item, orgId, projectId} = this.props;
+    const {organization, author, item, orgId, projectId} = this.props;
     const {data} = item;
+
+    const hasSentry10 = new Set(organization.features).has('sentry10');
+
+    const issuesLink = hasSentry10
+      ? `/organizations/${orgId}/issues/`
+      : `/${orgId}/${projectId}/issues/`;
 
     switch (item.type) {
       case 'note':
@@ -139,9 +148,7 @@ class GroupActivityItem extends React.Component {
           data.fingerprints.length,
           author,
           data.destination ? (
-            <a href={`/${orgId}/${projectId}/issues/${data.destination.id}`}>
-              {data.destination.shortId}
-            </a>
+            <a href={`${issuesLink}${data.destination.id}`}>{data.destination.shortId}</a>
           ) : (
             t('a group')
           )
@@ -153,9 +160,7 @@ class GroupActivityItem extends React.Component {
           data.fingerprints.length,
           author,
           data.source ? (
-            <a href={`/${orgId}/${projectId}/issues/${data.source.id}`}>
-              {data.source.shortId}
-            </a>
+            <a href={`${issuesLink}${data.source.id}`}>{data.source.shortId}</a>
           ) : (
             t('a group')
           )
@@ -319,4 +324,5 @@ const GroupActivity = createReactClass({
   },
 });
 
-export default GroupActivity;
+export {GroupActivity};
+export default withOrganization(GroupActivity);
