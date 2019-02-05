@@ -236,7 +236,7 @@ class ActivityItem extends React.Component {
           data.fingerprints.length,
           author,
           data.source ? (
-            <a href={`/${basePath}${data.source.id}`}>{data.source.shortId}</a>
+            <a href={`${basePath}${data.source.id}`}>{data.source.shortId}</a>
           ) : (
             t('a group')
           ),
