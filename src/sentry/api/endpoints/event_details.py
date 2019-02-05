@@ -23,7 +23,7 @@ class EventDetailsEndpoint(Endpoint):
         is the event as it appears in the Sentry database and not the event
         ID that is reported by the client upon submission.
         """
-        event = Event.objects.from_event_id(event_id, None)
+        event = Event.objects.from_event_id(event_id, project_id=None)
         if event is None:
             raise ResourceDoesNotExist
 
