@@ -1,15 +1,17 @@
 from __future__ import absolute_import, print_function
 
 from django.db import models
+from django.db.models.signals import pre_delete
 from django.utils import timezone
 from jsonfield import JSONField
 
 from sentry.constants import ObjectStatus
 from sentry.db.models import (BoundedPositiveIntegerField, Model, sane_repr)
+from sentry.db.mixin import PendingDeletionMixin, delete_pending_deletion_option
 from sentry.signals import pending_delete
 
 
-class Repository(Model):
+class Repository(Model, PendingDeletionMixin):
     __core__ = True
 
     organization_id = BoundedPositiveIntegerField(db_index=True)
@@ -34,6 +36,8 @@ class Repository(Model):
         )
 
     __repr__ = sane_repr('organization_id', 'name', 'provider')
+
+    _rename_fields_on_pending_delete = ['name', 'external_id']
 
     def has_integration_provider(self):
         return self.provider and self.provider.startswith('integrations:')
@@ -97,3 +101,4 @@ def on_delete(instance, actor=None, **kwargs):
 
 
 pending_delete.connect(on_delete, sender=Repository, weak=False)
+pre_delete.connect(delete_pending_deletion_option, sender=Repository, weak=False)
