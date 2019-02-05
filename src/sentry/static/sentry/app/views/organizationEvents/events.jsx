@@ -1,7 +1,6 @@
 import * as Sentry from '@sentry/browser';
 import {Flex} from 'grid-emotion';
 import {isEqual} from 'lodash';
-import {withRouter} from 'react-router';
 import PropTypes from 'prop-types';
 import React from 'react';
 import styled from 'react-emotion';
@@ -148,7 +147,7 @@ class OrganizationEvents extends AsyncView {
   }
 
   renderBody() {
-    const {organization, location} = this.props;
+    const {organization, location, router} = this.props;
     const {error, loading, reloading, events, eventsPageLinks} = this.state;
     const parsedLinks = !loading && !error ? utils.parseLinkHeader(eventsPageLinks) : {};
 
@@ -162,6 +161,7 @@ class OrganizationEvents extends AsyncView {
           )}
         <Panel>
           <EventsChart
+            router={router}
             query={location.query.query}
             organization={organization}
             onZoom={this.handleZoom}
@@ -178,6 +178,7 @@ class OrganizationEvents extends AsyncView {
         />
 
         {!loading &&
+          !reloading &&
           !error && (
             <Flex align="center" justify="space-between">
               <RowDisplay>
@@ -207,5 +208,5 @@ const RowDisplay = styled('div')`
   color: ${p => p.theme.gray6};
 `;
 
-export default withRouter(withOrganization(OrganizationEvents));
+export default withOrganization(OrganizationEvents);
 export {OrganizationEvents, parseRowFromLinks};

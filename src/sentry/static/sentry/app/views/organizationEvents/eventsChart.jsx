@@ -1,5 +1,4 @@
 import {isEqual} from 'lodash';
-import {withRouter} from 'react-router';
 import PropTypes from 'prop-types';
 import React from 'react';
 import styled from 'react-emotion';
@@ -75,13 +74,14 @@ class EventsChart extends React.Component {
     period: PropTypes.string,
     query: PropTypes.string,
     utc: PropTypes.bool,
+    router: PropTypes.object,
   };
 
   render() {
-    const {api, period, utc, query, ...props} = this.props;
+    const {api, period, utc, query, router, ...props} = this.props;
 
     return (
-      <ChartZoom period={period} utc={utc} {...props}>
+      <ChartZoom router={router} period={period} utc={utc} {...props}>
         {({interval, ...zoomRenderProps}) => (
           <EventsRequest
             {...props}
@@ -126,29 +126,27 @@ class EventsChart extends React.Component {
   }
 }
 
-const EventsChartContainer = withRouter(
-  withGlobalSelection(
-    withApi(
-      class EventsChartWithParams extends React.Component {
-        static propTypes = {
-          selection: SentryTypes.GlobalSelection,
-        };
+const EventsChartContainer = withGlobalSelection(
+  withApi(
+    class EventsChartWithParams extends React.Component {
+      static propTypes = {
+        selection: SentryTypes.GlobalSelection,
+      };
 
-        render() {
-          const {selection, ...props} = this.props;
-          const {datetime, projects, environments} = selection;
+      render() {
+        const {selection, ...props} = this.props;
+        const {datetime, projects, environments} = selection;
 
-          return (
-            <EventsChart
-              {...datetime}
-              project={projects || []}
-              environment={environments || []}
-              {...props}
-            />
-          );
-        }
+        return (
+          <EventsChart
+            {...datetime}
+            project={projects || []}
+            environment={environments || []}
+            {...props}
+          />
+        );
       }
-    )
+    }
   )
 );
 
