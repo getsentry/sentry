@@ -1,6 +1,5 @@
 from __future__ import absolute_import
 
-from django.db import transaction
 from rest_framework import status
 
 from sentry import features
@@ -8,6 +7,7 @@ from sentry.api.base import DocSection
 from sentry.api.bases.project import ProjectEndpoint
 from sentry.api.serializers import serialize
 from sentry.api.validators import ServiceHookValidator
+from sentry.mediators import service_hooks
 from sentry.models import AuditLogEntryEvent, ObjectStatus, ServiceHook
 from sentry.utils.apidocs import scenario, attach_scenarios
 
@@ -122,24 +122,21 @@ class ProjectServiceHooksEndpoint(ProjectEndpoint):
 
         result = validator.object
 
-        with transaction.atomic():
-            hook = ServiceHook.objects.create(
-                project_id=project.id,
-                organization_id=project.organization_id,
-                url=result['url'],
-                actor_id=request.user.id,
-                events=result.get('events'),
-                application=getattr(request.auth, 'application', None) if request.auth else None,
-            )
+        hook = service_hooks.Creator.run(
+            projects=[project],
+            organization=project.organization,
+            url=result['url'],
+            actor=request.user,
+            events=result.get('events'),
+            application=getattr(request.auth, 'application', None) if request.auth else None,
+        )
 
-            hook.add_project(project)
-
-            self.create_audit_entry(
-                request=request,
-                organization=project.organization,
-                target_object=hook.id,
-                event=AuditLogEntryEvent.SERVICEHOOK_ADD,
-                data=hook.get_audit_log_data(),
-            )
+        self.create_audit_entry(
+            request=request,
+            organization=project.organization,
+            target_object=hook.id,
+            event=AuditLogEntryEvent.SERVICEHOOK_ADD,
+            data=hook.get_audit_log_data(),
+        )
 
         return self.respond(serialize(hook, request.user), status=201)

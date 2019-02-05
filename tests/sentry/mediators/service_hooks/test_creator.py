@@ -14,7 +14,8 @@ class TestCreator(TestCase):
         self.sentry_app = self.create_sentry_app(owner=self.org)
         self.creator = Creator(application=self.sentry_app.application,
                                actor=self.sentry_app.proxy_user,
-                               project=self.project,
+                               organization=self.org,
+                               projects=[self.project],
                                events=('event.created',),
                                url=self.sentry_app.webhook_url)
 

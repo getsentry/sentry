@@ -34,7 +34,8 @@ def consolidate_events(raw_events):
 class Creator(Mediator):
     application = Param('sentry.models.ApiApplication', required=False)
     actor = Param('sentry.db.models.BaseModel')
-    project = Param('sentry.models.Project')
+    organization = Param('sentry.models.Organization')
+    projects = Param(Iterable)
     events = Param(Iterable)
     url = Param(six.string_types)
 
@@ -44,14 +45,17 @@ class Creator(Mediator):
 
     def _create_service_hook(self):
         application_id = self.application.id if self.application else None
-
+        # there must be at least one project
+        project_id = self.projects[0].id
         hook = ServiceHook.objects.create(
             application_id=application_id,
             actor_id=self.actor.id,
-            project_id=self.project.id,
-            organization_id=self.project.organization_id,
+            project_id=project_id,
+            organization_id=self.organization.id,
             events=expand_events(self.events),
             url=self.url,
         )
-        hook.add_project(self.project)
+        for project in self.projects:
+            hook.add_project(project)
+
         return hook
