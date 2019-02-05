@@ -65,7 +65,11 @@ class ExampleIntegration(IntegrationInstallation, IssueSyncMixin):
     def create_comment(self, issue_id, user_id, group_note):
         user = User.objects.get(id=user_id)
         attribution = '%s wrote:\n\n' % user.name
-        return '%s<blockquote>%s</blockquote>' % (attribution, group_note.data['text'])
+        comment = {
+            'id': '123456789',
+            'text': '%s<blockquote>%s</blockquote>' % (attribution, group_note.data['text'])
+        }
+        return comment
 
     def get_persisted_default_config_fields(self):
         return ['project']

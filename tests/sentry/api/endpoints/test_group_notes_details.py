@@ -7,6 +7,11 @@ from sentry.testutils import APITestCase
 
 
 class GroupNotesDetailsTest(APITestCase):
+    def setUp(self):
+        super(GroupNotesDetailsTest, self).setUp()
+        self.activity.data['external_id'] = '123'
+        self.activity.save()
+
     @fixture
     def url(self):
         return u'/api/0/issues/{}/comments/{}/'.format(
@@ -45,4 +50,4 @@ class GroupNotesDetailsTest(APITestCase):
         activity = Activity.objects.get(id=response.data['id'])
         assert activity.user == self.user
         assert activity.group == self.group
-        assert activity.data == {'text': 'hi haters'}
+        assert activity.data == {'text': 'hi haters', 'external_id': '123'}

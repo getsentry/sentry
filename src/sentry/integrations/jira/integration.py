@@ -293,9 +293,6 @@ class JiraIntegration(IntegrationInstallation, IssueSyncMixin):
         quoted_comment = self.create_comment_attribution(user_id, comment)
         return self.get_client().create_comment(issue_id, quoted_comment)
 
-    def get_comment_id(self, comment):
-        return comment['id']
-
     def create_comment_attribution(self, user_id, comment_text):
         user = User.objects.get(id=user_id)
         attribution = '%s wrote:\n\n' % user.name
