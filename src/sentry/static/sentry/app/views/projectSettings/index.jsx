@@ -84,7 +84,7 @@ const ProjectSettings = createReactClass({
 
     const access = this.getAccess();
     const {orgId, projectId} = this.props.params;
-    const pathPrefix = `/settings/${orgId}/${projectId}`;
+    const pathPrefix = `/settings/${orgId}/projects/${projectId}`;
     const settingsUrlRoot = pathPrefix;
     const project = this.state.project;
     const rootInstallPath = `${pathPrefix}/install/`;

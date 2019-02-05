@@ -1,18 +1,3 @@
-.new-team {
-  font-size: 14px;
-  margin-top: -6px;
-  display: block;
-  padding: 3px 9px 4px 7px;
-  border-radius: 2px;
-
-  .icon-plus {
-    position: relative;
-    top: 2px;
-    font-size: 18px;
-    opacity: 0.5;
-  }
-}
-
 .organization-home {
   flex: 1;
 
@@ -37,21 +22,6 @@
   .nav-header {
     padding: 0 0 10px;
     margin: 0;
-
-    &.with-divider {
-      border-top: 1px solid @trim;
-      padding-top: 30px;
-    }
-  }
-
-  .count {
-    font-size: 36px;
-    color: @gray-dark;
-    margin: 10px 0 20px;
-
-    &.rejected {
-      color: @red;
-    }
   }
 
   .page-header {
@@ -170,167 +140,6 @@
   }
 }
 
-/**
-* Team list
-* ============================================================================
-*/
-
-.team-list {
-  list-style: none;
-  padding-left: 0;
-
-  .nav-tabs {
-    li a {
-      padding: 0 0 15px;
-    }
-  }
-
-  .box-header {
-    .actions {
-      a {
-        font-size: 13px;
-        margin-left: 20px;
-        font-weight: bold;
-        padding-top: 7px;
-        display: inline-block;
-        color: @gray;
-
-        &:hover {
-          color: @gray-dark;
-        }
-      }
-
-      .icon-plus {
-        top: 1px;
-        font-size: 16px;
-      }
-
-      .icon-settings {
-        top: 1px;
-      }
-    }
-
-    a {
-      color: @gray;
-      &:hover {
-        color: @gray-dark;
-      }
-    }
-  }
-
-  .box-content {
-    .clearfix();
-    position: relative;
-
-    .project-list-empty {
-      margin: 20px 0;
-      text-align: center;
-
-      a {
-        color: @link-color;
-
-        &:hover {
-          color: @link-color-hover;
-        }
-      }
-    }
-  }
-
-  .loading {
-    display: none;
-  }
-
-  .bookmark {
-    color: @gray-light;
-    margin-right: 6px;
-  }
-
-  .isBookmarked .bookmark {
-    color: @yellow-orange;
-  }
-
-  .project-chart {
-    width: 210px;
-    .barchart {
-      height: 20px;
-    }
-  }
-}
-
-/**
-* Create team
-* ============================================================================
-*/
-
-.create-flow {
-  .help-block {
-    font-size: 14px;
-    color: @gray;
-    line-height: 1.4;
-    margin-bottom: 20px;
-  }
-
-  .control-group {
-    margin-bottom: 20px;
-  }
-
-  input[type='text'] {
-    box-sizing: border-box;
-    -moz-box-sizing: border-box;
-    width: 100%;
-    margin: 0;
-  }
-
-  .actions {
-    text-align: right;
-    border-top: 2px solid darken(#f1f2f3, 0);
-    padding-top: 30px;
-    margin-top: 10px;
-  }
-
-  .steps {
-    .clearfix();
-    list-style-type: none;
-    padding: 0;
-    margin: 30px 0;
-
-    li {
-      width: 35%;
-      float: left;
-      text-align: center;
-      font-size: 24px;
-      color: lighten(@gray, 35);
-
-      &.active {
-        color: @gray;
-      }
-
-      &:first-child {
-        text-align: left;
-      }
-
-      &:last-child {
-        text-align: right;
-      }
-    }
-  }
-}
-
-/**
-* API Keys
-* ============================================================================
-*/
-
-.api-key-list {
-  h5 a {
-    color: @gray;
-
-    &:hover {
-      color: @gray-dark;
-    }
-  }
-}
-
 .api-key-detail .scopes {
   padding-bottom: 20px;
 }
@@ -364,23 +173,6 @@
 }
 
 /**
-* Member list
-* ============================================================================
-*/
-
-.member-list {
-  .status {
-    font-size: 13px;
-  }
-
-  .member-role-highlight {
-    td {
-      background-color: @alert-info-bg-color;
-    }
-  }
-}
-
-/**
 * Stats Column
 * ============================================================================
 */
@@ -390,11 +182,6 @@
     display: block;
     font-size: 85%;
   }
-}
-
-.organization-stats {
-  height: 150px;
-  margin-bottom: 20px;
 }
 
 /**
@@ -559,15 +346,6 @@
       padding: 0;
     }
   }
-
-  .btn-see-all {
-    display: block;
-    text-align: center;
-    border: 0;
-    border-radius: 0;
-    background: @white-dark;
-    padding: 10px;
-  }
 }
 
 @keyframes animate-stripes {
@@ -600,40 +378,6 @@
     bottom: 0;
     left: 0;
     width: 16px;
-  }
-
-  .dropdown-menu {
-    display: block;
-    width: 375px;
-    padding: 0;
-    left: 30px;
-    top: auto;
-    bottom: 0;
-    cursor: auto;
-
-    &:before {
-      display: none;
-    }
-
-    &:after {
-      display: none;
-    }
-
-    .onboarding-wrapper {
-      border: 0;
-      margin: 0;
-      box-shadow: none;
-      padding: 20px 15px 0;
-
-      a:not(.btn) {
-        color: @link-color;
-
-        &:hover {
-          color: @link-color-hover;
-          background: #fff;
-        }
-      }
-    }
   }
 
   &:before {
@@ -683,17 +427,6 @@
 .active .onboarding-progress-bar,
 .onboarding-progress-bar.active {
   background: rgba(255, 255, 255, 0.3);
-}
-
-/**
-* Member settings / invitations
-* ============================================================================
-*/
-
-.team-choices .team-slug {
-  display: block;
-  font-weight: normal;
-  color: @gray-light;
 }
 
 /**

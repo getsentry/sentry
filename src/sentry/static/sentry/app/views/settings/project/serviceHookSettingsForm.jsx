@@ -25,7 +25,7 @@ export default createReactClass({
 
   onSubmitSuccess() {
     const {orgId, projectId} = this.props;
-    browserHistory.push(`/settings/${orgId}/${projectId}/hooks/`);
+    browserHistory.push(`/settings/${orgId}/projects/${projectId}/hooks/`);
   },
 
   render() {

@@ -35,7 +35,7 @@ class SettingsPluginsNavigation extends React.Component {
     const {organization, project} = this.props;
     const {router} = this.context;
 
-    const pathPrefix = '/settings/:orgId/:projectId';
+    const pathPrefix = '/settings/:orgId/projects/:projectId';
     const allIntegrationsPath = replaceRouterParams(`${pathPrefix}/plugins/`, {
       orgId: organization && organization.slug,
       projectId: project && project.slug,

@@ -18,13 +18,12 @@ import Pagination from 'app/components/pagination';
 import {Panel, PanelBody} from 'app/components/panels';
 import StreamGroup from 'app/components/stream/group';
 import {fetchTags} from 'app/actionCreators/tags';
-import {fetchOrgMembers} from 'app/actionCreators/members';
+import {fetchOrgMembers, indexMembersByProject} from 'app/actionCreators/members';
 import {fetchSavedSearches} from 'app/actionCreators/savedSearches';
 import ConfigStore from 'app/stores/configStore';
 import GroupStore from 'app/stores/groupStore';
 import SelectedGroupStore from 'app/stores/selectedGroupStore';
 import TagStore from 'app/stores/tagStore';
-import EventsChart from 'app/views/organizationEvents/eventsChart';
 import SentryTypes from 'app/sentryTypes';
 import StreamActions from 'app/views/stream/actions';
 import StreamFilters from 'app/views/stream/filters';
@@ -97,16 +96,7 @@ const OrganizationStream = createReactClass({
 
     fetchTags(this.props.organization.slug);
     fetchOrgMembers(this.api, this.props.organization.slug).then(members => {
-      const memberList = members.reduce((acc, member) => {
-        for (const project of member.projects) {
-          if (acc[project] === undefined) {
-            acc[project] = [];
-          }
-          acc[project].push(member.user);
-        }
-        return acc;
-      }, {});
-      this.setState({memberList});
+      this.setState({memberList: indexMembersByProject(members)});
     });
 
     // Start by getting searches first so if the user is on a saved search
@@ -632,10 +622,6 @@ const OrganizationStream = createReactClass({
             isSearchDisabled={this.state.isSidebarVisible}
             savedSearchList={this.state.savedSearchList}
           />
-
-          <Panel>
-            <EventsChart query="" organization={this.props.organization} />
-          </Panel>
 
           <Panel>
             <StreamActions

@@ -33,7 +33,7 @@ const ProjectTable = ({projectMap, projectTotals, orgTotal, organization}) => {
     if (!project) return null;
 
     const projectLink = hasSentry10
-      ? `/settings/${organization.slug}/${project.slug}/`
+      ? `/settings/${organization.slug}/projects/${project.slug}/`
       : `/${organization.slug}/${project.slug}/`;
 
     return (

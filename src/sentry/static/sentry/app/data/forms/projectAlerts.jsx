@@ -1,7 +1,7 @@
 import {t, tn} from 'app/locale';
 
 // Export route to make these forms searchable by label/help
-export const route = '/settings/:orgId/:projectId/alerts/';
+export const route = '/settings/:orgId/projects/:projectId/alerts/';
 
 const formatMinutes = value => {
   value = value / 60;

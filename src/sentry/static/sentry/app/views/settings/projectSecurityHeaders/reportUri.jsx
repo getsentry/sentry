@@ -33,7 +33,7 @@ export default class ReportUri extends React.Component {
             {tct(
               "We've automatically pulled these credentials from your available [link:Client Keys]",
               {
-                link: <Link to={`/settings/${orgId}/${projectId}/keys/`} />,
+                link: <Link to={`/settings/${orgId}/projects/${projectId}/keys/`} />,
               }
             )}
           </PanelAlert>
