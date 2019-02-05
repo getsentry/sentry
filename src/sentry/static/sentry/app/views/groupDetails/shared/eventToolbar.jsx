@@ -38,6 +38,7 @@ const GroupEventToolbar = createReactClass({
   displayName: 'GroupEventToolbar',
 
   propTypes: {
+    organization: SentryTypes.Organization.isRequired,
     orgId: PropTypes.string.isRequired,
     projectId: PropTypes.string.isRequired,
     group: SentryTypes.Group.isRequired,
@@ -82,14 +83,19 @@ const GroupEventToolbar = createReactClass({
   render() {
     const evt = this.props.event;
 
-    const {orgId, projectId} = this.props;
+    const {organization, orgId, projectId} = this.props;
     const groupId = this.props.group.id;
+
+    const hasSentry10 = new Set(organization.features).has('sentry10');
+    const baseEventsPath = hasSentry10
+      ? `/organizations/${orgId}/issues/${groupId}/events/`
+      : `/${orgId}/${projectId}/issues/${groupId}/events/`;
 
     const eventNavNodes = [
       evt.previousEventID ? (
         <Link
           key="oldest"
-          to={`/${orgId}/${projectId}/issues/${groupId}/events/oldest/`}
+          to={`${baseEventsPath}oldest/`}
           className="btn btn-default"
           title={t('Oldest')}
         >
@@ -103,7 +109,7 @@ const GroupEventToolbar = createReactClass({
       evt.previousEventID ? (
         <Link
           key="prev"
-          to={`/${orgId}/${projectId}/issues/${groupId}/events/${evt.previousEventID}/`}
+          to={`${baseEventsPath}${evt.previousEventID}/`}
           className="btn btn-default"
         >
           {t('Older')}
@@ -116,7 +122,7 @@ const GroupEventToolbar = createReactClass({
       evt.nextEventID ? (
         <Link
           key="next"
-          to={`/${orgId}/${projectId}/issues/${groupId}/events/${evt.nextEventID}/`}
+          to={`${baseEventsPath}${evt.nextEventID}/`}
           className="btn btn-default"
         >
           {t('Newer')}
@@ -129,7 +135,7 @@ const GroupEventToolbar = createReactClass({
       evt.nextEventID ? (
         <Link
           key="latest"
-          to={`/${orgId}/${projectId}/issues/${groupId}/events/latest/`}
+          to={`${baseEventsPath}latest/`}
           className="btn btn-default"
           title={t('Newest')}
         >
@@ -161,10 +167,7 @@ const GroupEventToolbar = createReactClass({
         </div>
         <h4>
           {t('Event')}{' '}
-          <Link
-            to={`/${orgId}/${projectId}/issues/${groupId}/events/${evt.id}/`}
-            className="event-id"
-          >
+          <Link to={`${baseEventsPath}${evt.id}/`} className="event-id">
             {evt.eventID}
           </Link>
         </h4>

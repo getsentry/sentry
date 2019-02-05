@@ -98,6 +98,7 @@ class GroupEventDetails extends React.Component {
           <div className="primary">
             {evt && (
               <GroupEventToolbar
+                organization={organization}
                 group={group}
                 event={evt}
                 orgId={organization.slug}
