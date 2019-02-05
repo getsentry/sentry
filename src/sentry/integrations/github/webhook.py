@@ -73,10 +73,15 @@ class Webhook(object):
                 external_id=six.text_type(event['repository']['id']),
             )
             for repo in repos:
-                # We need to track GitHub's "full_name" which is the repository slug.
+                # We need to track GitHub's "full_name" which is the repository
+                # slug (in the form 'github_org_name/repo_name').
                 # This is needed to access the API since `external_id` isn't sufficient.
-                if repo.config.get('name') != event['repository']['full_name']:
-                    repo.config['name'] = event['repository']['full_name']
+                repo_full_name = event['repository']['full_name']
+                # update our data if repo name has changed
+                if repo.config.get('name') != repo_full_name:
+                    repo.config['name'] = repo_full_name
+                    repo.name = repo_full_name
+                    repo.url = u'https://github.com/{}'.format(repo_full_name)
                     repo.save()
 
                 self._handle(integration, event, orgs[repo.organization_id], repo)
