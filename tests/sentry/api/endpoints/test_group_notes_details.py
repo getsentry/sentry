@@ -51,3 +51,25 @@ class GroupNotesDetailsTest(APITestCase):
         assert activity.user == self.user
         assert activity.group == self.group
         assert activity.data == {'text': 'hi haters', 'external_id': '123'}
+
+    def test_put_no_external_id(self):
+        del self.activity.data['external_id']
+        self.activity.save()
+        self.login_as(user=self.user)
+
+        url = self.url
+
+        response = self.client.put(url, format='json')
+        assert response.status_code == 400, response.content
+
+        response = self.client.put(
+            url, format='json', data={
+                'text': 'hi haters',
+            }
+        )
+        assert response.status_code == 200, response.content
+
+        activity = Activity.objects.get(id=response.data['id'])
+        assert activity.user == self.user
+        assert activity.group == self.group
+        assert activity.data == {'text': 'hi haters', 'external_id': None}
