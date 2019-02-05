@@ -223,7 +223,7 @@ class ClientAuthHelper(AbstractAuthHelper):
         if not auth.client:
             auth.client = request.META.get('HTTP_USER_AGENT')
             if isinstance(auth.client, bytes):
-                auth.client = auth.client.decode('latin1', 'replace')
+                auth.client = auth.client.decode('latin1')
         return auth
 
     @classmethod
