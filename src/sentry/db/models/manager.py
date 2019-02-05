@@ -14,6 +14,7 @@ import threading
 import weakref
 
 from django.conf import settings
+from django.core.exceptions import ObjectDoesNotExist
 from django.db import router
 from django.db.models import Model
 from django.db.models.manager import Manager, QuerySet
@@ -23,6 +24,7 @@ from django.utils.encoding import smart_text
 from sentry import nodestore
 from sentry.utils.cache import cache
 from sentry.utils.hashlib import md5_text
+from sentry.utils.validators import is_event_id
 
 from .query import create_or_update
 
@@ -289,23 +291,6 @@ class BaseManager(Manager):
     def create_or_update(self, **kwargs):
         return create_or_update(self.model, **kwargs)
 
-    def bind_nodes(self, object_list, *node_names):
-        object_node_list = []
-        for name in node_names:
-            object_node_list.extend(
-                ((i, getattr(i, name)) for i in object_list if getattr(i, name).id)
-            )
-
-        node_ids = [n.id for _, n in object_node_list]
-        if not node_ids:
-            return
-
-        node_results = nodestore.get_multi(node_ids)
-
-        for item, node in object_node_list:
-            data = node_results.get(node.id) or {}
-            node.bind_data(data, ref=node.get_ref(item))
-
     def uncache_object(self, instance_id):
         pk_name = self.model._meta.pk.name
         cache_key = self.__get_lookup_cache_key(**{pk_name: instance_id})
@@ -329,3 +314,64 @@ class BaseManager(Manager):
         if hasattr(self, '_hints'):
             return self._queryset_class(self.model, using=self._db, hints=self._hints)
         return self._queryset_class(self.model, using=self._db)
+
+
+class EventManager(BaseManager):
+
+    def bind_nodes(self, object_list, *node_names):
+        object_node_list = []
+        for name in node_names:
+            object_node_list.extend(
+                ((i, getattr(i, name)) for i in object_list if getattr(i, name).id)
+            )
+
+        node_ids = [n.id for _, n in object_node_list]
+        if not node_ids:
+            return
+
+        node_results = nodestore.get_multi(node_ids)
+
+        for item, node in object_node_list:
+            data = node_results.get(node.id) or {}
+            node.bind_data(data, ref=node.get_ref(item))
+
+    def from_event_id(self, id_or_event_id, project_id):
+        """
+        Get an Event by either its id primary key or its hex event_id.
+
+        Will automatically try to infer the type of id, and grab the correct
+        event.  If the provided id is a hex event_id, the project_id must also
+        be provided to disambiguate it.
+
+        Returns None if the event cannot be found under either scheme.
+        """
+        # TODO (alexh) instrument this to report any times we are still trying
+        # to get events by id.
+        # TODO (alexh) deprecate lookup by id so we can move to snuba.
+
+        event = None
+        if id_or_event_id.isdigit():
+            # If its a numeric string, check if it's an event Primary Key first
+            try:
+                if project_id is None:
+                    event = self.get(
+                        id=id_or_event_id,
+                    )
+                else:
+                    event = self.get(
+                        id=id_or_event_id,
+                        project_id=project_id,
+                    )
+            except ObjectDoesNotExist:
+                pass
+        # If it was not found as a PK, and its a possible event_id, search by that instead.
+        if project_id is not None and event is None and is_event_id(id_or_event_id):
+            try:
+                event = self.get(
+                    event_id=id_or_event_id,
+                    project_id=project_id,
+                )
+            except ObjectDoesNotExist:
+                pass
+
+        return event

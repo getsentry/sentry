@@ -44,7 +44,7 @@ class EventAttachmentDetailsEndpoint(ProjectEndpoint):
                             project.organization, actor=request.user):
             return self.respond(status=404)
 
-        event = Event.get_event(event_id, project.id)
+        event = Event.objects.from_event_id(event_id, project.id)
         if event is None:
             return self.respond({'detail': 'Event not found'}, status=404)
 

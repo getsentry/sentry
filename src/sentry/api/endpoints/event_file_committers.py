@@ -21,7 +21,7 @@ class EventFileCommittersEndpoint(ProjectEndpoint):
                                  retrieve (as reported by the raven client).
         :auth: required
         """
-        event = Event.get_event(event_id, project.id)
+        event = Event.objects.from_event_id(event_id, project.id)
         if event is None:
             return Response({'detail': 'Event not found'}, status=404)
 

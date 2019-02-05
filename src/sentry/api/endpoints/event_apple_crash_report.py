@@ -30,7 +30,7 @@ class EventAppleCrashReportEndpoint(Endpoint):
         and not the event ID that is reported by the client upon submission.
         This works only if the event.platform == cocoa
         """
-        event = Event.get_event(event_id)
+        event = Event.objects.from_event_id(event_id, None)
         if event is None:
             raise ResourceDoesNotExist
 
