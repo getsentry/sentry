@@ -116,9 +116,15 @@ const ProjectInstallPlatform = createReactClass({
       return <NotFound />;
     }
 
-    const issueStreamLink = new Set(organization.features).has('sentry10')
+    const hasSentry10 = new Set(organization.features).has('sentry10');
+
+    const issueStreamLink = hasSentry10
       ? `/organizations/${orgId}/issues/#welcome`
       : `/${orgId}/${projectId}/#welcome`;
+
+    const gettingStartedLink = hasSentry10
+      ? `/organizations/${orgId}/projects/${projectId}/getting-started/`
+      : `/${orgId}/${projectId}/getting-started/`;
 
     return (
       <Panel>
@@ -126,7 +132,7 @@ const ProjectInstallPlatform = createReactClass({
           {t('Configure %(integration)s', {integration: integration.name})}
           <Flex>
             <Box ml={1}>
-              <Button size="small" href={`/${orgId}/${projectId}/getting-started/`}>
+              <Button size="small" href={gettingStartedLink}>
                 {t('< Back')}
               </Button>
             </Box>
