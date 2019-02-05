@@ -32,7 +32,7 @@ describe('ProcessingIssueHint', function() {
       const button = wrapper.find('Link');
       expect(button.length).toBe(1);
       expect(button.props().to).toEqual(
-        `/settings/${orgId}/${projectId}/processing-issues/`
+        `/settings/${orgId}/projects/${projectId}/processing-issues/`
       );
     });
 
@@ -83,7 +83,7 @@ describe('ProcessingIssueHint', function() {
       const button = wrapper.find('Link');
       expect(button.length).toBe(1);
       expect(button.props().to).toEqual(
-        `/settings/${orgId}/${projectId}/processing-issues/`
+        `/settings/${orgId}/projects/${projectId}/processing-issues/`
       );
     });
 

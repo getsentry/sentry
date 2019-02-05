@@ -1,7 +1,7 @@
 // Export route to make these forms searchable by label/help
 import {t} from 'app/locale';
 
-export const route = '/settings/:orgId/:projectId/csp/';
+export const route = '/settings/:orgId/projects/:projectId/csp/';
 
 const formGroups = [
   {

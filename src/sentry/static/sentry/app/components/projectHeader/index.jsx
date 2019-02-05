@@ -82,7 +82,9 @@ class ProjectHeader extends React.Component {
                 </ProjectLink>
               </li>
               <li className={navSection == 'settings' ? 'active' : ''}>
-                <Link to={`/settings/${org.slug}/${project.slug}/`}>{t('Settings')}</Link>
+                <Link to={`/settings/${org.slug}/projects/${project.slug}/`}>
+                  {t('Settings')}
+                </Link>
               </li>
             </NavTabs>
           </div>
@@ -119,7 +121,7 @@ class ProjectHeader extends React.Component {
                   <MenuItem divider={true} />
                   <div style={{textAlign: 'center', padding: '5px 0px'}}>
                     <Button
-                      to={`/settings/${org.slug}/${project.slug}/environments/`}
+                      to={`/settings/${org.slug}/projects/${project.slug}/environments/`}
                       size="small"
                     >
                       {t('Manage environments')}

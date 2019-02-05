@@ -39,7 +39,7 @@ const ServiceHookRow = createReactClass({
     return (
       <Field
         label={
-          <Link to={`/settings/${orgId}/${projectId}/hooks/${hook.id}/`}>
+          <Link to={`/settings/${orgId}/projects/${projectId}/hooks/${hook.id}/`}>
             <Truncate value={hook.url} />
           </Link>
         }
@@ -158,7 +158,7 @@ export default class ProjectServiceHooks extends AsyncView {
             access.has('project:write') ? (
               <Button
                 data-test-id="new-service-hook"
-                to={`/settings/${orgId}/${projectId}/hooks/new/`}
+                to={`/settings/${orgId}/projects/${projectId}/hooks/new/`}
                 size="small"
                 priority="primary"
               >

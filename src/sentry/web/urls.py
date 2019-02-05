@@ -492,6 +492,10 @@ urlpatterns += patterns(
     # Settings - Projects
     url(
         r'^(?P<organization_slug>[\w_-]+)/(?P<project_slug>[\w_-]+)/settings/$',
+        RedirectView.as_view(pattern_name="sentry-manage-project", permanent=False),
+    ),
+    url(
+        r'^settings/(?P<organization_slug>[\w_-]+)/projects/(?P<project_slug>[\w_-]+)/$',
         react_page_view,
         name='sentry-manage-project'
     ),

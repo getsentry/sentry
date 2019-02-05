@@ -26,8 +26,10 @@ class ProjectServiceHooksTest(AcceptanceTestCase):
         )
 
         self.login_as(self.user)
-        self.list_hooks_path = u'/settings/{}/{}/hooks/'.format(self.org.slug, self.project.slug)
-        self.new_hook_path = u'/settings/{}/{}/hooks/new/'.format(self.org.slug, self.project.slug)
+        self.list_hooks_path = u'/settings/{}/projects/{}/hooks/'.format(
+            self.org.slug, self.project.slug)
+        self.new_hook_path = u'/settings/{}/projects/{}/hooks/new/'.format(
+            self.org.slug, self.project.slug)
 
     def test_simple(self):
         with self.feature('projects:servicehooks'):
@@ -64,6 +66,7 @@ class ProjectServiceHooksTest(AcceptanceTestCase):
             self.browser.wait_until_not('.loading-indicator')
             assert self.browser.current_url == u'{}{}'.format(
                 self.browser.live_server_url,
-                u'/settings/{}/{}/hooks/{}/'.format(self.org.slug, self.project.slug, hook.guid),
+                u'/settings/{}/projects/{}/hooks/{}/'.format(
+                    self.org.slug, self.project.slug, hook.guid),
             )
             self.browser.snapshot('project settings - service hooks - details')
