@@ -222,6 +222,8 @@ class ClientAuthHelper(AbstractAuthHelper):
         # default client to user agent
         if not auth.client:
             auth.client = request.META.get('HTTP_USER_AGENT')
+            if isinstance(auth.client, bytes):
+                auth.client = auth.client.decode('latin1')
         return auth
 
     @classmethod
