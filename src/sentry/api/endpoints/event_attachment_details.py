@@ -40,15 +40,12 @@ class EventAttachmentDetailsEndpoint(ProjectEndpoint):
         :pparam string attachment_id: the id of the attachment.
         :auth: required
         """
-        if not features.has('organizations:event-attachments', project.organization, actor=request.user):
+        if not features.has('organizations:event-attachments',
+                            project.organization, actor=request.user):
             return self.respond(status=404)
 
-        try:
-            event = Event.objects.get(
-                id=event_id,
-                project_id=project.id,
-            )
-        except Event.DoesNotExist:
+        event = Event.objects.from_event_id(event_id, project.id)
+        if event is None:
             return self.respond({'detail': 'Event not found'}, status=404)
 
         try:
