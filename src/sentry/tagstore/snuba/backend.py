@@ -689,6 +689,11 @@ class SnubaTagStorage(TagStorage):
         # instead.
         raise NotImplementedError
 
+    def delete_tag_key(self, project_id, key):
+        from sentry import eventstream
+        eventstream_state = eventstream.start_delete_tag(project_id, key)
+        eventstream.end_delete_tag(eventstream_state)
+
 
 class SnubaCompatibilityTagStorage(SnubaTagStorage):
     """
@@ -699,7 +704,7 @@ class SnubaCompatibilityTagStorage(SnubaTagStorage):
     This is necessary since writes to Snuba occur via the event stream and an
     external writer process, instead of through this service backend. However,
     we need still to "implement" these methods (so that at least they do not
-    raise a ``NotImplementedError``, as well as providing compatibile return
+    raise a ``NotImplementedError``, as well as providing compatible return
     types when required by the call site) so that other backends that *do*
     require these methods in the application to be available can still be used.
 

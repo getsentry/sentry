@@ -64,6 +64,12 @@ EVENT_PROTOCOL_VERSION = 2
 #       'hashes': [hash2, hash2]
 #       'datetime': timestamp,
 #   })
+#   Delete Tag: (2, '(start_delete_tag|end_delete_tag)', {
+#       'transaction_id': uuid,
+#       'project_id': id,
+#       'tag': 'foo',
+#       'datetime': timestamp,
+#   })
 
 
 class KafkaEventStream(EventStream):
@@ -239,6 +245,36 @@ class KafkaEventStream(EventStream):
         self._send(
             state['project_id'],
             'end_unmerge',
+            extra_data=(state,),
+            asynchronous=False
+        )
+
+    def start_delete_tag(self, project_id, tag):
+        if not tag:
+            return
+
+        state = {
+            'transaction_id': uuid4().hex,
+            'project_id': project_id,
+            'tag': tag,
+            'datetime': datetime.now(tz=pytz.utc),
+        }
+
+        self._send(
+            project_id,
+            'start_delete_tag',
+            extra_data=(state,),
+            asynchronous=False
+        )
+
+        return state
+
+    def end_delete_tag(self, state):
+        state = state.copy()
+        state['datetime'] = datetime.now(tz=pytz.utc)
+        self._send(
+            state['project_id'],
+            'end_delete_tag',
             extra_data=(state,),
             asynchronous=False
         )

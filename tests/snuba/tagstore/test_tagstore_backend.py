@@ -3,6 +3,7 @@ from __future__ import absolute_import
 import calendar
 from datetime import timedelta
 import json
+from mock import patch, Mock
 import pytest
 import requests
 import six
@@ -508,5 +509,16 @@ class TagStorageTest(SnubaTestCase):
             'first_seen': self.now - timedelta(seconds=2),
             'last_seen': self.now - timedelta(seconds=1),
             'times_seen': 2,
-        }
-        }
+        }}
+
+    @patch('sentry.eventstream')
+    def test_delete_tag(self, mock_eventstream):
+        eventstream_state = object()
+        mock_eventstream.start_delete_tag = Mock(return_value=eventstream_state)
+
+        self.ts.delete_tag_key(self.proj1.id, 'foo')
+
+        mock_eventstream.start_delete_tag.assert_called_once_with(
+            self.proj1.id, 'foo'
+        )
+        mock_eventstream.end_delete_tag.assert_called_once_with(eventstream_state)
