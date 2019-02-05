@@ -38,6 +38,10 @@ class GlobalSelectionHeader extends React.Component {
      * List of projects to display in project selector
      */
     projects: PropTypes.arrayOf(SentryTypes.Project),
+    /**
+     * If a forced project is passed, selection is disabled
+     */
+    forcedProject: SentryTypes.Project,
 
     /**
      * Currently selected values(s)
@@ -288,24 +292,33 @@ class GlobalSelectionHeader extends React.Component {
   render() {
     const {
       className,
+      forcedProject,
       organization,
       showAbsolute,
       showRelative,
       showEnvironmentSelector,
     } = this.props;
     const {period, start, end, utc} = this.props.selection.datetime || {};
-
     return (
       <Header className={className}>
         <HeaderItemPosition>
-          <MultipleProjectSelector
-            organization={organization}
-            projects={this.getProjects()}
-            value={this.state.projects || this.props.selection.projects}
-            onChange={this.handleChangeProjects}
-            onUpdate={this.handleUpdateProjects}
-            multi={this.hasMultipleProjectSelection()}
-          />
+          {forcedProject ? (
+            <MultipleProjectSelector
+              organization={organization}
+              projects={[forcedProject]}
+              value={[parseInt(forcedProject.id)]}
+              multi={true}
+            />
+          ) : (
+            <MultipleProjectSelector
+              organization={organization}
+              projects={this.getProjects()}
+              value={this.state.projects || this.props.selection.projects}
+              onChange={this.handleChangeProjects}
+              onUpdate={this.handleUpdateProjects}
+              multi={this.hasMultipleProjectSelection()}
+            />
+          )}
         </HeaderItemPosition>
 
         {showEnvironmentSelector && (

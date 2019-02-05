@@ -14,6 +14,8 @@ import LoadingIndicator from 'app/components/loadingIndicator';
 import SentryTypes from 'app/sentryTypes';
 import {t} from 'app/locale';
 import ProjectsStore from 'app/stores/projectsStore';
+import GlobalSelectionHeader from 'app/components/organizations/globalSelectionHeader';
+import {PageContent} from 'app/styles/organization';
 
 import GroupHeader from '../shared/header';
 import {ERROR_TYPES} from '../shared/constants';
@@ -210,15 +212,23 @@ const GroupDetails = createReactClass({
     } else if (this.state.loading || !group) return <LoadingIndicator />;
 
     return (
-      <DocumentTitle title={this.getTitle()}>
-        <div className={this.props.className}>
-          <GroupHeader params={params} project={project} group={group} />
-          {React.cloneElement(this.props.children, {
-            group,
-            project,
-          })}
-        </div>
-      </DocumentTitle>
+      <React.Fragment>
+        <GlobalSelectionHeader
+          organization={this.props.organization}
+          forcedProject={project}
+        />
+        <PageContent>
+          <DocumentTitle title={this.getTitle()}>
+            <div className={this.props.className}>
+              <GroupHeader params={params} project={project} group={group} />
+              {React.cloneElement(this.props.children, {
+                group,
+                project,
+              })}
+            </div>
+          </DocumentTitle>
+        </PageContent>
+      </React.Fragment>
     );
   },
 });
