@@ -82,8 +82,13 @@ const Configure = createReactClass({
 
   redirectUrl() {
     const {orgId, projectId} = this.props.params;
+    const {organization} = this.context;
 
-    const url = `/${orgId}/${projectId}/#welcome`;
+    const hasSentry10 = new Set(organization.features).has('sentry10');
+
+    const url = hasSentry10
+      ? `/organizations/${orgId}/issues/#welcome`
+      : `/${orgId}/${projectId}/#welcome`;
     browserHistory.push(url);
   },
 
