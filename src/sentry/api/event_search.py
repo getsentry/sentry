@@ -2,7 +2,6 @@ from __future__ import absolute_import
 
 import re
 import six
-from itertools import chain, imap
 
 from collections import namedtuple
 from django.utils.functional import cached_property
@@ -163,10 +162,18 @@ class SearchVisitor(NodeVisitor):
     def visit_search(self, node, children):
         # there is a list from search_term and one from raw_search, so flatten them.
         # Flatten each group in the list, since nodes can return multiple items
-        def _flatten(x):
-            if isinstance(x, list):
-                return list(chain.from_iterable(imap(_flatten, x)))
-            return [x]
+        #
+        # XXX(mitsuhiko): I do not comprehend why this is not just
+        # _flatten(children) but when I do that nothing works.  I only
+        # inherited this code.
+        def _flatten(seq):
+            for item in seq:
+                if isinstance(item, list):
+                    for sub in _flatten(item):
+                        yield sub
+                else:
+                    yield item
+        children = [child for group in children for child in _flatten(group)]
         return filter(None, _flatten(children))
 
     def visit_search_term(self, node, children):
