@@ -66,7 +66,7 @@ class OrganizationTeams extends React.Component {
     const otherTeams = allTeams.filter(team => !activeTeamIds.has(team.id));
 
     return (
-      <div className="team-list">
+      <div data-test-id="team-list" className="team-list">
         <SettingsPageHeader title={t('Teams')} action={action} />
         <Panel>
           <PanelHeader>{t('Your Teams')}</PanelHeader>
