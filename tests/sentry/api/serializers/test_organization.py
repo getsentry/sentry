@@ -14,4 +14,15 @@ class OrganizationSerializerTest(TestCase):
         organization = self.create_organization(owner=user)
 
         result = serialize(organization, user)
+
         assert result['id'] == six.text_type(organization.id)
+        assert result['features'] == set([
+            'new-teams',
+            'shared-issues',
+            'repos',
+            'open-membership',
+            'invite-members',
+            'sso-saml2',
+            'sso-basic',
+            'suggested-commits'
+        ])
