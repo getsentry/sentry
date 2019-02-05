@@ -29,8 +29,15 @@ class ProjectGroupDetails extends React.Component {
 
   render() {
     // eslint-disable-next-line no-unused-vars
-    const {setProjectNavSection, ...props} = this.props;
-    return <GroupDetails project={this.context.project} {...props} />;
+    const {setProjectNavSection, environment, ...props} = this.props;
+
+    return (
+      <GroupDetails
+        project={this.context.project}
+        environments={environment ? [environment.name] : []}
+        {...props}
+      />
+    );
   }
 }
 
