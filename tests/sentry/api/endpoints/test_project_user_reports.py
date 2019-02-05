@@ -211,7 +211,7 @@ class CreateProjectUserReportTest(APITestCase):
         self.login_as(user=self.user)
         project = self.create_project()
         environment = self.make_environment(project)
-        event = self.create_event(
+        event = self.store_event(
             data={
                 'environment': environment.name
             },
