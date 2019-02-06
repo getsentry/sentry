@@ -215,7 +215,7 @@ const GroupDetails = createReactClass({
       <React.Fragment>
         <GlobalSelectionHeader
           organization={this.props.organization}
-          forcedProject={project}
+          forceProject={project}
         />
         <PageContent>
           <DocumentTitle title={this.getTitle()}>

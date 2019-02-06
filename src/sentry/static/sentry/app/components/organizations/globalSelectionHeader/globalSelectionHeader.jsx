@@ -28,6 +28,7 @@ import MultipleProjectSelector from 'app/components/organizations/multipleProjec
 import SentryTypes from 'app/sentryTypes';
 import TimeRangeSelector from 'app/components/organizations/timeRangeSelector';
 import withGlobalSelection from 'app/utils/withGlobalSelection';
+import {t} from 'app/locale';
 
 import {getStateFromQuery} from './utils';
 
@@ -43,7 +44,7 @@ class GlobalSelectionHeader extends React.Component {
     /**
      * If a forced project is passed, selection is disabled
      */
-    forcedProject: SentryTypes.Project,
+    forceProject: SentryTypes.Project,
 
     /**
      * Currently selected values(s)
@@ -296,7 +297,7 @@ class GlobalSelectionHeader extends React.Component {
       <BackToIssues
         to={`/organizations/${this.props.organization.slug}/issues/${window.location
           .search}`}
-        title="back to issues list"
+        title={t('back to issues list')}
       >
         <InlineSvg src="icon-arrow-left" />
       </BackToIssues>
@@ -306,7 +307,7 @@ class GlobalSelectionHeader extends React.Component {
   render() {
     const {
       className,
-      forcedProject,
+      forceProject,
       organization,
       showAbsolute,
       showRelative,
@@ -316,11 +317,11 @@ class GlobalSelectionHeader extends React.Component {
     return (
       <Header className={className}>
         <HeaderItemPosition>
-          {forcedProject && this.getBackButton()}
+          {forceProject && this.getBackButton()}
 
           <MultipleProjectSelector
             organization={organization}
-            forcedProject={forcedProject}
+            forceProject={forceProject}
             projects={this.getProjects()}
             value={this.state.projects || this.props.selection.projects}
             onChange={this.handleChangeProjects}

@@ -21,7 +21,7 @@ export default class MultipleProjectSelector extends React.PureComponent {
     onChange: PropTypes.func,
     onUpdate: PropTypes.func,
     multi: PropTypes.bool,
-    forcedProject: PropTypes.bool,
+    forceProject: PropTypes.bool,
   };
 
   static defaultProps = {
@@ -94,20 +94,20 @@ export default class MultipleProjectSelector extends React.PureComponent {
   };
 
   render() {
-    const {value, projects, multi, forcedProject} = this.props;
+    const {value, projects, multi, forceProject} = this.props;
     const selectedProjectIds = new Set(value);
 
     const selected = projects.filter(project =>
       selectedProjectIds.has(parseInt(project.id, 10))
     );
 
-    return forcedProject ? (
+    return forceProject ? (
       <StyledHeaderItem
         icon={<StyledInlineSvg src="icon-project" />}
         locked={true}
-        lockedMessage={`This issue is unique to the ${forcedProject.name} project`}
+        lockedMessage={t(`This issue is unique to the ${forceProject.name} project`)}
       >
-        {forcedProject.name}
+        {forceProject.name}
       </StyledHeaderItem>
     ) : (
       <StyledProjectSelector
