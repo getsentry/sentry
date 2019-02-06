@@ -749,11 +749,13 @@ class Fixtures(object):
             user=(user or self.create_user()),
         )
 
-    def create_service_hook(self, actor=None, project=None, events=None, url=None, **kwargs):
+    def create_service_hook(self, actor=None, org=None, project=None,
+                            events=None, url=None, **kwargs):
         if not actor:
             actor = self.create_user()
-        if not project:
+        if not org:
             org = self.create_organization(owner=actor)
+        if not project:
             project = self.create_project(organization=org)
         if not events:
             events = ('event.created',)
@@ -762,7 +764,8 @@ class Fixtures(object):
 
         _kwargs = {
             'actor': actor,
-            'project': project,
+            'projects': [project],
+            'organization': org,
             'events': events,
             'url': url,
         }

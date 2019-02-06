@@ -8,7 +8,8 @@ class TestUpdater(TestCase):
     def setUp(self):
         self.sentry_app = self.create_sentry_app()
         self.service_hook = self.create_service_hook(
-            application=self.sentry_app.application
+            application=self.sentry_app.application,
+
         )
 
         self.updater = Updater(service_hook=self.service_hook)

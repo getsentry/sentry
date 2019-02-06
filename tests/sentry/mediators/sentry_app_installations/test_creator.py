@@ -3,7 +3,7 @@ from __future__ import absolute_import
 from mock import patch
 
 from sentry.mediators.sentry_app_installations import Creator
-from sentry.models import ApiAuthorization, ApiGrant, ServiceHook
+from sentry.models import ApiAuthorization, ApiGrant, ServiceHook, ServiceHookProject
 from sentry.testutils import TestCase
 
 
@@ -48,19 +48,23 @@ class TestCreator(TestCase):
     def test_creates_service_hooks(self):
         install = self.creator.call()
 
-        hook = ServiceHook.objects.get(project_id=self.project1.id)
+        hook = ServiceHook.objects.get(organization_id=self.org.id)
 
         assert hook.application_id == self.sentry_app.application.id
         assert hook.actor_id == install.id
-        assert hook.project_id == self.project1.id
+        assert hook.organization_id == self.org.id
+        assert hook.project_id == self.project2.id
         assert hook.events == self.sentry_app.events
         assert hook.url == self.sentry_app.webhook_url
 
-    def test_creates_service_hooks_for_all_projects(self):
+    def test_creates_service_hooks_project_record_for_all_projects(self):
         self.creator.call()
+        hook = ServiceHook.objects.get(organization_id=self.org.id)
 
-        assert ServiceHook.objects.get(project_id=self.project1.id).events == self.sentry_app.events
-        assert ServiceHook.objects.get(project_id=self.project2.id).events == self.sentry_app.events
+        assert len(ServiceHookProject.objects.filter(
+            service_hook_id=hook.id,
+            project_id__in=[self.project1.id, self.project2.id],
+        )) == 2
 
     @patch('sentry.tasks.sentry_apps.installation_webhook.delay')
     def test_notifies_service(self, installation_webhook):
