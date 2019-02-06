@@ -206,7 +206,7 @@ matrix:
       before_script:
         - psql -c 'create database sentry;' -U postgres
 
-    # snuba in testing - allowed to fail
+    # snuba in testing
     - python: 2.7
       env: TEST_SUITE=snuba SENTRY_TAGSTORE=sentry.tagstore.snuba.SnubaTagStorage SENTRY_ZOOKEEPER_HOSTS=localhost:2181 SENTRY_KAFKA_HOSTS=localhost:9092
       services:
@@ -251,11 +251,6 @@ matrix:
   allow_failures:
     - language: node_js
       env: STORYBOOK_BUILD=1
-
-    - language: python
-      env:
-        - TEST_SUITE=postgres DB=postgres
-        - SENTRY_USE_RUST_NORMALIZER=true
 
 notifications:
   webhooks:

@@ -5,12 +5,11 @@ from __future__ import absolute_import
 from datetime import datetime, timedelta
 
 import pytest
-import pytz
 from django.conf import settings
 
 from sentry import tagstore
 from sentry.models import (
-    Environment, Event, GroupAssignee, GroupBookmark, GroupEnvironment, GroupStatus,
+    Environment, Event, Group, GroupAssignee, GroupBookmark, GroupEnvironment, GroupStatus,
     GroupSubscription, Release, ReleaseEnvironment, ReleaseProjectEnvironment
 )
 from sentry.search.base import ANY
@@ -25,56 +24,67 @@ class DjangoSearchBackendTest(TestCase):
 
     def setUp(self):
         self.backend = self.create_backend()
+        now = datetime.now()
 
-        self.group1 = self.create_group(
-            project=self.project,
-            checksum='a' * 32,
-            message='foo',
-            times_seen=5,
-            status=GroupStatus.UNRESOLVED,
-            last_seen=datetime(2013, 8, 13, 3, 8, 24, 880386, tzinfo=pytz.utc),
-            first_seen=datetime(2013, 7, 13, 3, 8, 24, 880386, tzinfo=pytz.utc),
-        )
-
-        self.event1 = self.create_event(
-            event_id='a' * 32,
-            group=self.group1,
-            datetime=datetime(2013, 7, 13, 3, 8, 24, 880386, tzinfo=pytz.utc),
-            tags={
-                'server': 'example.com',
+        self.event1 = self.store_event(
+            data={
+                'fingerprint': ['put-me-in-group1'],
+                'event_id': 'a' * 32,
+                'message': 'foo',
                 'environment': 'production',
-            }
+                'tags': {
+                    'server': 'example.com',
+                },
+                'timestamp': (now - timedelta(days=10)).isoformat()[:19]
+            },
+            project_id=self.project.id
         )
-        self.event3 = self.create_event(
-            event_id='c' * 32,
-            group=self.group1,
-            datetime=datetime(2013, 8, 13, 3, 8, 24, 880386, tzinfo=pytz.utc),
-            tags={
-                'server': 'example.com',
+
+        self.event3 = self.store_event(
+            data={
+                'fingerprint': ['put-me-in-group1'],
+                'event_id': 'c' * 32,
+                'message': 'foo',
                 'environment': 'production',
-            }
+                'tags': {
+                    'server': 'example.com',
+                },
+                'timestamp': (now - timedelta(days=2)).isoformat()[:19]
+            },
+            project_id=self.project.id
         )
 
-        self.group2 = self.create_group(
-            project=self.project,
-            checksum='b' * 32,
-            message='bar',
-            times_seen=10,
-            status=GroupStatus.RESOLVED,
-            last_seen=datetime(2013, 7, 14, 3, 8, 24, 880386, tzinfo=pytz.utc),
-            first_seen=datetime(2013, 7, 14, 3, 8, 24, 880386, tzinfo=pytz.utc),
-        )
+        self.group1 = Group.objects.get(id=self.event3.group.id)
+        assert self.event1.group.id == self.group1.id
 
-        self.event2 = self.create_event(
-            event_id='b' * 32,
-            group=self.group2,
-            datetime=datetime(2013, 7, 14, 3, 8, 24, 880386, tzinfo=pytz.utc),
-            tags={
-                'server': 'example.com',
+        assert self.group1.first_seen == self.event1.datetime
+        assert self.group1.last_seen == self.event3.datetime
+
+        self.group1.status = GroupStatus.UNRESOLVED
+        self.group1.times_seen = 5
+        self.group1.save()
+
+        self.event2 = self.store_event(
+            data={
+                'fingerprint': ['put-me-in-group2'],
+                'event_id': 'b' * 32,
+                'message': 'bar',
                 'environment': 'staging',
-                'url': 'http://example.com',
-            }
+                'tags': {
+                    'server': 'example.com',
+                    'url': 'http://example.com',
+                },
+                'timestamp': (now - timedelta(days=9)).isoformat()[:19]
+            },
+            project_id=self.project.id
         )
+
+        self.group2 = Group.objects.get(id=self.event2.group.id)
+        assert self.group2.first_seen == self.event2.datetime
+        assert self.group2.last_seen == self.event2.datetime
+        self.group2.status = GroupStatus.RESOLVED
+        self.group2.times_seen = 10
+        self.group2.save()
 
         self.environments = {}
 
@@ -108,14 +118,14 @@ class DjangoSearchBackendTest(TestCase):
         )
 
     def _setup_tags_for_event(self, event):
-        tags = dict(event.data['tags'])
+        tags = dict(event.data.get('tags') or ())
 
         try:
-            environment = self.environments[tags['environment']]
+            environment = self.environments[event.data['environment']]
         except KeyError:
-            environment = self.environments[tags['environment']] = Environment.get_or_create(
+            environment = self.environments[event.data['environment']] = Environment.get_or_create(
                 event.project,
-                tags['environment'],
+                event.data['environment'],
             )
 
         GroupEnvironment.objects.get_or_create(
@@ -206,10 +216,17 @@ class DjangoSearchBackendTest(TestCase):
                 self.group1.first_seen + timedelta(days=1),
                 self.group1.first_seen + timedelta(days=2),
                 self.group1.last_seen + timedelta(days=1)]:
-            event = self.create_event(
-                group=self.group2,
-                datetime=dt,
-                tags={'environment': 'production'}
+            event = self.store_event(
+                data={
+                    'fingerprint': ['put-me-in-group2'],
+                    'message': 'foo',
+                    'environment': 'production',
+                    'tags': {
+                        'server': 'example.com',
+                    },
+                    'timestamp': dt.isoformat()[:19]
+                },
+                project_id=self.project.id
             )
             self._setup_tags_for_event(event)
 
@@ -392,10 +409,14 @@ class DjangoSearchBackendTest(TestCase):
                 self.group1.first_seen + timedelta(days=1),
                 self.group1.first_seen + timedelta(days=2),
                 self.group1.last_seen + timedelta(days=1)]:
-            event = self.create_event(
-                group=self.group2,
-                datetime=dt,
-                tags={'environment': 'production'}
+            event = self.store_event(
+                data={
+                    'environment': 'production',
+                    'fingerprint': ['put-me-in-group2'],
+                    'message': 'bar',
+                    'timestamp': dt.isoformat()[:19]
+                },
+                project_id=self.project.id
             )
             self._setup_tags_for_event(event)
 
@@ -480,12 +501,17 @@ class DjangoSearchBackendTest(TestCase):
         )
         assert set(results) == set([])
 
-        event = self.create_event(
-            group=self.group1,
-            datetime=self.group1.first_seen + timedelta(days=1),
-            tags={
+        event = self.store_event(
+            data={
+                'fingerprint': ['put-me-in-group1'],
+                'message': 'foo',
                 'environment': 'development',
-            }
+                'tags': {
+                    'server': 'example.com',
+                },
+                'timestamp': (self.group1.first_seen + timedelta(days=1)).isoformat()[:19]
+            },
+            project_id=self.project.id
         )
 
         self._setup_tags_for_event(event)
@@ -555,12 +581,17 @@ class DjangoSearchBackendTest(TestCase):
         )
         assert set(results) == set([])
 
-        event = self.create_event(
-            group=self.group1,
-            datetime=self.group1.last_seen + timedelta(days=1),
-            tags={
+        event = self.store_event(
+            data={
+                'fingerprint': ['put-me-in-group1'],
+                'message': 'foo',
                 'environment': 'development',
-            }
+                'tags': {
+                    'server': 'example.com',
+                },
+                'timestamp': (self.group1.last_seen + timedelta(days=1)).isoformat()[:19]
+            },
+            project_id=self.project.id
         )
 
         self._setup_tags_for_event(event)

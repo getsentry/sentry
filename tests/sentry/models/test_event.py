@@ -88,13 +88,15 @@ class EventTest(TestCase):
             '$shortID - ${tag:environment}@${tag:release} $$ $title ${tag:invalid} $invalid'
         )
 
-        event1 = self.create_event(
-            event_id='a' * 32,
-            group=self.group,
-            tags={'level': 'info',
-                  'environment': 'production',
-                  'sentry:release': '0'},
-            message='baz',
+        event1 = self.store_event(
+            data={
+                'event_id': 'a' * 32,
+                'environment': 'production',
+                'level': 'info',
+                'release': '0',
+                'message': 'baz',
+            },
+            project_id=self.project.id
         )
 
         assert event1.get_email_subject() == 'BAR-1 - production@0 $ baz ${tag:invalid} $invalid'
@@ -115,13 +117,14 @@ class EventTest(TestCase):
 
     def test_get_environment(self):
         environment = Environment.get_or_create(self.project, 'production')
-        event = self.create_event(
-            data={'tags': [
-                ('environment', 'production'),
-            ]}
+        event = self.store_event(
+            data={
+                'environment': 'production'
+            },
+            project_id=self.project.id
         )
 
-        event.get_environment() == environment
+        assert event.get_environment() == environment
 
         with self.assertNumQueries(0):
             event.get_environment() == environment
