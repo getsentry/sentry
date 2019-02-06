@@ -228,8 +228,13 @@ class TimeRangeSelector extends React.PureComponent {
     const {onChange} = this.props;
     let {start, end} = this.props;
 
-    start = start || this.state.start;
-    end = end || this.state.end;
+    if (!start) {
+      start = getDateWithTimezoneInUtc(this.state.start, this.props.utc);
+    }
+
+    if (!end) {
+      end = getDateWithTimezoneInUtc(this.state.end, this.props.utc);
+    }
 
     this.setState(state => {
       const utc = !state.utc;
