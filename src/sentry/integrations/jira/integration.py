@@ -406,10 +406,10 @@ class JiraIntegration(IntegrationInstallation, IssueSyncMixin):
             )
         except ApiError as exc:
             logger.info(
-                'error-fetching-issue-config',
+                'jira.error-fetching-issue-config',
                 extra={
                     'integration_id': self.model.id,
-                    'organization': group.organization.id,
+                    'organization_id': group.organization.id,
                     'error': exc.message,
                 }
             )
