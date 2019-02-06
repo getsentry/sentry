@@ -40,7 +40,7 @@ const SeenInfo = createReactClass({
   getReleaseTrackingUrl() {
     const {orgId, projectId} = this.props;
 
-    return `/${orgId}/${projectId}/settings/release-tracking/`;
+    return `/settings/${orgId}/projects/${projectId}/release-tracking/`;
   },
 
   getTooltipTitle() {
