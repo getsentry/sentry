@@ -187,6 +187,7 @@ class ProjectSelector extends React.Component {
         noResultsMessage={t('No projects found')}
         virtualizedHeight={40}
         emptyHidesInput
+        menuProps={{showSettingsLink: true, organization: org}}
         menuFooter={renderProps => {
           const renderedFooter =
             typeof menuFooter === 'function' ? menuFooter(renderProps) : menuFooter;

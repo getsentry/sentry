@@ -7,6 +7,7 @@ import styled, {css} from 'react-emotion';
 
 import {t} from 'app/locale';
 import AutoComplete from 'app/components/autoComplete';
+import Button from 'app/components/button';
 import Input from 'app/views/settings/components/forms/controls/input';
 import space from 'app/styles/space';
 import LoadingIndicator from 'app/components/loadingIndicator';
@@ -380,7 +381,7 @@ class DropdownAutoCompleteMenu extends React.Component {
                 >
                   {itemsLoading && <LoadingIndicator mini />}
                   {showInput && (
-                    <Flex>
+                    <StyledInputWrapper>
                       <StyledInput
                         autoFocus
                         placeholder={searchPlaceholder}
@@ -389,7 +390,19 @@ class DropdownAutoCompleteMenu extends React.Component {
                       <InputLoadingWrapper>
                         {busy && <LoadingIndicator size={16} mini />}
                       </InputLoadingWrapper>
-                    </Flex>
+                      {menuProps &&
+                        menuProps.showSettingsLink && (
+                          <div>
+                            <StyledButton
+                              to={`/settings/${menuProps &&
+                                menuProps.organization.slug}/projects/`}
+                              size="xsmall"
+                            >
+                              {t('Manage')}
+                            </StyledButton>
+                          </div>
+                        )}
+                    </StyledInputWrapper>
                   )}
                   <div>
                     {menuHeader && <LabelWithPadding>{menuHeader}</LabelWithPadding>}
@@ -499,22 +512,27 @@ const AutoCompleteRoot = styled(({isOpen, ...props}) => <div {...props} />)`
 `;
 
 const InputLoadingWrapper = styled(Flex)`
+  background: #fff;
   align-items: center;
-  border-bottom: 1px solid ${p => p.theme.borderLight};
   flex-shrink: 0;
   width: 30px;
 `;
 
+const StyledInputWrapper = styled(Flex)`
+  border-bottom: 1px solid ${p => p.theme.borderLight};
+  border-radius: ${p => `${p.theme.borderRadius} ${p.theme.borderRadius} 0 0`};
+  align-items: center;
+`;
+
 const StyledInput = styled(Input)`
   flex: 1;
+  border: 1px solid transparent;
 
   &,
   &:focus,
   &:active,
   &:hover {
-    border: 1px solid transparent;
-    border-bottom: 1px solid ${p => p.theme.borderLight};
-    border-radius: ${p => `${p.theme.borderRadius} ${p.theme.borderRadius} 0 0`};
+    border: 0;
     box-shadow: none;
     font-size: 13px;
     padding: ${space(1)};
@@ -572,6 +590,22 @@ const LabelWithPadding = styled(LabelWithBorder)`
 
 const GroupLabel = styled('div')`
   padding: ${space(0.25)} ${space(1)};
+`;
+
+const StyledButton = styled(Button)`
+  display: block;
+  margin: 0 ${space(1)};
+  box-shadow: none;
+  border: 0;
+  background: ${p => p.theme.offWhite2};
+
+  &:hover,
+  &:active,
+  &:focus {
+    box-shadow: none;
+    border: 0;
+    background: ${p => p.theme.gray1};
+  }
 `;
 
 const StyledMenu = styled('div')`

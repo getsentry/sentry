@@ -65,18 +65,18 @@ exports[`DropdownAutoCompleteMenu renders with a group 1`] = `
               onMouseLeave={[Function]}
             >
               <div
-                className="css-1fwqu7l-StyledMenu-getMenuBorderRadius ejumqxq7"
+                className="css-1fwqu7l-StyledMenu-getMenuBorderRadius ejumqxq9"
                 onClick={[Function]}
                 onMouseDown={[Function]}
                 onMouseEnter={[Function]}
                 onMouseLeave={[Function]}
               >
-                <Flex>
+                <StyledInputWrapper>
                   <Base
-                    className="css-sncxrr"
+                    className="css-8ql7bl-StyledInputWrapper ejumqxq2"
                   >
                     <div
-                      className="css-sncxrr"
+                      className="css-8ql7bl-StyledInputWrapper ejumqxq2"
                       is={null}
                     >
                       <StyledInput
@@ -90,7 +90,7 @@ exports[`DropdownAutoCompleteMenu renders with a group 1`] = `
                       >
                         <input
                           autoFocus={true}
-                          className="css-o3kc4m-Input-inputStyles-StyledInput ejumqxq2"
+                          className="css-dqpq6t-Input-inputStyles-StyledInput ejumqxq3"
                           onBlur={[Function]}
                           onChange={[Function]}
                           onFocus={[Function]}
@@ -101,33 +101,33 @@ exports[`DropdownAutoCompleteMenu renders with a group 1`] = `
                       </StyledInput>
                       <InputLoadingWrapper>
                         <Base
-                          className="css-1ren11q-InputLoadingWrapper ejumqxq1"
+                          className="css-7dbbu3-InputLoadingWrapper ejumqxq1"
                         >
                           <div
-                            className="css-1ren11q-InputLoadingWrapper ejumqxq1"
+                            className="css-7dbbu3-InputLoadingWrapper ejumqxq1"
                             is={null}
                           />
                         </Base>
                       </InputLoadingWrapper>
                     </div>
                   </Base>
-                </Flex>
+                </StyledInputWrapper>
                 <div>
                   <StyledItemList
                     maxHeight={300}
                   >
                     <div
-                      className="css-5kh8cy-StyledItemList ejumqxq8"
+                      className="css-5kh8cy-StyledItemList ejumqxq10"
                     >
                       <LabelWithBorder
                         key="countries"
                       >
                         <div
-                          className="css-o8s6pc-LabelWithBorder ejumqxq4"
+                          className="css-o8s6pc-LabelWithBorder ejumqxq5"
                         >
                           <GroupLabel>
                             <div
-                              className="css-1oz0skv-GroupLabel ejumqxq6"
+                              className="css-1oz0skv-GroupLabel ejumqxq7"
                             >
                               countries
                             </div>
@@ -141,7 +141,7 @@ exports[`DropdownAutoCompleteMenu renders with a group 1`] = `
                         onClick={[Function]}
                       >
                         <div
-                          className="css-1dzvpw9-AutoCompleteItem ejumqxq3"
+                          className="css-1dzvpw9-AutoCompleteItem ejumqxq4"
                           onClick={[Function]}
                         >
                           <div>
@@ -156,7 +156,7 @@ exports[`DropdownAutoCompleteMenu renders with a group 1`] = `
                         onClick={[Function]}
                       >
                         <div
-                          className="css-1sp52yo-AutoCompleteItem ejumqxq3"
+                          className="css-1sp52yo-AutoCompleteItem ejumqxq4"
                           onClick={[Function]}
                         >
                           <div>
@@ -242,18 +242,18 @@ exports[`DropdownAutoCompleteMenu renders without a group 1`] = `
               onMouseLeave={[Function]}
             >
               <div
-                className="css-1fwqu7l-StyledMenu-getMenuBorderRadius ejumqxq7"
+                className="css-1fwqu7l-StyledMenu-getMenuBorderRadius ejumqxq9"
                 onClick={[Function]}
                 onMouseDown={[Function]}
                 onMouseEnter={[Function]}
                 onMouseLeave={[Function]}
               >
-                <Flex>
+                <StyledInputWrapper>
                   <Base
-                    className="css-sncxrr"
+                    className="css-8ql7bl-StyledInputWrapper ejumqxq2"
                   >
                     <div
-                      className="css-sncxrr"
+                      className="css-8ql7bl-StyledInputWrapper ejumqxq2"
                       is={null}
                     >
                       <StyledInput
@@ -267,7 +267,7 @@ exports[`DropdownAutoCompleteMenu renders without a group 1`] = `
                       >
                         <input
                           autoFocus={true}
-                          className="css-o3kc4m-Input-inputStyles-StyledInput ejumqxq2"
+                          className="css-dqpq6t-Input-inputStyles-StyledInput ejumqxq3"
                           onBlur={[Function]}
                           onChange={[Function]}
                           onFocus={[Function]}
@@ -278,23 +278,23 @@ exports[`DropdownAutoCompleteMenu renders without a group 1`] = `
                       </StyledInput>
                       <InputLoadingWrapper>
                         <Base
-                          className="css-1ren11q-InputLoadingWrapper ejumqxq1"
+                          className="css-7dbbu3-InputLoadingWrapper ejumqxq1"
                         >
                           <div
-                            className="css-1ren11q-InputLoadingWrapper ejumqxq1"
+                            className="css-7dbbu3-InputLoadingWrapper ejumqxq1"
                             is={null}
                           />
                         </Base>
                       </InputLoadingWrapper>
                     </div>
                   </Base>
-                </Flex>
+                </StyledInputWrapper>
                 <div>
                   <StyledItemList
                     maxHeight={300}
                   >
                     <div
-                      className="css-5kh8cy-StyledItemList ejumqxq8"
+                      className="css-5kh8cy-StyledItemList ejumqxq10"
                     >
                       <AutoCompleteItem
                         highlightedIndex={0}
@@ -303,7 +303,7 @@ exports[`DropdownAutoCompleteMenu renders without a group 1`] = `
                         onClick={[Function]}
                       >
                         <div
-                          className="css-1dzvpw9-AutoCompleteItem ejumqxq3"
+                          className="css-1dzvpw9-AutoCompleteItem ejumqxq4"
                           onClick={[Function]}
                         >
                           <div>
@@ -318,7 +318,7 @@ exports[`DropdownAutoCompleteMenu renders without a group 1`] = `
                         onClick={[Function]}
                       >
                         <div
-                          className="css-1sp52yo-AutoCompleteItem ejumqxq3"
+                          className="css-1sp52yo-AutoCompleteItem ejumqxq4"
                           onClick={[Function]}
                         >
                           <div>
@@ -333,7 +333,7 @@ exports[`DropdownAutoCompleteMenu renders without a group 1`] = `
                         onClick={[Function]}
                       >
                         <div
-                          className="css-1sp52yo-AutoCompleteItem ejumqxq3"
+                          className="css-1sp52yo-AutoCompleteItem ejumqxq4"
                           onClick={[Function]}
                         >
                           <div>
