@@ -241,6 +241,7 @@ class MailPlugin(NotificationPlugin):
                             commits[commit['id']] = commit_data
 
         context = {
+            'project_link': project.get_absolute_url(),
             'project_label': project.get_full_name(),
             'group': group,
             'event': event,
