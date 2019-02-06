@@ -26,6 +26,7 @@ const GroupDetails = createReactClass({
     project: SentryTypes.Project,
     // environment: SentryTypes.Environment,
     environments: PropTypes.arrayOf(PropTypes.string),
+    enableSnuba: PropTypes.bool,
   },
 
   childContextTypes: {
@@ -34,6 +35,12 @@ const GroupDetails = createReactClass({
   },
 
   mixins: [ApiMixin, Reflux.listenTo(GroupStore, 'onGroupChange')],
+
+  getDefaultProps() {
+    return {
+      enableSnuba: false,
+    };
+  },
 
   getInitialState() {
     return {
@@ -79,6 +86,10 @@ const GroupDetails = createReactClass({
 
     if (this.props.environments) {
       query.environment = this.props.environments;
+    }
+
+    if (this.props.enableSnuba) {
+      query.enable_snuba = '1';
     }
 
     this.api.request(this.getGroupDetailsEndpoint(), {
