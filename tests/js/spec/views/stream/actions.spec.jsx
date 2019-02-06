@@ -197,12 +197,13 @@ describe('StreamActions', function() {
 
     it('should disable resolve picker', function() {
       const resolve = wrapper.find('ResolveActions').first();
-      expect(resolve.props().disabled).toBeTruthy();
+      expect(resolve.props().disabled).toBe(true);
+      expect(resolve.props().disableDropdown).toBe(true);
     });
 
     it('should disable merge button', function() {
       const merge = wrapper.find('ActionLink[className~="action-merge"]').first();
-      expect(merge.props().disabled).toBeTruthy();
+      expect(merge.props().disabled).toBe(true);
     });
   });
 });

@@ -20,6 +20,7 @@ export default class ResolveActions extends React.Component {
     shouldConfirm: PropTypes.bool,
     confirmMessage: PropTypes.node,
     disabled: PropTypes.bool,
+    disableDropdown: PropTypes.bool,
     isResolved: PropTypes.bool,
     isAutoResolved: PropTypes.bool,
     confirmLabel: PropTypes.string,
@@ -95,6 +96,7 @@ export default class ResolveActions extends React.Component {
       shouldConfirm,
       disabled,
       confirmLabel,
+      disableDropdown,
     } = this.props;
 
     const buttonClass = this.getButtonClass();
@@ -141,7 +143,7 @@ export default class ResolveActions extends React.Component {
             className={buttonClass}
             title=""
             alwaysRenderMenu
-            disabled={disabled}
+            disabled={disableDropdown || disabled}
           >
             <MenuItem header={true}>{t('Resolved In')}</MenuItem>
             <MenuItem noAnchor={true}>
