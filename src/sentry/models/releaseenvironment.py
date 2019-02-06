@@ -6,6 +6,7 @@ from django.utils import timezone
 
 from sentry.utils.cache import cache
 from sentry.db.models import (
+    BoundedPositiveIntegerField,
     FlexibleForeignKey,
     Model,
     sane_repr,
@@ -17,7 +18,7 @@ class ReleaseEnvironment(Model):
 
     organization = FlexibleForeignKey('sentry.Organization', db_index=True, db_constraint=False)
     # DEPRECATED
-    project = FlexibleForeignKey('sentry.Project', null=True, db_constraint=False)
+    project_id = BoundedPositiveIntegerField(null=True)
     release = FlexibleForeignKey('sentry.Release', db_index=True, db_constraint=False)
     environment = FlexibleForeignKey('sentry.Environment', db_index=True, db_constraint=False)
     first_seen = models.DateTimeField(default=timezone.now)
