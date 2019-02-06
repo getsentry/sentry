@@ -10,7 +10,7 @@ from mock import Mock
 
 from sentry.coreapi import APIRateLimited
 from sentry.models import ProjectKey
-from sentry.signals import event_accepted, event_dropped, event_filtered
+from sentry.signals import event_dropped, event_filtered
 from sentry.testutils import (assert_mock_called_once_with_partial, TestCase)
 from sentry.utils import json
 from sentry.utils.data_filters import FilterTypes
@@ -668,23 +668,6 @@ class StoreViewTest(TestCase):
             'name': '_postWithHeader',
             'version': '0.0.0',
         }
-
-    @mock.patch('sentry.coreapi.ClientApiHelper.insert_data_to_database', Mock())
-    def test_accepted_signal(self):
-        mock_event_accepted = Mock()
-
-        event_accepted.connect(mock_event_accepted)
-
-        resp = self._postWithHeader({'logentry': {'message': u'hello'}})
-
-        assert resp.status_code == 200, resp.content
-
-        assert_mock_called_once_with_partial(
-            mock_event_accepted,
-            ip='127.0.0.1',
-            project=self.project,
-            signal=event_accepted,
-        )
 
     @mock.patch('sentry.coreapi.ClientApiHelper.insert_data_to_database', Mock())
     @mock.patch('sentry.app.quotas.is_rate_limited')
