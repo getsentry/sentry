@@ -10,7 +10,6 @@ from confluent_kafka import OFFSET_INVALID, Producer, TopicPartition
 from django.utils.functional import cached_property
 
 from sentry import quotas
-from sentry.models import Organization
 from sentry.eventstream.base import EventStream
 from sentry.eventstream.kafka.consumer import SynchronizedConsumer
 from sentry.eventstream.kafka.protocol import get_task_kwargs_for_message
@@ -125,7 +124,7 @@ class KafkaEventStream(EventStream):
                is_new_group_environment, primary_hash, skip_consume=False):
         project = event.project
         retention_days = quotas.get_event_retention(
-            organization=Organization(project.organization_id)
+            organization=project.organization,
         )
 
         self._send(project.id, 'insert', extra_data=({
