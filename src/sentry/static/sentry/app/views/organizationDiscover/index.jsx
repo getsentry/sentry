@@ -76,9 +76,11 @@ class OrganizationDiscoverContainer extends React.Component {
     const {savedQueryId} = this.props.params;
 
     if (savedQueryId) {
-      this.fetchSavedQuery(savedQueryId).then(this.loadTags);
+      this.loadTags()
+        .then(() => this.fetchSavedQuery(savedQueryId))
+        .then(this.setLoadedState);
     } else {
-      this.loadTags();
+      this.loadTags().then(this.setLoadedState);
     }
   }
 
@@ -108,9 +110,11 @@ class OrganizationDiscoverContainer extends React.Component {
   }
 
   loadTags = () => {
-    this.queryBuilder.load().then(() => {
-      this.setState({isLoading: false});
-    });
+    return this.queryBuilder.load();
+  };
+
+  setLoadedState = () => {
+    this.setState({isLoading: false});
   };
 
   fetchSavedQuery = savedQueryId => {
