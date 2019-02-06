@@ -17,6 +17,7 @@ from django.utils import timezone
 
 from sentry import quotas, tagstore
 from sentry.api.paginator import DateTimePaginator, Paginator, SequencePaginator
+from sentry.api.event_search import InvalidSearchQuery
 from sentry.search.base import SearchBackend
 from sentry.search.django.constants import (
     MSSQL_ENGINES, MSSQL_SORT_CLAUSES, MYSQL_SORT_CLAUSES, ORACLE_SORT_CLAUSES, SORT_CLAUSES,
@@ -45,6 +46,46 @@ class QuerySetBuilder(object):
         return queryset
 
 
+# TODO: Once we've removed the existing `QuerySetBuilder`, rename this to
+# QuerySetBuilder
+class NewQuerySetBuilder(object):
+
+    def __init__(self, conditions):
+        self.conditions = conditions
+
+    def normalize_parameters(self, params):
+        """
+        Converts passed in parameters into a standard format. Allows us to
+        support old/new style parameter being passed in.
+        """
+        for key, value in params.items():
+            yield key, value, None
+
+    def build(self, queryset, parameters):
+        for name, value, search_filter in self.normalize_parameters(parameters):
+            if name in self.conditions:
+                condition = self.conditions[name]
+                if isinstance(condition, ScalarCondition):
+                    # XXX: Gross temporary hack to support old style
+                    # `ScalarCondition`s
+                    # This type of `ScalarCondition` should only ever be called
+                    # with old style parameters
+                    queryset = condition.apply(queryset, name, parameters)
+                else:
+                    queryset = condition.apply(queryset, value, search_filter)
+        return queryset
+
+
+class SearchFilterQuerySetBuilder(NewQuerySetBuilder):
+    def normalize_parameters(self, search_filters):
+        for search_filter in search_filters:
+            yield (
+                search_filter.key.name,
+                search_filter.value.raw_value,
+                search_filter,
+            )
+
+
 class Condition(object):
     """\
     Adds a single filter to a ``QuerySet`` object. Used with
@@ -61,6 +102,71 @@ class CallbackCondition(Condition):
 
     def apply(self, queryset, name, parameters):
         return self.callback(queryset, parameters[name])
+
+
+class QCallbackCondition(Condition):
+    def __init__(self, callback, skip_if_falsey=False):
+        """
+        :param skip_if_falsey: Skip the condition entirely if the provided
+        value evaluates to False
+        """
+        self.callback = callback
+        self.skip_if_falsey = skip_if_falsey
+
+    def apply(self, queryset, value, search_filter=None):
+        if self.skip_if_falsey and not value:
+            return queryset
+
+        q = self.callback(value)
+        # TODO: Once we're entirely using search filters we can just pass them
+        # in and not have this check. This is to support the old style search
+        # terms.
+        if search_filter:
+            if search_filter.operator not in ('=', '!='):
+                raise InvalidSearchQuery(
+                    u'Operator {} not valid for search {}'.format(
+                        search_filter.operator,
+                        search_filter,
+                    ),
+                )
+            queryset_method = queryset.filter if search_filter.operator == '=' else queryset.exclude
+            queryset = queryset_method(q)
+        else:
+            queryset = queryset.filter(q)
+        return queryset
+
+
+OPERATOR_TO_DJANGO = {
+    '>=': 'gte',
+    '<=': 'lte',
+    '>': 'gt',
+    '<': 'lt',
+}
+
+
+# TODO: Rename this to ScalarCondition once we've removed the existing
+# `ScalarCondition`
+class SearchFilterScalarCondition(Condition):
+    """
+    Adds a scalar filter to a ``QuerySet`` object. Only accepts `SearchFilter`
+    instances
+    """
+
+    def __init__(self, field):
+        self.field = field
+
+    def _get_operator(self, search_filter):
+        django_operator = OPERATOR_TO_DJANGO.get(search_filter.operator, '')
+        if django_operator:
+            django_operator = '__{}'.format(django_operator)
+        return django_operator
+
+    def apply(self, queryset, value, search_filter):
+        django_operator = self._get_operator(search_filter)
+
+        qs_method = queryset.exclude if search_filter.operator == '!=' else queryset.filter
+
+        return qs_method(**{'{}{}'.format(self.field, django_operator): value})
 
 
 class ScalarCondition(Condition):
@@ -164,11 +270,11 @@ def get_sort_clause(sort_by):
         return SORT_CLAUSES[sort_by]
 
 
-def assigned_to_filter(queryset, actor, projects):
+def assigned_to_filter(actor, projects):
     from sentry.models import OrganizationMember, OrganizationMemberTeam, Team
 
     if isinstance(actor, Team):
-        return queryset.filter(assignee_set__team=actor)
+        return Q(assignee_set__team=actor)
 
     teams = Team.objects.filter(
         id__in=OrganizationMemberTeam.objects.filter(
@@ -180,10 +286,22 @@ def assigned_to_filter(queryset, actor, projects):
         ).values('team')
     )
 
-    return queryset.filter(
+    return Q(
         Q(assignee_set__user=actor, assignee_set__project__in=projects) |
         Q(assignee_set__team__in=teams)
     )
+
+
+def unassigned_filter(unassigned, projects):
+    from sentry.models.groupassignee import GroupAssignee
+    query = Q(
+        id__in=GroupAssignee.objects.filter(
+            project_id__in=[p.id for p in projects],
+        ).values_list('group_id', flat=True),
+    )
+    if unassigned:
+        query = ~query
+    return query
 
 
 def get_latest_release(projects, environments):
@@ -209,9 +327,12 @@ def get_latest_release(projects, environments):
 
 class DjangoSearchBackend(SearchBackend):
     def query(self, projects, tags=None, environments=None, sort_by='date', limit=100,
-              cursor=None, count_hits=False, paginator_options=None, **parameters):
+              cursor=None, count_hits=False, paginator_options=None, search_filters=None,
+              use_new_filters=False, **parameters):
 
-        from sentry.models import Group, GroupAssignee, GroupStatus, GroupSubscription, Release
+        from sentry.models import Group, GroupStatus, GroupSubscription, Release
+
+        search_filters = search_filters if search_filters is not None else []
 
         # ensure projects are from same org
         if len({p.organization_id for p in projects}) != 1:
@@ -233,33 +354,50 @@ class DjangoSearchBackend(SearchBackend):
             # no matches could possibly be found from this point on
             return Paginator(Group.objects.none()).get_result()
 
-        group_queryset = QuerySetBuilder({
-            'query': CallbackCondition(
-                lambda queryset, query: queryset.filter(
+        group_queryset = Group.objects.filter(project__in=projects).exclude(status__in=[
+            GroupStatus.PENDING_DELETION,
+            GroupStatus.DELETION_IN_PROGRESS,
+            GroupStatus.PENDING_MERGE,
+        ])
+
+        if use_new_filters:
+            query_set_builder_class = SearchFilterQuerySetBuilder
+            query_set_builder_params = search_filters
+        else:
+            query_set_builder_class = NewQuerySetBuilder
+            query_set_builder_params = parameters
+
+        group_queryset = query_set_builder_class({
+            'message': QCallbackCondition(
+                lambda query: Q(
                     Q(message__icontains=query) | Q(culprit__icontains=query),
-                ) if query else queryset,
+                ),
+                skip_if_falsey=True,
             ),
-            'status': CallbackCondition(
-                lambda queryset, status: queryset.filter(status=status),
+            # TODO: Remove this once we've stopped using old params
+            'query': QCallbackCondition(
+                lambda query: Q(
+                    Q(message__icontains=query) | Q(culprit__icontains=query),
+                ),
+                skip_if_falsey=True,
             ),
-            'bookmarked_by': CallbackCondition(
-                lambda queryset, user: queryset.filter(
+            'status': QCallbackCondition(
+                lambda status: Q(status=status),
+            ),
+            'bookmarked_by': QCallbackCondition(
+                lambda user: Q(
                     bookmark_set__project__in=projects,
                     bookmark_set__user=user,
                 ),
             ),
-            'assigned_to': CallbackCondition(
+            'assigned_to': QCallbackCondition(
                 functools.partial(assigned_to_filter, projects=projects),
             ),
-            'unassigned': CallbackCondition(
-                lambda queryset, unassigned: (queryset.exclude if unassigned else queryset.filter)(
-                    id__in=GroupAssignee.objects.filter(
-                        project_id__in=[p.id for p in projects],
-                    ).values_list('group_id', flat=True),
-                ),
+            'unassigned': QCallbackCondition(
+                functools.partial(unassigned_filter, projects=projects),
             ),
-            'subscribed_by': CallbackCondition(
-                lambda queryset, user: queryset.filter(
+            'subscribed_by': QCallbackCondition(
+                lambda user: Q(
                     id__in=GroupSubscription.objects.filter(
                         project__in=projects,
                         user=user,
@@ -267,16 +405,13 @@ class DjangoSearchBackend(SearchBackend):
                     ).values_list('group'),
                 ),
             ),
+            'active_at': SearchFilterScalarCondition('active_at'),
+            # TODO: These are legacy params. Once we've moved to SearchFilter
+            # entirely then they can be removed, since the `'active_at'`
+            # condition will handle both
             'active_at_from': ScalarCondition('active_at', 'gt'),
             'active_at_to': ScalarCondition('active_at', 'lt'),
-        }).build(
-            Group.objects.filter(project__in=projects).exclude(status__in=[
-                GroupStatus.PENDING_DELETION,
-                GroupStatus.DELETION_IN_PROGRESS,
-                GroupStatus.PENDING_MERGE,
-            ]),
-            parameters,
-        )
+        }).build(group_queryset, query_set_builder_params)
 
         # filter out groups which are beyond the retention period
         retention = quotas.get_event_retention(organization=projects[0].organization)
