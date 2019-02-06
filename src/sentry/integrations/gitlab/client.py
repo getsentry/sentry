@@ -22,6 +22,7 @@ class GitLabApiClientPath(object):
     hooks = u'/hooks'
     issue = u'/projects/{project}/issues/{issue}'
     issues = u'/projects/{project}/issues'
+    notes = u'/projects/{project}/issues/{issue_id}/notes'
     project = u'/projects/{project}'
     project_issues = u'/projects/{project}/issues'
     project_hooks = u'/projects/{project}/hooks'
@@ -180,6 +181,16 @@ class GitLabApiClient(ApiClient):
         """
         return self.post(
             GitLabApiClientPath.issues.format(project=project),
+            data=data,
+        )
+
+    def create_issue_comment(self, project_id, issue_id, data):
+        """Create an issue note/comment
+
+        See https://docs.gitlab.com/ee/api/notes.html#create-new-issue-note
+        """
+        return self.post(
+            GitLabApiClientPath.notes.format(project=project_id, issue_id=issue_id),
             data=data,
         )
 
