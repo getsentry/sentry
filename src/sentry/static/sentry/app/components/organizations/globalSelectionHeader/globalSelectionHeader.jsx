@@ -290,7 +290,6 @@ class GlobalSelectionHeader extends React.Component {
   };
 
   getBackButton = () => {
-    console.log(window.location.search);
     return (
       <Link
         to={`/organizations/${this.props.organization.slug}/issues/${window.location
