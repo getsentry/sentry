@@ -31,4 +31,22 @@ describe('getEventsUrlPathFromDiscoverQuery', function() {
       '/organizations/org-slug/events/?query=%21user.email%3A%22%22&statsPeriod=14d'
     );
   });
+
+  it('has right absolute dates', function() {
+    expect(
+      getEventsUrlPathFromDiscoverQuery({
+        organization,
+        selection: {
+          datetime: {
+            start: new Date(),
+            end: new Date(),
+          },
+        },
+        query,
+        values: [null, 'iPhone X'],
+      })
+    ).toBe(
+      '/organizations/org-slug/events/?end=2017-10-17T02%3A41%3A20&query=%21user.email%3A%22%22&start=2017-10-17T02%3A41%3A20'
+    );
+  });
 });
