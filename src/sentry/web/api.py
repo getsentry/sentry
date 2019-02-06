@@ -549,50 +549,6 @@ class StoreView(APIView):
         self.pre_normalize(event_manager, helper)
         event_manager.normalize()
 
-        agent = request.META.get('HTTP_USER_AGENT')
-
-        # TODO: Some form of coordination between the Kafka consumer
-        # and this method (the 'relay') to decide whether a 429 should
-        # be returned here.
-
-        # Everything before this will eventually be done in the relay.
-        if (kafka_publisher is not None
-                and not attachments
-                and random.random() < options.get('store.kafka-sample-rate')):
-
-            process_in_kafka = options.get('store.process-in-kafka')
-
-            try:
-                kafka_publisher.publish(
-                    channel=getattr(settings, 'KAFKA_EVENTS_PUBLISHER_TOPIC', 'store-events'),
-                    # Relay will (eventually) need to produce a Kafka message
-                    # with this JSON format.
-                    value=json.dumps({
-                        'data': dict(event_manager.get_data()),
-                        'project_id': project.id,
-                        'auth': {
-                            'sentry_client': auth.client,
-                            'sentry_version': auth.version,
-                            'sentry_secret': auth.secret_key,
-                            'sentry_key': auth.public_key,
-                            'is_public': auth.is_public,
-                        },
-                        'remote_addr': remote_addr,
-                        'agent': agent,
-                        # Whether or not the Kafka consumer is in charge
-                        # of actually processing this event.
-                        'should_process': process_in_kafka,
-                    })
-                )
-            except Exception as e:
-                logger.exception("Cannot publish event to Kafka: {}".format(e.message))
-            else:
-                if process_in_kafka:
-                    # This event will be processed by the Kafka consumer, so we
-                    # shouldn't double process it here.
-                    return event_manager.get_data()['event_id']
-
-        # Everything after this will eventually be done in a Kafka consumer.
         return process_event(event_manager, project,
                              key, remote_addr, helper, attachments)
 
