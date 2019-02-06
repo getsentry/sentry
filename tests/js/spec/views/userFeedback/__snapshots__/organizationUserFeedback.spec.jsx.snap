@@ -966,7 +966,7 @@ exports[`OrganizationUserFeedback renders 1`] = `
                                                     <ForwardRef
                                                       active={false}
                                                       allowClear={false}
-                                                      className="css-22y332-StyledHeaderItem ewlipse1"
+                                                      className="css-16gvadh-StyledHeaderItem ewlipse1"
                                                       hasChanges={false}
                                                       hasSelected={false}
                                                       icon={
@@ -991,7 +991,7 @@ exports[`OrganizationUserFeedback renders 1`] = `
                                                       <HeaderItem
                                                         active={false}
                                                         allowClear={false}
-                                                        className="css-22y332-StyledHeaderItem ewlipse1"
+                                                        className="css-16gvadh-StyledHeaderItem ewlipse1"
                                                         hasChanges={false}
                                                         hasSelected={false}
                                                         icon={
@@ -1016,7 +1016,7 @@ exports[`OrganizationUserFeedback renders 1`] = `
                                                       >
                                                         <StyledHeaderItem
                                                           active={false}
-                                                          className="css-22y332-StyledHeaderItem ewlipse1"
+                                                          className="css-16gvadh-StyledHeaderItem ewlipse1"
                                                           hasSelected={false}
                                                           innerRef={null}
                                                           isOpen={false}
@@ -1032,7 +1032,7 @@ exports[`OrganizationUserFeedback renders 1`] = `
                                                           tabIndex={-1}
                                                         >
                                                           <div
-                                                            className="ewlipse1 css-1v6igws-StyledHeaderItem-StyledHeaderItem enk2k7v0"
+                                                            className="ewlipse1 css-1y3fkpa-StyledHeaderItem-StyledHeaderItem enk2k7v0"
                                                             onClick={[Function]}
                                                             onKeyDown={[Function]}
                                                             onMouseEnter={[Function]}
@@ -1048,7 +1048,7 @@ exports[`OrganizationUserFeedback renders 1`] = `
                                                               hasSelected={false}
                                                             >
                                                               <span
-                                                                className="css-1af7peg-IconContainer enk2k7v2"
+                                                                className="css-1g4tz50-IconContainer enk2k7v2"
                                                               >
                                                                 <StyledInlineSvg
                                                                   src="icon-project"
@@ -1579,7 +1579,7 @@ exports[`OrganizationUserFeedback renders 1`] = `
                                                                   hasSelected={false}
                                                                 >
                                                                   <span
-                                                                    className="css-1af7peg-IconContainer enk2k7v2"
+                                                                    className="css-1g4tz50-IconContainer enk2k7v2"
                                                                   >
                                                                     <StyledInlineSvg
                                                                       src="icon-window"
@@ -1812,7 +1812,7 @@ exports[`OrganizationUserFeedback renders 1`] = `
                                               hasSelected={false}
                                             >
                                               <span
-                                                className="css-1af7peg-IconContainer enk2k7v2"
+                                                className="css-1g4tz50-IconContainer enk2k7v2"
                                               >
                                                 <StyledInlineSvg
                                                   src="icon-calendar"

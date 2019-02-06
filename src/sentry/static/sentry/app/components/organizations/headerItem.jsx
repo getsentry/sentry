@@ -15,7 +15,7 @@ class HeaderItem extends React.Component {
     hasChanges: PropTypes.bool,
     hasSelected: PropTypes.bool,
     isOpen: PropTypes.bool,
-    locked: PropTypes.bool
+    locked: PropTypes.bool,
   };
 
   static defaultProps = {
@@ -59,40 +59,54 @@ class HeaderItem extends React.Component {
         locked={locked}
         {...props}
       >
-        <IconContainer hasSelected={hasSelected} locked={locked}>{icon}</IconContainer>
+        <IconContainer hasSelected={hasSelected} locked={locked}>
+          {icon}
+        </IconContainer>
         <Content>{children}</Content>
-        {hasSelected && !locked &&
-          allowClear && <StyledClose src="icon-close" locked={locked} hasSelected={hasSelected} onClick={this.handleClear} />}
-        {!locked && <StyledChevron
-          isOpen={isOpen}
-          hasChanges={hasChanges}
-          onClick={this.handleChevronClick}
-        >
-          <InlineSvg src="icon-chevron-down" />
-        </StyledChevron>}
-        {locked && <Tooltip
-          title="issues may only be under a single project"
-          tooltipOptions={{
-            placement: 'bottom',
-          }}
-        >
-          <StyledLock src="icon-lock"/>
-        </Tooltip>}
+        {hasSelected &&
+          !locked &&
+          allowClear && (
+            <StyledClose
+              src="icon-close"
+              locked={locked}
+              hasSelected={hasSelected}
+              onClick={this.handleClear}
+            />
+          )}
+        {!locked && (
+          <StyledChevron
+            isOpen={isOpen}
+            hasChanges={hasChanges}
+            onClick={this.handleChevronClick}
+          >
+            <InlineSvg src="icon-chevron-down" />
+          </StyledChevron>
+        )}
+        {locked && (
+          <Tooltip
+            title="issues may only be under a single project"
+            tooltipOptions={{
+              placement: 'bottom',
+            }}
+          >
+            <StyledLock src="icon-lock" />
+          </Tooltip>
+        )}
       </StyledHeaderItem>
     );
   }
 }
 
 const getColor = p => {
-  if (p.locked) return p.theme.gray4;
-  return (p.isOpen || p.hasSelected ? p.theme.gray4 : p.theme.gray2);
-}
+  if (p.locked) return p.theme.gray2;
+  return p.isOpen || p.hasSelected ? p.theme.gray4 : p.theme.gray2;
+};
 
 const StyledHeaderItem = styled('div')`
   display: flex;
   padding: 0 ${space(4)};
   align-items: center;
-  cursor: ${p => p.locked ? "text" : "pointer"};
+  cursor: ${p => (p.locked ? 'text' : 'pointer')};
   color: ${getColor};
   transition: 0.1s color;
   user-select: none;

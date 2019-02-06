@@ -302,24 +302,15 @@ class GlobalSelectionHeader extends React.Component {
     return (
       <Header className={className}>
         <HeaderItemPosition>
-          {forcedProject ? (
-            <MultipleProjectSelector
-              organization={organization}
-              projects={[forcedProject]}
-              value={[parseInt(forcedProject.id)]}
-              multi={true}
-              locked={true}
-            />
-          ) : (
-            <MultipleProjectSelector
-              organization={organization}
-              projects={this.getProjects()}
-              value={this.state.projects || this.props.selection.projects}
-              onChange={this.handleChangeProjects}
-              onUpdate={this.handleUpdateProjects}
-              multi={this.hasMultipleProjectSelection()}
-            />
-          )}
+          <MultipleProjectSelector
+            organization={organization}
+            forcedProject={forcedProject}
+            projects={this.getProjects()}
+            value={this.state.projects || this.props.selection.projects}
+            onChange={this.handleChangeProjects}
+            onUpdate={this.handleUpdateProjects}
+            multi={this.hasMultipleProjectSelection()}
+          />
         </HeaderItemPosition>
 
         {showEnvironmentSelector && (

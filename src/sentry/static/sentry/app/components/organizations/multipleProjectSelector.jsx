@@ -21,7 +21,7 @@ export default class MultipleProjectSelector extends React.PureComponent {
     onChange: PropTypes.func,
     onUpdate: PropTypes.func,
     multi: PropTypes.bool,
-    locked: PropTypes.bool,
+    forcedProject: PropTypes.bool,
   };
 
   static defaultProps = {
@@ -94,14 +94,18 @@ export default class MultipleProjectSelector extends React.PureComponent {
   };
 
   render() {
-    const {value, projects, multi, locked} = this.props;
+    const {value, projects, multi, forcedProject} = this.props;
     const selectedProjectIds = new Set(value);
 
     const selected = projects.filter(project =>
       selectedProjectIds.has(parseInt(project.id, 10))
     );
 
-    return (
+    return forcedProject ? (
+      <StyledHeaderItem icon={<StyledInlineSvg src="icon-project" />} locked={true}>
+        {forcedProject.name}
+      </StyledHeaderItem>
+    ) : (
       <StyledProjectSelector
         {...this.props}
         multi={multi}
@@ -135,7 +139,6 @@ export default class MultipleProjectSelector extends React.PureComponent {
               onSubmit={() => this.handleUpdate(actions)}
               onClear={this.handleClear}
               allowClear={multi}
-              locked={locked}
               {...getActorProps()}
             >
               {title}
@@ -155,6 +158,7 @@ const StyledProjectSelector = styled(ProjectSelector)`
 
 const StyledHeaderItem = styled(HeaderItem)`
   height: 100%;
+  width: 100%;
 `;
 
 const StyledInlineSvg = styled(InlineSvg)`
