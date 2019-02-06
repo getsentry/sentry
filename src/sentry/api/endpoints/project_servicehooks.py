@@ -1,5 +1,6 @@
 from __future__ import absolute_import
 
+from django.db import transaction
 from rest_framework import status
 
 from sentry import features
@@ -122,21 +123,22 @@ class ProjectServiceHooksEndpoint(ProjectEndpoint):
 
         result = validator.object
 
-        hook = service_hooks.Creator.run(
-            projects=[project],
-            organization=project.organization,
-            url=result['url'],
-            actor=request.user,
-            events=result.get('events'),
-            application=getattr(request.auth, 'application', None) if request.auth else None,
-        )
+        with transaction.atomic():
+            hook = service_hooks.Creator.run(
+                projects=[project],
+                organization=project.organization,
+                url=result['url'],
+                actor=request.user,
+                events=result.get('events'),
+                application=getattr(request.auth, 'application', None) if request.auth else None,
+            )
 
-        self.create_audit_entry(
-            request=request,
-            organization=project.organization,
-            target_object=hook.id,
-            event=AuditLogEntryEvent.SERVICEHOOK_ADD,
-            data=hook.get_audit_log_data(),
-        )
+            self.create_audit_entry(
+                request=request,
+                organization=project.organization,
+                target_object=hook.id,
+                event=AuditLogEntryEvent.SERVICEHOOK_ADD,
+                data=hook.get_audit_log_data(),
+            )
 
         return self.respond(serialize(hook, request.user), status=201)

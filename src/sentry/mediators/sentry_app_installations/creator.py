@@ -46,16 +46,14 @@ class Creator(Mediator):
         )
 
     def _create_service_hooks(self):
-        projects = self.organization.project_set.all()
-        if projects:
-            service_hooks.Creator.run(
-                application=self.api_application,
-                actor=self.install,
-                projects=projects,
-                organization=self.organization,
-                events=self.sentry_app.events,
-                url=self.sentry_app.webhook_url,
-            )
+        service_hooks.Creator.run(
+            application=self.api_application,
+            actor=self.install,
+            projects=[],
+            organization=self.organization,
+            events=self.sentry_app.events,
+            url=self.sentry_app.webhook_url,
+        )
 
     def _notify_service(self):
         installation_webhook.delay(self.install.id, self.user.id)

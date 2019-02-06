@@ -45,7 +45,7 @@ class TestCreator(TestCase):
         install = self.creator.call()
         assert ApiGrant.objects.filter(id=install.api_grant_id).exists()
 
-    def test_creates_service_hooks(self):
+    def test_creates_service_hook(self):
         install = self.creator.call()
 
         hook = ServiceHook.objects.get(organization_id=self.org.id)
@@ -56,14 +56,7 @@ class TestCreator(TestCase):
         assert hook.events == self.sentry_app.events
         assert hook.url == self.sentry_app.webhook_url
 
-    def test_creates_service_hooks_project_record_for_all_projects(self):
-        self.creator.call()
-        hook = ServiceHook.objects.get(organization_id=self.org.id)
-
-        assert len(ServiceHookProject.objects.filter(
-            service_hook_id=hook.id,
-            project_id__in=[self.project1.id, self.project2.id],
-        )) == 2
+        assert not ServiceHookProject.objects.all()
 
     @patch('sentry.tasks.sentry_apps.installation_webhook.delay')
     def test_notifies_service(self, installation_webhook):

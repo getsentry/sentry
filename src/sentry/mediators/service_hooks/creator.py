@@ -45,8 +45,19 @@ class Creator(Mediator):
 
     def _create_service_hook(self):
         application_id = self.application.id if self.application else None
-        # there must be at least one project
-        project_id = self.projects[0].id
+
+        # For Sentry Apps, if projects = [], the service hook applies to all
+        # the projects in the organization.
+        # We are using the first project so that we can satisfy the not null
+        # contraint for project_id on the ServiceHook table.
+        #
+        # Otherwise, we'll always have a single project passed through by
+        # the ProjectServiceHooksEndpoint
+        if not self.projects:
+            project_id = self.organization.project_set.first().id
+        else:
+            project_id = self.projects[0].id
+
         hook = ServiceHook.objects.create(
             application_id=application_id,
             actor_id=self.actor.id,
