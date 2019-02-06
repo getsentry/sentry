@@ -23,14 +23,20 @@ describe('GroupActivity', function() {
   });
 
   it('renders a NoteInput', function() {
-    const wrapper = shallow(<GroupActivity group={{id: '1337', activity: []}} />, {
-      context: {
-        group: {id: '1337'},
-        project: TestStubs.Project(),
-        team: {id: '1'},
-        organization: {id: 'bar'},
-      },
-    });
+    const wrapper = shallow(
+      <GroupActivity
+        group={{id: '1337', activity: []}}
+        organization={TestStubs.Organization()}
+      />,
+      {
+        context: {
+          group: {id: '1337'},
+          project: TestStubs.Project(),
+          team: {id: '1'},
+          organization: {id: 'bar'},
+        },
+      }
+    );
     expect(wrapper.find(NoteInput)).toHaveLength(1);
   });
 
@@ -38,14 +44,20 @@ describe('GroupActivity', function() {
     let instance;
 
     beforeEach(function() {
-      instance = shallow(<GroupActivity group={{id: '1337', activity: []}} />, {
-        context: {
-          group: {id: '1337'},
-          project: TestStubs.Project(),
-          team: {id: '1'},
-          organization: {id: 'bar'},
-        },
-      }).instance();
+      instance = shallow(
+        <GroupActivity
+          group={{id: '1337', activity: []}}
+          organization={TestStubs.Organization()}
+        />,
+        {
+          context: {
+            group: {id: '1337'},
+            project: TestStubs.Project(),
+            team: {id: '1'},
+            organization: {id: 'bar'},
+          },
+        }
+      ).instance();
     });
 
     it('should do nothing if not present in GroupStore', function() {
