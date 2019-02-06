@@ -1,7 +1,6 @@
 from __future__ import absolute_import
 
 from django.db import IntegrityError, transaction
-from django.db.models import Max
 from rest_framework import serializers
 from rest_framework.response import Response
 
@@ -10,16 +9,8 @@ from sentry.api.bases.dashboard import (
     OrganizationDashboardEndpoint
 )
 from sentry.api.serializers import serialize
-from sentry.api.serializers.rest_framework import ListField, ValidationError
+from sentry.api.serializers.rest_framework import get_next_dashboard_order, ListField, ValidationError
 from sentry.models import ObjectStatus, Widget
-
-
-def get_next_dashboard_order(dashboard_id):
-    max_order = Widget.objects.filter(
-        dashboard_id=dashboard_id,
-    ).aggregate(Max('order'))['order__max']
-
-    return max_order + 1 if max_order else 1
 
 
 def remove_widgets(dashboard_widgets, widget_data):
