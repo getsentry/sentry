@@ -716,7 +716,7 @@ exports[`GroupReleaseStats renders 1`] = `
                 }
               >
                 <a
-                  href="/org-slug/project-slug/settings/release-tracking/"
+                  href="/settings/org-slug/projects/project-slug/release-tracking/"
                 >
                   not configured
                 </a>
@@ -769,7 +769,7 @@ exports[`GroupReleaseStats renders 1`] = `
                 }
               >
                 <a
-                  href="/org-slug/project-slug/settings/release-tracking/"
+                  href="/settings/org-slug/projects/project-slug/release-tracking/"
                 >
                   not configured
                 </a>
