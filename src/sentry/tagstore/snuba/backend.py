@@ -699,7 +699,7 @@ class SnubaCompatibilityTagStorage(SnubaTagStorage):
     This is necessary since writes to Snuba occur via the event stream and an
     external writer process, instead of through this service backend. However,
     we need still to "implement" these methods (so that at least they do not
-    raise a ``NotImplementedError``, as well as providing compatibile return
+    raise a ``NotImplementedError``, as well as providing compatible return
     types when required by the call site) so that other backends that *do*
     require these methods in the application to be available can still be used.
 
@@ -733,6 +733,11 @@ class SnubaCompatibilityTagStorage(SnubaTagStorage):
     def delete_all_group_tag_values(self, project_id, group_id):
         # Called by ``unmerge.truncate_denormalizations``. The return value is
         # not used.
+        pass
+
+    def delete_tag_key(self, project_id, key):
+        # Called by ``ProjectTagKeyDetailsEndpoint.delete``. The return value
+        # is not used.
         pass
 
     def incr_tag_value_times_seen(self, project_id, environment_id,

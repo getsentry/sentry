@@ -38,8 +38,9 @@ class ProjectTagKeyDetailsTest(APITestCase):
 
 
 class ProjectTagKeyDeleteTest(APITestCase):
+    @mock.patch('sentry.eventstream')
     @mock.patch('sentry.tagstore.tasks.delete_tag_key')
-    def test_simple(self, mock_delete_tag_key):
+    def test_simple(self, mock_delete_tag_key, mock_eventstream):
         project = self.create_project()
         tagkey = tagstore.create_tag_key(
             project_id=project.id,
@@ -47,6 +48,9 @@ class ProjectTagKeyDeleteTest(APITestCase):
             key='foo')
 
         self.login_as(user=self.user)
+
+        eventstream_state = object()
+        mock_eventstream.start_delete_tag = mock.Mock(return_value=eventstream_state)
 
         url = reverse(
             'sentry-api-0-project-tagkey-details',
@@ -74,6 +78,11 @@ class ProjectTagKeyDeleteTest(APITestCase):
             tagkey.key,
             status=TagKeyStatus.PENDING_DELETION
         ).status == TagKeyStatus.PENDING_DELETION
+
+        mock_eventstream.start_delete_tag.assert_called_once_with(
+            project.id, 'foo'
+        )
+        mock_eventstream.end_delete_tag.assert_called_once_with(eventstream_state)
 
     @mock.patch('sentry.tagstore.tasks.delete_tag_key')
     def test_protected(self, mock_delete_tag_key):
