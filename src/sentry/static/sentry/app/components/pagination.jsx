@@ -29,16 +29,16 @@ export default class Pagination extends React.Component {
   };
 
   render() {
-    let {className, onCursor, pageLinks} = this.props;
+    const {className, onCursor, pageLinks} = this.props;
     if (!pageLinks) {
       return null;
     }
 
-    let location = this.context.location;
-    let path = this.props.to || location.pathname;
-    let query = location.query;
+    const location = this.context.location;
+    const path = this.props.to || location.pathname;
+    const query = location.query;
 
-    let links = utils.parseLinkHeader(pageLinks);
+    const links = utils.parseLinkHeader(pageLinks);
 
     let previousPageClassName = 'btn btn-default btn-lg prev';
     if (links.previous.results === false) {

@@ -69,8 +69,8 @@ const StreamGroup = createReactClass({
     if (!itemIds.has(this.props.id)) {
       return;
     }
-    let id = this.props.id;
-    let data = GroupStore.get(id);
+    const id = this.props.id;
+    const data = GroupStore.get(id);
     this.setState({
       data,
     });

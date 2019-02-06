@@ -62,7 +62,7 @@ describe('OrganizationDashboard', function() {
         />,
         TestStubs.routerContext()
       );
-      const emptyState = wrapper.find('EmptyState');
+      const emptyState = wrapper.find('NoProjectMessage');
       expect(emptyState).toHaveLength(1);
     });
 
@@ -111,7 +111,7 @@ describe('OrganizationDashboard', function() {
         />,
         TestStubs.routerContext()
       );
-      const emptyState = wrapper.find('EmptyState');
+      const emptyState = wrapper.find('NoProjectMessage');
       const favorites = wrapper.find('TeamSection[data-test-id="favorites"]');
       const teamSection = wrapper.find('TeamSection');
       expect(emptyState).toHaveLength(0);
@@ -248,7 +248,7 @@ describe('OrganizationDashboard', function() {
       expect(wrapper.find('TeamSection')).toHaveLength(1);
       const projectCards = wrapper.find('ProjectCard');
       expect(projectCards).toHaveLength(1);
-      const emptyState = wrapper.find('EmptyState');
+      const emptyState = wrapper.find('NoProjectMessage');
       expect(emptyState).toHaveLength(0);
     });
   });

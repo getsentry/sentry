@@ -5,7 +5,7 @@ export default function handleXhrErrorResponse(message) {
     if (!resp) return;
     if (!resp.responseJSON) return;
 
-    let {responseJSON} = resp;
+    const {responseJSON} = resp;
 
     // If this is a string then just capture it as error
     if (typeof responseJSON.detail === 'string') {

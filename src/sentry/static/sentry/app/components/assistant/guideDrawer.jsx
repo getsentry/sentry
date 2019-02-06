@@ -66,7 +66,10 @@ const GuideDrawer = createReactClass({
     // has updated the guide store and triggered a component state change. But it doesn't seem
     // to cause any issues in practice.
     if (useful && this.state.guide.cta_link) {
-      let link = this.interpolate(this.state.guide.cta_link, this.state.messageVariables);
+      const link = this.interpolate(
+        this.state.guide.cta_link,
+        this.state.messageVariables
+      );
       this.props.router.push(link);
     }
   },
@@ -78,14 +81,14 @@ const GuideDrawer = createReactClass({
   },
 
   interpolate(template, variables) {
-    let regex = /\${([^{]+)}/g;
+    const regex = /\${([^{]+)}/g;
     return template.replace(regex, (match, g1) => {
       return variables[g1.trim()];
     });
   },
 
   render() {
-    let {guide, step, messageVariables} = this.state;
+    const {guide, step, messageVariables} = this.state;
 
     if (!guide) {
       return null;
@@ -103,7 +106,7 @@ const GuideDrawer = createReactClass({
       );
     }
 
-    let isTip = guide.guide_type === 'tip';
+    const isTip = guide.guide_type === 'tip';
 
     return (
       <GuideContainer>

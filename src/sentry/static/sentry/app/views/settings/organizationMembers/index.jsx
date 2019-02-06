@@ -31,7 +31,7 @@ class OrganizationMembersView extends AsyncView {
 
   componentWillReceiveProps(nextProps, nextContext) {
     super.componentWillReceiveProps(nextProps, nextContext);
-    let searchQuery = nextProps?.location?.query?.query;
+    const searchQuery = nextProps?.location?.query?.query;
     if (searchQuery !== this.props?.location?.query?.query) {
       this.setState({searchQuery});
     }
@@ -40,7 +40,7 @@ class OrganizationMembersView extends AsyncView {
   // XXX(billy): setState causes re-render of the entire view...
   // we should not do this
   getDefaultState() {
-    let state = super.getDefaultState();
+    const state = super.getDefaultState();
     return {
       ...state,
       members: [],
@@ -78,13 +78,13 @@ class OrganizationMembersView extends AsyncView {
   }
 
   getTitle() {
-    let org = this.context.organization;
+    const org = this.context.organization;
     return `${org.name} Members`;
   }
 
   removeMember = id => {
-    let {params} = this.props;
-    let {orgId} = params || {};
+    const {params} = this.props;
+    const {orgId} = params || {};
 
     return new Promise((resolve, reject) => {
       this.api.request(`/organizations/${orgId}/members/${id}/`, {
@@ -102,8 +102,8 @@ class OrganizationMembersView extends AsyncView {
   };
 
   approveOrDeny = (isApproved, id) => {
-    let {params} = this.props;
-    let {orgId} = params || {};
+    const {params} = this.props;
+    const {orgId} = params || {};
 
     this.setState(state => ({
       accessRequestBusy: state.accessRequestBusy.set(id, true),
@@ -135,8 +135,8 @@ class OrganizationMembersView extends AsyncView {
   handleDeny = id => this.approveOrDeny(false, id);
 
   handleRemove = ({id, name}, e) => {
-    let {organization} = this.context;
-    let {slug: orgName} = organization;
+    const {organization} = this.context;
+    const {slug: orgName} = organization;
 
     this.removeMember(id).then(
       () =>
@@ -157,8 +157,8 @@ class OrganizationMembersView extends AsyncView {
   };
 
   handleLeave = ({id}, e) => {
-    let {organization} = this.context;
-    let {slug: orgName} = organization;
+    const {organization} = this.context;
+    const {slug: orgName} = organization;
 
     this.removeMember(id).then(
       () => {
@@ -201,14 +201,14 @@ class OrganizationMembersView extends AsyncView {
   };
 
   handleChange = evt => {
-    let searchQuery = evt.target.value;
+    const searchQuery = evt.target.value;
     this.getMembers(searchQuery);
     this.setState({searchQuery});
   };
 
   getMembers = debounce(searchQuery => {
-    let {params} = this.props;
-    let {orgId} = params || {};
+    const {params} = this.props;
+    const {orgId} = params || {};
 
     this.api.request(`/organizations/${orgId}/members/?query=${searchQuery}`, {
       method: 'GET',
@@ -219,20 +219,20 @@ class OrganizationMembersView extends AsyncView {
   }, 200);
 
   renderBody() {
-    let {params, routes} = this.props;
-    let {membersPageLinks, members, requestList} = this.state;
-    let {organization} = this.context;
-    let {orgId} = params || {};
-    let {name: orgName, access} = organization;
-    let canAddMembers = access.indexOf('org:write') > -1;
-    let canRemove = access.indexOf('member:admin') > -1;
-    let currentUser = ConfigStore.get('user');
+    const {params, routes} = this.props;
+    const {membersPageLinks, members, requestList} = this.state;
+    const {organization} = this.context;
+    const {orgId} = params || {};
+    const {name: orgName, access} = organization;
+    const canAddMembers = access.indexOf('org:write') > -1;
+    const canRemove = access.indexOf('member:admin') > -1;
+    const currentUser = ConfigStore.get('user');
     // Find out if current user is the only owner
-    let isOnlyOwner = !members.find(
+    const isOnlyOwner = !members.find(
       ({role, email}) => role === 'owner' && email !== currentUser.email
     );
     // Only admins/owners can remove members
-    let requireLink = !!this.state.authProvider && this.state.authProvider.require_link;
+    const requireLink = !!this.state.authProvider && this.state.authProvider.require_link;
 
     let action = (
       <Button

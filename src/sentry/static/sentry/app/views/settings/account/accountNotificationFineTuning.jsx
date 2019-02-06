@@ -94,7 +94,7 @@ class AccountNotificationsByProject extends React.Component {
   };
 
   getFieldData() {
-    let {projects, field} = this.props;
+    const {projects, field} = this.props;
     ProjectsStore.loadInitialData(projects);
 
     const projectsByOrg = ProjectsStore.getAllGroupedByOrganization();
@@ -215,7 +215,7 @@ export default class AccountNotificationFineTuning extends AsyncView {
 
   // Return a sorted list of user's verified emails
   getEmailChoices() {
-    let {emails} = this.state;
+    const {emails} = this.state;
     if (!emails) return [];
 
     return emails.filter(({isVerified}) => isVerified).sort((a, b) => {

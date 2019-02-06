@@ -91,6 +91,36 @@ describe('components/interfaces/utils', function() {
           method: 'GET',
         })
       ).toEqual('curl \\\n "http://example.com/foo"');
+
+      // Escape escaped strings.
+      expect(
+        getCurlCommand({
+          cookies: [['foo', 'bar'], ['biz', 'baz']],
+          url: 'http://example.com/foo',
+          headers: [
+            ['Referer', 'http://example.com'],
+            [
+              'User-Agent',
+              'Mozilla/5.0 (Windows NT 6.2; WOW64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/28.0.1500.72 Safari/537.36',
+            ],
+            ['Content-Type', 'application/json'],
+          ],
+          env: {
+            ENV: 'prod',
+          },
+          fragment: '',
+          query: [],
+          data: '{"a":"b\\"c"}',
+          method: 'GET',
+        })
+      ).toEqual(
+        'curl \\\n' +
+          ' -H "Content-Type: application/json" \\\n' +
+          ' -H "Referer: http://example.com" \\\n' +
+          ' -H "User-Agent: Mozilla/5.0 (Windows NT 6.2; WOW64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/28.0.1500.72 Safari/537.36" \\\n' +
+          ' --data "{\\"a\\":\\"b\\\\\\"c\\"}" \\\n' +
+          ' "http://example.com/foo"'
+      );
     });
 
     it('works with a Proxy', function() {
@@ -130,30 +160,11 @@ describe('components/interfaces/utils', function() {
 
   describe('objectToSortedTupleArray()', function() {
     it('should convert a key/value object to a sorted array of key/value tuples', function() {
-      // expect(
-      //   objectToSortedTupleArray({
-      //     awe: 'some',
-      //     foo: 'bar',
-      //     bar: 'baz'
-      //   })
-      // ).toEqual([
-      //   // note sorted alphabetically by key
-      //   ['awe', 'some'],
-      //   ['bar', 'baz'],
-      //   ['foo', 'bar']
-      // ]);
-
       expect(
         objectToSortedTupleArray({
           foo: ['bar', 'baz'],
         })
       ).toEqual([['foo', 'bar'], ['foo', 'baz']]);
-
-      // expect(
-      //   objectToSortedTupleArray({
-      //     foo: ''
-      //   })
-      // ).toEqual([['foo', '']]);
     });
   });
 });

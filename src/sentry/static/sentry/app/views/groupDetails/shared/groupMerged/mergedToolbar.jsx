@@ -26,7 +26,7 @@ const MergedToolbar = createReactClass({
   mixins: [Reflux.listenTo(GroupingStore, 'onGroupingUpdate')],
 
   getInitialState() {
-    let {
+    const {
       unmergeList,
       unmergeLastCollapsed,
       unmergeDisabled,
@@ -42,7 +42,7 @@ const MergedToolbar = createReactClass({
   },
 
   onGroupingUpdate(updateObj) {
-    let allowedKeys = [
+    const allowedKeys = [
       'unmergeLastCollapsed',
       'unmergeDisabled',
       'unmergeList',
@@ -53,14 +53,16 @@ const MergedToolbar = createReactClass({
   },
 
   handleShowDiff(e) {
-    let {groupId} = this.props;
-    let entries = this.state.unmergeList.entries();
+    const {groupId} = this.props;
+    const entries = this.state.unmergeList.entries();
 
     // `unmergeList` should only have 2 items in map
     if (this.state.unmergeList.size !== 2) return;
 
     // only need eventId, not fingerprint
-    let [baseEventId, targetEventId] = Array.from(entries).map(([, eventId]) => eventId);
+    const [baseEventId, targetEventId] = Array.from(entries).map(
+      ([, eventId]) => eventId
+    );
 
     openDiffModal({
       baseIssueId: groupId,
@@ -73,8 +75,8 @@ const MergedToolbar = createReactClass({
   },
 
   render() {
-    let {onUnmerge, onToggleCollapse} = this.props;
-    let unmergeCount = (this.state.unmergeList && this.state.unmergeList.size) || 0;
+    const {onUnmerge, onToggleCollapse} = this.props;
+    const unmergeCount = (this.state.unmergeList && this.state.unmergeList.size) || 0;
 
     return (
       <StyledToolbar>

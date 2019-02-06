@@ -20,7 +20,6 @@ const ActivityFeed = createReactClass({
     organization: SentryTypes.Organization,
     endpoint: PropTypes.string,
     query: PropTypes.object,
-    renderEmpty: PropTypes.func,
     pagination: PropTypes.bool,
   },
 
@@ -47,8 +46,8 @@ const ActivityFeed = createReactClass({
   },
 
   componentWillReceiveProps(nextProps) {
-    let location = this.props.location;
-    let nextLocation = nextProps.location;
+    const location = this.props.location;
+    const nextLocation = nextProps.location;
     if (
       location.pathname != nextLocation.pathname ||
       location.search != nextLocation.search
@@ -62,7 +61,7 @@ const ActivityFeed = createReactClass({
   },
 
   fetchData() {
-    let location = this.props.location;
+    const location = this.props.location;
     this.api.clear();
     this.api.request(this.props.endpoint, {
       method: 'GET',
@@ -117,7 +116,7 @@ const ActivityFeed = createReactClass({
           </ul>
         </div>
       );
-    } else body = (this.props.renderEmpty || this.renderEmpty)();
+    } else body = this.renderEmpty();
 
     return body;
   },

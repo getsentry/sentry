@@ -10,8 +10,8 @@ describe('SavedSearchSelector', function() {
   let orgId;
   let projectId;
   let savedSearchList;
-  let onCreate = jest.fn();
-  let onSelect = jest.fn();
+  const onCreate = jest.fn();
+  const onSelect = jest.fn();
 
   beforeEach(function() {
     projectId = 'test-project';
@@ -31,7 +31,7 @@ describe('SavedSearchSelector', function() {
       },
     ];
 
-    let access = new Set(['project:write']);
+    const access = new Set(['project:write']);
 
     props = {
       projectId,
@@ -50,21 +50,21 @@ describe('SavedSearchSelector', function() {
     });
 
     it('defaults to custom search', function() {
-      let instance = wrapper.find('SavedSearchSelector').instance();
+      const instance = wrapper.find('SavedSearchSelector').instance();
 
       expect(instance.getTitle()).toEqual('Custom Search');
     });
 
     it('uses searchId to match', function() {
       wrapper.setProps({searchId: '789'});
-      let instance = wrapper.find('SavedSearchSelector').instance();
+      const instance = wrapper.find('SavedSearchSelector').instance();
 
       expect(instance.getTitle()).toEqual('Unresolved');
     });
 
     it('uses query to match', function() {
       wrapper.setProps({query: 'is:unresolved assigned:me'});
-      let instance = wrapper.find('SavedSearchSelector').instance();
+      const instance = wrapper.find('SavedSearchSelector').instance();
 
       expect(instance.getTitle()).toEqual('Assigned to me');
     });
@@ -79,7 +79,7 @@ describe('SavedSearchSelector', function() {
       wrapper.find('DropdownLink').simulate('click');
       await wrapper.update();
 
-      let item = wrapper.find('StyledMenuItem a').first();
+      const item = wrapper.find('StyledMenuItem a').first();
       expect(item).toHaveLength(1);
 
       item.simulate('click');
@@ -95,14 +95,14 @@ describe('SavedSearchSelector', function() {
     it('renders enabled manage and create buttons', function() {
       wrapper.find('DropdownLink').simulate('click');
 
-      let buttons = wrapper.find('Button');
+      const buttons = wrapper.find('Button');
       expect(buttons).toHaveLength(2);
 
-      let createButton = buttons.first();
+      const createButton = buttons.first();
       expect(createButton.text()).toEqual('Save Current Search');
       expect(createButton.props().disabled).toBeFalsy();
 
-      let manageButton = buttons.last();
+      const manageButton = buttons.last();
       expect(manageButton.text()).toEqual('Manage');
       expect(manageButton.props().disabled).toBeFalsy();
     });
@@ -117,13 +117,13 @@ describe('SavedSearchSelector', function() {
     it('renders disabled manage and create buttons', function() {
       wrapper.find('DropdownLink').simulate('click');
 
-      let buttons = wrapper.find('Button');
+      const buttons = wrapper.find('Button');
       expect(buttons).toHaveLength(2);
 
-      let createButton = buttons.first();
+      const createButton = buttons.first();
       expect(createButton.props().disabled).toBeTruthy();
 
-      let manageButton = buttons.last();
+      const manageButton = buttons.last();
       expect(manageButton.props().disabled).toBeTruthy();
     });
   });

@@ -30,8 +30,8 @@ describe('SearchBar', function() {
   let options;
   let tagValuesMock;
   let tagKeysMock;
-  let organization = TestStubs.Organization();
-  let props = {
+  const organization = TestStubs.Organization();
+  const props = {
     organization,
   };
 
@@ -56,7 +56,7 @@ describe('SearchBar', function() {
   });
 
   it('fetches organization tags on mount', async function() {
-    let wrapper = await mount(<SearchBar {...props} />, options);
+    const wrapper = await mount(<SearchBar {...props} />, options);
     expect(tagKeysMock).toHaveBeenCalledTimes(1);
     wrapper.update();
     expect(wrapper.find('SmartSearchBar').prop('supportedTags')).toEqual(
@@ -68,7 +68,7 @@ describe('SearchBar', function() {
   });
 
   it('searches and selects an event field value', async function() {
-    let wrapper = await mount(<SearchBar {...props} />, options);
+    const wrapper = await mount(<SearchBar {...props} />, options);
     setQuery(wrapper, 'gpu:');
 
     expect(tagValuesMock).toHaveBeenCalledWith(
@@ -92,7 +92,7 @@ describe('SearchBar', function() {
   });
 
   it('does not requery for event field values if query does not change', async function() {
-    let wrapper = await mount(<SearchBar {...props} />, options);
+    const wrapper = await mount(<SearchBar {...props} />, options);
     setQuery(wrapper, 'gpu:');
 
     expect(tagValuesMock).toHaveBeenCalledTimes(1);
@@ -106,7 +106,7 @@ describe('SearchBar', function() {
   });
 
   it('removes highlight when query is empty', async function() {
-    let wrapper = await mount(<SearchBar {...props} />, options);
+    const wrapper = await mount(<SearchBar {...props} />, options);
     setQuery(wrapper, 'gpu');
 
     await tick();
@@ -120,7 +120,7 @@ describe('SearchBar', function() {
   });
 
   it('ignores negation ("!") at the beginning of search term', async function() {
-    let wrapper = await mount(<SearchBar {...props} />, options);
+    const wrapper = await mount(<SearchBar {...props} />, options);
 
     setQuery(wrapper, '!gp');
     await tick();
@@ -131,7 +131,7 @@ describe('SearchBar', function() {
   });
 
   it('ignores wildcard ("*") at the beginning of tag value query', async function() {
-    let wrapper = await mount(<SearchBar {...props} />, options);
+    const wrapper = await mount(<SearchBar {...props} />, options);
 
     setQuery(wrapper, '!gpu:*');
     await tick();

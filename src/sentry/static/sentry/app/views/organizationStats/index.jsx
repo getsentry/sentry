@@ -17,8 +17,8 @@ const OrganizationStatsContainer = createReactClass({
   mixins: [ApiMixin, OrganizationState],
 
   getInitialState() {
-    let until = Math.floor(new Date().getTime() / 1000);
-    let since = until - 3600 * 24 * 7;
+    const until = Math.floor(new Date().getTime() / 1000);
+    const since = until - 3600 * 24 * 7;
 
     return {
       projectsError: false,
@@ -56,7 +56,7 @@ const OrganizationStatsContainer = createReactClass({
   },
 
   componentDidUpdate(prevProps) {
-    let prevParams = prevProps.params,
+    const prevParams = prevProps.params,
       currentParams = this.props.params;
 
     if (prevParams.orgId !== currentParams.orgId) {
@@ -72,7 +72,7 @@ const OrganizationStatsContainer = createReactClass({
       }
       this.fetchProjectData();
     }
-    let state = this.state;
+    const state = this.state;
     if (state.statsLoading && !state.statsRequestsPending) {
       this.processOrgData();
     }
@@ -85,7 +85,7 @@ const OrganizationStatsContainer = createReactClass({
     this.api.request(this.getOrganizationProjectsEndpoint(), {
       query: this.props.location.query,
       success: (data, textStatus, jqxhr) => {
-        let projectMap = {};
+        const projectMap = {};
         data.forEach(project => {
           projectMap[project.id] = project;
         });
@@ -116,7 +116,7 @@ const OrganizationStatsContainer = createReactClass({
       projectsRequestsPending: 4,
     });
 
-    let statEndpoint = this.getOrganizationStatsEndpoint();
+    const statEndpoint = this.getOrganizationStatsEndpoint();
 
     $.each(this.state.rawOrgData, statName => {
       this.api.request(statEndpoint, {
@@ -128,7 +128,7 @@ const OrganizationStatsContainer = createReactClass({
         },
         success: data => {
           this.setState(prevState => {
-            let rawOrgData = prevState.rawOrgData;
+            const rawOrgData = prevState.rawOrgData;
             rawOrgData[statName] = data;
 
             return {
@@ -155,7 +155,7 @@ const OrganizationStatsContainer = createReactClass({
         },
         success: data => {
           this.setState(prevState => {
-            let rawProjectData = prevState.rawProjectData;
+            const rawProjectData = prevState.rawProjectData;
             rawProjectData[statName] = data;
 
             return {
@@ -176,12 +176,12 @@ const OrganizationStatsContainer = createReactClass({
   },
 
   getOrganizationStatsEndpoint() {
-    let params = this.props.params;
+    const params = this.props.params;
     return '/organizations/' + params.orgId + '/stats/';
   },
 
   getOrganizationProjectsEndpoint() {
-    let params = this.props.params;
+    const params = this.props.params;
     return '/organizations/' + params.orgId + '/projects/';
   },
 
@@ -189,14 +189,14 @@ const OrganizationStatsContainer = createReactClass({
     let oReceived = 0;
     let oRejected = 0;
     let oBlacklisted = 0;
-    let orgPoints = []; // accepted, rejected, blacklisted
-    let aReceived = [0, 0]; // received, points
-    let rawOrgData = this.state.rawOrgData;
+    const orgPoints = []; // accepted, rejected, blacklisted
+    const aReceived = [0, 0]; // received, points
+    const rawOrgData = this.state.rawOrgData;
     $.each(rawOrgData.received, (idx, point) => {
-      let dReceived = point[1];
-      let dRejected = rawOrgData.rejected[idx][1];
-      let dBlacklisted = rawOrgData.blacklisted[idx][1];
-      let dAccepted = Math.max(0, dReceived - dRejected - dBlacklisted);
+      const dReceived = point[1];
+      const dRejected = rawOrgData.rejected[idx][1];
+      const dBlacklisted = rawOrgData.blacklisted[idx][1];
+      const dAccepted = Math.max(0, dReceived - dRejected - dBlacklisted);
       orgPoints.push({
         x: point[0],
         y: [dAccepted, dRejected, dBlacklisted],
@@ -223,8 +223,8 @@ const OrganizationStatsContainer = createReactClass({
   },
 
   processProjectData() {
-    let rawProjectData = this.state.rawProjectData;
-    let projectTotals = [];
+    const rawProjectData = this.state.rawProjectData;
+    const projectTotals = [];
     $.each(rawProjectData.received, (projectId, data) => {
       let pReceived = 0;
       let pRejected = 0;
@@ -249,7 +249,7 @@ const OrganizationStatsContainer = createReactClass({
   },
 
   render() {
-    let organization = this.getOrganization();
+    const organization = this.getOrganization();
 
     return (
       <DocumentTitle title={`Stats - ${organization.slug} - Sentry`}>

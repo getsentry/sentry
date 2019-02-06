@@ -52,13 +52,31 @@ def create_reprocessing_report(project_id, event_id):
 def clear_expired_raw_events():
     from sentry.models import RawEvent, ProcessingIssue, ReprocessingReport
 
+    def batched_delete(model_cls, **filter):
+        # Django 1.6's `Queryset.delete` runs in this order:
+        #
+        # 1. Fetch all models
+        # 2. Call all `on_delete`s
+        # 3. Delete from DB (batched `DELETE WHERE id in (...)`)
+        #
+        # Since we attempt to unpickle `NodeField`s in Step 2, we might time
+        # out at that point and never do the delete.
+        #
+        # Better to delete a few rows than none.
+        while True:
+            result = model_cls.objects.filter(**filter)[:200]
+            if not result.exists():
+                break
+
+            result.delete()
+
     cutoff = timezone.now() - \
         timedelta(days=settings.SENTRY_RAW_EVENT_MAX_AGE_DAYS)
 
     # Clear old raw events and reprocessing reports
-    RawEvent.objects.filter(datetime__lt=cutoff).delete()
-    ReprocessingReport.objects.filter(datetime__lt=cutoff).delete()
+    batched_delete(RawEvent, datetime__lt=cutoff)
+    batched_delete(ReprocessingReport, datetime__lt=cutoff)
 
     # Processing issues get a bit of extra time before we delete them
     cutoff = timezone.now() - timedelta(days=int(settings.SENTRY_RAW_EVENT_MAX_AGE_DAYS * 1.3))
-    ProcessingIssue.objects.filter(datetime__lt=cutoff).delete()
+    batched_delete(ProcessingIssue, datetime__lt=cutoff)

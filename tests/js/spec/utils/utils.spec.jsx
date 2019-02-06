@@ -9,7 +9,7 @@ import {
 
 describe('utils.valueIsEqual', function() {
   it('should return true when objects are deeply equal', function() {
-    let isEqual = valueIsEqual(
+    const isEqual = valueIsEqual(
       {
         username: 'foo',
         teams: ['bar', 'baz'],
@@ -32,7 +32,7 @@ describe('utils.valueIsEqual', function() {
   });
 
   it('should return false when objects are not deeply equal', function() {
-    let isEqual = valueIsEqual(
+    const isEqual = valueIsEqual(
       {
         username: 'foo',
         teams: ['bar', 'baz'],
@@ -55,7 +55,7 @@ describe('utils.valueIsEqual', function() {
   });
 
   it('should return true when objects are shalowly equal', function() {
-    let isEqual = valueIsEqual(
+    const isEqual = valueIsEqual(
       {
         username: 'foo',
         team: 'bar',
@@ -72,7 +72,7 @@ describe('utils.valueIsEqual', function() {
   });
 
   it('should return false when objects are not shalowly equal', function() {
-    let isEqual = valueIsEqual(
+    const isEqual = valueIsEqual(
       {
         username: 'foo',
         team: 'bar',

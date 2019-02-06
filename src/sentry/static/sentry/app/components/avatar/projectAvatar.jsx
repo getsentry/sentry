@@ -22,7 +22,7 @@ class ProjectAvatar extends React.Component {
   };
 
   render() {
-    let {project, ...props} = this.props;
+    const {project, ...props} = this.props;
 
     return <PlatformList platforms={this.getPlatforms(project)} {...props} max={1} />;
   }

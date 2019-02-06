@@ -44,7 +44,7 @@ class SearchBar extends React.PureComponent {
   }
 
   componentDidMount() {
-    let {api, organization} = this.props;
+    const {api, organization} = this.props;
     fetchOrganizationTags(api, organization.slug).then(
       results => {
         this.setState({
@@ -60,7 +60,7 @@ class SearchBar extends React.PureComponent {
    * with data when ready
    */
   getEventFieldValues = memoize((tag, query) => {
-    let {api, organization} = this.props;
+    const {api, organization} = this.props;
 
     return fetchEventFieldValues(api, organization.slug, tag.key, query).then(
       results => flatten(results.filter(({name}) => defined(name)).map(({name}) => name)),

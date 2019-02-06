@@ -65,7 +65,7 @@ const AccountAvatar = createReactClass({
   },
 
   handleSuccess(user) {
-    let {onSave} = this.props;
+    const {onSave} = this.props;
     this.setState({user});
     onSave(user);
     addSuccessMessage(t('Successfully saved avatar preferences'));
@@ -92,7 +92,7 @@ const AccountAvatar = createReactClass({
   },
 
   handleChange(id) {
-    let user = {...this.state.user};
+    const user = {...this.state.user};
     user.avatar.avatarType = id;
     this.updateUserState(user);
   },
@@ -105,7 +105,7 @@ const AccountAvatar = createReactClass({
       return <LoadingIndicator />;
     }
 
-    let gravatarMessage = (
+    const gravatarMessage = (
       <Well>
         {t('Gravatars are managed through ')}
         <a href="http://gravatar.com" target="_blank" rel="noreferrer noopener">
@@ -114,7 +114,7 @@ const AccountAvatar = createReactClass({
       </Well>
     );
 
-    let isLetter = this.state.user.avatar.avatarType == 'letter_avatar';
+    const isLetter = this.state.user.avatar.avatarType == 'letter_avatar';
 
     return (
       <Panel>

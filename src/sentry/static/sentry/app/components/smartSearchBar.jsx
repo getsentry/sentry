@@ -73,7 +73,7 @@ class SmartSearchBar extends React.Component {
    */
   static getLastTermIndex = (query, cursor) => {
     // TODO: work with quoted-terms
-    let cursorOffset = query.slice(cursor).search(/\s|$/);
+    const cursorOffset = query.slice(cursor).search(/\s|$/);
     return cursor + (cursorOffset === -1 ? 0 : cursorOffset);
   };
 
@@ -244,7 +244,7 @@ class SmartSearchBar extends React.Component {
    * with results
    */
   getPredefinedTagValues = function(tag, query, callback) {
-    let values = tag.values.filter(value => value.indexOf(query) > -1);
+    const values = tag.values.filter(value => value.indexOf(query) > -1);
 
     callback(values, tag.key);
   };
@@ -259,11 +259,11 @@ class SmartSearchBar extends React.Component {
       this.blurTimeout = null;
     }
 
-    let cursor = this.getCursorPosition();
+    const cursor = this.getCursorPosition();
     let query = this.state.query;
 
-    let lastTermIndex = SmartSearchBar.getLastTermIndex(query, cursor);
-    let terms = SmartSearchBar.getQueryTerms(query.slice(0, lastTermIndex));
+    const lastTermIndex = SmartSearchBar.getLastTermIndex(query, cursor);
+    const terms = SmartSearchBar.getQueryTerms(query.slice(0, lastTermIndex));
 
     if (
       !terms || // no terms
@@ -271,7 +271,7 @@ class SmartSearchBar extends React.Component {
       (terms.length === 1 && terms[0] === this.props.defaultQuery) || // default term
       /^\s+$/.test(query.slice(cursor - 1, cursor + 1))
     ) {
-      let {defaultSearchItems} = this.props;
+      const {defaultSearchItems} = this.props;
 
       if (!defaultSearchItems.length) {
         // Update searchTerm, otherwise <SearchDropdown> will have wrong state
@@ -292,11 +292,11 @@ class SmartSearchBar extends React.Component {
       });
     }
 
-    let last = terms.pop();
+    const last = terms.pop();
     let autoCompleteItems;
     let matchValue;
     let tagName;
-    let index = last.indexOf(':');
+    const index = last.indexOf(':');
 
     if (index === -1) {
       // No colon present; must still be deciding key
@@ -306,7 +306,7 @@ class SmartSearchBar extends React.Component {
       this.setState({searchTerm: matchValue});
       this.updateAutoCompleteState(autoCompleteItems, matchValue);
     } else {
-      let {supportedTags, prepareQuery} = this.props;
+      const {supportedTags, prepareQuery} = this.props;
 
       // TODO(billy): Better parsing for these examples
       // sentry:release:
@@ -321,7 +321,7 @@ class SmartSearchBar extends React.Component {
 
       // filter existing items immediately, until API can return
       // with actual tag value results
-      let filteredSearchItems = !preparedQuery
+      const filteredSearchItems = !preparedQuery
         ? this.state.searchItems
         : this.state.searchItems.filter(item => item.value.indexOf(preparedQuery) !== -1);
 
@@ -330,7 +330,7 @@ class SmartSearchBar extends React.Component {
         searchItems: filteredSearchItems,
       });
 
-      let tag = supportedTags[tagName];
+      const tag = supportedTags[tagName];
 
       if (!tag) return undefined;
 
@@ -353,10 +353,10 @@ class SmartSearchBar extends React.Component {
   };
 
   updateAutoCompleteState = (searchItems, tagName) => {
-    let {maxSearchItems} = this.props;
+    const {maxSearchItems} = this.props;
 
     searchItems = searchItems.map(item => {
-      let out = {
+      const out = {
         desc: item,
         value: item,
       };
@@ -396,8 +396,8 @@ class SmartSearchBar extends React.Component {
   };
 
   onKeyDown = evt => {
-    let state = this.state;
-    let searchItems = state.searchItems;
+    const state = this.state;
+    const searchItems = state.searchItems;
 
     if (!searchItems.length) return;
 
@@ -422,21 +422,21 @@ class SmartSearchBar extends React.Component {
   };
 
   onAutoComplete = replaceText => {
-    let cursor = this.getCursorPosition();
-    let query = this.state.query;
+    const cursor = this.getCursorPosition();
+    const query = this.state.query;
 
-    let lastTermIndex = SmartSearchBar.getLastTermIndex(query, cursor);
-    let terms = SmartSearchBar.getQueryTerms(query.slice(0, lastTermIndex));
+    const lastTermIndex = SmartSearchBar.getLastTermIndex(query, cursor);
+    const terms = SmartSearchBar.getQueryTerms(query.slice(0, lastTermIndex));
     let newQuery;
 
     // If not postfixed with : (tag value), add trailing space
-    let lastChar = replaceText.charAt(replaceText.length - 1);
+    const lastChar = replaceText.charAt(replaceText.length - 1);
     replaceText += lastChar === ':' || lastChar === '.' ? '' : ' ';
 
     if (!terms) {
       newQuery = replaceText;
     } else {
-      let last = terms.pop();
+      const last = terms.pop();
 
       newQuery = query.slice(0, lastTermIndex); // get text preceding last term
 
@@ -472,7 +472,7 @@ class SmartSearchBar extends React.Component {
   };
 
   render() {
-    let {className, dropdownClassName, disabled} = this.props;
+    const {className, dropdownClassName, disabled} = this.props;
 
     return (
       <div

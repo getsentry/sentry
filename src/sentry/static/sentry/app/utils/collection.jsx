@@ -1,7 +1,7 @@
 import $ from 'jquery';
 import _ from 'lodash';
 
-let defaults = {
+const defaults = {
   limit: null,
   key: function(item) {
     return item.id;
@@ -49,7 +49,7 @@ Collection.prototype.push = function push(items) {
 
   items.forEach(
     function(item) {
-      let existing = this.pop(item);
+      const existing = this.pop(item);
       if (existing) {
         $.extend(true, existing, item);
         item = existing;
@@ -67,7 +67,7 @@ Collection.prototype.unshift = function unshift(items) {
   }
   items.reverse().forEach(
     function(item) {
-      let existing = this.pop(item);
+      const existing = this.pop(item);
       if (existing) {
         $.extend(true, existing, item);
         item = existing;
@@ -80,7 +80,7 @@ Collection.prototype.unshift = function unshift(items) {
 };
 
 Collection.prototype.get = function get(key) {
-  let idx = this.indexOf(key);
+  const idx = this.indexOf(key);
   if (idx === -1) {
     return null;
   }
@@ -88,11 +88,11 @@ Collection.prototype.get = function get(key) {
 };
 
 Collection.prototype.pop = function pop(item) {
-  let idx = this.indexOf(this.options.key(item));
+  const idx = this.indexOf(this.options.key(item));
   if (idx === -1) {
     return null;
   }
-  let result = this[idx];
+  const result = this[idx];
   this.splice(idx, idx + 1);
   return result;
 };
@@ -102,7 +102,7 @@ Collection.prototype.empty = function empty() {
 };
 
 Collection.prototype.indexOf = function indexOf(key) {
-  let keyFunc = this.options.key;
+  const keyFunc = this.options.key;
   for (let i = 0; i < this.length; i++) {
     if (keyFunc(this[i]) === key) {
       return i;
@@ -113,7 +113,7 @@ Collection.prototype.indexOf = function indexOf(key) {
 
 Collection.prototype.update = function update(item) {
   // returns true if the item already existed and was updated (as configured)
-  let existing = this.indexOf(this.options.key(item));
+  const existing = this.indexOf(this.options.key(item));
   if (existing !== -1) {
     $.extend(true, this[existing], item);
     return true;

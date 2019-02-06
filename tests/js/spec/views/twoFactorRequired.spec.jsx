@@ -27,7 +27,7 @@ describe('TwoFactorRequired', function() {
       body: [],
     });
 
-    let wrapper = mount(
+    const wrapper = mount(
       <AccountSecurityWrapper>
         <TwoFactorRequired />
       </AccountSecurityWrapper>,
@@ -38,7 +38,7 @@ describe('TwoFactorRequired', function() {
   });
 
   it('does not render when 2FA is not required, not 2FA enrolled', function() {
-    let wrapper = mount(
+    const wrapper = mount(
       <AccountSecurityWrapper>
         <TwoFactorRequired />
       </AccountSecurityWrapper>,
@@ -53,7 +53,7 @@ describe('TwoFactorRequired', function() {
       body: [TestStubs.Authenticators().Totp({isEnrolled: true})],
     });
 
-    let wrapper = mount(
+    const wrapper = mount(
       <AccountSecurityWrapper>
         <TwoFactorRequired />
       </AccountSecurityWrapper>,
@@ -72,7 +72,7 @@ describe('TwoFactorRequired', function() {
       body: TestStubs.Organizations({require2FA: true}),
     });
 
-    let wrapper = mount(
+    const wrapper = mount(
       <AccountSecurityWrapper>
         <TwoFactorRequired />
       </AccountSecurityWrapper>,
@@ -87,7 +87,7 @@ describe('TwoFactorRequired', function() {
       body: TestStubs.Organizations({require2FA: true}),
     });
 
-    let wrapper = mount(
+    const wrapper = mount(
       <AccountSecurityWrapper>
         <TwoFactorRequired />
       </AccountSecurityWrapper>,
@@ -111,7 +111,7 @@ describe('TwoFactorRequired', function() {
       ],
     });
 
-    let wrapper = mount(
+    const wrapper = mount(
       <AccountSecurityWrapper>
         <TwoFactorRequired />
       </AccountSecurityWrapper>,

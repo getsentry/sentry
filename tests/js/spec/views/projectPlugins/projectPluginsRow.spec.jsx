@@ -4,11 +4,11 @@ import ProjectPluginRow from 'app/views/projectPlugins/projectPluginRow';
 
 describe('ProjectPluginRow', function() {
   let wrapper;
-  let plugin = TestStubs.Plugin();
-  let org = TestStubs.Organization({access: ['project:write']});
-  let project = TestStubs.Project();
-  let params = {orgId: org.slug, projectId: project.slug};
-  let routerContext = TestStubs.routerContext([{organization: org, project}]);
+  const plugin = TestStubs.Plugin();
+  const org = TestStubs.Organization({access: ['project:write']});
+  const project = TestStubs.Project();
+  const params = {orgId: org.slug, projectId: project.slug};
+  const routerContext = TestStubs.routerContext([{organization: org, project}]);
 
   it('renders', function() {
     wrapper = mount(<ProjectPluginRow {...params} {...plugin} />, routerContext);
@@ -17,7 +17,7 @@ describe('ProjectPluginRow', function() {
   });
 
   it('calls `onChange` when clicked', function() {
-    let onChange = jest.fn();
+    const onChange = jest.fn();
     wrapper = mount(
       <ProjectPluginRow {...params} {...plugin} onChange={onChange} />,
       routerContext
@@ -29,7 +29,7 @@ describe('ProjectPluginRow', function() {
   });
 
   it('can not enable/disable or configure plugin without `project:write`', function() {
-    let onChange = jest.fn();
+    const onChange = jest.fn();
     wrapper = mount(
       <ProjectPluginRow {...params} {...plugin} onChange={onChange} />,
       TestStubs.routerContext([{organization: TestStubs.Organization({access: []})}])

@@ -3,7 +3,7 @@ import classNames from 'classnames';
 
 class Pills extends React.Component {
   render() {
-    let {className, children, ...otherProps} = this.props;
+    const {className, children, ...otherProps} = this.props;
     return (
       <div className={classNames('pills', className)} {...otherProps}>
         {children}

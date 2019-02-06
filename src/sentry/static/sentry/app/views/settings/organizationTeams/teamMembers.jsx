@@ -41,7 +41,7 @@ const TeamMembers = createReactClass({
   },
 
   componentWillReceiveProps(nextProps) {
-    let params = this.props.params;
+    const params = this.props.params;
     if (
       nextProps.params.teamId !== params.teamId ||
       nextProps.params.orgId !== params.orgId
@@ -66,7 +66,7 @@ const TeamMembers = createReactClass({
   }, 200),
 
   removeMember(member) {
-    let {params} = this.props;
+    const {params} = this.props;
     leaveTeam(
       this.api,
       {
@@ -97,7 +97,7 @@ const TeamMembers = createReactClass({
   },
 
   fetchMembersRequest(query) {
-    let {orgId} = this.props.params;
+    const {orgId} = this.props.params;
     return this.api.request(`/organizations/${orgId}/members/`, {
       query: {
         query,
@@ -120,7 +120,7 @@ const TeamMembers = createReactClass({
   },
 
   fetchData() {
-    let params = this.props.params;
+    const params = this.props.params;
 
     this.api.request(`/teams/${params.orgId}/${params.teamId}/members/`, {
       success: data => {
@@ -142,7 +142,7 @@ const TeamMembers = createReactClass({
   },
 
   addTeamMember(selection) {
-    let params = this.props.params;
+    const params = this.props.params;
 
     this.setState({
       loading: true,
@@ -160,7 +160,7 @@ const TeamMembers = createReactClass({
       },
       {
         success: () => {
-          let orgMember = this.state.orgMemberList.find(member => {
+          const orgMember = this.state.orgMemberList.find(member => {
             return member.id === selection.value;
           });
           this.setState({
@@ -193,7 +193,7 @@ const TeamMembers = createReactClass({
   },
 
   renderDropdown(access) {
-    let {params} = this.props;
+    const {params} = this.props;
 
     if (!access.has('org:write')) {
       return (
@@ -208,9 +208,9 @@ const TeamMembers = createReactClass({
       );
     }
 
-    let existingMembers = new Set(this.state.teamMemberList.map(member => member.id));
+    const existingMembers = new Set(this.state.teamMemberList.map(member => member.id));
 
-    let items = (this.state.orgMemberList || [])
+    const items = (this.state.orgMemberList || [])
       .filter(m => !existingMembers.has(m.id))
       .map(m => {
         return {
@@ -225,7 +225,7 @@ const TeamMembers = createReactClass({
         };
       });
 
-    let menuHeader = (
+    const menuHeader = (
       <StyledMembersLabel>
         {t('Members')}
         <StyledCreateMemberLink to={`/settings/${params.orgId}/members/new/`}>
@@ -270,9 +270,9 @@ const TeamMembers = createReactClass({
     if (this.state.loading) return <LoadingIndicator />;
     else if (this.state.error) return <LoadingError onRetry={this.fetchData} />;
 
-    let {params} = this.props;
+    const {params} = this.props;
 
-    let access = this.getAccess();
+    const access = this.getAccess();
 
     return (
       <Panel>

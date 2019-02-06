@@ -35,7 +35,7 @@ const LetterAvatar = createReactClass({
   ],
 
   getColor() {
-    let id = this.hashIdentifier(this.props.identifier);
+    const id = this.hashIdentifier(this.props.identifier);
     return this.COLORS[id % this.COLORS.length];
   },
 
@@ -49,7 +49,7 @@ const LetterAvatar = createReactClass({
   },
 
   getInitials() {
-    let names = (this.props.displayName.trim() || '?').split(' ');
+    const names = (this.props.displayName.trim() || '?').split(' ');
     // Use Array.from as slicing and substring() work on ucs2 segments which
     // results in only getting half of any 4+ byte character.
     let initials = Array.from(names[0])[0];

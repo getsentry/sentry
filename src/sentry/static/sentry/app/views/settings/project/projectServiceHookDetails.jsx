@@ -26,9 +26,9 @@ const EmptyHeader = styled.div`
 
 class HookStats extends AsyncComponent {
   getEndpoints() {
-    let until = Math.floor(new Date().getTime() / 1000);
-    let since = until - 3600 * 24 * 30;
-    let {hookId, orgId, projectId} = this.props.params;
+    const until = Math.floor(new Date().getTime() / 1000);
+    const since = until - 3600 * 24 * 30;
+    const {hookId, orgId, projectId} = this.props.params;
     return [
       [
         'stats',
@@ -45,10 +45,10 @@ class HookStats extends AsyncComponent {
   }
 
   renderTooltip(point, pointIdx, chart) {
-    let timeLabel = chart.getTimeLabel(point);
-    let [total] = point.y;
+    const timeLabel = chart.getTimeLabel(point);
+    const [total] = point.y;
 
-    let value = `${total.toLocaleString()} events`;
+    const value = `${total.toLocaleString()} events`;
 
     return (
       '<div style="width:150px">' +
@@ -60,7 +60,7 @@ class HookStats extends AsyncComponent {
 
   renderBody() {
     let emptyStats = true;
-    let stats = this.state.stats.map(p => {
+    const stats = this.state.stats.map(p => {
       if (p.total) emptyStats = false;
       return {
         x: p.ts,
@@ -98,18 +98,18 @@ class HookStats extends AsyncComponent {
 
 export default class ProjectServiceHookDetails extends AsyncView {
   getEndpoints() {
-    let {orgId, projectId, hookId} = this.props.params;
+    const {orgId, projectId, hookId} = this.props.params;
     return [['hook', `/projects/${orgId}/${projectId}/hooks/${hookId}/`]];
   }
 
   onDelete = () => {
-    let {orgId, projectId, hookId} = this.props.params;
-    let loadingIndicator = IndicatorStore.add(t('Saving changes..'));
+    const {orgId, projectId, hookId} = this.props.params;
+    const loadingIndicator = IndicatorStore.add(t('Saving changes..'));
     this.api.request(`/projects/${orgId}/${projectId}/hooks/${hookId}/`, {
       method: 'DELETE',
       success: () => {
         IndicatorStore.remove(loadingIndicator);
-        browserHistory.push(`/settings/${orgId}/${projectId}/hooks/`);
+        browserHistory.push(`/settings/${orgId}/projects/${projectId}/hooks/`);
       },
       error: () => {
         IndicatorStore.remove(loadingIndicator);
@@ -125,8 +125,8 @@ export default class ProjectServiceHookDetails extends AsyncView {
   };
 
   renderBody() {
-    let {orgId, projectId, hookId} = this.props.params;
-    let {hook} = this.state;
+    const {orgId, projectId, hookId} = this.props.params;
+    const {hook} = this.state;
     return (
       <div>
         <SettingsPageHeader title={t('Service Hook Details')} />

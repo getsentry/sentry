@@ -20,7 +20,7 @@ from django.utils.encoding import force_text
 from django.utils.functional import cached_property
 from sentry import options
 
-from sentry import buffer, eventtypes, eventstream, features, tsdb, filters
+from sentry import buffer, eventtypes, eventstream, features, tagstore, tsdb, filters
 from sentry.constants import (
     CLIENT_RESERVED_ATTRS, LOG_LEVELS, LOG_LEVELS_MAP, DEFAULT_LOG_LEVEL,
     DEFAULT_LOGGER_NAME, MAX_CULPRIT_LENGTH, VALID_PLATFORMS, MAX_TAG_VALUE_LENGTH,
@@ -849,8 +849,6 @@ class EventManager(object):
                 self.normalize()
             self._normalized = True
 
-        from sentry.tasks.post_process import index_event_tags
-
         data = self._data
 
         project = Project.objects.get_from_cache(id=project_id)
@@ -1160,7 +1158,7 @@ class EventManager(object):
                 )
                 return event
 
-            index_event_tags.delay(
+            tagstore.delay_index_event_tags(
                 organization_id=project.organization_id,
                 project_id=project.id,
                 group_id=group.id,

@@ -26,7 +26,7 @@ export default class ProjectCspReports extends AsyncView {
   }
 
   getEndpoints() {
-    let {orgId, projectId} = this.props.params;
+    const {orgId, projectId} = this.props.params;
     return [
       ['keyList', `/projects/${orgId}/${projectId}/keys/`],
       ['project', `/projects/${orgId}/${projectId}/`],
@@ -61,7 +61,7 @@ export default class ProjectCspReports extends AsyncView {
   }
 
   renderBody() {
-    let {orgId, projectId} = this.props.params;
+    const {orgId, projectId} = this.props.params;
 
     return (
       <div>

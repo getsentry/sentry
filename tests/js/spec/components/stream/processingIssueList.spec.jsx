@@ -91,7 +91,7 @@ describe('ProcessingIssueList', function() {
     });
 
     it('forwards the showProject prop', function() {
-      let hint = wrapper.find('ProcessingIssueHint').first();
+      const hint = wrapper.find('ProcessingIssueHint').first();
       expect(hint.props().showProject).toBeTruthy();
     });
   });

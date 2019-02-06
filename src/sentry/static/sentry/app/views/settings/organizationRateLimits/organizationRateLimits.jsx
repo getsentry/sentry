@@ -11,7 +11,7 @@ import SettingsPageHeader from 'app/views/settings/components/settingsPageHeader
 import TextBlock from 'app/views/settings/components/text/textBlock';
 
 const getRateLimitValues = () => {
-  let steps = [];
+  const steps = [];
   let i = 0;
   while (i <= 1000000) {
     steps.push(i);
@@ -39,10 +39,10 @@ export default class OrganizationRateLimit extends React.Component {
   };
 
   render() {
-    let {organization} = this.props;
-    let {quota} = organization;
-    let {maxRate, maxRateInterval, projectLimit, accountLimit} = quota;
-    let initialData = {
+    const {organization} = this.props;
+    const {quota} = organization;
+    const {maxRate, maxRateInterval, projectLimit, accountLimit} = quota;
+    const initialData = {
       projectRateLimit: projectLimit || 100,
       accountRateLimit: accountLimit,
     };

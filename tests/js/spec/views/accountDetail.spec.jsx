@@ -22,7 +22,7 @@ describe('AccountDetails', function() {
   });
 
   it('renders', function() {
-    let wrapper = mount(<AccountDetails location={{}} />, TestStubs.routerContext());
+    const wrapper = mount(<AccountDetails location={{}} />, TestStubs.routerContext());
 
     expect(wrapper.find('input[name="name"]')).toHaveLength(1);
 
@@ -35,7 +35,7 @@ describe('AccountDetails', function() {
 
   it('has username field if it is different than email', function() {
     mockUserDetails({username: 'different@example.com'});
-    let wrapper = mount(<AccountDetails location={{}} />, TestStubs.routerContext());
+    const wrapper = mount(<AccountDetails location={{}} />, TestStubs.routerContext());
 
     expect(wrapper.find('input[name="username"]')).toHaveLength(1);
     expect(wrapper.find('input[name="username"]').prop('disabled')).toBe(false);
@@ -44,7 +44,7 @@ describe('AccountDetails', function() {
   describe('Managed User', function() {
     it('does not have password fields', function() {
       mockUserDetails({isManaged: true});
-      let wrapper = mount(<AccountDetails location={{}} />, TestStubs.routerContext());
+      const wrapper = mount(<AccountDetails location={{}} />, TestStubs.routerContext());
 
       expect(wrapper.find('input[name="name"]')).toHaveLength(1);
       expect(wrapper.find('input[name="password"]')).toHaveLength(0);
@@ -53,7 +53,7 @@ describe('AccountDetails', function() {
 
     it('has disabled username field if it is different than email', function() {
       mockUserDetails({isManaged: true, username: 'different@example.com'});
-      let wrapper = mount(<AccountDetails location={{}} />, TestStubs.routerContext());
+      const wrapper = mount(<AccountDetails location={{}} />, TestStubs.routerContext());
 
       expect(wrapper.find('input[name="username"]')).toHaveLength(1);
       expect(wrapper.find('input[name="username"]').prop('disabled')).toBe(true);

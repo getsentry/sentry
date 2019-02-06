@@ -30,7 +30,7 @@ class OrganizationAuth extends AsyncView {
   }
 
   getTitle() {
-    let org = this.context.organization;
+    const org = this.context.organization;
     return `${org.name} - Auth Settings`;
   }
 
@@ -92,8 +92,8 @@ class OrganizationAuth extends AsyncView {
   };
 
   renderBody() {
-    let {providerList, provider} = this.state;
-    let access = this.context.organization.access;
+    const {providerList, provider} = this.state;
+    const access = this.context.organization.access;
 
     if (access.includes('org:admin') && provider) {
       // If SSO provider is configured, keep showing loading while we redirect
@@ -101,7 +101,7 @@ class OrganizationAuth extends AsyncView {
       return this.renderLoading();
     }
 
-    let activeProvider = providerList.find(
+    const activeProvider = providerList.find(
       p => provider && p.key === provider.provider_name
     );
 

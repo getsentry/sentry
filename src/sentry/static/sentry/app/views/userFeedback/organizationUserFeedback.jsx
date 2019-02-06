@@ -10,6 +10,7 @@ import CompactIssue from 'app/components/compactIssue';
 import EventUserFeedback from 'app/components/events/userFeedback';
 import LoadingIndicator from 'app/components/loadingIndicator';
 import GlobalSelectionHeader from 'app/components/organizations/globalSelectionHeader';
+import NoProjectMessage from 'app/components/noProjectMessage';
 import AsyncView from 'app/views/asyncView';
 import {PageContent} from 'app/styles/organization';
 
@@ -110,13 +111,15 @@ class OrganizationUserFeedback extends AsyncView {
       >
         <GlobalSelectionHeader organization={organization} />
         <PageContent>
-          <UserFeedbackContainer
-            pageLinks={reportListPageLinks}
-            status={status}
-            location={location}
-          >
-            {this.renderStreamBody()}
-          </UserFeedbackContainer>
+          <NoProjectMessage organization={organization}>
+            <UserFeedbackContainer
+              pageLinks={reportListPageLinks}
+              status={status}
+              location={location}
+            >
+              {this.renderStreamBody()}
+            </UserFeedbackContainer>
+          </NoProjectMessage>
         </PageContent>
       </Feature>
     );

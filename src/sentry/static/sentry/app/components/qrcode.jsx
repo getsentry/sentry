@@ -27,7 +27,7 @@ class Qrcode extends React.Component {
   };
 
   render() {
-    let {code} = this.props;
+    const {code} = this.props;
     return (
       <Table>
         <tbody>

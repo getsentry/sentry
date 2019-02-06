@@ -123,18 +123,18 @@ const GroupDetailsActions = createReactClass({
   getShareUrl(shareId, absolute) {
     if (!shareId) return '';
 
-    let path = `/share/issue/${shareId}/`;
+    const path = `/share/issue/${shareId}/`;
     if (!absolute) {
       return path;
     }
-    let {host, protocol} = window.location;
+    const {host, protocol} = window.location;
     return `${protocol}//${host}${path}`;
   },
 
   onDelete() {
-    let {group, project} = this.props;
-    let org = this.getOrganization();
-    let loadingIndicator = IndicatorStore.add(t('Delete event..'));
+    const {group, project} = this.props;
+    const org = this.getOrganization();
+    const loadingIndicator = IndicatorStore.add(t('Delete event..'));
 
     this.api.bulkDelete(
       {
@@ -153,9 +153,9 @@ const GroupDetailsActions = createReactClass({
   },
 
   onUpdate(data) {
-    let {group, project} = this.props;
-    let org = this.getOrganization();
-    let loadingIndicator = IndicatorStore.add(t('Saving changes..'));
+    const {group, project} = this.props;
+    const org = this.getOrganization();
+    const loadingIndicator = IndicatorStore.add(t('Saving changes..'));
 
     this.api.bulkUpdate(
       {
@@ -173,8 +173,8 @@ const GroupDetailsActions = createReactClass({
   },
 
   onShare(shared) {
-    let {group, project} = this.props;
-    let org = this.getOrganization();
+    const {group, project} = this.props;
+    const org = this.getOrganization();
     this.setState({shareBusy: true});
 
     // not sure why this is a bulkUpdate
@@ -207,10 +207,10 @@ const GroupDetailsActions = createReactClass({
   },
 
   onDiscard() {
-    let {group, project} = this.props;
-    let org = this.getOrganization();
-    let id = uniqueId();
-    let loadingIndicator = IndicatorStore.add(t('Discarding event..'));
+    const {group, project} = this.props;
+    const org = this.getOrganization();
+    const id = uniqueId();
+    const loadingIndicator = IndicatorStore.add(t('Discarding event..'));
 
     GroupActions.discard(id, group.id);
 
@@ -231,19 +231,19 @@ const GroupDetailsActions = createReactClass({
   },
 
   render() {
-    let {group, project} = this.props;
-    let org = this.getOrganization();
-    let orgFeatures = new Set(org.features);
+    const {group, project} = this.props;
+    const org = this.getOrganization();
+    const orgFeatures = new Set(org.features);
 
     let bookmarkClassName = 'group-bookmark btn btn-default btn-sm';
     if (group.isBookmarked) {
       bookmarkClassName += ' active';
     }
 
-    let hasRelease = new Set(project.features).has('releases');
+    const hasRelease = new Set(project.features).has('releases');
 
-    let isResolved = group.status === 'resolved';
-    let isIgnored = group.status === 'ignored';
+    const isResolved = group.status === 'resolved';
+    const isIgnored = group.status === 'ignored';
 
     return (
       <div className="group-actions">

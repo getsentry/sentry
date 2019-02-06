@@ -57,7 +57,7 @@ class SortOptions extends React.PureComponent {
   };
 
   render() {
-    let dropdownTitle = (
+    const dropdownTitle = (
       <span>
         <strong>{t('Sort by')}:</strong>
         &nbsp; {this.getSortLabel(this.state.sortKey)}

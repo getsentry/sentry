@@ -56,8 +56,8 @@ class StreamTagFilter extends React.Component {
   }
 
   handleLoadOptions = () => {
-    let {orgId, projectId, tag} = this.props;
-    let {textValue} = this.state;
+    const {orgId, projectId, tag} = this.props;
+    const {textValue} = this.state;
     if (tag.isInput || tag.predefined) return;
     if (!this.api) return;
 
@@ -85,7 +85,7 @@ class StreamTagFilter extends React.Component {
   };
 
   handleChangeInput = e => {
-    let value = e.target.value;
+    const value = e.target.value;
     this.setState({
       textValue: value,
     });
@@ -108,7 +108,7 @@ class StreamTagFilter extends React.Component {
   };
 
   handleChangeSelect = valueObj => {
-    let value = valueObj ? valueObj.value : null;
+    const value = valueObj ? valueObj.value : null;
     this.handleChange(value);
   };
 
@@ -122,7 +122,7 @@ class StreamTagFilter extends React.Component {
   };
 
   handleChange = value => {
-    let {onSelect, tag} = this.props;
+    const {onSelect, tag} = this.props;
 
     this.setState(
       {
@@ -135,7 +135,7 @@ class StreamTagFilter extends React.Component {
   };
 
   render() {
-    let {tag} = this.props;
+    const {tag} = this.props;
     return (
       <div className="stream-tag-filter">
         <h6 className="nav-header">{tag.key}</h6>

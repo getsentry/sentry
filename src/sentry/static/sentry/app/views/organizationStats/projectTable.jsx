@@ -28,12 +28,12 @@ const ProjectTable = ({projectMap, projectTotals, orgTotal, organization}) => {
   const hasSentry10 = new Set(organization.features).has('sentry10');
 
   return projectTotals.sort((a, b) => b.received - a.received).map((item, index) => {
-    let project = projectMap[item.id];
+    const project = projectMap[item.id];
 
     if (!project) return null;
 
     const projectLink = hasSentry10
-      ? `/settings/${organization.slug}/${project.slug}/`
+      ? `/settings/${organization.slug}/projects/${project.slug}/`
       : `/${organization.slug}/${project.slug}/`;
 
     return (

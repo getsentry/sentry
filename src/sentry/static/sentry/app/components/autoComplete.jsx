@@ -94,7 +94,7 @@ class AutoComplete extends React.Component {
   isControlled = () => typeof this.props.isOpen !== 'undefined';
 
   getOpenState = () => {
-    let {isOpen} = this.props;
+    const {isOpen} = this.props;
 
     return this.isControlled() ? isOpen : this.state.isOpen;
   };
@@ -111,7 +111,7 @@ class AutoComplete extends React.Component {
   };
 
   handleInputChange = ({onChange} = {}, e) => {
-    let value = e.target.value;
+    const value = e.target.value;
 
     // We force `isOpen: true` here because:
     // 1) it's possible to have menu closed but input with focus (i.e. hitting "Esc")
@@ -159,10 +159,10 @@ class AutoComplete extends React.Component {
   };
 
   handleInputKeyDown = ({onKeyDown} = {}, e) => {
-    let hasHighlightedItem =
+    const hasHighlightedItem =
       this.items.size && this.items.has(this.state.highlightedIndex);
-    let canSelectWithEnter = this.props.shouldSelectWithEnter && e.key === 'Enter';
-    let canSelectWithTab = this.props.shouldSelectWithTab && e.key === 'Tab';
+    const canSelectWithEnter = this.props.shouldSelectWithEnter && e.key === 'Enter';
+    const canSelectWithTab = this.props.shouldSelectWithTab && e.key === 'Tab';
 
     if (hasHighlightedItem && (canSelectWithEnter || canSelectWithTab)) {
       this.handleSelect(this.items.get(this.state.highlightedIndex), e);
@@ -202,11 +202,11 @@ class AutoComplete extends React.Component {
    * When an item is selected via clicking or using the keyboard (e.g. pressing "Enter")
    */
   handleSelect = (item, e) => {
-    let {onSelect, itemToString, closeOnSelect} = this.props;
+    const {onSelect, itemToString, closeOnSelect} = this.props;
 
     callIfFunction(onSelect, item, this.state, e);
 
-    let newState = {
+    const newState = {
       selectedItem: item,
     };
 
@@ -219,7 +219,7 @@ class AutoComplete extends React.Component {
   };
 
   moveHighlightedIndex = (step, e) => {
-    let listSize = this.items.size - 1;
+    const listSize = this.items.size - 1;
     let newIndex = this.state.highlightedIndex + step;
 
     // Make sure new index is within bounds
@@ -236,7 +236,7 @@ class AutoComplete extends React.Component {
    * This is exposed to render function
    */
   openMenu = (...args) => {
-    let {onOpen, disabled} = this.props;
+    const {onOpen, disabled} = this.props;
 
     callIfFunction(onOpen, ...args);
 
@@ -254,7 +254,7 @@ class AutoComplete extends React.Component {
    * This is exposed to render function
    */
   closeMenu = (...args) => {
-    let {onClose, resetInputOnClose} = this.props;
+    const {onClose, resetInputOnClose} = this.props;
 
     callIfFunction(onClose, ...args);
 
@@ -283,7 +283,7 @@ class AutoComplete extends React.Component {
       console.warn('getItemProps requires an object with an `item` key');
     }
 
-    let newIndex = index || this.items.size;
+    const newIndex = index || this.items.size;
     this.items.set(newIndex, item);
 
     return {
@@ -298,8 +298,8 @@ class AutoComplete extends React.Component {
   });
 
   render() {
-    let {children, onMenuOpen} = this.props;
-    let isOpen = this.getOpenState();
+    const {children, onMenuOpen} = this.props;
+    const isOpen = this.getOpenState();
 
     return (
       <DropdownMenu

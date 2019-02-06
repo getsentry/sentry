@@ -23,7 +23,7 @@ function moduleToCategory(module) {
   if (!module) {
     return null;
   }
-  let match = module.match(/^.*\/(.*?)(:\d+)/);
+  const match = module.match(/^.*\/(.*?)(:\d+)/);
   if (match) {
     return match[1];
   }
@@ -87,12 +87,12 @@ class BreadcrumbsInterface extends React.Component {
   };
 
   getVirtualCrumb = () => {
-    let evt = this.props.event;
+    const evt = this.props.event;
     let crumb;
 
-    let exception = evt.entries.find(entry => entry.type === 'exception');
+    const exception = evt.entries.find(entry => entry.type === 'exception');
     if (exception) {
-      let {type, value, module} = exception.data.values[0];
+      const {type, value, module} = exception.data.values[0];
       crumb = {
         type: 'error',
         level: 'error',
@@ -103,8 +103,8 @@ class BreadcrumbsInterface extends React.Component {
         },
       };
     } else if (evt.message) {
-      let levelTag = (evt.tags || []).find(tag => tag.key === 'level');
-      let level = levelTag && levelTag.value;
+      const levelTag = (evt.tags || []).find(tag => tag.key === 'level');
+      const level = levelTag && levelTag.value;
       crumb = {
         type: 'message',
         level,
@@ -133,7 +133,7 @@ class BreadcrumbsInterface extends React.Component {
     return crumbs.filter(item => {
       // return true if any of category, message, or level contain queryValue
       return !!['category', 'message', 'level'].find(prop => {
-        let propValue = (item[prop] || '').toLowerCase();
+        const propValue = (item[prop] || '').toLowerCase();
         return propValue.includes(queryValue);
       });
     });
@@ -170,11 +170,11 @@ class BreadcrumbsInterface extends React.Component {
   };
 
   render() {
-    let group = this.props.group;
-    let evt = this.props.event;
-    let data = this.props.data;
+    const group = this.props.group;
+    const evt = this.props.event;
+    const data = this.props.data;
 
-    let title = (
+    const title = (
       <div>
         <GuideAnchor target="breadcrumbs" type="text" />
         <h3>
@@ -187,15 +187,15 @@ class BreadcrumbsInterface extends React.Component {
     let all = data.values;
 
     // Add the error event as the final (virtual) breadcrumb
-    let virtualCrumb = this.getVirtualCrumb();
+    const virtualCrumb = this.getVirtualCrumb();
     if (virtualCrumb) {
       // make copy of values array / don't mutate props
       all = all.slice(0).concat([virtualCrumb]);
     }
 
     // filter breadcrumbs on text input
-    let {queryValue} = this.state;
-    let filtered = queryValue ? this.filterCrumbs(all, queryValue.toLowerCase()) : all;
+    const {queryValue} = this.state;
+    const filtered = queryValue ? this.filterCrumbs(all, queryValue.toLowerCase()) : all;
 
     // cap max number of breadcrumbs to show
     const MAX = BreadcrumbsInterface.MAX_CRUMBS_WHEN_COLLAPSED;
@@ -204,7 +204,7 @@ class BreadcrumbsInterface extends React.Component {
       crumbs = filtered.slice(-MAX);
     }
 
-    let numCollapsed = filtered.length - crumbs.length;
+    const numCollapsed = filtered.length - crumbs.length;
 
     let crumbContent;
     if (crumbs.length) {

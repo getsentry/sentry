@@ -19,10 +19,10 @@ class GroupEventDataSection extends React.Component {
 
   componentDidMount() {
     if (location.hash) {
-      let [, hash] = location.hash.split('#');
+      const [, hash] = location.hash.split('#');
 
       try {
-        let anchorElement = hash && document.querySelector('div#' + hash);
+        const anchorElement = hash && document.querySelector('div#' + hash);
         if (anchorElement) {
           anchorElement.scrollIntoView();
         }

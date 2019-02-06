@@ -6,8 +6,8 @@ import _ from 'lodash';
 import {isUrl} from 'app/utils';
 
 function looksLikeObjectRepr(value) {
-  let a = value[0];
-  let z = value[value.length - 1];
+  const a = value[0];
+  const z = value[value.length - 1];
   if (a == '<' && z == '>') {
     return true;
   } else if (a == '[' && z == ']') {
@@ -48,7 +48,7 @@ function naturalCaseInsensitiveSort(a, b) {
 }
 
 function analyzeStringForRepr(value) {
-  let rv = {
+  const rv = {
     repr: value,
     isString: true,
     isMultiLine: false,
@@ -104,16 +104,16 @@ class ContextData extends React.Component {
 
     /*eslint no-shadow:0*/
     function walk(value, depth) {
-      let i = 0,
-        children = [];
+      let i = 0;
+      const children = [];
       if (value === null) {
         return <span className="val-null">{'None'}</span>;
       } else if (value === true || value === false) {
         return <span className="val-bool">{value ? 'True' : 'False'}</span>;
       } else if (_.isString(value)) {
-        let valueInfo = analyzeStringForRepr(value);
+        const valueInfo = analyzeStringForRepr(value);
 
-        let out = [
+        const out = [
           <span
             key="value"
             className={
@@ -162,10 +162,10 @@ class ContextData extends React.Component {
       } else if (React.isValidElement(value)) {
         return value;
       } else {
-        let keys = Object.keys(value);
+        const keys = Object.keys(value);
         keys.sort(naturalCaseInsensitiveSort);
         for (i = 0; i < keys.length; i++) {
-          let key = keys[i];
+          const key = keys[i];
           children.push(
             <span className="val-dict-pair" key={key}>
               <span className="val-dict-key">
@@ -207,10 +207,10 @@ class ContextData extends React.Component {
   render() {
     // XXX(dcramer): babel does not support this yet
     // let {data, className, ...other} = this.props;
-    let data = this.props.data;
-    let className = this.props.className;
-    let other = {};
-    for (let key in this.props) {
+    const data = this.props.data;
+    const className = this.props.className;
+    const other = {};
+    for (const key in this.props) {
       if (key !== 'data' && key !== 'className') {
         other[key] = this.props[key];
       }

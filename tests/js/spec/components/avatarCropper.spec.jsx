@@ -16,10 +16,10 @@ describe('AvatarCropper', function() {
       'should return a negative diff when yDiff and xDiff ' +
         'are positive (cropper is getting smaller)',
       function() {
-        let cropper = shallow(
+        const cropper = shallow(
           <AvatarCropper model={USER} updateDataUrlState={function() {}} />
         ).instance();
-        let diff = cropper.getDiffNW(4, 5);
+        const diff = cropper.getDiffNW(4, 5);
         expect(diff).toEqual(-4.5);
       }
     );
@@ -28,10 +28,10 @@ describe('AvatarCropper', function() {
       'should return a positive diff when yDiff and xDiff ' +
         'are negative (cropper is getting bigger)',
       function() {
-        let cropper = shallow(
+        const cropper = shallow(
           <AvatarCropper model={USER} updateDataUrlState={function() {}} />
         ).instance();
-        let diff = cropper.getDiffNW(-4, -5);
+        const diff = cropper.getDiffNW(-4, -5);
         expect(diff).toEqual(4.5);
       }
     );
@@ -42,10 +42,10 @@ describe('AvatarCropper', function() {
       'should return a positive diff when yDiff is negative and ' +
         'xDiff is positive (cropper is getting bigger)',
       function() {
-        let cropper = shallow(
+        const cropper = shallow(
           <AvatarCropper model={USER} updateDataUrlState={function() {}} />
         ).instance();
-        let diff = cropper.getDiffNE(-4, 5);
+        const diff = cropper.getDiffNE(-4, 5);
         expect(diff).toEqual(4.5);
       }
     );
@@ -54,10 +54,10 @@ describe('AvatarCropper', function() {
       'should return a negative diff when yDiff is positive and ' +
         'xDiff is negative (cropper is getting smaller)',
       function() {
-        let cropper = shallow(
+        const cropper = shallow(
           <AvatarCropper model={USER} updateDataUrlState={function() {}} />
         ).instance();
-        let diff = cropper.getDiffNE(4, -5);
+        const diff = cropper.getDiffNE(4, -5);
         expect(diff).toEqual(-4.5);
       }
     );
@@ -68,10 +68,10 @@ describe('AvatarCropper', function() {
       'should return a positive diff when yDiff and ' +
         'xDiff are positive (cropper is getting bigger)',
       function() {
-        let cropper = shallow(
+        const cropper = shallow(
           <AvatarCropper model={USER} updateDataUrlState={function() {}} />
         ).instance();
-        let diff = cropper.getDiffSE(4, 5);
+        const diff = cropper.getDiffSE(4, 5);
         expect(diff).toEqual(4.5);
       }
     );
@@ -80,10 +80,10 @@ describe('AvatarCropper', function() {
       'should return a negative diff when yDiff and ' +
         'xDiff are negative (cropper is getting smaller)',
       function() {
-        let cropper = shallow(
+        const cropper = shallow(
           <AvatarCropper model={USER} updateDataUrlState={function() {}} />
         ).instance();
-        let diff = cropper.getDiffSE(-4, -5);
+        const diff = cropper.getDiffSE(-4, -5);
         expect(diff).toEqual(-4.5);
       }
     );
@@ -94,10 +94,10 @@ describe('AvatarCropper', function() {
       'should return a positive diff when yDiff is positive and ' +
         'xDiff is negative (cropper is getting bigger)',
       function() {
-        let cropper = shallow(
+        const cropper = shallow(
           <AvatarCropper model={USER} updateDataUrlState={function() {}} />
         ).instance();
-        let diff = cropper.getDiffSW(4, -5);
+        const diff = cropper.getDiffSW(4, -5);
         expect(diff).toEqual(4.5);
       }
     );
@@ -106,10 +106,10 @@ describe('AvatarCropper', function() {
       'should return a negative diff when yDiff is negative and' +
         'xDiff is positive (cropper is getting smaller)',
       function() {
-        let cropper = shallow(
+        const cropper = shallow(
           <AvatarCropper model={USER} updateDataUrlState={function() {}} />
         ).instance();
-        let diff = cropper.getDiffSW(-4, 5);
+        const diff = cropper.getDiffSW(-4, 5);
         expect(diff).toEqual(-4.5);
       }
     );

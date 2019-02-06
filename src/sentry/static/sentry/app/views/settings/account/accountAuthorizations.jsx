@@ -18,12 +18,12 @@ class AuthorizationRow extends React.Component {
   };
 
   handleRevoke = () => {
-    let {authorization} = this.props;
+    const {authorization} = this.props;
     this.props.onRevoke(authorization);
   };
 
   render() {
-    let authorization = this.props.authorization;
+    const authorization = this.props.authorization;
 
     return (
       <PanelItem>
@@ -67,14 +67,14 @@ class AccountAuthorizations extends AsyncView {
   }
 
   handleRevoke = authorization => {
-    let oldData = this.state.data;
+    const oldData = this.state.data;
 
     this.setState(
       state => ({
         data: state.data.filter(({id}) => id !== authorization.id),
       }),
       () => {
-        let loadingIndicator = IndicatorStore.add(t('Saving changes..'));
+        const loadingIndicator = IndicatorStore.add(t('Saving changes..'));
         this.api.request('/api-authorizations/', {
           method: 'DELETE',
           data: {authorization: authorization.id},
@@ -94,8 +94,8 @@ class AccountAuthorizations extends AsyncView {
   };
 
   renderBody() {
-    let {data} = this.state;
-    let isEmpty = data.length === 0;
+    const {data} = this.state;
+    const isEmpty = data.length === 0;
 
     return (
       <div>

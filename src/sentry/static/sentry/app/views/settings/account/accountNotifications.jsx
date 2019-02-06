@@ -90,8 +90,8 @@ class FineTuningFooter extends React.Component {
   };
 
   render() {
-    let {path, text} = this.props;
-    let baseUrl = '/settings/account/notifications/';
+    const {path, text} = this.props;
+    const baseUrl = '/settings/account/notifications/';
 
     return (
       <PanelFooter css={{borderTop: 'none'}}>

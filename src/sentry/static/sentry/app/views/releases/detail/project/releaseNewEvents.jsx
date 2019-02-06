@@ -17,7 +17,7 @@ class ReleaseNewEvents extends React.Component {
   };
 
   render() {
-    let {orgId, projectId} = this.props.params;
+    const {orgId, projectId} = this.props.params;
     return (
       <div>
         <div className="alert alert-block">

@@ -19,8 +19,8 @@ export default class ReleaseDetailsActions extends React.Component {
   };
 
   handleDelete = () => {
-    let {orgId, projectId, release} = this.props;
-    let redirectPath = projectId
+    const {orgId, projectId, release} = this.props;
+    const redirectPath = projectId
       ? `/${orgId}/${projectId}/releases/`
       : `/organizations/${orgId}/releases/`;
     addLoadingMessage(t('Deleting Release...'));

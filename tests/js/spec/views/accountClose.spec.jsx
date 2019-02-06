@@ -32,7 +32,7 @@ describe('AccountClose', function() {
   });
 
   it('lists all orgs user is an owner of', function() {
-    let wrapper = mount(<AccountClose />, TestStubs.routerContext());
+    const wrapper = mount(<AccountClose />, TestStubs.routerContext());
 
     // Input for single owner org
     expect(

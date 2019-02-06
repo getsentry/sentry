@@ -56,9 +56,9 @@ const GroupEvents = createReactClass({
   },
 
   handleSearch(query) {
-    let targetQueryParams = {...this.props.location.query};
+    const targetQueryParams = {...this.props.location.query};
     targetQueryParams.query = query;
-    let {groupId, orgId} = this.props.params;
+    const {groupId, orgId} = this.props.params;
 
     browserHistory.push({
       pathname: `/organizations/${orgId}/issues/${groupId}/events/`,
@@ -111,8 +111,8 @@ const GroupEvents = createReactClass({
   },
 
   renderResults() {
-    let group = this.props.group;
-    let tagList = group.tags.filter(tag => tag.key !== 'user') || [];
+    const group = this.props.group;
+    const tagList = group.tags.filter(tag => tag.key !== 'user') || [];
 
     return (
       <EventsTable

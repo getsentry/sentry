@@ -37,7 +37,7 @@ class InactivePlugins extends React.Component {
   };
 
   render() {
-    let plugins = this.props.plugins;
+    const plugins = this.props.plugins;
     if (plugins.length === 0) return null;
     return (
       <Panel>

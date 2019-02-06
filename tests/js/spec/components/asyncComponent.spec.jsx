@@ -31,7 +31,7 @@ describe('AsyncComponent', function() {
         message: 'hi',
       },
     });
-    let wrapper = shallow(<TestAsyncComponent />);
+    const wrapper = shallow(<TestAsyncComponent />);
     expect(wrapper.find('div')).toHaveLength(1);
     expect(wrapper.find('div').text()).toEqual('hi');
   });
@@ -46,7 +46,7 @@ describe('AsyncComponent', function() {
       },
       statusCode: 400,
     });
-    let wrapper = mount(<TestAsyncComponent />);
+    const wrapper = mount(<TestAsyncComponent />);
     expect(wrapper.find('LoadingError')).toHaveLength(1);
     expect(
       wrapper

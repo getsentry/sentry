@@ -17,7 +17,7 @@ const GroupMergedView = createReactClass({
   mixins: [ApiMixin, Reflux.listenTo(GroupingStore, 'onGroupingUpdate')],
 
   getInitialState() {
-    let queryParams = this.props.location.query;
+    const queryParams = this.props.location.query;
     return {
       mergedItems: [],
       loading: true,
@@ -35,7 +35,7 @@ const GroupMergedView = createReactClass({
       nextProps.params.groupId !== this.props.params.groupId ||
       nextProps.location.search !== this.props.location.search
     ) {
-      let queryParams = nextProps.location.query;
+      const queryParams = nextProps.location.query;
       this.setState(
         {
           query: queryParams.query,
@@ -57,8 +57,8 @@ const GroupMergedView = createReactClass({
   },
 
   getEndpoint(type = 'hashes') {
-    let params = this.props.params;
-    let queryParams = {
+    const params = this.props.params;
+    const queryParams = {
       ...this.props.location.query,
       limit: 50,
       query: this.state.query,
@@ -91,9 +91,9 @@ const GroupMergedView = createReactClass({
   },
 
   render() {
-    let isLoading = this.state.loading;
-    let isError = this.state.error && !isLoading;
-    let isLoadedSuccessfully = !isError && !isLoading;
+    const isLoading = this.state.loading;
+    const isError = this.state.error && !isLoading;
+    const isLoadedSuccessfully = !isError && !isLoading;
 
     return (
       <div>

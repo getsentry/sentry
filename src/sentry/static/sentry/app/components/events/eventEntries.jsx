@@ -63,12 +63,12 @@ class EventEntries extends React.Component {
   };
 
   componentDidMount() {
-    let {event} = this.props;
+    const {event} = this.props;
 
     if (!event || !event.errors || !(event.errors.length > 0)) return;
-    let errors = event.errors;
-    let errorTypes = errors.map(errorEntries => errorEntries.type);
-    let errorMessages = errors.map(errorEntries => errorEntries.message);
+    const errors = event.errors;
+    const errorTypes = errors.map(errorEntries => errorEntries.type);
+    const errorMessages = errors.map(errorEntries => errorEntries.message);
 
     this.recordIssueError(errorTypes, errorMessages);
   }
@@ -78,9 +78,9 @@ class EventEntries extends React.Component {
   }
 
   recordIssueError(errorTypes, errorMessages) {
-    let {organization, project, event} = this.props;
-    let orgId = organization.id;
-    let platform = project.platform;
+    const {organization, project, event} = this.props;
+    const orgId = organization.id;
+    const platform = project.platform;
 
     analytics('issue_error_banner.viewed', {
       org_id: parseInt(orgId, 10),
@@ -92,11 +92,11 @@ class EventEntries extends React.Component {
   }
 
   renderEntries() {
-    let {event, group, isShare} = this.props;
+    const {event, group, isShare} = this.props;
 
     return event.entries.map((entry, entryIdx) => {
       try {
-        let Component = INTERFACES[entry.type];
+        const Component = INTERFACES[entry.type];
         if (!Component) {
           /*eslint no-console:0*/
           window.console &&
@@ -131,11 +131,11 @@ class EventEntries extends React.Component {
   }
 
   render() {
-    let {organization, group, isShare, project, event, orgId} = this.props;
+    const {organization, group, isShare, project, event, orgId} = this.props;
 
-    let features = organization ? new Set(organization.features) : new Set();
+    const features = organization ? new Set(organization.features) : new Set();
 
-    let hasContext =
+    const hasContext =
       event && (!utils.objectIsEmpty(event.user) || !utils.objectIsEmpty(event.contexts));
 
     if (!event) {
@@ -164,7 +164,13 @@ class EventEntries extends React.Component {
           />
         )}
         {hasContext && <EventContextSummary group={group} event={event} />}
-        <EventTags group={group} event={event} orgId={orgId} projectId={project.slug} />
+        <EventTags
+          organization={organization}
+          group={group}
+          event={event}
+          orgId={orgId}
+          projectId={project.slug}
+        />
         {this.renderEntries()}
         {hasContext && <EventContexts group={group} event={event} />}
         {!utils.objectIsEmpty(event.context) && (

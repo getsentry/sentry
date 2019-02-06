@@ -10,7 +10,7 @@ import {t} from 'app/locale';
 
 export default class OrganizationDeveloperSettings extends AsyncView {
   getEndpoints() {
-    let {orgId} = this.props.params;
+    const {orgId} = this.props.params;
 
     return [['applications', `/organizations/${orgId}/sentry-apps/`]];
   }
@@ -26,8 +26,8 @@ export default class OrganizationDeveloperSettings extends AsyncView {
   };
 
   renderBody() {
-    let {orgId} = this.props.params;
-    let action = (
+    const {orgId} = this.props.params;
+    const action = (
       <Button
         priority="primary"
         size="small"
@@ -38,7 +38,7 @@ export default class OrganizationDeveloperSettings extends AsyncView {
       </Button>
     );
 
-    let isEmpty = this.state.applications.length === 0;
+    const isEmpty = this.state.applications.length === 0;
 
     return (
       <div>

@@ -53,7 +53,7 @@ class TimeSince extends React.PureComponent {
   };
 
   getRelativeDate = () => {
-    let date = TimeSince.getDateObj(this.props.date);
+    const date = TimeSince.getDateObj(this.props.date);
     if (!this.props.suffix) {
       return moment(date).fromNow(true);
     } else if (this.props.suffix === 'ago') {
@@ -66,10 +66,10 @@ class TimeSince extends React.PureComponent {
   };
 
   render() {
-    let date = TimeSince.getDateObj(this.props.date);
-    let user = ConfigStore.get('user');
-    let options = user ? user.options : {};
-    let format = options.clock24Hours ? 'MMMM D YYYY HH:mm:ss z' : 'LLL z';
+    const date = TimeSince.getDateObj(this.props.date);
+    const user = ConfigStore.get('user');
+    const options = user ? user.options : {};
+    const format = options.clock24Hours ? 'MMMM D YYYY HH:mm:ss z' : 'LLL z';
     return (
       <time
         dateTime={date.toISOString()}

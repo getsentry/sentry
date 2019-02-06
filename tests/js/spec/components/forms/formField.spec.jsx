@@ -8,7 +8,7 @@ import FormModel from 'app/views/settings/components/forms/model';
 describe('FormField + model', function() {
   let model;
   let wrapper;
-  let routerContext = TestStubs.routerContext();
+  const routerContext = TestStubs.routerContext();
 
   beforeEach(function() {
     model = new FormModel();

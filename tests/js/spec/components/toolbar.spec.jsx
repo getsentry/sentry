@@ -14,7 +14,7 @@ describe('Toolbar', function() {
   });
 
   it('renders', function() {
-    let wrapper = shallow(
+    const wrapper = shallow(
       <Toolbar>
         <div />
       </Toolbar>

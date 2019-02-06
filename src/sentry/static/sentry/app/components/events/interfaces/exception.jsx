@@ -29,12 +29,12 @@ class ExceptionInterface extends React.Component {
   };
 
   render() {
-    let group = this.props.group;
-    let event = this.props.event;
-    let data = this.props.data;
-    let stackView = this.state.stackView;
-    let stackType = this.state.stackType;
-    let newestFirst = this.state.newestFirst;
+    const group = this.props.group;
+    const event = this.props.event;
+    const data = this.props.data;
+    const stackView = this.state.stackView;
+    const stackType = this.state.stackType;
+    const newestFirst = this.state.newestFirst;
 
     // in case there are threads in the event data, we don't render the
     // exception block.  Instead the exception is contained within the
@@ -43,7 +43,7 @@ class ExceptionInterface extends React.Component {
       return null;
     }
 
-    let title = (
+    const title = (
       <CrashHeader
         group={group}
         title={t('Exception')}

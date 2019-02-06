@@ -55,7 +55,7 @@ class FieldControl extends React.Component {
   };
 
   render() {
-    let {
+    const {
       inline,
       alignRight,
       disabled,

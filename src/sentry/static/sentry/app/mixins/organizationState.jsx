@@ -1,6 +1,6 @@
 import SentryTypes from 'app/sentryTypes';
 
-let OrganizationStateMixin = {
+const OrganizationStateMixin = {
   contextTypes: {
     organization: SentryTypes.Organization,
   },

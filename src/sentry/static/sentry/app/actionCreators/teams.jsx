@@ -43,7 +43,7 @@ export function updateTeamSuccess(teamId, data) {
 }
 
 export function updateTeam(api, params, options) {
-  let endpoint = `/teams/${params.orgId}/${params.teamId}/`;
+  const endpoint = `/teams/${params.orgId}/${params.teamId}/`;
   TeamActions.update(params.teamId, params.data);
 
   return api.request(endpoint, {
@@ -61,9 +61,9 @@ export function updateTeam(api, params, options) {
 }
 
 export function joinTeam(api, params, options) {
-  let endpoint = `/organizations/${params.orgId}/members/${params.memberId ||
+  const endpoint = `/organizations/${params.orgId}/members/${params.memberId ||
     'me'}/teams/${params.teamId}/`;
-  let id = uniqueId();
+  const id = uniqueId();
 
   TeamActions.update(id, params.teamId);
 
@@ -82,9 +82,9 @@ export function joinTeam(api, params, options) {
 }
 
 export function leaveTeam(api, params, options) {
-  let endpoint = `/organizations/${params.orgId}/members/${params.memberId ||
+  const endpoint = `/organizations/${params.orgId}/members/${params.memberId ||
     'me'}/teams/${params.teamId}/`;
-  let id = uniqueId();
+  const id = uniqueId();
 
   TeamActions.update(id, params.teamId);
 

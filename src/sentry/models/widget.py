@@ -21,6 +21,12 @@ class TypesClass(object):
             if id == num:
                 return name
 
+    @classmethod
+    def get_id_for_type_name(cls, type_name):
+        for id, name in cls.TYPES:
+            if type_name == name:
+                return id
+
 
 class WidgetDisplayTypes(TypesClass):
     LINE_CHART = 0

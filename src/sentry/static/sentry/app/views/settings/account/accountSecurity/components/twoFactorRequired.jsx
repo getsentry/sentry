@@ -8,7 +8,7 @@ import Alert from 'app/components/alert';
 import AsyncComponent from 'app/components/asyncComponent';
 import space from 'app/styles/space';
 
-let StyledAlert = styled(Alert)`
+const StyledAlert = styled(Alert)`
   margin: ${space(3)} 0;
 `;
 
@@ -22,18 +22,18 @@ class TwoFactorRequired extends AsyncComponent {
   }
 
   renderBody() {
-    let {orgsRequire2fa} = this.props;
+    const {orgsRequire2fa} = this.props;
     if (!orgsRequire2fa.length) {
       return null;
     }
 
     // singular vs plural message
-    let plural = orgsRequire2fa.length > 1;
-    let require = plural ? t('organizations require') : t('organization requires');
-    let organizations = plural ? t('these organizations') : t('this organization');
+    const plural = orgsRequire2fa.length > 1;
+    const require = plural ? t('organizations require') : t('organization requires');
+    const organizations = plural ? t('these organizations') : t('this organization');
 
-    let names = orgsRequire2fa.map(({name}) => capitalize(name));
-    let organizationNames = [names.slice(0, -1).join(', '), names.slice(-1)[0]].join(
+    const names = orgsRequire2fa.map(({name}) => capitalize(name));
+    const organizationNames = [names.slice(0, -1).join(', '), names.slice(-1)[0]].join(
       plural ? ' and ' : ''
     );
 

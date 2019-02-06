@@ -20,14 +20,16 @@ const AvatarRadio = createReactClass({
   },
 
   onChange(ev) {
-    let avatar = Object.assign({}, this.props.user.avatar, {avatarType: ev.target.value});
+    const avatar = Object.assign({}, this.props.user.avatar, {
+      avatarType: ev.target.value,
+    });
     this.props.user.avatar = avatar;
     this.props.updateUser(this.props.user);
   },
 
   render() {
-    let radios = [];
-    for (let opt in this.OPTIONS) {
+    const radios = [];
+    for (const opt in this.OPTIONS) {
       radios.push(
         <li className="radio" key={opt}>
           <label>

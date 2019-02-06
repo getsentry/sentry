@@ -73,8 +73,8 @@ const objectMatchesSubset = function(obj, other, deep) {
 // XXX(dcramer): the previous mechanism of using _.map here failed
 // miserably if a param was named 'length'
 export const objectToArray = function(obj) {
-  let result = [];
-  for (let key in obj) {
+  const result = [];
+  for (const key in obj) {
     result.push([key, obj[key]]);
   }
   return result;
@@ -86,7 +86,7 @@ export const intcomma = function(x) {
 
 export function sortArray(arr, score_fn) {
   arr.sort((a, b) => {
-    let a_score = score_fn(a),
+    const a_score = score_fn(a),
       b_score = score_fn(b);
 
     for (let i = 0; i < a_score.length; i++) {
@@ -104,7 +104,7 @@ export function sortArray(arr, score_fn) {
 }
 
 export function objectIsEmpty(obj) {
-  for (let prop in obj) {
+  for (const prop in obj) {
     if (obj.hasOwnProperty(prop)) {
       return false;
     }
@@ -158,8 +158,8 @@ export function toTitleCase(str) {
 }
 
 export function formatBytes(bytes) {
-  let units = ['KB', 'MB', 'GB', 'TB', 'PB', 'EB', 'ZB', 'YB'];
-  let thresh = 1024;
+  const units = ['KB', 'MB', 'GB', 'TB', 'PB', 'EB', 'ZB', 'YB'];
+  const thresh = 1024;
   if (bytes < thresh) {
     return bytes + ' B';
   }
@@ -177,7 +177,7 @@ export function getShortVersion(version) {
     return version;
   }
 
-  let match = version.match(
+  const match = version.match(
     /^(?:[a-zA-Z][a-zA-Z0-9-]+)(?:\.[a-zA-Z][a-zA-Z0-9-]+)+-(.*)$/
   );
   if (match) {
@@ -193,9 +193,9 @@ export function parseRepo(repo) {
   if (!repo) {
     return repo;
   } else {
-    let re = /(?:github\.com|bitbucket\.org)\/([^\/]+\/[^\/]+)/i;
-    let match = repo.match(re);
-    let parsedRepo = match ? match[1] : repo;
+    const re = /(?:github\.com|bitbucket\.org)\/([^\/]+\/[^\/]+)/i;
+    const match = repo.match(re);
+    const parsedRepo = match ? match[1] : repo;
     return parsedRepo;
   }
 }

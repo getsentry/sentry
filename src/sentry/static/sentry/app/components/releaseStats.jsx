@@ -14,14 +14,14 @@ const ReleaseStats = createReactClass({
   },
 
   render() {
-    let release = this.props.release;
-    let commitCount = release.commitCount || 0;
-    let authorCount = (release.authors && release.authors.length) || 0;
+    const release = this.props.release;
+    const commitCount = release.commitCount || 0;
+    const authorCount = (release.authors && release.authors.length) || 0;
     if (commitCount === 0) {
       return null;
     }
 
-    let releaseSummary =
+    const releaseSummary =
       commitCount +
       t(commitCount !== 1 ? ' commits ' : ' commit ') +
       t('by ') +

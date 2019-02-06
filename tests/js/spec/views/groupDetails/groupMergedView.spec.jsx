@@ -30,7 +30,7 @@ const mockData = {
 };
 
 describe('Issues -> Merged View', function() {
-  let context = {
+  const context = {
     group: {
       id: 'id',
       tags: [],
@@ -44,7 +44,7 @@ describe('Issues -> Merged View', function() {
   });
 
   it('renders initially with loading component', function() {
-    let wrapper = shallow(
+    const wrapper = shallow(
       <GroupMergedView
         params={{orgId: 'orgId', projectId: 'projectId', groupId: 'groupId'}}
         location={{query: {}}}
@@ -56,7 +56,7 @@ describe('Issues -> Merged View', function() {
   });
 
   it('renders with mocked data', async function() {
-    let wrapper = shallow(
+    const wrapper = shallow(
       <GroupMergedView
         params={{orgId: 'orgId', projectId: 'projectId', groupId: 'groupId'}}
         location={{query: {}}}

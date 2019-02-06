@@ -12,7 +12,7 @@ class Waiting extends React.Component {
   };
 
   render() {
-    let {hasEvent} = this.props;
+    const {hasEvent} = this.props;
 
     return (
       <div className="awaiting-event">

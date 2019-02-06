@@ -1,8 +1,0 @@
-{% load i18n %}
-
-<div class="btn-toolbar">
-    <div class="btn-group pull-right">
-        <a class="btn btn-default prev{% if not paginator.has_previous %} disabled{% else %}" href="?{{ query_string|escape }}&amp;p={{ paginator.previous_page }}{% endif %}"><span title="{% trans "Previous" %}" class="icon-arrow-left"></span></a>
-        <a class="btn btn-default next{% if not paginator.has_next %} disabled{% else %}" href="?{{ query_string|escape }}&amp;p={{ paginator.next_page }}{% endif %}"><span title="{% trans "Next" %}" class="icon-arrow-right"></span></a>
-    </div>
-</div>

@@ -1,7 +1,7 @@
 import {Project} from './project';
 
 export function Group(params = {}) {
-  let project = Project();
+  const project = Project();
   return {
     id: '1',
     stats: {

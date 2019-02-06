@@ -1,7 +1,7 @@
 import SentryTypes from 'app/sentryTypes';
 import OrganizationState from 'app/mixins/organizationState';
 
-let ProjectState = {
+const ProjectState = {
   mixins: [OrganizationState],
 
   contextTypes: {

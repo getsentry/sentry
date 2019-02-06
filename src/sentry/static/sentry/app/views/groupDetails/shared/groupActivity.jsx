@@ -19,12 +19,15 @@ import MemberListStore from 'app/stores/memberListStore';
 import NoteContainer from 'app/components/activity/noteContainer';
 import NoteInput from 'app/components/activity/noteInput';
 import PullRequestLink from 'app/components/pullRequestLink';
+import SentryTypes from 'app/sentryTypes';
 import TeamStore from 'app/stores/teamStore';
 import TimeSince from 'app/components/timeSince';
 import Version from 'app/components/version';
+import withOrganization from 'app/utils/withOrganization';
 
 class GroupActivityItem extends React.Component {
   static propTypes = {
+    organization: SentryTypes.Organization.isRequired,
     author: PropTypes.node,
     item: PropTypes.object,
     orgId: PropTypes.string,
@@ -32,8 +35,14 @@ class GroupActivityItem extends React.Component {
   };
 
   render() {
-    let {author, item, orgId, projectId} = this.props;
-    let {data} = item;
+    const {organization, author, item, orgId, projectId} = this.props;
+    const {data} = item;
+
+    const hasSentry10 = new Set(organization.features).has('sentry10');
+
+    const issuesLink = hasSentry10
+      ? `/organizations/${orgId}/issues/`
+      : `/${orgId}/${projectId}/issues/`;
 
     switch (item.type) {
       case 'note':
@@ -139,9 +148,7 @@ class GroupActivityItem extends React.Component {
           data.fingerprints.length,
           author,
           data.destination ? (
-            <a href={`/${orgId}/${projectId}/issues/${data.destination.id}`}>
-              {data.destination.shortId}
-            </a>
+            <a href={`${issuesLink}${data.destination.id}`}>{data.destination.shortId}</a>
           ) : (
             t('a group')
           )
@@ -153,9 +160,7 @@ class GroupActivityItem extends React.Component {
           data.fingerprints.length,
           author,
           data.source ? (
-            <a href={`/${orgId}/${projectId}/issues/${data.source.id}`}>
-              {data.source.shortId}
-            </a>
+            <a href={`${issuesLink}${data.source.id}`}>{data.source.shortId}</a>
           ) : (
             t('a group')
           )
@@ -166,7 +171,7 @@ class GroupActivityItem extends React.Component {
         let assignee;
 
         if (data.assigneeType == 'team') {
-          let team = TeamStore.getById(data.assignee);
+          const team = TeamStore.getById(data.assignee);
           assignee = team ? team.slug : '<unknown-team>';
 
           return t('%(author)s assigned this issue to #%(assignee)s', {
@@ -208,16 +213,17 @@ const GroupActivity = createReactClass({
 
   // TODO(dcramer): only re-render on group/activity change
   propTypes: {
-    group: PropTypes.object,
+    organization: SentryTypes.Organization.isRequired,
+    group: SentryTypes.Group,
   },
 
   mixins: [ApiMixin],
 
   onNoteDelete(item) {
-    let {group} = this.props;
+    const {group} = this.props;
 
     // Optimistically remove from UI
-    let index = GroupStore.removeActivity(group.id, item.id);
+    const index = GroupStore.removeActivity(group.id, item.id);
     if (index === -1) {
       // I dunno, the id wasn't found in the GroupStore
       return;
@@ -239,12 +245,12 @@ const GroupActivity = createReactClass({
   },
 
   render() {
-    let group = this.props.group;
-    let me = ConfigStore.get('user');
-    let memberList = MemberListStore.getAll();
+    const {organization, group} = this.props;
+    const me = ConfigStore.get('user');
+    const memberList = MemberListStore.getAll();
 
-    let children = group.activity.map((item, itemIdx) => {
-      let authorName = item.user ? item.user.name : 'Sentry';
+    const children = group.activity.map((item, itemIdx) => {
+      const authorName = item.user ? item.user.name : 'Sentry';
 
       if (item.type === 'note') {
         return (
@@ -262,7 +268,7 @@ const GroupActivity = createReactClass({
           />
         );
       } else {
-        let avatar = item.user ? (
+        const avatar = item.user ? (
           <Avatar user={item.user} size={18} className="activity-avatar" />
         ) : (
           <div className="activity-avatar avatar sentry">
@@ -270,7 +276,7 @@ const GroupActivity = createReactClass({
           </div>
         );
 
-        let author = {
+        const author = {
           name: authorName,
           avatar,
         };
@@ -282,6 +288,7 @@ const GroupActivity = createReactClass({
             <div className="activity-item-content">
               <ErrorBoundary mini>
                 <GroupActivityItem
+                  organization={organization}
                   author={
                     <span key="author">
                       {avatar}
@@ -319,4 +326,5 @@ const GroupActivity = createReactClass({
   },
 });
 
-export default GroupActivity;
+export {GroupActivity};
+export default withOrganization(GroupActivity);

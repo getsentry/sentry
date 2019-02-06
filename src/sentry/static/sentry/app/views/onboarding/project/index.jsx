@@ -49,7 +49,7 @@ class OnboardingProject extends React.Component {
   };
 
   renderTeamPicker = () => {
-    let {team, teams, setTeam} = this.props;
+    const {team, teams, setTeam} = this.props;
     return (
       <div className="new-project-team">
         <PageHeading withMargins>{t('Team') + ':'}</PageHeading>

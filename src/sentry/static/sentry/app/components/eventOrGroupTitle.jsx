@@ -20,8 +20,9 @@ class EventOrGroupTitle extends React.Component {
   };
 
   render() {
-    let {data} = this.props;
-    let {metadata, title, type, culprit} = data;
+    const {data} = this.props;
+    const {metadata, type, culprit} = data;
+    let {title} = data;
     let subtitle = null;
 
     if (type == 'error') {

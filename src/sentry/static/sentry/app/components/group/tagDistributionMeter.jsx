@@ -94,12 +94,12 @@ const TagDistributionMeter = createReactClass({
    */
 
   renderSegments() {
-    let {orgId, projectId, group, totalValues, topValues, tag} = this.props;
+    const {orgId, projectId, group, totalValues, topValues, tag} = this.props;
 
-    let totalVisible = topValues.reduce((sum, value) => sum + value.count, 0);
-    let hasOther = totalVisible < totalValues;
-    let otherPct = percent(totalValues - totalVisible, totalValues);
-    let otherPctLabel = Math.floor(otherPct);
+    const totalVisible = topValues.reduce((sum, value) => sum + value.count, 0);
+    const hasOther = totalVisible < totalValues;
+    const otherPct = percent(totalValues - totalVisible, totalValues);
+    const otherPctLabel = Math.floor(otherPct);
 
     return (
       <React.Fragment>

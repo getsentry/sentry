@@ -7,7 +7,7 @@ export default class ProjectLabel extends React.PureComponent {
   };
 
   render() {
-    let {project} = this.props;
+    const {project} = this.props;
 
     return (
       <span className="project-label" {...this.props}>

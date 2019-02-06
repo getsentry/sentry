@@ -1,9 +1,9 @@
 let functions = {};
 
-let localStorage = window.localStorage;
+const localStorage = window.localStorage;
 
 try {
-  let mod = 'sentry';
+  const mod = 'sentry';
   localStorage.setItem(mod, mod);
   localStorage.removeItem(mod);
 

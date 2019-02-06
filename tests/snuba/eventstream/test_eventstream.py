@@ -20,7 +20,8 @@ class SnubaEventStreamTest(SnubaTestCase):
         self.kafka_eventstream.producer = Mock()
 
     @patch('sentry.eventstream.insert')
-    def test(self, mock_eventstream_insert):
+    @patch('sentry.tagstore.delay_index_event_tags')
+    def test(self, mock_delay_index_event_tags, mock_eventstream_insert):
         now = datetime.utcnow()
 
         def _get_event_count():
@@ -59,6 +60,8 @@ class SnubaEventStreamTest(SnubaTestCase):
             'primary_hash': 'acbd18db4cc2f85cedef654fccc4a4d8',
             'skip_consume': False
         }
+
+        assert mock_delay_index_event_tags.call_count == 1
 
         # pass arguments on to Kafka EventManager
         self.kafka_eventstream.insert(*insert_args, **insert_kwargs)

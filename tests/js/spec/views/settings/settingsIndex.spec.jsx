@@ -40,7 +40,7 @@ describe('SettingsIndex', function() {
   describe('Fetch org details for Sidebar', function() {
     let spy;
     let api;
-    let organization = {
+    const organization = {
       id: '44',
       name: 'Org Index',
       slug: 'org-index',

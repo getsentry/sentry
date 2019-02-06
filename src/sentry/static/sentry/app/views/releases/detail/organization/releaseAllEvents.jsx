@@ -12,7 +12,7 @@ export default class ReleaseAllEvents extends React.Component {
   };
 
   render() {
-    let {orgId} = this.props.params;
+    const {orgId} = this.props.params;
     return (
       <div>
         <Alert icon="icon-open" iconSize="14px" type="warning">

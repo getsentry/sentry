@@ -20,7 +20,7 @@ export default class AlertLink extends React.Component {
   };
 
   render() {
-    let {icon, children, size} = this.props;
+    const {icon, children, size} = this.props;
 
     return (
       <StyledLink {...this.props}>

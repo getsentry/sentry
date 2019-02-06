@@ -124,7 +124,7 @@ describe('SelectedGroupStore', function() {
   describe('getSelectedIds()', function() {
     it('returns selected ids', function() {
       SelectedGroupStore.records = {1: true, 2: false, 3: true};
-      let ids = SelectedGroupStore.getSelectedIds();
+      const ids = SelectedGroupStore.getSelectedIds();
 
       expect(ids.has('1')).toBe(true);
       expect(ids.has('3')).toBe(true);
@@ -133,7 +133,7 @@ describe('SelectedGroupStore', function() {
 
     it('returns empty set with no selected ids', function() {
       SelectedGroupStore.records = {1: false};
-      let ids = SelectedGroupStore.getSelectedIds();
+      const ids = SelectedGroupStore.getSelectedIds();
 
       expect(ids.has('1')).toBe(false);
       expect(ids.size).toEqual(0);

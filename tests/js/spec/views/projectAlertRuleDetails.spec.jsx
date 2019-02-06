@@ -11,7 +11,7 @@ jest.mock('jquery');
 jest.unmock('app/utils/recreateRoute');
 
 describe('ProjectAlertRuleDetails', function() {
-  let projectAlertRuleDetailsRoutes = [
+  const projectAlertRuleDetailsRoutes = [
     {
       path: '/',
     },
@@ -88,7 +88,7 @@ describe('ProjectAlertRuleDetails', function() {
     });
 
     it('sets defaults', function() {
-      let selects = wrapper.find('SelectField Select');
+      const selects = wrapper.find('SelectField Select');
       expect(selects.first().props().value).toBe('all');
       expect(selects.last().props().value).toBe(30);
     });
@@ -113,7 +113,7 @@ describe('ProjectAlertRuleDetails', function() {
       });
 
       it('updates URL', function() {
-        let url = '/settings/org-slug/project-slug/alerts/rules/1/';
+        const url = '/settings/org-slug/project-slug/alerts/rules/1/';
         expect(browserHistory.replace).toHaveBeenCalledWith(url);
       });
     });

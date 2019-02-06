@@ -47,7 +47,7 @@ class BaseBadge extends React.PureComponent {
   };
 
   render() {
-    let {
+    const {
       className,
       hideAvatar,
       hideName,
@@ -61,7 +61,7 @@ class BaseBadge extends React.PureComponent {
       project,
     } = this.props;
 
-    let data = {
+    const data = {
       team,
       organization,
       project,

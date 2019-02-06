@@ -41,7 +41,7 @@ export default createReactClass({
   },
 
   fetchData() {
-    let statNameList = [
+    const statNameList = [
       'client-api.all-versions.responses.2xx',
       'client-api.all-versions.responses.4xx',
       'client-api.all-versions.responses.5xx',
@@ -57,7 +57,7 @@ export default createReactClass({
         },
         success: data => {
           this.setState(prevState => {
-            let rawData = prevState.rawData;
+            const rawData = prevState.rawData;
             rawData[statName] = data;
             return {
               rawData,
@@ -74,7 +74,7 @@ export default createReactClass({
   },
 
   requestFinished() {
-    let {rawData} = this.state;
+    const {rawData} = this.state;
     if (rawData['events.total'] && rawData['events.dropped']) {
       this.processOrgData();
     }
@@ -96,7 +96,7 @@ export default createReactClass({
   },
 
   getChartSeries() {
-    let {rawData} = this.state;
+    const {rawData} = this.state;
     return [
       {
         data: this.processRawSeries(rawData['client-api.all-versions.responses.4xx']),

@@ -63,7 +63,7 @@ class SearchBar extends React.Component {
    * with data when ready
    */
   getTagValues = (tag, query) => {
-    let {api, orgId, projectId} = this.props;
+    const {api, orgId, projectId} = this.props;
 
     return fetchTagValues(api, tag.key, orgId, projectId, query).then(
       values => values.map(({value}) => value),

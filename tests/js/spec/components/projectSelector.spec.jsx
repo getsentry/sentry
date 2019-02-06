@@ -46,7 +46,7 @@ describe('ProjectSelector', function() {
   };
 
   it('should show empty message with no projects button, when no projects, and has no "project:write" access', function() {
-    let wrapper = mount(
+    const wrapper = mount(
       <ProjectSelector
         {...props}
         organization={{
@@ -66,7 +66,7 @@ describe('ProjectSelector', function() {
   });
 
   it('should show empty message and create project button, when no projects and has "project:write" access', function() {
-    let wrapper = mount(
+    const wrapper = mount(
       <ProjectSelector
         {...props}
         organization={{
@@ -86,13 +86,13 @@ describe('ProjectSelector', function() {
   });
 
   it('lists projects and has filter', function() {
-    let wrapper = mount(<ProjectSelector {...props} />, routerContext);
+    const wrapper = mount(<ProjectSelector {...props} />, routerContext);
     openMenu(wrapper);
     expect(wrapper.find('AutoCompleteItem')).toHaveLength(2);
   });
 
   it('can filter projects by project name', function() {
-    let wrapper = mount(<ProjectSelector {...props} />, routerContext);
+    const wrapper = mount(<ProjectSelector {...props} />, routerContext);
     openMenu(wrapper);
 
     wrapper.find('StyledInput').simulate('change', {target: {value: 'TEST'}});
@@ -103,7 +103,7 @@ describe('ProjectSelector', function() {
   });
 
   it('does not close dropdown when input is clicked', async function() {
-    let wrapper = mount(<ProjectSelector {...props} />, routerContext);
+    const wrapper = mount(<ProjectSelector {...props} />, routerContext);
     openMenu(wrapper);
 
     wrapper.find('StyledInput').simulate('click');
@@ -113,7 +113,7 @@ describe('ProjectSelector', function() {
   });
 
   it('closes dropdown when project is selected', function() {
-    let wrapper = mount(<ProjectSelector {...props} />, routerContext);
+    const wrapper = mount(<ProjectSelector {...props} />, routerContext);
     openMenu(wrapper);
 
     // Select first project
@@ -125,8 +125,8 @@ describe('ProjectSelector', function() {
   });
 
   it('calls callback when project is selected', function() {
-    let mock = jest.fn();
-    let wrapper = mount(<ProjectSelector {...props} onSelect={mock} />, routerContext);
+    const mock = jest.fn();
+    const wrapper = mount(<ProjectSelector {...props} onSelect={mock} />, routerContext);
     openMenu(wrapper);
 
     // Select first project
@@ -143,7 +143,7 @@ describe('ProjectSelector', function() {
   });
 
   it('shows empty filter message when filtering has no results', function() {
-    let wrapper = mount(<ProjectSelector {...props} />, routerContext);
+    const wrapper = mount(<ProjectSelector {...props} />, routerContext);
     openMenu(wrapper);
 
     wrapper.find('StyledInput').simulate('change', {target: {value: 'Foo'}});
@@ -151,8 +151,8 @@ describe('ProjectSelector', function() {
   });
 
   it('does not call `onSelect` when using multi select', function() {
-    let mock = jest.fn();
-    let wrapper = mount(
+    const mock = jest.fn();
+    const wrapper = mount(
       <ProjectSelector {...props} multi onSelect={mock} />,
       routerContext
     );
@@ -169,8 +169,8 @@ describe('ProjectSelector', function() {
   });
 
   it('calls `onMultiSelect` and render prop when using multi select as an uncontrolled component', async function() {
-    let mock = jest.fn();
-    let wrapper = mount(
+    const mock = jest.fn();
+    const wrapper = mount(
       <ProjectSelector {...props} multi onMultiSelect={mock} />,
       routerContext
     );

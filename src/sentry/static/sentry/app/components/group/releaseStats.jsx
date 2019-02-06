@@ -34,7 +34,7 @@ const GroupReleaseStats = createReactClass({
   ],
 
   getInitialState() {
-    let envList = OrganizationEnvironmentsStore.getActive();
+    const envList = OrganizationEnvironmentsStore.getActive();
 
     let environments = [];
     if (this.hasSentry10()) {
@@ -68,8 +68,8 @@ const GroupReleaseStats = createReactClass({
   },
 
   render() {
-    let {group, project, allEnvironments} = this.props;
-    let {environments} = this.state;
+    const {group, project, allEnvironments} = this.props;
+    const {environments} = this.state;
 
     const environmentLabel = environments.length
       ? environments.map(env => env.displayName).join(', ')
@@ -80,10 +80,10 @@ const GroupReleaseStats = createReactClass({
         ? t('selected environments')
         : environments.length === 1 ? environments[0].displayName : null;
 
-    let projectId = project.slug;
-    let orgId = this.getOrganization().slug;
-    let hasRelease = new Set(project.features).has('releases');
-    let isLoading = !group || !allEnvironments;
+    const projectId = project.slug;
+    const orgId = this.getOrganization().slug;
+    const hasRelease = new Set(project.features).has('releases');
+    const isLoading = !group || !allEnvironments;
 
     return (
       <div className="env-stats">

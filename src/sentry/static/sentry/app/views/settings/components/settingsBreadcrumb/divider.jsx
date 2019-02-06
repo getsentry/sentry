@@ -30,7 +30,7 @@ class Divider extends React.Component {
     isLast: PropTypes.bool,
   };
   render() {
-    let {isHover, isLast} = this.props;
+    const {isHover, isLast} = this.props;
     if (isLast) return null;
 
     return (

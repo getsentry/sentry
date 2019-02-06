@@ -18,8 +18,8 @@ class SettingsNavigation extends React.Component {
   };
 
   render() {
-    let {navigationObjects, hooks, hookConfigs, ...otherProps} = this.props;
-    let navWithHooks = navigationObjects.concat(hookConfigs);
+    const {navigationObjects, hooks, hookConfigs, ...otherProps} = this.props;
+    const navWithHooks = navigationObjects.concat(hookConfigs);
 
     return (
       <Box>

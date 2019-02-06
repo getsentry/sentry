@@ -1,3 +1,4 @@
+import {withRouter} from 'react-router';
 import React from 'react';
 
 import OrganizationEvents, {parseRowFromLinks} from 'app/views/organizationEvents/events';
@@ -18,6 +19,8 @@ const pageTwoLinks =
   '<https://sentry.io/api/0/organizations/sentry/events/?statsPeriod=14d&cursor=0:0:1>; rel="previous"; results="true"; cursor="0:0:1", ' +
   '<https://sentry.io/api/0/organizations/sentry/events/?statsPeriod=14d&cursor=0:200:0>; rel="next"; results="false"; cursor="0:200:0"';
 
+const OrganizationEventsWithRouter = withRouter(OrganizationEvents);
+
 describe('OrganizationEventsErrors', function() {
   const {organization, router, routerContext} = initializeOrg({
     projects: [{isMember: true}, {isMember: true, slug: 'new-project', id: 3}],
@@ -31,7 +34,6 @@ describe('OrganizationEventsErrors', function() {
       },
     },
   });
-  const org = organization;
 
   let eventsMock;
   let eventsStatsMock;
@@ -39,7 +41,7 @@ describe('OrganizationEventsErrors', function() {
 
   beforeAll(function() {
     MockApiClient.addMockResponse({
-      url: `/organizations/${org.slug}/environments/`,
+      url: `/organizations/${organization.slug}/environments/`,
       body: TestStubs.Environments(),
     });
   });
@@ -69,17 +71,17 @@ describe('OrganizationEventsErrors', function() {
 
   it('renders with errors', async function() {
     MockApiClient.addMockResponse({
-      url: `/organizations/${org.slug}/events/`,
+      url: `/organizations/${organization.slug}/events/`,
       statusCode: 500,
       body: {details: 'Error'},
     });
     MockApiClient.addMockResponse({
-      url: `/organizations/${org.slug}/events-stats/`,
+      url: `/organizations/${organization.slug}/events-stats/`,
       statusCode: 500,
       body: {details: 'Error'},
     });
-    let wrapper = mount(
-      <OrganizationEvents organization={org} location={{query: {}}} />,
+    const wrapper = mount(
+      <OrganizationEvents organization={organization} location={{query: {}}} />,
       routerContext
     );
     await tick();
@@ -91,8 +93,8 @@ describe('OrganizationEventsErrors', function() {
   });
 
   it('renders events table', async function() {
-    let wrapper = mount(
-      <OrganizationEvents organization={org} location={{query: {}}} />,
+    const wrapper = mount(
+      <OrganizationEvents organization={organization} location={{query: {}}} />,
       routerContext
     );
     await tick();
@@ -105,8 +107,8 @@ describe('OrganizationEventsErrors', function() {
 
   it('renders TotalEventCount with internal flag', async function() {
     const newOrg = TestStubs.Organization({
-      ...org,
-      features: [...org.features, 'internal-catchall'],
+      ...organization,
+      features: [...organization.features, 'internal-catchall'],
     });
     const wrapper = mount(
       <OrganizationEvents organization={newOrg} location={{query: {}}} />,
@@ -121,9 +123,9 @@ describe('OrganizationEventsErrors', function() {
   // This tests the component's `shouldComponentUpdate`
   // Use `search` to compare instead of `query` because that's what we check in `AsyncComponent`
   it('location.query changes updates events table', async function() {
-    let wrapper = mount(
-      <OrganizationEvents
-        organization={org}
+    const wrapper = mount(
+      <OrganizationEventsWithRouter
+        organization={organization}
         location={{
           search: '?statsPeriod=14d',
           query: {
@@ -201,8 +203,15 @@ describe('OrganizationEventsErrors', function() {
       };
 
       wrapper = mount(
-        <OrganizationEventsContainer organization={org}>
-          <OrganizationEvents organization={org} />
+        <OrganizationEventsContainer
+          router={newRouter}
+          organization={organization}
+          location={newRouter.location}
+        >
+          <OrganizationEventsWithRouter
+            location={newRouter.location}
+            organization={organization}
+          />
         </OrganizationEventsContainer>,
         newRouterContext
       );
@@ -313,7 +322,10 @@ describe('OrganizationEventsContainer', function() {
         organization={organization}
         location={router.location}
       >
-        <OrganizationEvents location={router.location} organization={organization} />
+        <OrganizationEventsWithRouter
+          location={router.location}
+          organization={organization}
+        />
       </OrganizationEventsContainer>,
       routerContext
     );

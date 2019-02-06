@@ -34,7 +34,11 @@ class CommitPatchSetSerializer(serializers.Serializer):
 
 
 class CommitSerializerWithPatchSet(CommitSerializer):
-    patch_set = ListField(child=CommitPatchSetSerializer(), required=False, allow_null=False)
+    patch_set = ListField(
+        child=CommitPatchSetSerializer(
+            required=False),
+        required=False,
+        allow_null=True)
 
 
 class ReleaseSerializer(serializers.Serializer):
@@ -43,7 +47,11 @@ class ReleaseSerializer(serializers.Serializer):
     url = serializers.URLField(required=False)
     owner = UserField(required=False)
     dateReleased = serializers.DateTimeField(required=False)
-    commits = ListField(child=CommitSerializerWithPatchSet(), required=False, allow_null=False)
+    commits = ListField(
+        child=CommitSerializerWithPatchSet(
+            required=False),
+        required=False,
+        allow_null=True)
 
     def validate_version(self, attrs, source):
         value = attrs[source]

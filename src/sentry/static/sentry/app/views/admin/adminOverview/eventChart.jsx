@@ -42,7 +42,7 @@ export default createReactClass({
   },
 
   fetchData() {
-    let statNameList = ['events.total', 'events.dropped'];
+    const statNameList = ['events.total', 'events.dropped'];
 
     statNameList.forEach(statName => {
       // query the organization stats via a separate call as its possible the project stats
@@ -56,7 +56,7 @@ export default createReactClass({
         },
         success: data => {
           this.setState(prevState => {
-            let rawData = prevState.rawData;
+            const rawData = prevState.rawData;
             rawData[statName] = data;
             return {
               rawData,
@@ -73,23 +73,23 @@ export default createReactClass({
   },
 
   requestFinished() {
-    let {rawData} = this.state;
+    const {rawData} = this.state;
     if (rawData['events.total'] && rawData['events.dropped']) {
       this.processOrgData();
     }
   },
 
   processOrgData() {
-    let {rawData} = this.state;
+    const {rawData} = this.state;
     let oReceived = 0;
     let oRejected = 0;
-    let sReceived = {};
-    let sRejected = {};
-    let aReceived = [0, 0]; // received, points
+    const sReceived = {};
+    const sRejected = {};
+    const aReceived = [0, 0]; // received, points
     rawData['events.total'].forEach((point, idx) => {
-      let dReceived = point[1];
-      let dRejected = rawData['events.dropped'][idx][1];
-      let ts = point[0];
+      const dReceived = point[1];
+      const dRejected = rawData['events.dropped'][idx][1];
+      const ts = point[0];
       if (sReceived[ts] === undefined) {
         sReceived[ts] = dReceived;
         sRejected[ts] = dRejected;
@@ -125,7 +125,7 @@ export default createReactClass({
   },
 
   getChartSeries() {
-    let {stats} = this.state;
+    const {stats} = this.state;
 
     return [
       {

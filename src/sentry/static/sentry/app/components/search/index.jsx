@@ -82,7 +82,7 @@ class Search extends React.Component {
 
     analytics(`${this.props.entryPoint}.select`, {query: state && state.inputValue});
 
-    let {to, action} = item;
+    const {to, action} = item;
 
     // `action` refers to a callback function while
     // `to` is a react-router route
@@ -107,8 +107,8 @@ class Search extends React.Component {
       return;
     }
 
-    let {params, router} = this.props;
-    let nextPath = replaceRouterParams(to, params);
+    const {params, router} = this.props;
+    const nextPath = replaceRouterParams(to, params);
 
     navigateTo(nextPath, router);
   };
@@ -120,11 +120,11 @@ class Search extends React.Component {
 
   renderItem = ({resultObj, index, highlightedIndex, getItemProps}) => {
     // resultObj is a fuse.js result object with {item, matches, score}
-    let {renderItem} = this.props;
-    let highlighted = index === highlightedIndex;
-    let {item, matches} = resultObj;
-    let key = `${item.title}-${index}`;
-    let itemProps = {
+    const {renderItem} = this.props;
+    const highlighted = index === highlightedIndex;
+    const {item, matches} = resultObj;
+    const key = `${item.title}-${index}`;
+    const itemProps = {
       ...getItemProps({
         item,
       }),
@@ -149,7 +149,7 @@ class Search extends React.Component {
   };
 
   render() {
-    let {
+    const {
       params,
       dropdownStyle,
       searchOptions,
@@ -176,8 +176,8 @@ class Search extends React.Component {
           highlightedIndex,
           onChange,
         }) => {
-          let searchQuery = inputValue.toLowerCase().trim();
-          let isValidSearch = inputValue.length >= minSearch;
+          const searchQuery = inputValue.toLowerCase().trim();
+          const isValidSearch = inputValue.length >= minSearch;
 
           this.saveQueryMetrics(searchQuery);
 

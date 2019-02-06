@@ -51,7 +51,7 @@ export default class ResolveActions extends React.Component {
   }
 
   renderResolved() {
-    let {isAutoResolved, onUpdate} = this.props;
+    const {isAutoResolved, onUpdate} = this.props;
 
     if (isAutoResolved) {
       return (
@@ -84,7 +84,7 @@ export default class ResolveActions extends React.Component {
   }
 
   render() {
-    let {
+    const {
       isResolved,
       hasRelease,
       latestRelease,
@@ -97,17 +97,17 @@ export default class ResolveActions extends React.Component {
       confirmLabel,
     } = this.props;
 
-    let buttonClass = this.getButtonClass();
+    const buttonClass = this.getButtonClass();
 
     if (isResolved) {
       return this.renderResolved();
     }
 
-    let actionTitle = !hasRelease
+    const actionTitle = !hasRelease
       ? t('Set up release tracking in order to use this feature.')
       : '';
 
-    let actionLinkProps = {
+    const actionLinkProps = {
       shouldConfirm,
       message: confirmMessage,
       confirmLabel,

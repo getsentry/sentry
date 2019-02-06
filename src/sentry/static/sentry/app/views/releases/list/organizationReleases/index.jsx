@@ -11,8 +11,10 @@ import Alert from 'app/components/alert';
 import EmptyStateWarning from 'app/components/emptyStateWarning';
 import Feature from 'app/components/acl/feature';
 import GlobalSelectionHeader from 'app/components/organizations/globalSelectionHeader';
+import NoProjectMessage from 'app/components/noProjectMessage';
 import AsyncView from 'app/views/asyncView';
 import withOrganization from 'app/utils/withOrganization';
+import withGlobalSelection from 'app/utils/withGlobalSelection';
 
 import {PageContent, PageHeader} from 'app/styles/organization';
 import PageHeading from 'app/components/pageHeading';
@@ -20,11 +22,13 @@ import PageHeading from 'app/components/pageHeading';
 import ReleaseList from '../shared/releaseList';
 import ReleaseListHeader from '../shared/releaseListHeader';
 import ReleaseLanding from '../shared/releaseLanding';
+import ReleaseProgress from '../shared/releaseProgress';
 import {getQuery} from '../shared/utils';
 
 class OrganizationReleasesContainer extends React.Component {
   static propTypes = {
-    organization: SentryTypes.Organization,
+    organization: SentryTypes.Organization.isRequired,
+    selection: SentryTypes.GlobalSelection.isRequired,
   };
 
   renderNoAccess() {
@@ -71,29 +75,24 @@ class OrganizationReleases extends AsyncView {
   }
 
   onSearch = query => {
-    let targetQueryParams = {};
+    const targetQueryParams = {};
     if (query !== '') targetQueryParams.query = query;
 
-    let {orgId} = this.props.params;
+    const {orgId} = this.props.params;
     browserHistory.push({
       pathname: `/organizations/${orgId}/releases/`,
       query: targetQueryParams,
     });
   };
 
-  hasFilters() {
-    const {location} = this.props;
-
-    const hasQueryFilter = !!location.query.query;
-    const hasEnvironmentFilter = !!location.query.environment;
-
-    // If all or one project is selected show the setup screen
-    // We check the type since a single project value is represented as a
-    // string when deserialized and multiple values as an array.
-    const hasProjectFilter =
-      !location.query.project || Array.isArray(location.query.project);
-
-    return hasQueryFilter || hasProjectFilter || hasEnvironmentFilter;
+  // Returns true if there has been a release in any selected project, otherwise false
+  hasAnyRelease() {
+    const {organization: {projects}, selection} = this.props;
+    const projectIds = new Set(selection.projects);
+    const activeProjects = projects.filter(project =>
+      projectIds.has(parseInt(project.id, 10))
+    );
+    return activeProjects.some(project => !!project.latestRelease);
   }
 
   renderStreamBody() {
@@ -105,21 +104,52 @@ class OrganizationReleases extends AsyncView {
     }
 
     if (releaseList.length === 0) {
-      return this.hasFilters() ? this.renderNoQueryResults() : this.renderEmpty();
+      return this.hasAnyRelease() ? this.renderNoQueryResults() : this.renderLanding();
     }
 
-    return <ReleaseList releaseList={releaseList} orgId={organization.slug} />;
+    return (
+      <React.Fragment>
+        {this.renderReleaseProgress()}
+        <ReleaseList releaseList={releaseList} orgId={organization.slug} />
+      </React.Fragment>
+    );
+  }
+
+  renderReleaseProgress() {
+    const {organization, selection} = this.props;
+    const allAccessibleProjects = organization.projects.filter(
+      project => project.isMember
+    );
+
+    const hasSingleProject =
+      selection.projects.length === 1 ||
+      (selection.projects === 0 && allAccessibleProjects.length === 1);
+
+    if (!hasSingleProject) {
+      return null;
+    }
+
+    const releaseProject = selection.projects.length
+      ? allAccessibleProjects.find(
+          project => parseInt(project.id, 10) === selection.projects[0]
+        )
+      : allAccessibleProjects[0];
+
+    return <ReleaseProgress project={releaseProject} />;
   }
 
   renderNoQueryResults() {
     return (
-      <EmptyStateWarning>
-        <p>{t('Sorry, no releases match your filters.')}</p>
-      </EmptyStateWarning>
+      <React.Fragment>
+        {this.renderReleaseProgress()}
+        <EmptyStateWarning>
+          <p>{t('Sorry, no releases match your filters.')}</p>
+        </EmptyStateWarning>
+      </React.Fragment>
     );
   }
 
-  renderEmpty() {
+  renderLanding() {
     return <ReleaseLanding />;
   }
 
@@ -128,31 +158,33 @@ class OrganizationReleases extends AsyncView {
   }
 
   renderBody() {
-    const {location} = this.props;
+    const {location, organization} = this.props;
 
     return (
       <PageContent>
-        <PageHeader>
-          <PageHeading>{t('Releases')}</PageHeading>
+        <NoProjectMessage organization={organization}>
+          <PageHeader>
+            <PageHeading>{t('Releases')}</PageHeading>
+            <div>
+              <SearchBar
+                defaultQuery=""
+                placeholder={t('Search for a release')}
+                query={location.query.query}
+                onSearch={this.onSearch}
+              />
+            </div>
+          </PageHeader>
           <div>
-            <SearchBar
-              defaultQuery=""
-              placeholder={t('Search for a release')}
-              query={location.query.query}
-              onSearch={this.onSearch}
-            />
+            <Panel>
+              <ReleaseListHeader />
+              <PanelBody>{this.renderStreamBody()}</PanelBody>
+            </Panel>
+            <Pagination pageLinks={this.state.releaseListPageLinks} />
           </div>
-        </PageHeader>
-        <div>
-          <Panel>
-            <ReleaseListHeader />
-            <PanelBody>{this.renderStreamBody()}</PanelBody>
-          </Panel>
-          <Pagination pageLinks={this.state.releaseListPageLinks} />
-        </div>
+        </NoProjectMessage>
       </PageContent>
     );
   }
 }
 
-export default withOrganization(OrganizationReleasesContainer);
+export default withOrganization(withGlobalSelection(OrganizationReleasesContainer));

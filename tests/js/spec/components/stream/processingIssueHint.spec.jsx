@@ -5,8 +5,8 @@ import ProcessingIssueHint from 'app/components/stream/processingIssueHint';
 
 describe('ProcessingIssueHint', function() {
   let issue, wrapper;
-  let orgId = 'test-org';
-  let projectId = 'test-project';
+  const orgId = 'test-org';
+  const projectId = 'test-project';
 
   beforeEach(() => {
     issue = {
@@ -29,20 +29,20 @@ describe('ProcessingIssueHint', function() {
     });
 
     it('displays a button', function() {
-      let button = wrapper.find('Link');
+      const button = wrapper.find('Link');
       expect(button.length).toBe(1);
       expect(button.props().to).toEqual(
-        `/settings/${orgId}/${projectId}/processing-issues/`
+        `/settings/${orgId}/projects/${projectId}/processing-issues/`
       );
     });
 
     it('displays an icon', function() {
-      let icon = wrapper.find('[className*="icon-alert"]');
+      const icon = wrapper.find('[className*="icon-alert"]');
       expect(icon.length).toBe(1);
     });
 
     it('displays text', function() {
-      let text = wrapper.find('Container').text();
+      const text = wrapper.find('Container').text();
       expect(text).toEqual(expect.stringContaining('issues blocking'));
     });
   });
@@ -56,17 +56,17 @@ describe('ProcessingIssueHint', function() {
     });
 
     it('does not display a button', function() {
-      let button = wrapper.find('Link');
+      const button = wrapper.find('Link');
       expect(button.length).toBe(0);
     });
 
     it('displays an icon', function() {
-      let icon = wrapper.find('[className*="icon-processing"]');
+      const icon = wrapper.find('[className*="icon-processing"]');
       expect(icon.length).toBe(1);
     });
 
     it('displays text', function() {
-      let text = wrapper.find('Container').text();
+      const text = wrapper.find('Container').text();
       expect(text).toEqual(expect.stringContaining('Reprocessing'));
     });
   });
@@ -80,20 +80,20 @@ describe('ProcessingIssueHint', function() {
     });
 
     it('displays a button', function() {
-      let button = wrapper.find('Link');
+      const button = wrapper.find('Link');
       expect(button.length).toBe(1);
       expect(button.props().to).toEqual(
-        `/settings/${orgId}/${projectId}/processing-issues/`
+        `/settings/${orgId}/projects/${projectId}/processing-issues/`
       );
     });
 
     it('displays an icon', function() {
-      let icon = wrapper.find('[className*="icon-processing"]');
+      const icon = wrapper.find('[className*="icon-processing"]');
       expect(icon.length).toBe(1);
     });
 
     it('displays text', function() {
-      let text = wrapper.find('Container').text();
+      const text = wrapper.find('Container').text();
       expect(text).toEqual(expect.stringContaining('pending reprocessing'));
     });
   });
@@ -111,7 +111,7 @@ describe('ProcessingIssueHint', function() {
       );
     });
     it('displays the project slug', function() {
-      let text = wrapper.find('Container').text();
+      const text = wrapper.find('Container').text();
       expect(text).toEqual(expect.stringContaining(projectId));
     });
   });

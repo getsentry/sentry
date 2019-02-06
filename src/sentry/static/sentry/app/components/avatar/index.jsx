@@ -19,7 +19,7 @@ class Avatar extends React.Component {
   };
 
   render() {
-    let {user, team, project, organization, ...props} = this.props;
+    const {user, team, project, organization, ...props} = this.props;
 
     if (user) {
       return <UserAvatar user={user} {...props} />;

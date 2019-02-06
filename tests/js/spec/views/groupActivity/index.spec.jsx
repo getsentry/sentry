@@ -1,7 +1,7 @@
 import React from 'react';
 import {shallow} from 'enzyme';
 
-import GroupActivity from 'app/views/groupDetails/shared/groupActivity';
+import {GroupActivity} from 'app/views/groupDetails/shared/groupActivity';
 import NoteInput from 'app/components/activity/noteInput';
 import ConfigStore from 'app/stores/configStore';
 import GroupStore from 'app/stores/groupStore';
@@ -23,14 +23,20 @@ describe('GroupActivity', function() {
   });
 
   it('renders a NoteInput', function() {
-    let wrapper = shallow(<GroupActivity group={{id: '1337', activity: []}} />, {
-      context: {
-        group: {id: '1337'},
-        project: TestStubs.Project(),
-        team: {id: '1'},
-        organization: {id: 'bar'},
-      },
-    });
+    const wrapper = shallow(
+      <GroupActivity
+        group={{id: '1337', activity: []}}
+        organization={TestStubs.Organization()}
+      />,
+      {
+        context: {
+          group: {id: '1337'},
+          project: TestStubs.Project(),
+          team: {id: '1'},
+          organization: {id: 'bar'},
+        },
+      }
+    );
     expect(wrapper.find(NoteInput)).toHaveLength(1);
   });
 
@@ -38,19 +44,25 @@ describe('GroupActivity', function() {
     let instance;
 
     beforeEach(function() {
-      instance = shallow(<GroupActivity group={{id: '1337', activity: []}} />, {
-        context: {
-          group: {id: '1337'},
-          project: TestStubs.Project(),
-          team: {id: '1'},
-          organization: {id: 'bar'},
-        },
-      }).instance();
+      instance = shallow(
+        <GroupActivity
+          group={{id: '1337', activity: []}}
+          organization={TestStubs.Organization()}
+        />,
+        {
+          context: {
+            group: {id: '1337'},
+            project: TestStubs.Project(),
+            team: {id: '1'},
+            organization: {id: 'bar'},
+          },
+        }
+      ).instance();
     });
 
     it('should do nothing if not present in GroupStore', function() {
       sandbox.stub(GroupStore, 'removeActivity').returns(-1); // not found
-      let request = sandbox.stub(instance.api, 'request');
+      const request = sandbox.stub(instance.api, 'request');
 
       instance.onNoteDelete({id: 1});
       expect(request.calledOnce).not.toBeTruthy();
@@ -59,7 +71,7 @@ describe('GroupActivity', function() {
     it('should remove remove the item from the GroupStore make a DELETE API request', function() {
       sandbox.stub(GroupStore, 'removeActivity').returns(1);
 
-      let request = sandbox.stub(instance.api, 'request');
+      const request = sandbox.stub(instance.api, 'request');
       instance.onNoteDelete({id: 1});
       expect(request.calledOnce).toBeTruthy();
       expect(request.getCall(0).args[0]).toEqual('/issues/1337/comments/1/');

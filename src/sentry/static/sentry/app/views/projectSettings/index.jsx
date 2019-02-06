@@ -35,14 +35,14 @@ const ProjectSettings = createReactClass({
   },
 
   componentWillMount() {
-    let {setProjectNavSection} = this.props;
+    const {setProjectNavSection} = this.props;
 
     setProjectNavSection('settings');
     this.fetchData();
   },
 
   componentWillReceiveProps(nextProps) {
-    let params = this.props.params;
+    const params = this.props.params;
     if (
       nextProps.params.projectId !== params.projectId ||
       nextProps.params.orgId !== params.orgId
@@ -58,7 +58,7 @@ const ProjectSettings = createReactClass({
   },
 
   fetchData() {
-    let params = this.props.params;
+    const params = this.props.params;
 
     this.api.request(`/projects/${params.orgId}/${params.projectId}/`, {
       success: data => {
@@ -82,14 +82,14 @@ const ProjectSettings = createReactClass({
     if (this.state.loading) return <LoadingIndicator />;
     else if (this.state.error) return <LoadingError onRetry={this.fetchData} />;
 
-    let access = this.getAccess();
-    let {orgId, projectId} = this.props.params;
-    let pathPrefix = `/settings/${orgId}/${projectId}`;
-    let settingsUrlRoot = pathPrefix;
-    let project = this.state.project;
-    let rootInstallPath = `${pathPrefix}/install/`;
-    let path = this.props.location.pathname;
-    let processingIssues = this.state.project.processingIssues;
+    const access = this.getAccess();
+    const {orgId, projectId} = this.props.params;
+    const pathPrefix = `/settings/${orgId}/projects/${projectId}`;
+    const settingsUrlRoot = pathPrefix;
+    const project = this.state.project;
+    const rootInstallPath = `${pathPrefix}/install/`;
+    const path = this.props.location.pathname;
+    const processingIssues = this.state.project.processingIssues;
 
     return (
       <div className="row">

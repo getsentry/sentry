@@ -5,12 +5,12 @@ import {withMeta} from 'app/components/events/meta/metaProxy';
 import MetaData from 'app/components/events/meta/metaData';
 
 describe('MetaData', function() {
-  let exc = TestStubs.ExceptionWithMeta();
+  const exc = TestStubs.ExceptionWithMeta();
 
-  let proxiedExc = withMeta(exc);
+  const proxiedExc = withMeta(exc);
 
   it('can get meta data', function() {
-    let renderProp = jest.fn(() => null);
+    const renderProp = jest.fn(() => null);
     mount(
       <MetaData object={proxiedExc.exception.values[0]} prop="value">
         {renderProp}

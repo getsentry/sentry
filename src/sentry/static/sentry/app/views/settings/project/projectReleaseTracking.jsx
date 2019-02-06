@@ -34,7 +34,7 @@ class ProjectReleaseTracking extends AsyncView {
   }
 
   getEndpoints() {
-    let {orgId, projectId} = this.props.params;
+    const {orgId, projectId} = this.props.params;
 
     // Allow 403s
     return [
@@ -48,7 +48,7 @@ class ProjectReleaseTracking extends AsyncView {
   }
 
   handleRegenerateToken = () => {
-    let {orgId, projectId} = this.props.params;
+    const {orgId, projectId} = this.props.params;
     this.api.request(`/projects/${orgId}/${projectId}/releases/token/`, {
       method: 'POST',
       data: {project: projectId},
@@ -70,7 +70,7 @@ class ProjectReleaseTracking extends AsyncView {
   };
 
   getReleaseWebhookIntructions() {
-    let {webhookUrl} = this.state.data || {webhookUrl: WEBHOOK_PLACEHOLDER};
+    const {webhookUrl} = this.state.data || {webhookUrl: WEBHOOK_PLACEHOLDER};
     return (
       'curl ' +
       webhookUrl +
@@ -85,14 +85,14 @@ class ProjectReleaseTracking extends AsyncView {
   }
 
   renderBody() {
-    let {organization, project, plugins} = this.props;
-    let hasWrite = organization.access.includes('project:write');
+    const {organization, project, plugins} = this.props;
+    const hasWrite = organization.access.includes('project:write');
 
     if (plugins.loading) {
       return <LoadingIndicator />;
     }
 
-    let pluginList = plugins.plugins.filter(
+    const pluginList = plugins.plugins.filter(
       p => p.type === 'release-tracking' && p.hasConfiguration
     );
 

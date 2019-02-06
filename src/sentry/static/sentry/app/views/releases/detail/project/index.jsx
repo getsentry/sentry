@@ -54,8 +54,8 @@ const ProjectReleaseDetails = createReactClass({
   },
 
   getTitle() {
-    let project = this.getProject();
-    let params = this.props.params;
+    const project = this.getProject();
+    const params = this.props.params;
     return 'Release ' + params.version + ' | ' + project.slug;
   },
 
@@ -86,10 +86,10 @@ const ProjectReleaseDetails = createReactClass({
   },
 
   getReleaseDetailsEndpoint() {
-    let params = this.props.params;
-    let orgId = params.orgId;
-    let projectId = params.projectId;
-    let version = encodeURIComponent(params.version);
+    const params = this.props.params;
+    const orgId = params.orgId;
+    const projectId = params.projectId;
+    const version = encodeURIComponent(params.version);
 
     return `/projects/${orgId}/${projectId}/releases/${version}/`;
   },
@@ -98,8 +98,8 @@ const ProjectReleaseDetails = createReactClass({
     if (this.state.loading) return <LoadingIndicator />;
     else if (this.state.error) return <LoadingError onRetry={this.fetchData} />;
 
-    let release = this.state.release;
-    let {orgId, projectId} = this.props.params;
+    const release = this.state.release;
+    const {orgId, projectId} = this.props.params;
 
     return (
       <DocumentTitle title={this.getTitle()}>

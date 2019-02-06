@@ -16,9 +16,9 @@ class ExceptionContent extends React.Component {
   };
 
   render() {
-    let stackView = this.props.view;
-    let newestFirst = this.props.newestFirst;
-    let children = this.props.values.map((exc, excIdx) => {
+    const stackView = this.props.view;
+    const newestFirst = this.props.newestFirst;
+    const children = this.props.values.map((exc, excIdx) => {
       return (
         <div key={excIdx} className="exception">
           <h5 className="break-word" style={{marginBottom: 5}}>

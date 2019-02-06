@@ -21,7 +21,7 @@ class Truncate extends React.Component {
   }
 
   onFocus = e => {
-    let {value, maxLength} = this.props;
+    const {value, maxLength} = this.props;
     if (value.length <= maxLength) return;
     this.setState({isExpanded: true});
   };
@@ -31,8 +31,8 @@ class Truncate extends React.Component {
   };
 
   render() {
-    let {leftTrim, maxLength, value} = this.props;
-    let isTruncated = value.length > maxLength;
+    const {leftTrim, maxLength, value} = this.props;
+    const isTruncated = value.length > maxLength;
     let shortValue = '';
 
     if (isTruncated) {

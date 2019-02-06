@@ -128,8 +128,8 @@ describe('Grouping Store', function() {
       ]);
 
       expect(trigger).toHaveBeenCalled();
-      let calls = trigger.mock.calls;
-      let arg = calls[calls.length - 1][0];
+      const calls = trigger.mock.calls;
+      const arg = calls[calls.length - 1][0];
 
       expect(arg.filteredSimilarItems).toHaveLength(1);
       expect(arg.similarItems).toHaveLength(3);
@@ -180,14 +180,14 @@ describe('Grouping Store', function() {
         body: {message: 'failed'},
       });
 
-      let promise = GroupingStore.onFetch([
+      const promise = GroupingStore.onFetch([
         {dataKey: 'similar', endpoint: '/issues/groupId/similar/'},
       ]);
 
       expect(trigger).toHaveBeenCalled();
-      let calls = trigger.mock.calls;
+      const calls = trigger.mock.calls;
       return promise.then(() => {
-        let arg = calls[calls.length - 1][0];
+        const arg = calls[calls.length - 1][0];
         expect(arg).toMatchObject({
           loading: false,
           error: true,
@@ -204,23 +204,23 @@ describe('Grouping Store', function() {
       ]);
 
       expect(trigger).toHaveBeenCalled();
-      let calls = trigger.mock.calls;
-      let arg = calls[calls.length - 1][0];
+      const calls = trigger.mock.calls;
+      const arg = calls[calls.length - 1][0];
 
-      let item = arg.similarItems.find(({issue}) => issue.id === '217');
+      const item = arg.similarItems.find(({issue}) => issue.id === '217');
       expect(item.aggregate.exception).toBe(0.25);
       expect(item.aggregate.message).toBe(0.7);
     });
 
     it('fetches list of hashes', function() {
-      let promise = GroupingStore.onFetch([
+      const promise = GroupingStore.onFetch([
         {dataKey: 'merged', endpoint: '/issues/groupId/hashes/'},
       ]);
 
       expect(trigger).toHaveBeenCalled();
-      let calls = trigger.mock.calls;
+      const calls = trigger.mock.calls;
       return promise.then(() => {
-        let arg = calls[calls.length - 1][0];
+        const arg = calls[calls.length - 1][0];
         expect(arg.mergedItems).toHaveLength(5);
         expect(arg).toMatchObject({
           loading: false,
@@ -247,14 +247,14 @@ describe('Grouping Store', function() {
         body: {message: 'failed'},
       });
 
-      let promise = GroupingStore.onFetch([
+      const promise = GroupingStore.onFetch([
         {dataKey: 'merged', endpoint: '/issues/groupId/hashes/'},
       ]);
 
       expect(trigger).toHaveBeenCalled();
-      let calls = trigger.mock.calls;
+      const calls = trigger.mock.calls;
       return promise.then(() => {
-        let arg = calls[calls.length - 1][0];
+        const arg = calls[calls.length - 1][0];
         expect(arg).toMatchObject({
           loading: false,
           error: true,
@@ -342,7 +342,7 @@ describe('Grouping Store', function() {
         trigger.mockReset();
 
         // Everything is sync so trigger will have been called multiple times
-        let promise = GroupingStore.onMerge({
+        const promise = GroupingStore.onMerge({
           params: {
             orgId: 'orgId',
             projectId: 'projectId',
@@ -399,7 +399,7 @@ describe('Grouping Store', function() {
         trigger.mockReset();
 
         // Start unmerge
-        let promise = GroupingStore.onMerge({
+        const promise = GroupingStore.onMerge({
           params: {
             orgId: 'orgId',
             projectId: 'projectId',
@@ -441,7 +441,7 @@ describe('Grouping Store', function() {
         mergeList.add('1');
         mergeState.set('1', {checked: true});
 
-        let promise = GroupingStore.onMerge({
+        const promise = GroupingStore.onMerge({
           params: {
             orgId: 'orgId',
             projectId: 'projectId',
@@ -622,7 +622,7 @@ describe('Grouping Store', function() {
           unmergeState,
         });
 
-        let promise = GroupingStore.onUnmerge({
+        const promise = GroupingStore.onUnmerge({
           groupId: 'groupId',
         });
 
@@ -654,7 +654,7 @@ describe('Grouping Store', function() {
         unmergeList.set('2', 'event-2');
         unmergeState.set('2', {checked: true, busy: false});
 
-        let promise = GroupingStore.onUnmerge({
+        const promise = GroupingStore.onUnmerge({
           groupId: 'groupId',
         });
 
@@ -690,7 +690,7 @@ describe('Grouping Store', function() {
         GroupingStore.onToggleUnmerge(['2', 'event-2']);
         unmergeList.set('2', 'event-2');
 
-        let promise = GroupingStore.onUnmerge({
+        const promise = GroupingStore.onUnmerge({
           groupId: 'groupId',
         });
 

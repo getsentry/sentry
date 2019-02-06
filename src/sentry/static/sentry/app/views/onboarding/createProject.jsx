@@ -45,12 +45,12 @@ const CreateProject = createReactClass({
   },
 
   getInitialState() {
-    let {teams} = this.getOrganization();
-    let accessTeams = teams.filter(team => team.hasAccess);
-    let {query} = this.context.location;
+    const {teams} = this.getOrganization();
+    const accessTeams = teams.filter(team => team.hasAccess);
+    const {query} = this.context.location;
 
-    let team = query.team || (accessTeams.length && accessTeams[0].slug);
-    let platform = getPlatformName(query.platform) ? query.platform : '';
+    const team = query.team || (accessTeams.length && accessTeams[0].slug);
+    const platform = getPlatformName(query.platform) ? query.platform : '';
 
     return {
       loading: true,
@@ -63,7 +63,7 @@ const CreateProject = createReactClass({
   },
 
   onTeamCreated() {
-    let {router} = this.context;
+    const {router} = this.context;
     // After team gets created we need to force OrganizationContext to basically remount
     router.replace({
       pathname: router.location.pathname,
@@ -72,9 +72,9 @@ const CreateProject = createReactClass({
   },
 
   navigateNextUrl(data) {
-    let organization = this.getOrganization();
+    const organization = this.getOrganization();
 
-    let url =
+    const url =
       HookStore.get('utils:onboarding-survey-url').length &&
       organization.projects.length === 0
         ? HookStore.get('utils:onboarding-survey-url')[0](data, organization)
@@ -85,9 +85,9 @@ const CreateProject = createReactClass({
   },
 
   createProject() {
-    let {router} = this.context;
-    let {slug} = this.getOrganization();
-    let {projectName, platform, team, inFlight} = this.state;
+    const {router} = this.context;
+    const {slug} = this.getOrganization();
+    const {projectName, platform, team, inFlight} = this.state;
 
     //prevent double-trigger
     if (inFlight) return;
@@ -136,10 +136,10 @@ const CreateProject = createReactClass({
   },
 
   render() {
-    let {projectName, platform, error} = this.state;
-    let organization = this.getOrganization();
-    let {teams} = organization;
-    let accessTeams = teams.filter(team => team.hasAccess);
+    const {projectName, platform, error} = this.state;
+    const organization = this.getOrganization();
+    const {teams} = organization;
+    const accessTeams = teams.filter(team => team.hasAccess);
 
     const stepProps = {
       next: this.createProject,

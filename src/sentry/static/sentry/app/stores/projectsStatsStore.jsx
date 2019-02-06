@@ -37,11 +37,11 @@ const ProjectsStatsStore = Reflux.createStore({
    * @param {Object} data Project data
    */
   onUpdate(projectSlug, data) {
-    let project = this.getBySlug(projectSlug);
+    const project = this.getBySlug(projectSlug);
     this.updatingItems.set(projectSlug, project);
     if (!project) return;
 
-    let newProject = {
+    const newProject = {
       ...project,
       ...data,
     };
@@ -64,7 +64,7 @@ const ProjectsStatsStore = Reflux.createStore({
    * @param {Object} data Previous project data
    */
   onUpdateError(err, projectSlug) {
-    let project = this.updatingItems.get(projectSlug);
+    const project = this.updatingItems.get(projectSlug);
     if (!project) return;
 
     this.updatingItems.delete(projectSlug);

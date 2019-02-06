@@ -25,8 +25,8 @@ class U2fSign extends React.Component {
   };
 
   render() {
-    let {displayMode, ...props} = this.props;
-    let flowMode = displayMode === 'enroll' ? 'enroll' : 'sign';
+    const {displayMode, ...props} = this.props;
+    const flowMode = displayMode === 'enroll' ? 'enroll' : 'sign';
     return (
       <U2fInterface
         {...props}

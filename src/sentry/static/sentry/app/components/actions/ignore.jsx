@@ -58,7 +58,7 @@ export default class IgnoreActions extends React.Component {
   }
 
   render() {
-    let {
+    const {
       isIgnored,
       onUpdate,
       disabled,
@@ -67,11 +67,11 @@ export default class IgnoreActions extends React.Component {
       confirmLabel,
     } = this.props;
 
-    let linkClassName = classNames('btn btn-default btn-sm', {
+    const linkClassName = classNames('btn btn-default btn-sm', {
       active: isIgnored,
     });
 
-    let actionLinkProps = {
+    const actionLinkProps = {
       shouldConfirm,
       title: 'Ignore',
       message: confirmMessage,

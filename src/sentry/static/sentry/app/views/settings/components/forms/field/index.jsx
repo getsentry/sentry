@@ -100,8 +100,8 @@ class Field extends React.Component {
   };
 
   render() {
-    let {className, ...otherProps} = this.props;
-    let {
+    const {className, ...otherProps} = this.props;
+    const {
       controlClassName,
       alignRight,
       inline,
@@ -118,15 +118,15 @@ class Field extends React.Component {
       children,
       style,
     } = otherProps;
-    let isDisabled = typeof disabled === 'function' ? disabled(this.props) : disabled;
-    let isVisible = typeof visible === 'function' ? visible(this.props) : visible;
+    const isDisabled = typeof disabled === 'function' ? disabled(this.props) : disabled;
+    const isVisible = typeof visible === 'function' ? visible(this.props) : visible;
     let Control;
 
     if (!isVisible) {
       return null;
     }
 
-    let controlProps = {
+    const controlProps = {
       className: controlClassName,
       inline,
       alignRight,

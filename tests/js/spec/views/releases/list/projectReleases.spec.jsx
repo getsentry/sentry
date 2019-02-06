@@ -59,9 +59,9 @@ describe('ProjectReleases', function() {
 
   describe('componentWillReceiveProps()', function() {
     it('should update state with latest query pulled from query string', function() {
-      let setState = sandbox.stub(projectReleases.instance(), 'setState');
+      const setState = sandbox.stub(projectReleases.instance(), 'setState');
 
-      let newProps = {
+      const newProps = {
         ...props,
         location: {
           search: '?query=newquery',
@@ -91,7 +91,7 @@ describe('ProjectReleases', function() {
         location: {query: {per_page: 0, query: ''}},
       };
 
-      let wrapper = mount(<ProjectReleases {...props} />, routerContext);
+      const wrapper = mount(<ProjectReleases {...props} />, routerContext);
 
       wrapper.setState({
         loading: false,
@@ -118,7 +118,7 @@ describe('ProjectReleases', function() {
         location: {query: {per_page: 0, query: ''}},
       };
 
-      let wrapper = mount(<ProjectReleases {...props} />, routerContext);
+      const wrapper = mount(<ProjectReleases {...props} />, routerContext);
       wrapper.setState({
         loading: false,
         environment: null,

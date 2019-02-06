@@ -23,8 +23,8 @@ class SwitchOrganization extends React.Component {
   };
 
   render() {
-    let {organizations, canCreateOrganization} = this.props;
-    let hasOrganizations = organizations && !!organizations.length;
+    const {organizations, canCreateOrganization} = this.props;
+    const hasOrganizations = organizations && !!organizations.length;
 
     return (
       <DropdownMenu isNestedDropdown>
@@ -59,14 +59,17 @@ class SwitchOrganization extends React.Component {
                   {...getMenuProps({isStyled: true})}
                 >
                   <OrganizationList>
-                    {organizations.map(organization => (
-                      <SidebarMenuItem
-                        key={organization.slug}
-                        to={`/${organization.slug}/`}
-                      >
-                        <SidebarOrgSummary organization={organization} />
-                      </SidebarMenuItem>
-                    ))}
+                    {organizations.map(organization => {
+                      const url = new Set(organization.features).has('sentry10')
+                        ? `/organizations/${organization.slug}/`
+                        : `/${organization.slug}/`;
+
+                      return (
+                        <SidebarMenuItem key={organization.slug} to={url}>
+                          <SidebarOrgSummary organization={organization} />
+                        </SidebarMenuItem>
+                      );
+                    })}
                   </OrganizationList>
                   {hasOrganizations &&
                     canCreateOrganization && <Divider css={{marginTop: 0}} />}

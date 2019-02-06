@@ -24,7 +24,7 @@ class OrganizationTeams extends React.Component {
   };
 
   render() {
-    let {
+    const {
       allTeams,
       activeTeams,
       organization,
@@ -33,15 +33,15 @@ class OrganizationTeams extends React.Component {
       routes,
       params,
     } = this.props;
-    let org = organization;
+    const org = organization;
 
     if (!organization) return null;
 
-    let canCreateTeams = getOrganizationState(organization)
+    const canCreateTeams = getOrganizationState(organization)
       .getAccess()
       .has('project:admin');
 
-    let action = (
+    const action = (
       <Button
         priority="primary"
         size="small"
@@ -59,14 +59,14 @@ class OrganizationTeams extends React.Component {
       </Button>
     );
 
-    let teamRoute = routes.find(({path}) => path === 'teams/');
-    let urlPrefix = recreateRoute(teamRoute, {routes, params, stepBack: -1});
+    const teamRoute = routes.find(({path}) => path === 'teams/');
+    const urlPrefix = recreateRoute(teamRoute, {routes, params, stepBack: -1});
 
-    let activeTeamIds = new Set(activeTeams.map(team => team.id));
-    let otherTeams = allTeams.filter(team => !activeTeamIds.has(team.id));
+    const activeTeamIds = new Set(activeTeams.map(team => team.id));
+    const otherTeams = allTeams.filter(team => !activeTeamIds.has(team.id));
 
     return (
-      <div className="team-list">
+      <div data-test-id="team-list" className="team-list">
         <SettingsPageHeader title={t('Teams')} action={action} />
         <Panel>
           <PanelHeader>{t('Your Teams')}</PanelHeader>

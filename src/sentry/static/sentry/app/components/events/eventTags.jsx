@@ -16,6 +16,7 @@ import InlineSvg from 'app/components/inlineSvg';
 
 class EventTags extends React.Component {
   static propTypes = {
+    organization: SentryTypes.Organization.isRequired,
     group: SentryTypes.Group.isRequired,
     event: SentryTypes.Event.isRequired,
     orgId: PropTypes.string.isRequired,
@@ -23,10 +24,21 @@ class EventTags extends React.Component {
   };
 
   render() {
-    let tags = this.props.event.tags;
+    const tags = this.props.event.tags;
     if (_.isEmpty(tags)) return null;
 
-    let {orgId, projectId} = this.props;
+    const {organization, orgId, projectId} = this.props;
+
+    const hasSentry10 = new Set(organization.features).has('sentry10');
+
+    const streamPath = hasSentry10
+      ? `/organizations/${orgId}/issues/`
+      : `/${orgId}/${projectId}/`;
+
+    const releasesPath = hasSentry10
+      ? `/organizations/${orgId}/releases/`
+      : `/${orgId}/${projectId}/releases/`;
+
     return (
       <EventDataSection
         group={this.props.group}
@@ -41,7 +53,7 @@ class EventTags extends React.Component {
               <Pill key={tag.key} name={tag.key}>
                 <Link
                   to={{
-                    pathname: `/${orgId}/${projectId}/`,
+                    pathname: streamPath,
                     query: {query: `${tag.key}:"${tag.value}"`},
                   }}
                 >
@@ -59,7 +71,7 @@ class EventTags extends React.Component {
                     orgId={orgId}
                     projectId={projectId}
                   >
-                    <Link to={`/${orgId}/${projectId}/releases/${tag.value}/`}>
+                    <Link to={`${releasesPath}${tag.value}/`}>
                       <InlineSvg src="icon-circle-info" size="14px" />
                     </Link>
                   </VersionHoverCard>

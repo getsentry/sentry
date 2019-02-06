@@ -20,7 +20,7 @@ describe('SelectAsyncField', function() {
   });
 
   it('supports autocomplete arguments from an integration', async function() {
-    let wrapper = mount(<SelectAsyncField url="/foo/bar/" name="fieldName" />);
+    const wrapper = mount(<SelectAsyncField url="/foo/bar/" name="fieldName" />);
 
     wrapper.find('input[id="id-fieldName"]').simulate('change', {target: {value: 'baz'}});
 
@@ -39,8 +39,8 @@ describe('SelectAsyncField', function() {
   });
 
   it('with Form context', async function() {
-    let submitMock = jest.fn();
-    let wrapper = mount(
+    const submitMock = jest.fn();
+    const wrapper = mount(
       <Form onSubmit={submitMock}>
         <SelectAsyncField url="/foo/bar/" name="fieldName" />
       </Form>,

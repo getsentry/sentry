@@ -52,7 +52,7 @@ const PLATFORM_TO_ICON = {
 };
 
 export function getIcon(platform) {
-  let icon = PLATFORM_TO_ICON[platform];
+  const icon = PLATFORM_TO_ICON[platform];
 
   if (!icon) {
     return 'generic';
@@ -62,7 +62,7 @@ export function getIcon(platform) {
 }
 
 const Platformicon = ({platform, size, width, height, ...props}) => {
-  let icon = getIcon(platform);
+  const icon = getIcon(platform);
 
   return (
     <img

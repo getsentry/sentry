@@ -42,7 +42,7 @@ class RedirectToProjectModal extends React.Component {
   }
 
   getNewPath() {
-    let {params, slug} = this.props;
+    const {params, slug} = this.props;
 
     return recreateRoute('', {
       ...this.props,
@@ -54,7 +54,7 @@ class RedirectToProjectModal extends React.Component {
   }
 
   render() {
-    let {slug, Header, Body} = this.props;
+    const {slug, Header, Body} = this.props;
     return (
       <React.Fragment>
         <Header>{t('Redirecting to New Project...')}</Header>

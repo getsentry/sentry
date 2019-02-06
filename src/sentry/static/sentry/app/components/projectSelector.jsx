@@ -278,7 +278,7 @@ class ProjectSelectorItem extends React.PureComponent {
           {project.isBookmarked && <BookmarkIcon src="icon-star-small-filled" />}
           {multi && (
             <SettingsIconLink
-              to={`/settings/${organization.slug}/${project.slug}/`}
+              to={`/settings/${organization.slug}/projects/${project.slug}/`}
               onClick={e => e.stopPropagation()}
             >
               <InlineSvg src="icon-settings" />

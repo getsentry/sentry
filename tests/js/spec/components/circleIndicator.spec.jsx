@@ -4,7 +4,7 @@ import CircleIndicator from 'app/components/circleIndicator';
 
 describe('CircleIndicator', function() {
   it('renders', function() {
-    let wrapper = shallow(<CircleIndicator />);
+    const wrapper = shallow(<CircleIndicator />);
     expect(wrapper).toMatchSnapshot();
   });
 });

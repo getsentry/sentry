@@ -33,21 +33,21 @@ class ProjectHeader extends React.Component {
   };
 
   render() {
-    let {project, environments, activeEnvironment} = this.props;
-    let navSection = this.props.activeSection;
-    let org = this.props.organization;
-    let allEnvironmentsLabel = t('All environments');
+    const {project, environments, activeEnvironment} = this.props;
+    const navSection = this.props.activeSection;
+    const org = this.props.organization;
+    const allEnvironmentsLabel = t('All environments');
 
-    let pagesWithEnvironments = new Set([
+    const pagesWithEnvironments = new Set([
       'stream',
       'releases',
       'dashboard',
       'events',
       'user-feedback',
     ]);
-    let showEnvironmentsToggle = pagesWithEnvironments.has(navSection);
+    const showEnvironmentsToggle = pagesWithEnvironments.has(navSection);
 
-    let activeEnvironmentTitle = activeEnvironment
+    const activeEnvironmentTitle = activeEnvironment
       ? activeEnvironment.displayName
       : allEnvironmentsLabel;
 
@@ -82,7 +82,9 @@ class ProjectHeader extends React.Component {
                 </ProjectLink>
               </li>
               <li className={navSection == 'settings' ? 'active' : ''}>
-                <Link to={`/settings/${org.slug}/${project.slug}/`}>{t('Settings')}</Link>
+                <Link to={`/settings/${org.slug}/projects/${project.slug}/`}>
+                  {t('Settings')}
+                </Link>
               </li>
             </NavTabs>
           </div>
@@ -119,7 +121,7 @@ class ProjectHeader extends React.Component {
                   <MenuItem divider={true} />
                   <div style={{textAlign: 'center', padding: '5px 0px'}}>
                     <Button
-                      to={`/settings/${org.slug}/${project.slug}/environments/`}
+                      to={`/settings/${org.slug}/projects/${project.slug}/environments/`}
                       size="small"
                     >
                       {t('Manage environments')}

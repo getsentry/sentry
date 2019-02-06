@@ -68,10 +68,10 @@ class BaseAvatar extends React.Component {
   }
 
   getRemoteImageSize = () => {
-    let {remoteImageSize, size} = this.props;
+    const {remoteImageSize, size} = this.props;
     // Try to make sure remote image size is >= requested size
     // If requested size > allowed size then use the largest allowed size
-    let allowed =
+    const allowed =
       size &&
       (ALLOWED_SIZES.find(allowedSize => allowedSize >= size) ||
         ALLOWED_SIZES[ALLOWED_SIZES.length - 1]);
@@ -80,7 +80,7 @@ class BaseAvatar extends React.Component {
   };
 
   buildUploadUrl = () => {
-    let {uploadPath, uploadId} = this.props;
+    const {uploadPath, uploadId} = this.props;
 
     return `/${uploadPath || 'avatar'}/${uploadId}/?${qs.stringify({
       s: DEFAULT_REMOTE_SIZE,
@@ -100,9 +100,9 @@ class BaseAvatar extends React.Component {
       return null;
     }
 
-    let {type, round, gravatarId} = this.props;
+    const {type, round, gravatarId} = this.props;
 
-    let eventProps = {
+    const eventProps = {
       onError: this.handleError,
       onLoad: this.handleLoad,
     };
@@ -127,12 +127,20 @@ class BaseAvatar extends React.Component {
   };
 
   renderLetterAvatar() {
-    let {title, letterId, round} = this.props;
+    const {title, letterId, round} = this.props;
     return <LetterAvatar round={round} displayName={title} identifier={letterId} />;
   }
 
   render() {
-    let {className, round, hasTooltip, size, tooltip, tooltipOptions, style} = this.props;
+    const {
+      className,
+      round,
+      hasTooltip,
+      size,
+      tooltip,
+      tooltipOptions,
+      style,
+    } = this.props;
     let sizeStyle = {};
 
     if (size) {

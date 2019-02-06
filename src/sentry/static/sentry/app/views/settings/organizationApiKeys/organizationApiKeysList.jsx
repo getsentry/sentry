@@ -23,10 +23,10 @@ class OrganizationApiKeysList extends React.Component {
   };
 
   render() {
-    let {params, routes, keys, busy, onAddApiKey, onRemove} = this.props;
-    let hasKeys = keys && keys.length;
+    const {params, routes, keys, busy, onAddApiKey, onRemove} = this.props;
+    const hasKeys = keys && keys.length;
 
-    let action = (
+    const action = (
       <Button
         priority="primary"
         size="small"
@@ -85,7 +85,7 @@ class OrganizationApiKeysList extends React.Component {
 
             {keys &&
               keys.map(({id, key, label}) => {
-                let apiDetailsUrl = recreateRoute(`${id}/`, {
+                const apiDetailsUrl = recreateRoute(`${id}/`, {
                   params,
                   routes,
                 });

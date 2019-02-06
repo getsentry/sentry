@@ -176,8 +176,8 @@ function optionsForSection(section) {
 }
 
 export function getOptionField(option, field) {
-  let meta = {...getOption(option), ...field};
-  let Field = meta.component || TextField;
+  const meta = {...getOption(option), ...field};
+  const Field = meta.component || TextField;
   return (
     <Field
       {...meta}
@@ -203,10 +203,10 @@ export function getForm(fields) {
   // fields is a object mapping key name to Fields, so the goal is to split
   // them up into multiple sections, and spit out fieldsets with a grouping of
   // all fields, in the right order, under their section.
-  let sets = [];
-  for (let section of sections) {
-    let set = [];
-    for (let option of optionsForSection(section)) {
+  const sets = [];
+  for (const section of sections) {
+    const set = [];
+    for (const option of optionsForSection(section)) {
       if (fields[option.key]) {
         set.push(fields[option.key]);
       }

@@ -37,7 +37,7 @@ class OrganizationMemberDetail extends AsyncView {
 
   constructor(...args) {
     super(...args);
-    let {teams} = this.getOrganization();
+    const {teams} = this.getOrganization();
 
     this.state = {
       ...this.state,
@@ -49,8 +49,8 @@ class OrganizationMemberDetail extends AsyncView {
   }
 
   getEndpoints() {
-    let {slug} = this.getOrganization();
-    let {params} = this.props;
+    const {slug} = this.getOrganization();
+    const {params} = this.props;
     return [['member', `/organizations/${slug}/members/${params.memberId}/`]];
   }
 
@@ -59,7 +59,7 @@ class OrganizationMemberDetail extends AsyncView {
   }
 
   redirectToMemberPage() {
-    let members = recreateRoute('members/', {
+    const members = recreateRoute('members/', {
       routes: this.props.routes,
       params: this.props.params,
       stepBack: -2,
@@ -68,10 +68,10 @@ class OrganizationMemberDetail extends AsyncView {
   }
 
   handleSave = () => {
-    let {slug} = this.getOrganization();
-    let {params} = this.props;
+    const {slug} = this.getOrganization();
+    const {params} = this.props;
 
-    let indicator = IndicatorStore.add('Saving...');
+    const indicator = IndicatorStore.add('Saving...');
     this.setState({busy: true});
 
     updateMember(this.api, {
@@ -91,10 +91,10 @@ class OrganizationMemberDetail extends AsyncView {
   };
 
   handleInvite = regenerate => {
-    let {slug} = this.getOrganization();
-    let {params} = this.props;
+    const {slug} = this.getOrganization();
+    const {params} = this.props;
 
-    let indicator = IndicatorStore.add('Sending invite...');
+    const indicator = IndicatorStore.add('Sending invite...');
     this.setState({busy: true});
 
     resendMemberInvite(this.api, {
@@ -116,8 +116,8 @@ class OrganizationMemberDetail extends AsyncView {
   };
 
   handleToggleTeam = slug => {
-    let {member} = this.state;
-    let selectedTeams = new Set(member.teams);
+    const {member} = this.state;
+    const selectedTeams = new Set(member.teams);
     if (selectedTeams.has(slug)) {
       selectedTeams.delete(slug);
     } else {
@@ -133,14 +133,15 @@ class OrganizationMemberDetail extends AsyncView {
   };
 
   allSelected = () => {
-    let {member} = this.state;
-    let {teams} = this.getOrganization();
+    const {member} = this.state;
+    const {teams} = this.getOrganization();
     return teams.length === member.teams.length;
   };
 
   handleSelectAll = () => {
-    let {member, selectedTeams} = this.state;
-    let {teams} = this.getOrganization();
+    let {selectedTeams} = this.state;
+    const {member} = this.state;
+    const {teams} = this.getOrganization();
 
     if (this.allSelected()) {
       selectedTeams.clear();
@@ -157,10 +158,10 @@ class OrganizationMemberDetail extends AsyncView {
   };
 
   handle2faReset = () => {
-    let {user} = this.state.member;
-    let {slug} = this.getOrganization();
+    const {user} = this.state.member;
+    const {slug} = this.getOrganization();
 
-    let requests = user.authenticators.map(auth =>
+    const requests = user.authenticators.map(auth =>
       removeAuthenticator(this.api, user.id, auth.id)
     );
 
@@ -176,19 +177,19 @@ class OrganizationMemberDetail extends AsyncView {
   };
 
   showResetButton = () => {
-    let {member} = this.state;
-    let {require2FA} = this.getOrganization();
-    let {user} = member;
+    const {member} = this.state;
+    const {require2FA} = this.getOrganization();
+    const {user} = member;
 
     if (!user || !user.authenticators || require2FA) return false;
-    let hasAuth = user.authenticators.length >= 1;
+    const hasAuth = user.authenticators.length >= 1;
     return hasAuth && user.canReset2fa;
   };
 
   getTooltip = () => {
-    let {member} = this.state;
-    let {require2FA} = this.getOrganization();
-    let {user} = member;
+    const {member} = this.state;
+    const {require2FA} = this.getOrganization();
+    const {user} = member;
 
     if (!user) return '';
 
@@ -201,17 +202,17 @@ class OrganizationMemberDetail extends AsyncView {
   };
 
   renderBody() {
-    let {error, member} = this.state;
-    let {teams, access} = this.getOrganization();
+    const {error, member} = this.state;
+    const {teams, access} = this.getOrganization();
 
     if (!member) return <NotFound />;
 
-    let inviteLink = member.invite_link;
-    let canEdit = access.includes('org:write');
+    const inviteLink = member.invite_link;
+    const canEdit = access.includes('org:write');
 
-    let {email, expired, pending} = member;
-    let canResend = !expired;
-    let showAuth = !pending;
+    const {email, expired, pending} = member;
+    const canResend = !expired;
+    const showAuth = !pending;
 
     return (
       <div>

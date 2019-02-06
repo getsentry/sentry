@@ -30,16 +30,16 @@ class PluginSettings extends PluginComponentBase {
   }
 
   getPluginEndpoint() {
-    let org = this.props.organization;
-    let project = this.props.project;
+    const org = this.props.organization;
+    const project = this.props.project;
     return `/projects/${org.slug}/${project.slug}/plugins/${this.props.plugin.id}/`;
   }
 
   changeField(name, value) {
-    let formData = this.state.formData;
+    const formData = this.state.formData;
     formData[name] = value;
     // upon changing a field, remove errors
-    let errors = this.state.errors;
+    const errors = this.state.errors;
     delete errors[name];
     this.setState({formData, errors});
   }
@@ -47,13 +47,13 @@ class PluginSettings extends PluginComponentBase {
   onSubmit() {
     let repo = this.state.formData.repo;
     repo = repo && parseRepo(repo);
-    let parsedFormData = {...this.state.formData, repo};
+    const parsedFormData = {...this.state.formData, repo};
     this.api.request(this.getPluginEndpoint(), {
       data: parsedFormData,
       method: 'PUT',
       success: this.onSaveSuccess.bind(this, data => {
-        let formData = {};
-        let initialData = {};
+        const formData = {};
+        const initialData = {};
         data.config.forEach(field => {
           formData[field.name] = field.value || field.defaultValue;
           initialData[field.name] = field.value;
@@ -86,8 +86,8 @@ class PluginSettings extends PluginComponentBase {
           );
           return;
         }
-        let formData = {};
-        let initialData = {};
+        const formData = {};
+        const initialData = {};
         data.config.forEach(field => {
           formData[field.name] = field.value || field.defaultValue;
           initialData[field.name] = field.value;
@@ -111,10 +111,10 @@ class PluginSettings extends PluginComponentBase {
     if (this.state.state === FormState.LOADING) {
       return <LoadingIndicator />;
     }
-    let isSaving = this.state.state === FormState.SAVING;
-    let hasChanges = !_.isEqual(this.state.initialData, this.state.formData);
+    const isSaving = this.state.state === FormState.SAVING;
+    const hasChanges = !_.isEqual(this.state.initialData, this.state.formData);
 
-    let data = this.state.rawData;
+    const data = this.state.rawData;
     if (data.config_error) {
       let authUrl = data.auth_url;
       if (authUrl.indexOf('?') === -1) {

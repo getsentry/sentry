@@ -1,5 +1,6 @@
 import React from 'react';
 import PropTypes from 'prop-types';
+import classNames from 'classnames';
 
 import Confirm from 'app/components/confirm';
 
@@ -22,14 +23,11 @@ class LinkWithConfirmation extends React.PureComponent {
   }
 
   render() {
-    let {className, disabled, title, children, ...otherProps} = this.props;
-    if (this.props.disabled) {
-      className += ' disabled';
-    }
+    const {className, disabled, title, children, ...otherProps} = this.props;
     return (
       <Confirm {...otherProps} disabled={disabled}>
         <a
-          className={className}
+          className={classNames(className || '', {disabled})}
           disabled={disabled}
           onClick={this.onToggle}
           title={title}

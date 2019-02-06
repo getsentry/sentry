@@ -6,9 +6,9 @@ import {mount} from 'enzyme';
 import OrganizationDeveloperSettings from 'app/views/settings/organizationDeveloperSettings/index';
 
 describe('Organization Developer Settings', function() {
-  let org = TestStubs.Organization();
-  let sentryApp = TestStubs.SentryApp();
-  let routerContext = TestStubs.routerContext();
+  const org = TestStubs.Organization();
+  const sentryApp = TestStubs.SentryApp();
+  const routerContext = TestStubs.routerContext();
 
   beforeEach(() => {
     Client.clearMockResponses();
@@ -37,7 +37,7 @@ describe('Organization Developer Settings', function() {
       body: [sentryApp],
     });
 
-    let wrapper = mount(
+    const wrapper = mount(
       <OrganizationDeveloperSettings params={{orgId: org.slug}} />,
       routerContext
     );
@@ -74,7 +74,7 @@ describe('Organization Developer Settings', function() {
       url: `/organizations/${org.slug}/sentry-apps/`,
       body: [publishedSentryApp],
     });
-    let wrapper = mount(
+    const wrapper = mount(
       <OrganizationDeveloperSettings params={{orgId: org.slug}} />,
       routerContext
     );

@@ -19,7 +19,7 @@ export default class AdminQuotas extends AsyncView {
   }
 
   renderBody() {
-    let {config} = this.state;
+    const {config} = this.state;
     return (
       <div>
         <h3>Quotas</h3>

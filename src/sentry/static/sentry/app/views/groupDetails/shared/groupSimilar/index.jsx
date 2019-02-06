@@ -64,9 +64,9 @@ const GroupGroupingView = createReactClass({
         error: typeof error !== 'undefined' ? error : false,
       });
     } else if (mergedParent && mergedParent !== this.props.params.groupId) {
-      let {params} = this.props;
+      const {params} = this.props;
       // Merge success, since we can't specify target, we need to redirect to new parent
-      let baseUrl = params.projectId
+      const baseUrl = params.projectId
         ? `/${params.orgId}/${params.projectId}/issues/`
         : `/organizations/${params.orgId}/issues/`;
       browserHistory.push(`${baseUrl}${mergedParent}/similar/`);
@@ -74,8 +74,8 @@ const GroupGroupingView = createReactClass({
   },
 
   getEndpoint(type = 'similar') {
-    let params = this.props.params;
-    let queryParams = {
+    const params = this.props.params;
+    const queryParams = {
       ...this.props.location.query,
       limit: 50,
     };
@@ -93,7 +93,7 @@ const GroupGroupingView = createReactClass({
       error: false,
     });
 
-    let reqs = [];
+    const reqs = [];
 
     if (this.hasSimilarityFeature()) {
       reqs.push({
@@ -118,11 +118,11 @@ const GroupGroupingView = createReactClass({
   },
 
   render() {
-    let {orgId, groupId} = this.props.params;
-    let isLoading = this.state.loading;
-    let isError = this.state.error && !isLoading;
-    let isLoadedSuccessfully = !isError && !isLoading;
-    let hasSimilarItems =
+    const {orgId, groupId} = this.props.params;
+    const isLoading = this.state.loading;
+    const isError = this.state.error && !isLoading;
+    const isLoadedSuccessfully = !isError && !isLoading;
+    const hasSimilarItems =
       this.hasSimilarityFeature() &&
       (this.state.similarItems.length >= 0 ||
         this.state.filteredSimilarItems.length >= 0) &&

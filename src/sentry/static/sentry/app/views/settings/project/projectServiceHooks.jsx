@@ -35,11 +35,11 @@ const ServiceHookRow = createReactClass({
   },
 
   render() {
-    let {orgId, projectId, hook} = this.props;
+    const {orgId, projectId, hook} = this.props;
     return (
       <Field
         label={
-          <Link to={`/settings/${orgId}/${projectId}/hooks/${hook.id}/`}>
+          <Link to={`/settings/${orgId}/projects/${projectId}/hooks/${hook.id}/`}>
             <Truncate value={hook.url} />
           </Link>
         }
@@ -69,13 +69,13 @@ export default class ProjectServiceHooks extends AsyncView {
   };
 
   getEndpoints() {
-    let {orgId, projectId} = this.props.params;
+    const {orgId, projectId} = this.props.params;
     return [['hookList', `/projects/${orgId}/${projectId}/hooks/`]];
   }
 
   onToggleActive = hook => {
-    let {orgId, projectId} = this.props.params;
-    let loadingIndicator = IndicatorStore.add(t('Saving changes..'));
+    const {orgId, projectId} = this.props.params;
+    const loadingIndicator = IndicatorStore.add(t('Saving changes..'));
     this.api.request(`/projects/${orgId}/${projectId}/hooks/${hook.id}/`, {
       method: 'PUT',
       data: {
@@ -83,7 +83,7 @@ export default class ProjectServiceHooks extends AsyncView {
       },
       success: data => {
         IndicatorStore.remove(loadingIndicator);
-        let hookList = this.state.hookList.map(h => {
+        const hookList = this.state.hookList.map(h => {
           if (h.id === data.id) {
             return {
               ...h,
@@ -116,7 +116,7 @@ export default class ProjectServiceHooks extends AsyncView {
   }
 
   renderResults() {
-    let {orgId, projectId} = this.props.params;
+    const {orgId, projectId} = this.props.params;
 
     return (
       <React.Fragment>
@@ -147,8 +147,8 @@ export default class ProjectServiceHooks extends AsyncView {
     if (this.state.hookList.length > 0) body = this.renderResults();
     else body = this.renderEmpty();
 
-    let {orgId, projectId} = this.props.params;
-    let access = new Set(this.context.organization.access);
+    const {orgId, projectId} = this.props.params;
+    const access = new Set(this.context.organization.access);
 
     return (
       <div className="ref-project-service-hooks">
@@ -158,7 +158,7 @@ export default class ProjectServiceHooks extends AsyncView {
             access.has('project:write') ? (
               <Button
                 data-test-id="new-service-hook"
-                to={`/settings/${orgId}/${projectId}/hooks/new/`}
+                to={`/settings/${orgId}/projects/${projectId}/hooks/new/`}
                 size="small"
                 priority="primary"
               >

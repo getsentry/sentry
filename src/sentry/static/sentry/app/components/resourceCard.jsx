@@ -15,13 +15,13 @@ export default class ResourceCard extends React.Component {
   };
 
   recordClick = () => {
-    let {link, title} = this.props;
+    const {link, title} = this.props;
     analytics('orgdash.resource_clicked', {link, title});
   };
 
   render() {
     const mediaUrl = ConfigStore.get('mediaUrl');
-    let {title, link, imgUrl} = this.props;
+    const {title, link, imgUrl} = this.props;
 
     return (
       <ResourceCardWrapper onClick={this.recordClick}>

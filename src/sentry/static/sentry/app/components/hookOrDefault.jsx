@@ -45,8 +45,8 @@ function HookOrDefault({hookName, defaultComponent, params}) {
     },
 
     render() {
-      let hookExists = this.state.hooks && this.state.hooks.length;
-      let HookComponent =
+      const hookExists = this.state.hooks && this.state.hooks.length;
+      const HookComponent =
         hookExists && this.state.hooks[0]({params})
           ? this.state.hooks[0]({params})
           : defaultComponent;

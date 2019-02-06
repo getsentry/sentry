@@ -33,8 +33,8 @@ class ProjectInstallOverview extends React.Component {
   };
 
   redirectToDocs = platform => {
-    let {orgId, projectId} = this.props.params;
-    let prefix = recreateRoute('', {...this.props, stepBack: -3});
+    const {orgId, projectId} = this.props.params;
+    const prefix = recreateRoute('', {...this.props, stepBack: -3});
     let rootUrl = `${prefix}install`;
 
     if (this.isGettingStarted()) {
@@ -51,10 +51,10 @@ class ProjectInstallOverview extends React.Component {
   };
 
   render() {
-    let {data} = this.state;
-    let {orgId, projectId} = this.props.params;
+    const {data} = this.state;
+    const {orgId, projectId} = this.props.params;
 
-    let issueStreamLink = this.hasSentry10()
+    const issueStreamLink = this.hasSentry10()
       ? `/organizations/${orgId}/issues/#welcome`
       : `/${orgId}/${projectId}/#welcome`;
 

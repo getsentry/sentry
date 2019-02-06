@@ -112,7 +112,7 @@ class StackedBarChart extends React.Component {
   };
 
   pointsToSeries = points => {
-    let series = [];
+    const series = [];
     points.forEach((p, pIdx) => {
       p.y.forEach((y, yIdx) => {
         if (!series[yIdx]) {
@@ -125,7 +125,7 @@ class StackedBarChart extends React.Component {
   };
 
   pointIndex = series => {
-    let points = {};
+    const points = {};
     series.forEach(s => {
       s.data.forEach(p => {
         if (!points[p.x]) {
@@ -138,20 +138,20 @@ class StackedBarChart extends React.Component {
   };
 
   use24Hours() {
-    let user = ConfigStore.get('user');
-    let options = user ? user.options : {};
+    const user = ConfigStore.get('user');
+    const options = user ? user.options : {};
     return options.clock24Hours;
   }
 
   floatFormat(number, places) {
-    let multi = Math.pow(10, places);
+    const multi = Math.pow(10, places);
     return parseInt(number * multi, 10) / multi;
   }
 
   timeLabelAsHour(point) {
-    let timeMoment = moment(point.x * 1000);
-    let nextMoment = timeMoment.clone().add(59, 'minute');
-    let format = this.use24Hours() ? 'HH:mm' : 'LT';
+    const timeMoment = moment(point.x * 1000);
+    const nextMoment = timeMoment.clone().add(59, 'minute');
+    const format = this.use24Hours() ? 'HH:mm' : 'LT';
 
     return (
       '<span>' +
@@ -165,15 +165,15 @@ class StackedBarChart extends React.Component {
   }
 
   timeLabelAsDay(point) {
-    let timeMoment = moment(point.x * 1000);
+    const timeMoment = moment(point.x * 1000);
 
     return `<span>${timeMoment.format('LL')}</span>`;
   }
 
   timeLabelAsRange(interval, point) {
-    let timeMoment = moment(point.x * 1000);
-    let nextMoment = timeMoment.clone().add(interval - 1, 'second');
-    let format = this.use24Hours() ? 'MMM Do, HH:mm' : 'MMM Do, h:mm a';
+    const timeMoment = moment(point.x * 1000);
+    const nextMoment = timeMoment.clone().add(interval - 1, 'second');
+    const format = this.use24Hours() ? 'MMM Do, HH:mm' : 'MMM Do, h:mm a';
 
     return (
       '<span>' +
@@ -186,7 +186,7 @@ class StackedBarChart extends React.Component {
   }
 
   timeLabelAsFull(point) {
-    let timeMoment = moment(point.x * 1000);
+    const timeMoment = moment(point.x * 1000);
     return timeMoment.format('lll');
   }
 
@@ -213,13 +213,13 @@ class StackedBarChart extends React.Component {
   }
 
   renderMarker(marker, index, pointWidth) {
-    let timeLabel = moment(marker.x * 1000).format('lll');
-    let title =
+    const timeLabel = moment(marker.x * 1000).format('lll');
+    const title =
       '<div style="width:130px">' + marker.label + '<br/>' + timeLabel + '</div>';
 
     // example key: m-last-seen-22811123, m-first-seen-228191
-    let key = ['m', marker.className, marker.x].join('-');
-    let markerOffset = marker.offset || 0;
+    const key = ['m', marker.className, marker.x].join('-');
+    const markerOffset = marker.offset || 0;
 
     return (
       <Tooltip
@@ -250,8 +250,8 @@ class StackedBarChart extends React.Component {
   }
 
   renderTooltip = (point, pointIdx) => {
-    let timeLabel = this.getTimeLabel(point);
-    let totalY = point.y.reduce((a, b) => a + b);
+    const timeLabel = this.getTimeLabel(point);
+    const totalY = point.y.reduce((a, b) => a + b);
     let title =
       '<div style="width:130px">' +
       `<div class="time-label">${timeLabel}</div>` +
@@ -261,7 +261,7 @@ class StackedBarChart extends React.Component {
         .label}</div>`;
     }
     point.y.forEach((y, i) => {
-      let s = this.state.series[i];
+      const s = this.state.series[i];
       if (s.label) {
         title += `<div><span style="color:${s.color}">${s.label}:</span> ${(y || 0
         ).toLocaleString()}</div>`;
@@ -271,26 +271,26 @@ class StackedBarChart extends React.Component {
   };
 
   getMinHeight(index, pointLength) {
-    let {minHeights} = this.props;
+    const {minHeights} = this.props;
     return minHeights && (minHeights[index] || minHeights[index] == 0)
       ? this.props.minHeights[index]
       : 1;
   }
 
   renderChartColumn(point, maxval, pointWidth, index, totalPoints) {
-    let totalY = point.y.reduce((a, b) => a + b);
-    let totalPct = totalY / maxval;
+    const totalY = point.y.reduce((a, b) => a + b);
+    const totalPct = totalY / maxval;
     // we leave a little extra space for bars with min-heights.
-    let maxPercentage = 99;
+    const maxPercentage = 99;
 
     let prevPct = 0;
-    let pts = point.y.map((y, i) => {
-      let pct = Math.max(
+    const pts = point.y.map((y, i) => {
+      const pct = Math.max(
         totalY && this.floatFormat(y / totalY * totalPct * maxPercentage, 2),
         this.getMinHeight(i, point.y.length)
       );
 
-      let pt = (
+      const pt = (
         <rect
           key={i}
           x={index * pointWidth + '%'}
@@ -308,8 +308,8 @@ class StackedBarChart extends React.Component {
       return pt;
     });
 
-    let pointIdx = point.x;
-    let tooltipFunc = this.props.tooltip || this.renderTooltip;
+    const pointIdx = point.x;
+    const tooltipFunc = this.props.tooltip || this.renderTooltip;
 
     return (
       <Tooltip
@@ -331,19 +331,22 @@ class StackedBarChart extends React.Component {
   }
 
   renderChart() {
-    let {pointIndex, series} = this.state;
-    let totalPoints = Math.max(...series.map(s => s.data.length));
+    const {pointIndex, series} = this.state;
+    const totalPoints = Math.max(...series.map(s => s.data.length));
     // we expand the graph just a hair beyond 100% prevent a subtle white line on the edge
-    let nudge = 0.1;
-    let pointWidth = this.floatFormat((100.0 + this.props.gap + nudge) / totalPoints, 2);
+    const nudge = 0.1;
+    const pointWidth = this.floatFormat(
+      (100.0 + this.props.gap + nudge) / totalPoints,
+      2
+    );
 
-    let maxval = this.maxPointValue();
-    let markers = this.props.markers.slice();
+    const maxval = this.maxPointValue();
+    const markers = this.props.markers.slice();
 
     // group points, then resort
-    let points = Object.keys(pointIndex)
+    const points = Object.keys(pointIndex)
       .map(k => {
-        let p = pointIndex[k];
+        const p = pointIndex[k];
         return {x: p.x, y: p.y};
       })
       .sort((a, b) => {
@@ -354,8 +357,8 @@ class StackedBarChart extends React.Component {
       return a.x - b.x;
     });
 
-    let children = [];
-    let markerChildren = [];
+    const children = [];
+    const markerChildren = [];
     points.forEach((point, index) => {
       while (markers.length && markers[0].x <= point.x) {
         markerChildren.push(this.renderMarker(markers.shift(), index, pointWidth));
@@ -383,9 +386,9 @@ class StackedBarChart extends React.Component {
   }
 
   render() {
-    let {className, style, height, width} = this.props;
-    let figureClass = [className, 'barchart'].join(' ');
-    let maxval = this.maxPointValue();
+    const {className, style, height, width} = this.props;
+    const figureClass = [className, 'barchart'].join(' ');
+    const maxval = this.maxPointValue();
 
     return (
       <StyledFigure className={figureClass} style={{height, width, ...style}}>

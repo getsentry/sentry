@@ -366,6 +366,7 @@ exports[`ProjectTags renders 1`] = `
                                         priority="primary"
                                       >
                                         <a
+                                          className=""
                                           disabled={false}
                                           onClick={[Function]}
                                           title="Remove tag?"
@@ -594,6 +595,7 @@ exports[`ProjectTags renders 1`] = `
                                         priority="primary"
                                       >
                                         <a
+                                          className=""
                                           disabled={false}
                                           onClick={[Function]}
                                           title="Remove tag?"
@@ -822,6 +824,7 @@ exports[`ProjectTags renders 1`] = `
                                         priority="primary"
                                       >
                                         <a
+                                          className=""
                                           disabled={false}
                                           onClick={[Function]}
                                           title="Remove tag?"
@@ -1053,7 +1056,7 @@ exports[`ProjectTags renders 1`] = `
                                         priority="primary"
                                       >
                                         <a
-                                          className="undefined disabled"
+                                          className="disabled"
                                           disabled={true}
                                           onClick={[Function]}
                                           title="Remove tag?"

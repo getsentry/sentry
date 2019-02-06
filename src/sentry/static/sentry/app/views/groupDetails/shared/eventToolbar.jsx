@@ -13,11 +13,11 @@ import FileSize from 'app/components/fileSize';
 import Tooltip from 'app/components/tooltip';
 import {t} from 'app/locale';
 
-let formatDateDelta = (reference, observed) => {
-  let duration = moment.duration(Math.abs(+observed - +reference));
-  let hours = Math.floor(+duration / (60 * 60 * 1000));
-  let minutes = duration.minutes();
-  let results = [];
+const formatDateDelta = (reference, observed) => {
+  const duration = moment.duration(Math.abs(+observed - +reference));
+  const hours = Math.floor(+duration / (60 * 60 * 1000));
+  const minutes = duration.minutes();
+  const results = [];
 
   if (hours) {
     results.push(`${hours} hour${hours != 1 ? 's' : ''}`);
@@ -34,10 +34,11 @@ let formatDateDelta = (reference, observed) => {
   return results.join(', ');
 };
 
-let GroupEventToolbar = createReactClass({
+const GroupEventToolbar = createReactClass({
   displayName: 'GroupEventToolbar',
 
   propTypes: {
+    organization: SentryTypes.Organization.isRequired,
     orgId: PropTypes.string.isRequired,
     projectId: PropTypes.string.isRequired,
     group: SentryTypes.Group.isRequired,
@@ -49,11 +50,11 @@ let GroupEventToolbar = createReactClass({
   },
 
   getDateTooltip() {
-    let evt = this.props.event;
-    let user = ConfigStore.get('user');
-    let options = user ? user.options : {};
-    let format = options.clock24Hours ? 'HH:mm:ss z' : 'LTS z';
-    let dateCreated = moment(evt.dateCreated);
+    const evt = this.props.event;
+    const user = ConfigStore.get('user');
+    const options = user ? user.options : {};
+    const format = options.clock24Hours ? 'HH:mm:ss z' : 'LTS z';
+    const dateCreated = moment(evt.dateCreated);
     let resp =
       '<dl class="flat" style="text-align:left;margin:0;min-width:200px">' +
       '<dt>Occurred</dt>' +
@@ -63,7 +64,7 @@ let GroupEventToolbar = createReactClass({
       dateCreated.format(format) +
       '</dd>';
     if (evt.dateReceived) {
-      let dateReceived = moment(evt.dateReceived);
+      const dateReceived = moment(evt.dateReceived);
       resp +=
         '<dt>Received</dt>' +
         '<dd>' +
@@ -80,16 +81,21 @@ let GroupEventToolbar = createReactClass({
   },
 
   render() {
-    let evt = this.props.event;
+    const evt = this.props.event;
 
-    let {orgId, projectId} = this.props;
-    let groupId = this.props.group.id;
+    const {organization, orgId, projectId} = this.props;
+    const groupId = this.props.group.id;
 
-    let eventNavNodes = [
+    const hasSentry10 = new Set(organization.features).has('sentry10');
+    const baseEventsPath = hasSentry10
+      ? `/organizations/${orgId}/issues/${groupId}/events/`
+      : `/${orgId}/${projectId}/issues/${groupId}/events/`;
+
+    const eventNavNodes = [
       evt.previousEventID ? (
         <Link
           key="oldest"
-          to={`/${orgId}/${projectId}/issues/${groupId}/events/oldest/`}
+          to={`${baseEventsPath}oldest/`}
           className="btn btn-default"
           title={t('Oldest')}
         >
@@ -103,7 +109,7 @@ let GroupEventToolbar = createReactClass({
       evt.previousEventID ? (
         <Link
           key="prev"
-          to={`/${orgId}/${projectId}/issues/${groupId}/events/${evt.previousEventID}/`}
+          to={`${baseEventsPath}${evt.previousEventID}/`}
           className="btn btn-default"
         >
           {t('Older')}
@@ -116,7 +122,7 @@ let GroupEventToolbar = createReactClass({
       evt.nextEventID ? (
         <Link
           key="next"
-          to={`/${orgId}/${projectId}/issues/${groupId}/events/${evt.nextEventID}/`}
+          to={`${baseEventsPath}${evt.nextEventID}/`}
           className="btn btn-default"
         >
           {t('Newer')}
@@ -129,7 +135,7 @@ let GroupEventToolbar = createReactClass({
       evt.nextEventID ? (
         <Link
           key="latest"
-          to={`/${orgId}/${projectId}/issues/${groupId}/events/latest/`}
+          to={`${baseEventsPath}latest/`}
           className="btn btn-default"
           title={t('Newest')}
         >
@@ -144,13 +150,13 @@ let GroupEventToolbar = createReactClass({
 
     // TODO: possible to define this as a route in react-router, but without a corresponding
     //       React component?
-    let jsonUrl = `/${orgId}/${projectId}/issues/${groupId}/events/${evt.id}/json/`;
-    let style = {
+    const jsonUrl = `/${orgId}/${projectId}/issues/${groupId}/events/${evt.id}/json/`;
+    const style = {
       borderBottom: '1px dotted #dfe3ea',
     };
 
-    let latencyThreshold = 30 * 60 * 1000; // 30 minutes
-    let isOverLatencyThreshold =
+    const latencyThreshold = 30 * 60 * 1000; // 30 minutes
+    const isOverLatencyThreshold =
       evt.dateReceived &&
       Math.abs(+moment(evt.dateReceived) - +moment(evt.dateCreated)) > latencyThreshold;
 
@@ -161,10 +167,7 @@ let GroupEventToolbar = createReactClass({
         </div>
         <h4>
           {t('Event')}{' '}
-          <Link
-            to={`/${orgId}/${projectId}/issues/${groupId}/events/${evt.id}/`}
-            className="event-id"
-          >
+          <Link to={`${baseEventsPath}${evt.id}/`} className="event-id">
             {evt.eventID}
           </Link>
         </h4>

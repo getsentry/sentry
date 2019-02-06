@@ -44,9 +44,9 @@ describe('Stream TagFilter', function() {
   });
 
   it('calls API and renders options when opened', async function() {
-    let selectMock = jest.fn();
-    let tag = {key: 'browser', name: 'Browser'};
-    let wrapper = mount(
+    const selectMock = jest.fn();
+    const tag = {key: 'browser', name: 'Browser'};
+    const wrapper = mount(
       <StreamTagFilter
         tag={tag}
         orgId={organization.slug}
@@ -70,9 +70,9 @@ describe('Stream TagFilter', function() {
   });
 
   it('calls API and renders options when opened without project', async function() {
-    let selectMock = jest.fn();
-    let tag = {key: 'browser', name: 'Browser'};
-    let wrapper = mount(
+    const selectMock = jest.fn();
+    const tag = {key: 'browser', name: 'Browser'};
+    const wrapper = mount(
       <StreamTagFilter
         tag={tag}
         orgId={organization.slug}

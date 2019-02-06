@@ -9,7 +9,7 @@ function getIncidentsFromIncidentResponse(incidents) {
   }
 
   let isMajor = false;
-  let log = [];
+  const log = [];
   incidents.forEach(item => {
     if (!isMajor && item.impact === 'major') {
       isMajor = true;
@@ -28,7 +28,7 @@ function getIncidentsFromIncidentResponse(incidents) {
 }
 
 export function load() {
-  let cfg = ConfigStore.get('statuspage');
+  const cfg = ConfigStore.get('statuspage');
   if (cfg && cfg.id) {
     IncidentActions.update();
 
@@ -38,7 +38,7 @@ export function load() {
       crossDomain: true,
       cache: false,
       success: data => {
-        let [incidents, indicator] = getIncidentsFromIncidentResponse(data.incidents);
+        const [incidents, indicator] = getIncidentsFromIncidentResponse(data.incidents);
         IncidentActions.updateSuccess({
           status: {
             incidents,

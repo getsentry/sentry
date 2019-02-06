@@ -23,9 +23,9 @@ const ProgressNodes = createReactClass({
   },
 
   componentDidMount() {
-    let {organization} = this.context;
-    let user = ConfigStore.get('user');
-    let step = this.inferStep();
+    const {organization} = this.context;
+    const user = ConfigStore.get('user');
+    const step = this.inferStep();
 
     if (step === 1) {
       analytics('onboarding.create_project_viewed', {
@@ -41,9 +41,9 @@ const ProgressNodes = createReactClass({
   steps: Object.keys(onboardingSteps),
 
   getAsset(type) {
-    let {organization} = this.context;
+    const {organization} = this.context;
 
-    let hook =
+    const hook =
       HookStore.get('sidebar:onboarding-assets').length &&
       HookStore.get('sidebar:onboarding-assets')[0]({organization});
 
@@ -60,9 +60,9 @@ const ProgressNodes = createReactClass({
   },
 
   inferStep() {
-    let {pathname} = this.context.location;
-    let {params} = this.props;
-    let steps = this.getAsset('steps');
+    const {pathname} = this.context.location;
+    const {params} = this.props;
+    const steps = this.getAsset('steps');
 
     if (!params.projectId) return steps.project;
     if (params.projectId && pathname.indexOf('/configure/') === -1) return steps.survey;
@@ -73,7 +73,7 @@ const ProgressNodes = createReactClass({
   node(stepKey, stepIndex) {
     const done = stepIndex < this.inferStep();
     const active = stepIndex === this.inferStep();
-    let descriptions = this.getAsset('descriptions');
+    const descriptions = this.getAsset('descriptions');
 
     return (
       <Node key={stepIndex} done={done} active={active} data-test-id="node">
@@ -86,9 +86,9 @@ const ProgressNodes = createReactClass({
   },
 
   render() {
-    let config = ConfigStore.getConfig();
-    let {slug} = this.context.organization;
-    let steps = Object.keys(this.getAsset('steps'));
+    const config = ConfigStore.getConfig();
+    const {slug} = this.context.organization;
+    const steps = Object.keys(this.getAsset('steps'));
     return (
       <div className="onboarding-sidebar">
         <div className="sentry-flag">

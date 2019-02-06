@@ -12,15 +12,15 @@ class Option extends React.Component {
   };
 
   handleChange = e => {
-    let {onChange} = this.props;
-    let value = e.target.value === 'true';
+    const {onChange} = this.props;
+    const value = e.target.value === 'true';
 
     if (typeof onChange === 'function') {
       onChange(value, e);
     }
   };
   render() {
-    let {name, disabled, label, value, checked} = this.props;
+    const {name, disabled, label, value, checked} = this.props;
 
     return (
       <div className="radio">
@@ -58,8 +58,8 @@ export default class RadioBoolean extends React.Component {
   };
 
   render() {
-    let {disabled, yesFirst, yesLabel, noLabel, name, onChange, value} = this.props;
-    let yesOption = (
+    const {disabled, yesFirst, yesLabel, noLabel, name, onChange, value} = this.props;
+    const yesOption = (
       <Option
         value="true"
         checked={value === true}
@@ -69,7 +69,7 @@ export default class RadioBoolean extends React.Component {
         onChange={onChange}
       />
     );
-    let noOption = (
+    const noOption = (
       <Option
         value="false"
         checked={value === false}

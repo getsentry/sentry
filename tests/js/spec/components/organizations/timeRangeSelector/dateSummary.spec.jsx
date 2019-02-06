@@ -8,7 +8,7 @@ const end = new Date('2017-10-17T02:38:00.000Z'); // National Pasta Day
 
 describe('DateSummary', function() {
   let wrapper;
-  let routerContext = TestStubs.routerContext();
+  const routerContext = TestStubs.routerContext();
 
   const createWrapper = (props = {}) =>
     mount(<DateSummary utc start={start} end={end} {...props} />, routerContext);

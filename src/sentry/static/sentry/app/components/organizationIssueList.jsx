@@ -34,16 +34,16 @@ class OrganizationIssueList extends React.Component {
   }
 
   getQueryStringState = props => {
-    let query = props.location.query;
-    let status = 'status' in query ? query.status : 'unresolved';
+    const query = props.location.query;
+    const status = 'status' in query ? query.status : 'unresolved';
     return {
       status,
     };
   };
 
   render() {
-    let path = this.props.location.pathname;
-    let {status} = this.state;
+    const path = this.props.location.pathname;
+    const {status} = this.state;
     return (
       <OrganizationHomeContainer>
         <div className="pull-right">

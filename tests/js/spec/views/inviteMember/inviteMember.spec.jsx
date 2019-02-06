@@ -41,7 +41,7 @@ describe('CreateProject', function() {
   });
 
   it('should render loading', function() {
-    let wrapper = shallow(<InviteMember {...baseProps} />, baseContext);
+    const wrapper = shallow(<InviteMember {...baseProps} />, baseContext);
     expect(wrapper).toMatchSnapshot();
   });
 
@@ -60,12 +60,12 @@ describe('CreateProject', function() {
       },
     });
 
-    let context = _.cloneDeep(baseContext);
+    const context = _.cloneDeep(baseContext);
 
-    let team = context.context.organization.teams.slice(0, 1);
+    const team = context.context.organization.teams.slice(0, 1);
     context.context.organization.teams = team;
 
-    let wrapper = mount(<InviteMember {...baseProps} />, context);
+    const wrapper = mount(<InviteMember {...baseProps} />, context);
 
     expect(wrapper.state('selectedTeams').size).toBe(1);
     expect(wrapper.state('selectedTeams').has(team[0].slug)).toBe(true);
@@ -86,11 +86,11 @@ describe('CreateProject', function() {
       },
     });
 
-    let wrapper = mount(<InviteMember {...baseProps} />, baseContext);
+    const wrapper = mount(<InviteMember {...baseProps} />, baseContext);
 
-    let first = 'TeamSelect Checkbox[id="bar"]';
-    let last = 'TeamSelect Checkbox[id="foo"]';
-    let selectAllButton = wrapper.find('Button[data-test-id="select-all"]');
+    const first = 'TeamSelect Checkbox[id="bar"]';
+    const last = 'TeamSelect Checkbox[id="foo"]';
+    const selectAllButton = wrapper.find('Button[data-test-id="select-all"]');
 
     expect(wrapper.state('selectedTeams').size).toBe(0);
     expect(selectAllButton).toHaveLength(1);
@@ -127,7 +127,7 @@ describe('CreateProject', function() {
     sandbox.restore(ConfigStore, 'getConfig');
     sandbox.stub(ConfigStore, 'getConfig').returns({id: 1, invitesEnabled: false});
 
-    let wrapper = shallow(<InviteMember {...baseProps} />, baseContext);
+    const wrapper = shallow(<InviteMember {...baseProps} />, baseContext);
     wrapper.setState({
       loading: false,
     });
@@ -151,7 +151,7 @@ describe('CreateProject', function() {
       },
     });
 
-    let pushMock = jest.fn();
+    const pushMock = jest.fn();
     let wrapper = mount(
       <InviteMember
         router={{
@@ -195,16 +195,16 @@ describe('CreateProject', function() {
       },
     });
 
-    let inviteRequest = {
+    const inviteRequest = {
       url: '/organizations/testOrg/members/',
       method: 'POST',
       statusCode: 200,
       body: {},
     };
 
-    let mock = MockApiClient.addMockResponse(inviteRequest);
+    const mock = MockApiClient.addMockResponse(inviteRequest);
 
-    let wrapper = mount(<InviteMember {...baseProps} />, baseContext);
+    const wrapper = mount(<InviteMember {...baseProps} />, baseContext);
 
     expect(wrapper.state('loading')).toBe(false);
 
@@ -239,7 +239,7 @@ describe('CreateProject', function() {
       },
     });
 
-    let inviteRequest = {
+    const inviteRequest = {
       url: '/organizations/testOrg/members/',
       method: 'POST',
       statusCode: 400,
@@ -248,9 +248,9 @@ describe('CreateProject', function() {
       },
     };
 
-    let mock = MockApiClient.addMockResponse(inviteRequest);
+    const mock = MockApiClient.addMockResponse(inviteRequest);
 
-    let wrapper = mount(<InviteMember {...baseProps} />, baseContext);
+    const wrapper = mount(<InviteMember {...baseProps} />, baseContext);
 
     let node = wrapper.find('RoleSelect PanelItem').first();
     node.props().onClick();

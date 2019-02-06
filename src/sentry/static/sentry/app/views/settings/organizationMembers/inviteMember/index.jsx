@@ -56,10 +56,10 @@ const InviteMember = createReactClass({
   mixins: [ApiMixin, OrganizationState],
 
   getInitialState() {
-    let {teams} = this.getOrganization();
+    const {teams} = this.getOrganization();
 
     //select team if there's only one
-    let initialTeamSelection = teams.length === 1 ? [teams[0].slug] : [];
+    const initialTeamSelection = teams.length === 1 ? [teams[0].slug] : [];
 
     return {
       selectedTeams: new Set(initialTeamSelection),
@@ -73,13 +73,13 @@ const InviteMember = createReactClass({
   },
 
   componentDidMount() {
-    let {slug} = this.getOrganization();
-    let {isSuperuser} = ConfigStore.get('user');
+    const {slug} = this.getOrganization();
+    const {isSuperuser} = ConfigStore.get('user');
 
     this.api.request(`/organizations/${slug}/members/me/`, {
       method: 'GET',
       success: resp => {
-        let {roles} = resp || {};
+        const {roles} = resp || {};
 
         if (!resp || !roles) {
           this.setState({
@@ -123,9 +123,9 @@ const InviteMember = createReactClass({
   redirectToMemberPage() {
     // Get path to parent route (`/organizations/${slug}/members/`)
     // `recreateRoute` fucks up because of getsentry hooks
-    let {params, router} = this.props;
-    let isNewSettings = /^\/settings\//.test(router.location.pathname);
-    let pathToParentRoute = isNewSettings
+    const {params, router} = this.props;
+    const isNewSettings = /^\/settings\//.test(router.location.pathname);
+    const pathToParentRoute = isNewSettings
       ? '/settings/:orgId/members/'
       : '/organizations/:orgId/members/';
     router.push(replaceRouterParams(pathToParentRoute, params));
@@ -139,8 +139,8 @@ const InviteMember = createReactClass({
   },
 
   inviteUser(email) {
-    let {slug} = this.getOrganization();
-    let {selectedTeams, selectedRole} = this.state;
+    const {slug} = this.getOrganization();
+    const {selectedTeams, selectedRole} = this.state;
 
     return new Promise((resolve, reject) => {
       this.api.request(`/organizations/${slug}/members/`, {
@@ -177,8 +177,8 @@ const InviteMember = createReactClass({
   },
 
   submit() {
-    let {email} = this.state;
-    let emails = this.splitEmails(email);
+    const {email} = this.state;
+    const emails = this.splitEmails(email);
     if (!emails.length) return;
     this.setState({busy: true});
     Promise.all(emails.map(this.inviteUser))
@@ -197,7 +197,7 @@ const InviteMember = createReactClass({
 
   toggleTeam(slug) {
     this.setState(state => {
-      let {selectedTeams} = state;
+      const {selectedTeams} = state;
       if (selectedTeams.has(slug)) {
         selectedTeams.delete(slug);
       } else {
@@ -210,13 +210,13 @@ const InviteMember = createReactClass({
   },
 
   allSelected() {
-    let {teams} = this.getOrganization();
-    let {selectedTeams} = this.state;
+    const {teams} = this.getOrganization();
+    const {selectedTeams} = this.state;
     return teams.length === selectedTeams.size;
   },
 
   handleSelectAll() {
-    let {teams} = this.getOrganization();
+    const {teams} = this.getOrganization();
 
     this.setState(state => {
       let {selectedTeams} = state;
@@ -232,10 +232,10 @@ const InviteMember = createReactClass({
   },
 
   render() {
-    let {error, loading, roleList, selectedRole, selectedTeams} = this.state;
-    let {teams} = this.getOrganization();
-    let {invitesEnabled} = ConfigStore.getConfig();
-    let {isSuperuser} = ConfigStore.get('user');
+    const {error, loading, roleList, selectedRole, selectedTeams} = this.state;
+    const {teams} = this.getOrganization();
+    const {invitesEnabled} = ConfigStore.getConfig();
+    const {isSuperuser} = ConfigStore.get('user');
 
     return (
       <div>

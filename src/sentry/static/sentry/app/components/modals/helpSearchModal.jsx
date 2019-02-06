@@ -23,7 +23,7 @@ class HelpSearchModal extends React.Component {
   };
 
   render() {
-    let {Body} = this.props;
+    const {Body} = this.props;
 
     return (
       <Body>

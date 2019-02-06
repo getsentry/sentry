@@ -11,7 +11,7 @@ export default class MutedBox extends React.PureComponent {
   };
 
   renderReason = () => {
-    let details = this.props.statusDetails;
+    const details = this.props.statusDetails;
     if (details.ignoreUntil) {
       return t(
         'This issue has been ignored until %s',

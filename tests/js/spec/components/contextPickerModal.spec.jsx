@@ -8,7 +8,7 @@ jest.mock('jquery');
 
 describe('ContextPickerModal', function() {
   let project, project2, org, org2;
-  let onFinish = jest.fn();
+  const onFinish = jest.fn();
 
   beforeEach(function() {
     MockApiClient.clearMockResponses();
@@ -37,18 +37,18 @@ describe('ContextPickerModal', function() {
   );
 
   it('renders with only org selector when no org in latest context', function() {
-    let wrapper = shallow(getComponent());
+    const wrapper = shallow(getComponent());
 
     expect(wrapper.find('StyledSelectControl[name="organization"]').exists()).toBe(true);
     expect(wrapper.find('StyledSelectControl[name="project"]').exists()).toBe(false);
   });
 
   it('fetches org details and sets as active org if there is only one org', function() {
-    let spy = jest.spyOn(OrgActions, 'fetchOrganizationDetails');
-    let api = MockApiClient.addMockResponse({
+    const spy = jest.spyOn(OrgActions, 'fetchOrganizationDetails');
+    const api = MockApiClient.addMockResponse({
       url: `/organizations/${org2.slug}/`,
     });
-    let wrapper = mount(getComponent({organizations: [org2]}));
+    const wrapper = mount(getComponent({organizations: [org2]}));
 
     wrapper.update();
     expect(spy).toHaveBeenCalledWith('org2', {
@@ -59,11 +59,11 @@ describe('ContextPickerModal', function() {
   });
 
   it('calls onFinish after latestContext is set, if project id is not needed, and only 1 org', function() {
-    let spy = jest.spyOn(OrgActions, 'fetchOrganizationDetails');
-    let api = MockApiClient.addMockResponse({
+    const spy = jest.spyOn(OrgActions, 'fetchOrganizationDetails');
+    const api = MockApiClient.addMockResponse({
       url: `/organizations/${org2.slug}/`,
     });
-    let wrapper = mount(getComponent({organizations: [org2]}));
+    const wrapper = mount(getComponent({organizations: [org2]}));
 
     expect(spy).toHaveBeenCalledWith('org2', {
       setActive: true,
@@ -77,11 +77,11 @@ describe('ContextPickerModal', function() {
   });
 
   it('calls onFinish if there is only 1 org and 1 project', function() {
-    let spy = jest.spyOn(OrgActions, 'fetchOrganizationDetails');
-    let api = MockApiClient.addMockResponse({
+    const spy = jest.spyOn(OrgActions, 'fetchOrganizationDetails');
+    const api = MockApiClient.addMockResponse({
       url: `/organizations/${org2.slug}/`,
     });
-    let wrapper = mount(
+    const wrapper = mount(
       getComponent({
         needOrg: true,
         needProject: true,
@@ -102,8 +102,8 @@ describe('ContextPickerModal', function() {
   });
 
   it('selects an org and calls `onFinish` with URL with organization slug', function() {
-    let wrapper = mount(getComponent({}));
-    let mock = MockApiClient.addMockResponse({
+    const wrapper = mount(getComponent({}));
+    const mock = MockApiClient.addMockResponse({
       url: `/organizations/${org.slug}/`,
     });
 
@@ -121,7 +121,7 @@ describe('ContextPickerModal', function() {
   });
 
   it('renders with project selector and org selector selected when org is in latest context', function() {
-    let wrapper = shallow(
+    const wrapper = shallow(
       getComponent({
         needOrg: true,
         needProject: true,
@@ -145,11 +145,11 @@ describe('ContextPickerModal', function() {
   });
 
   it('can select org and project', async function() {
-    let spy = jest.spyOn(OrgActions, 'fetchOrganizationDetails');
-    let api = MockApiClient.addMockResponse({
+    const spy = jest.spyOn(OrgActions, 'fetchOrganizationDetails');
+    const api = MockApiClient.addMockResponse({
       url: `/organizations/${org2.slug}/`,
     });
-    let wrapper = mount(
+    const wrapper = mount(
       getComponent({
         needOrg: true,
         needProject: true,

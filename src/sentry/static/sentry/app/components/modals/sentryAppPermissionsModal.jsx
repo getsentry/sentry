@@ -64,7 +64,7 @@ class SentryAppPermissionsModal extends React.Component {
   }
 
   render() {
-    let {closeModal, app, orgId, Header, Body} = this.props;
+    const {closeModal, app, orgId, Header, Body} = this.props;
     return (
       <React.Fragment>
         <Header closeButton onHide={closeModal}>

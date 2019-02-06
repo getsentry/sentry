@@ -42,7 +42,7 @@ export default class AdminQueue extends AsyncView {
   };
 
   renderBody() {
-    let {activeTask, taskList} = this.state;
+    const {activeTask, taskList} = this.state;
 
     return (
       <div>

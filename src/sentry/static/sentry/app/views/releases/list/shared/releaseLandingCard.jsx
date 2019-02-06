@@ -15,7 +15,7 @@ class ReleaseLandingCard extends React.Component {
   };
 
   getMessage = () => {
-    let {cardsLength, step} = this.props;
+    const {cardsLength, step} = this.props;
     if (step == 0) {
       return t('Tell Me More');
     } else if (step < cardsLength - 1) {
@@ -26,9 +26,9 @@ class ReleaseLandingCard extends React.Component {
   };
 
   render() {
-    let {card, cardsLength, step} = this.props;
-    let CardComponent = card.component;
-    let finalStep = step === cardsLength - 1;
+    const {card, cardsLength, step} = this.props;
+    const CardComponent = card.component;
+    const finalStep = step === cardsLength - 1;
     return (
       <div className="row">
         <div className="col-md-6">

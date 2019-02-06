@@ -40,19 +40,19 @@ export default class RangeField extends InputField {
   }
 
   attachSlider() {
-    let $value = $('<span class="value" />');
+    const $value = $('<span class="value" />');
     let suffixClassNames = '';
     if (this.props.disabled) {
       suffixClassNames += ' disabled';
     }
     $(ReactDOM.findDOMNode(this.refs.input))
       .on('slider:ready', (e, data) => {
-        let value = parseInt(data.value, 10);
+        const value = parseInt(data.value, 10);
         $value.appendTo(data.el);
         $value.html(this.props.formatLabel(value));
       })
       .on('slider:changed', (e, data) => {
-        let value = parseInt(data.value, 10);
+        const value = parseInt(data.value, 10);
         $value.html(this.props.formatLabel(value));
         this.setValue(value);
       })

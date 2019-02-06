@@ -27,12 +27,12 @@ class ProjectCrumb extends React.Component {
   };
 
   handleSelect = item => {
-    let {routes, params} = this.props;
+    const {routes, params} = this.props;
 
-    let lastRoute = routes[routes.length - 1];
+    const lastRoute = routes[routes.length - 1];
     // We have to make exceptions for routes like "Project Alerts Rule Edit" or "Client Key Details"
     // Since these models are project specific, we need to traverse up a route when switching projects
-    let stepBack = ROUTE_PATH_EXCEPTIONS.has(lastRoute.path) ? -1 : undefined;
+    const stepBack = ROUTE_PATH_EXCEPTIONS.has(lastRoute.path) ? -1 : undefined;
     browserHistory.push(
       recreateRoute('', {
         routes,
@@ -43,7 +43,7 @@ class ProjectCrumb extends React.Component {
   };
 
   render() {
-    let {
+    const {
       organization: latestOrganization,
       project: latestProject,
       projects,
@@ -54,7 +54,7 @@ class ProjectCrumb extends React.Component {
     if (!latestOrganization) return null;
     if (!projects) return null;
 
-    let hasMenu = projects && projects.length > 1;
+    const hasMenu = projects && projects.length > 1;
 
     return (
       <BreadcrumbDropdown
@@ -66,7 +66,7 @@ class ProjectCrumb extends React.Component {
               <LoadingIndicator mini />
             ) : (
               <TextLink
-                to={replaceRouterParams('/settings/:orgId/:projectId/', {
+                to={replaceRouterParams('/settings/:orgId/projects/:projectId/', {
                   orgId: latestOrganization.slug,
                   projectId: latestProject.slug,
                 })}

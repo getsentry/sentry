@@ -47,9 +47,9 @@ const ReleaseCommits = createReactClass({
   },
 
   getPath() {
-    let {orgId, projectId, version} = this.props.params;
+    const {orgId, projectId, version} = this.props.params;
 
-    let encodedVersion = encodeURIComponent(version);
+    const encodedVersion = encodeURIComponent(version);
 
     return projectId
       ? `/projects/${orgId}/${projectId}/releases/${encodedVersion}/commits/`
@@ -74,9 +74,9 @@ const ReleaseCommits = createReactClass({
   },
 
   getCommitsByRepository() {
-    let {commitList} = this.state;
-    let commitsByRepository = commitList.reduce(function(cbr, commit) {
-      let {repository} = commit;
+    const {commitList} = this.state;
+    const commitsByRepository = commitList.reduce(function(cbr, commit) {
+      const {repository} = commit;
       if (!cbr.hasOwnProperty(repository.name)) {
         cbr[repository.name] = [];
       }
@@ -88,8 +88,8 @@ const ReleaseCommits = createReactClass({
   },
 
   renderCommitsForRepo(repo) {
-    let commitsByRepository = this.getCommitsByRepository();
-    let activeCommits = commitsByRepository[repo];
+    const commitsByRepository = this.getCommitsByRepository();
+    const activeCommits = commitsByRepository[repo];
 
     return (
       <Panel key={repo}>
@@ -108,10 +108,10 @@ const ReleaseCommits = createReactClass({
 
     if (this.state.error) return <LoadingError />;
 
-    let {commitList, activeRepo} = this.state;
+    const {commitList, activeRepo} = this.state;
 
     if (!commitList.length) return <this.emptyState />;
-    let commitsByRepository = this.getCommitsByRepository();
+    const commitsByRepository = this.getCommitsByRepository();
     return (
       <div>
         <div className="heading">

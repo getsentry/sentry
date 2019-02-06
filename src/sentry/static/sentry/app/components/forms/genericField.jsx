@@ -29,9 +29,9 @@ export default class GenericField extends React.Component {
   };
 
   render() {
-    let config = this.props.config;
-    let required = defined(config.required) ? config.required : true;
-    let props = {
+    const config = this.props.config;
+    const required = defined(config.required) ? config.required : true;
+    const props = {
       ...config,
       value: this.props.formData[config.name],
       onChange: this.props.onChange,

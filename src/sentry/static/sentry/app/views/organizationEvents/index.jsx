@@ -1,4 +1,3 @@
-import {withRouter} from 'react-router';
 import PropTypes from 'prop-types';
 import React from 'react';
 import styled from 'react-emotion';
@@ -8,6 +7,7 @@ import {t} from 'app/locale';
 import BetaTag from 'app/components/betaTag';
 import Feature from 'app/components/acl/feature';
 import GlobalSelectionHeader from 'app/components/organizations/globalSelectionHeader';
+import NoProjectMessage from 'app/components/noProjectMessage';
 import SentryTypes from 'app/sentryTypes';
 import PageHeading from 'app/components/pageHeading';
 import withGlobalSelection from 'app/utils/withGlobalSelection';
@@ -29,7 +29,7 @@ class OrganizationEventsContainer extends React.Component {
   }
 
   handleSearch = query => {
-    let {router, location} = this.props;
+    const {router, location} = this.props;
     router.push({
       pathname: location.pathname,
       query: getParams({
@@ -49,29 +49,28 @@ class OrganizationEventsContainer extends React.Component {
           resetParamsOnChange={['cursor']}
         />
         <PageContent>
-          <Body>
-            <PageHeader>
-              <HeaderTitle>
-                {t('Events')} <BetaTag />
-              </HeaderTitle>
-              <StyledSearchBar
-                organization={organization}
-                query={(location.query && location.query.query) || ''}
-                placeholder={t('Search for events, users, tags, and everything else.')}
-                onSearch={this.handleSearch}
-              />
-            </PageHeader>
-
-            {children}
-          </Body>
+          <NoProjectMessage organization={organization}>
+            <Body>
+              <PageHeader>
+                <HeaderTitle>
+                  {t('Events')} <BetaTag />
+                </HeaderTitle>
+                <StyledSearchBar
+                  organization={organization}
+                  query={(location.query && location.query.query) || ''}
+                  placeholder={t('Search for events, users, tags, and everything else.')}
+                  onSearch={this.handleSearch}
+                />
+              </PageHeader>
+              {children}
+            </Body>
+          </NoProjectMessage>
         </PageContent>
       </Feature>
     );
   }
 }
-export default withRouter(
-  withOrganization(withGlobalSelection(OrganizationEventsContainer))
-);
+export default withOrganization(withGlobalSelection(OrganizationEventsContainer));
 export {OrganizationEventsContainer};
 
 const Body = styled('div')`

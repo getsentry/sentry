@@ -4,8 +4,8 @@ import ConfirmDelete from 'app/components/confirmDelete';
 
 describe('ConfirmDelete', function() {
   it('renders', function() {
-    let mock = jest.fn();
-    let wrapper = mount(
+    const mock = jest.fn();
+    const wrapper = mount(
       <ConfirmDelete message="Are you sure?" onConfirm={mock} confirmInput="CoolOrg">
         <button>Confirm?</button>
       </ConfirmDelete>,
@@ -17,8 +17,8 @@ describe('ConfirmDelete', function() {
   });
 
   it('confirm button is disabled and bypass prop is false when modal opens', function() {
-    let mock = jest.fn();
-    let wrapper = mount(
+    const mock = jest.fn();
+    const wrapper = mount(
       <ConfirmDelete message="Are you sure?" onConfirm={mock} confirmInput="CoolOrg">
         <button>Confirm?</button>
       </ConfirmDelete>,
@@ -32,8 +32,8 @@ describe('ConfirmDelete', function() {
   });
 
   it('confirm button stays disabled with non-matching input', function() {
-    let mock = jest.fn();
-    let wrapper = mount(
+    const mock = jest.fn();
+    const wrapper = mount(
       <ConfirmDelete message="Are you sure?" onConfirm={mock} confirmInput="CoolOrg">
         <button>Confirm?</button>
       </ConfirmDelete>,
@@ -45,8 +45,8 @@ describe('ConfirmDelete', function() {
   });
 
   it('confirm button is enabled when confirm input matches', function() {
-    let mock = jest.fn();
-    let wrapper = mount(
+    const mock = jest.fn();
+    const wrapper = mount(
       <ConfirmDelete message="Are you sure?" onConfirm={mock} confirmInput="CoolOrg">
         <button>Confirm?</button>
       </ConfirmDelete>,

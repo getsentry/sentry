@@ -74,10 +74,10 @@ describe('api', function() {
 
     describe('cancel()', function() {
       it('should abort any open XHR requests', function() {
-        let req1 = new Request({
+        const req1 = new Request({
           abort: sinon.stub(),
         });
-        let req2 = new Request({
+        const req2 = new Request({
           abort: sinon.stub(),
         });
 
@@ -95,7 +95,7 @@ describe('api', function() {
   });
 
   it('does not call success callback if 302 was returned because of a project slug change', function() {
-    let successCb = jest.fn();
+    const successCb = jest.fn();
     api.activeRequests = {id: {alive: true}};
     api.wrapCallback('id', successCb)({
       responseJSON: {
@@ -113,8 +113,8 @@ describe('api', function() {
 
   it('handles error callback', function() {
     sandbox.stub(api, 'wrapCallback', (id, func) => func);
-    let errorCb = jest.fn();
-    let args = ['test', true, 1];
+    const errorCb = jest.fn();
+    const args = ['test', true, 1];
     api.handleRequestError(
       {
         id: 'test',
@@ -158,7 +158,7 @@ describe('api', function() {
       });
 
       expect(api._wrapRequest.calledOnce).toBeTruthy();
-      let requestArgs = api._wrapRequest.getCall(0).args[1];
+      const requestArgs = api._wrapRequest.getCall(0).args[1];
       expect(requestArgs.query).toEqual({id: [1, 2, 3]});
     });
 
@@ -172,7 +172,7 @@ describe('api', function() {
       });
 
       expect(api._wrapRequest.calledOnce).toBeTruthy();
-      let requestArgs = api._wrapRequest.getCall(0).args[1];
+      const requestArgs = api._wrapRequest.getCall(0).args[1];
       expect(requestArgs.query).toEqual({query: 'is:resolved'});
     });
   });
@@ -195,7 +195,7 @@ describe('api', function() {
       });
 
       expect(api._wrapRequest.calledOnce).toBeTruthy();
-      let requestArgs = api._wrapRequest.getCall(0).args[1];
+      const requestArgs = api._wrapRequest.getCall(0).args[1];
       expect(requestArgs.query).toEqual({id: [1, 2, 3]});
     });
 
@@ -209,7 +209,7 @@ describe('api', function() {
       });
 
       expect(api._wrapRequest.calledOnce).toBeTruthy();
-      let requestArgs = api._wrapRequest.getCall(0).args[1];
+      const requestArgs = api._wrapRequest.getCall(0).args[1];
       expect(requestArgs.query).toEqual({query: 'is:resolved'});
     });
   });

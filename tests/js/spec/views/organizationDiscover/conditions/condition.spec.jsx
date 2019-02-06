@@ -88,7 +88,7 @@ describe('Condition', function() {
 
   describe('handleChange()', function() {
     let wrapper, focusSpy;
-    let onChangeMock = jest.fn();
+    const onChangeMock = jest.fn();
     beforeEach(function() {
       focusSpy = jest.spyOn(Condition.prototype, 'focus');
       const columns = [{name: 'col1', type: 'string'}, {name: 'col2', type: 'number'}];
@@ -123,7 +123,7 @@ describe('Condition', function() {
 
   describe('handleBlur()', function() {
     let wrapper;
-    let onChangeMock = jest.fn();
+    const onChangeMock = jest.fn();
     beforeEach(function() {
       const columns = [{name: 'col1', type: 'string'}, {name: 'col2', type: 'number'}];
       wrapper = mount(

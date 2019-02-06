@@ -16,7 +16,7 @@ export default class CreateTeamForm extends React.Component {
   };
 
   handleCreateTeamSuccess = data => {
-    let {onSuccess} = this.props;
+    const {onSuccess} = this.props;
 
     if (typeof onSuccess !== 'function') {
       return;
@@ -26,7 +26,7 @@ export default class CreateTeamForm extends React.Component {
   };
 
   render() {
-    let {organization} = this.props;
+    const {organization} = this.props;
 
     return (
       <React.Fragment>

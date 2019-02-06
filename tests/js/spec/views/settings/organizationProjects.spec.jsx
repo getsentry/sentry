@@ -10,7 +10,7 @@ describe('OrganizationProjects', function() {
   let projectsGetMock;
   let statsGetMock;
   let projectsPutMock;
-  let routerContext = TestStubs.routerContext();
+  const routerContext = TestStubs.routerContext();
 
   beforeEach(function() {
     project = TestStubs.Project();
@@ -37,7 +37,7 @@ describe('OrganizationProjects', function() {
   });
 
   it('Should render the projects in the store', function() {
-    let wrapper = mount(
+    const wrapper = mount(
       <OrganizationProjectsContainer params={{orgId: org.slug}} />,
       routerContext
     );
@@ -57,11 +57,11 @@ describe('OrganizationProjects', function() {
   });
 
   it('should search organization projects', async function() {
-    let searchMock = MockApiClient.addMockResponse({
+    const searchMock = MockApiClient.addMockResponse({
       url: `/organizations/${org.slug}/projects/`,
       body: [],
     });
-    let wrapper = mount(
+    const wrapper = mount(
       <OrganizationProjectsContainer location={{}} params={{orgId: org.slug}} />,
       routerContext
     );

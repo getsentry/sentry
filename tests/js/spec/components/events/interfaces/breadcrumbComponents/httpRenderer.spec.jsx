@@ -5,7 +5,7 @@ import HttpRenderer from 'app/components/events/interfaces/breadcrumbs/httpRende
 describe('HttpRenderer', function() {
   describe('render()', function() {
     it('should work', function() {
-      let httpRendererWrapper = shallow(
+      const httpRendererWrapper = shallow(
         <HttpRenderer
           crumb={{
             data: {
@@ -18,9 +18,9 @@ describe('HttpRenderer', function() {
         />
       );
 
-      let summaryLine = httpRendererWrapper.prop('summary');
+      const summaryLine = httpRendererWrapper.prop('summary');
 
-      let summaryLineWrapper = shallow(summaryLine);
+      const summaryLineWrapper = shallow(summaryLine);
       expect(summaryLineWrapper.find('strong').text()).toEqual('POST ');
       expect(
         summaryLineWrapper
@@ -32,7 +32,7 @@ describe('HttpRenderer', function() {
     });
 
     it("shouldn't blow up if crumb.data is missing", function() {
-      let httpRendererWrapper = mount(
+      const httpRendererWrapper = mount(
         <HttpRenderer
           crumb={{
             category: 'xhr',

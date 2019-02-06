@@ -62,14 +62,14 @@ describe('ProjectInstallPlatform', function() {
     };
 
     it('should render NotFound if no matching integration/platform', function() {
-      let props = {
+      const props = {
         ...baseProps,
         params: {
           platform: 'lua',
         },
       };
 
-      let wrapper = shallow(<ProjectInstallPlatform {...props} />, {
+      const wrapper = shallow(<ProjectInstallPlatform {...props} />, {
         organization: {id: '1337'},
       });
 
@@ -77,14 +77,14 @@ describe('ProjectInstallPlatform', function() {
     });
 
     it('should rendering Loading if integration/platform exists', function() {
-      let props = {
+      const props = {
         ...baseProps,
         params: {
           platform: 'node-connect',
         },
       };
 
-      let wrapper = shallow(<ProjectInstallPlatform {...props} />, {
+      const wrapper = shallow(<ProjectInstallPlatform {...props} />, {
         organization: {id: '1337'},
       });
 

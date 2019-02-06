@@ -57,12 +57,12 @@ class ApiTokenRow extends React.Component {
   };
 
   handleRemove = () => {
-    let {onRemove, token} = this.props;
+    const {onRemove, token} = this.props;
     onRemove(token);
   };
 
   render() {
-    let {token} = this.props;
+    const {token} = this.props;
 
     return (
       <StyledPanelItem p={2}>

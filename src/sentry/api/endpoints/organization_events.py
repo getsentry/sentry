@@ -2,7 +2,7 @@ from __future__ import absolute_import
 
 from collections import namedtuple
 from datetime import timedelta
-from functools32 import partial
+from functools import partial
 
 from rest_framework.response import Response
 

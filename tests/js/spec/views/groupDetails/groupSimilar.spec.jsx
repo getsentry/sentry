@@ -43,7 +43,7 @@ describe('Issues Similar View', function() {
   });
 
   it('renders initially with loading component', function() {
-    let component = shallow(
+    const component = shallow(
       <GroupSimilar project={project} params={{groupId: 'group-id'}} location={{}} />,
       routerContext
     );
@@ -52,7 +52,7 @@ describe('Issues Similar View', function() {
   });
 
   it('renders with mocked data', async function() {
-    let wrapper = mount(
+    const wrapper = mount(
       <GroupSimilar
         project={project}
         query={''}
@@ -70,7 +70,7 @@ describe('Issues Similar View', function() {
   });
 
   it('can merge and redirect to new parent', async function() {
-    let wrapper = mount(
+    const wrapper = mount(
       <GroupSimilar
         project={project}
         params={{orgId: 'org-slug', projectId: 'project-slug', groupId: 'group-id'}}
@@ -78,7 +78,7 @@ describe('Issues Similar View', function() {
       />,
       routerContext
     );
-    let merge = MockApiClient.addMockResponse({
+    const merge = MockApiClient.addMockResponse({
       method: 'PUT',
       url: '/projects/org-slug/project-slug/issues/',
       body: {

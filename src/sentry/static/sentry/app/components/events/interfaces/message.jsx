@@ -34,7 +34,7 @@ class MessageInterface extends React.Component {
   }
 
   render() {
-    let {data, group, event} = this.props;
+    const {data, group, event} = this.props;
 
     return (
       <EventDataSection group={group} event={event} type="message" title={t('Message')}>

@@ -12,7 +12,7 @@ const BookmarkToggle = createReactClass({
   mixins: [ApiMixin, Reflux.connect(LatestContextStore, 'latestContext')],
 
   handleBookmarkClick() {
-    let {project, organization} = this.state.latestContext;
+    const {project, organization} = this.state.latestContext;
     if (project && organization) {
       projectUpdate(this.api, {
         orgId: organization.slug,
@@ -27,10 +27,10 @@ const BookmarkToggle = createReactClass({
   render() {
     // TODO: can't guarantee that a <span> is appropriate here 100% of the time
     //       if this is to be truly re-usable
-    let project = this.state.latestContext.project;
-    let isActive = project ? project.isBookmarked : false;
+    const project = this.state.latestContext.project;
+    const isActive = project ? project.isBookmarked : false;
 
-    let projectIconClass = classNames('project-select-bookmark icon icon-star-solid', {
+    const projectIconClass = classNames('project-select-bookmark icon icon-star-solid', {
       active: isActive,
     });
 

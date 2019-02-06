@@ -11,8 +11,8 @@ class EventSdk extends React.Component {
   };
 
   render() {
-    let {group, event} = this.props;
-    let data = event.sdk;
+    const {group, event} = this.props;
+    const data = event.sdk;
 
     return (
       <GroupEventDataSection

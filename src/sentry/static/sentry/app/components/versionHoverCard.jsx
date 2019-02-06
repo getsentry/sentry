@@ -45,13 +45,13 @@ const VersionHoverCard = createReactClass({
   },
 
   fetchData() {
-    let {orgId, projectId, version} = this.props;
-    let done = _.after(3, () => {
+    const {orgId, projectId, version} = this.props;
+    const done = _.after(3, () => {
       this.setState({loading: false});
     });
 
     // releases
-    let releasePath = `/projects/${orgId}/${projectId}/releases/${encodeURIComponent(
+    const releasePath = `/projects/${orgId}/${projectId}/releases/${encodeURIComponent(
       version
     )}/`;
     this.api.request(releasePath, {
@@ -70,7 +70,7 @@ const VersionHoverCard = createReactClass({
     });
 
     // repos
-    let repoPath = `/organizations/${orgId}/repos/`;
+    const repoPath = `/organizations/${orgId}/repos/`;
     this.api.request(repoPath, {
       method: 'GET',
       success: data => {
@@ -87,7 +87,7 @@ const VersionHoverCard = createReactClass({
     });
 
     //deploys
-    let deployPath = `/organizations/${orgId}/releases/${encodeURIComponent(
+    const deployPath = `/organizations/${orgId}/releases/${encodeURIComponent(
       version
     )}/deploys/`;
     this.api.request(deployPath, {
@@ -114,7 +114,7 @@ const VersionHoverCard = createReactClass({
   },
 
   getRepoLink() {
-    let {orgId} = this.props;
+    const {orgId} = this.props;
     return {
       body: (
         <Box p={2} className="align-center">
@@ -132,13 +132,13 @@ const VersionHoverCard = createReactClass({
   },
 
   getBody() {
-    let {release, deploys} = this.state;
-    let {version} = this.props;
-    let lastCommit = release.lastCommit;
-    let shortVersion = getShortVersion(version);
+    const {release, deploys} = this.state;
+    const {version} = this.props;
+    const lastCommit = release.lastCommit;
+    const shortVersion = getShortVersion(version);
 
-    let recentDeploysByEnviroment = deploys.reduce(function(dbe, deploy) {
-      let {dateFinished, environment} = deploy;
+    const recentDeploysByEnviroment = deploys.reduce(function(dbe, deploy) {
+      const {dateFinished, environment} = deploy;
       if (!dbe.hasOwnProperty(environment)) {
         dbe[environment] = dateFinished;
       }
@@ -184,7 +184,7 @@ const VersionHoverCard = createReactClass({
                 <h6 className="deploy-heading">{t('Deploys')}</h6>
               </div>
               {mostRecentDeploySlice.map((env, idx) => {
-                let dateFinished = recentDeploysByEnviroment[env];
+                const dateFinished = recentDeploysByEnviroment[env];
                 return (
                   <div className="deploy" key={idx}>
                     <div className="deploy-meta" style={{position: 'relative'}}>
@@ -226,7 +226,7 @@ const VersionHoverCard = createReactClass({
   },
 
   render() {
-    let {loading, error, hasRepos} = this.state;
+    const {loading, error, hasRepos} = this.state;
     let header = null;
     let body = loading ? (
       <LoadingIndicator mini={true} />
@@ -235,7 +235,7 @@ const VersionHoverCard = createReactClass({
     ) : null;
 
     if (!loading && !error) {
-      let renderObj = hasRepos ? this.getBody() : this.getRepoLink();
+      const renderObj = hasRepos ? this.getBody() : this.getRepoLink();
       header = renderObj.header;
       body = renderObj.body;
     }

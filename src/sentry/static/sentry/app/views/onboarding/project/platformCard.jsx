@@ -12,7 +12,7 @@ class PlatformCard extends React.Component {
   };
 
   render() {
-    let platform = flattenedPlatforms.find(p => p.id === this.props.platform);
+    const platform = flattenedPlatforms.find(p => p.id === this.props.platform);
 
     return (
       <span

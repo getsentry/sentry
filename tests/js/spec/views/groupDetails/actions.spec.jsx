@@ -19,7 +19,7 @@ describe('GroupActions', function() {
 
   describe('render()', function() {
     it('renders correctly', function() {
-      let wrapper = shallow(
+      const wrapper = shallow(
         <GroupActions
           group={TestStubs.Group({
             id: '1337',

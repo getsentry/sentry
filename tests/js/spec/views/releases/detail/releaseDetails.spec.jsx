@@ -30,8 +30,8 @@ describe('ReleaseDetails', function() {
   });
 
   it('shows release details', function() {
-    let noop = () => {};
-    let params = {
+    const noop = () => {};
+    const params = {
       orgId: 'acme',
       projectId: 'anvils',
       project: {
@@ -39,11 +39,11 @@ describe('ReleaseDetails', function() {
       },
       version: '9.1.1',
     };
-    let location = {
+    const location = {
       pathname: '/',
     };
 
-    let wrapper = mount(
+    const wrapper = mount(
       <ReleaseDetails location={location} params={params} setProjectNavSection={noop}>
         <div>hi</div>
       </ReleaseDetails>,

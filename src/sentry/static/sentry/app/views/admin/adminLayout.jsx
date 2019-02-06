@@ -14,7 +14,7 @@ export default class AdminLayout extends React.Component {
   constructor(props) {
     super(props);
     // Allow injection via getsentry et all
-    let hooksManage = [];
+    const hooksManage = [];
     HookStore.get('admin:sidebar:manage').forEach(cb => {
       hooksManage.push(cb());
     });

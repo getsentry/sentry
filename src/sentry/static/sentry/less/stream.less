@@ -659,16 +659,11 @@
       }
     }
 
-    .event-type,
     .error-level {
       .square(12px);
       border-radius: 50%;
       top: 13px;
       left: 12px;
-    }
-
-    .event-type {
-      position: absolute;
     }
 
     h3 {
@@ -836,22 +831,6 @@
     }
   }
 }
-
-// Generate .group positions for animating
-
-/*
-.generate-groups(50);
-
-.generate-groups(@n, @i: 1, ) when (@i =< @n) {
-  .group:nth-child(@{i}) {
-    @offset: (@i * 100% - 100);
-    transform: translate3d(0, @offset, 0);
-    -moz-transform: translate3d(0, @offset, 0);
-    -ms-transform: translate3d(0, @offset, 0);
-  }
-  .generate-groups(@n, (@i + 1));
-}
-*/
 
 .stream-count {
   font-size: 20px;
@@ -1151,7 +1130,6 @@
     margin: 0 0 5px;
     font-weight: 600;
 
-    .event-type,
     .error-level {
       position: absolute;
       left: -6px;

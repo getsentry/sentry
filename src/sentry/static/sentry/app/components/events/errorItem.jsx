@@ -31,7 +31,7 @@ class EventErrorItem extends React.Component {
   };
 
   cleanedData() {
-    let data = {...this.props.error.data};
+    const data = {...this.props.error.data};
 
     // The name is rendered as path in front of the message
     if (typeof data.name === 'string') {
@@ -45,8 +45,8 @@ class EventErrorItem extends React.Component {
 
     if (typeof data.image_path === 'string') {
       // Separate the image name for readability
-      let separator = /^([a-z]:\\|\\\\)/i.test(data.image_path) ? '\\' : '/';
-      let path = data.image_path.split(separator);
+      const separator = /^([a-z]:\\|\\\\)/i.test(data.image_path) ? '\\' : '/';
+      const path = data.image_path.split(separator);
       data.image_name = path.splice(-1, 1)[0];
       data.image_path = path.length ? path.join(separator) + separator : '';
     }
@@ -55,7 +55,7 @@ class EventErrorItem extends React.Component {
   }
 
   renderPath() {
-    let data = this.props.error.data || {};
+    const data = this.props.error.data || {};
 
     if (!data.name || typeof data.name !== 'string') {
       return null;
@@ -70,9 +70,9 @@ class EventErrorItem extends React.Component {
   }
 
   render() {
-    let error = this.props.error;
-    let isOpen = this.state.isOpen;
-    let data = this.cleanedData();
+    const error = this.props.error;
+    const isOpen = this.state.isOpen;
+    const data = this.cleanedData();
     return (
       <li>
         {this.renderPath()}

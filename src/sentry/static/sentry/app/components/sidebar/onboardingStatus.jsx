@@ -18,7 +18,7 @@ class OnboardingStatus extends React.Component {
   };
 
   componentDidUpdate(prevProps) {
-    let {currentPanel, org} = this.props;
+    const {currentPanel, org} = this.props;
     if (
       currentPanel !== prevProps.currentPanel &&
       (currentPanel || prevProps.currentPanel == 'todos')
@@ -34,20 +34,20 @@ class OnboardingStatus extends React.Component {
   }
 
   render() {
-    let {collapsed, org, currentPanel, hidePanel, showPanel, onShowPanel} = this.props;
+    const {collapsed, org, currentPanel, hidePanel, showPanel, onShowPanel} = this.props;
     if (typeof org.features === 'undefined' || org.features.indexOf('onboarding') === -1)
       return null;
 
-    let doneTasks = (org.onboardingTasks || []).filter(
+    const doneTasks = (org.onboardingTasks || []).filter(
       task => task.status === 'complete' || task.status === 'skipped'
     );
-    let allDisplayedTasks = TodoList.TASKS.filter(task => task.display);
+    const allDisplayedTasks = TodoList.TASKS.filter(task => task.display);
 
-    let percentage = Math.round(
+    const percentage = Math.round(
       doneTasks.length / allDisplayedTasks.length * 100
     ).toString();
 
-    let style = {
+    const style = {
       height: collapsed ? percentage + '%' : undefined,
       width: collapsed ? undefined : percentage + '%',
     };

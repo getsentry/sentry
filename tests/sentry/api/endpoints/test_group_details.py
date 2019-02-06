@@ -99,12 +99,8 @@ class GroupDetailsTest(APITestCase):
             for args, kwargs in get_range.call_args_list:
                 assert kwargs['environment_ids'] == [environment.id]
 
-        with mock.patch(
-                'sentry.api.endpoints.group_details.tsdb.make_series',
-                side_effect=tsdb.make_series) as make_series:
-            response = self.client.get(url, {'environment': 'invalid'}, format='json')
-            assert response.status_code == 200
-            assert make_series.call_count == 2
+        response = self.client.get(url, {'environment': 'invalid'}, format='json')
+        assert response.status_code == 404
 
 
 class GroupUpdateTest(APITestCase):

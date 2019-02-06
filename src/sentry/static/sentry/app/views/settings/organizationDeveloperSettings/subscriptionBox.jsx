@@ -24,7 +24,7 @@ export default class SubscriptionBox extends React.Component {
   }
 
   onChange = evt => {
-    let checked = evt.target.checked;
+    const checked = evt.target.checked;
     const {resource} = this.props;
     this.setState({checked});
     this.props.onChange(resource, checked);
