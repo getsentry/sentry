@@ -213,7 +213,8 @@ const GroupActivity = createReactClass({
 
   // TODO(dcramer): only re-render on group/activity change
   propTypes: {
-    group: PropTypes.object,
+    organization: SentryTypes.Organization.isRequired,
+    group: SentryTypes.Group,
   },
 
   mixins: [ApiMixin],
@@ -244,7 +245,7 @@ const GroupActivity = createReactClass({
   },
 
   render() {
-    const group = this.props.group;
+    const {organization, group} = this.props;
     const me = ConfigStore.get('user');
     const memberList = MemberListStore.getAll();
 
@@ -287,6 +288,7 @@ const GroupActivity = createReactClass({
             <div className="activity-item-content">
               <ErrorBoundary mini>
                 <GroupActivityItem
+                  organization={organization}
                   author={
                     <span key="author">
                       {avatar}
