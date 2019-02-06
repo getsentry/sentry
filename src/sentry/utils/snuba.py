@@ -671,19 +671,6 @@ def get_related_project_ids(column, ids):
     return []
 
 
-def test_eventstream(data):
-    try:
-        resp = _snuba_pool.urlopen(
-            'POST', '/tests/eventstream',
-            body=json.dumps(data),
-        )
-        if resp.status != 200:
-            raise SnubaError("Non-200 response from Snuba!")
-        return resp
-    except urllib3.exceptions.HTTPError as err:
-        raise SnubaError(err)
-
-
 def shrink_time_window(issues, start):
     """\
     If a single issue is passed in, shrink the `start` parameter to be briefly before

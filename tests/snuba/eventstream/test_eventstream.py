@@ -8,6 +8,7 @@ from mock import patch, Mock
 
 from sentry.event_manager import EventManager
 from sentry.eventstream.kafka import KafkaEventStream
+from sentry.eventstream.snuba import SnubaEventStream
 from sentry.testutils import SnubaTestCase
 from sentry.utils import snuba, json
 
@@ -71,11 +72,12 @@ class SnubaEventStreamTest(SnubaTestCase):
         assert produce_kwargs['topic'] == 'events'
         assert produce_kwargs['key'] == six.text_type(self.project.id)
 
-        version, type_, primary_payload = json.loads(produce_kwargs['value'])[:3]
+        version, type_, payload1, payload2 = json.loads(produce_kwargs['value'])
         assert version == 2
         assert type_ == 'insert'
 
         # insert what would have been the Kafka payload directly
         # into Snuba, expect an HTTP 200 and for the event to now exist
-        snuba.test_eventstream((2, 'insert', primary_payload))
+        snuba_eventstream = SnubaEventStream()
+        snuba_eventstream._send(self.project.id, 'insert', (payload1, payload2))
         assert _get_event_count() == 1
