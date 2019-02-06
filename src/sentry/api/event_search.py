@@ -116,7 +116,11 @@ class InvalidSearchQuery(Exception):
 
 
 class SearchFilter(namedtuple('SearchFilter', 'key operator value')):
-    pass
+
+    def __str__(self):
+        return ''.join(
+            map(six.text_type, (self.key.name, self.operator, self.value.raw_value)),
+        )
 
 
 class SearchKey(namedtuple('SearchKey', 'name')):
@@ -224,6 +228,7 @@ class SearchVisitor(NodeVisitor):
         except InvalidQuery as exc:
             raise InvalidSearchQuery(exc.message)
 
+        # TODO: Handle negations
         if from_val is not None:
             operator = '>='
             search_value = from_val[0]
@@ -248,6 +253,10 @@ class SearchVisitor(NodeVisitor):
         except InvalidQuery as exc:
             raise InvalidSearchQuery(exc.message)
 
+        # TODO: Handle negations here. This is tricky because these will be
+        # separate filters, and to negate this range we need (< val or >= val).
+        # We currently AND all filters together, so we'll need extra logic to
+        # handle. Maybe not necessary to allow negations for this.
         return [
             SearchFilter(
                 search_key,
