@@ -68,7 +68,10 @@ def clear_expired_raw_events():
             if not result.exists():
                 break
 
-            result.delete()
+            # Django ORM can't do delete with limit
+            model_cls.objects.filter(
+                pk__in=result.values_list('pk')
+            ).delete()
 
     cutoff = timezone.now() - \
         timedelta(days=settings.SENTRY_RAW_EVENT_MAX_AGE_DAYS)
