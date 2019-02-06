@@ -207,7 +207,7 @@ class Result extends React.Component {
     };
 
     return (
-      <ResultContainer>
+      <ResultContainer data-test-id="result">
         <div>
           <HeadingContainer>
             {savedQuery ? this.renderSavedQueryHeader() : this.renderQueryResultHeader()}
