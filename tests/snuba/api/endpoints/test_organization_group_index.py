@@ -18,10 +18,12 @@ from sentry.models import (
 )
 from sentry.testutils import APITestCase, SnubaTestCase
 from sentry.testutils.helpers import parse_link_header
-from six.moves.urllib.parse import quote
 
 
 class GroupListTest(APITestCase, SnubaTestCase):
+    endpoint = 'sentry-api-0-organization-group-index'
+    use_new_filters = False
+
     def setUp(self):
         super(GroupListTest, self).setUp()
         self.min_ago = timezone.now() - timedelta(minutes=1)
@@ -34,12 +36,14 @@ class GroupListTest(APITestCase, SnubaTestCase):
             attrs['href'] = url
         return links
 
-    @fixture
-    def path(self):
-        return reverse(
-            'sentry-api-0-organization-group-index',
-            args=[self.project.organization.slug]
-        )
+    def get_response(self, *args, **kwargs):
+        if not args:
+            org = self.project.organization.slug
+        else:
+            org = args[0]
+
+        kwargs['use_new_filters'] = '1' if self.use_new_filters else '0'
+        return super(GroupListTest, self).get_response(org, **kwargs)
 
     def test_sort_by_date_with_tag(self):
         # XXX(dcramer): this tests a case where an ambiguous column name existed
@@ -54,11 +58,7 @@ class GroupListTest(APITestCase, SnubaTestCase):
         )
         self.login_as(user=self.user)
 
-        response = self.client.get(
-            u'{}?sort_by=date&query=is:unresolved'.format(self.path),
-            format='json',
-        )
-        assert response.status_code == 200
+        response = self.get_valid_response(sort_by='date', query='is:unresolved')
         assert len(response.data) == 1
         assert response.data[0]['id'] == six.text_type(group1.id)
 
@@ -70,10 +70,7 @@ class GroupListTest(APITestCase, SnubaTestCase):
         )
         self.login_as(user=self.user)
 
-        response = self.client.get(
-            u'{}?sort_by=date&query=timesSeen:>1k'.format(self.path),
-            format='json',
-        )
+        response = self.get_response(sort_by='date', query='timesSeen:>1k')
         assert response.status_code == 400
         assert 'could not' in response.data['detail']
 
@@ -97,11 +94,7 @@ class GroupListTest(APITestCase, SnubaTestCase):
             datetime=now - timedelta(seconds=1),
         )
         self.login_as(user=self.user)
-        response = self.client.get(
-            u'{}?sort_by=date&limit=1'.format(self.path),
-            format='json',
-        )
-        assert response.status_code == 200
+        response = self.get_valid_response(sort_by='date', limit=1)
         assert len(response.data) == 1
         assert response.data[0]['id'] == six.text_type(group2.id)
 
@@ -135,16 +128,10 @@ class GroupListTest(APITestCase, SnubaTestCase):
 
         self.login_as(user=self.user)
 
-        response = self.client.get(u'{}?groupStatsPeriod=24h'.format(self.path), format='json')
-        assert response.status_code == 200
-
-        response = self.client.get(u'{}?groupStatsPeriod=14d'.format(self.path), format='json')
-        assert response.status_code == 200
-
-        response = self.client.get(u'{}?groupStatsPeriod='.format(self.path), format='json')
-        assert response.status_code == 200
-
-        response = self.client.get(u'{}?groupStatsPeriod=48h'.format(self.path), format='json')
+        self.get_valid_response(groupStatsPeriod='24h')
+        self.get_valid_response(groupStatsPeriod='14d')
+        self.get_valid_response(groupStatsPeriod='')
+        response = self.get_response(groupStatsPeriod='48h')
         assert response.status_code == 400
 
     def test_environment(self):
@@ -167,11 +154,10 @@ class GroupListTest(APITestCase, SnubaTestCase):
 
         self.login_as(user=self.user)
 
-        response = self.client.get(self.path + '?environment=production', format='json')
-        assert response.status_code == 200
+        response = self.get_valid_response(environment='production')
         assert len(response.data) == 1
 
-        response = self.client.get(self.path + '?environment=garbage', format='json')
+        response = self.get_response(environment='garbage')
         assert response.status_code == 404
 
     def test_auto_resolved(self):
@@ -197,8 +183,7 @@ class GroupListTest(APITestCase, SnubaTestCase):
         )
 
         self.login_as(user=self.user)
-        response = self.client.get(self.path, format='json')
-        assert response.status_code == 200
+        response = self.get_valid_response()
         assert len(response.data) == 1
         assert response.data[0]['id'] == six.text_type(group2.id)
 
@@ -217,8 +202,7 @@ class GroupListTest(APITestCase, SnubaTestCase):
 
         self.login_as(user=self.user)
 
-        response = self.client.get(u'{}?query={}'.format(self.path, 'c' * 32), format='json')
-        assert response.status_code == 200
+        response = self.get_valid_response(query='c' * 32)
         assert response['X-Sentry-Direct-Hit'] == '1'
         assert len(response.data) == 1
         assert response.data[0]['id'] == six.text_type(group.id)
@@ -237,10 +221,7 @@ class GroupListTest(APITestCase, SnubaTestCase):
         )
 
         self.login_as(user=self.user)
-        response = self.client.get(
-            u'{}?query=%20%20{}%20%20'.format(self.path, 'c' * 32), format='json'
-        )
-        assert response.status_code == 200
+        response = self.get_valid_response(query='  {}  '.format('c' * 32))
         assert response['X-Sentry-Direct-Hit'] == '1'
         assert len(response.data) == 1
         assert response.data[0]['id'] == six.text_type(group.id)
@@ -253,8 +234,7 @@ class GroupListTest(APITestCase, SnubaTestCase):
         self.create_group(checksum='b' * 32)
 
         self.login_as(user=self.user)
-        response = self.client.get(u'{}?query={}'.format(self.path, 'c' * 32), format='json')
-        assert response.status_code == 200
+        response = self.get_valid_response(query='c' * 32)
         assert len(response.data) == 0
 
     def test_lookup_by_short_id(self):
@@ -262,10 +242,7 @@ class GroupListTest(APITestCase, SnubaTestCase):
         short_id = group.qualified_short_id
 
         self.login_as(user=self.user)
-        response = self.client.get(
-            u'{}?query={}&shortIdLookup=1'.format(
-                self.path, short_id), format='json')
-        assert response.status_code == 200
+        response = self.get_valid_response(query=short_id, shortIdLookup=1)
         assert len(response.data) == 1
 
     def test_lookup_by_short_id_no_perms(self):
@@ -282,14 +259,7 @@ class GroupListTest(APITestCase, SnubaTestCase):
 
         self.login_as(user=user)
 
-        path = reverse(
-            'sentry-api-0-organization-group-index',
-            args=[organization.slug]
-        )
-        response = self.client.get(
-            u'{}?query={}&shortIdLookup=1'.format(
-                path, short_id), format='json')
-        assert response.status_code == 200
+        response = self.get_valid_response(organization.slug, query=short_id, shortIdLookup=1)
         assert len(response.data) == 0
 
     def test_lookup_by_first_release(self):
@@ -310,10 +280,8 @@ class GroupListTest(APITestCase, SnubaTestCase):
             group=group2,
             datetime=now - timedelta(seconds=1),
         )
-        url = '%s?query=%s' % (self.path, quote('first-release:"%s"' % release.version))
-        response = self.client.get(url, format='json')
+        response = self.get_valid_response(**{'first-release': '"%s"' % release.version})
         issues = json.loads(response.content)
-        assert response.status_code == 200
         assert len(issues) == 2
         assert int(issues[0]['id']) == group2.id
         assert int(issues[1]['id']) == group.id
@@ -329,10 +297,8 @@ class GroupListTest(APITestCase, SnubaTestCase):
             tags={'sentry:release': release.version},
         )
 
-        url = '%s?query=%s' % (self.path, quote('release:"%s"' % release.version))
-        response = self.client.get(url, format='json')
+        response = self.get_valid_response(release=release.version)
         issues = json.loads(response.content)
-        assert response.status_code == 200
         assert len(issues) == 1
         assert int(issues[0]['id']) == self.group.id
 
@@ -375,7 +341,7 @@ class GroupListTest(APITestCase, SnubaTestCase):
 
         self.login_as(user=self.user)
 
-        response = self.client.get(self.path, format='json')
+        response = self.get_valid_response()
         assert len(response.data) == 1
         assert response.data[0]['id'] == six.text_type(group2.id)
 
@@ -385,15 +351,14 @@ class GroupListTest(APITestCase, SnubaTestCase):
         self.create_group(last_seen=timezone.now() - timedelta(days=2))
 
         with self.options({'system.event-retention-days': 1}):
-            response = self.client.get(self.path)
+            response = self.get_valid_response()
 
-        assert response.status_code == 200, response.content
         assert len(response.data) == 0
 
     def test_token_auth(self):
         token = ApiToken.objects.create(user=self.user, scope_list=['org:read'])
         response = self.client.get(
-            self.path,
+            reverse('sentry-api-0-organization-group-index', args=[self.project.organization.slug]),
             format='json',
             HTTP_AUTHORIZATION='Bearer %s' %
             token.token)
@@ -415,32 +380,36 @@ class GroupListTest(APITestCase, SnubaTestCase):
             )
             self.login_as(user=self.user)
 
-            response = self.client.get(
-                '%s?statsPeriod=6h' % (self.path,),
-                format='json',
-            )
+            response = self.get_valid_response(statsPeriod='6h')
             assert len(response.data) == 1
             assert response.data[0]['id'] == six.text_type(group.id)
 
-            response = self.client.get(
-                '%s?statsPeriod=1h' % (self.path,),
-                format='json',
-            )
-
+            response = self.get_valid_response(statsPeriod='1h')
             assert len(response.data) == 0
 
 
+class GroupListTestWithSearchFilters(GroupListTest):
+    use_new_filters = True
+
+
 class GroupUpdateTest(APITestCase, SnubaTestCase):
+    endpoint = 'sentry-api-0-organization-group-index'
+    method = 'put'
+    use_new_filters = False
+
     def setUp(self):
         super(GroupUpdateTest, self).setUp()
         self.min_ago = timezone.now() - timedelta(minutes=1)
 
-    @fixture
-    def path(self):
-        return reverse(
-            'sentry-api-0-organization-group-index',
-            args=[self.project.organization.slug]
-        )
+    def get_response(self, *args, **kwargs):
+        if not args:
+            org = self.project.organization.slug
+        else:
+            org = args[0]
+
+        qs_params = kwargs.get('qs_params', {})
+        qs_params['use_new_filters'] = '1' if self.use_new_filters else '0'
+        return super(GroupUpdateTest, self).get_response(org, **kwargs)
 
     def assertNoResolution(self, group):
         assert not GroupResolution.objects.filter(
@@ -458,14 +427,10 @@ class GroupUpdateTest(APITestCase, SnubaTestCase):
         )
 
         self.login_as(user=self.user)
-        response = self.client.put(
-            u'{}?status=unresolved&project={}'.format(self.path, self.project.id),
-            data={
-                'status': 'resolved',
-            },
-            format='json',
+        response = self.get_valid_response(
+            qs_params={'status': 'unresolved', 'project': self.project.id},
+            status='resolved',
         )
-        assert response.status_code == 200, response.data
         assert response.data == {
             'status': 'resolved',
             'statusDetails': {},
@@ -526,31 +491,27 @@ class GroupUpdateTest(APITestCase, SnubaTestCase):
                 datetime=self.min_ago - timedelta(seconds=i),
             )
 
-        response = self.client.get(
-            u'{}?sort_by=date&query=is:unresolved'.format(self.path),
-            format='json',
+        response = self.get_valid_response(
+            query='is:unresolved',
+            sort_by='date',
+            method='get',
         )
-
         assert len(response.data) == 100
 
-        response = self.client.put(
-            u'{}?status=unresolved'.format(self.path),
-            data={
-                'status': 'resolved',
-            },
-            format='json',
+        response = self.get_valid_response(
+            qs_params={'status': 'unresolved'},
+            status='resolved',
         )
-        assert response.status_code == 200, response.data
-
         assert response.data == {
             'status': 'resolved',
             'statusDetails': {},
         }
-        response = self.client.get(
-            u'{}?sort_by=date&query=is:unresolved'.format(self.path),
-            format='json',
-        )
 
+        response = self.get_valid_response(
+            query='is:unresolved',
+            sort_by='date',
+            method='get',
+        )
         assert len(response.data) == 0
 
     @patch('sentry.integrations.example.integration.ExampleIntegration.sync_status_outbound')
@@ -597,26 +558,17 @@ class GroupUpdateTest(APITestCase, SnubaTestCase):
             relationship=GroupLink.Relationship.references,
         )[0]
 
-        response = self.client.get(
-            u'{}?sort_by=date&query=is:unresolved'.format(self.path),
-            format='json',
-        )
-
+        response = self.get_valid_response(sort_by='date', query='is:unresolved', method='get')
         assert len(response.data) == 1
 
         with self.tasks():
             with self.feature({
                 'organizations:integrations-issue-sync': True,
             }):
-                response = self.client.put(
-                    u'{}?status=unresolved'.format(self.path),
-                    data={
-                        'status': 'resolved',
-                    },
-                    format='json',
+                response = self.get_valid_response(
+                    qs_params={'status': 'unresolved'},
+                    status='resolved',
                 )
-                assert response.status_code == 200, response.data
-
                 group = Group.objects.get(id=group.id)
                 assert group.status == GroupStatus.RESOLVED
 
@@ -628,10 +580,7 @@ class GroupUpdateTest(APITestCase, SnubaTestCase):
                     external_issue, True, group.project_id
                 )
 
-        response = self.client.get(
-            u'{}?sort_by=date&query=is:unresolved'.format(self.path),
-            format='json',
-        )
+        response = self.get_valid_response(sort_by='date', query='is:unresolved', method='get')
         assert len(response.data) == 0
 
     @patch('sentry.integrations.example.integration.ExampleIntegration.sync_status_outbound')
@@ -676,19 +625,13 @@ class GroupUpdateTest(APITestCase, SnubaTestCase):
 
         self.login_as(user=self.user)
 
-        url = u'{url}?id={group.id}'.format(
-            url=self.path,
-            group=group,
-        )
-
         with self.tasks():
             with self.feature({
                 'organizations:integrations-issue-sync': True,
             }):
-                response = self.client.put(
-                    url, data={
-                        'status': 'unresolved',
-                    }, format='json'
+                response = self.get_valid_response(
+                    qs_params={'id': group.id},
+                    status='unresolved',
                 )
                 assert response.status_code == 200
                 assert response.data == {
@@ -717,16 +660,10 @@ class GroupUpdateTest(APITestCase, SnubaTestCase):
         uo1 = UserOption.objects.create(key='self_assign_issue', value='1', project=None, user=user)
 
         self.login_as(user=user)
-        url = u'{url}?id={group.id}'.format(url=self.path, group=group)
-        response = self.client.put(
-            url,
-            data={
-                'status': 'resolved',
-            },
-            format='json',
+        response = self.get_valid_response(
+            qs_params={'id': group.id},
+            status='resolved',
         )
-
-        assert response.status_code == 200, response.data
         assert response.data['assignedTo']['id'] == six.text_type(user.id)
         assert response.data['assignedTo']['type'] == 'user'
         assert response.data['status'] == 'resolved'
@@ -756,16 +693,10 @@ class GroupUpdateTest(APITestCase, SnubaTestCase):
 
         self.login_as(user=self.user)
 
-        url = u'{url}?id={group.id}'.format(
-            url=self.path,
-            group=group,
+        response = self.get_valid_response(
+            qs_params={'id': group.id},
+            status='resolvedInNextRelease',
         )
-        response = self.client.put(
-            url, data={
-                'status': 'resolvedInNextRelease',
-            }, format='json'
-        )
-        assert response.status_code == 200
         assert response.data['status'] == 'resolved'
         assert response.data['statusDetails']['inNextRelease']
         assert response.data['assignedTo']['id'] == six.text_type(self.user.id)
@@ -803,18 +734,10 @@ class GroupUpdateTest(APITestCase, SnubaTestCase):
         )
 
         self.login_as(user=self.user)
-        url = u'{url}?id={group1.id}&id={group2.id}&group4={group4.id}'.format(
-            url=self.path,
-            group1=group1,
-            group2=group2,
-            group4=group4,
+        response = self.get_valid_response(
+            qs_params={'id': [group1.id, group2.id], 'group4': group4.id},
+            status='resolved',
         )
-        response = self.client.put(
-            url, data={
-                'status': 'resolved',
-            }, format='json'
-        )
-        assert response.status_code == 200
         assert response.data == {
             'status': 'resolved',
             'statusDetails': {},
@@ -853,21 +776,11 @@ class GroupUpdateTest(APITestCase, SnubaTestCase):
 
         self.login_as(user=self.user)
 
-        url = u'{url}?id={group.id}'.format(
-            url=self.path,
-            group=group,
+        response = self.get_valid_response(
+            qs_params={'id': group.id},
+            status='resolved',
+            statusDetails={'inRelease': 'latest'},
         )
-        response = self.client.put(
-            url,
-            data={
-                'status': 'resolved',
-                'statusDetails': {
-                    'inRelease': 'latest',
-                },
-            },
-            format='json'
-        )
-        assert response.status_code == 200
         assert response.data['status'] == 'resolved'
         assert response.data['statusDetails']['inRelease'] == release.version
         assert response.data['statusDetails']['actor']['id'] == six.text_type(self.user.id)
@@ -908,21 +821,11 @@ class GroupUpdateTest(APITestCase, SnubaTestCase):
 
         self.login_as(user=self.user)
 
-        url = u'{url}?id={group.id}'.format(
-            url=self.path,
-            group=group,
+        response = self.get_valid_response(
+            qs_params={'id': group.id},
+            status='resolved',
+            statusDetails={'inRelease': release.version},
         )
-        response = self.client.put(
-            url,
-            data={
-                'status': 'resolved',
-                'statusDetails': {
-                    'inRelease': release.version,
-                },
-            },
-            format='json'
-        )
-        assert response.status_code == 200
         assert response.data['status'] == 'resolved'
         assert response.data['statusDetails']['inRelease'] == release.version
         assert response.data['statusDetails']['actor']['id'] == six.text_type(self.user.id)
@@ -961,21 +864,11 @@ class GroupUpdateTest(APITestCase, SnubaTestCase):
 
         self.login_as(user=self.user)
 
-        url = u'{url}?id={group.id}'.format(
-            url=self.path,
-            group=group,
+        response = self.get_valid_response(
+            qs_params={'id': group.id},
+            status='resolved',
+            statusDetails={'inNextRelease': True},
         )
-        response = self.client.put(
-            url,
-            data={
-                'status': 'resolved',
-                'statusDetails': {
-                    'inNextRelease': True,
-                },
-            },
-            format='json'
-        )
-        assert response.status_code == 200
         assert response.data['status'] == 'resolved'
         assert response.data['statusDetails']['inNextRelease']
         assert response.data['statusDetails']['actor']['id'] == six.text_type(self.user.id)
@@ -1014,16 +907,10 @@ class GroupUpdateTest(APITestCase, SnubaTestCase):
 
         self.login_as(user=self.user)
 
-        url = u'{url}?id={group.id}'.format(
-            url=self.path,
-            group=group,
+        response = self.get_valid_response(
+            qs_params={'id': group.id},
+            status='resolvedInNextRelease',
         )
-        response = self.client.put(
-            url, data={
-                'status': 'resolvedInNextRelease',
-            }, format='json'
-        )
-        assert response.status_code == 200
         assert response.data['status'] == 'resolved'
         assert response.data['statusDetails']['inNextRelease']
         assert response.data['statusDetails']['actor']['id'] == six.text_type(self.user.id)
@@ -1067,24 +954,11 @@ class GroupUpdateTest(APITestCase, SnubaTestCase):
 
         self.login_as(user=self.user)
 
-        url = u'{url}?id={group.id}'.format(
-            url=self.path,
-            group=group,
+        response = self.get_valid_response(
+            qs_params={'id': group.id},
+            status='resolved',
+            statusDetails={'inCommit': {'commit': commit.key, 'repository': repo.name}},
         )
-        response = self.client.put(
-            url,
-            data={
-                'status': 'resolved',
-                'statusDetails': {
-                    'inCommit': {
-                        'commit': commit.key,
-                        'repository': repo.name,
-                    },
-                },
-            },
-            format='json'
-        )
-        assert response.status_code == 200
         assert response.data['status'] == 'resolved'
         assert response.data['statusDetails']['inCommit']['id'] == commit.key
         assert response.data['statusDetails']['actor']['id'] == six.text_type(self.user.id)
@@ -1130,24 +1004,11 @@ class GroupUpdateTest(APITestCase, SnubaTestCase):
 
         self.login_as(user=self.user)
 
-        url = u'{url}?id={group.id}'.format(
-            url=self.path,
-            group=group,
+        response = self.get_valid_response(
+            qs_params={'id': group.id},
+            status='resolved',
+            statusDetails={'inCommit': {'commit': commit.key, 'repository': repo.name}},
         )
-        response = self.client.put(
-            url,
-            data={
-                'status': 'resolved',
-                'statusDetails': {
-                    'inCommit': {
-                        'commit': commit.key,
-                        'repository': repo.name,
-                    },
-                },
-            },
-            format='json'
-        )
-        assert response.status_code == 200
         assert response.data['status'] == 'resolved'
         assert response.data['statusDetails']['inCommit']['id'] == commit.key
         assert response.data['statusDetails']['actor']['id'] == six.text_type(self.user.id)
@@ -1191,22 +1052,10 @@ class GroupUpdateTest(APITestCase, SnubaTestCase):
 
         self.login_as(user=self.user)
 
-        url = u'{url}?id={group.id}'.format(
-            url=self.path,
-            group=group,
-        )
-        response = self.client.put(
-            url,
-            data={
-                'status': 'resolved',
-                'statusDetails': {
-                    'inCommit': {
-                        'commit': 'a' * 40,
-                        'repository': repo.name,
-                    },
-                },
-            },
-            format='json'
+        response = self.get_response(
+            qs_params={'id': group.id},
+            status='resolved',
+            statusDetails={'inCommit': {'commit': 'a' * 40, 'repository': repo.name}},
         )
         assert response.status_code == 400
         assert response.data['statusDetails'][0]['inCommit'][0]['commit']
@@ -1221,16 +1070,7 @@ class GroupUpdateTest(APITestCase, SnubaTestCase):
 
         self.login_as(user=self.user)
 
-        url = u'{url}?id={group.id}'.format(
-            url=self.path,
-            group=group,
-        )
-        response = self.client.put(
-            url, data={
-                'status': 'unresolved',
-            }, format='json'
-        )
-        assert response.status_code == 200
+        response = self.get_valid_response(qs_params={'id': group.id}, status='unresolved')
         assert response.data == {
             'status': 'unresolved',
             'statusDetails': {},
@@ -1257,16 +1097,7 @@ class GroupUpdateTest(APITestCase, SnubaTestCase):
 
         self.login_as(user=self.user)
 
-        url = u'{url}?id={group.id}'.format(
-            url=self.path,
-            group=group,
-        )
-        response = self.client.put(
-            url, data={
-                'status': 'unresolved',
-            }, format='json'
-        )
-        assert response.status_code == 200
+        response = self.get_valid_response(qs_params={'id': group.id}, status='unresolved')
         assert response.data == {
             'status': 'unresolved',
             'statusDetails': {},
@@ -1285,18 +1116,7 @@ class GroupUpdateTest(APITestCase, SnubaTestCase):
 
         self.login_as(user=self.user)
 
-        url = u'{url}?id={group.id}'.format(
-            url=self.path,
-            group=group,
-        )
-        response = self.client.put(
-            url, data={
-                'status': 'ignored',
-            }, format='json'
-        )
-
-        assert response.status_code == 200
-
+        response = self.get_valid_response(qs_params={'id': group.id}, status='ignored')
         # existing snooze objects should be cleaned up
         assert not GroupSnooze.objects.filter(id=snooze.id).exists()
 
@@ -1313,19 +1133,11 @@ class GroupUpdateTest(APITestCase, SnubaTestCase):
 
         self.login_as(user=self.user)
 
-        url = u'{url}?id={group.id}'.format(
-            url=self.path,
-            group=group,
+        response = self.get_valid_response(
+            qs_params={'id': group.id},
+            status='ignored',
+            ignoreDuration=30,
         )
-        response = self.client.put(
-            url, data={
-                'status': 'ignored',
-                'ignoreDuration': 30,
-            }, format='json'
-        )
-
-        assert response.status_code == 200
-
         snooze = GroupSnooze.objects.get(group=group)
         snooze.until = snooze.until.replace(microsecond=0)
 
@@ -1362,19 +1174,11 @@ class GroupUpdateTest(APITestCase, SnubaTestCase):
 
         self.login_as(user=self.user)
 
-        url = u'{url}?id={group.id}'.format(
-            url=self.path,
-            group=group,
+        response = self.get_valid_response(
+            qs_params={'id': group.id},
+            status='ignored',
+            ignoreCount=100,
         )
-        response = self.client.put(
-            url, data={
-                'status': 'ignored',
-                'ignoreCount': 100,
-            }, format='json'
-        )
-
-        assert response.status_code == 200
-
         snooze = GroupSnooze.objects.get(group=group)
         assert snooze.count == 100
         assert snooze.until is None
@@ -1408,19 +1212,11 @@ class GroupUpdateTest(APITestCase, SnubaTestCase):
 
         self.login_as(user=self.user)
 
-        url = u'{url}?id={group.id}'.format(
-            url=self.path,
-            group=group,
+        response = self.get_valid_response(
+            qs_params={'id': group.id},
+            status='ignored',
+            ignoreUserCount=100,
         )
-        response = self.client.put(
-            url, data={
-                'status': 'ignored',
-                'ignoreUserCount': 100,
-            }, format='json'
-        )
-
-        assert response.status_code == 200
-
         snooze = GroupSnooze.objects.get(group=group)
         assert snooze.count is None
         assert snooze.until is None
@@ -1448,18 +1244,10 @@ class GroupUpdateTest(APITestCase, SnubaTestCase):
         )
 
         self.login_as(user=self.user)
-        url = u'{url}?id={group1.id}&id={group2.id}&group4={group4.id}'.format(
-            url=self.path,
-            group1=group1,
-            group2=group2,
-            group4=group4,
+        response = self.get_valid_response(
+            qs_params={'id': [group1.id, group2.id], 'group4': group4.id},
+            isBookmarked='true',
         )
-        response = self.client.put(
-            url, data={
-                'isBookmarked': 'true',
-            }, format='json'
-        )
-        assert response.status_code == 200
         assert response.data == {
             'isBookmarked': True,
         }
@@ -1495,18 +1283,10 @@ class GroupUpdateTest(APITestCase, SnubaTestCase):
         group4 = self.create_group(project=self.create_project(slug='foo'), checksum='b' * 32)
 
         self.login_as(user=self.user)
-        url = u'{url}?id={group1.id}&id={group2.id}&group4={group4.id}'.format(
-            url=self.path,
-            group1=group1,
-            group2=group2,
-            group4=group4,
+        response = self.get_valid_response(
+            qs_params={'id': [group1.id, group2.id], 'group4': group4.id},
+            isSubscribed='true',
         )
-        response = self.client.put(
-            url, data={
-                'isSubscribed': 'true',
-            }, format='json'
-        )
-        assert response.status_code == 200
         assert response.data == {
             'isSubscribed': True,
             'subscriptionDetails': {
@@ -1541,17 +1321,10 @@ class GroupUpdateTest(APITestCase, SnubaTestCase):
         group2 = self.create_group(checksum='b' * 32)
 
         self.login_as(user=self.user)
-        url = u'{url}?id={group1.id}&id={group2.id}'.format(
-            url=self.path,
-            group1=group1,
-            group2=group2,
+        response = self.get_valid_response(
+            qs_params={'id': [group1.id, group2.id]},
+            isPublic='true',
         )
-        response = self.client.put(
-            url, data={
-                'isPublic': 'true',
-            }, format='json'
-        )
-        assert response.status_code == 200
         assert response.data['isPublic'] is True
         assert 'shareId' in response.data
 
@@ -1574,17 +1347,10 @@ class GroupUpdateTest(APITestCase, SnubaTestCase):
             assert bool(g.get_share_id())
 
         self.login_as(user=self.user)
-        url = u'{url}?id={group1.id}&id={group2.id}'.format(
-            url=self.path,
-            group1=group1,
-            group2=group2,
+        response = self.get_valid_response(
+            qs_params={'id': [group1.id, group2.id]},
+            isPublic='false',
         )
-        response = self.client.put(
-            url, data={
-                'isPublic': 'false',
-            }, format='json'
-        )
-        assert response.status_code == 200
         assert response.data == {
             'isPublic': False,
         }
@@ -1606,18 +1372,10 @@ class GroupUpdateTest(APITestCase, SnubaTestCase):
         )
 
         self.login_as(user=self.user)
-        url = u'{url}?id={group1.id}&id={group2.id}&group4={group4.id}'.format(
-            url=self.path,
-            group1=group1,
-            group2=group2,
-            group4=group4,
+        response = self.get_valid_response(
+            qs_params={'id': [group1.id, group2.id], 'group4': group4.id},
+            hasSeen='true',
         )
-        response = self.client.put(
-            url, data={
-                'hasSeen': 'true',
-            }, format='json'
-        )
-        assert response.status_code == 200
         assert response.data == {
             'hasSeen': True,
         }
@@ -1651,18 +1409,10 @@ class GroupUpdateTest(APITestCase, SnubaTestCase):
         self.create_group(checksum='d' * 32)
 
         self.login_as(user=self.user)
-        url = u'{url}?id={group1.id}&id={group2.id}&id={group3.id}'.format(
-            url=self.path,
-            group1=group1,
-            group2=group2,
-            group3=group3,
+        response = self.get_valid_response(
+            qs_params={'id': [group1.id, group2.id, group3.id]},
+            merge='1',
         )
-        response = self.client.put(
-            url, data={
-                'merge': '1',
-            }, format='json'
-        )
-        assert response.status_code == 200
         assert response.data['merge']['parent'] == six.text_type(group2.id)
         assert sorted(response.data['merge']['children']) == sorted(
             [
@@ -1688,17 +1438,10 @@ class GroupUpdateTest(APITestCase, SnubaTestCase):
         user = self.user
 
         self.login_as(user=user)
-        url = u'{url}?id={group1.id}'.format(
-            url=self.path,
-            group1=group1,
+        response = self.get_valid_response(
+            qs_params={'id': group1.id},
+            assignedTo=user.username,
         )
-        response = self.client.put(
-            url, data={
-                'assignedTo': user.username,
-            }
-        )
-
-        assert response.status_code == 200
         assert response.data['assignedTo']['id'] == six.text_type(user.id)
         assert response.data['assignedTo']['type'] == 'user'
         assert GroupAssignee.objects.filter(group=group1, user=user).exists()
@@ -1717,13 +1460,10 @@ class GroupUpdateTest(APITestCase, SnubaTestCase):
             is_active=True,
         ).exists()
 
-        response = self.client.put(
-            url, data={
-                'assignedTo': '',
-            }, format='json'
+        response = self.get_valid_response(
+            qs_params={'id': group1.id},
+            assignedTo='',
         )
-
-        assert response.status_code == 200, response.content
         assert response.data['assignedTo'] is None
 
         assert not GroupAssignee.objects.filter(group=group1, user=user).exists()
@@ -1735,16 +1475,10 @@ class GroupUpdateTest(APITestCase, SnubaTestCase):
 
         self.login_as(user=member)
 
-        url = u'{url}?id={group.id}'.format(
-            url=self.path,
-            group=group,
+        response = self.get_response(
+            qs_params={'id': group.id},
+            assignedTo=non_member.username,
         )
-        response = self.client.put(
-            url, data={
-                'assignedTo': non_member.username,
-            }, format='json'
-        )
-
         assert response.status_code == 400, response.content
 
     def test_assign_team(self):
@@ -1758,17 +1492,10 @@ class GroupUpdateTest(APITestCase, SnubaTestCase):
 
         group.project.add_team(team)
 
-        url = u'{url}?id={group.id}'.format(
-            url=self.path,
-            group=group,
+        response = self.get_valid_response(
+            qs_params={'id': group.id},
+            assignedTo=u'team:{}'.format(team.id),
         )
-        response = self.client.put(
-            url, data={
-                'assignedTo': u'team:{}'.format(team.id),
-            }
-        )
-
-        assert response.status_code == 200
         assert response.data['assignedTo']['id'] == six.text_type(team.id)
         assert response.data['assignedTo']['type'] == 'team'
         assert GroupAssignee.objects.filter(group=group, team=team).exists()
@@ -1783,13 +1510,10 @@ class GroupUpdateTest(APITestCase, SnubaTestCase):
             is_active=True,
         ).count() == 2
 
-        response = self.client.put(
-            url, data={
-                'assignedTo': '',
-            }, format='json'
+        response = self.get_valid_response(
+            qs_params={'id': group.id},
+            assignedTo='',
         )
-
-        assert response.status_code == 200, response.content
         assert response.data['assignedTo'] is None
 
     def test_discard(self):
@@ -1803,16 +1527,11 @@ class GroupUpdateTest(APITestCase, SnubaTestCase):
         user = self.user
 
         self.login_as(user=user)
-        url = u'{url}?id={group1.id}'.format(
-            url=self.path,
-            group1=group1,
-        )
         with self.tasks():
             with self.feature('projects:discard-groups'):
-                response = self.client.put(
-                    url, data={
-                        'discard': True,
-                    }
+                response = self.get_response(
+                    qs_params={'id': group1.id},
+                    discard=True,
                 )
 
         assert response.status_code == 204
@@ -1834,12 +1553,30 @@ class GroupUpdateTest(APITestCase, SnubaTestCase):
         assert tombstone.data == group1.data
 
 
+class GroupUpdateTestWithSelectFilters(GroupUpdateTest):
+    use_new_filters = True
+
+
 class GroupDeleteTest(APITestCase, SnubaTestCase):
+    endpoint = 'sentry-api-0-organization-group-index'
+    method = 'delete'
+    use_new_filters = False
+
     @fixture
     def path(self):
         return u'/api/0/organizations/{}/issues/'.format(
             self.project.organization.slug,
         )
+
+    def get_response(self, *args, **kwargs):
+        if not args:
+            org = self.project.organization.slug
+        else:
+            org = args[0]
+
+        qs_params = kwargs.get('qs_params', {})
+        qs_params['use_new_filters'] = '1' if self.use_new_filters else '0'
+        return super(GroupDeleteTest, self).get_response(org, **kwargs)
 
     @patch('sentry.api.helpers.group_index.eventstream')
     @patch('sentry.eventstream')
@@ -1867,14 +1604,9 @@ class GroupDeleteTest(APITestCase, SnubaTestCase):
             )
 
         self.login_as(user=self.user)
-        url = u'{url}?id={group1.id}&id={group2.id}&group4={group4.id}'.format(
-            url=self.path,
-            group1=group1,
-            group2=group2,
-            group4=group4,
+        response = self.get_response(
+            qs_params={'id': [group1.id, group2.id], 'group4': group4.id},
         )
-
-        response = self.client.delete(url, format='json')
 
         mock_eventstream_api.start_delete_groups.assert_called_once_with(
             group1.project_id, [group1.id, group2.id])
@@ -1896,7 +1628,9 @@ class GroupDeleteTest(APITestCase, SnubaTestCase):
         Group.objects.filter(id__in=(group1.id, group2.id)).update(status=GroupStatus.UNRESOLVED)
 
         with self.tasks():
-            response = self.client.delete(url, format='json')
+            response = self.get_response(
+                qs_params={'id': [group1.id, group2.id], 'group4': group4.id},
+            )
 
         mock_eventstream_task.end_delete_groups.assert_called_once_with(eventstream_state)
 
@@ -1936,9 +1670,7 @@ class GroupDeleteTest(APITestCase, SnubaTestCase):
         self.login_as(user=self.user)
 
         # if query is '' it defaults to is:unresolved
-        url = self.path + '?query='
-        response = self.client.delete(url, format='json')
-
+        response = self.get_response(qs_params={'query': ''})
         assert response.status_code == 204
 
         for group in groups:
@@ -1951,10 +1683,14 @@ class GroupDeleteTest(APITestCase, SnubaTestCase):
             status=GroupStatus.UNRESOLVED)
 
         with self.tasks():
-            response = self.client.delete(url, format='json')
+            response = self.get_response(qs_params={'query': ''})
 
         assert response.status_code == 204
 
         for group in groups:
             assert not Group.objects.filter(id=group.id).exists()
             assert not GroupHash.objects.filter(group_id=group.id).exists()
+
+
+class GroupDeleteTestWithSelectFilters(GroupDeleteTest):
+    use_new_filters = True

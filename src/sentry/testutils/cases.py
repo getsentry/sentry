@@ -437,8 +437,17 @@ class APITestCase(BaseTestCase, BaseAPITestCase):
     def get_response(self, *args, **params):
         if self.endpoint is None:
             raise Exception('Implement self.endpoint to use this method.')
+
         url = reverse(self.endpoint, args=args)
-        return getattr(self.client, self.method)(
+        # In some cases we want to pass querystring params to put/post, handle
+        # this here.
+        if 'qs_params' in params:
+            query_string = urlencode(params.pop('qs_params'), doseq=True)
+            url = u'{}?{}'.format(url, query_string)
+
+        method = params.pop('method', self.method)
+
+        return getattr(self.client, method)(
             url,
             format='json',
             data=params,
