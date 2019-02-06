@@ -121,12 +121,12 @@ class CreateProjectUserReportTest(APITestCase):
         self.login_as(user=self.user)
 
         project = self.create_project()
-        group = self.create_group(project=project)
         environment = self.make_environment(project)
-        event = self.create_event(
-            group=group,
-            tags={'environment': environment.name},
-            datetime=timezone.now(),
+        event = self.store_event(
+            data={
+                'tags': {'environment': environment.name}
+            },
+            project_id=project.id
         )
 
         url = u'/api/0/projects/{}/{}/user-feedback/'.format(
@@ -150,7 +150,7 @@ class CreateProjectUserReportTest(APITestCase):
             id=response.data['id'],
         )
         assert report.project == project
-        assert report.group == group
+        assert report.group == event.group
         assert report.email == 'foo@example.com'
         assert report.name == 'Foo Bar'
         assert report.comments == 'It broke!'
@@ -158,12 +158,12 @@ class CreateProjectUserReportTest(APITestCase):
     def test_with_dsn_auth(self):
         project = self.create_project()
         project_key = self.create_project_key(project=project)
-        group = self.create_group(project=project)
         environment = self.make_environment(project)
-        event = self.create_event(
-            group=group,
-            tags={'environment': environment.name},
-            datetime=timezone.now(),
+        event = self.store_event(
+            data={
+                'environment': environment.name
+            },
+            project_id=project.id
         )
 
         url = u'/api/0/projects/{}/{}/user-feedback/'.format(
@@ -209,18 +209,17 @@ class CreateProjectUserReportTest(APITestCase):
 
     def test_already_present(self):
         self.login_as(user=self.user)
-
         project = self.create_project()
-        group = self.create_group(project=project)
         environment = self.make_environment(project)
-        event = self.create_event(
-            group=group,
-            tags={'environment': environment.name},
-            datetime=timezone.now(),
+        event = self.store_event(
+            data={
+                'environment': environment.name
+            },
+            project_id=project.id
         )
 
         UserReport.objects.create(
-            group=group,
+            group=event.group,
             project=project,
             event_id=event.event_id,
             name='foo',
@@ -249,7 +248,7 @@ class CreateProjectUserReportTest(APITestCase):
             id=response.data['id'],
         )
         assert report.project == project
-        assert report.group == group
+        assert report.group == event.group
         assert report.email == 'foo@example.com'
         assert report.name == 'Foo Bar'
         assert report.comments == 'It broke!'
@@ -258,23 +257,24 @@ class CreateProjectUserReportTest(APITestCase):
         self.login_as(user=self.user)
 
         project = self.create_project()
-        group = self.create_group(project=project)
         environment = self.make_environment(project)
         event = self.create_event(
-            group=group,
-            tags={
-                'sentry:user': 'email:foo@example.com',
-                'environment': environment.name,
+            data={
+                'tags': {
+                    'sentry:user': 'email:foo@example.com',
+                    'environment': environment.name,
+                }
             },
-            datetime=timezone.now(),
+            project_id=project.id
         )
+
         euser = EventUser.objects.create(
             project_id=project.id,
             name='',
             email='foo@example.com',
         )
         UserReport.objects.create(
-            group=group,
+            group=event.group,
             project=project,
             event_id=event.event_id,
             name='foo',
@@ -303,7 +303,7 @@ class CreateProjectUserReportTest(APITestCase):
             id=response.data['id'],
         )
         assert report.project == project
-        assert report.group == group
+        assert report.group == event.group
         assert report.email == 'foo@example.com'
         assert report.name == 'Foo Bar'
         assert report.comments == 'It broke!'
@@ -316,13 +316,18 @@ class CreateProjectUserReportTest(APITestCase):
         self.login_as(user=self.user)
 
         project = self.create_project()
-        group = self.create_group(project=project)
         environment = self.make_environment(project)
-        event = self.create_event(group=group, tags={
-            'environment': environment.name})
+        event = self.create_event(
+            data={
+                'tags': {
+                    'environment': environment.name
+                }
+            },
+            project_id=project.id
+        )
 
         UserReport.objects.create(
-            group=group,
+            group=event.group,
             project=project,
             event_id=event.event_id,
             name='foo',
@@ -406,8 +411,7 @@ class ProjectUserReportByEnvironmentsTest(UserReportEnvironmentTestCase):
         manager = EventManager(
             self.make_event(
                 environment=self.env1.name,
-                event_id=event_id,
-                group=self.group))
+                event_id=event_id))
         manager.normalize()
         manager.save(self.project.id)
 
@@ -441,8 +445,7 @@ class ProjectUserReportByEnvironmentsTest(UserReportEnvironmentTestCase):
         manager = EventManager(
             self.make_event(
                 environment=self.env1.name,
-                event_id=event_id,
-                group=self.group))
+                event_id=event_id))
         manager.normalize()
         manager.save(self.project.id)
         assert response.status_code == 200, response.content
