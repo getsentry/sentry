@@ -1,6 +1,8 @@
-import {defined} from 'app/utils';
 import {pick, pickBy, identity} from 'lodash';
-import {getLocalDateObject} from 'app/utils/dates';
+
+import {defined} from 'app/utils';
+import {getUtcToLocalDateObject} from 'app/utils/dates';
+
 import {URL_PARAM} from './constants';
 
 // Parses URL query parameters for values relevant to global selection header
@@ -26,8 +28,8 @@ export function getStateFromQuery(query) {
   }
 
   if (hasAbsolute) {
-    start = getLocalDateObject(start);
-    end = getLocalDateObject(end);
+    start = getUtcToLocalDateObject(start);
+    end = getUtcToLocalDateObject(end);
   }
 
   return {

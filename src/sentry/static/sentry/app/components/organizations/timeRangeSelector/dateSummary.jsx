@@ -6,10 +6,7 @@ import React from 'react';
 import styled from 'react-emotion';
 import moment from 'moment';
 
-import {
-  DEFAULT_DAY_END_TIME,
-  DEFAULT_DAY_START_TIME,
-} from 'app/components/organizations/timeRangeSelector/utils';
+import {DEFAULT_DAY_END_TIME, DEFAULT_DAY_START_TIME} from 'app/utils/dates';
 import {t} from 'app/locale';
 import space from 'app/styles/space';
 

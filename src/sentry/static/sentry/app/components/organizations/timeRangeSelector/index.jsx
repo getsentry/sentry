@@ -1,16 +1,17 @@
 import {Flex} from 'grid-emotion';
 import PropTypes from 'prop-types';
 import React from 'react';
+import moment from 'moment';
 import styled from 'react-emotion';
 
-import {
-  DEFAULT_RELATIVE_PERIODS,
-  DEFAULT_STATS_PERIOD,
-  DEFAULT_USE_UTC,
-} from 'app/constants';
+import {DEFAULT_RELATIVE_PERIODS, DEFAULT_STATS_PERIOD} from 'app/constants';
 import {analytics} from 'app/utils/analytics';
-import {callIfFunction} from 'app/utils/callIfFunction';
-import {getLocalToUtc, getPeriodAgo, getUtcInLocal} from 'app/utils/dates';
+import {
+  getLocalToSystem,
+  getPeriodAgo,
+  getUserTimezone,
+  getUtcToSystem,
+} from 'app/utils/dates';
 import {parsePeriodToHours} from 'app/utils';
 import {t} from 'app/locale';
 import DateRange from 'app/components/organizations/timeRangeSelector/dateRange';
@@ -21,6 +22,29 @@ import InlineSvg from 'app/components/inlineSvg';
 import RelativeSelector from 'app/components/organizations/timeRangeSelector/dateRange/relativeSelector';
 import SelectorItem from 'app/components/organizations/timeRangeSelector/dateRange/selectorItem';
 import getDynamicText from 'app/utils/getDynamicText';
+
+// Strips timezone from local date, creates a new moment date object with timezone
+// Then returns as a Date object
+const getDateWithTimezoneInUtc = (date, utc) =>
+  moment
+    .tz(
+      moment(date)
+        .local()
+        .format('YYYY-MM-DD HH:mm:ss'),
+      utc ? 'UTC' : getUserTimezone()
+    )
+    .utc()
+    .toDate();
+
+const getInternalDate = (date, utc) => {
+  if (utc) {
+    return getUtcToSystem(date);
+  } else {
+    return new Date(
+      moment.tz(moment.utc(date), getUserTimezone()).format('YYYY-MM-DD HH:mm:ss')
+    );
+  }
+};
 
 class TimeRangeSelector extends React.PureComponent {
   static propTypes = {
@@ -73,20 +97,47 @@ class TimeRangeSelector extends React.PureComponent {
   static defaultProps = {
     showAbsolute: true,
     showRelative: true,
-    utc: DEFAULT_USE_UTC,
+    utc: getUserTimezone() === 'UTC',
   };
 
   constructor(props) {
     super(props);
+
+    let start;
+    let end;
+
+    if (props.start && props.end) {
+      start = getInternalDate(props.start, props.utc);
+      end = getInternalDate(props.end, props.utc);
+    }
+
     this.state = {
       utc: props.utc,
       isOpen: false,
       hasChanges: false,
-      start: props.start,
-      end: props.end,
+      start,
+      end,
       relative: props.relative,
     };
   }
+
+  callCallback = (callback, datetime) => {
+    if (typeof callback !== 'function') {
+      return;
+    }
+
+    if (!datetime.start && !datetime.end) {
+      callback(datetime);
+      return;
+    }
+
+    // Change local date into either UTC or local time (local time defined by user preference)
+    callback({
+      ...datetime,
+      start: getDateWithTimezoneInUtc(datetime.start, this.state.utc),
+      end: getDateWithTimezoneInUtc(datetime.end, this.state.utc),
+    });
+  };
 
   handleCloseMenu = () => {
     const {relative, start, end, utc} = this.state;
@@ -108,7 +159,7 @@ class TimeRangeSelector extends React.PureComponent {
         hasChanges: false,
       },
       () => {
-        callIfFunction(onUpdate, datetime);
+        this.callCallback(onUpdate, datetime);
       }
     );
   };
@@ -127,8 +178,13 @@ class TimeRangeSelector extends React.PureComponent {
       end: new Date(),
       utc: this.state.utc,
     };
-    this.setState({hasChanges: true, ...newDateTime});
-    callIfFunction(onChange, newDateTime);
+    this.setState({
+      hasChanges: true,
+      ...newDateTime,
+      start: newDateTime.start,
+      end: newDateTime.end,
+    });
+    this.callCallback(onChange, newDateTime);
   };
 
   handleSelectRelative = value => {
@@ -139,7 +195,7 @@ class TimeRangeSelector extends React.PureComponent {
       end: null,
       utc: this.state.utc,
     };
-    callIfFunction(onChange, newDateTime);
+    this.callCallback(onChange, newDateTime);
     this.handleUpdate(newDateTime);
   };
 
@@ -151,7 +207,7 @@ class TimeRangeSelector extends React.PureComponent {
       end: null,
       utc: this.state.utc,
     };
-    callIfFunction(onChange, newDateTime);
+    this.callCallback(onChange, newDateTime);
     this.handleUpdate(newDateTime);
   };
 
@@ -165,7 +221,7 @@ class TimeRangeSelector extends React.PureComponent {
       utc: this.state.utc,
     };
     this.setState({hasChanges: true, ...newDateTime});
-    callIfFunction(onChange, newDateTime);
+    this.callCallback(onChange, newDateTime);
   };
 
   handleUseUtc = () => {
@@ -182,11 +238,11 @@ class TimeRangeSelector extends React.PureComponent {
       });
       const newDateTime = {
         relative: null,
-        start: utc ? getLocalToUtc(start) : getUtcInLocal(start),
-        end: utc ? getLocalToUtc(end) : getUtcInLocal(end),
+        start: this.props.utc ? getUtcToSystem(start) : getLocalToSystem(start),
+        end: this.props.utc ? getUtcToSystem(end) : getLocalToSystem(end),
         utc,
       };
-      callIfFunction(onChange, newDateTime);
+      this.callCallback(onChange, newDateTime);
 
       return {
         hasChanges: true,
