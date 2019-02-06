@@ -152,9 +152,6 @@ register('snuba.events-queries.enabled', type=Bool, default=False)
 register('kafka-publisher.raw-event-sample-rate', default=0.0)
 register('kafka-publisher.max-event-size', default=100000)
 
-# Event Stream
-register('eventstream.kafka.send-post_process-task', type=Bool, default=True)
-
 # Ingest refactor
 register('store.projects-normalize-in-rust-opt-in', type=Sequence, default=[])
 register('store.projects-normalize-in-rust-opt-out', type=Sequence, default=[])
