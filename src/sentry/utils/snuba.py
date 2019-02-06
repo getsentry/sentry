@@ -671,17 +671,15 @@ def get_related_project_ids(column, ids):
     return []
 
 
-def insert_raw(data):
-    data = json.dumps(data)
+def test_eventstream(data):
     try:
-        with timer('snuba_insert_raw'):
-            resp = _snuba_pool.urlopen(
-                'POST', '/tests/insert',
-                body=data,
-            )
-            if resp.status != 200:
-                raise SnubaError("Non-200 response from Snuba insert!")
-            return resp
+        resp = _snuba_pool.urlopen(
+            'POST', '/tests/eventstream',
+            body=json.dumps(data),
+        )
+        if resp.status != 200:
+            raise SnubaError("Non-200 response from Snuba!")
+        return resp
     except urllib3.exceptions.HTTPError as err:
         raise SnubaError(err)
 

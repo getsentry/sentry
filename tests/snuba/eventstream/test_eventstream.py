@@ -77,5 +77,5 @@ class SnubaEventStreamTest(SnubaTestCase):
 
         # insert what would have been the Kafka payload directly
         # into Snuba, expect an HTTP 200 and for the event to now exist
-        snuba.insert_raw([primary_payload])
+        snuba.test_eventstream((2, 'insert', primary_payload))
         assert _get_event_count() == 1
