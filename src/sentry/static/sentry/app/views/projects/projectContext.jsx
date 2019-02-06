@@ -6,6 +6,7 @@ import Reflux from 'reflux';
 import createReactClass from 'create-react-class';
 
 import {loadEnvironments} from 'app/actionCreators/environments';
+import {fetchProjectMembers} from 'app/actionCreators/members';
 import {setActiveProject} from 'app/actionCreators/projects';
 import {t} from 'app/locale';
 import ApiMixin from 'app/mixins/apiMixin';
@@ -182,12 +183,7 @@ const ProjectContext = createReactClass({
         }
       );
 
-      // TODO(dcramer): move member list to organization level
-      this.api.request(this.getMemberListEndpoint(), {
-        success: data => {
-          MemberListStore.loadInitialData(data.filter(m => m.user).map(m => m.user));
-        },
-      });
+      fetchProjectMembers(this.api, orgId, projectId);
     } else if (activeProject && !activeProject.isMember) {
       this.setState({
         loading: false,
@@ -211,11 +207,6 @@ const ProjectContext = createReactClass({
   getEnvironmentListEndpoint() {
     const {orgId, projectId} = this.props;
     return `/projects/${orgId}/${projectId}/environments/`;
-  },
-
-  getMemberListEndpoint() {
-    const {orgId, projectId} = this.props;
-    return `/projects/${orgId}/${projectId}/members/`;
   },
 
   setProjectNavSection(section) {
