@@ -17,7 +17,7 @@ class SnubaEventStream(KafkaEventStream):
                 body=json.dumps(data),
             )
             if resp.status != 200:
-                raise snuba.SnubaError("Non-200 response from Snuba! %s" % resp.body)
+                raise snuba.SnubaError("HTTP %s response from Snuba!" % resp.status)
             return resp
         except urllib3.exceptions.HTTPError as err:
             raise snuba.SnubaError(err)
