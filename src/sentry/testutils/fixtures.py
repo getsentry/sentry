@@ -743,9 +743,14 @@ class Fixtures(object):
         return app
 
     def create_sentry_app_installation(self, organization=None, slug=None, user=None):
+        if not organization:
+            organization = self.create_organization()
+
+        self.create_project(organization=organization)
+
         return sentry_app_installations.Creator.run(
             slug=(slug or self.create_sentry_app().slug),
-            organization=(organization or self.create_organization()),
+            organization=organization,
             user=(user or self.create_user()),
         )
 
