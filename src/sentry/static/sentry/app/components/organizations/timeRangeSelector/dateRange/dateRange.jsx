@@ -100,7 +100,7 @@ class DateRange extends React.Component {
     });
 
     onChange({
-      start: setDateToTime(start, startTime, {local: !this.props.utc}),
+      start: setDateToTime(start, startTime, {local: true}),
       end,
     });
   };
@@ -116,7 +116,7 @@ class DateRange extends React.Component {
 
     onChange({
       start,
-      end: setDateToTime(end, endTime, {local: !this.props.utc}),
+      end: setDateToTime(end, endTime, {local: true}),
     });
   };
 

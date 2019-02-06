@@ -53,7 +53,12 @@ export function setDateToTime(dateObj, timeStr, {local} = {}) {
   const [hours, minutes, seconds] = timeStr.split(':');
 
   const date = new Date(+dateObj);
-  date.setHours(hours, minutes);
+
+  if (local) {
+    date.setHours(hours, minutes);
+  } else {
+    date.setUTCHours(hours, minutes);
+  }
 
   if (typeof seconds !== 'undefined') {
     date.setSeconds(seconds);
