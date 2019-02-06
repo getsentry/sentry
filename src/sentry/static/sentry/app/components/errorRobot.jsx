@@ -109,6 +109,7 @@ const ErrorRobot = createReactClass({
             size="large"
             disabled={!project}
             onClick={this.createSampleEvent}
+            title={t('Select a project to create a sample event')}
           >
             {t('Create a sample event')}
           </Button>
