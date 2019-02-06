@@ -3,6 +3,7 @@ from __future__ import absolute_import, print_function
 import os
 import logging
 
+from sentry.api.serializers import serialize
 from sentry.tasks.base import instrumented_task
 from sentry.utils.files import get_max_file_size
 from sentry.utils.sdk import configure_scope
@@ -77,7 +78,8 @@ def assemble_dif(project_id, name, checksum, chunks, **kwargs):
                     dif.delete()
 
             if indicate_success:
-                set_assemble_status(project, checksum, ChunkFileState.OK)
+                set_assemble_status(project, checksum, ChunkFileState.OK,
+                                    detail=serialize(dif))
     finally:
         if delete_file:
             file.delete()

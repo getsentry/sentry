@@ -259,7 +259,15 @@ class DifAssembleEndpoint(ProjectEndpoint):
             # ProjectDebugFile will be created and we need to prevent a race
             # condition.
             state, detail = get_assemble_status(project, checksum)
-            if state is not None:
+            if state == ChunkFileState.OK:
+                file_response[checksum] = {
+                    'state': state,
+                    'detail': None,
+                    'missingChunks': [],
+                    'dif': detail
+                }
+                continue
+            elif state is not None:
                 file_response[checksum] = {
                     'state': state,
                     'detail': detail,
