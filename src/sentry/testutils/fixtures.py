@@ -784,7 +784,7 @@ class Fixtures(object):
         if not events:
             events = ('event.created',)
         if not url:
-            url = 'https://example/sentry/webhook'
+            url = 'https://example.com/sentry/webhook'
 
         _kwargs = {
             'actor': actor,
