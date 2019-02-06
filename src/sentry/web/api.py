@@ -40,7 +40,8 @@ from sentry.interfaces.base import get_interface
 from sentry.lang.native.unreal import process_unreal_crash, merge_apple_crash_report, unreal_attachment_type, merge_unreal_context_event, merge_unreal_logs_event
 from sentry.lang.native.minidump import merge_process_state_event, process_minidump, MINIDUMP_ATTACHMENT_TYPE
 from sentry.models import Project, OrganizationOption, Organization
-from sentry.signals import event_dropped, event_filtered
+from sentry.signals import (
+    event_accepted, event_dropped, event_filtered, event_received)
 from sentry.quotas.base import RateLimit
 from sentry.utils import json, metrics
 from sentry.utils.data_filters import FILTER_STAT_KEYS_TO_VALUES
@@ -92,6 +93,8 @@ def api(func):
 
 
 def process_event(event_manager, project, key, remote_addr, helper, attachments):
+    event_received.send_robust(ip=remote_addr, project=project, sender=process_event)
+
     start_time = time()
     tsdb_start_time = to_datetime(start_time)
     should_filter, filter_reason = event_manager.should_filter()
@@ -233,6 +236,13 @@ def process_event(event_manager, project, key, remote_addr, helper, attachments)
     cache.set(cache_key, '', 60 * 5)
 
     api_logger.debug('New event received (%s)', event_id)
+
+    event_accepted.send_robust(
+        ip=remote_addr,
+        data=data,
+        project=project,
+        sender=process_event,
+    )
 
     return event_id
 
