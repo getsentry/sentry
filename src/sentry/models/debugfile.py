@@ -33,7 +33,7 @@ from sentry.cache import default_cache
 from sentry.constants import KNOWN_DIF_TYPES
 from sentry.db.models import FlexibleForeignKey, Model, \
     sane_repr, BaseManager, BoundedPositiveIntegerField
-from sentry.models.file import File, ChunkFileState
+from sentry.models.file import File
 from sentry.reprocessing import resolve_processing_issue, \
     bump_reprocessing_revision
 from sentry.utils import metrics
@@ -81,12 +81,10 @@ def set_assemble_status(project, checksum, state, detail=None):
     cache_key = 'assemble-status:%s' % _get_idempotency_id(
         project, checksum)
 
-    # If the state is okay we actually clear it from the cache because in
-    # that case a project dsym file was created.
-    if state == ChunkFileState.OK:
-        default_cache.delete(cache_key)
-    else:
-        default_cache.set(cache_key, (state, detail), 300)
+    # NB: Also cache successfully created debug files to avoid races between
+    # multiple DIFs with the same identifier. On the downside, this blocks
+    # re-uploads for 10 minutes.
+    default_cache.set(cache_key, (state, detail), 600)
 
 
 class BadDif(Exception):
