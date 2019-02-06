@@ -32,6 +32,40 @@ describe('ResolveActions', function() {
     });
   });
 
+  describe('disableDropdown', function() {
+    let component, button;
+    const spy = sinon.stub();
+
+    beforeEach(function() {
+      component = mount(
+        <ResolveActions
+          onUpdate={spy}
+          disableDropdown={true}
+          hasRelease={false}
+          orgId={'org-1'}
+          projectId={'proj-1'}
+        />,
+        TestStubs.routerContext()
+      );
+    });
+
+    it('main button is enabled', function() {
+      button = component.find('ActionLink[title="Resolve"]');
+      expect(button.prop('disabled')).toBeFalsy();
+    });
+
+    it('main button calls onUpdate when clicked', function() {
+      button = component.find('ActionLink[title="Resolve"]');
+      button.simulate('click');
+      expect(spy.called).toBe(true);
+    });
+
+    it('dropdown menu is disabled', function() {
+      button = component.find('DropdownLink');
+      expect(button.prop('disabled')).toBe(true);
+    });
+  });
+
   describe('resolved', function() {
     let component;
     const spy = sinon.stub();

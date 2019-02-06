@@ -321,7 +321,8 @@ const StreamActions = createReactClass({
 
     // resolve and merge require a single project to be active
     // in an org context projectId is null when 0 or >1 projects are selected.
-    const resolveDisabled = !(anySelected && projectId);
+    const resolveDisabled = !anySelected;
+    const resolveDropdownDisabled = !(anySelected && projectId);
     const mergeDisabled = !(multiSelected && projectId);
 
     return (
@@ -341,6 +342,7 @@ const StreamActions = createReactClass({
               confirmMessage={confirm('resolve', true)}
               confirmLabel={label('resolve')}
               disabled={resolveDisabled}
+              disableDropdown={resolveDropdownDisabled}
             />
             <IgnoreActions
               onUpdate={this.onUpdate}
