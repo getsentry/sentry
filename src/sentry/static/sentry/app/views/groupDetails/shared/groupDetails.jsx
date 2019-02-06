@@ -5,6 +5,7 @@ import Reflux from 'reflux';
 import {browserHistory} from 'react-router';
 import DocumentTitle from 'react-document-title';
 import * as Sentry from '@sentry/browser';
+import {isEqual} from 'lodash';
 
 import ApiMixin from 'app/mixins/apiMixin';
 import GroupStore from 'app/stores/groupStore';
@@ -63,7 +64,7 @@ const GroupDetails = createReactClass({
   componentDidUpdate(prevProps) {
     if (
       prevProps.params.groupId !== this.props.params.groupId ||
-      prevProps.environments !== this.props.environments
+      !isEqual(prevProps.environments, this.props.environments)
     ) {
       this.fetchData();
     }
