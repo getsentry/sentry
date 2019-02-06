@@ -1,5 +1,6 @@
 from __future__ import absolute_import
 
+from django.db import IntegrityError, transaction
 from django.db.models import Max
 from rest_framework import serializers
 from rest_framework.response import Response
@@ -29,8 +30,7 @@ def remove_widgets(dashboard_widgets, widget_data):
     widget_ids = [wd['id'] for wd in widget_data]
     dashboard_widgets.exclude(
         id__in=widget_ids
-    ).update(status=ObjectStatus.PENDING_DELETION)
-
+    ).delete()
     return dashboard_widgets.filter(
         id__in=widget_ids
     )
@@ -155,13 +155,16 @@ class OrganizationDashboardDetailsEndpoint(OrganizationDashboardEndpoint):
         if not serializer.is_valid():
             return Response(serializer.errors, status=400)
         data = serializer.object
+        try:
+            with transaction.atomic():
+                title = data.get('title')
+                if title:
+                    dashboard.update(title=data['title'])
 
-        title = data.get('title')
-        if title:
-            dashboard.update(title=data['title'])
-
-        widgets = data.get('widgets')
-        if widgets:
-            reorder_widgets(dashboard.id, widgets)
+                widgets = data.get('widgets')
+                if widgets:
+                    reorder_widgets(dashboard.id, widgets)
+        except IntegrityError:
+            return self.respond({'Dashboard with that title already exists'}, status=400)
 
         return self.respond(serialize(dashboard, request.user), status=200)

@@ -272,10 +272,9 @@ class OrganizationDashboardDetailsPutTest(OrganizationDashboardDetailsTestCase):
         )
         assert response.status_code == 200
         self.assert_dashboard_and_widgets([self.widget_4.id, self.widget_3.id], [5, 6])
-        deleted_widgets = [
-            w.id for w in Widget.objects.filter(
-                status=ObjectStatus.PENDING_DELETION)]
-        assert sorted(deleted_widgets) == [self.widget_1.id, self.widget_2.id]
+        deleted_widget_ids = [self.widget_1.id, self.widget_2.id]
+        assert not Widget.objects.filter(id__in=deleted_widget_ids).exists()
+        assert not WidgetDataSource.objects.filter(widget_id__in=deleted_widget_ids).exists()
 
     def test_widget_does_not_belong_to_dashboard(self):
         widget = Widget.objects.create(
