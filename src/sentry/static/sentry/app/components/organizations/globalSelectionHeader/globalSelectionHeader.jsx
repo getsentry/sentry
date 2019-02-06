@@ -1,5 +1,5 @@
 import {pick, isEqual} from 'lodash';
-import {Link, withRouter} from 'react-router';
+import {withRouter} from 'react-router';
 import PropTypes from 'prop-types';
 import React from 'react';
 
@@ -19,7 +19,9 @@ import {
 } from 'app/actionCreators/globalSelection';
 import {DEFAULT_STATS_PERIOD} from 'app/constants';
 import Header from 'app/components/organizations/header';
+import InlineSvg from 'app/components/inlineSvg';
 import HeaderItemPosition from 'app/components/organizations/headerItemPosition';
+import BackToIssues from 'app/components/organizations/backToIssues';
 import HeaderSeparator from 'app/components/organizations/headerSeparator';
 import MultipleEnvironmentSelector from 'app/components/organizations/multipleEnvironmentSelector';
 import MultipleProjectSelector from 'app/components/organizations/multipleProjectSelector';
@@ -291,12 +293,13 @@ class GlobalSelectionHeader extends React.Component {
 
   getBackButton = () => {
     return (
-      <Link
+      <BackToIssues
         to={`/organizations/${this.props.organization.slug}/issues/${window.location
           .search}`}
+        title="back to issues list"
       >
-        Back
-      </Link>
+        <InlineSvg src="icon-arrow-left" />
+      </BackToIssues>
     );
   };
 
@@ -312,9 +315,9 @@ class GlobalSelectionHeader extends React.Component {
     const {period, start, end, utc} = this.props.selection.datetime || {};
     return (
       <Header className={className}>
-        {forcedProject && this.getBackButton()}
-
         <HeaderItemPosition>
+          {forcedProject && this.getBackButton()}
+
           <MultipleProjectSelector
             organization={organization}
             forcedProject={forcedProject}
@@ -358,4 +361,5 @@ class GlobalSelectionHeader extends React.Component {
     );
   }
 }
+
 export default withRouter(withGlobalSelection(GlobalSelectionHeader));

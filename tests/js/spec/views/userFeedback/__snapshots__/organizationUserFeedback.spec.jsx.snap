@@ -526,7 +526,7 @@ exports[`OrganizationUserFeedback renders 1`] = `
                     >
                       <HeaderItemPosition>
                         <div
-                          className="css-5udiwc-HeaderItemPosition e165b9e40"
+                          className="css-1n6pjju-HeaderItemPosition e165b9e40"
                         >
                           <MultipleProjectSelector
                             multi={false}
@@ -1149,7 +1149,7 @@ exports[`OrganizationUserFeedback renders 1`] = `
                       </HeaderSeparator>
                       <HeaderItemPosition>
                         <div
-                          className="css-5udiwc-HeaderItemPosition e165b9e40"
+                          className="css-1n6pjju-HeaderItemPosition e165b9e40"
                         >
                           <withApi(MultipleEnvironmentSelector)
                             onChange={[Function]}
@@ -1682,7 +1682,7 @@ exports[`OrganizationUserFeedback renders 1`] = `
                       </HeaderSeparator>
                       <HeaderItemPosition>
                         <div
-                          className="css-5udiwc-HeaderItemPosition e165b9e40"
+                          className="css-1n6pjju-HeaderItemPosition e165b9e40"
                         >
                           <TimeRangeSelector
                             end={null}
