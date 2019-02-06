@@ -308,6 +308,7 @@ class GlobalSelectionHeader extends React.Component {
               projects={[forcedProject]}
               value={[parseInt(forcedProject.id)]}
               multi={true}
+              locked={true}
             />
           ) : (
             <MultipleProjectSelector

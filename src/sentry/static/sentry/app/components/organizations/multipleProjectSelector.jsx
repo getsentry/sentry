@@ -21,6 +21,7 @@ export default class MultipleProjectSelector extends React.PureComponent {
     onChange: PropTypes.func,
     onUpdate: PropTypes.func,
     multi: PropTypes.bool,
+    locked: PropTypes.bool,
   };
 
   static defaultProps = {
@@ -93,7 +94,7 @@ export default class MultipleProjectSelector extends React.PureComponent {
   };
 
   render() {
-    const {value, projects, multi} = this.props;
+    const {value, projects, multi, locked} = this.props;
     const selectedProjectIds = new Set(value);
 
     const selected = projects.filter(project =>
@@ -134,6 +135,7 @@ export default class MultipleProjectSelector extends React.PureComponent {
               onSubmit={() => this.handleUpdate(actions)}
               onClear={this.handleClear}
               allowClear={multi}
+              locked={locked}
               {...getActorProps()}
             >
               {title}
