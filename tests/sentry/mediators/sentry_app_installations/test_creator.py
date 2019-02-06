@@ -53,7 +53,6 @@ class TestCreator(TestCase):
         assert hook.application_id == self.sentry_app.application.id
         assert hook.actor_id == install.id
         assert hook.organization_id == self.org.id
-        assert hook.project_id == self.project2.id
         assert hook.events == self.sentry_app.events
         assert hook.url == self.sentry_app.webhook_url
 
