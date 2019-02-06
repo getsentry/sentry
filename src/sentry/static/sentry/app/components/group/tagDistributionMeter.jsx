@@ -23,7 +23,7 @@ const TagDistributionMeter = createReactClass({
     group: SentryTypes.Group.isRequired,
     tag: PropTypes.string.isRequired,
     name: PropTypes.string,
-    orgId: PropTypes.string.isRequired,
+    organization: SentryTypes.Organization.isRequired,
     projectId: PropTypes.string.isRequired,
     environment: SentryTypes.Environment,
     totalValues: PropTypes.number,
@@ -94,12 +94,16 @@ const TagDistributionMeter = createReactClass({
    */
 
   renderSegments() {
-    const {orgId, projectId, group, totalValues, topValues, tag} = this.props;
+    const {organization, projectId, group, totalValues, topValues, tag} = this.props;
+    const hasSentry10 = new Set(organization.features).has('sentry10');
 
     const totalVisible = topValues.reduce((sum, value) => sum + value.count, 0);
     const hasOther = totalVisible < totalValues;
     const otherPct = percent(totalValues - totalVisible, totalValues);
     const otherPctLabel = Math.floor(otherPct);
+    const url = hasSentry10
+      ? `/organizations/${organization.slug}/issues/${group.id}/tags/${tag}/`
+      : `/${organization.slug}/${projectId}/issues/${group.id}/tags/${tag}/`;
 
     return (
       <React.Fragment>
@@ -118,7 +122,7 @@ const TagDistributionMeter = createReactClass({
             <Tooltip key={value.value} title={tooltipHtml} tooltipOptions={{html: true}}>
               <Segment
                 style={{width: pct + '%'}}
-                to={`/${orgId}/${projectId}/issues/${group.id}/tags/${tag}/`}
+                to={url}
                 index={index}
                 first={index == 0}
                 last={!hasOther && index == topValues.length - 1}
@@ -144,7 +148,7 @@ const TagDistributionMeter = createReactClass({
               first={!topValues.length}
               last={true}
               css={{width: otherPct + '%'}}
-              to={`/${orgId}/${projectId}/issues/${group.id}/tags/${tag}/`}
+              to={url}
             >
               <Description first={!topValues.length}>
                 <Percentage>{otherPctLabel}%</Percentage>
