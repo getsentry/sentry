@@ -5,6 +5,7 @@ import re
 from django.core.urlresolvers import reverse
 from sentry.integrations.exceptions import ApiError, IntegrationError, ApiUnauthorized
 from sentry.integrations.issues import IssueBasicMixin
+from sentry.utils.http import absolute_uri
 
 ISSUE_EXTERNAL_KEY_FORMAT = re.compile(r'.+:(.+)#(.+)')
 
@@ -56,7 +57,7 @@ class GitlabIssueBasic(IssueBasicMixin):
         return [
             {
                 'name': 'project',
-                'label': 'Gitlab Project',
+                'label': 'GitLab Project',
                 'type': 'select',
                 'url': autocomplete_url,
                 'choices': project_choices,
@@ -96,6 +97,28 @@ class GitlabIssueBasic(IssueBasicMixin):
             }
         }
 
+    def after_link_issue(self, external_issue, **kwargs):
+        data = kwargs['data']
+        project_id, issue_id = data.get('externalIssue', '').split('#')
+        if not (project_id and issue_id):
+            raise IntegrationError('Project and Issue id must be provided')
+
+        client = self.get_client()
+        comment = data.get('comment')
+        if not comment:
+            return
+
+        try:
+            client.create_issue_comment(
+                project_id=project_id,
+                issue_id=issue_id,
+                data={
+                    'body': comment,
+                }
+            )
+        except ApiError as e:
+            raise IntegrationError(self.message_from_error(e))
+
     def get_link_issue_config(self, group, **kwargs):
         default_project, project_choices = self.get_projects_and_default(group, **kwargs)
 
@@ -123,6 +146,20 @@ class GitlabIssueBasic(IssueBasicMixin):
                 'url': autocomplete_url,
                 'required': True,
             },
+            {
+                'name': 'comment',
+                'label': 'Comment',
+                'default': u'Sentry issue: [{issue_id}]({url})'.format(
+                    url=absolute_uri(
+                        group.get_absolute_url(params={'referrer': 'gitlab_integration'})
+                    ),
+                    issue_id=group.qualified_short_id,
+                ),
+                'type': 'textarea',
+                'required': False,
+                'help': ('Leave blank if you don\'t want to '
+                         'add a comment to the GitLab issue.'),
+            }
         ]
 
     def get_issue(self, issue_id, **kwargs):

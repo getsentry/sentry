@@ -3,6 +3,8 @@ from __future__ import absolute_import
 import responses
 import six
 
+from sentry.integrations.exceptions import IntegrationError
+from sentry.models import ExternalIssue
 from sentry.utils.http import absolute_uri
 from .testutils import GitLabTestCase
 
@@ -54,7 +56,7 @@ class GitlabIssuesTest(GitLabTestCase):
                 'name': 'project',
                 'required': True,
                 'type': 'select',
-                'label': 'Gitlab Project',
+                'label': 'GitLab Project',
                 'choices': [(1, u'getsentry / sentry'), (22, u'getsentry / hello')],
                 'defaultValue': 1,
             },
@@ -105,6 +107,20 @@ class GitlabIssuesTest(GitLabTestCase):
                 'url': autocomplete_url,
                 'required': True,
             },
+            {
+                'name': 'comment',
+                'label': 'Comment',
+                'default': u'Sentry issue: [{issue_id}]({url})'.format(
+                    url=absolute_uri(
+                        self.group.get_absolute_url(params={'referrer': 'gitlab_integration'})
+                    ),
+                    issue_id=self.group.qualified_short_id,
+                ),
+                'type': 'textarea',
+                'required': False,
+                'help': ('Leave blank if you don\'t want to '
+                         'add a comment to the GitLab issue.'),
+            }
         ]
 
     @responses.activate
@@ -215,7 +231,7 @@ class GitlabIssuesTest(GitLabTestCase):
                 ],
                 'defaultValue': project_id,
                 'type': 'select',
-                'label': 'Gitlab Project'
+                'label': 'GitLab Project'
             },
             {
                 'name': 'title',
@@ -278,7 +294,7 @@ class GitlabIssuesTest(GitLabTestCase):
                 ],
                 'defaultValue': project_id,
                 'type': 'select',
-                'label': 'Gitlab Project'
+                'label': 'GitLab Project'
             },
             {
                 'name': 'title',
@@ -322,7 +338,7 @@ class GitlabIssuesTest(GitLabTestCase):
                 'choices': [],
                 'defaultValue': '',
                 'type': 'select',
-                'label': 'Gitlab Project'
+                'label': 'GitLab Project'
             },
             {
                 'name': 'title',
@@ -340,3 +356,44 @@ class GitlabIssuesTest(GitLabTestCase):
                 'maxRows': 10,
             }
         ]
+
+    @responses.activate
+    def test_after_link_issue(self):
+        responses.add(
+            responses.POST,
+            u'https://example.gitlab.com/api/v4/projects/2/issues/321/notes',
+            json=[]
+        )
+        data = {'externalIssue': '2#321', 'comment': 'This is not good.'}
+        external_issue = ExternalIssue.objects.create(
+            organization_id=self.organization.id,
+            integration_id=self.integration.id,
+            key='2#321',
+        )
+        self.installation.after_link_issue(external_issue, data=data)
+
+    def test_after_link_issue_required_fields(self):
+        data = {'externalIssue': '2#231', 'comment': 'This is not good.'}
+        external_issue = ExternalIssue.objects.create(
+            organization_id=self.organization.id,
+            integration_id=self.integration.id,
+            key='#',
+        )
+        with self.assertRaises(IntegrationError):
+            self.installation.after_link_issue(external_issue, data=data)
+
+    @responses.activate
+    def test_after_link_issue_failure(self):
+        responses.add(
+            responses.POST,
+            u'https://example.gitlab.com/api/v4/projects/2/issues/321/notes',
+            status=502
+        )
+        data = {'externalIssue': '2#321', 'comment': 'This is not good.'}
+        external_issue = ExternalIssue.objects.create(
+            organization_id=self.organization.id,
+            integration_id=self.integration.id,
+            key='2#321',
+        )
+        with self.assertRaises(IntegrationError):
+            self.installation.after_link_issue(external_issue, data=data)
