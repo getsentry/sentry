@@ -40,6 +40,9 @@ class OrganizationSerializer(Serializer):
         return data
 
     def serialize(self, obj, attrs, user):
+        from sentry import features
+        from sentry.features.base import OrganizationFeature
+
         if attrs.get('avatar'):
             avatar = {
                 'avatarType': attrs['avatar'].get_avatar_type_display(),
@@ -52,62 +55,6 @@ class OrganizationSerializer(Serializer):
             }
 
         status = OrganizationStatus(obj.status)
-
-        return {
-            'id': six.text_type(obj.id),
-            'slug': obj.slug,
-            'status': {
-                'id': status.name.lower(),
-                'name': status.label,
-            },
-            'name': obj.name or obj.slug,
-            'dateCreated': obj.date_added,
-            'isEarlyAdopter': bool(obj.flags.early_adopter),
-            'require2FA': bool(obj.flags.require_2fa),
-            'avatar': avatar,
-        }
-
-
-class OnboardingTasksSerializer(Serializer):
-    def serialize(self, obj, attrs, user):
-        return {
-            'task': obj.task,
-            'status': dict(OrganizationOnboardingTask.STATUS_CHOICES).get(obj.status).lower(),
-            'user': obj.user.name if obj.user else None,
-            'dateCompleted': obj.date_completed,
-            'data': obj.data,
-        }
-
-
-class DetailedOrganizationSerializer(OrganizationSerializer):
-    def serialize(self, obj, attrs, user):
-        from sentry import features, experiments
-        from sentry.features.base import OrganizationFeature
-        from sentry.app import env
-        from sentry.api.serializers.models.project import ProjectSummarySerializer
-        from sentry.api.serializers.models.team import TeamSerializer
-
-        team_list = sorted(Team.objects.filter(
-            organization=obj,
-            status=TeamStatus.VISIBLE,
-        ), key=lambda x: x.slug)
-
-        for team in team_list:
-            team._organization_cache = obj
-
-        project_list = sorted(Project.objects.filter(
-            organization=obj,
-            status=ProjectStatus.VISIBLE,
-        ), key=lambda x: x.slug)
-
-        for project in project_list:
-            project._organization_cache = obj
-
-        onboarding_tasks = list(
-            OrganizationOnboardingTask.objects.filter(
-                organization=obj,
-            ).select_related('user')
-        )
 
         # Retrieve all registered organization features
         org_features = features.all(feature_type=OrganizationFeature).keys()
@@ -139,6 +86,62 @@ class DetailedOrganizationSerializer(OrganizationSerializer):
             feature_list.add('shared-issues')
         if getattr(obj.flags, 'require_2fa'):
             feature_list.add('require-2fa')
+
+        return {
+            'id': six.text_type(obj.id),
+            'slug': obj.slug,
+            'status': {
+                'id': status.name.lower(),
+                'name': status.label,
+            },
+            'name': obj.name or obj.slug,
+            'dateCreated': obj.date_added,
+            'isEarlyAdopter': bool(obj.flags.early_adopter),
+            'require2FA': bool(obj.flags.require_2fa),
+            'avatar': avatar,
+            'features': feature_list
+        }
+
+
+class OnboardingTasksSerializer(Serializer):
+    def serialize(self, obj, attrs, user):
+        return {
+            'task': obj.task,
+            'status': dict(OrganizationOnboardingTask.STATUS_CHOICES).get(obj.status).lower(),
+            'user': obj.user.name if obj.user else None,
+            'dateCompleted': obj.date_completed,
+            'data': obj.data,
+        }
+
+
+class DetailedOrganizationSerializer(OrganizationSerializer):
+    def serialize(self, obj, attrs, user):
+        from sentry import experiments
+        from sentry.app import env
+        from sentry.api.serializers.models.project import ProjectSummarySerializer
+        from sentry.api.serializers.models.team import TeamSerializer
+
+        team_list = sorted(Team.objects.filter(
+            organization=obj,
+            status=TeamStatus.VISIBLE,
+        ), key=lambda x: x.slug)
+
+        for team in team_list:
+            team._organization_cache = obj
+
+        project_list = sorted(Project.objects.filter(
+            organization=obj,
+            status=ProjectStatus.VISIBLE,
+        ), key=lambda x: x.slug)
+
+        for project in project_list:
+            project._organization_cache = obj
+
+        onboarding_tasks = list(
+            OrganizationOnboardingTask.objects.filter(
+                organization=obj,
+            ).select_related('user')
+        )
 
         experiment_assignments = experiments.all(org=obj, actor=user)
 
@@ -190,7 +193,6 @@ class DetailedOrganizationSerializer(OrganizationSerializer):
             context['access'] = access.from_request(env.request, obj).scopes
         else:
             context['access'] = access.from_user(user, obj).scopes
-        context['features'] = feature_list
         context['pendingAccessRequests'] = OrganizationAccessRequest.objects.filter(
             team__organization=obj,
         ).count()
