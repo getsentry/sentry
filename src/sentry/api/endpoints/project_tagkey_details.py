@@ -46,6 +46,11 @@ class ProjectTagKeyDetailsEndpoint(ProjectEndpoint, EnvironmentMixin):
 
             deleted = tagstore.delete_tag_key(project.id, lookup_key)
 
+            # NOTE: By sending the `end_delete_tag` message here we are making
+            # the assumption that the `tagstore.delete_tag_key` does its work
+            # synchronously. As of this writing the Snuba `delete_tag_key` method
+            # is a no-op and this message itself is what causes the deletion to
+            # be done downstream.
             eventstream.end_delete_tag(eventstream_state)
         except tagstore.TagKeyNotFound:
             raise ResourceDoesNotExist
