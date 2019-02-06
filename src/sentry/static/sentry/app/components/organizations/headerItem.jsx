@@ -16,6 +16,7 @@ class HeaderItem extends React.Component {
     hasSelected: PropTypes.bool,
     isOpen: PropTypes.bool,
     locked: PropTypes.bool,
+    lockedMessage: PropTypes.bool,
   };
 
   static defaultProps = {
@@ -46,6 +47,7 @@ class HeaderItem extends React.Component {
       allowClear,
       icon,
       locked,
+      lockedMessage,
       onClear, // eslint-disable-line no-unused-vars
       onSubmit, // eslint-disable-line no-unused-vars
       ...props
@@ -84,7 +86,7 @@ class HeaderItem extends React.Component {
         )}
         {locked && (
           <Tooltip
-            title="issues may only be under a single project"
+            title={lockedMessage || 'this selection is locked'}
             tooltipOptions={{
               placement: 'bottom',
             }}

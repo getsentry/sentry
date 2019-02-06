@@ -1,5 +1,5 @@
 import {pick, isEqual} from 'lodash';
-import {withRouter} from 'react-router';
+import {Link, withRouter} from 'react-router';
 import PropTypes from 'prop-types';
 import React from 'react';
 
@@ -289,6 +289,18 @@ class GlobalSelectionHeader extends React.Component {
       .slice(0, 1);
   };
 
+  getBackButton = () => {
+    console.log(window.location.search);
+    return (
+      <Link
+        to={`/organizations/${this.props.organization.slug}/issues/${window.location
+          .search}`}
+      >
+        Back
+      </Link>
+    );
+  };
+
   render() {
     const {
       className,
@@ -301,6 +313,8 @@ class GlobalSelectionHeader extends React.Component {
     const {period, start, end, utc} = this.props.selection.datetime || {};
     return (
       <Header className={className}>
+        {forcedProject && this.getBackButton()}
+
         <HeaderItemPosition>
           <MultipleProjectSelector
             organization={organization}
