@@ -560,7 +560,7 @@ class GroupSerializerSnuba(GroupSerializerBase):
         first_seen = {}
         last_seen = {}
         times_seen = {}
-        if self.environment_ids is None:
+        if not self.environment_ids:
             # use issue fields
             for item in item_list:
                 first_seen[item.id] = item.first_seen
