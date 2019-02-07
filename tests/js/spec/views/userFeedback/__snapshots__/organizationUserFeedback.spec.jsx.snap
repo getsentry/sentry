@@ -716,6 +716,7 @@ exports[`OrganizationUserFeedback renders 1`] = `
                               >
                                 <DropdownAutoComplete
                                   alignMenu="left"
+                                  allowActorToggle={true}
                                   blendCorner={false}
                                   className="ewlipse0 css-11ijjr3-StyledProjectSelector"
                                   closeOnSelect={true}
@@ -800,7 +801,6 @@ exports[`OrganizationUserFeedback renders 1`] = `
                                 >
                                   <DropdownAutoCompleteMenu
                                     alignMenu="left"
-                                    allowActorToggle={true}
                                     blendCorner={false}
                                     className="ewlipse0 css-11ijjr3-StyledProjectSelector"
                                     closeOnSelect={true}
