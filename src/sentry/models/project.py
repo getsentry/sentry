@@ -19,6 +19,7 @@ from django.conf import settings
 from django.db import IntegrityError, models, transaction
 from django.utils import timezone
 from django.utils.translation import ugettext_lazy as _
+from django.utils.http import urlencode
 from uuid import uuid1
 
 from sentry.app import locks
@@ -146,13 +147,18 @@ class Project(Model):
             super(Project, self).save(*args, **kwargs)
         self.update_rev_for_option()
 
-    def get_absolute_url(self):
+    def get_absolute_url(self, params=None):
         from sentry import features
         if features.has('organizations:sentry10', self.organization):
-            return absolute_uri(
-                u'/organizations/{}/issues/?project={}'.format(self.organization.slug, self.id))
+            url = u'/organizations/{}/issues/'.format(self.organization.slug)
+            params = {} if params is None else params
+            params['project'] = self.id
         else:
-            return absolute_uri(u'/{}/{}/'.format(self.organization.slug, self.slug))
+            url = u'/{}/{}/'.format(self.organization.slug, self.slug)
+
+        if params:
+            url = url + '?' + urlencode(params)
+        return absolute_uri(url)
 
     def is_internal_project(self):
         for value in (settings.SENTRY_FRONTEND_PROJECT, settings.SENTRY_PROJECT):
