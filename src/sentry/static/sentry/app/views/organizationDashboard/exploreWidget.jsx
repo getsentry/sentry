@@ -110,7 +110,8 @@ const ExploreButton = styled(({isOpen, ...props}) => <UnstyledButton {...props} 
   ${p => p.isOpen && `z-index: ${p.theme.zIndex.dropdownAutocomplete.actor}`};
 
   /* covers up borders to create a continous shape */
-  ${p => p.isOpen && 'box-shadow: 0 -1px 0 #fff;'} &:hover {
+  ${p =>
+    p.isOpen ? '&, &:hover, &:active { box-shadow: 0 -1px 0 #fff; }' : ''} &:hover {
     color: ${p => p.theme.purple};
   }
 `;
@@ -119,6 +120,7 @@ const ExploreMenu = styled('div')`
   visibility: ${p => (p.isOpen ? 'visible' : 'hidden')};
   display: flex;
   flex-direction: column;
+  min-width: 250px;
 
   position: absolute;
   right: -1px;
@@ -152,6 +154,7 @@ const QueryName = styled('span')`
 `;
 
 const Chevron = styled(InlineSvg)`
-  ${p => (p.isOpen ? `transform: rotate(-90deg);` : '')};
-  transition: transform 0.25s;
+  ${p => (p.isOpen ? `transform: rotate(90deg);` : '')};
+  margin-left: ${p => (p.isOpen ? space(0.5) : 0)};
+  transition: all 0.25s;
 `;
