@@ -171,8 +171,8 @@ class Hpkp(SecurityReport):
     def get_culprit(self):
         return None
 
-    def get_hash(self, platform=None, is_processed_data=True):
-        return ['hpkp', self.hostname]
+    def compute_hashes(self, platform=None, is_processed_data=True):
+        return [['hpkp', self.hostname]]
 
     def get_message(self):
         return u"Public key pinning validation failed for '{self.hostname}'".format(self=self)
@@ -235,8 +235,8 @@ class ExpectStaple(SecurityReport):
     def get_culprit(self):
         return self.hostname
 
-    def get_hash(self, platform=None, is_processed_data=True):
-        return ['expect-staple', self.hostname]
+    def compute_hashes(self, platform=None, is_processed_data=True):
+        return [['expect-staple', self.hostname]]
 
     def get_message(self):
         return u"Expect-Staple failed for '{self.hostname}'".format(self=self)
@@ -297,8 +297,8 @@ class ExpectCT(SecurityReport):
     def get_culprit(self):
         return self.hostname
 
-    def get_hash(self, platform=None, is_processed_data=True):
-        return ['expect-ct', self.hostname]
+    def compute_hashes(self, platform=None, is_processed_data=True):
+        return [['expect-ct', self.hostname]]
 
     def get_message(self):
         return u"Expect-CT failed for '{self.hostname}'".format(self=self)
@@ -353,13 +353,13 @@ class Csp(SecurityReport):
 
         return cls.to_python(kwargs)
 
-    def get_hash(self, platform=None, is_processed_data=True):
+    def compute_hashes(self, platform=None, is_processed_data=True):
         if self._local_script_violation_type:
             uri = "'%s'" % self._local_script_violation_type
         else:
             uri = self._normalized_blocked_uri
 
-        return [self.effective_directive, uri]
+        return [[self.effective_directive, uri]]
 
     def get_message(self):
         templates = {

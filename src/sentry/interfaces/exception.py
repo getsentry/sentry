@@ -14,10 +14,12 @@ import re
 import six
 
 from django.conf import settings
+from itertools import chain
 
 from sentry.interfaces.base import Interface, InterfaceValidationError, prune_empty_keys
 from sentry.interfaces.schemas import validate_and_default_interface
-from sentry.interfaces.stacktrace import Stacktrace, slim_frame_data
+from sentry.interfaces.stacktrace import Stacktrace, slim_frame_data, \
+    compute_hashes_from_inner_stacks
 from sentry.utils import json
 from sentry.utils.safe import get_path, trim
 
@@ -936,15 +938,21 @@ class SingleException(Interface):
             'stacktrace': stacktrace_meta,
         }
 
-    def get_hash(self, platform=None):
-        output = None
+    def compute_hashes(self, platform=None):
+        return compute_hashes_from_inner_stacks(self, platform)
+
+    def compute_stack_hash(self, platform=None, system_frames=True, with_fallback=True):
         if self.stacktrace:
-            output = self.stacktrace.get_hash(platform=platform)
-            if output and self.type:
-                output.append(self.type)
-        if not output:
-            output = [s for s in [self.type, self.value] if s]
-        return output
+            stack_hash = self.stacktrace.compute_stack_hash(
+                platform=platform,
+                system_frames=system_frames
+            )
+            if stack_hash and self.type:
+                stack_hash.append(self.type)
+            if stack_hash:
+                return stack_hash
+        if with_fallback:
+            return [s for s in [self.type, self.value] if s]
 
 
 class Exception(Interface):
@@ -1032,35 +1040,24 @@ class Exception(Interface):
         })
 
     def compute_hashes(self, platform=None):
-        system_hash = self.get_hash(platform, system_frames=True)
-        if not system_hash:
-            return []
+        return compute_hashes_from_inner_stacks(self, platform)
 
-        app_hash = self.get_hash(platform, system_frames=False)
-        if system_hash == app_hash or not app_hash:
-            return [system_hash]
-
-        return [system_hash, app_hash]
-
-    def get_hash(self, platform=None, system_frames=True):
+    def compute_stack_hash(self, platform=None, system_frames=True):
         # optimize around the fact that some exceptions might have stacktraces
         # while others may not and we ALWAYS want stacktraces over values
         output = []
         for value in self._values():
-            if not value or not value.stacktrace:
-                continue
-            stack_hash = value.stacktrace.get_hash(
+            exception_hash = value.compute_stack_hash(
                 platform=platform,
                 system_frames=system_frames,
+                with_fallback=False
             )
-            if stack_hash:
-                output.extend(stack_hash)
-                output.append(value.type)
+            if exception_hash:
+                output.extend(exception_hash)
 
         if not output:
             for value in self._values():
-                if value:
-                    output.extend(value.get_hash(platform=platform))
+                output.extend(chain.from_iterable(value.compute_hashes(platform=platform)))
 
         return output
 

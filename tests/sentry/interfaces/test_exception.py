@@ -118,6 +118,51 @@ ValueError: hello world
         print('got', inst.compute_hashes())
         assert inst.compute_hashes() == all_values
 
+    def test_compute_hashes_no_stacks(self):
+        interface = Exception.to_python(
+            dict(
+                values=[
+                    {
+                        'type': 'ValueError',
+                        'value': 'hello world',
+                        'module': 'foo.bar',
+                    }, {
+                        'type': 'NameError',
+                        'value': 'yo',
+                        'module': 'foo.bar',
+                    }
+                ]
+            )
+        )
+
+        assert interface.compute_hashes() == [['ValueError', 'hello world', 'NameError', 'yo']]
+
+    def test_compute_hashes_half_stacks(self):
+        interface = Exception.to_python(
+            dict(
+                values=[
+                    {
+                        'type': 'ValueError',
+                        'value': 'hello world',
+                        'module': 'foo.bar',
+                        'stacktrace': {
+                            'frames': [{
+                                'filename': 'foo/baz.py',
+                                'lineno': 1,
+                                'in_app': True,
+                            }]
+                        },
+                    }, {
+                        'type': 'NameError',
+                        'value': 'yo',
+                        'module': 'foo.bar',
+                    }
+                ]
+            )
+        )
+
+        assert interface.compute_hashes() == [['foo/baz.py', 1, 'ValueError']]
+
     def test_context_with_mixed_frames(self):
         inst = Exception.to_python(
             dict(

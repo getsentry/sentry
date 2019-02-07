@@ -198,14 +198,8 @@ class Interface(object):
     def to_json(self):
         return prune_empty_keys(self._data)
 
-    def get_hash(self, platform=None):
-        return []
-
     def compute_hashes(self, platform=None):
-        result = self.get_hash(platform)
-        if not result:
-            return []
-        return [result]
+        return []
 
     def get_title(self):
         return _(type(self).__name__)
