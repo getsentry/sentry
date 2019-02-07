@@ -168,18 +168,6 @@ matrix:
         - nvm install
         - npm install -g "yarn@${YARN_VERSION}"
 
-    - python: 2.7
-      env: SENTRY_TAGSTORE=sentry.tagstore.v2.V2TagStorage TEST_SUITE=postgres DB=postgres
-      services:
-        - memcached
-        - redis-server
-        - postgresql
-      install:
-        - python setup.py install_egg_info
-        - pip install -e ".[dev,tests,optional]"
-      before_script:
-        - psql -c 'create database sentry;' -U postgres
-
     # django 1.8 compatibility
     - python: 2.7
       env: TEST_SUITE=postgres DJANGO_VERSION=">=1.8,<1.9"
