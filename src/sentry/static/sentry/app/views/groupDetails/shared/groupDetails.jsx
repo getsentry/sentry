@@ -244,7 +244,7 @@ const GroupDetails = createReactClass({
               )}
             {hasFeature &&
               showGlobalHeader && <PageContent>{this.renderContent()}</PageContent>}
-            {!hasFeature || (!showGlobalHeader && this.renderContent())}
+            {!hasFeature && this.renderContent()}
           </React.Fragment>
         )}
       </Feature>
