@@ -3,7 +3,7 @@ from __future__ import absolute_import
 import json
 from django.utils import timezone
 
-from sentry.models import FeatureAdoption, GroupTombstone, Rule
+from sentry.models import FeatureAdoption, GroupAssignee, GroupTombstone, Rule
 from sentry.plugins import IssueTrackingPlugin2, NotificationPlugin
 from sentry.signals import (
     alert_rule_created,
@@ -634,6 +634,12 @@ class FeatureAdoptionTest(TestCase):
         assert feature_complete
 
     def test_assignment(self):
+        GroupAssignee.objects.create(
+            group_id=self.group.id,
+            user_id=self.user.id,
+            project_id=self.project.id,
+        )
+
         issue_assigned.send(
             project=self.project,
             group=self.group,

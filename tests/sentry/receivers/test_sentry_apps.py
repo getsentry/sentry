@@ -2,7 +2,7 @@ from __future__ import absolute_import
 
 from mock import patch
 
-from sentry.models import Commit, GroupLink, Repository, Release
+from sentry.models import Commit, GroupAssignee, GroupLink, Repository, Release
 from sentry.testutils import APITestCase, TestCase
 from sentry.testutils.helpers.faux import faux
 
@@ -190,4 +190,67 @@ class TestIssueWorkflowNotifications(APITestCase):
             type='ignored',
             user_id=self.user.id,
             data={},
+        )
+
+
+@patch('sentry.tasks.sentry_apps.workflow_notification.delay')
+class TestIssueAssigned(APITestCase):
+    def setUp(self):
+        self.issue = self.create_group(project=self.project)
+
+        self.sentry_app = self.create_sentry_app(events=['issue.assigned'])
+
+        self.install = self.create_sentry_app_installation(
+            organization=self.organization,
+            slug=self.sentry_app.slug,
+        )
+
+        self.assignee = self.create_user(name='Bert', email='bert@example.com')
+
+    def test_after_issue_assigned(self, delay):
+        GroupAssignee.objects.assign(
+            self.issue,
+            self.assignee,
+            self.user,
+        )
+
+        assert faux(delay).called_with(
+            installation_id=self.install.id,
+            issue_id=self.issue.id,
+            type='assigned',
+            user_id=self.user.id,
+            data={
+                'assignee': {
+                    'type': 'user',
+                    'name': self.assignee.name,
+                    'email': self.assignee.email,
+                    'id': self.assignee.id,
+                },
+            },
+        )
+
+    def test_after_issue_assigned_with_enhanced_privacy(self, delay):
+        org = self.issue.project.organization
+        org.flags.enhanced_privacy = True
+        org.save()
+
+        GroupAssignee.objects.assign(
+            self.issue,
+            self.assignee,
+            self.user,
+        )
+
+        assert faux(delay).called_with(
+            installation_id=self.install.id,
+            issue_id=self.issue.id,
+            type='assigned',
+            user_id=self.user.id,
+            data={
+                # Excludes email address
+                'assignee': {
+                    'type': 'user',
+                    'name': self.assignee.name,
+                    'id': self.assignee.id,
+                },
+            },
         )
