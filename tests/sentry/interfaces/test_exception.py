@@ -114,8 +114,6 @@ ValueError: hello world
         inst = self.interface
 
         all_values = [sum(chain.from_iterable(v.compute_hashes() for v in inst.values), [])]
-        print('want', all_values)
-        print('got', inst.compute_hashes())
         assert inst.compute_hashes() == all_values
 
     def test_compute_hashes_no_stacks(self):
