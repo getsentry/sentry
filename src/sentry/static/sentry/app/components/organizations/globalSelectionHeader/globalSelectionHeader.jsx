@@ -297,7 +297,7 @@ class GlobalSelectionHeader extends React.Component {
       <BackToIssues
         to={`/organizations/${this.props.organization.slug}/issues/${window.location
           .search}`}
-        title={t('back to issues list')}
+        title={t('Back to Issues Stream')}
       >
         <InlineSvg src="icon-arrow-left" />
       </BackToIssues>
