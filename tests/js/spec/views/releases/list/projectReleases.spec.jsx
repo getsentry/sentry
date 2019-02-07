@@ -20,7 +20,7 @@ describe('ProjectReleases', function() {
       params: {orgId: '123', projectId: '456'},
       location: {query: {per_page: 0, query: 'derp'}},
     };
-    projectReleases = shallow(<ProjectReleases {...props} />);
+    projectReleases = shallow(<ProjectReleases {...props} />, TestStubs.routerContext());
   });
 
   afterEach(function() {
