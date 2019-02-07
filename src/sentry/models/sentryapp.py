@@ -25,7 +25,12 @@ from sentry.db.models import (
 # listening to a list of specific events. This is a mapping of what those
 # specific events are for each resource.
 EVENT_EXPANSION = {
-    'issue': ['issue.created', 'issue.resolved'],
+    'issue': [
+        'issue.created',
+        'issue.resolved',
+        'issue.ignored',
+        'issue.assigned',
+    ],
 }
 
 # We present Webhook Subscriptions per-resource (Issue, Project, etc.), not
