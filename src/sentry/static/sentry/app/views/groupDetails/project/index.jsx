@@ -1,10 +1,10 @@
 import React from 'react';
 import PropTypes from 'prop-types';
 import SentryTypes from 'app/sentryTypes';
+import {browserHistory} from 'react-router';
 
 import withEnvironment from 'app/utils/withEnvironment';
 import {analytics} from 'app/utils/analytics';
-
 import GroupDetails from '../shared/groupDetails';
 
 class ProjectGroupDetails extends React.Component {
@@ -19,6 +19,16 @@ class ProjectGroupDetails extends React.Component {
   };
 
   componentDidMount() {
+    // Redirect any Sentry 10 user that has followed an old link and ended up here
+    const {location, params: {orgId, groupId}} = this.props;
+    const hasSentry10 = new Set(this.context.organization.features).has('sentry10');
+
+    if (hasSentry10) {
+      browserHistory.replace(
+        `/organizations/${orgId}/issues/${groupId}/${location.search}`
+      );
+    }
+
     this.props.setProjectNavSection('stream');
     analytics('issue_page.viewed', {
       group_id: parseInt(this.props.params.groupId, 10),
