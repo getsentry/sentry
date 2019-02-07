@@ -58,8 +58,8 @@ class Template(Interface):
         }
         return cls(**kwargs)
 
-    def get_hash(self, platform=None):
-        return [self.filename, self.context_line]
+    def compute_hashes(self, platform=None):
+        return [[self.filename, self.context_line]]
 
     def to_string(self, event, is_public=False, **kwargs):
         context = get_context(

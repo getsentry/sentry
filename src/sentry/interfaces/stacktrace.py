@@ -500,6 +500,12 @@ class Frame(Interface):
             output.append(self.lineno)
         return output
 
+    def compute_hashes(self, platform=None):
+        rv = self.get_hash(platform)
+        if rv:
+            return [rv]
+        return []
+
     def get_api_context(self, is_public=False, pad_addr=None):
         data = {
             'filename': self.filename,

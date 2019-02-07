@@ -946,6 +946,12 @@ class SingleException(Interface):
             output = [s for s in [self.type, self.value] if s]
         return output
 
+    def compute_hashes(self, platform=None):
+        rv = self.get_hash(platform)
+        if rv:
+            return [rv]
+        return []
+
 
 class Exception(Interface):
     """
