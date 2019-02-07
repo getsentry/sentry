@@ -10,6 +10,7 @@ import {
 import {callIfFunction} from 'app/utils/callIfFunction';
 import {defined} from 'app/utils';
 import {isEqualWithDates} from 'app/utils/isEqualWithDates';
+import {t} from 'app/locale';
 import {
   updateDateTime,
   updateEnvironments,
@@ -18,17 +19,17 @@ import {
   updateProjects,
 } from 'app/actionCreators/globalSelection';
 import {DEFAULT_STATS_PERIOD} from 'app/constants';
-import Header from 'app/components/organizations/header';
-import InlineSvg from 'app/components/inlineSvg';
-import HeaderItemPosition from 'app/components/organizations/headerItemPosition';
 import BackToIssues from 'app/components/organizations/backToIssues';
+import Header from 'app/components/organizations/header';
+import HeaderItemPosition from 'app/components/organizations/headerItemPosition';
 import HeaderSeparator from 'app/components/organizations/headerSeparator';
+import InlineSvg from 'app/components/inlineSvg';
 import MultipleEnvironmentSelector from 'app/components/organizations/multipleEnvironmentSelector';
 import MultipleProjectSelector from 'app/components/organizations/multipleProjectSelector';
 import SentryTypes from 'app/sentryTypes';
 import TimeRangeSelector from 'app/components/organizations/timeRangeSelector';
+import Tooltip from 'app/components/tooltip';
 import withGlobalSelection from 'app/utils/withGlobalSelection';
-import {t} from 'app/locale';
 
 import {getStateFromQuery} from './utils';
 
@@ -294,13 +295,14 @@ class GlobalSelectionHeader extends React.Component {
 
   getBackButton = () => {
     return (
-      <BackToIssues
-        to={`/organizations/${this.props.organization.slug}/issues/${window.location
-          .search}`}
-        title={t('Back to Issues Stream')}
-      >
-        <InlineSvg src="icon-arrow-left" />
-      </BackToIssues>
+      <Tooltip title={t('Back to Issues Stream')} tooltipOptions={{placement: 'bottom'}}>
+        <BackToIssues
+          to={`/organizations/${this.props.organization.slug}/issues/${window.location
+            .search}`}
+        >
+          <InlineSvg src="icon-arrow-left" />
+        </BackToIssues>
+      </Tooltip>
     );
   };
 
