@@ -124,22 +124,6 @@ class OrganizationDetailsBody extends Component {
     organization: PropTypes.object.isRequired,
   };
 
-  componentDidMount() {
-    const {organization} = this.context;
-    const access = new Set(organization.features).has('sentry10');
-
-    if (access)
-      AlertActions.addAlert({
-        message:
-          'Hi! You are seeing some new changes to Sentry as a member of our early adopter program. Click to read more.',
-        type: 'info',
-        url:
-          'https://forum.sentry.io/t/new-product-changes-now-available-for-preview/5805',
-        neverExpire: true,
-        id: 'visibility-changes-alert-message',
-      });
-  }
-
   render() {
     const {organization} = this.context;
 
