@@ -36,7 +36,7 @@ const AlertStore = Reflux.createStore({
       }
     }
 
-    if (alert.expireAfter) {
+    if (alert.expireAfter && !alert.neverExpire) {
       window.setTimeout(() => {
         this.onCloseAlert(alert);
       }, alert.expireAfter);
