@@ -161,13 +161,6 @@ class GlobalSelectionHeader extends React.Component {
     }
   }
 
-  // componentWillUnmount() {
-  //   AlertActions.closeAlert({
-  //     id: 'visibility-changes-alert-message',
-  //     dontStore: true,
-  //   });
-  // }
-
   shouldComponentUpdate(nextProps, nextState) {
     // Update if state changes
     if (this.state !== nextState) {
