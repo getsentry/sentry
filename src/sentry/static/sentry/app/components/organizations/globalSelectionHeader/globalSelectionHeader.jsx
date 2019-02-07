@@ -20,8 +20,6 @@ import {
   updateParamsWithoutHistory,
   updateProjects,
 } from 'app/actionCreators/globalSelection';
-
-import {DEFAULT_STATS_PERIOD} from 'app/constants';
 import AlertActions from 'app/actions/alertActions';
 import BackToIssues from 'app/components/organizations/backToIssues';
 import Header from 'app/components/organizations/header';
