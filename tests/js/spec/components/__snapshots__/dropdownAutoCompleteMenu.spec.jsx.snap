@@ -65,7 +65,7 @@ exports[`DropdownAutoCompleteMenu renders with a group 1`] = `
               onMouseLeave={[Function]}
             >
               <div
-                className="css-1fwqu7l-StyledMenu-getMenuBorderRadius ejumqxq9"
+                className="css-1fwqu7l-StyledMenu-getMenuBorderRadius ejumqxq8"
                 onClick={[Function]}
                 onMouseDown={[Function]}
                 onMouseEnter={[Function]}
@@ -117,7 +117,7 @@ exports[`DropdownAutoCompleteMenu renders with a group 1`] = `
                     maxHeight={300}
                   >
                     <div
-                      className="css-5kh8cy-StyledItemList ejumqxq10"
+                      className="css-5kh8cy-StyledItemList ejumqxq9"
                     >
                       <LabelWithBorder
                         key="countries"
@@ -242,7 +242,7 @@ exports[`DropdownAutoCompleteMenu renders without a group 1`] = `
               onMouseLeave={[Function]}
             >
               <div
-                className="css-1fwqu7l-StyledMenu-getMenuBorderRadius ejumqxq9"
+                className="css-1fwqu7l-StyledMenu-getMenuBorderRadius ejumqxq8"
                 onClick={[Function]}
                 onMouseDown={[Function]}
                 onMouseEnter={[Function]}
@@ -294,7 +294,7 @@ exports[`DropdownAutoCompleteMenu renders without a group 1`] = `
                     maxHeight={300}
                   >
                     <div
-                      className="css-5kh8cy-StyledItemList ejumqxq10"
+                      className="css-5kh8cy-StyledItemList ejumqxq9"
                     >
                       <AutoCompleteItem
                         highlightedIndex={0}
