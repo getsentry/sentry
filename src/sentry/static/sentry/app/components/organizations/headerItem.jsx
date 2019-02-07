@@ -16,7 +16,7 @@ class HeaderItem extends React.Component {
     hasSelected: PropTypes.bool,
     isOpen: PropTypes.bool,
     locked: PropTypes.bool,
-    lockedMessage: PropTypes.bool,
+    lockedMessage: PropTypes.string,
   };
 
   static defaultProps = {
@@ -86,7 +86,7 @@ class HeaderItem extends React.Component {
         )}
         {locked && (
           <Tooltip
-            title={lockedMessage || 'this selection is locked'}
+            title={lockedMessage || 'This selection is locked'}
             tooltipOptions={{
               placement: 'bottom',
             }}
