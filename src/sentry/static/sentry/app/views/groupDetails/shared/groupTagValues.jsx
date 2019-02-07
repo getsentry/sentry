@@ -21,6 +21,7 @@ const GroupTagValues = createReactClass({
 
   propTypes: {
     organization: SentryTypes.Organization.isRequired,
+    group: SentryTypes.Group.isRequired,
     query: PropTypes.object,
   },
   mixins: [ApiMixin],
@@ -99,7 +100,7 @@ const GroupTagValues = createReactClass({
       return <LoadingError onRetry={this.fetchData} />;
     }
 
-    const {organization, params: {orgId, projectId}} = this.props;
+    const {organization, group, params: {orgId, projectId}} = this.props;
     const tagKey = this.state.tagKey;
 
     const sortedTagValueList = sortBy(
@@ -163,7 +164,12 @@ const GroupTagValues = createReactClass({
       <div>
         <h3>
           {tagKey.key == 'user' ? t('Affected Users') : tagKey.name}
-          <a href="export/" className="btn btn-default btn-sm" style={{marginLeft: 10}}>
+          <a
+            href={`/${orgId}/${group.project.slug}/issues/${group.id}/tags/${this.props
+              .params.tagKey}/export/`}
+            className="btn btn-default btn-sm"
+            style={{marginLeft: 10}}
+          >
             {t('Export to CSV')}
           </a>
         </h3>
