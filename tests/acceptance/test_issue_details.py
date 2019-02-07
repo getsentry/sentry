@@ -40,7 +40,7 @@ class IssueDetailsTest(AcceptanceTestCase):
         )
 
         self.browser.get(
-            u'/{}/{}/issues/{}/#assistant'.format(self.org.slug, self.project.slug, event.group.id)
+            u'/{}/{}/issues/{}/'.format(self.org.slug, self.project.slug, event.group.id)
         )
         self.wait_until_loaded()
         self.browser.snapshot('issue details python')
@@ -51,7 +51,7 @@ class IssueDetailsTest(AcceptanceTestCase):
         )
 
         self.browser.get(
-            u'/{}/{}/issues/{}/#assistant'.format(self.org.slug, self.project.slug, event.group.id)
+            u'/{}/{}/issues/{}/'.format(self.org.slug, self.project.slug, event.group.id)
         )
         self.wait_until_loaded()
         self.browser.snapshot('issue details cocoa')
@@ -63,7 +63,7 @@ class IssueDetailsTest(AcceptanceTestCase):
         )
 
         self.browser.get(
-            u'/{}/{}/issues/{}/#assistant'.format(self.org.slug, self.project.slug, event.group.id)
+            u'/{}/{}/issues/{}/'.format(self.org.slug, self.project.slug, event.group.id)
         )
         self.wait_until_loaded()
         self.browser.snapshot('issue details unity')
@@ -75,7 +75,7 @@ class IssueDetailsTest(AcceptanceTestCase):
         )
 
         self.browser.get(
-            u'/{}/{}/issues/{}/#assistant'.format(self.org.slug, self.project.slug, event.group.id)
+            u'/{}/{}/issues/{}/'.format(self.org.slug, self.project.slug, event.group.id)
         )
         self.wait_until_loaded()
         self.browser.snapshot('issue details aspnetcore')
@@ -86,8 +86,8 @@ class IssueDetailsTest(AcceptanceTestCase):
         )
 
         self.browser.get(
-            u'/{}/{}/issues/{}/events/{}/#assistant'.format(self.org.slug,
-                                                            self.project.slug, event.group.id, event.id)
+            u'/{}/{}/issues/{}/events/{}/'.format(self.org.slug,
+                                                  self.project.slug, event.group.id, event.id)
         )
         self.wait_until_loaded()
         self.browser.snapshot('issue details javascript - event details')
@@ -103,7 +103,7 @@ class IssueDetailsTest(AcceptanceTestCase):
         )
 
         self.browser.get(
-            u'/{}/{}/issues/{}/#assistant'.format(self.org.slug, self.project.slug, event.group.id)
+            u'/{}/{}/issues/{}/'.format(self.org.slug, self.project.slug, event.group.id)
         )
         self.wait_until_loaded()
         self.browser.snapshot('issue details rust')
@@ -114,7 +114,7 @@ class IssueDetailsTest(AcceptanceTestCase):
         )
 
         self.browser.get(
-            u'/{}/{}/issues/{}/#assistant'.format(self.org.slug, self.project.slug, event.group.id)
+            u'/{}/{}/issues/{}/'.format(self.org.slug, self.project.slug, event.group.id)
         )
         self.wait_until_loaded()
         self.browser.snapshot('issue details cordova')
@@ -125,7 +125,7 @@ class IssueDetailsTest(AcceptanceTestCase):
         )
 
         self.browser.get(
-            u'/{}/{}/issues/{}/#assistant'.format(self.org.slug, self.project.slug, event.group.id)
+            u'/{}/{}/issues/{}/'.format(self.org.slug, self.project.slug, event.group.id)
         )
         self.wait_until_loaded()
         self.browser.snapshot('issue details pii stripped')
@@ -171,7 +171,7 @@ class IssueDetailsTest(AcceptanceTestCase):
         )
 
         self.browser.get(
-            u'/{}/{}/issues/{}/activity/#assistant'.format(
+            u'/{}/{}/issues/{}/activity/'.format(
                 self.org.slug, self.project.slug, event.group.id)
         )
         self.browser.wait_until('.activity-item')
