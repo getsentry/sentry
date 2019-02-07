@@ -428,11 +428,19 @@ def raw_query(start, end, groupby=None, conditions=None, filter_keys=None,
         if start > end:
             raise QueryOutsideRetentionError
 
-    start = shrink_time_window(filter_keys.get('issue'), start)
-
     # if `shrink_time_window` pushed `start` after `end` it means the user queried
     # a Group for T1 to T2 when the group was only active for T3 to T4, so the query
     # wouldn't return any results anyway
+    new_start = shrink_time_window(filter_keys.get('issue'), start)
+
+    # TODO (alexh) this is a quick emergency fix for an occasion where a search
+    # results in only 1 django candidate, which is then passed to snuba to
+    # check and we raised because of it. Remove this once we figure out why the
+    # candidate was returned from django at all if it existed only outside the
+    # time range of the query
+    if new_start <= end:
+        start = new_start
+
     if start > end:
         raise QueryOutsideGroupActivityError
 
@@ -516,8 +524,8 @@ def query(start, end, groupby, conditions=None, filter_keys=None, aggregations=N
 
     with timer('process_result'):
         if totals:
-            return nest_groups(body['data'], groupby, aggregate_names +
-                               selected_names), body['totals']
+            return nest_groups(body['data'], groupby, aggregate_names
+                               + selected_names), body['totals']
         else:
             return nest_groups(body['data'], groupby, aggregate_names + selected_names)
 

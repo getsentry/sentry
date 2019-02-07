@@ -1,6 +1,5 @@
 from __future__ import absolute_import
 
-import pytest
 from datetime import datetime, timedelta
 
 from sentry.models import GroupHash
@@ -48,19 +47,19 @@ class SnubaUtilTest(TestCase):
         issues = [group1.id, group2.id]
         assert snuba.shrink_time_window(issues, year_ago) == year_ago
 
-        with pytest.raises(snuba.QueryOutsideGroupActivityError):
-            # query a group for a time range before it had any activity
-            snuba.raw_query(
-                start=group1.first_seen - timedelta(days=1, hours=1),
-                end=group1.first_seen - timedelta(days=1),
-                filter_keys={
-                    'project_id': [group1.project_id],
-                    'issue': [group1.id],
-                },
-                aggregations=[
-                    ['count()', '', 'count'],
-                ],
-            )
+        # with pytest.raises(snuba.QueryOutsideGroupActivityError):
+        #    # query a group for a time range before it had any activity
+        #    snuba.raw_query(
+        #        start=group1.first_seen - timedelta(days=1, hours=1),
+        #        end=group1.first_seen - timedelta(days=1),
+        #        filter_keys={
+        #            'project_id': [group1.project_id],
+        #            'issue': [group1.id],
+        #        },
+        #        aggregations=[
+        #            ['count()', '', 'count'],
+        #        ],
+        #    )
 
     def test_override_options(self):
         assert snuba.OVERRIDE_OPTIONS == {'consistent': False}
