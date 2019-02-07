@@ -17,6 +17,7 @@ import {
   updateParamsWithoutHistory,
   updateProjects,
 } from 'app/actionCreators/globalSelection';
+import {DEFAULT_STATS_PERIOD} from 'app/constants';
 import Header from 'app/components/organizations/header';
 import HeaderItemPosition from 'app/components/organizations/headerItemPosition';
 import HeaderSeparator from 'app/components/organizations/headerSeparator';
@@ -94,6 +95,9 @@ class GlobalSelectionHeader extends React.Component {
     // We should update store if there are any relevant URL parameters when component
     // is mounted
     if (Object.values(stateFromRouter).some(i => !!i)) {
+      if (!stateFromRouter.start && !stateFromRouter.end && !stateFromRouter.period) {
+        stateFromRouter.period = DEFAULT_STATS_PERIOD;
+      }
       const {project, environment, start, end, period, utc} = stateFromRouter;
 
       // This will update store with values from URL parameters

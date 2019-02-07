@@ -141,6 +141,38 @@ describe('GlobalSelectionHeader', function() {
     });
   });
 
+  it('updates GlobalSelection store with default period', async function() {
+    mount(
+      <GlobalSelectionHeader organization={organization} />,
+      changeQuery(routerContext, {
+        environment: 'prod',
+      })
+    );
+
+    expect(router.push).not.toHaveBeenCalled();
+    expect(globalActions.updateDateTime).toHaveBeenCalledWith({
+      period: '14d',
+      utc: null,
+      start: null,
+      end: null,
+    });
+    expect(globalActions.updateProjects).toHaveBeenCalledWith([]);
+    expect(globalActions.updateEnvironments).toHaveBeenCalledWith(['prod']);
+
+    await tick();
+
+    expect(GlobalSelectionStore.get()).toEqual({
+      datetime: {
+        period: '14d',
+        utc: null,
+        start: null,
+        end: null,
+      },
+      environments: ['prod'],
+      projects: [],
+    });
+  });
+
   it('does not update store if url params have not changed', async function() {
     const wrapper = mount(
       <GlobalSelectionHeader organization={organization} />,
