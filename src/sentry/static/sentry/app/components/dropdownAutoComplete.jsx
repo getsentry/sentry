@@ -9,7 +9,7 @@ class DropdownAutoComplete extends React.Component {
     ...DropdownAutoCompleteMenu.propTypes,
 
     // Should clicking the actor toggle visibility?
-    shouldToggle: PropTypes.bool,
+    allowActorToggle: PropTypes.bool,
 
     children: PropTypes.func,
   };
@@ -19,7 +19,7 @@ class DropdownAutoComplete extends React.Component {
   };
 
   render() {
-    const {children, shouldToggle, ...props} = this.props;
+    const {children, allowActorToggle, ...props} = this.props;
 
     return (
       <DropdownAutoCompleteMenu {...props}>
@@ -36,7 +36,7 @@ class DropdownAutoComplete extends React.Component {
               isOpen={renderProps.isOpen}
               role="button"
               onClick={
-                renderProps.isOpen && shouldToggle
+                renderProps.isOpen && allowActorToggle
                   ? renderProps.actions.close
                   : renderProps.actions.open
               }

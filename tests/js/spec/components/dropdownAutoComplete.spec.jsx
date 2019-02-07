@@ -43,7 +43,7 @@ describe('DropdownAutoComplete', function() {
 
   it('toggles dropdown menu when actor is clicked', function() {
     const wrapper = mount(
-      <DropdownAutoComplete shouldToggle items={items}>
+      <DropdownAutoComplete allowActorToggle items={items}>
         {() => 'Click Me!'}
       </DropdownAutoComplete>,
       routerContext

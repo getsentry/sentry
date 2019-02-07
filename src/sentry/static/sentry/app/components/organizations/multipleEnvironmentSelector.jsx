@@ -182,7 +182,7 @@ class MultipleEnvironmentSelector extends React.PureComponent {
           return (
             <StyledDropdownAutoComplete
               alignMenu="left"
-              shouldToggle={true}
+              allowActorToggle={true}
               closeOnSelect={true}
               blendCorner={false}
               searchPlaceholder={t('Filter environments')}
