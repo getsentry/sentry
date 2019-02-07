@@ -32,6 +32,7 @@ const GroupDetails = createReactClass({
     // environment: SentryTypes.Environment,
     environments: PropTypes.arrayOf(PropTypes.string),
     enableSnuba: PropTypes.bool,
+    showGlobalHeader: PropTypes.bool,
   },
 
   childContextTypes: {
@@ -214,7 +215,7 @@ const GroupDetails = createReactClass({
   },
 
   render() {
-    const {organization} = this.props;
+    const {organization, showGlobalHeader} = this.props;
     const {group, project} = this.state;
 
     if (this.state.error) {
@@ -234,11 +235,16 @@ const GroupDetails = createReactClass({
       <Feature features={['sentry10']}>
         {({hasFeature}) => (
           <React.Fragment>
-            {hasFeature && (
-              <GlobalSelectionHeader organization={organization} forceProject={project} />
-            )}
-            {hasFeature && <PageContent>{this.renderContent()}</PageContent>}
-            {!hasFeature && this.renderContent()}
+            {hasFeature &&
+              showGlobalHeader && (
+                <GlobalSelectionHeader
+                  organization={organization}
+                  forceProject={project}
+                />
+              )}
+            {hasFeature &&
+              showGlobalHeader && <PageContent>{this.renderContent()}</PageContent>}
+            {!hasFeature || (!showGlobalHeader && this.renderContent())}
           </React.Fragment>
         )}
       </Feature>
