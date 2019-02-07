@@ -34,7 +34,8 @@ def consolidate_events(raw_events):
 class Creator(Mediator):
     application = Param('sentry.models.ApiApplication', required=False)
     actor = Param('sentry.db.models.BaseModel')
-    project = Param('sentry.models.Project')
+    organization = Param('sentry.models.Organization')
+    projects = Param(Iterable)
     events = Param(Iterable)
     url = Param(six.string_types)
 
@@ -45,11 +46,27 @@ class Creator(Mediator):
     def _create_service_hook(self):
         application_id = self.application.id if self.application else None
 
-        return ServiceHook.objects.create(
+        # For Sentry Apps, if projects = [], the service hook applies to all
+        # the projects in the organization.
+        # We are using the first project so that we can satisfy the not null
+        # contraint for project_id on the ServiceHook table.
+        #
+        # Otherwise, we'll always have a single project passed through by
+        # the ProjectServiceHooksEndpoint
+        if not self.projects:
+            project_id = self.organization.project_set.first().id
+        else:
+            project_id = self.projects[0].id
+
+        hook = ServiceHook.objects.create(
             application_id=application_id,
             actor_id=self.actor.id,
-            project_id=self.project.id,
-            organization_id=self.project.organization_id,
+            project_id=project_id,
+            organization_id=self.organization.id,
             events=expand_events(self.events),
             url=self.url,
         )
+        for project in self.projects:
+            hook.add_project(project)
+
+        return hook

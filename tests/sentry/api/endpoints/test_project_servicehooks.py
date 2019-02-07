@@ -1,6 +1,6 @@
 from __future__ import absolute_import
 
-from sentry.models import ServiceHook
+from sentry.models import ServiceHook, ServiceHookProject
 from sentry.testutils import APITestCase
 
 
@@ -49,3 +49,6 @@ class CreateProjectServiceHookTest(APITestCase):
         assert hook.actor_id == self.user.id
         assert hook.events == ['event.alert', 'event.created']
         assert hook.version == 0
+
+        hook_project = ServiceHookProject.objects.get(project_id=self.project.id)
+        assert hook_project.service_hook_id == hook.id

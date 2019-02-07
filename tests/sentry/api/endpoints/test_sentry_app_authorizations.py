@@ -7,7 +7,7 @@ from datetime import datetime, timedelta
 from django.core.urlresolvers import reverse
 from django.utils import timezone
 
-from sentry.mediators import sentry_apps, sentry_app_installations
+from sentry.mediators import sentry_apps
 from sentry.models import ApiApplication, ApiToken
 from sentry.testutils import APITestCase
 
@@ -31,7 +31,7 @@ class TestSentryAppAuthorizations(APITestCase):
             webhook_url='http://example.com',
         )
 
-        self.install = sentry_app_installations.Creator.run(
+        self.install = self.create_sentry_app_installation(
             organization=self.org,
             slug='nulldb',
             user=self.user,
@@ -83,7 +83,7 @@ class TestSentryAppAuthorizations(APITestCase):
         assert response.status_code == 403
 
     def test_invalid_installation(self):
-        self.install = sentry_app_installations.Creator.run(
+        self.install = self.create_sentry_app_installation(
             organization=self.org,
             slug='slowdb',
             user=self.user,

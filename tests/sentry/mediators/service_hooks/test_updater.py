@@ -8,7 +8,8 @@ class TestUpdater(TestCase):
     def setUp(self):
         self.sentry_app = self.create_sentry_app()
         self.service_hook = self.create_service_hook(
-            application=self.sentry_app.application
+            application=self.sentry_app.application,
+
         )
 
         self.updater = Updater(service_hook=self.service_hook)
@@ -24,12 +25,6 @@ class TestUpdater(TestCase):
         self.updater.actor = actor
         self.updater.call()
         assert self.service_hook.actor_id == actor.id
-
-    def test_updates_project(self):
-        project = self.create_project()
-        self.updater.project = project
-        self.updater.call()
-        assert self.service_hook.project_id == project.id
 
     def test_updates_events(self):
         self.updater.events = ('event.alert', )

@@ -19,7 +19,6 @@ class Updater(Mediator):
     def call(self):
         self._update_application()
         self._update_actor()
-        self._update_project()
         self._update_events()
         self._update_url()
         return self.service_hook
@@ -31,10 +30,6 @@ class Updater(Mediator):
     @if_param('actor')
     def _update_actor(self):
         self.service_hook.actor_id = self.actor.id
-
-    @if_param('project')
-    def _update_project(self):
-        self.service_hook.project_id = self.project.id
 
     @if_param('events')
     def _update_events(self):

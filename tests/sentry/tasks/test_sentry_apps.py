@@ -173,6 +173,7 @@ class TestProcessResourceChange(TestCase):
 
         self.hook = self.create_service_hook(
             actor=self.install,
+            org=self.project.organization,
             application=self.install.sentry_app.application,
             project=self.project,
             events=('issue.created', ),

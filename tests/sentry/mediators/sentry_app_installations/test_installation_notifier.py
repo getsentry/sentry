@@ -4,7 +4,7 @@ from mock import patch
 
 from sentry.coreapi import APIUnauthorized
 from sentry.mediators import sentry_apps
-from sentry.mediators.sentry_app_installations import Creator, InstallationNotifier
+from sentry.mediators.sentry_app_installations import InstallationNotifier
 from sentry.testutils import TestCase
 from sentry.testutils.helpers.faux import faux
 from sentry.utils import json
@@ -32,7 +32,7 @@ class TestInstallationNotifier(TestCase):
             scopes=(),
         )
 
-        self.install = Creator.run(
+        self.install = self.create_sentry_app_installation(
             slug='foo',
             organization=self.org,
             user=self.user,
