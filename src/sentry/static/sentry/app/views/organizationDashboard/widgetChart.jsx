@@ -51,7 +51,7 @@ class WidgetChart extends React.Component {
   renderZoomableChart(ChartComponent, props) {
     const {router, selection} = this.props;
     return (
-      <ChartZoom router={router} {...selection.datetime}>
+      <ChartZoom router={router} useShortDate={true} {...selection.datetime}>
         {zoomRenderProps => <ChartComponent {...props} {...zoomRenderProps} />}
       </ChartZoom>
     );
