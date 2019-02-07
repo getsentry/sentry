@@ -272,6 +272,10 @@ import django
 if django.VERSION < (1, 9):
     INSTALLED_APPS += ('south', )
 
+if django.VERSION >= (1, 8) and IS_DEV:
+    INSTALLED_APPS += ('nplusone.ext.django',)
+    MIDDLEWARE_CLASSES += ('nplusone.ext.django.NPlusOneMiddleware',)
+
 STATIC_ROOT = os.path.realpath(os.path.join(PROJECT_ROOT, 'static'))
 STATIC_URL = '/_static/{version}/'
 
