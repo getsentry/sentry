@@ -3,6 +3,7 @@ import React from 'react';
 import createReactClass from 'create-react-class';
 import {Link} from 'react-router';
 import ApiMixin from 'app/mixins/apiMixin';
+import {fetchProjectMembers} from 'app/actionCreators/members';
 import AssigneeSelector from 'app/components/assigneeSelector';
 import Count from 'app/components/count';
 import IndicatorStore from 'app/stores/indicatorStore';
@@ -34,6 +35,20 @@ const GroupHeader = createReactClass({
   },
 
   mixins: [ApiMixin, OrganizationState],
+
+  getInitialState() {
+    return {memberList: null};
+  },
+
+  componentDidMount() {
+    const {organization} = this.context;
+    const {group} = this.props;
+    fetchProjectMembers(
+      this.api,
+      organization.slug,
+      group.project.slug
+    ).then(memberList => this.setState({memberList}));
+  },
 
   onToggleMute() {
     const group = this.props.group;
@@ -90,6 +105,7 @@ const GroupHeader = createReactClass({
       className += ' isResolved';
     }
 
+    const {memberList} = this.state;
     const groupId = group.id;
     const orgId = this.context.organization.slug;
     const message = this.getMessage();
@@ -174,7 +190,7 @@ const GroupHeader = createReactClass({
               </div>
               <div className="assigned-to m-l-1">
                 <h6 className="nav-header">{t('Assignee')}</h6>
-                <AssigneeSelector id={group.id} />
+                <AssigneeSelector id={group.id} memberList={memberList} />
               </div>
             </div>
           </div>

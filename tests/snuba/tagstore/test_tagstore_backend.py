@@ -508,5 +508,4 @@ class TagStorageTest(SnubaTestCase):
             'first_seen': self.now - timedelta(seconds=2),
             'last_seen': self.now - timedelta(seconds=1),
             'times_seen': 2,
-        }
-        }
+        }}

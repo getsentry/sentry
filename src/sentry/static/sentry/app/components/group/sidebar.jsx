@@ -84,6 +84,7 @@ const GroupSidebar = createReactClass({
       query: pickBy({
         key: group.tags.map(data => data.key),
         environment: this.state.environments.map(env => env.name),
+        enable_snuba: this.getFeatures().has('sentry10') ? '1' : '0',
       }),
       success: data => {
         this.setState({
@@ -233,7 +234,7 @@ const GroupSidebar = createReactClass({
   render() {
     const {group, project} = this.props;
     const projectId = project.slug;
-    const orgId = this.getOrganization().slug;
+    const organization = this.getOrganization();
 
     const subscribeBtnClass = classNames('btn btn-default btn-subscribe', {
       subscribed: group.isSubscribed,
@@ -247,7 +248,11 @@ const GroupSidebar = createReactClass({
           project={project}
           allEnvironments={this.state.allEnvironmentsGroupData}
         />
-        <ExternalIssueList group={this.props.group} project={project} orgId={orgId} />
+        <ExternalIssueList
+          group={this.props.group}
+          project={project}
+          orgId={organization.slug}
+        />
 
         {this.renderPluginIssue()}
 
@@ -267,7 +272,7 @@ const GroupSidebar = createReactClass({
                 topValues={topValues}
                 name={tag.name}
                 data-test-id="group-tag"
-                orgId={orgId}
+                organization={organization}
                 projectId={projectId}
                 group={group}
               />

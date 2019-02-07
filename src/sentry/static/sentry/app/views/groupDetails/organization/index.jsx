@@ -23,7 +23,11 @@ class OrganizationGroupDetails extends React.Component {
       <Feature features={['sentry10']} renderDisabled>
         <GlobalSelectionHeader organization={this.props.organization} />
         <PageContent>
-          <GroupDetails environments={selection.environments} {...props} />
+          <GroupDetails
+            environments={selection.environments}
+            enableSnuba={true}
+            {...props}
+          />
         </PageContent>
       </Feature>
     );

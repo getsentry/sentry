@@ -2,13 +2,14 @@ import React from 'react';
 import PropTypes from 'prop-types';
 import {browserHistory} from 'react-router';
 import DocumentTitle from 'react-document-title';
-import SentryTypes from 'app/sentryTypes';
 
+import {getUserTimezone, getUtcToLocalDateObject} from 'app/utils/dates';
 import {t} from 'app/locale';
 import {updateProjects, updateDateTime} from 'app/actionCreators/globalSelection';
 import withGlobalSelection from 'app/utils/withGlobalSelection';
 import Feature from 'app/components/acl/feature';
 import Alert from 'app/components/alert';
+import SentryTypes from 'app/sentryTypes';
 
 import Discover from './discover';
 import createQueryBuilder from './queryBuilder';
@@ -55,16 +56,22 @@ class OrganizationDiscoverContainer extends React.Component {
 
     if (['range', 'start', 'end'].some(key => query.hasOwnProperty(key))) {
       // Update global store with datetime from querystring
+      const timezone = getUserTimezone();
+
+      // start/end will always be in UTC, however we need to coerce into
+      // system time for date picker to be able to synced.
       updateDateTime({
-        start: query.start || null,
-        end: query.end || null,
+        start: (query.start && getUtcToLocalDateObject(query.start)) || null,
+        end: (query.end && getUtcToLocalDateObject(query.end)) || null,
         period: query.range || null,
+        utc: query.utc || timezone === 'UTC',
       });
     } else {
       // Update query with global datetime values
       query.start = props.selection.datetime.start;
       query.end = props.selection.datetime.end;
       query.range = props.selection.datetime.period;
+      query.utc = props.selection.datetime.utc;
     }
 
     this.queryBuilder = createQueryBuilder(query, organization);
@@ -76,9 +83,11 @@ class OrganizationDiscoverContainer extends React.Component {
     const {savedQueryId} = this.props.params;
 
     if (savedQueryId) {
-      this.fetchSavedQuery(savedQueryId).then(this.loadTags);
+      this.loadTags()
+        .then(() => this.fetchSavedQuery(savedQueryId))
+        .then(this.setLoadedState);
     } else {
-      this.loadTags();
+      this.loadTags().then(this.setLoadedState);
     }
   }
 
@@ -108,9 +117,11 @@ class OrganizationDiscoverContainer extends React.Component {
   }
 
   loadTags = () => {
-    this.queryBuilder.load().then(() => {
-      this.setState({isLoading: false});
-    });
+    return this.queryBuilder.load();
+  };
+
+  setLoadedState = () => {
+    this.setState({isLoading: false});
   };
 
   fetchSavedQuery = savedQueryId => {

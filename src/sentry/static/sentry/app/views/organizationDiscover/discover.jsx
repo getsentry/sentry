@@ -114,7 +114,7 @@ export default class OrganizationDiscover extends React.Component {
     } else if (search) {
       // This indicates navigation changes (e.g. back button on browser)
       // We need to update our search store and probably runQuery
-      const {projects, range, start, end} = newQuery;
+      const {projects, range, start, end, utc} = newQuery;
       let hasChange = false;
 
       if (projects) {
@@ -127,6 +127,15 @@ export default class OrganizationDiscover extends React.Component {
           period: range || null,
           start: start || null,
           end: end || null,
+          utc: typeof utc !== 'undefined' ? utc : null,
+        });
+
+        // These props come from URL string, so will always be in UTC
+        updateDateTime({
+          start: start && new Date(moment.utc(start).local()),
+          end: end && new Date(moment.utc(end).local()),
+          period: range,
+          utc,
         });
         hasChange = true;
       }
@@ -142,8 +151,9 @@ export default class OrganizationDiscover extends React.Component {
     updateProjects(val);
   };
 
-  getDateTimeFields = ({period, start, end}) => ({
+  getDateTimeFields = ({period, start, end, utc}) => ({
     range: period || null,
+    utc,
     start: (start && getUtcDateString(start)) || null,
     end: (end && getUtcDateString(end)) || null,
   });
@@ -153,16 +163,12 @@ export default class OrganizationDiscover extends React.Component {
   };
 
   updateDateTime = datetime => {
-    const {start, end, range} = this.getDateTimeFields(datetime);
+    const {start, end, range, utc} = this.getDateTimeFields(datetime);
 
-    this.updateFields({start, end, range});
-    updateDateTime({
-      start,
-      end,
-      period: range,
-    });
+    this.updateFields({start, end, range, utc});
   };
 
+  // Called when global selection header changes dates
   updateDateTimeAndRun = datetime => {
     this.updateDateTime(datetime);
     this.runQuery();
@@ -359,10 +365,17 @@ export default class OrganizationDiscover extends React.Component {
     const shouldDisplayResult = resultManager.shouldDisplayResult();
 
     const start =
-      (currentQuery.start && moment.utc(currentQuery.start).toDate()) ||
+      (currentQuery.start &&
+        moment(currentQuery.start)
+          .local()
+          .toDate()) ||
       currentQuery.start;
     const end =
-      (currentQuery.end && moment.utc(currentQuery.end).toDate()) || currentQuery.end;
+      (currentQuery.end &&
+        moment(currentQuery.end)
+          .local()
+          .toDate()) ||
+      currentQuery.end;
 
     return (
       <DiscoverContainer>

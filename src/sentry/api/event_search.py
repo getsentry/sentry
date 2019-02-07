@@ -80,7 +80,7 @@ numeric_filter  = search_key sep operator ~r"[0-9]+"
 
 # has filter for not null type checks
 has_filter      = negation? "has" sep (search_key / search_value)
-is_filter       = negation? "is" sep (search_key / search_value)
+is_filter       = negation? "is" sep search_value
 
 search_key      = key / quoted_key
 search_value    = quoted_value / value

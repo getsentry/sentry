@@ -43,7 +43,7 @@ from sentry.models import (
     Activity, Environment, Event, EventError, EventMapping, EventUser, Group,
     GroupEnvironment, GroupHash, GroupLink, GroupRelease, GroupResolution, GroupStatus,
     Project, Release, ReleaseEnvironment, ReleaseProject,
-    ReleaseProjectEnvironment, UserReport
+    ReleaseProjectEnvironment, UserReport, Organization,
 )
 from sentry.plugins import plugins
 from sentry.signals import event_discarded, event_saved, first_event_received
@@ -852,6 +852,8 @@ class EventManager(object):
         data = self._data
 
         project = Project.objects.get_from_cache(id=project_id)
+        project._organization_cache = Organization.objects.get_from_cache(
+            id=project.organization_id)
 
         # Check to make sure we're not about to do a bunch of work that's
         # already been done if we've processed an event with this ID. (This
@@ -866,6 +868,8 @@ class EventManager(object):
         except Event.DoesNotExist:
             pass
         else:
+            # Make sure we cache on the project before returning
+            event._project_cache = project
             logger.info(
                 'duplicate.found',
                 exc_info=True,

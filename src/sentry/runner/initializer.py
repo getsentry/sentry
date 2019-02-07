@@ -427,13 +427,16 @@ def apply_legacy_settings(settings):
         settings.CELERY_ALWAYS_EAGER = (not settings.SENTRY_USE_QUEUE)
 
     for old, new in (
-        ('SENTRY_ADMIN_EMAIL', 'system.admin-email'), ('SENTRY_URL_PREFIX', 'system.url-prefix'),
-        ('SENTRY_SYSTEM_MAX_EVENTS_PER_MINUTE',
-         'system.rate-limit'), ('SENTRY_ENABLE_EMAIL_REPLIES', 'mail.enable-replies'),
-        ('SENTRY_SMTP_HOSTNAME',
-         'mail.reply-hostname'), ('MAILGUN_API_KEY', 'mail.mailgun-api-key'),
-        ('SENTRY_FILESTORE',
-         'filestore.backend'), ('SENTRY_FILESTORE_OPTIONS', 'filestore.options'),
+        ('SENTRY_ADMIN_EMAIL', 'system.admin-email'),
+        ('SENTRY_URL_PREFIX', 'system.url-prefix'),
+        ('SENTRY_SYSTEM_MAX_EVENTS_PER_MINUTE', 'system.rate-limit'),
+        ('SENTRY_ENABLE_EMAIL_REPLIES', 'mail.enable-replies'),
+        ('SENTRY_SMTP_HOSTNAME', 'mail.reply-hostname'),
+        ('MAILGUN_API_KEY', 'mail.mailgun-api-key'),
+        ('SENTRY_FILESTORE', 'filestore.backend'),
+        ('SENTRY_FILESTORE_OPTIONS', 'filestore.options'),
+        ('GOOGLE_CLIENT_ID', 'auth-google.client-id'),
+        ('GOOGLE_CLIENT_SECRET', 'auth-google.client-secret'),
     ):
         if new not in settings.SENTRY_OPTIONS and hasattr(settings, old):
             warnings.warn(DeprecatedSettingWarning(old, "SENTRY_OPTIONS['%s']" % new))

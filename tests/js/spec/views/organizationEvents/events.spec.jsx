@@ -4,7 +4,7 @@ import React from 'react';
 import OrganizationEvents, {parseRowFromLinks} from 'app/views/organizationEvents/events';
 import {chart, doZoom} from 'app-test/helpers/charts';
 import {initializeOrg} from 'app-test/helpers/initializeOrg';
-import {getLocalDateObject} from 'app/utils/dates';
+import {getUtcToLocalDateObject} from 'app/utils/dates';
 import {mockRouterPush} from 'app-test/helpers/mockRouterPush';
 import {mount} from 'enzyme';
 import OrganizationEventsContainer from 'app/views/organizationEvents';
@@ -259,10 +259,10 @@ describe('OrganizationEventsErrors', function() {
       wrapper.update();
 
       expect(wrapper.find('TimeRangeSelector').prop('start')).toEqual(
-        getLocalDateObject('2018-11-29T00:00:00')
+        getUtcToLocalDateObject('2018-11-29T00:00:00')
       );
       expect(wrapper.find('TimeRangeSelector').prop('end')).toEqual(
-        getLocalDateObject('2018-12-02T00:00:00')
+        getUtcToLocalDateObject('2018-12-02T00:00:00')
       );
     });
   });
