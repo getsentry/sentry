@@ -29,6 +29,10 @@ const ProjectUserFeedback = createReactClass({
     environment: SentryTypes.Environment,
   },
 
+  contextTypes: {
+    project: SentryTypes.Project,
+  },
+
   mixins: [ApiMixin],
 
   getDefaultProps() {
@@ -53,10 +57,13 @@ const ProjectUserFeedback = createReactClass({
 
   componentWillMount() {
     // Redirect any Sentry 10 user that has followed an old link and ended up here
-    const {organization, location, params: {orgId}} = this.props;
+    const {organization, params: {orgId}} = this.props;
     const hasSentry10 = new Set(organization.features).has('sentry10');
     if (hasSentry10) {
-      browserHistory.replace(`/organizations/${orgId}/user-feedback/${location.search}`);
+      const projectId = this.context.project.id;
+      browserHistory.replace(
+        `/organizations/${orgId}/user-feedback/?project=${projectId}`
+      );
     }
 
     this.props.setProjectNavSection('user-feedback');
