@@ -97,7 +97,7 @@ class CspTest(TestCase):
         )
         assert result.get_culprit() == "style-src http://example2.com 'self'"
 
-    def test_get_hash(self):
+    def test_compute_hashes(self):
         result = Csp.to_python(
             dict(
                 document_uri='http://example.com/foo',
@@ -105,7 +105,7 @@ class CspTest(TestCase):
                 blocked_uri='',
             )
         )
-        assert result.get_hash() == ['script-src', "'self'"]
+        assert result.compute_hashes() == [['script-src', "'self'"]]
 
         result = Csp.to_python(
             dict(
@@ -114,7 +114,7 @@ class CspTest(TestCase):
                 blocked_uri='self',
             )
         )
-        assert result.get_hash() == ['script-src', "'self'"]
+        assert result.compute_hashes() == [['script-src', "'self'"]]
 
         result = Csp.to_python(
             dict(
@@ -123,7 +123,7 @@ class CspTest(TestCase):
                 blocked_uri='http://example.com/lol.js',
             )
         )
-        assert result.get_hash() == ['script-src', 'example.com']
+        assert result.compute_hashes() == [['script-src', 'example.com']]
 
         result = Csp.to_python(
             dict(
@@ -132,7 +132,7 @@ class CspTest(TestCase):
                 blocked_uri='data:foo',
             )
         )
-        assert result.get_hash() == ['img-src', 'data:']
+        assert result.compute_hashes() == [['img-src', 'data:']]
 
         result = Csp.to_python(
             dict(
@@ -141,7 +141,7 @@ class CspTest(TestCase):
                 blocked_uri='ftp://example.com/foo',
             )
         )
-        assert result.get_hash() == ['img-src', 'ftp://example.com']
+        assert result.compute_hashes() == [['img-src', 'ftp://example.com']]
 
     def test_get_tags(self):
         assert self.interface.get_tags() == [

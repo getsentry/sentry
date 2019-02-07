@@ -26,16 +26,16 @@ class MessageTest(TestCase):
             'formatted': 'Hello there world!'
         }
 
-    def test_get_hash_prefers_message(self):
-        assert self.interface.get_hash() == [self.interface.message]
+    def test_compute_hashes_prefers_message(self):
+        assert self.interface.compute_hashes() == [[self.interface.message]]
 
-    def test_get_hash_uses_formatted(self):
+    def test_compute_hashes_uses_formatted(self):
         interface = Message.to_python(dict(
             message=None,
             params=(),
             formatted='Hello there world!'
         ))
-        assert interface.get_hash() == [interface.formatted]
+        assert interface.compute_hashes() == [[interface.formatted]]
 
     def test_format_kwargs(self):
         interface = Message.to_python(dict(

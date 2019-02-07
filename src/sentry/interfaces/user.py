@@ -125,9 +125,6 @@ class User(Interface):
             'data': meta.get('data'),
         }
 
-    def get_hash(self):
-        return []
-
     def get_display_name(self):
         return self.email or self.username
 

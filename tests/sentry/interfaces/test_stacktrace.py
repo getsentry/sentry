@@ -152,11 +152,12 @@ class StacktraceTest(TestCase):
                 ]
             )
         )
-        result = interface.get_hash(system_frames=False)
-        assert result == ['foo.py', 1]
 
-        result = interface.get_hash(system_frames=True)
-        assert result == ['foo.py', 1, 'bar.py', 1]
+        result = interface.compute_hashes()
+        assert result == [
+            ['foo.py', 1, 'bar.py', 1],
+            ['foo.py', 1],
+        ]
 
     def test_compute_hashes(self):
         interface = Stacktrace.to_python(
@@ -196,7 +197,7 @@ class StacktraceTest(TestCase):
         result = interface.compute_hashes('cocoa')
         assert result == [['bar.m', 1, 'baz.m', 1], ['bar.m', 1]]
 
-    def test_get_hash_with_minimal_app_frames(self):
+    def test_compute_hashes_with_minimal_app_frames(self):
         frames = [{
             'lineno': 1,
             'filename': 'foo.py',
@@ -207,18 +208,18 @@ class StacktraceTest(TestCase):
             'in_app': False,
         } for _ in range(11)]
         interface = Stacktrace.to_python(dict(frames=frames))
-        result = interface.get_hash(system_frames=False)
-        assert not result
+        result = interface.compute_hashes()
+        assert result == [['foo.py', 1, 'bar.py', 1]]
 
-    def test_get_hash_with_only_required_vars(self):
+    def test_compute_hashes_with_only_required_vars(self):
         interface = Frame.to_python({
             'lineno': 1,
             'filename': 'foo.py',
         })
-        result = interface.get_hash()
-        self.assertEquals(result, ['foo.py', 1])
+        result = interface.compute_hashes()
+        self.assertEquals(result, [['foo.py', 1]])
 
-    def test_get_hash_sanitizes_block_functions(self):
+    def test_compute_hashes_sanitizes_block_functions(self):
         # This is Ruby specific
         interface = Frame.to_python(
             {
@@ -226,10 +227,10 @@ class StacktraceTest(TestCase):
                 'function': 'block in _conditional_callback_around_233',
             }
         )
-        result = interface.get_hash()
-        self.assertEquals(result, ['foo.py', 'block'])
+        result = interface.compute_hashes()
+        self.assertEquals(result, [['foo.py', 'block']])
 
-    def test_get_hash_sanitizes_versioned_filenames(self):
+    def test_compute_hashes_sanitizes_versioned_filenames(self):
         # This is Ruby specific
         interface = Frame.to_python(
             {
@@ -237,12 +238,12 @@ class StacktraceTest(TestCase):
                 'context_line': '<% if @hotels.size > 0 %>',
             }
         )
-        result = interface.get_hash()
+        result = interface.compute_hashes()
         self.assertEquals(
-            result, [
+            result, [[
                 '/data/foo/releases/<version>/app/views/foo.html.erb',
                 '<% if @hotels.size > 0 %>',
-            ]
+            ]]
         )
 
         interface = Frame.to_python(
@@ -251,67 +252,67 @@ class StacktraceTest(TestCase):
                 'context_line': '<% if @hotels.size > 0 %>',
             }
         )
-        result = interface.get_hash()
+        result = interface.compute_hashes()
         self.assertEquals(
-            result, [
+            result, [[
                 '<version>/app/views/foo.html.erb',
                 '<% if @hotels.size > 0 %>',
-            ]
+            ]]
         )
 
-    def test_get_hash_ignores_java8_lambda_module(self):
+    def test_compute_hashes_ignores_java8_lambda_module(self):
         interface = Frame.to_python(
             {
                 'module': 'foo.bar.Baz$$Lambda$40/1673859467',
                 'function': 'call',
             }
         )
-        result = interface.get_hash(platform='java')
-        self.assertEquals(result, [
+        result = interface.compute_hashes(platform='java')
+        self.assertEquals(result, [[
             '<module>',
             'call',
-        ])
+        ]])
 
-    def test_get_hash_ignores_java8_lambda_function(self):
+    def test_compute_hashes_ignores_java8_lambda_function(self):
         interface = Frame.to_python({
             'module': 'foo.bar.Baz',
             'function': 'lambda$work$1',
         })
-        result = interface.get_hash()
-        self.assertEquals(result, [
+        result = interface.compute_hashes()
+        self.assertEquals(result, [[
             'foo.bar.Baz',
             '<function>',
-        ])
+        ]])
 
-    def test_get_hash_ignores_ENHANCED_clojure_classes(self):
+    def test_comput_hashes_ignores_ENHANCED_clojure_classes(self):
         interface = Frame.to_python(
             {
                 'module': 'sentry_clojure_example.core$_main$fn__1539',
                 'function': 'invoke'
             }
         )
-        result = interface.get_hash(platform='java')
-        self.assertEquals(result, [
+        result = interface.compute_hashes(platform='java')
+        self.assertEquals(result, [[
             'sentry_clojure_example.core$_main$fn__<auto>',
             'invoke',
-        ])
+        ]])
 
-    def test_get_hash_ignores_extra_ENHANCED_clojure_classes(self):
+    def test_compute_hashes_ignores_extra_ENHANCED_clojure_classes(self):
         interface = Frame.to_python(
             {
                 'module': 'sentry_clojure_example.core$_main$fn__1539$fn__1540',
                 'function': 'invoke'
             }
         )
-        result = interface.get_hash(platform='java')
+        result = interface.compute_hashes(platform='java')
         self.assertEquals(
-            result, [
+            result, [[
                 'sentry_clojure_example.core$_main$fn__<auto>$fn__<auto>',
                 'invoke',
-            ]
+            ]]
         )
 
-    def test_get_hash_ignores_ENHANCED_spring_classes(self):
+    def test_compute_hashes_ignores_ENHANCED_spring_classes(self):
         interface = Frame.to_python(
             {
                 'module':
@@ -321,16 +322,16 @@ class StacktraceTest(TestCase):
                 'jipJipManagementApplication'
             }
         )
-        result = interface.get_hash(platform='java')
+        result = interface.compute_hashes(platform='java')
         self.assertEquals(
-            result, [
+            result, [[
                 'invalid.gruml.talkytalkyhub.common.config.JipJipConfig'
                 '$$EnhancerBySpringCGLIB$$<auto>',
                 'jipJipManagementApplication',
-            ]
+            ]]
         )
 
-    def test_get_hash_ignores_extra_ENHANCED_spring_classes(self):
+    def test_compute_hashes_ignores_extra_ENHANCED_spring_classes(self):
         interface = Frame.to_python(
             {
                 'module':
@@ -342,28 +343,28 @@ class StacktraceTest(TestCase):
                 'jipJipManagementApplication'
             }
         )
-        result = interface.get_hash(platform='java')
+        result = interface.compute_hashes(platform='java')
         self.assertEquals(
-            result, [
+            result, [[
                 'invalid.gruml.talkytalkyhub.common.config.JipJipConfig'
                 '$$EnhancerBySpringCGLIB$$<auto>$$EnhancerBySpringCGLIB$$<auto>'
                 '$$FastClassBySpringCGLIB$$<auto>',
                 'jipJipManagementApplication',
-            ]
+            ]]
         )
 
-    def test_get_hash_ignores_javassist(self):
+    def test_compute_hashes_ignores_javassist(self):
         interface = Frame.to_python(
             {
                 'module': 'com.example.api.entry.EntriesResource_$$_javassist_seam_74',
                 'function': 'fn',
             }
         )
-        result = interface.get_hash(platform='java')
+        result = interface.compute_hashes(platform='java')
         self.assertEquals(
-            result, [
+            result, [[
                 'com.example.api.entry.EntriesResource_$$_javassist<auto>', 'fn'
-            ]
+            ]]
         )
 
         interface = Frame.to_python(
@@ -372,11 +373,11 @@ class StacktraceTest(TestCase):
                 'function': 'fn',
             }
         )
-        result = interface.get_hash(platform='java')
+        result = interface.compute_hashes(platform='java')
         self.assertEquals(
-            result, [
+            result, [[
                 'com.example.api.entry.EntriesResource_$$_javassist<auto>', 'fn'
-            ]
+            ]]
         )
 
         interface = Frame.to_python(
@@ -385,25 +386,25 @@ class StacktraceTest(TestCase):
                 'function': 'fn',
             }
         )
-        result = interface.get_hash(platform='java')
+        result = interface.compute_hashes(platform='java')
         self.assertEquals(
-            result, [
+            result, [[
                 'EntriesResource_$$_javassist<auto>.java', 'fn'
-            ]
+            ]]
         )
 
-    def test_get_hash_ignores_sun_java_generated_constructors(self):
+    def test_compute_hashes_ignores_sun_java_generated_constructors(self):
         interface = Frame.to_python(
             {
                 'module': 'sun.reflect.GeneratedSerializationConstructorAccessor1',
                 'function': 'invoke',
             }
         )
-        result = interface.get_hash(platform='java')
-        self.assertEquals(result, [
+        result = interface.compute_hashes(platform='java')
+        self.assertEquals(result, [[
             'sun.reflect.GeneratedSerializationConstructorAccessor<auto>',
             'invoke',
-        ])
+        ]])
 
         interface = Frame.to_python(
             {
@@ -411,26 +412,26 @@ class StacktraceTest(TestCase):
                 'function': 'invoke',
             }
         )
-        result = interface.get_hash(platform='java')
-        self.assertEquals(result, [
+        result = interface.compute_hashes(platform='java')
+        self.assertEquals(result, [[
             'sun.reflect.GeneratedConstructorAccessor<auto>',
             'invoke',
-        ])
+        ]])
 
-    def test_get_hash_ignores_sun_java_generated_methods(self):
+    def test_compute_hashes_ignores_sun_java_generated_methods(self):
         interface = Frame.to_python(
             {
                 'module': 'sun.reflect.GeneratedMethodAccessor12345',
                 'function': 'invoke',
             }
         )
-        result = interface.get_hash(platform='java')
-        self.assertEquals(result, [
+        result = interface.compute_hashes(platform='java')
+        self.assertEquals(result, [[
             'sun.reflect.GeneratedMethodAccessor',
             'invoke',
-        ])
+        ]])
 
-    def test_get_hash_sanitizes_erb_templates(self):
+    def test_compute_hashes_sanitizes_erb_templates(self):
         # This is Ruby specific
         interface = Frame.to_python(
             {
@@ -438,22 +439,22 @@ class StacktraceTest(TestCase):
                 'function': '_foo_html_erb__3327151541118998292_70361296749460',
             }
         )
-        result = interface.get_hash()
-        self.assertEquals(result, [
+        result = interface.compute_hashes()
+        self.assertEquals(result, [[
             'foo.html.erb',
             '_foo_html_erb__<anon>_<anon>',
-        ])
+        ]])
 
-    def test_get_hash_ignores_filename_if_blob(self):
+    def test_compute_hashes_ignores_filename_if_blob(self):
         interface = Frame.to_python(
             {
                 'filename': 'blob:http://example.com/7f7aaadf-a006-4217-9ed5-5fbf8585c6c0',
             }
         )
-        result = interface.get_hash()
+        result = interface.compute_hashes()
         self.assertEquals(result, [])
 
-    def test_get_hash_ignores_filename_if_http(self):
+    def test_compute_hashes_ignores_filename_if_http(self):
         interface = Frame.to_python(
             {
                 'context_line': 'hello world',
@@ -461,10 +462,10 @@ class StacktraceTest(TestCase):
                 'function': 'test',
             }
         )
-        result = interface.get_hash()
-        self.assertEquals(result, ['hello world'])
+        result = interface.compute_hashes()
+        self.assertEquals(result, [['hello world']])
 
-    def test_get_hash_ignores_filename_if_https(self):
+    def test_compute_hashes_ignores_filename_if_https(self):
         interface = Frame.to_python(
             {
                 'context_line': 'hello world',
@@ -472,10 +473,10 @@ class StacktraceTest(TestCase):
                 'function': 'test',
             }
         )
-        result = interface.get_hash()
-        self.assertEquals(result, ['hello world'])
+        result = interface.compute_hashes()
+        self.assertEquals(result, [['hello world']])
 
-    def test_get_hash_ignores_filename_if_abs_path_is_http(self):
+    def test_compute_hashes_ignores_filename_if_abs_path_is_http(self):
         interface = Frame.to_python(
             {
                 'context_line': 'hello world',
@@ -484,20 +485,20 @@ class StacktraceTest(TestCase):
                 'filename': 'foo.py',
             }
         )
-        result = interface.get_hash()
-        self.assertEquals(result, ['hello world'])
+        result = interface.compute_hashes()
+        self.assertEquals(result, [['hello world']])
 
-    def test_get_hash_uses_module_over_filename(self):
+    def test_compute_hashes_uses_module_over_filename(self):
         interface = Frame.to_python({'lineno': 1, 'filename': 'foo.py', 'module': 'foo'})
-        result = interface.get_hash()
-        self.assertEquals(result, ['foo', 1])
+        result = interface.compute_hashes()
+        self.assertEquals(result, [['foo', 1]])
 
-    def test_get_hash_uses_function_over_lineno(self):
+    def test_compute_hashes_uses_function_over_lineno(self):
         interface = Frame.to_python({'lineno': 1, 'filename': 'foo.py', 'function': 'bar'})
-        result = interface.get_hash()
-        self.assertEquals(result, ['foo.py', 'bar'])
+        result = interface.compute_hashes()
+        self.assertEquals(result, [['foo.py', 'bar']])
 
-    def test_get_hash_uses_context_line_over_function(self):
+    def test_compute_hashes_uses_context_line_over_function(self):
         interface = Frame.to_python(
             {
                 'context_line': 'foo bar',
@@ -506,10 +507,10 @@ class StacktraceTest(TestCase):
                 'function': 'bar'
             }
         )
-        result = interface.get_hash()
-        self.assertEquals(result, ['foo.py', 'foo bar'])
+        result = interface.compute_hashes()
+        self.assertEquals(result, [['foo.py', 'foo bar']])
 
-    def test_get_hash_discards_seemingly_useless_stack(self):
+    def test_compute_hashes_discards_seemingly_useless_stack(self):
         interface = Stacktrace.to_python(
             {
                 'frames': [
@@ -523,10 +524,10 @@ class StacktraceTest(TestCase):
                 ],
             }
         )
-        result = interface.get_hash()
+        result = interface.compute_hashes()
         assert result == []
 
-    def test_get_hash_does_not_discard_non_urls(self):
+    def test_compute_hashes_does_not_discard_non_urls(self):
         interface = Stacktrace.to_python(
             {
                 'frames': [
@@ -540,10 +541,10 @@ class StacktraceTest(TestCase):
                 ],
             }
         )
-        result = interface.get_hash()
+        result = interface.compute_hashes()
         assert result != []
 
-    def test_get_hash_excludes_single_frame_urls(self):
+    def test_compute_hashes_excludes_single_frame_urls(self):
         """
         Browser JS will often throw errors (from inlined code in an HTML page)
         which contain only a single frame, no function name, and have the HTML
@@ -565,10 +566,10 @@ class StacktraceTest(TestCase):
                 ],
             }
         )
-        result = interface.get_hash()
+        result = interface.compute_hashes()
         assert result == []
 
-    def test_get_hash_ignores_module_if_page_url(self):
+    def test_compute_hashes_ignores_module_if_page_url(self):
         """
         When the abs_path is a URL without a file extension, and the module is
         a suffix of that URL, we should ignore the module. This takes care of a
@@ -581,18 +582,18 @@ class StacktraceTest(TestCase):
             'abs_path': 'https://sentry.io/foo/bar/baz.js',
             'module': 'foo/bar/baz',
         })
-        result = interface.get_hash(platform='javascript')
-        assert result == ['foo/bar/baz']
+        result = interface.compute_hashes(platform='javascript')
+        assert result == [['foo/bar/baz']]
 
         interface = Frame.to_python({
             'filename': 'foo.py',
             'abs_path': 'https://sentry.io/foo/bar/baz',
             'module': 'foo/bar/baz',
         })
-        result = interface.get_hash(platform='javascript')
-        assert result == ['<module>']
+        result = interface.compute_hashes(platform='javascript')
+        assert result == [['<module>']]
 
-    def test_get_hash_ignores_singular_anonymous_frame(self):
+    def test_compute_hashes_ignores_singular_anonymous_frame(self):
         interface = Stacktrace.to_python({
             'frames': [
                 {"abs_path": "<anonymous>", "filename": "<anonymous>", "in_app": False},
@@ -610,7 +611,7 @@ class StacktraceTest(TestCase):
                  "filename": "/C:/Users/redacted/AppData/Local/redacted/app-2.4.1/resources/app.asar/dojo/dojo.js"}
             ]
         })
-        result = interface.get_hash(platform='javascript')
+        result = interface.compute_hashes(platform='javascript')
 
         assert result == []
 
@@ -677,8 +678,8 @@ class StacktraceTest(TestCase):
                 ]
             }
         )
-        result = interface.get_hash()
-        self.assertEquals(result, [
+        result = interface.compute_hashes()
+        self.assertEquals(result, [[
             'io.sentry.example.Application', 'main',
             'io.sentry.example.Application', 'normalFunc',
             # first call to recursive function
@@ -687,7 +688,7 @@ class StacktraceTest(TestCase):
             # call from *different location* in recursive function
             'io.sentry.example.Application', 'recurFunc',
             'io.sentry.example.Application', 'throwError'
-        ])
+        ]])
 
     def test_frame_hard_limit(self):
         hard_limit = settings.SENTRY_STACKTRACE_FRAMES_HARD_LIMIT
@@ -709,7 +710,7 @@ class StacktraceTest(TestCase):
         # second to last frame (lineno:250) should be removed
         assert interface.frames[-2].lineno == hard_limit - 1
 
-    def test_get_hash_ignores_safari_native_code(self):
+    def test_compute_hashes_ignores_safari_native_code(self):
         interface = Frame.to_python(
             {
                 'abs_path': '[native code]',
@@ -717,7 +718,7 @@ class StacktraceTest(TestCase):
                 'function': 'forEach',
             }
         )
-        result = interface.get_hash()
+        result = interface.compute_hashes()
         self.assertEquals(result, [])
 
     def test_cocoa_culprit(self):
@@ -778,7 +779,7 @@ class StacktraceTest(TestCase):
         )
         assert stacktrace.get_culprit_string(platform='cocoa') == '-[CRLCrashAsyncSafeThread crash]'
 
-    def test_get_hash_does_not_group_different_js_errors(self):
+    def test_compute_hashes_does_not_group_different_js_errors(self):
         interface = Stacktrace.to_python(
             {
                 'frames': [
@@ -791,10 +792,10 @@ class StacktraceTest(TestCase):
                 ],
             }
         )
-        result = interface.get_hash()
+        result = interface.compute_hashes()
         assert result == []
 
-    def test_get_hash_uses_symbol_instead_of_function(self):
+    def test_compute_hashes_uses_symbol_instead_of_function(self):
         interface = Frame.to_python(
             {
                 'module': 'libfoo',
@@ -802,23 +803,23 @@ class StacktraceTest(TestCase):
                 'symbol': '_main',
             }
         )
-        result = interface.get_hash()
-        self.assertEquals(result, [
+        result = interface.compute_hashes()
+        self.assertEquals(result, [[
             'libfoo',
             '_main',
-        ])
+        ]])
 
-    def test_get_hash_skips_symbol_if_unknown(self):
+    def test_compute_hashes_skips_symbol_if_unknown(self):
         interface = Frame.to_python({
             'module': 'libfoo',
             'function': 'main',
             'symbol': '?',
         })
-        result = interface.get_hash()
-        self.assertEquals(result, [
+        result = interface.compute_hashes()
+        self.assertEquals(result, [[
             'libfoo',
             'main',
-        ])
+        ]])
 
     @mock.patch('sentry.interfaces.stacktrace.Stacktrace.get_stacktrace')
     def test_to_string_returns_stacktrace(self, get_stacktrace):

@@ -1031,7 +1031,7 @@ class Exception(Interface):
             'exc_omitted': self.exc_omitted,
         })
 
-    def compute_hashes(self, platform):
+    def compute_hashes(self, platform=None):
         system_hash = self.get_hash(platform, system_frames=True)
         if not system_hash:
             return []
