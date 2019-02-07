@@ -1,14 +1,14 @@
 import React from 'react';
 
-import withOrganization from 'app/utils/withOrganization';
-import withGlobalSelection from 'app/utils/withGlobalSelection';
 import Feature from 'app/components/acl/feature';
+import SentryTypes from 'app/sentryTypes';
+import withGlobalSelection from 'app/utils/withGlobalSelection';
+import withOrganization from 'app/utils/withOrganization';
 
 import GroupDetails from '../shared/groupDetails';
 
 class OrganizationGroupDetails extends React.Component {
   static propTypes = {
-    organization: SentryTypes.Organization.isRequired,
     selection: SentryTypes.GlobalSelection.isRequired,
   };
 
