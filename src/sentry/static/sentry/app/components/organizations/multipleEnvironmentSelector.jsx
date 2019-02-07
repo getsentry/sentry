@@ -2,7 +2,9 @@ import PropTypes from 'prop-types';
 import React from 'react';
 import styled, {css} from 'react-emotion';
 
+import {analytics} from 'app/utils/analytics';
 import {fetchOrganizationEnvironments} from 'app/actionCreators/environments';
+import getRouteStringFromRoutes from 'app/utils/getRouteStringFromRoutes';
 import {t} from 'app/locale';
 import CheckboxFancy from 'app/components/checkboxFancy';
 import DropdownAutoComplete from 'app/components/dropdownAutoComplete';
@@ -43,6 +45,10 @@ class MultipleEnvironmentSelector extends React.PureComponent {
     value: [],
   };
 
+  static contextTypes = {
+    router: PropTypes.object,
+  };
+
   constructor(props) {
     super(props);
     this.state = {
@@ -78,6 +84,12 @@ class MultipleEnvironmentSelector extends React.PureComponent {
         selectedEnvs.add(env.name);
       }
 
+      analytics('environmentselector.toggle', {
+        action: selectedEnvs.has(env.name) ? 'added' : 'removed',
+        path: getRouteStringFromRoutes(this.context.router.routes),
+        org_id: parseInt(this.props.organization.id, 10),
+      });
+
       this.doChange(Array.from(selectedEnvs.values()), e);
 
       return {
@@ -98,6 +110,13 @@ class MultipleEnvironmentSelector extends React.PureComponent {
   handleClose = () => {
     // Only update if there are changes
     if (!this.state.hasChanges) return;
+
+    analytics('environmentselector.update', {
+      count: this.state.selectedEnvs.size,
+      path: getRouteStringFromRoutes(this.context.router.routes),
+      org_id: parseInt(this.props.organization.id, 10),
+    });
+
     this.doUpdate();
   };
 
@@ -105,6 +124,11 @@ class MultipleEnvironmentSelector extends React.PureComponent {
    * Clears all selected environments and updates
    */
   handleClear = () => {
+    analytics('environmentselector.clear', {
+      path: getRouteStringFromRoutes(this.context.router.routes),
+      org_id: parseInt(this.props.organization.id, 10),
+    });
+
     this.setState(
       {
         hasChanges: false,
@@ -121,6 +145,11 @@ class MultipleEnvironmentSelector extends React.PureComponent {
    * Selects an environment, should close menu and initiate an update
    */
   handleSelect = ({value: env}, e) => {
+    analytics('environmentselector.direct_selection', {
+      path: getRouteStringFromRoutes(this.context.router.routes),
+      org_id: parseInt(this.props.organization.id, 10),
+    });
+
     this.setState(state => {
       this.doChange([env.name], e);
 
