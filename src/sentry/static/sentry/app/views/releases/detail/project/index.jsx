@@ -2,6 +2,7 @@ import DocumentTitle from 'react-document-title';
 import PropTypes from 'prop-types';
 import React from 'react';
 import createReactClass from 'create-react-class';
+import {browserHistory} from 'react-router';
 
 import ApiMixin from 'app/mixins/apiMixin';
 
@@ -20,6 +21,10 @@ const ProjectReleaseDetails = createReactClass({
   propTypes: {
     setProjectNavSection: PropTypes.func,
     environment: SentryTypes.Environment,
+  },
+
+  contextTypes: {
+    organization: SentryTypes.Organization,
   },
 
   childContextTypes: {
@@ -43,6 +48,15 @@ const ProjectReleaseDetails = createReactClass({
   },
 
   componentWillMount() {
+    // Redirect any Sentry 10 user that has followed an old link and ended up here
+    const {location, params: {orgId, version}} = this.props;
+    const hasSentry10 = new Set(this.context.organization.features).has('sentry10');
+    if (hasSentry10) {
+      browserHistory.replace(
+        `/organizations/${orgId}/releases/${version}/${location.search}`
+      );
+    }
+
     this.props.setProjectNavSection('releases');
     this.fetchData();
   },
