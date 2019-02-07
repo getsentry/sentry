@@ -119,10 +119,7 @@ const GlobalSelectionStore = Reflux.createStore({
 
     this.selection = {
       ...this.selection,
-      datetime: {
-        ...this.selection.datetime,
-        ...datetime,
-      },
+      datetime,
     };
     this.updateLocalStorage();
     this.trigger(this.selection);

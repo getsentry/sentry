@@ -19,9 +19,11 @@ describe('DateSummary', function() {
   });
 
   it('does not show times when it is midnight for start date and 23:59:59 for end date', function() {
+    // Date Summary formats using system time
+    // tests run on EST/EDT
     wrapper = createWrapper({
-      start: new Date('2017-10-14T00:00:00.000Z'),
-      end: new Date('2017-10-17T23:59:59.000Z'),
+      start: new Date('2017-10-14T00:00:00.000-0400'),
+      end: new Date('2017-10-17T23:59:59.000-0400'),
     });
 
     expect(wrapper.find('Time')).toHaveLength(0);

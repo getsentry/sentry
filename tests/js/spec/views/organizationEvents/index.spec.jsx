@@ -273,19 +273,22 @@ describe('OrganizationEvents', function() {
       await tick();
       wrapper.update();
 
+      // The current date in local timezone is 2017-10-16T22:41:20-04:00
+      // we take the local date and subtract 14d
+      // If "UTC" override is true then we strip timezone and use that date for the range
       expect(router.push).toHaveBeenCalledWith({
         pathname: '/organizations/org-slug/events/',
         query: {
-          end: '2017-10-17T02:41:20',
-          start: '2017-10-03T02:41:20',
+          end: '2017-10-16T22:41:20',
+          start: '2017-10-02T22:41:20',
           utc: 'true',
         },
       });
 
       expect(wrapper.find('TimeRangeSelector').props()).toEqual(
         expect.objectContaining({
-          end: new Date('2017-10-17T02:41:20.000Z'),
-          start: new Date('2017-10-03T02:41:20.000Z'),
+          end: new Date('2017-10-16T22:41:20.000Z'),
+          start: new Date('2017-10-02T22:41:20.000Z'),
           utc: true,
         })
       );
