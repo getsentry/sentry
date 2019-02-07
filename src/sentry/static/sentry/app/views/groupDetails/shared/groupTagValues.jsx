@@ -4,6 +4,7 @@ import {Link} from 'react-router';
 import {sortBy, property, isEqual} from 'lodash';
 import PropTypes from 'prop-types';
 
+import SentryTypes from 'app/sentryTypes';
 import ApiMixin from 'app/mixins/apiMixin';
 import Avatar from 'app/components/avatar';
 import LoadingError from 'app/components/loadingError';
@@ -13,11 +14,13 @@ import TimeSince from 'app/components/timeSince';
 import DeviceName from 'app/components/deviceName';
 import {isUrl, percent} from 'app/utils';
 import {t} from 'app/locale';
+import withOrganization from 'app/utils/withOrganization';
 
 const GroupTagValues = createReactClass({
   displayName: 'GroupTagValues',
 
   propTypes: {
+    organization: SentryTypes.Organization.isRequired,
     query: PropTypes.object,
   },
   mixins: [ApiMixin],
@@ -96,13 +99,17 @@ const GroupTagValues = createReactClass({
       return <LoadingError onRetry={this.fetchData} />;
     }
 
-    const {orgId, projectId} = this.props.params;
+    const {organization, params: {orgId, projectId}} = this.props;
     const tagKey = this.state.tagKey;
 
     const sortedTagValueList = sortBy(
       this.state.tagValueList,
       property('count')
     ).reverse();
+
+    const issuesPath = new Set(organization.features).has('sentry10')
+      ? `/organizations/${orgId}/issues/`
+      : `/${orgId}/${projectId}/`;
 
     const children = sortedTagValueList.map((tagValue, tagValueIdx) => {
       const pct = percent(tagValue.count, tagKey.totalValues).toFixed(2);
@@ -115,7 +122,7 @@ const GroupTagValues = createReactClass({
           <td>
             <Link
               to={{
-                pathname: `/${orgId}/${projectId}/`,
+                pathname: issuesPath,
                 query: {query: `${tagKey.key}:"${tagValue.value}"`},
               }}
             >
@@ -181,4 +188,5 @@ const GroupTagValues = createReactClass({
   },
 });
 
-export default GroupTagValues;
+export {GroupTagValues};
+export default withOrganization(GroupTagValues);
