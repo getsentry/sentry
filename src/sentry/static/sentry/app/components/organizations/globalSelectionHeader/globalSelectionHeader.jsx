@@ -20,6 +20,9 @@ import {
   updateParamsWithoutHistory,
   updateProjects,
 } from 'app/actionCreators/globalSelection';
+
+import {DEFAULT_STATS_PERIOD} from 'app/constants';
+import AlertActions from 'app/actions/alertActions';
 import BackToIssues from 'app/components/organizations/backToIssues';
 import Header from 'app/components/organizations/header';
 import HeaderItemPosition from 'app/components/organizations/headerItemPosition';
@@ -97,6 +100,20 @@ class GlobalSelectionHeader extends React.Component {
     if (this.props.hasCustomRouting) {
       return;
     }
+
+    const hasSentry10 = new Set(this.props.organization.features).has('sentry10');
+
+    if (hasSentry10)
+      AlertActions.addAlert({
+        message:
+          'Hi! You are seeing some new changes to Sentry as a member of our early adopter program. Click to read more.',
+        type: 'info',
+        url:
+          'https://forum.sentry.io/t/new-product-changes-now-available-for-preview/5805',
+        neverExpire: true,
+        noDuplicates: true,
+        id: 'visibility-changes-alert-message',
+      });
 
     const hasMultipleProjectFeature = this.hasMultipleProjectSelection();
 
