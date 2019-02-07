@@ -2,6 +2,7 @@ import React from 'react';
 import PropTypes from 'prop-types';
 import styled from 'react-emotion';
 import InlineSvg from 'app/components/inlineSvg';
+import Tooltip from 'app/components/tooltip';
 import space from 'app/styles/space';
 import overflowEllipsis from 'app/styles/overflowEllipsis';
 
@@ -14,6 +15,8 @@ class HeaderItem extends React.Component {
     hasChanges: PropTypes.bool,
     hasSelected: PropTypes.bool,
     isOpen: PropTypes.bool,
+    locked: PropTypes.bool,
+    lockedMessage: PropTypes.string,
   };
 
   static defaultProps = {
@@ -43,6 +46,8 @@ class HeaderItem extends React.Component {
       hasChanges,
       allowClear,
       icon,
+      locked,
+      lockedMessage,
       onClear, // eslint-disable-line no-unused-vars
       onSubmit, // eslint-disable-line no-unused-vars
       ...props
@@ -53,30 +58,58 @@ class HeaderItem extends React.Component {
         className={className}
         isOpen={isOpen}
         hasSelected={hasSelected}
+        locked={locked}
         {...props}
       >
-        <IconContainer hasSelected={hasSelected}>{icon}</IconContainer>
+        <IconContainer hasSelected={hasSelected} locked={locked}>
+          {icon}
+        </IconContainer>
         <Content>{children}</Content>
         {hasSelected &&
-          allowClear && <StyledClose src="icon-close" onClick={this.handleClear} />}
-        <StyledChevron
-          isOpen={isOpen}
-          hasChanges={hasChanges}
-          onClick={this.handleChevronClick}
-        >
-          <InlineSvg src="icon-chevron-down" />
-        </StyledChevron>
+          !locked &&
+          allowClear && (
+            <StyledClose
+              src="icon-close"
+              locked={locked}
+              hasSelected={hasSelected}
+              onClick={this.handleClear}
+            />
+          )}
+        {!locked && (
+          <StyledChevron
+            isOpen={isOpen}
+            hasChanges={hasChanges}
+            onClick={this.handleChevronClick}
+          >
+            <InlineSvg src="icon-chevron-down" />
+          </StyledChevron>
+        )}
+        {locked && (
+          <Tooltip
+            title={lockedMessage || 'This selection is locked'}
+            tooltipOptions={{
+              placement: 'bottom',
+            }}
+          >
+            <StyledLock src="icon-lock" />
+          </Tooltip>
+        )}
       </StyledHeaderItem>
     );
   }
 }
 
+const getColor = p => {
+  if (p.locked) return p.theme.gray2;
+  return p.isOpen || p.hasSelected ? p.theme.gray4 : p.theme.gray2;
+};
+
 const StyledHeaderItem = styled('div')`
   display: flex;
   padding: 0 ${space(4)};
   align-items: center;
-  cursor: pointer;
-  color: ${p => (p.isOpen || p.hasSelected ? p.theme.gray4 : p.theme.gray2)};
+  cursor: ${p => (p.locked ? 'text' : 'pointer')};
+  color: ${getColor};
   transition: 0.1s color;
   user-select: none;
 `;
@@ -88,14 +121,14 @@ const Content = styled('div')`
 `;
 
 const IconContainer = styled('span')`
-  color: ${p => (p.hasSelected ? p.theme.blue : null)};
+  color: ${getColor};
   margin-right: ${space(1.5)};
 `;
 
 const StyledClose = styled(InlineSvg)`
-  color: ${p => p.theme.gray2};
-  height: 10px;
-  width: 10px;
+  color: ${getColor};
+  height: ${space(1.5)};
+  width: ${space(1.5)};
   stroke-width: 1.5;
   padding: ${space(1)};
   box-sizing: content-box;
@@ -105,8 +138,8 @@ const StyledClose = styled(InlineSvg)`
 const StyledChevron = styled('div')`
   transform: rotate(${p => (p.isOpen ? '180deg' : '0deg')});
   transition: 0.1s all;
-  width: 16px;
-  height: 16px;
+  width: ${space(2)};
+  height: ${space(2)};
   display: flex;
   align-items: center;
   justify-content: center;
@@ -121,6 +154,13 @@ const StyledChevron = styled('div')`
     transform: rotate(270deg);
   `
       : ''};
+`;
+
+const StyledLock = styled(InlineSvg)`
+  color: ${p => p.theme.gray2};
+  width: ${space(2)};
+  height: ${space(2)};
+  stroke-width: 1.5;
 `;
 
 export default React.forwardRef((props, ref) => <HeaderItem {...props} innerRef={ref} />);
