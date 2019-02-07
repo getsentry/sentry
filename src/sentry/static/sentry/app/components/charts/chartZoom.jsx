@@ -32,6 +32,8 @@ class ChartZoom extends React.Component {
     end: PropTypes.instanceOf(Date),
     utc: PropTypes.bool,
     disabled: PropTypes.bool,
+    // Use short date formatting for xAxis
+    useShortDate: PropTypes.bool,
 
     xAxis: SentryTypes.EChartsXAxis,
 
@@ -198,6 +200,7 @@ class ChartZoom extends React.Component {
       xAxis,
       disabled,
       children,
+      useShortDate,
 
       onZoom, // eslint-disable-line no-unused-vars
       onRestore, // eslint-disable-line no-unused-vars
@@ -211,12 +214,13 @@ class ChartZoom extends React.Component {
       return children(props);
     }
 
+    const dateFormat = useShortDate ? 'MMM Do' : 'lll';
     const hasShortInterval = useShortInterval(this.props);
     const xAxisOptions = {
       axisLabel: {
         formatter: (value, index) => {
           const firstItem = index === 0;
-          const format = hasShortInterval && !firstItem ? 'LT' : 'lll';
+          const format = hasShortInterval && !firstItem ? 'LT' : dateFormat;
           return getFormattedDate(value, format, {local: !utc});
         },
       },
