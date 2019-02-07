@@ -55,7 +55,8 @@ class OrganizationDiscoverTest(AcceptanceTestCase):
             self.browser.get(self.path)
             self.browser.wait_until_not('.loading')
             self.browser.find_element_by_xpath("//button//span[contains(text(), 'Save')]").click()
-            self.browser.get(self.path + 'saved/1/?edit=true')
+            self.browser.get(self.path + 'saved/1/?editing=true')
+            self.browser.wait_until('[data-test-id="result"]')
             self.browser.wait_until_not('.loading')
             self.browser.snapshot('discover - saved query')
 
