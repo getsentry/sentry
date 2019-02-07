@@ -55,6 +55,13 @@ const ProjectReleases = createReactClass({
   },
 
   componentWillMount() {
+    // Redirect any Sentry 10 user that has followed an old link and ended up here
+    const {location, params: {orgId}} = this.props;
+    const hasSentry10 = new Set(this.context.organization.features).has('sentry10');
+    if (hasSentry10) {
+      browserHistory.replace(`/organizations/${orgId}/releases/${location.search}`);
+    }
+
     this.props.setProjectNavSection('releases');
     this.fetchData();
   },
