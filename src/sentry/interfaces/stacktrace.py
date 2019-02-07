@@ -833,7 +833,7 @@ class Stacktrace(Interface):
             'registers': self.registers,
         })
 
-    def compute_hashes(self, platform):
+    def compute_hashes(self, platform=None):
         system_hash = self.get_hash(platform, system_frames=True)
         if not system_hash:
             return []
