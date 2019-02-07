@@ -3,7 +3,7 @@ from __future__ import absolute_import
 import logging
 import six
 
-from uuid import uuid4
+from time import time
 
 from sentry.models import OrganizationOption
 
@@ -27,7 +27,7 @@ class PendingDeletionMixin(object):
 
         for field in fields:
             original_data[field] = getattr(self, field)
-            setattr(self, field, uuid4().hex)
+            setattr(self, field, '%s %d' % (original_data[field], time()))
 
         self.save()
         original_data['id'] = self.id

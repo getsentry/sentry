@@ -103,15 +103,16 @@ class OrganizationRepositoryDeleteTest(APITestCase):
                 repo.id,
             ]
         )
-        response = self.client.delete(url)
+        with patch('sentry.db.mixin.time', new_callable=lambda: lambda: 1234567):
+            response = self.client.delete(url)
         assert response.status_code == 202, (response.status_code, response.content)
 
         repo = Repository.objects.get(id=repo.id)
         assert repo.status == ObjectStatus.PENDING_DELETION
 
         # renamed on pending delete
-        assert repo.name != 'example'
-        assert repo.external_id != '12345'
+        assert repo.name == 'example 1234567'
+        assert repo.external_id == '12345 1234567'
 
         mock_delete_repository.apply_async.assert_called_with(
             kwargs={
