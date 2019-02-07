@@ -149,7 +149,7 @@ def merge_unreal_context_event(unreal_context, event, project):
                     'instruction_addr': hex(baseaddr + offset),
                 })
 
-                frames.reverse()
+            frames.reverse()
 
             if len(frames) > 0:
                 event['stacktrace'] = {
