@@ -62,7 +62,9 @@ class ExploreWidget extends React.Component {
                         <ExploreAction
                           to={this.getExportToDiscover(query)}
                           disabled={!hasFeature}
-                          title={!hasFeature && t('You do not have access to Discover')}
+                          title={
+                            hasFeature ? '' : t('You do not have access to Discover')
+                          }
                         >
                           <InlineSvg src="icon-discover" />
                         </ExploreAction>
@@ -74,7 +76,7 @@ class ExploreWidget extends React.Component {
                         <ExploreAction
                           to={this.getExportToEvents(query)}
                           disabled={!hasFeature}
-                          title={!hasFeature && t('You do not have access to Events')}
+                          title={hasFeature ? '' : t('You do not have access to Events')}
                         >
                           <InlineSvg src="icon-stack" />
                         </ExploreAction>
