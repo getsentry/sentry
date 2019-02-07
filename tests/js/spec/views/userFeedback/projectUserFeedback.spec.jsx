@@ -30,7 +30,7 @@ describe('projectUserFeedback', function() {
       },
     };
     const wrapper = shallow(
-      <ProjectUserFeedback {...params} />,
+      <ProjectUserFeedback {...params} organization={TestStubs.Organization()} />,
       TestStubs.routerContext()
     );
     expect(wrapper).toMatchSnapshot();
