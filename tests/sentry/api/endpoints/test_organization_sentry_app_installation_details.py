@@ -4,7 +4,6 @@ from django.core.urlresolvers import reverse
 
 from sentry.testutils import APITestCase
 from sentry.testutils.helpers import with_feature
-from sentry.mediators.sentry_app_installations import Creator
 
 
 class SentryAppInstallationDetailsTest(APITestCase):
@@ -20,7 +19,7 @@ class SentryAppInstallationDetailsTest(APITestCase):
             published=True,
         )
 
-        self.installation = Creator.run(
+        self.installation = self.create_sentry_app_installation(
             slug=self.published_app.slug,
             organization=self.super_org,
             user=self.superuser,
@@ -31,7 +30,7 @@ class SentryAppInstallationDetailsTest(APITestCase):
             organization=self.org,
         )
 
-        self.installation2 = Creator.run(
+        self.installation2 = self.create_sentry_app_installation(
             slug=self.unpublished_app.slug,
             organization=self.org,
             user=self.user,
