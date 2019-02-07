@@ -209,6 +209,7 @@ exports[`projectAlertRules renders 1`] = `
                           to="new/"
                         >
                           <StyledButton
+                            aria-disabled={false}
                             aria-label="New Alert Rule"
                             disabled={false}
                             onClick={[Function]}
@@ -218,33 +219,30 @@ exports[`projectAlertRules renders 1`] = `
                             to="new/"
                           >
                             <Component
+                              aria-disabled={false}
                               aria-label="New Alert Rule"
                               className="css-zvpqlo-StyledButton-getColors eqrebog0"
-                              disabled={false}
                               onClick={[Function]}
-                              priority="primary"
                               role="button"
                               size="small"
                               to="new/"
                             >
                               <Link
+                                aria-disabled={false}
                                 aria-label="New Alert Rule"
                                 className="css-zvpqlo-StyledButton-getColors eqrebog0"
-                                disabled={false}
                                 onClick={[Function]}
                                 onlyActiveOnIndex={false}
-                                priority="primary"
                                 role="button"
                                 size="small"
                                 style={Object {}}
                                 to="new/"
                               >
                                 <a
+                                  aria-disabled={false}
                                   aria-label="New Alert Rule"
                                   className="css-zvpqlo-StyledButton-getColors eqrebog0"
-                                  disabled={false}
                                   onClick={[Function]}
-                                  priority="primary"
                                   role="button"
                                   size="small"
                                   style={Object {}}
@@ -644,6 +642,7 @@ exports[`projectAlertRules renders 1`] = `
                                       to="1/"
                                     >
                                       <StyledButton
+                                        aria-disabled={false}
                                         aria-label="Edit Rule"
                                         data-test-id="edit-rule"
                                         disabled={false}
@@ -658,10 +657,10 @@ exports[`projectAlertRules renders 1`] = `
                                         to="1/"
                                       >
                                         <Component
+                                          aria-disabled={false}
                                           aria-label="Edit Rule"
                                           className="css-dkprmi-StyledButton-getColors eqrebog0"
                                           data-test-id="edit-rule"
-                                          disabled={false}
                                           onClick={[Function]}
                                           role="button"
                                           size="xsmall"
@@ -673,10 +672,10 @@ exports[`projectAlertRules renders 1`] = `
                                           to="1/"
                                         >
                                           <Link
+                                            aria-disabled={false}
                                             aria-label="Edit Rule"
                                             className="css-dkprmi-StyledButton-getColors eqrebog0"
                                             data-test-id="edit-rule"
-                                            disabled={false}
                                             onClick={[Function]}
                                             onlyActiveOnIndex={false}
                                             role="button"
@@ -689,10 +688,10 @@ exports[`projectAlertRules renders 1`] = `
                                             to="1/"
                                           >
                                             <a
+                                              aria-disabled={false}
                                               aria-label="Edit Rule"
                                               className="css-dkprmi-StyledButton-getColors eqrebog0"
                                               data-test-id="edit-rule"
-                                              disabled={false}
                                               onClick={[Function]}
                                               role="button"
                                               size="xsmall"
@@ -742,21 +741,22 @@ exports[`projectAlertRules renders 1`] = `
                                         size="xsmall"
                                       >
                                         <StyledButton
+                                          aria-disabled={false}
                                           disabled={false}
                                           onClick={[Function]}
                                           role="button"
                                           size="xsmall"
                                         >
                                           <Component
+                                            aria-disabled={false}
                                             className="css-dkprmi-StyledButton-getColors eqrebog0"
-                                            disabled={false}
                                             onClick={[Function]}
                                             role="button"
                                             size="xsmall"
                                           >
                                             <button
+                                              aria-disabled={false}
                                               className="css-dkprmi-StyledButton-getColors eqrebog0"
-                                              disabled={false}
                                               onClick={[Function]}
                                               role="button"
                                               size="xsmall"
