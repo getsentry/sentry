@@ -180,30 +180,14 @@ class GroupDetailsEndpoint(GroupEndpoint, EnvironmentMixin):
         """
         # TODO(dcramer): handle unauthenticated/public response
 
-        # TODO: these probably should be another endpoint
-        activity = self._get_activity(request, group, num=100)
-        seen_by = self._get_seen_by(request, group)
-
-        first_release = group.get_first_release()
-
-        if first_release is not None:
-            last_release = group.get_last_release()
-        else:
-            last_release = None
-
-        action_list = self._get_actions(request, group)
-
-        if first_release:
-            first_release = self._get_release_info(request, group, first_release)
-        if last_release:
-            last_release = self._get_release_info(request, group, last_release)
-
         # TODO(jess): This can be removed when tagstore v2 is deprecated
         use_snuba = request.GET.get('enable_snuba') == '1'
         environments = get_environments(request, group.project.organization)
         environment_ids = [e.id for e in environments]
 
         if use_snuba:
+            # WARNING: the rest of this endpoint relies on this serializer
+            # populating the cache SO don't move this :)
             data = serialize(
                 group,
                 request.user,
@@ -228,6 +212,24 @@ class GroupDetailsEndpoint(GroupEndpoint, EnvironmentMixin):
                     environment_func=lambda: environments[0] if environments else None
                 )
             )
+
+        # TODO: these probably should be another endpoint
+        activity = self._get_activity(request, group, num=100)
+        seen_by = self._get_seen_by(request, group)
+
+        first_release = group.get_first_release()
+
+        if first_release is not None:
+            last_release = group.get_last_release()
+        else:
+            last_release = None
+
+        action_list = self._get_actions(request, group)
+
+        if first_release:
+            first_release = self._get_release_info(request, group, first_release)
+        if last_release:
+            last_release = self._get_release_info(request, group, last_release)
 
         get_range = functools.partial(tsdb.get_range,
                                       environment_ids=environment_ids)
