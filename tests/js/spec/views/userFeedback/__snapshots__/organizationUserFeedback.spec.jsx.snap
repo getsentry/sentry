@@ -526,9 +526,9 @@ exports[`OrganizationUserFeedback renders 1`] = `
                     >
                       <HeaderItemPosition>
                         <div
-                          className="css-1n6pjju-HeaderItemPosition e165b9e40"
+                          className="css-5udiwc-HeaderItemPosition e165b9e40"
                         >
-                          <StyledMultipleProjectSelector
+                          <MultipleProjectSelector
                             multi={false}
                             onChange={[Function]}
                             onUpdate={[Function]}
@@ -586,10 +586,12 @@ exports[`OrganizationUserFeedback renders 1`] = `
                             }
                             value={Array []}
                           >
-                            <MultipleProjectSelector
-                              className="css-ios481-StyledMultipleProjectSelector ebbiq050"
+                            <StyledProjectSelector
                               multi={false}
                               onChange={[Function]}
+                              onClose={[Function]}
+                              onMultiSelect={[Function]}
+                              onSelect={[Function]}
                               onUpdate={[Function]}
                               organization={
                                 Object {
@@ -643,10 +645,12 @@ exports[`OrganizationUserFeedback renders 1`] = `
                                   },
                                 ]
                               }
+                              rootClassName="css-h5t9nh-rootContainerStyles"
+                              selectedProjects={Array []}
                               value={Array []}
                             >
-                              <StyledProjectSelector
-                                className="css-ios481-StyledMultipleProjectSelector ebbiq050"
+                              <ProjectSelector
+                                className="css-iw79rr-StyledProjectSelector ewlipse0"
                                 multi={false}
                                 onChange={[Function]}
                                 onClose={[Function]}
@@ -692,6 +696,7 @@ exports[`OrganizationUserFeedback renders 1`] = `
                                     "teams": Array [],
                                   }
                                 }
+                                projectId={null}
                                 projects={
                                   Array [
                                     Object {
@@ -709,35 +714,27 @@ exports[`OrganizationUserFeedback renders 1`] = `
                                 selectedProjects={Array []}
                                 value={Array []}
                               >
-                                <ProjectSelector
-                                  className="ebbiq050 css-85v2fe-StyledProjectSelector-StyledMultipleProjectSelector ewlipse0"
-                                  multi={false}
-                                  onChange={[Function]}
-                                  onClose={[Function]}
-                                  onMultiSelect={[Function]}
-                                  onSelect={[Function]}
-                                  onUpdate={[Function]}
-                                  organization={
+                                <DropdownAutoComplete
+                                  alignMenu="left"
+                                  blendCorner={false}
+                                  className="ewlipse0 css-11ijjr3-StyledProjectSelector"
+                                  closeOnSelect={true}
+                                  emptyHidesInput={true}
+                                  emptyMessage="You have no projects"
+                                  inputProps={
                                     Object {
-                                      "access": Array [
-                                        "org:read",
-                                        "org:write",
-                                        "org:admin",
-                                        "project:read",
-                                        "project:write",
-                                        "project:admin",
-                                        "team:read",
-                                        "team:write",
-                                        "team:admin",
-                                      ],
-                                      "features": Array [
-                                        "sentry10",
-                                      ],
-                                      "id": "3",
-                                      "name": "Organization Name",
-                                      "onboardingTasks": Array [],
-                                      "projects": Array [
-                                        Object {
+                                      "style": Object {
+                                        "padding": 8,
+                                        "paddingLeft": 14,
+                                      },
+                                    }
+                                  }
+                                  items={
+                                    Array [
+                                      Object {
+                                        "label": [Function],
+                                        "searchKey": "project-slug",
+                                        "value": Object {
                                           "hasAccess": true,
                                           "id": "2",
                                           "isBookmarked": false,
@@ -746,38 +743,65 @@ exports[`OrganizationUserFeedback renders 1`] = `
                                           "slug": "project-slug",
                                           "teams": Array [],
                                         },
-                                      ],
-                                      "scrapeJavaScript": true,
-                                      "slug": "org-slug",
-                                      "status": Object {
-                                        "id": "active",
-                                        "name": "active",
-                                      },
-                                      "teams": Array [],
-                                    }
-                                  }
-                                  projectId={null}
-                                  projects={
-                                    Array [
-                                      Object {
-                                        "hasAccess": true,
-                                        "id": "2",
-                                        "isBookmarked": false,
-                                        "isMember": true,
-                                        "name": "Project Name",
-                                        "slug": "project-slug",
-                                        "teams": Array [],
                                       },
                                     ]
                                   }
+                                  maxHeight={500}
+                                  menuFooter={[Function]}
+                                  menuProps={
+                                    Object {
+                                      "organization": Object {
+                                        "access": Array [
+                                          "org:read",
+                                          "org:write",
+                                          "org:admin",
+                                          "project:read",
+                                          "project:write",
+                                          "project:admin",
+                                          "team:read",
+                                          "team:write",
+                                          "team:admin",
+                                        ],
+                                        "features": Array [
+                                          "sentry10",
+                                        ],
+                                        "id": "3",
+                                        "name": "Organization Name",
+                                        "onboardingTasks": Array [],
+                                        "projects": Array [
+                                          Object {
+                                            "hasAccess": true,
+                                            "id": "2",
+                                            "isBookmarked": false,
+                                            "isMember": true,
+                                            "name": "Project Name",
+                                            "slug": "project-slug",
+                                            "teams": Array [],
+                                          },
+                                        ],
+                                        "scrapeJavaScript": true,
+                                        "slug": "org-slug",
+                                        "status": Object {
+                                          "id": "active",
+                                          "name": "active",
+                                        },
+                                        "teams": Array [],
+                                      },
+                                      "showSettingsLink": true,
+                                    }
+                                  }
+                                  noResultsMessage="No projects found"
+                                  onClose={[Function]}
+                                  onSelect={[Function]}
                                   rootClassName="css-h5t9nh-rootContainerStyles"
-                                  selectedProjects={Array []}
-                                  value={Array []}
+                                  searchPlaceholder="Filter projects"
+                                  virtualizedHeight={40}
+                                  zIndex={1001}
                                 >
-                                  <DropdownAutoComplete
+                                  <DropdownAutoCompleteMenu
                                     alignMenu="left"
                                     blendCorner={false}
-                                    className="ebbiq050 ewlipse0 css-o5ymgs-StyledProjectSelector-StyledMultipleProjectSelector"
+                                    className="ewlipse0 css-11ijjr3-StyledProjectSelector"
                                     closeOnSelect={true}
                                     emptyHidesInput={true}
                                     emptyMessage="You have no projects"
@@ -858,121 +882,51 @@ exports[`OrganizationUserFeedback renders 1`] = `
                                     virtualizedHeight={40}
                                     zIndex={1001}
                                   >
-                                    <DropdownAutoCompleteMenu
-                                      alignMenu="left"
-                                      blendCorner={false}
-                                      className="ebbiq050 ewlipse0 css-o5ymgs-StyledProjectSelector-StyledMultipleProjectSelector"
+                                    <AutoComplete
                                       closeOnSelect={true}
-                                      emptyHidesInput={true}
-                                      emptyMessage="You have no projects"
-                                      inputProps={
-                                        Object {
-                                          "style": Object {
-                                            "padding": 8,
-                                            "paddingLeft": 14,
-                                          },
-                                        }
-                                      }
-                                      items={
-                                        Array [
-                                          Object {
-                                            "label": [Function],
-                                            "searchKey": "project-slug",
-                                            "value": Object {
-                                              "hasAccess": true,
-                                              "id": "2",
-                                              "isBookmarked": false,
-                                              "isMember": true,
-                                              "name": "Project Name",
-                                              "slug": "project-slug",
-                                              "teams": Array [],
-                                            },
-                                          },
-                                        ]
-                                      }
-                                      maxHeight={500}
-                                      menuFooter={[Function]}
-                                      menuProps={
-                                        Object {
-                                          "organization": Object {
-                                            "access": Array [
-                                              "org:read",
-                                              "org:write",
-                                              "org:admin",
-                                              "project:read",
-                                              "project:write",
-                                              "project:admin",
-                                              "team:read",
-                                              "team:write",
-                                              "team:admin",
-                                            ],
-                                            "features": Array [
-                                              "sentry10",
-                                            ],
-                                            "id": "3",
-                                            "name": "Organization Name",
-                                            "onboardingTasks": Array [],
-                                            "projects": Array [
-                                              Object {
-                                                "hasAccess": true,
-                                                "id": "2",
-                                                "isBookmarked": false,
-                                                "isMember": true,
-                                                "name": "Project Name",
-                                                "slug": "project-slug",
-                                                "teams": Array [],
-                                              },
-                                            ],
-                                            "scrapeJavaScript": true,
-                                            "slug": "org-slug",
-                                            "status": Object {
-                                              "id": "active",
-                                              "name": "active",
-                                            },
-                                            "teams": Array [],
-                                          },
-                                          "showSettingsLink": true,
-                                        }
-                                      }
-                                      noResultsMessage="No projects found"
+                                      disabled={false}
+                                      inputIsActor={false}
+                                      itemToString={[Function]}
                                       onClose={[Function]}
                                       onSelect={[Function]}
-                                      rootClassName="css-h5t9nh-rootContainerStyles"
-                                      searchPlaceholder="Filter projects"
+                                      resetInputOnClose={true}
+                                      shouldSelectWithEnter={true}
+                                      shouldSelectWithTab={false}
                                       virtualizedHeight={40}
                                       zIndex={1001}
                                     >
-                                      <AutoComplete
-                                        closeOnSelect={true}
-                                        disabled={false}
-                                        inputIsActor={false}
-                                        itemToString={[Function]}
-                                        onClose={[Function]}
-                                        onSelect={[Function]}
-                                        resetInputOnClose={true}
-                                        shouldSelectWithEnter={true}
-                                        shouldSelectWithTab={false}
-                                        virtualizedHeight={40}
-                                        zIndex={1001}
+                                      <DropdownMenu
+                                        closeOnEscape={true}
+                                        isOpen={false}
+                                        keepMenuOpen={false}
+                                        onClickOutside={[Function]}
                                       >
-                                        <DropdownMenu
-                                          closeOnEscape={true}
-                                          isOpen={false}
-                                          keepMenuOpen={false}
-                                          onClickOutside={[Function]}
+                                        <AutoCompleteRoot
+                                          className="css-h5t9nh-rootContainerStyles"
                                         >
-                                          <AutoCompleteRoot
-                                            className="css-h5t9nh-rootContainerStyles"
+                                          <Component
+                                            className="css-1ppsre-AutoCompleteRoot-rootContainerStyles ejumqxq0"
                                           >
-                                            <Component
+                                            <div
                                               className="css-1ppsre-AutoCompleteRoot-rootContainerStyles ejumqxq0"
                                             >
-                                              <div
-                                                className="css-1ppsre-AutoCompleteRoot-rootContainerStyles ejumqxq0"
+                                              <Actor
+                                                innerRef={[Function]}
+                                                isOpen={false}
+                                                onClick={[Function]}
+                                                onKeyDown={[Function]}
+                                                onMouseEnter={[Function]}
+                                                onMouseLeave={[Function]}
+                                                role="button"
+                                                style={
+                                                  Object {
+                                                    "outline": "none",
+                                                  }
+                                                }
+                                                tabIndex={-1}
                                               >
-                                                <Actor
-                                                  innerRef={[Function]}
-                                                  isOpen={false}
+                                                <div
+                                                  className="css-17fe80j-Actor e53us8t0"
                                                   onClick={[Function]}
                                                   onKeyDown={[Function]}
                                                   onMouseEnter={[Function]}
@@ -985,13 +939,23 @@ exports[`OrganizationUserFeedback renders 1`] = `
                                                   }
                                                   tabIndex={-1}
                                                 >
-                                                  <div
-                                                    className="css-17fe80j-Actor e53us8t0"
+                                                  <StyledHeaderItem
+                                                    active={false}
+                                                    allowClear={false}
+                                                    hasChanges={false}
+                                                    hasSelected={false}
+                                                    icon={
+                                                      <StyledInlineSvg
+                                                        src="icon-project"
+                                                      />
+                                                    }
+                                                    isOpen={false}
+                                                    onClear={[Function]}
                                                     onClick={[Function]}
                                                     onKeyDown={[Function]}
                                                     onMouseEnter={[Function]}
                                                     onMouseLeave={[Function]}
-                                                    role="button"
+                                                    onSubmit={[Function]}
                                                     style={
                                                       Object {
                                                         "outline": "none",
@@ -999,9 +963,10 @@ exports[`OrganizationUserFeedback renders 1`] = `
                                                     }
                                                     tabIndex={-1}
                                                   >
-                                                    <StyledHeaderItem
+                                                    <ForwardRef
                                                       active={false}
                                                       allowClear={false}
+                                                      className="css-16gvadh-StyledHeaderItem ewlipse1"
                                                       hasChanges={false}
                                                       hasSelected={false}
                                                       icon={
@@ -1023,7 +988,7 @@ exports[`OrganizationUserFeedback renders 1`] = `
                                                       }
                                                       tabIndex={-1}
                                                     >
-                                                      <ForwardRef
+                                                      <HeaderItem
                                                         active={false}
                                                         allowClear={false}
                                                         className="css-16gvadh-StyledHeaderItem ewlipse1"
@@ -1034,6 +999,7 @@ exports[`OrganizationUserFeedback renders 1`] = `
                                                             src="icon-project"
                                                           />
                                                         }
+                                                        innerRef={null}
                                                         isOpen={false}
                                                         onClear={[Function]}
                                                         onClick={[Function]}
@@ -1048,25 +1014,16 @@ exports[`OrganizationUserFeedback renders 1`] = `
                                                         }
                                                         tabIndex={-1}
                                                       >
-                                                        <HeaderItem
+                                                        <StyledHeaderItem
                                                           active={false}
-                                                          allowClear={false}
                                                           className="css-16gvadh-StyledHeaderItem ewlipse1"
-                                                          hasChanges={false}
                                                           hasSelected={false}
-                                                          icon={
-                                                            <StyledInlineSvg
-                                                              src="icon-project"
-                                                            />
-                                                          }
                                                           innerRef={null}
                                                           isOpen={false}
-                                                          onClear={[Function]}
                                                           onClick={[Function]}
                                                           onKeyDown={[Function]}
                                                           onMouseEnter={[Function]}
                                                           onMouseLeave={[Function]}
-                                                          onSubmit={[Function]}
                                                           style={
                                                             Object {
                                                               "outline": "none",
@@ -1074,12 +1031,8 @@ exports[`OrganizationUserFeedback renders 1`] = `
                                                           }
                                                           tabIndex={-1}
                                                         >
-                                                          <StyledHeaderItem
-                                                            active={false}
-                                                            className="css-16gvadh-StyledHeaderItem ewlipse1"
-                                                            hasSelected={false}
-                                                            innerRef={null}
-                                                            isOpen={false}
+                                                          <div
+                                                            className="ewlipse1 css-1y3fkpa-StyledHeaderItem-StyledHeaderItem enk2k7v0"
                                                             onClick={[Function]}
                                                             onKeyDown={[Function]}
                                                             onMouseEnter={[Function]}
@@ -1091,80 +1044,27 @@ exports[`OrganizationUserFeedback renders 1`] = `
                                                             }
                                                             tabIndex={-1}
                                                           >
-                                                            <div
-                                                              className="ewlipse1 css-1y3fkpa-StyledHeaderItem-StyledHeaderItem enk2k7v0"
-                                                              onClick={[Function]}
-                                                              onKeyDown={[Function]}
-                                                              onMouseEnter={[Function]}
-                                                              onMouseLeave={[Function]}
-                                                              style={
-                                                                Object {
-                                                                  "outline": "none",
-                                                                }
-                                                              }
-                                                              tabIndex={-1}
+                                                            <IconContainer
+                                                              hasSelected={false}
                                                             >
-                                                              <IconContainer
-                                                                hasSelected={false}
+                                                              <span
+                                                                className="css-1g4tz50-IconContainer enk2k7v2"
                                                               >
-                                                                <span
-                                                                  className="css-1g4tz50-IconContainer enk2k7v2"
-                                                                >
-                                                                  <StyledInlineSvg
-                                                                    src="icon-project"
-                                                                  >
-                                                                    <InlineSvg
-                                                                      className="css-1ibtmti-StyledInlineSvg ewlipse2"
-                                                                      src="icon-project"
-                                                                    >
-                                                                      <StyledSvg
-                                                                        className="css-1ibtmti-StyledInlineSvg ewlipse2"
-                                                                        height="1em"
-                                                                        viewBox={Object {}}
-                                                                        width="1em"
-                                                                      >
-                                                                        <svg
-                                                                          className="ewlipse2 css-1ux8cow-StyledSvg-StyledInlineSvg e2idor0"
-                                                                          height="1em"
-                                                                          viewBox={Object {}}
-                                                                          width="1em"
-                                                                        >
-                                                                          <use
-                                                                            href="#test"
-                                                                            xlinkHref="#test"
-                                                                          />
-                                                                        </svg>
-                                                                      </StyledSvg>
-                                                                    </InlineSvg>
-                                                                  </StyledInlineSvg>
-                                                                </span>
-                                                              </IconContainer>
-                                                              <Content>
-                                                                <div
-                                                                  className="css-1yquznf-Content enk2k7v1"
-                                                                >
-                                                                  All Projects
-                                                                </div>
-                                                              </Content>
-                                                              <StyledChevron
-                                                                hasChanges={false}
-                                                                isOpen={false}
-                                                                onClick={[Function]}
-                                                              >
-                                                                <div
-                                                                  className="css-ft4nwy-StyledChevron enk2k7v4"
-                                                                  onClick={[Function]}
+                                                                <StyledInlineSvg
+                                                                  src="icon-project"
                                                                 >
                                                                   <InlineSvg
-                                                                    src="icon-chevron-down"
+                                                                    className="css-1ibtmti-StyledInlineSvg ewlipse2"
+                                                                    src="icon-project"
                                                                   >
                                                                     <StyledSvg
+                                                                      className="css-1ibtmti-StyledInlineSvg ewlipse2"
                                                                       height="1em"
                                                                       viewBox={Object {}}
                                                                       width="1em"
                                                                     >
                                                                       <svg
-                                                                        className="css-ryh69w-StyledSvg e2idor0"
+                                                                        className="ewlipse2 css-1ux8cow-StyledSvg-StyledInlineSvg e2idor0"
                                                                         height="1em"
                                                                         viewBox={Object {}}
                                                                         width="1em"
@@ -1176,26 +1076,65 @@ exports[`OrganizationUserFeedback renders 1`] = `
                                                                       </svg>
                                                                     </StyledSvg>
                                                                   </InlineSvg>
-                                                                </div>
-                                                              </StyledChevron>
-                                                            </div>
-                                                          </StyledHeaderItem>
-                                                        </HeaderItem>
-                                                      </ForwardRef>
-                                                    </StyledHeaderItem>
-                                                  </div>
-                                                </Actor>
-                                              </div>
-                                            </Component>
-                                          </AutoCompleteRoot>
-                                        </DropdownMenu>
-                                      </AutoComplete>
-                                    </DropdownAutoCompleteMenu>
-                                  </DropdownAutoComplete>
-                                </ProjectSelector>
-                              </StyledProjectSelector>
-                            </MultipleProjectSelector>
-                          </StyledMultipleProjectSelector>
+                                                                </StyledInlineSvg>
+                                                              </span>
+                                                            </IconContainer>
+                                                            <Content>
+                                                              <div
+                                                                className="css-1yquznf-Content enk2k7v1"
+                                                              >
+                                                                All Projects
+                                                              </div>
+                                                            </Content>
+                                                            <StyledChevron
+                                                              hasChanges={false}
+                                                              isOpen={false}
+                                                              onClick={[Function]}
+                                                            >
+                                                              <div
+                                                                className="css-ft4nwy-StyledChevron enk2k7v4"
+                                                                onClick={[Function]}
+                                                              >
+                                                                <InlineSvg
+                                                                  src="icon-chevron-down"
+                                                                >
+                                                                  <StyledSvg
+                                                                    height="1em"
+                                                                    viewBox={Object {}}
+                                                                    width="1em"
+                                                                  >
+                                                                    <svg
+                                                                      className="css-ryh69w-StyledSvg e2idor0"
+                                                                      height="1em"
+                                                                      viewBox={Object {}}
+                                                                      width="1em"
+                                                                    >
+                                                                      <use
+                                                                        href="#test"
+                                                                        xlinkHref="#test"
+                                                                      />
+                                                                    </svg>
+                                                                  </StyledSvg>
+                                                                </InlineSvg>
+                                                              </div>
+                                                            </StyledChevron>
+                                                          </div>
+                                                        </StyledHeaderItem>
+                                                      </HeaderItem>
+                                                    </ForwardRef>
+                                                  </StyledHeaderItem>
+                                                </div>
+                                              </Actor>
+                                            </div>
+                                          </Component>
+                                        </AutoCompleteRoot>
+                                      </DropdownMenu>
+                                    </AutoComplete>
+                                  </DropdownAutoCompleteMenu>
+                                </DropdownAutoComplete>
+                              </ProjectSelector>
+                            </StyledProjectSelector>
+                          </MultipleProjectSelector>
                         </div>
                       </HeaderItemPosition>
                       <HeaderSeparator>
@@ -1210,7 +1149,7 @@ exports[`OrganizationUserFeedback renders 1`] = `
                       </HeaderSeparator>
                       <HeaderItemPosition>
                         <div
-                          className="css-1n6pjju-HeaderItemPosition e165b9e40"
+                          className="css-5udiwc-HeaderItemPosition e165b9e40"
                         >
                           <withApi(MultipleEnvironmentSelector)
                             onChange={[Function]}
@@ -1743,7 +1682,7 @@ exports[`OrganizationUserFeedback renders 1`] = `
                       </HeaderSeparator>
                       <HeaderItemPosition>
                         <div
-                          className="css-1n6pjju-HeaderItemPosition e165b9e40"
+                          className="css-5udiwc-HeaderItemPosition e165b9e40"
                         >
                           <TimeRangeSelector
                             end={null}
