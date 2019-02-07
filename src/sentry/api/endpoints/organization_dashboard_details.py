@@ -156,6 +156,6 @@ class OrganizationDashboardDetailsEndpoint(OrganizationDashboardEndpoint):
                 if widgets:
                     reorder_widgets(dashboard.id, widgets)
         except IntegrityError:
-            return self.respond({'Dashboard with that title already exists'}, status=400)
+            return self.respond({'Dashboard with that title already exists'}, status=409)
 
         return self.respond(serialize(dashboard, request.user), status=200)
