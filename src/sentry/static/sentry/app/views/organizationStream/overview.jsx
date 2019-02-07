@@ -494,8 +494,14 @@ const OrganizationStream = createReactClass({
 
   renderStreamBody() {
     let body;
+    const {organization} = this.props;
     const selectedProjects = this.getGlobalSearchProjects();
-    const noEvents = selectedProjects.filter(p => !p.firstEvent).length > 0;
+
+    // If no projects are selected, then we must check every project the user is a member of
+    const projectsWithoutFirstEvent = !selectedProjects.length
+      ? organization.projects.filter(p => p.isMember).filter(p => !p.firstEvent)
+      : selectedProjects.filter(p => !p.firstEvent);
+    const noEvents = projectsWithoutFirstEvent.length > 0;
 
     if (this.state.issuesLoading) {
       body = this.renderLoading();
