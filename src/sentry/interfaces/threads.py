@@ -86,7 +86,7 @@ class Threads(Interface):
         else:
             return meta
 
-    def get_hash(self):
+    def get_hash(self, platform=None):
         if len(self.values) != 1:
             return []
         stacktrace = self.values[0].get('stacktrace')

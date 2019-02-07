@@ -171,7 +171,7 @@ class Hpkp(SecurityReport):
     def get_culprit(self):
         return None
 
-    def get_hash(self, is_processed_data=True):
+    def get_hash(self, platform=None, is_processed_data=True):
         return ['hpkp', self.hostname]
 
     def get_message(self):
@@ -235,7 +235,7 @@ class ExpectStaple(SecurityReport):
     def get_culprit(self):
         return self.hostname
 
-    def get_hash(self, is_processed_data=True):
+    def get_hash(self, platform=None, is_processed_data=True):
         return ['expect-staple', self.hostname]
 
     def get_message(self):
@@ -297,7 +297,7 @@ class ExpectCT(SecurityReport):
     def get_culprit(self):
         return self.hostname
 
-    def get_hash(self, is_processed_data=True):
+    def get_hash(self, platform=None, is_processed_data=True):
         return ['expect-ct', self.hostname]
 
     def get_message(self):
@@ -353,7 +353,7 @@ class Csp(SecurityReport):
 
         return cls.to_python(kwargs)
 
-    def get_hash(self, is_processed_data=True):
+    def get_hash(self, platform=None, is_processed_data=True):
         if self._local_script_violation_type:
             uri = "'%s'" % self._local_script_violation_type
         else:

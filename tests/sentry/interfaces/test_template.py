@@ -41,9 +41,9 @@ class TemplateTest(TestCase):
         with pytest.raises(InterfaceValidationError):
             Template.to_python({"lineno": 1, "context_line": 42})
 
-    def test_get_hash(self):
-        result = self.interface.get_hash()
-        self.assertEquals(result, ['foo.html', 'hello world'])
+    def test_compute_hashes(self):
+        result = self.interface.compute_hashes()
+        self.assertEquals(result, [['foo.html', 'hello world']])
 
     @mock.patch('sentry.interfaces.template.get_context')
     @mock.patch('sentry.interfaces.template.Template.get_traceback')
