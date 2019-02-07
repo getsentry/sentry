@@ -2,6 +2,7 @@ import {pick, isEqual} from 'lodash';
 import {withRouter} from 'react-router';
 import PropTypes from 'prop-types';
 import React from 'react';
+import styled from 'react-emotion';
 
 import {
   DATE_TIME_KEYS,
@@ -10,6 +11,7 @@ import {
 import {callIfFunction} from 'app/utils/callIfFunction';
 import {defined} from 'app/utils';
 import {isEqualWithDates} from 'app/utils/isEqualWithDates';
+import {t} from 'app/locale';
 import {
   updateDateTime,
   updateEnvironments,
@@ -18,13 +20,16 @@ import {
   updateProjects,
 } from 'app/actionCreators/globalSelection';
 import {DEFAULT_STATS_PERIOD} from 'app/constants';
+import BackToIssues from 'app/components/organizations/backToIssues';
 import Header from 'app/components/organizations/header';
 import HeaderItemPosition from 'app/components/organizations/headerItemPosition';
 import HeaderSeparator from 'app/components/organizations/headerSeparator';
+import InlineSvg from 'app/components/inlineSvg';
 import MultipleEnvironmentSelector from 'app/components/organizations/multipleEnvironmentSelector';
 import MultipleProjectSelector from 'app/components/organizations/multipleProjectSelector';
 import SentryTypes from 'app/sentryTypes';
 import TimeRangeSelector from 'app/components/organizations/timeRangeSelector';
+import Tooltip from 'app/components/tooltip';
 import withGlobalSelection from 'app/utils/withGlobalSelection';
 
 import {getStateFromQuery} from './utils';
@@ -38,6 +43,10 @@ class GlobalSelectionHeader extends React.Component {
      * List of projects to display in project selector
      */
     projects: PropTypes.arrayOf(SentryTypes.Project),
+    /**
+     * If a forced project is passed, selection is disabled
+     */
+    forceProject: SentryTypes.Project,
 
     /**
      * Currently selected values(s)
@@ -285,21 +294,37 @@ class GlobalSelectionHeader extends React.Component {
       .slice(0, 1);
   };
 
+  getBackButton = () => {
+    return (
+      <Tooltip title={t('Back to Issues Stream')} tooltipOptions={{placement: 'bottom'}}>
+        <BackToIssues
+          to={`/organizations/${this.props.organization.slug}/issues/${window.location
+            .search}`}
+        >
+          <InlineSvg src="icon-arrow-left" />
+        </BackToIssues>
+      </Tooltip>
+    );
+  };
+
   render() {
     const {
       className,
+      forceProject,
       organization,
       showAbsolute,
       showRelative,
       showEnvironmentSelector,
     } = this.props;
     const {period, start, end, utc} = this.props.selection.datetime || {};
-
     return (
       <Header className={className}>
         <HeaderItemPosition>
-          <MultipleProjectSelector
+          {forceProject && this.getBackButton()}
+
+          <StyledMultipleProjectSelector
             organization={organization}
+            forceProject={forceProject}
             projects={this.getProjects()}
             value={this.state.projects || this.props.selection.projects}
             onChange={this.handleChangeProjects}
@@ -340,4 +365,11 @@ class GlobalSelectionHeader extends React.Component {
     );
   }
 }
+
 export default withRouter(withGlobalSelection(GlobalSelectionHeader));
+
+// We need this because HeaderItemPosition has `align-items` center for the back button
+// Otherwise the dropdown menu of project selector will not be at the base of the header
+const StyledMultipleProjectSelector = styled(MultipleProjectSelector)`
+  height: 100%;
+`;

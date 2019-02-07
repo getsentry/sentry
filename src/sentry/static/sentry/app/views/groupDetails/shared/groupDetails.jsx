@@ -1,22 +1,25 @@
+import {browserHistory} from 'react-router';
+import {isEqual} from 'lodash';
+import DocumentTitle from 'react-document-title';
 import PropTypes from 'prop-types';
 import React from 'react';
-import createReactClass from 'create-react-class';
 import Reflux from 'reflux';
-import {browserHistory} from 'react-router';
-import DocumentTitle from 'react-document-title';
 import * as Sentry from '@sentry/browser';
-import {isEqual} from 'lodash';
+import createReactClass from 'create-react-class';
 
+import {PageContent} from 'app/styles/organization';
+import {t} from 'app/locale';
 import ApiMixin from 'app/mixins/apiMixin';
+import Feature from 'app/components/acl/feature';
+import GlobalSelectionHeader from 'app/components/organizations/globalSelectionHeader';
 import GroupStore from 'app/stores/groupStore';
 import LoadingError from 'app/components/loadingError';
 import LoadingIndicator from 'app/components/loadingIndicator';
-import SentryTypes from 'app/sentryTypes';
-import {t} from 'app/locale';
 import ProjectsStore from 'app/stores/projectsStore';
+import SentryTypes from 'app/sentryTypes';
 
-import GroupHeader from '../shared/header';
 import {ERROR_TYPES} from '../shared/constants';
+import GroupHeader from '../shared/header';
 
 const GroupDetails = createReactClass({
   displayName: 'GroupDetails',
@@ -24,9 +27,12 @@ const GroupDetails = createReactClass({
   propTypes: {
     // Provided in the project version of group details
     project: SentryTypes.Project,
+    organization: SentryTypes.Organization,
+
     // environment: SentryTypes.Environment,
     environments: PropTypes.arrayOf(PropTypes.string),
     enableSnuba: PropTypes.bool,
+    showGlobalHeader: PropTypes.bool,
   },
 
   childContextTypes: {
@@ -192,8 +198,24 @@ const GroupDetails = createReactClass({
     }
   },
 
+  renderContent() {
+    const {params} = this.props;
+    const {group, project} = this.state;
+    return (
+      <DocumentTitle title={this.getTitle()}>
+        <div className={this.props.className}>
+          <GroupHeader params={params} project={project} group={group} />
+          {React.cloneElement(this.props.children, {
+            group,
+            project,
+          })}
+        </div>
+      </DocumentTitle>
+    );
+  },
+
   render() {
-    const params = this.props.params;
+    const {organization, showGlobalHeader} = this.props;
     const {group, project} = this.state;
 
     if (this.state.error) {
@@ -210,15 +232,22 @@ const GroupDetails = createReactClass({
     } else if (this.state.loading || !group) return <LoadingIndicator />;
 
     return (
-      <DocumentTitle title={this.getTitle()}>
-        <div className={this.props.className}>
-          <GroupHeader params={params} project={project} group={group} />
-          {React.cloneElement(this.props.children, {
-            group,
-            project,
-          })}
-        </div>
-      </DocumentTitle>
+      <Feature features={['sentry10']}>
+        {({hasFeature}) => (
+          <React.Fragment>
+            {hasFeature &&
+              showGlobalHeader && (
+                <GlobalSelectionHeader
+                  organization={organization}
+                  forceProject={project}
+                />
+              )}
+            {hasFeature &&
+              showGlobalHeader && <PageContent>{this.renderContent()}</PageContent>}
+            {!hasFeature && this.renderContent()}
+          </React.Fragment>
+        )}
+      </Feature>
     );
   },
 });
