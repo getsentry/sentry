@@ -92,11 +92,4 @@ class Threads(Interface):
         stacktrace = self.values[0].get('stacktrace')
         if not stacktrace:
             return []
-        system_hash = stacktrace.get_hash(system_frames=True)
-        if not system_hash:
-            return []
-        app_hash = stacktrace.get_hash(system_frames=False)
-        if system_hash == app_hash or not app_hash:
-            return [[system_hash]]
-
-        return [[system_hash, app_hash]]
+        return stacktrace.compute_hashes(platform)
