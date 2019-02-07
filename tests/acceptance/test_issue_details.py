@@ -40,7 +40,7 @@ class IssueDetailsTest(AcceptanceTestCase):
         )
 
         self.browser.get(
-            u'/{}/{}/issues/{}/'.format(self.org.slug, self.project.slug, event.group.id)
+            u'/{}/{}/issues/{}/#assistant'.format(self.org.slug, self.project.slug, event.group.id)
         )
         self.wait_until_loaded()
         self.browser.snapshot('issue details python')
@@ -51,7 +51,7 @@ class IssueDetailsTest(AcceptanceTestCase):
         )
 
         self.browser.get(
-            u'/{}/{}/issues/{}/'.format(self.org.slug, self.project.slug, event.group.id)
+            u'/{}/{}/issues/{}/#assistant'.format(self.org.slug, self.project.slug, event.group.id)
         )
         self.wait_until_loaded()
         self.browser.snapshot('issue details cocoa')
@@ -63,7 +63,7 @@ class IssueDetailsTest(AcceptanceTestCase):
         )
 
         self.browser.get(
-            u'/{}/{}/issues/{}/'.format(self.org.slug, self.project.slug, event.group.id)
+            u'/{}/{}/issues/{}/#assistant'.format(self.org.slug, self.project.slug, event.group.id)
         )
         self.wait_until_loaded()
         self.browser.snapshot('issue details unity')
@@ -75,7 +75,7 @@ class IssueDetailsTest(AcceptanceTestCase):
         )
 
         self.browser.get(
-            u'/{}/{}/issues/{}/'.format(self.org.slug, self.project.slug, event.group.id)
+            u'/{}/{}/issues/{}/#assistant'.format(self.org.slug, self.project.slug, event.group.id)
         )
         self.wait_until_loaded()
         self.browser.snapshot('issue details aspnetcore')
@@ -86,8 +86,8 @@ class IssueDetailsTest(AcceptanceTestCase):
         )
 
         self.browser.get(
-            u'/{}/{}/issues/{}/events/{}/'.format(self.org.slug,
-                                                  self.project.slug, event.group.id, event.id)
+            u'/{}/{}/issues/{}/events/{}/#assistant'.format(self.org.slug,
+                                                            self.project.slug, event.group.id, event.id)
         )
         self.wait_until_loaded()
         self.browser.snapshot('issue details javascript - event details')
@@ -103,7 +103,7 @@ class IssueDetailsTest(AcceptanceTestCase):
         )
 
         self.browser.get(
-            u'/{}/{}/issues/{}/'.format(self.org.slug, self.project.slug, event.group.id)
+            u'/{}/{}/issues/{}/#assistant'.format(self.org.slug, self.project.slug, event.group.id)
         )
         self.wait_until_loaded()
         self.browser.snapshot('issue details rust')
@@ -114,7 +114,7 @@ class IssueDetailsTest(AcceptanceTestCase):
         )
 
         self.browser.get(
-            u'/{}/{}/issues/{}/'.format(self.org.slug, self.project.slug, event.group.id)
+            u'/{}/{}/issues/{}/#assistant'.format(self.org.slug, self.project.slug, event.group.id)
         )
         self.wait_until_loaded()
         self.browser.snapshot('issue details cordova')
@@ -125,7 +125,7 @@ class IssueDetailsTest(AcceptanceTestCase):
         )
 
         self.browser.get(
-            u'/{}/{}/issues/{}/'.format(self.org.slug, self.project.slug, event.group.id)
+            u'/{}/{}/issues/{}/#assistant'.format(self.org.slug, self.project.slug, event.group.id)
         )
         self.wait_until_loaded()
         self.browser.snapshot('issue details pii stripped')
@@ -171,15 +171,16 @@ class IssueDetailsTest(AcceptanceTestCase):
         )
 
         self.browser.get(
-            u'/{}/{}/issues/{}/activity'.format(self.org.slug, self.project.slug, event.group.id)
+            u'/{}/{}/issues/{}/activity/#assistant'.format(
+                self.org.slug, self.project.slug, event.group.id)
         )
         self.browser.wait_until('.activity-item')
         self.browser.snapshot('issue activity python')
 
     def wait_until_loaded(self, skip_assistant=None):
-        self.browser.wait_until('.entries')
         self.browser.wait_until_not('.loading-indicator')
+        self.browser.wait_until('.entries')
         self.browser.wait_until('[data-test-id="linked-issues"]')
         self.browser.wait_until('[data-test-id="loaded-device-name"]')
         if skip_assistant is None:
-            self.browser.wait_until('[data-test-id="assistant-cue"]', timeout=6)
+            self.browser.wait_until('[data-test-id="assistant-cue"]')
