@@ -1,7 +1,6 @@
 import PropTypes from 'prop-types';
 import React from 'react';
 import styled from 'react-emotion';
-import {Link} from 'react-router';
 
 import {sortArray} from 'app/utils';
 import {t} from 'app/locale';
@@ -245,7 +244,6 @@ class ProjectSelector extends React.Component {
 class ProjectSelectorItem extends React.PureComponent {
   static propTypes = {
     project: SentryTypes.Project,
-    organization: PropTypes.object.isRequired,
     multi: PropTypes.bool,
     inputValue: PropTypes.string,
     isChecked: PropTypes.bool,
@@ -263,7 +261,7 @@ class ProjectSelectorItem extends React.PureComponent {
   };
 
   render() {
-    const {project, multi, inputValue, isChecked, organization} = this.props;
+    const {project, multi, inputValue, isChecked} = this.props;
 
     return (
       <ProjectRow>
@@ -277,14 +275,6 @@ class ProjectSelectorItem extends React.PureComponent {
             />
           </BadgeWrapper>
           {project.isBookmarked && <BookmarkIcon src="icon-star-small-filled" />}
-          {multi && (
-            <SettingsIconLink
-              to={`/settings/${organization.slug}/projects/${project.slug}/`}
-              onClick={e => e.stopPropagation()}
-            >
-              <InlineSvg src="icon-settings" />
-            </SettingsIconLink>
-          )}
         </BadgeAndBookmark>
 
         {multi && (
@@ -303,19 +293,6 @@ const BookmarkIcon = styled(InlineSvg)`
   margin-top: -2px; /* trivial alignment bump */
 `;
 
-const SettingsIconLink = styled(Link)`
-  color: ${p => p.theme.gray2};
-  display: flex;
-  padding: ${space(0.5)};
-  opacity: 0;
-  transform: translateX(-${space(0.5)});
-  transition: 0.2s all;
-
-  &:hover {
-    color: ${p => p.theme.gray4};
-  }
-`;
-
 const ProjectRow = styled('div')`
   display: flex;
   align-items: center;
@@ -327,11 +304,6 @@ const ProjectRow = styled('div')`
   /* thanks bootstrap? */
   input[type='checkbox'] {
     margin: 0;
-  }
-
-  &:hover ${SettingsIconLink} {
-    opacity: 1;
-    transform: translateX(0);
   }
 `;
 
