@@ -6,6 +6,7 @@ import {getEventsUrlPathFromDiscoverQuery} from 'app/views/organizationDashboard
 import {t} from 'app/locale';
 import Button from 'app/components/button';
 import DropdownMenu from 'app/components/dropdownMenu';
+import Feature from 'app/components/acl/feature';
 import InlineSvg from 'app/components/inlineSvg';
 import SentryTypes from 'app/sentryTypes';
 import space from 'app/styles/space';
@@ -37,7 +38,7 @@ class ExploreWidget extends React.Component {
   };
 
   render() {
-    const {widget} = this.props;
+    const {organization, widget} = this.props;
     const discoverQueries = widget.queries.discover;
 
     return (
@@ -56,12 +57,29 @@ class ExploreWidget extends React.Component {
                   <ExploreRow key={query.name}>
                     <QueryName>{query.name}</QueryName>
 
-                    <ExploreAction to={this.getExportToDiscover(query)}>
-                      <InlineSvg src="icon-discover" />
-                    </ExploreAction>
-                    <ExploreAction to={this.getExportToEvents(query)}>
-                      <InlineSvg src="icon-stack" />
-                    </ExploreAction>
+                    <Feature features={['discover']} organization={organization}>
+                      {({hasFeature}) => (
+                        <ExploreAction
+                          to={this.getExportToDiscover(query)}
+                          disabled={!hasFeature}
+                          title={!hasFeature && t('You do not have access to Discover')}
+                        >
+                          <InlineSvg src="icon-discover" />
+                        </ExploreAction>
+                      )}
+                    </Feature>
+
+                    <Feature features={['events']} organization={organization}>
+                      {({hasFeature}) => (
+                        <ExploreAction
+                          to={this.getExportToEvents(query)}
+                          disabled={!hasFeature}
+                          title={!hasFeature && t('You do not have access to Events')}
+                        >
+                          <InlineSvg src="icon-stack" />
+                        </ExploreAction>
+                      )}
+                    </Feature>
                   </ExploreRow>
                 ))}
               </ExploreMenu>
