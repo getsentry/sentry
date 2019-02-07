@@ -73,11 +73,11 @@ class DashboardWithWidgetsSerializer(serializers.Serializer):
         if len(widgets) != len(set([w['order'] for w in widgets])):
             raise ValidationError('Widgets must not have duplicate order values.')
 
-        widgets_count = len(Widget.objects.filter(
+        widgets_count = Widget.objects.filter(
             id__in=[w['id'] for w in widgets],
             dashboard_id=self.context['dashboard_id'],
             status=ObjectStatus.VISIBLE,
-        ))
+        ).count()
 
         if len(widgets) != widgets_count:
             raise ValidationError(
