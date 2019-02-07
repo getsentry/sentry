@@ -2,6 +2,7 @@ import {pick, isEqual} from 'lodash';
 import {withRouter} from 'react-router';
 import PropTypes from 'prop-types';
 import React from 'react';
+import styled from 'react-emotion';
 
 import {
   DATE_TIME_KEYS,
@@ -321,7 +322,7 @@ class GlobalSelectionHeader extends React.Component {
         <HeaderItemPosition>
           {forceProject && this.getBackButton()}
 
-          <MultipleProjectSelector
+          <StyledMultipleProjectSelector
             organization={organization}
             forceProject={forceProject}
             projects={this.getProjects()}
@@ -366,3 +367,9 @@ class GlobalSelectionHeader extends React.Component {
 }
 
 export default withRouter(withGlobalSelection(GlobalSelectionHeader));
+
+// We need this because HeaderItemPosition has `align-items` center for the back button
+// Otherwise the dropdown menu of project selector will not be at the base of the header
+const StyledMultipleProjectSelector = styled(MultipleProjectSelector)`
+  height: 100%;
+`;
