@@ -581,7 +581,7 @@ class GroupSerializerSnuba(GroupSerializerBase):
             }
 
             for item_id, value in seen_data.items():
-                first_seen[item_id] = first_seen_data.get(item.id)
+                first_seen[item_id] = first_seen_data.get(item_id)
                 last_seen[item_id] = value['last_seen']
                 times_seen[item_id] = value['times_seen']
 
