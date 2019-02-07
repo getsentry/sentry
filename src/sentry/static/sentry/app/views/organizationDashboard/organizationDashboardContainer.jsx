@@ -19,7 +19,7 @@ class OrganizationDashboardContainer extends React.Component {
     const {organization, children} = this.props;
 
     return (
-      <Feature features={['sentry10']} renderDisabled>
+      <Feature features={['sentry10', 'discover']} renderDisabled>
         <GlobalSelectionHeader organization={organization} />
 
         <PageContent>
