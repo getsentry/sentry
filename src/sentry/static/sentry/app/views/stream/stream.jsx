@@ -96,6 +96,20 @@ const Stream = createReactClass({
   },
 
   componentWillMount() {
+    const organization = this.getOrganization();
+    const hasSentry10 = new Set(organization.features).has('sentry10');
+
+    if (hasSentry10) {
+      const project = this.getProject();
+      const {location} = this.props;
+      const query = qs.parse(location.search);
+      query.project = project.id;
+
+      browserHistory.replace(
+        `/organizations/${organization.slug}/issues/?${qs.stringify(query)}`
+      );
+    }
+
     this._streamManager = new utils.StreamManager(GroupStore);
     this._poller = new utils.CursorPoller({
       success: this.onRealtimePoll,
