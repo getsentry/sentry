@@ -21,7 +21,7 @@ export default class MultipleProjectSelector extends React.PureComponent {
     onChange: PropTypes.func,
     onUpdate: PropTypes.func,
     multi: PropTypes.bool,
-    forceProject: PropTypes.bool,
+    forceProject: SentryTypes.Project,
   };
 
   static defaultProps = {
