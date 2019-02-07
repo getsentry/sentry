@@ -8,6 +8,7 @@ import {
   DATE_TIME_KEYS,
   URL_PARAM,
 } from 'app/components/organizations/globalSelectionHeader/constants';
+import {DEFAULT_STATS_PERIOD} from 'app/constants';
 import {callIfFunction} from 'app/utils/callIfFunction';
 import {defined} from 'app/utils';
 import {isEqualWithDates} from 'app/utils/isEqualWithDates';
@@ -19,7 +20,6 @@ import {
   updateParamsWithoutHistory,
   updateProjects,
 } from 'app/actionCreators/globalSelection';
-import {DEFAULT_STATS_PERIOD} from 'app/constants';
 import BackToIssues from 'app/components/organizations/backToIssues';
 import Header from 'app/components/organizations/header';
 import HeaderItemPosition from 'app/components/organizations/headerItemPosition';
@@ -296,14 +296,19 @@ class GlobalSelectionHeader extends React.Component {
 
   getBackButton = () => {
     return (
-      <Tooltip title={t('Back to Issues Stream')} tooltipOptions={{placement: 'bottom'}}>
-        <BackToIssues
-          to={`/organizations/${this.props.organization.slug}/issues/${window.location
-            .search}`}
+      <BackButtonWrapper>
+        <Tooltip
+          title={t('Back to Issues Stream')}
+          tooltipOptions={{placement: 'bottom'}}
         >
-          <InlineSvg src="icon-arrow-left" />
-        </BackToIssues>
-      </Tooltip>
+          <BackToIssues
+            to={`/organizations/${this.props.organization.slug}/issues/${window.location
+              .search}`}
+          >
+            <InlineSvg src="icon-arrow-left" />
+          </BackToIssues>
+        </Tooltip>
+      </BackButtonWrapper>
     );
   };
 
@@ -321,8 +326,7 @@ class GlobalSelectionHeader extends React.Component {
       <Header className={className}>
         <HeaderItemPosition>
           {forceProject && this.getBackButton()}
-
-          <StyledMultipleProjectSelector
+          <MultipleProjectSelector
             organization={organization}
             forceProject={forceProject}
             projects={this.getProjects()}
@@ -368,8 +372,8 @@ class GlobalSelectionHeader extends React.Component {
 
 export default withRouter(withGlobalSelection(GlobalSelectionHeader));
 
-// We need this because HeaderItemPosition has `align-items` center for the back button
-// Otherwise the dropdown menu of project selector will not be at the base of the header
-const StyledMultipleProjectSelector = styled(MultipleProjectSelector)`
+const BackButtonWrapper = styled('div')`
+  display: flex;
+  align-items: center;
   height: 100%;
 `;
