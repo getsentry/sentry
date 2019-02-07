@@ -171,6 +171,7 @@ class ProjectSelector extends React.Component {
     return (
       <DropdownAutoComplete
         alignMenu="left"
+        shouldToggle={true}
         closeOnSelect={true}
         blendCorner={false}
         searchPlaceholder={t('Filter projects')}

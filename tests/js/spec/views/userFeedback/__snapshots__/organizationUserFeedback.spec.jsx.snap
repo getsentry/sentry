@@ -879,6 +879,7 @@ exports[`OrganizationUserFeedback renders 1`] = `
                                     onSelect={[Function]}
                                     rootClassName="css-h5t9nh-rootContainerStyles"
                                     searchPlaceholder="Filter projects"
+                                    shouldToggle={true}
                                     virtualizedHeight={40}
                                     zIndex={1001}
                                   >
@@ -1351,6 +1352,7 @@ exports[`OrganizationUserFeedback renders 1`] = `
                                     onSelect={[Function]}
                                     rootClassName="css-1utm1zz-rootClassName"
                                     searchPlaceholder="Filter environments"
+                                    shouldToggle={true}
                                     virtualizedHeight={40}
                                     zIndex={1001}
                                   >
@@ -1383,6 +1385,7 @@ exports[`OrganizationUserFeedback renders 1`] = `
                                       onSelect={[Function]}
                                       rootClassName="css-1utm1zz-rootClassName"
                                       searchPlaceholder="Filter environments"
+                                      shouldToggle={true}
                                       virtualizedHeight={40}
                                       zIndex={1001}
                                     >
