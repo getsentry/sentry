@@ -254,14 +254,6 @@ class Sidebar extends React.Component {
                 >
                   <SidebarItem
                     {...sidebarItemProps}
-                    index
-                    onClick={this.hidePanel}
-                    icon={<InlineSvg src="icon-health" />}
-                    label={t('Dashboard')}
-                    to={`/organizations/${organization.slug}/dashboards/`}
-                  />
-                  <SidebarItem
-                    {...sidebarItemProps}
                     onClick={(_id, evt) =>
                       this.navigateWithGlobalSelection(
                         `/organizations/${organization.slug}/issues/`,
@@ -311,8 +303,20 @@ class Sidebar extends React.Component {
                     to={`/organizations/${organization.slug}/user-feedback/`}
                   />
                 </Feature>
+              </SidebarSection>
 
-                <Feature features={['discover']}>
+              <Feature features={['discover']}>
+                <SidebarSection>
+                  <Feature features={['sentry10', 'discover']}>
+                    <SidebarItem
+                      {...sidebarItemProps}
+                      index
+                      onClick={this.hidePanel}
+                      icon={<InlineSvg src="icon-health" />}
+                      label={t('Dashboards')}
+                      to={`/organizations/${organization.slug}/dashboards/`}
+                    />
+                  </Feature>
                   <SidebarItem
                     {...sidebarItemProps}
                     onClick={this.hidePanel}
@@ -320,8 +324,8 @@ class Sidebar extends React.Component {
                     label={t('Discover')}
                     to={`/organizations/${organization.slug}/discover/`}
                   />
-                </Feature>
-              </SidebarSection>
+                </SidebarSection>
+              </Feature>
 
               {!hasSentry10 && (
                 <SidebarSection>
