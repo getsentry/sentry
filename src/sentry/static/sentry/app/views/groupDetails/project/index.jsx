@@ -20,13 +20,15 @@ class ProjectGroupDetails extends React.Component {
 
   componentDidMount() {
     // Redirect any Sentry 10 user that has followed an old link and ended up here
-    const {location, params: {orgId, groupId}} = this.props;
+    const {location, params: {orgId, groupId, eventId}} = this.props;
     const hasSentry10 = new Set(this.context.organization.features).has('sentry10');
 
     if (hasSentry10) {
-      browserHistory.replace(
-        `/organizations/${orgId}/issues/${groupId}/${location.search}`
-      );
+      const redirectPath = eventId
+        ? `/organizations/${orgId}/issues/${groupId}/events/${eventId}/${location.search}`
+        : `/organizations/${orgId}/issues/${groupId}/${location.search}`;
+
+      browserHistory.replace(redirectPath);
     }
 
     this.props.setProjectNavSection('stream');
