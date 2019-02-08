@@ -368,6 +368,34 @@ describe('OrganizationEventsContainer', function() {
       })
     );
   });
+
+  it('updates when changing projects', async function() {
+    expect(wrapper.find('MultipleProjectSelector').prop('value')).toEqual([]);
+
+    wrapper.find('MultipleProjectSelector HeaderItem').simulate('click');
+
+    wrapper
+      .find('MultipleProjectSelector AutoCompleteItem')
+      .at(0)
+      .simulate('click');
+
+    await tick();
+    wrapper.update();
+
+    expect(eventsStatsMock).toHaveBeenLastCalledWith(
+      '/organizations/org-slug/events-stats/',
+      expect.objectContaining({
+        query: expect.objectContaining({project: [2], statsPeriod: '28d'}),
+      })
+    );
+
+    expect(eventsMock).toHaveBeenLastCalledWith(
+      '/organizations/org-slug/events/',
+      expect.objectContaining({
+        query: {project: [2], statsPeriod: '14d'},
+      })
+    );
+  });
 });
 
 describe('parseRowFromLinks', function() {
