@@ -61,6 +61,7 @@ describe('DateRange', function() {
           showTimePicker
           onChange={onChange}
           onChangeUtc={jest.fn()}
+          organization={TestStubs.Organization()}
         />,
         routerContext
       );
@@ -131,6 +132,7 @@ describe('DateRange', function() {
           utc
           onChange={onChange}
           onChangeUtc={jest.fn()}
+          organization={TestStubs.Organization()}
         />,
         routerContext
       );

@@ -9,8 +9,10 @@ import styled from 'react-emotion';
 
 import {analytics} from 'app/utils/analytics';
 import {getEndOfDay, getStartOfPeriodAgo, setDateToTime} from 'app/utils/dates';
+import getRouteStringFromRoutes from 'app/utils/getRouteStringFromRoutes';
 import {t} from 'app/locale';
 import Checkbox from 'app/components/checkbox';
+import SentryTypes from 'app/sentryTypes';
 import TimePicker from 'app/components/organizations/timeRangeSelector/timePicker';
 import space from 'app/styles/space';
 import theme from 'app/utils/theme';
@@ -60,12 +62,21 @@ class DateRange extends React.Component {
      * Callback when value changes
      */
     onChange: PropTypes.func,
+
+    /**
+     * Just used for metrics
+     */
+    organization: SentryTypes.Organization,
   };
 
   static defaultProps = {
     showAbsolute: true,
     showRelative: false,
     maxPickableDays: MAX_PICKABLE_DAYS,
+  };
+
+  static contextTypes = {
+    router: PropTypes.object,
   };
 
   static getTimeStringFromDate = date => {
@@ -97,6 +108,8 @@ class DateRange extends React.Component {
     analytics('dateselector.time_changed', {
       field_changed: 'start',
       time: startTime,
+      path: getRouteStringFromRoutes(this.context.router.routes),
+      org_id: parseInt(this.props.organization.id, 10),
     });
 
     onChange({
@@ -112,6 +125,8 @@ class DateRange extends React.Component {
     analytics('dateselector.time_changed', {
       field_changed: 'end',
       time: endTime,
+      path: getRouteStringFromRoutes(this.context.router.routes),
+      org_id: parseInt(this.props.organization.id, 10),
     });
 
     onChange({

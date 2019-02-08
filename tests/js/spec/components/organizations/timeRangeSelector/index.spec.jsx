@@ -11,7 +11,13 @@ describe('TimeRangeSelector', function() {
 
   const createWrapper = (props = {}) =>
     mount(
-      <TimeRangeSelector showAbsolute showRelative onChange={onChange} {...props} />,
+      <TimeRangeSelector
+        showAbsolute
+        showRelative
+        onChange={onChange}
+        organization={TestStubs.Organization()}
+        {...props}
+      />,
       routerContext
     );
 

@@ -13,6 +13,7 @@ import {
   getUtcToSystem,
 } from 'app/utils/dates';
 import {parsePeriodToHours} from 'app/utils';
+import getRouteStringFromRoutes from 'app/utils/getRouteStringFromRoutes';
 import {t} from 'app/locale';
 import DateRange from 'app/components/organizations/timeRangeSelector/dateRange';
 import DateSummary from 'app/components/organizations/timeRangeSelector/dateSummary';
@@ -21,6 +22,7 @@ import HeaderItem from 'app/components/organizations/headerItem';
 import InlineSvg from 'app/components/inlineSvg';
 import RelativeSelector from 'app/components/organizations/timeRangeSelector/dateRange/relativeSelector';
 import SelectorItem from 'app/components/organizations/timeRangeSelector/dateRange/selectorItem';
+import SentryTypes from 'app/sentryTypes';
 import getDynamicText from 'app/utils/getDynamicText';
 
 // Strips timezone from local date, creates a new moment date object with timezone
@@ -92,12 +94,21 @@ class TimeRangeSelector extends React.PureComponent {
      * Callback when "Update" button is clicked
      */
     onUpdate: PropTypes.func,
+
+    /**
+     * Just used for metrics
+     */
+    organization: SentryTypes.Organization,
   };
 
   static defaultProps = {
     showAbsolute: true,
     showRelative: true,
     utc: getUserTimezone() === 'UTC',
+  };
+
+  static contextTypes = {
+    router: PropTypes.object,
   };
 
   constructor(props) {
@@ -238,8 +249,11 @@ class TimeRangeSelector extends React.PureComponent {
 
     this.setState(state => {
       const utc = !state.utc;
+
       analytics('dateselector.utc_changed', {
         utc,
+        path: getRouteStringFromRoutes(this.context.router.routes),
+        org_id: parseInt(this.props.organization.id, 10),
       });
       const newDateTime = {
         relative: null,
@@ -257,7 +271,7 @@ class TimeRangeSelector extends React.PureComponent {
   };
 
   render() {
-    const {showAbsolute, showRelative} = this.props;
+    const {showAbsolute, showRelative, organization} = this.props;
     const {start, end, relative} = this.state;
 
     const shouldShowAbsolute = showAbsolute;
@@ -322,6 +336,7 @@ class TimeRangeSelector extends React.PureComponent {
                     end={end}
                     onChange={this.handleSelectDateRange}
                     onChangeUtc={this.handleUseUtc}
+                    organization={organization}
                   />
                 )}
               </Menu>
