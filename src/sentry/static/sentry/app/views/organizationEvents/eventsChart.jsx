@@ -98,7 +98,7 @@ class EventsChart extends React.Component {
           >
             {({loading, reloading, timeseriesData, previousTimeseriesData}) => {
               return (
-                <ReleaseSeries api={api}>
+                <ReleaseSeries utc={utc} api={api}>
                   {({releaseSeries}) => {
                     if (loading && !reloading) {
                       return <LoadingPanel data-test-id="events-request-loading" />;
