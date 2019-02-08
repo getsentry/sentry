@@ -1,8 +1,9 @@
 import React from 'react';
 import PropTypes from 'prop-types';
 import {cx} from 'emotion';
-import {Flex} from 'grid-emotion';
 import styled from 'react-emotion';
+import isPropValid from '@emotion/is-prop-valid';
+
 import TextBlock from 'app/views/settings/components/text/textBlock';
 import InlineSvg from 'app/components/inlineSvg';
 import space from 'app/styles/space';
@@ -47,7 +48,8 @@ const getSystemAlertColorStyles = ({background}) => `
   }
 `;
 
-const AlertWrapper = styled(Flex)`
+const AlertWrapper = styled('div', {shouldForwardProp: isPropValid})`
+  display: flex;
   margin: 0 0 ${space(3)};
   padding: ${space(2)};
   font-size: 15px;
