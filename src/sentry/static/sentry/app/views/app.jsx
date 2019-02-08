@@ -6,7 +6,6 @@ import React from 'react';
 import Reflux from 'reflux';
 import createReactClass from 'create-react-class';
 import keydown from 'react-keydown';
-import {withRouter} from 'react-router';
 
 import {openCommandPalette} from 'app/actionCreators/modal';
 import {t} from 'app/locale';
@@ -228,4 +227,4 @@ const App = createReactClass({
   },
 });
 
-export default withRouter(App);
+export default App;
