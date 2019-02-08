@@ -84,15 +84,7 @@ class PendingDeletionMixin(object):
     def delete_pending_deletion_option(self):
         try:
             option = self.get_pending_deletion_option()
-        except self.__class__.DoesNotExist:
-            logger.info(
-                'delete-pending-deletion-option.does-not-exist',
-                extra={
-                    'organization_id': self.organization_id,
-                    'model': self.__class__.__name__,
-                    'id': self.id,
-                }
-            )
+        except OrganizationOption.DoesNotExist:
             return
         option.delete()
         logger.info(
