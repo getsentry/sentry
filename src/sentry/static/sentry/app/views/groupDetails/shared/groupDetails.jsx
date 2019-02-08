@@ -197,10 +197,11 @@ const GroupDetails = createReactClass({
     }
   },
 
-  renderContent() {
+  renderContent(shouldShowGlobalHeader) {
     const {params} = this.props;
     const {group, project} = this.state;
-    return (
+
+    const Content = (
       <DocumentTitle title={this.getTitle()}>
         <div className={this.props.className}>
           <GroupHeader params={params} project={project} group={group} />
@@ -211,11 +212,19 @@ const GroupDetails = createReactClass({
         </div>
       </DocumentTitle>
     );
+
+    // If we are showing global header (e.g. on Organization group details)
+    // We need `<PageContent>` for padding, otherwise render content as normal
+    if (shouldShowGlobalHeader) {
+      return <PageContent>{Content}</PageContent>;
+    }
+
+    return Content;
   },
 
   render() {
     const {organization, showGlobalHeader} = this.props;
-    const {group, project} = this.state;
+    const {group, project, loading} = this.state;
 
     if (this.state.error) {
       switch (this.state.errorType) {
@@ -228,24 +237,30 @@ const GroupDetails = createReactClass({
         default:
           return <LoadingError onRetry={this.remountComponent} />;
       }
-    } else if (this.state.loading || !group) return <LoadingIndicator />;
+    }
+
+    const isLoading = loading || !group;
 
     return (
       <Feature features={['sentry10']}>
-        {({hasFeature}) => (
-          <React.Fragment>
-            {hasFeature &&
-              showGlobalHeader && (
+        {({hasFeature: hasSentry10}) => {
+          const shouldShowGlobalHeader = hasSentry10 && showGlobalHeader;
+          return (
+            <React.Fragment>
+              {shouldShowGlobalHeader && (
                 <GlobalSelectionHeader
                   organization={organization}
                   forceProject={project}
                 />
               )}
-            {hasFeature &&
-              showGlobalHeader && <PageContent>{this.renderContent()}</PageContent>}
-            {!hasFeature && this.renderContent()}
-          </React.Fragment>
-        )}
+              {isLoading ? (
+                <LoadingIndicator />
+              ) : (
+                this.renderContent(shouldShowGlobalHeader)
+              )}
+            </React.Fragment>
+          );
+        }}
       </Feature>
     );
   },
