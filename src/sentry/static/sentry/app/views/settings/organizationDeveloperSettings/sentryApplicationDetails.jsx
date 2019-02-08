@@ -105,7 +105,6 @@ export default class SentryApplicationDetails extends AsyncView {
           initialData={{organization: orgId, isAlertable: false, ...app}}
           model={this.form}
           onSubmitSuccess={this.onSubmitSuccess}
-          onSubmitError={err => addErrorMessage(t('Unable to save change'))}
         >
           <JsonForm location={this.props.location} forms={sentryApplicationForm} />
 

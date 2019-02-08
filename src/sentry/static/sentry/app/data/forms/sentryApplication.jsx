@@ -49,6 +49,15 @@ const forms = [
         autosize: true,
         help: 'Description of your application and its functionality.',
       },
+      {
+        name: 'schema',
+        type: 'textarea',
+        label: 'Schema',
+        autosize: true,
+        help: 'Schema for your UI components',
+        getValue: val => JSON.parse(val),
+        setValue: val => JSON.stringify(val),
+      },
     ],
   },
 ];

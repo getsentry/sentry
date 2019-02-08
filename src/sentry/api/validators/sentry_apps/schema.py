@@ -1,6 +1,7 @@
 from __future__ import absolute_import
 
-from jsonschema import validate as json_schema_validate
+from jsonschema import Draft4Validator
+from jsonschema.exceptions import best_match
 
 SCHEMA = {
     'type': 'object',
@@ -17,6 +18,7 @@ SCHEMA = {
 
         'options': {
             'type': 'array',
+            'minItems': 1,
             'items': {
                 'type': 'array',
                 'minItems': 2,
@@ -214,7 +216,7 @@ SCHEMA = {
                     '$ref': '#/definitions/fieldset',
                 },
             },
-            'required': ['required_fields'],
+            'required': ['type', 'required_fields'],
         },
 
         'issue-media': {
@@ -261,5 +263,8 @@ SCHEMA = {
 }
 
 
-def validate(instance, schema=SCHEMA):
-    json_schema_validate(instance=instance, schema=schema)
+def validate(value, schema=SCHEMA):
+    v = Draft4Validator(schema)
+
+    if not v.is_valid(value):
+        raise best_match(v.iter_errors(value))

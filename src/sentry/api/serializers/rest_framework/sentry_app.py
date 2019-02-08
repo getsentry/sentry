@@ -1,8 +1,11 @@
 from __future__ import absolute_import
 
+from jsonschema.exceptions import ValidationError as SchemaValidationError
+
 from rest_framework import serializers
 from rest_framework.serializers import Serializer, ValidationError
 
+from sentry.api.validators.sentry_apps.schema import validate
 from sentry.models import ApiScopes
 from sentry.models.sentryapp import VALID_EVENT_RESOURCES, REQUIRED_EVENT_PERMISSIONS
 
@@ -26,10 +29,19 @@ class EventListField(serializers.WritableField):
             ))
 
 
+class SchemaField(serializers.WritableField):
+    def validate(self, data):
+        try:
+            validate(data)
+        except SchemaValidationError as e:
+            raise ValidationError(u'{}'.format(e.message))
+
+
 class SentryAppSerializer(Serializer):
     name = serializers.CharField()
     scopes = ApiScopesField()
     events = EventListField(required=False)
+    schema = SchemaField(required=False)
     webhookUrl = serializers.URLField()
     redirectUrl = serializers.URLField(required=False)
     isAlertable = serializers.BooleanField(required=False)
