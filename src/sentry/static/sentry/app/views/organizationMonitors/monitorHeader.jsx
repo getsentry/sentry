@@ -23,19 +23,15 @@ export default class MonitorHeader extends React.Component {
           </div>
           <div className="col-sm-2 hidden-xs">
             <h6 className="nav-header">{t('Last Check-in')}</h6>
-            <TimeSince date={monitor.lastCheckIn} />
+            {monitor.lastCheckIn && <TimeSince date={monitor.lastCheckIn} />}
           </div>
           <div className="col-sm-2 hidden-xs">
             <h6 className="nav-header">{t('Next Check-in')}</h6>
-            <TimeSince date={monitor.nextCheckIn} />
+            {monitor.nextCheckIn && <TimeSince date={monitor.nextCheckIn} />}
           </div>
           <div className="col-sm-2">
             <h6 className="nav-header">{t('Status')}</h6>
-            <MonitorIcon
-              status={monitor.status}
-              lastCheckIn={monitor.lastCheckIn}
-              size={16}
-            />
+            <MonitorIcon status={monitor.status} size={16} />
           </div>
         </div>
       </div>

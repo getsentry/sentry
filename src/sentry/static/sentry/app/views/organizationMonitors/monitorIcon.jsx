@@ -5,7 +5,7 @@ const getBackgroundColor = p => {
 
   return `background: ${p.status === 'error'
     ? p.theme.error
-    : p.status === 'active' && p.lastCheckIn ? p.theme.success : p.theme.disabled};`;
+    : p.status === 'ok' ? p.theme.success : p.theme.disabled};`;
 };
 
 const getSize = p => `

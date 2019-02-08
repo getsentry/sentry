@@ -1,7 +1,7 @@
 import React from 'react';
 
 import AsyncView from 'app/views/asyncView';
-import {Panel, PanelBody, PanelHeader} from 'app/components/panels';
+import {Panel, PanelHeader} from 'app/components/panels';
 import {t} from 'app/locale';
 
 import MonitorCheckIns from './monitorCheckIns';
@@ -40,9 +40,7 @@ class OrganizationMonitorDetails extends AsyncView {
         <Panel>
           <PanelHeader>{t('Related Issues')}</PanelHeader>
 
-          <PanelBody>
-            <MonitorIssues monitor={monitor} orgId={this.props.params.orgId} />
-          </PanelBody>
+          <MonitorIssues monitor={monitor} orgId={this.props.params.orgId} />
         </Panel>
 
         <Panel>
