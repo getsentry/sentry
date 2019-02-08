@@ -10,7 +10,8 @@ from sentry.api.bases.organization import OrganizationEndpoint
 from sentry.api.exceptions import ResourceDoesNotExist
 from sentry.api.paginator import OffsetPaginator
 from sentry.api.serializers import serialize
-from sentry.models import Monitor, MonitorStatus, MonitorType
+from sentry.api.validators import MonitorValidator
+from sentry.models import AuditLogEntryEvent, Monitor, MonitorStatus, MonitorType
 from sentry.search.utils import tokenize_query
 from sentry.db.models.query import in_iexact
 
@@ -51,6 +52,8 @@ class OrganizationMonitorsEndpoint(OrganizationEndpoint):
         queryset = Monitor.objects.filter(
             organization_id=organization.id,
             project_id__in=filter_params['project_id'],
+        ).exclude(
+            status__in=[MonitorStatus.PENDING_DELETION, MonitorStatus.DELETION_IN_PROGRESS],
         )
         query = request.GET.get('query')
         if query:
@@ -96,3 +99,41 @@ class OrganizationMonitorsEndpoint(OrganizationEndpoint):
             on_results=lambda x: serialize(x, request.user),
             paginator_cls=OffsetPaginator,
         )
+
+    def post(self, request, organization):
+        """
+        Create a monitor
+        ````````````````
+
+        :pparam string organization_slug: the slug of the organization
+        :auth: required
+        """
+        validator = MonitorValidator(
+            data=request.DATA,
+            context={
+                'organization': organization,
+                'access': request.access,
+            },
+        )
+        if not validator.is_valid():
+            return self.respond(validator.errors, status=400)
+
+        result = validator.data
+
+        monitor = Monitor.objects.create(
+            project_id=result['project'].id,
+            organization_id=organization.id,
+            name=result['name'],
+            status=result['status'],
+            type=result['type'],
+            config=result['config'],
+        )
+        self.create_audit_entry(
+            request=request,
+            organization=organization,
+            target_object=monitor.id,
+            event=AuditLogEntryEvent.MONITOR_ADD,
+            data=monitor.get_audit_log_data(),
+        )
+
+        return self.respond(serialize(monitor, request.user), status=201)
