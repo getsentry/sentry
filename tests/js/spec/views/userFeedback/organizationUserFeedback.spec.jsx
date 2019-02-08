@@ -45,6 +45,7 @@ describe('OrganizationUserFeedback', function() {
       params: {
         orgId: organization.slug,
       },
+      selection: {},
     };
     const wrapper = mount(<OrganizationUserFeedback {...params} />, routerContext);
 
@@ -58,6 +59,7 @@ describe('OrganizationUserFeedback', function() {
       params: {
         orgId: 'org-slug',
       },
+      selection: {},
     };
 
     const wrapper = mount(

@@ -52,6 +52,7 @@ exports[`OrganizationUserFeedback renders 1`] = `
       "orgId": "org-slug",
     }
   }
+  selection={Object {}}
 >
   <SideEffect(DocumentTitle)
     title="User Feedback - org-slug - Sentry"

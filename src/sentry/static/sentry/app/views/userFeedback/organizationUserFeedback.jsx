@@ -1,4 +1,5 @@
 import React from 'react';
+import {Link} from 'react-router';
 
 import {t} from 'app/locale';
 import withOrganization from 'app/utils/withOrganization';
@@ -13,6 +14,7 @@ import GlobalSelectionHeader from 'app/components/organizations/globalSelectionH
 import NoProjectMessage from 'app/components/noProjectMessage';
 import AsyncView from 'app/views/asyncView';
 import {PageContent} from 'app/styles/organization';
+import withGlobalSelection from 'app/utils/withGlobalSelection';
 
 import UserFeedbackContainer from './container';
 import {getQuery} from './utils';
@@ -20,6 +22,7 @@ import {getQuery} from './utils';
 class OrganizationUserFeedback extends AsyncView {
   static propTypes = {
     organization: SentryTypes.Organization.isRequired,
+    selection: SentryTypes.GlobalSelection.isRequired,
   };
 
   getEndpoints() {
@@ -63,10 +66,41 @@ class OrganizationUserFeedback extends AsyncView {
     return this.renderResults();
   }
 
+  renderIntegrationHint() {
+    const {organization, selection} = this.props;
+
+    const allAccessibleProjects = organization.projects.filter(
+      project => project.isMember
+    );
+
+    const hasSingleProject =
+      selection.projects.length === 1 ||
+      (selection.projects === 0 && allAccessibleProjects.length === 1);
+
+    if (!hasSingleProject) {
+      return null;
+    }
+
+    const activeProject = selection.projects.length
+      ? allAccessibleProjects.find(
+          project => parseInt(project.id, 10) === selection.projects[0]
+        )
+      : allAccessibleProjects[0];
+
+    const url = `/settings/${organization.slug}/projects/${activeProject.slug}/user-feedback/`;
+
+    return (
+      <p>
+        <Link to={url}>{t('Learn how to integrate User Feedback')}</Link>
+      </p>
+    );
+  }
+
   renderEmpty() {
     return (
       <EmptyStateWarning>
         <p>{t('Sorry, no results match your search query.')}</p>
+        {this.renderIntegrationHint()}
       </EmptyStateWarning>
     );
   }
@@ -127,4 +161,4 @@ class OrganizationUserFeedback extends AsyncView {
 }
 
 export {OrganizationUserFeedback};
-export default withOrganization(OrganizationUserFeedback);
+export default withOrganization(withGlobalSelection(OrganizationUserFeedback));
