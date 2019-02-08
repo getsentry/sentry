@@ -176,6 +176,11 @@ class GlobalSelectionHeader extends React.Component {
       return true;
     }
 
+    // Update if `forceProject` changes
+    if (this.props.forceProject !== nextProps.forceProject) {
+      return true;
+    }
+
     const nonDateKeys = ['projects', 'environments'];
     // Update if selection values change
     if (
