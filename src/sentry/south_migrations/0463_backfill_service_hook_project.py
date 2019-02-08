@@ -2,7 +2,7 @@
 from south.utils import datetime_utils as datetime
 from south.db import db
 from south.v2 import DataMigration
-from django.db import models
+from django.db import models, transaction
 
 
 class Migration(DataMigration):
@@ -33,10 +33,11 @@ class Migration(DataMigration):
 
         for service_hook in RangeQuerySetWrapperWithProgressBar(queryset):
             try:
-                ServiceHookProject.objects.create(
-                    project_id=service_hook.project_id,
-                    service_hook_id=service_hook.id,
-                )
+                with transaction.atomic():
+                    ServiceHookProject.objects.create(
+                        project_id=service_hook.project_id,
+                        service_hook_id=service_hook.id,
+                    )
             except IntegrityError:
                 pass
 
