@@ -2,7 +2,7 @@ from __future__ import absolute_import
 from symbolic import Unreal4Crash
 from sentry.lang.native.minidump import MINIDUMP_ATTACHMENT_TYPE
 from sentry.models import UserReport
-from sentry.utils.safe import set_path, setdefault_path
+from sentry.utils.safe import set_path, setdefault_path, get_path
 
 import re
 import uuid
@@ -137,12 +137,23 @@ def merge_unreal_context_event(unreal_context, event, project):
         if portable_callstack is not None:
             frames = []
 
+            images = get_path(event, 'debug_meta', 'images', filter=True, default=())
             for match in _portable_callstack_regexp.finditer(portable_callstack):
                 baseaddr = int(match.group('baseaddr'), 16)
                 offset = int(match.group('offset'), 16)
                 # Crashes without PDB in the client report: 0x00000000ffffffff + ffffffff
                 if baseaddr == 0xffffffff and offset == 0xffffffff:
                     continue
+
+                my_regex = re.escape(match.group('package')) + r"(\.dll|\.exe)?$"
+
+                it = next(
+                    (item for item in images if item.get("name") is not None and re.search(
+                        my_regex, item.get("name"), re.IGNORECASE)), {})
+                image_addr = it.get('image_addr')
+                if image_addr:
+                    # Rebase with the image address if available.
+                    baseaddr = int(image_addr, 16)
 
                 frames.append({
                     'package': match.group('package'),
