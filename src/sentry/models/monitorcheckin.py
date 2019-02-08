@@ -33,7 +33,7 @@ class CheckInStatus(object):
 
 
 class MonitorCheckIn(Model):
-    __core__ = True
+    __core__ = False
 
     guid = UUIDField(unique=True, auto_add=True)
     project_id = BoundedPositiveIntegerField(db_index=True)
@@ -54,3 +54,15 @@ class MonitorCheckIn(Model):
         db_table = 'sentry_monitorcheckin'
 
     __repr__ = sane_repr('guid', 'project_id', 'status')
+
+    def save(self, *args, **kwargs):
+        if not self.date_added:
+            self.date_added = timezone.now()
+        if not self.date_updated:
+            self.date_updated = self.date_added
+        return super(MonitorCheckIn, self).save(*args, **kwargs)
+
+    # XXX(dcramer): BaseModel is trying to automatically set date_updated which is not
+    # what we want to happen, so kill it here
+    def _update_timestamps(self):
+        pass
