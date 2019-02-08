@@ -23,7 +23,7 @@ def should_comment_sync(installation, external_issue):
     organization = Organization.objects.get(id=external_issue.organization_id)
     has_issue_sync = features.has('organizations:integrations-issue-sync',
                                   organization)
-    return has_issue_sync and installation.should_sync('comment'), installation
+    return has_issue_sync and installation.should_sync('comment')
 
 
 @instrumented_task(
