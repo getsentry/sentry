@@ -26,7 +26,7 @@ class ProjectUserFeedbackTest(AcceptanceTestCase):
     def test(self):
         self.create_group(
             project=self.project,
-            search_message='Foo bar',
+            message='Foo bar',
         )
         self.create_userreport(group=self.group, project=self.project, event=self.event)
         self.browser.get(self.path)

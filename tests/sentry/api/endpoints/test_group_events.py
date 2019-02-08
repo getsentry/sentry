@@ -151,17 +151,9 @@ class GroupEventsTest(APITestCase):
         self.login_as(user=self.user)
 
         group = self.create_group()
-        event_1 = self.create_event(
-            event_id='a' * 32,
-            group=group,
-            data=dict(
-                message="foo bar hello world"))
+        event_1 = self.create_event(event_id='a' * 32, group=group, message="foo bar hello world")
 
-        event_2 = self.create_event(
-            event_id='b' * 32,
-            group=group,
-            data=dict(
-                message='this bar hello world '))
+        event_2 = self.create_event(event_id='b' * 32, group=group, message='this bar hello world ')
 
         query_1 = "foo"
         query_2 = "hello+world"

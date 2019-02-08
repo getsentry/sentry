@@ -43,11 +43,11 @@ class FeatureAdoptionTest(TestCase):
 
     def test_all_passed_feature_slugs_are_complete(self):
         group1 = self.create_group(
-            project=self.project, platform='javascript', search_message='javascript error message'
+            project=self.project, platform='javascript', message='javascript error message'
         )
         event1 = self.create_full_event()
         group2 = self.create_group(
-            project=self.project, platform='javascript', search_message='javascript error message'
+            project=self.project, platform='javascript', message='javascript error message'
         )
         event2 = self.create_full_event(event_id='b')
         event_processed.send(
@@ -64,7 +64,7 @@ class FeatureAdoptionTest(TestCase):
 
     def test_first_event(self):
         group = self.create_group(
-            project=self.project, platform='javascript', search_message='javascript error message'
+            project=self.project, platform='javascript', message='javascript error message'
         )
         first_event_received.send(project=self.project, group=group, sender=type(self.project))
 
@@ -75,7 +75,7 @@ class FeatureAdoptionTest(TestCase):
 
     def test_javascript(self):
         group = self.create_group(
-            project=self.project, platform='javascript', search_message='javascript error message'
+            project=self.project, platform='javascript', message='javascript error message'
         )
         event = self.create_event()
         event_processed.send(
@@ -87,7 +87,7 @@ class FeatureAdoptionTest(TestCase):
 
     def test_python(self):
         group = self.create_group(
-            project=self.project, platform='python', search_message='python error message'
+            project=self.project, platform='python', message='python error message'
         )
         event = self.create_event()
         event_processed.send(
@@ -99,7 +99,7 @@ class FeatureAdoptionTest(TestCase):
 
     def test_node(self):
         group = self.create_group(
-            project=self.project, platform='node', search_message='node error message'
+            project=self.project, platform='node', message='node error message'
         )
         event = self.create_event()
         event_processed.send(
@@ -111,7 +111,7 @@ class FeatureAdoptionTest(TestCase):
 
     def test_ruby(self):
         group = self.create_group(
-            project=self.project, platform='ruby', search_message='ruby error message'
+            project=self.project, platform='ruby', message='ruby error message'
         )
         event = self.create_event()
         event_processed.send(
@@ -123,7 +123,7 @@ class FeatureAdoptionTest(TestCase):
 
     def test_java(self):
         group = self.create_group(
-            project=self.project, platform='java', search_message='java error message'
+            project=self.project, platform='java', message='java error message'
         )
         event = self.create_event()
         event_processed.send(
@@ -135,7 +135,7 @@ class FeatureAdoptionTest(TestCase):
 
     def test_cocoa(self):
         group = self.create_group(
-            project=self.project, platform='cocoa', search_message='cocoa error message'
+            project=self.project, platform='cocoa', message='cocoa error message'
         )
         event = self.create_event()
         event_processed.send(
@@ -147,7 +147,7 @@ class FeatureAdoptionTest(TestCase):
 
     def test_objc(self):
         group = self.create_group(
-            project=self.project, platform='objc', search_message='objc error message'
+            project=self.project, platform='objc', message='objc error message'
         )
         event = self.create_event()
         event_processed.send(
@@ -158,10 +158,7 @@ class FeatureAdoptionTest(TestCase):
         assert objc.complete
 
     def test_php(self):
-        group = self.create_group(
-            project=self.project,
-            platform='php',
-            search_message='php error message')
+        group = self.create_group(project=self.project, platform='php', message='php error message')
         event = self.create_event()
         event_processed.send(
             project=self.project, group=group, event=event, sender=type(self.project)
@@ -171,10 +168,7 @@ class FeatureAdoptionTest(TestCase):
         assert php.complete
 
     def test_go(self):
-        group = self.create_group(
-            project=self.project,
-            platform='go',
-            search_message='go error message')
+        group = self.create_group(project=self.project, platform='go', message='go error message')
         event = self.create_event()
         event_processed.send(
             project=self.project, group=group, event=event, sender=type(self.project)
@@ -185,7 +179,7 @@ class FeatureAdoptionTest(TestCase):
 
     def test_csharp(self):
         group = self.create_group(
-            project=self.project, platform='csharp', search_message='C# error message'
+            project=self.project, platform='csharp', message='C# error message'
         )
         event = self.create_event()
         event_processed.send(
@@ -196,10 +190,7 @@ class FeatureAdoptionTest(TestCase):
         assert csharp.complete
 
     def test_perl(self):
-        group = self.create_group(
-            project=self.project,
-            platform='perl',
-            search_message='C# error message')
+        group = self.create_group(project=self.project, platform='perl', message='C# error message')
         event = self.create_event()
         event_processed.send(
             project=self.project, group=group, event=event, sender=type(self.project)
@@ -210,7 +201,7 @@ class FeatureAdoptionTest(TestCase):
 
     def test_elixir(self):
         group = self.create_group(
-            project=self.project, platform='elixir', search_message='C# error message'
+            project=self.project, platform='elixir', message='C# error message'
         )
         event = self.create_event()
         event_processed.send(
@@ -221,10 +212,7 @@ class FeatureAdoptionTest(TestCase):
         assert elixir.complete
 
     def test_cfml(self):
-        group = self.create_group(
-            project=self.project,
-            platform='cfml',
-            search_message='C# error message')
+        group = self.create_group(project=self.project, platform='cfml', message='C# error message')
         event = self.create_event()
         event_processed.send(
             project=self.project, group=group, event=event, sender=type(self.project)
@@ -235,7 +223,7 @@ class FeatureAdoptionTest(TestCase):
 
     def test_groovy(self):
         group = self.create_group(
-            project=self.project, platform='groovy', search_message='C# error message'
+            project=self.project, platform='groovy', message='C# error message'
         )
         event = self.create_event()
         event_processed.send(
@@ -246,10 +234,7 @@ class FeatureAdoptionTest(TestCase):
         assert groovy.complete
 
     def test_csp(self):
-        group = self.create_group(
-            project=self.project,
-            platform='csp',
-            search_message='C# error message')
+        group = self.create_group(project=self.project, platform='csp', message='C# error message')
         event = self.create_event()
         event_processed.send(
             project=self.project, group=group, event=event, sender=type(self.project)
@@ -260,7 +245,7 @@ class FeatureAdoptionTest(TestCase):
 
     def test_release_tracking(self):
         group = self.create_group(
-            project=self.project, platform='javascript', search_message='javascript error message'
+            project=self.project, platform='javascript', message='javascript error message'
         )
         event = self.create_full_event()
         event_processed.send(
@@ -274,7 +259,7 @@ class FeatureAdoptionTest(TestCase):
 
     def test_environment_tracking(self):
         group = self.create_group(
-            project=self.project, platform='javascript', search_message='javascript error message'
+            project=self.project, platform='javascript', message='javascript error message'
         )
         event = self.create_full_event()
         event_processed.send(
@@ -288,7 +273,7 @@ class FeatureAdoptionTest(TestCase):
 
     def test_bulk_create(self):
         group = self.create_group(
-            project=self.project, platform='javascript', search_message='javascript error message'
+            project=self.project, platform='javascript', message='javascript error message'
         )
         event = self.create_full_event()
         event_processed.send(
@@ -317,7 +302,7 @@ class FeatureAdoptionTest(TestCase):
 
     def test_user_tracking(self):
         group = self.create_group(
-            project=self.project, platform='javascript', search_message='javascript error message'
+            project=self.project, platform='javascript', message='javascript error message'
         )
         event = self.create_full_event()
         event_processed.send(
@@ -416,7 +401,7 @@ class FeatureAdoptionTest(TestCase):
                 }
             }"""
         group = self.create_group(
-            project=self.project, platform='javascript', search_message='javascript error message'
+            project=self.project, platform='javascript', message='javascript error message'
         )
         userless_event = self.create_event(
             event_id='a', platform='javascript', data=json.loads(userless_payload)
@@ -516,7 +501,7 @@ class FeatureAdoptionTest(TestCase):
                 }
             }"""
         group = self.create_group(
-            project=self.project, platform='javascript', search_message='javascript error message'
+            project=self.project, platform='javascript', message='javascript error message'
         )
         envless_event = self.create_event(
             event_id='a', platform='javascript', data=json.loads(envless_payload)
@@ -532,7 +517,7 @@ class FeatureAdoptionTest(TestCase):
 
     def test_custom_tags(self):
         group = self.create_group(
-            project=self.project, platform='javascript', search_message='javascript error message'
+            project=self.project, platform='javascript', message='javascript error message'
         )
         event = self.create_full_event()
         event.data['tags'].append(('foo', 'bar'))
@@ -548,7 +533,7 @@ class FeatureAdoptionTest(TestCase):
 
     def test_source_maps(self):
         group = self.create_group(
-            project=self.project, platform='javascript', search_message='javascript error message'
+            project=self.project, platform='javascript', message='javascript error message'
         )
         event = self.create_full_event()
         event_processed.send(
@@ -562,7 +547,7 @@ class FeatureAdoptionTest(TestCase):
 
     def test_breadcrumbs(self):
         group = self.create_group(
-            project=self.project, platform='javascript', search_message='javascript error message'
+            project=self.project, platform='javascript', message='javascript error message'
         )
         event = self.create_full_event()
         event_processed.send(
@@ -576,7 +561,7 @@ class FeatureAdoptionTest(TestCase):
 
     def test_multiple_events(self):
         group = self.create_group(
-            project=self.project, platform='javascript', search_message='javascript error message'
+            project=self.project, platform='javascript', message='javascript error message'
         )
         simple_event = self.create_event()
         first_event_received.send(project=self.project, group=group, sender=type(self.project))

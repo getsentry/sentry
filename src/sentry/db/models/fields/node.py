@@ -49,7 +49,6 @@ class NodeData(collections.MutableMapping):
         data=None means, this is a node that needs to be fetched from nodestore.
         data={...} means, this is an object that should be saved to nodestore.
     """
-
     def __init__(self, field, id, data=None):
         self.field = field
         self.id = id

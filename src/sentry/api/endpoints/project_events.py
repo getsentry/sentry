@@ -34,7 +34,7 @@ class ProjectEventsEndpoint(ProjectEndpoint):
         query = request.GET.get('query')
         if query:
             events = events.filter(
-                search_message__icontains=query,
+                message__icontains=query,
             )
 
         # filter out events which are beyond the retention period

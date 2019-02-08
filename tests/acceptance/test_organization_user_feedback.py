@@ -29,7 +29,7 @@ class OrganizationUserFeedbackTest(AcceptanceTestCase):
         with self.feature('organizations:sentry10'):
             self.create_group(
                 project=self.project,
-                search_message='Foo bar',
+                message='Foo bar',
             )
             self.create_userreport(group=self.group, project=self.project, event=self.event)
             self.browser.get(self.path)

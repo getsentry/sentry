@@ -21,7 +21,7 @@ class GroupTombstoneDetailsTest(APITestCase):
         tombstone = GroupTombstone.objects.create(
             project_id=group.project_id,
             level=group.level,
-            search_message=group.search_message,
+            message=group.message,
             culprit=group.culprit,
             data=group.data,
             previous_group_id=group.id,
@@ -68,7 +68,7 @@ class GroupTombstoneDetailsTest(APITestCase):
         tombstone = GroupTombstone.objects.create(
             project_id=group.project_id,
             level=group.level,
-            search_message=group.search_message,
+            message=group.message,
             culprit=group.culprit,
             data=group.data,
             previous_group_id=group.id,
