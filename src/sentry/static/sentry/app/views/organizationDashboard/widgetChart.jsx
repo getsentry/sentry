@@ -87,7 +87,7 @@ class WidgetChart extends React.Component {
     // Releases can only be added to time charts
     if (widget.includeReleases) {
       return (
-        <ReleaseSeries releases={releases}>
+        <ReleaseSeries utc={selection.utc} releases={releases}>
           {({releaseSeries}) =>
             this.renderZoomableChart(ChartComponent, {
               ...extra,
