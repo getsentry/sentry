@@ -33,9 +33,9 @@ class BufferTest(TestCase):
 
     def test_process_saves_data_without_existing_row(self):
         columns = {'times_seen': 1}
-        filters = {'message': 'foo bar', 'project_id': 1}
+        filters = {'search_message': 'foo bar', 'project_id': 1}
         self.buf.process(Group, columns, filters)
-        group = Group.objects.get(message='foo bar')
+        group = Group.objects.get(search_message='foo bar')
         # the default value for times_seen is 1, so we actually end up
         # incrementing it to 2 here
         assert group.times_seen == 2

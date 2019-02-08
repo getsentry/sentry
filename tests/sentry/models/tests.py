@@ -163,7 +163,8 @@ class EventNodeStoreTest(TestCase):
         # Create an event with a new event body that specifies the node_id to use.
         e3 = Event(project_id=1, event_id='ghi', data={'baz': 'quux', 'node_id': '1:ghi'})
         assert e3.data.id == '1:ghi', "Event should have the specified node_id"
-        assert e3.data.data == {'baz': 'quux'}, "Event body should be the one provided (sans node_id)"
+        assert e3.data.data == {
+            'baz': 'quux'}, "Event body should be the one provided (sans node_id)"
         e3.save()
         e3_body = nodestore.get('1:ghi')
         assert e3_body == {'baz': 'quux'}, "Event body should be saved to nodestore"

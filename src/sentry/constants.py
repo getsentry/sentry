@@ -390,3 +390,7 @@ class SentryAppStatus(object):
 StatsPeriod = namedtuple('StatsPeriod', ('segments', 'interval'))
 
 LEGACY_RATE_LIMIT_OPTIONS = frozenset(('sentry:project-rate-limit', 'sentry:account-rate-limit'))
+
+# A temporary backwards compatibility mode for message handling.  This is to
+# be removed around May 2019
+LEGACY_MESSAGE_FALLBACK = True

@@ -43,7 +43,7 @@ class Event(Model):
     group_id = BoundedBigIntegerField(blank=True, null=True)
     event_id = models.CharField(max_length=32, null=True, db_column="message_id")
     project_id = BoundedBigIntegerField(blank=True, null=True)
-    message = models.TextField()
+    search_message = models.TextField(db_column='message')
     platform = models.CharField(max_length=64, null=True)
     datetime = models.DateTimeField(default=timezone.now, db_index=True)
     time_spent = BoundedIntegerField(null=True)
@@ -87,8 +87,13 @@ class Event(Model):
         state.pop('_project_cache', None)
         state.pop('_group_cache', None)
         state.pop('interfaces', None)
+        state['message'] = state.pop('search_message', None)
 
         return state
+
+    def __setstate__(self, state):
+        state['search_message'] = state.pop('message')
+        Model.__setstate__(self, state)
 
     # Implement a ForeignKey-like accessor for backwards compat
     def _set_group(self, group):
@@ -123,7 +128,7 @@ class Event(Model):
         # this method could return what currently is real_message.
         return get_path(self.data, 'logentry', 'formatted') \
             or get_path(self.data, 'logentry', 'message') \
-            or self.message
+            or self.search_message
 
     def get_event_type(self):
         """
@@ -140,7 +145,7 @@ class Event(Model):
         See ``sentry.eventtypes``.
         """
         from sentry.event_manager import get_event_metadata_compat
-        return get_event_metadata_compat(self.data, self.message)
+        return get_event_metadata_compat(self.data)
 
     def get_hashes(self):
         """
@@ -163,11 +168,10 @@ class Event(Model):
         et = eventtypes.get(self.get_event_type())(self.data)
         return et.to_string(self.get_event_metadata())
 
-    def error(self):
-        warnings.warn('Event.error is deprecated, use Event.title', DeprecationWarning)
-        return self.title
-
-    error.short_description = _('error')
+    @property
+    def location(self):
+        et = eventtypes.get(self.get_event_type())(self.data)
+        return et.get_location(self.get_event_metadata())
 
     @property
     def real_message(self):
@@ -177,11 +181,6 @@ class Event(Model):
         return get_path(self.data, 'logentry', 'formatted') \
             or get_path(self.data, 'logentry', 'message') \
             or ''
-
-    @property
-    def message_short(self):
-        warnings.warn('Event.message_short is deprecated, use Event.title', DeprecationWarning)
-        return self.title
 
     @property
     def organization(self):
@@ -212,9 +211,8 @@ class Event(Model):
 
     def get_tags(self):
         try:
-            rv = [(t, v) for t, v in get_path(
-                self.data, 'tags', filter=True) or () if t is not None and v is not None]
-            rv.sort()
+            rv = sorted([(t, v) for t, v in get_path(
+                self.data, 'tags', filter=True) or () if t is not None and v is not None])
             return rv
         except ValueError:
             # at one point Sentry allowed invalid tag sets such as (foo, bar)
@@ -245,8 +243,6 @@ class Event(Model):
         data['release'] = self.release
         data['dist'] = self.dist
         data['platform'] = self.platform
-        data['message'] = self.real_message
-        data['datetime'] = self.datetime
         data['time_spent'] = self.time_spent
         data['tags'] = [(k.split('sentry:', 1)[-1], v) for (k, v) in self.get_tags()]
         for k, v in sorted(six.iteritems(self.data)):
@@ -258,8 +254,18 @@ class Event(Model):
 
         # for a long time culprit was not persisted.  In those cases put
         # the culprit in from the group.
+        data['title'] = self.title
+        data['location'] = self.location
         if data.get('culprit') is None:
             data['culprit'] = self.group.culprit
+
+        # TODO(mitsuhiko): This is a deprecated property.  Can we kill this?
+        # The new replacement is `timestamp`.
+        data['datetime'] = self.datetime
+
+        # TODO(mitsuhiko): What do we do with this?  This got phased out for
+        # logentry.formatted
+        data['message'] = self.real_message
 
         return data
 
@@ -270,42 +276,10 @@ class Event(Model):
             data_len += len(repr(value))
         return data_len
 
-    # XXX(dcramer): compatibility with plugins
-    def get_level_display(self):
-        warnings.warn(
-            'Event.get_level_display is deprecated. Use Event.tags instead.', DeprecationWarning
-        )
-        return self.group.get_level_display()
-
-    @property
-    def level(self):
-        warnings.warn('Event.level is deprecated. Use Event.tags instead.', DeprecationWarning)
-        return self.group.level
-
-    @property
-    def logger(self):
-        warnings.warn('Event.logger is deprecated. Use Event.tags instead.', DeprecationWarning)
-        return self.get_tag('logger')
-
-    @property
-    def site(self):
-        warnings.warn('Event.site is deprecated. Use Event.tags instead.', DeprecationWarning)
-        return self.get_tag('site')
-
-    @property
-    def server_name(self):
-        warnings.warn('Event.server_name is deprecated. Use Event.tags instead.')
-        return self.get_tag('server_name')
-
     @property
     def culprit(self):
-        warnings.warn('Event.culprit is deprecated. Use Group.culprit instead.')
-        return self.group.culprit
-
-    @property
-    def checksum(self):
-        warnings.warn('Event.checksum is no longer used', DeprecationWarning)
-        return ''
+        # For a while events did not save the culprit
+        return self.data.get('culprit') or self.group.culprit
 
     @property
     def transaction(self):
@@ -334,6 +308,17 @@ class Event(Model):
             )
 
         return self._environment_cache
+
+    @property
+    def level(self):
+        # we might want to move to this:
+        # return LOG_LEVELS_MAP.get(self.get_level_display()) or self.group.level
+        return self.group.level
+
+    def get_level_display(self):
+        # we might want to move to this:
+        # return self.get_tag('level') or self.group.get_level_display()
+        return self.group.get_level_display()
 
     # Find next and previous events based on datetime and id. We cannot
     # simply `ORDER BY (datetime, id)` as this is too slow (no index), so
@@ -364,6 +349,26 @@ class Event(Model):
                   or e.datetime < self.datetime]
         events.sort(key=EVENT_ORDERING_KEY, reverse=True)
         return events[0] if events else None
+
+    # deprecated accessors
+
+    def error(self):
+        warnings.warn('Event.error is deprecated, use Event.title', DeprecationWarning)
+        return self.title
+
+    error.short_description = _('error')
+
+    @property
+    def message(self):
+        warnings.warn(
+            'Event.message is deprecated. Use Event.search_message instead.',
+            DeprecationWarning)
+        return self.real_message or self.title
+
+    @property
+    def message_short(self):
+        warnings.warn('Event.message_short is deprecated, use Event.title', DeprecationWarning)
+        return self.title
 
 
 class EventSubjectTemplate(string.Template):

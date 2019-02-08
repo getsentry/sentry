@@ -34,7 +34,7 @@ class OrganizationReleasesTest(AcceptanceTestCase):
             self.create_group(
                 first_release=release,
                 project=self.project,
-                message='Foo bar',
+                search_message='Foo bar',
             )
             self.project.update(first_event=timezone.now())
             self.browser.get(self.path)

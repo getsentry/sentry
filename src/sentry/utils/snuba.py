@@ -39,6 +39,8 @@ SENTRY_SNUBA_MAP = {
     'project.id': 'project_id',
     'platform': 'platform',
     'message': 'message',
+    'title': 'title',
+    'location': 'location',
     'issue.id': 'issue',
     'timestamp': 'timestamp',
     'time': 'time',

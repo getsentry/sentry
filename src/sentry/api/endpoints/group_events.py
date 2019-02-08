@@ -127,7 +127,7 @@ class GroupEventsEndpoint(GroupEndpoint, EnvironmentMixin):
         events = Event.objects.filter(group_id=group.id)
 
         if query:
-            q = Q(message__icontains=query)
+            q = Q(search_message__icontains=query)
 
             if is_event_id(query):
                 q |= Q(event_id__exact=query)

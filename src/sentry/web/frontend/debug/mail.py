@@ -99,7 +99,7 @@ def make_group_generator(random, project):
             project=project,
             culprit=culprit,
             level=level,
-            message=message,
+            search_message=message,
             first_seen=to_datetime(first_seen),
             last_seen=to_datetime(last_seen),
             status=random.choice((GroupStatus.UNRESOLVED, GroupStatus.RESOLVED, )),
@@ -198,7 +198,7 @@ class ActivityMailDebugView(View):
         )
 
         data = dict(load_data('python'))
-        data['message'] = group.message
+        data['message'] = group.search_message
         data.pop('logentry', None)
 
         event_manager = EventManager(data)
@@ -214,7 +214,7 @@ class ActivityMailDebugView(View):
         event = Event(
             id=1,
             project=project,
-            message=event_manager.get_search_message(),
+            search_message=event_manager.get_search_message(),
             group=group,
             datetime=datetime(2016, 6, 13, 3, 8, 24, tzinfo=timezone.utc),
             data=event_manager.get_data()
@@ -253,7 +253,8 @@ def alert(request):
     )
 
     data = dict(load_data(platform))
-    data['message'] = group.message
+    # XXX: this is not exactly right
+    data['message'] = group.search_message
     data['event_id'] = '44f1419e73884cd2b45c79918f4b6dc4'
     data.pop('logentry', None)
     data['environment'] = 'prod'
@@ -269,7 +270,7 @@ def alert(request):
     event = event_manager.save(project.id)
     event_type = event_manager.get_event_type()
 
-    group.message = event_manager.get_search_message()
+    group.search_message = event_manager.get_search_message()
     group.data = {
         'type': event_type.key,
         'metadata': event_type.get_metadata(),
@@ -360,7 +361,7 @@ def digest(request):
                 event_id=uuid.uuid4().hex,
                 project=project,
                 group=group,
-                message=group.message,
+                search_message=group.search_message,
                 data=load_data('python'),
                 datetime=to_datetime(
                     random.randint(

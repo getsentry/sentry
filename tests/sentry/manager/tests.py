@@ -9,13 +9,13 @@ from sentry.testutils import TestCase
 
 class SentryManagerTest(TestCase):
     def test_valid_only_message(self):
-        event = Group.objects.from_kwargs(1, message='foo')
+        event = Group.objects.from_event_data(1, message='foo')
         self.assertEquals(event.group.last_seen, event.datetime)
-        self.assertEquals(event.message, 'foo')
+        self.assertEquals(event.search_message, 'foo')
         self.assertEquals(event.project_id, 1)
 
     def test_add_tags(self):
-        event = Group.objects.from_kwargs(1, message='rrr')
+        event = Group.objects.from_event_data(1, search_message='rrr')
         group = event.group
         environment = self.create_environment()
 

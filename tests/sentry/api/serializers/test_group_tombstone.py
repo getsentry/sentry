@@ -22,7 +22,7 @@ class GroupTombstoneSerializerTest(TestCase):
         tombstone = GroupTombstone.objects.create(
             project_id=group.project_id,
             level=group.level,
-            message=group.message,
+            search_message=group.search_message,
             culprit=group.culprit,
             data=group.data,
             actor_id=self.user.id,
@@ -36,6 +36,6 @@ class GroupTombstoneSerializerTest(TestCase):
         )
         result = serialize(tombstone, self.user)
 
-        assert result['message'] == group.message
+        assert result['message'] == group.search_message
         assert result['culprit'] == group.culprit
         assert result['actor']['email'] == 'foo@example.com'
