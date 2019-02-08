@@ -25,6 +25,8 @@ class EventStream(Service):
         'end_merge',
         'start_unmerge',
         'end_unmerge',
+        'start_delete_tag',
+        'end_delete_tag',
         'relay',
     )
 
