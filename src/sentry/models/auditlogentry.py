@@ -79,6 +79,10 @@ class AuditLogEntryEvent(object):
     INTEGRATION_EDIT = 111
     INTEGRATION_REMOVE = 112
 
+    MONITOR_ADD = 120
+    MONITOR_EDIT = 121
+    MONITOR_REMOVE = 122
+
 
 class AuditLogEntry(Model):
     __core__ = False

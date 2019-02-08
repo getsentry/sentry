@@ -1,42 +1,28 @@
 import React from 'react';
-import PropTypes from 'prop-types';
+import {browserHistory} from 'react-router';
 
-import Access from 'app/components/acl/access';
 import AsyncView from 'app/views/asyncView';
-import DateTime from 'app/components/dateTime';
-import Field from 'app/views/settings/components/forms/field';
-import Form from 'app/views/settings/components/forms/form';
-import TextCopyInput from 'app/views/settings/components/forms/textCopyInput';
-import TextField from 'app/views/settings/components/forms/textField';
-import {Panel, PanelBody, PanelHeader} from 'app/components/panels';
-import withOrganization from 'app/utils/withOrganization';
-import SentryTypes from 'app/sentryTypes';
-import {t} from 'app/locale';
 
-import MonitorHeader from './monitorHeader';
+import MonitorForm from './monitorForm';
 
-class EditMonitor extends AsyncView {
-  static contextTypes = {
-    organization: SentryTypes.Organization,
-  };
-
-  static propTypes = {
-    location: PropTypes.object.isRequired,
-    ...AsyncView.propTypes,
-  };
-
+export default class EditMonitor extends AsyncView {
   getEndpoints() {
-    const {params, location} = this.props;
-    return [
-      [
-        'monitor',
-        `/monitors/${params.monitorId}/`,
-        {
-          query: location.query,
-        },
-      ],
-    ];
+    const {params} = this.props;
+    return [['monitor', `/monitors/${params.monitorId}/`]];
   }
+
+  onUpdate = data => {
+    this.setState({
+      monitor: {
+        ...this.state.monitor,
+        ...data,
+      },
+    });
+  };
+
+  onSubmitSuccess = data => {
+    browserHistory.push(`/organizations/${this.props.params.orgId}/monitors/${data.id}/`);
+  };
 
   getTitle() {
     if (this.state.monitor)
@@ -48,59 +34,15 @@ class EditMonitor extends AsyncView {
     const {monitor} = this.state;
     return (
       <React.Fragment>
-        <MonitorHeader monitor={monitor} />
+        <h1>Edit Monitor</h1>
 
-        <Access access={['project:write']}>
-          {({hasAccess}) => (
-            <React.Fragment>
-              <Form
-                saveOnBlur
-                allowUndo
-                apiEndpoint={`/monitors/${monitor.id}/`}
-                apiMethod="PUT"
-                initialData={{
-                  name: monitor.name,
-                }}
-              >
-                <Panel>
-                  <PanelHeader>{t('Details')}</PanelHeader>
-
-                  <PanelBody>
-                    <Field label={t('ID')}>
-                      <div className="controls">
-                        <TextCopyInput>{monitor.id}</TextCopyInput>
-                      </div>
-                    </Field>
-                    <TextField
-                      name="name"
-                      label={t('Name')}
-                      disabled={!hasAccess}
-                      required={false}
-                    />
-                    <Field label={t('Last Check-in')}>
-                      <div className="controls">
-                        <DateTime date={monitor.lastCheckIn} />
-                      </div>
-                    </Field>
-                    <Field label={t('Next Check-in (expected)')}>
-                      <div className="controls">
-                        <DateTime date={monitor.nextCheckIn} />
-                      </div>
-                    </Field>
-                    <Field label={t('Created')}>
-                      <div className="controls">
-                        <DateTime date={monitor.dateCreated} />
-                      </div>
-                    </Field>
-                  </PanelBody>
-                </Panel>
-              </Form>
-            </React.Fragment>
-          )}
-        </Access>
+        <MonitorForm
+          monitor={monitor}
+          apiMethod="PUT"
+          apiEndpoint={`/monitors/${monitor.id}/`}
+          onSubmitSuccess={this.onSubmitSuccess}
+        />
       </React.Fragment>
     );
   }
 }
-
-export default withOrganization(EditMonitor);

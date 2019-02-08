@@ -3,12 +3,16 @@ import React from 'react';
 
 import TimeSince from 'app/components/timeSince';
 import {t} from 'app/locale';
+import SentryTypes from 'app/sentryTypes';
 
+import MonitorHeaderActions from './monitorHeaderActions';
 import MonitorIcon from './monitorIcon';
 
 export default class MonitorHeader extends React.Component {
   static propTypes = {
-    monitor: PropTypes.object.isRequired,
+    orgId: PropTypes.string.isRequired,
+    monitor: SentryTypes.Monitor.isRequired,
+    onUpdate: PropTypes.func,
   };
 
   render() {
@@ -34,6 +38,11 @@ export default class MonitorHeader extends React.Component {
             <MonitorIcon status={monitor.status} size={16} />
           </div>
         </div>
+        <MonitorHeaderActions
+          orgId={this.props.orgId}
+          monitor={monitor}
+          onUpdate={this.props.onUpdate}
+        />
       </div>
     );
   }
