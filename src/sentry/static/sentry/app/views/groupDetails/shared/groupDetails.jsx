@@ -198,10 +198,11 @@ const GroupDetails = createReactClass({
     }
   },
 
-  renderContent() {
+  renderContent(shouldShowGlobalHeader) {
     const {params} = this.props;
     const {group, project} = this.state;
-    return (
+
+    const Content = (
       <DocumentTitle title={this.getTitle()}>
         <div className={this.props.className}>
           <GroupHeader params={params} project={project} group={group} />
@@ -212,6 +213,14 @@ const GroupDetails = createReactClass({
         </div>
       </DocumentTitle>
     );
+
+    // If we are showing global header (e.g. on Organization group details)
+    // We need `<PageContent>` for padding, otherwise render content as normal
+    if (shouldShowGlobalHeader) {
+      return <PageContent>{Content}</PageContent>;
+    }
+
+    return Content;
   },
 
   render() {
@@ -236,10 +245,10 @@ const GroupDetails = createReactClass({
     return (
       <Feature features={['sentry10']}>
         {({hasFeature: hasSentry10}) => {
-          const shouldShowGlobalheader = hasSentry10 && showGlobalHeader;
+          const shouldShowGlobalHeader = hasSentry10 && showGlobalHeader;
           return (
             <React.Fragment>
-              {shouldShowGlobalheader && (
+              {shouldShowGlobalHeader && (
                 <GlobalSelectionHeader
                   organization={organization}
                   forceProject={project}
@@ -248,13 +257,7 @@ const GroupDetails = createReactClass({
               {isLoading ? (
                 <LoadingIndicator />
               ) : (
-                <React.Fragment>
-                  {shouldShowGlobalheader ? (
-                    <PageContent>{this.renderContent()}</PageContent>
-                  ) : (
-                    this.renderContent()
-                  )}
-                </React.Fragment>
+                this.renderContent(shouldShowGlobalHeader)
               )}
             </React.Fragment>
           );
