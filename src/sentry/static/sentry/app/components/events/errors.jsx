@@ -12,6 +12,7 @@ class EventErrors extends React.Component {
   static propTypes = {
     group: SentryTypes.Group.isRequired,
     event: SentryTypes.Event.isRequired,
+    organization: SentryTypes.Organization.isRequired,
   };
 
   constructor(...args) {
@@ -63,7 +64,14 @@ class EventErrors extends React.Component {
         </p>
         <ul style={{display: isOpen ? 'block' : 'none'}}>
           {errors.map((error, errorIdx) => {
-            return <EventErrorItem key={errorIdx} error={error} />;
+            return (
+              <EventErrorItem
+                key={errorIdx}
+                error={error}
+                group={this.props.group}
+                organization={this.props.organization}
+              />
+            );
           })}
         </ul>
       </EventDataSection>

@@ -149,7 +149,7 @@ class EventEntries extends React.Component {
     return (
       <div className="entries">
         {!utils.objectIsEmpty(event.errors) && (
-          <EventErrors group={group} event={event} />
+          <EventErrors group={group} event={event} organization={organization} />
         )}{' '}
         {!isShare &&
           features.has('suggested-commits') && (
