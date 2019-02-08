@@ -64,13 +64,15 @@ def clear_expired_raw_events():
         #
         # Better to delete a few rows than none.
         while True:
-            result = model_cls.objects.filter(**filter)[:200]
-            if not result.exists():
+            # Django already loads this into memory, might as well do it
+            # explicitly. Makes check for result emptyness cheaper.
+            result = set(model_cls.objects.filter(**filter)[:200].values_list('pk', flat=True))
+            if not result:
                 break
 
             # Django ORM can't do delete with limit
             model_cls.objects.filter(
-                pk__in=result.values_list('pk')
+                pk__in=result
             ).delete()
 
     cutoff = timezone.now() - \
