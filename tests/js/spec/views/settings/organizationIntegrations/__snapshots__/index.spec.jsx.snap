@@ -156,57 +156,51 @@ exports[`OrganizationIntegrations render() with installed integrations Displays 
             className="ref-warning"
             type="warning"
           >
-            <Base
-              className="ref-warning css-rofbwt-AlertWrapper e1xb5l7j1"
+            <div
+              className="ref-warning css-3oyttp-AlertWrapper e1xb5l7j1"
               type="warning"
             >
-              <div
-                className="ref-warning css-rofbwt-AlertWrapper e1xb5l7j1"
-                is={null}
-                type="warning"
+              <StyledInlineSvg
+                size="24px"
+                src="icon-warning-sm"
               >
-                <StyledInlineSvg
+                <InlineSvg
+                  className="css-1e3iblq-StyledInlineSvg e1xb5l7j0"
                   size="24px"
                   src="icon-warning-sm"
                 >
-                  <InlineSvg
+                  <StyledSvg
                     className="css-1e3iblq-StyledInlineSvg e1xb5l7j0"
-                    size="24px"
-                    src="icon-warning-sm"
+                    height="24px"
+                    viewBox={Object {}}
+                    width="24px"
                   >
-                    <StyledSvg
-                      className="css-1e3iblq-StyledInlineSvg e1xb5l7j0"
+                    <svg
+                      className="e1xb5l7j0 css-lbx2sj-StyledSvg-StyledInlineSvg e2idor0"
                       height="24px"
                       viewBox={Object {}}
                       width="24px"
                     >
-                      <svg
-                        className="e1xb5l7j0 css-lbx2sj-StyledSvg-StyledInlineSvg e2idor0"
-                        height="24px"
-                        viewBox={Object {}}
-                        width="24px"
-                      >
-                        <use
-                          href="#test"
-                          xlinkHref="#test"
-                        />
-                      </svg>
-                    </StyledSvg>
-                  </InlineSvg>
-                </StyledInlineSvg>
-                <StyledTextBlock>
-                  <Component
+                      <use
+                        href="#test"
+                        xlinkHref="#test"
+                      />
+                    </svg>
+                  </StyledSvg>
+                </InlineSvg>
+              </StyledInlineSvg>
+              <StyledTextBlock>
+                <Component
+                  className="css-1h3n7tg-TextBlock-StyledTextBlock e1xb5l7j2"
+                >
+                  <div
                     className="css-1h3n7tg-TextBlock-StyledTextBlock e1xb5l7j2"
                   >
-                    <div
-                      className="css-1h3n7tg-TextBlock-StyledTextBlock e1xb5l7j2"
-                    >
-                      These settings can only be edited by users with the owner or manager role.
-                    </div>
-                  </Component>
-                </StyledTextBlock>
-              </div>
-            </Base>
+                    These settings can only be edited by users with the owner or manager role.
+                  </div>
+                </Component>
+              </StyledTextBlock>
+            </div>
           </AlertWrapper>
         </Alert>
       </Access>
@@ -3355,57 +3349,51 @@ exports[`OrganizationIntegrations render() without integrations Displays integra
             className="ref-warning"
             type="warning"
           >
-            <Base
-              className="ref-warning css-rofbwt-AlertWrapper e1xb5l7j1"
+            <div
+              className="ref-warning css-3oyttp-AlertWrapper e1xb5l7j1"
               type="warning"
             >
-              <div
-                className="ref-warning css-rofbwt-AlertWrapper e1xb5l7j1"
-                is={null}
-                type="warning"
+              <StyledInlineSvg
+                size="24px"
+                src="icon-warning-sm"
               >
-                <StyledInlineSvg
+                <InlineSvg
+                  className="css-1e3iblq-StyledInlineSvg e1xb5l7j0"
                   size="24px"
                   src="icon-warning-sm"
                 >
-                  <InlineSvg
+                  <StyledSvg
                     className="css-1e3iblq-StyledInlineSvg e1xb5l7j0"
-                    size="24px"
-                    src="icon-warning-sm"
+                    height="24px"
+                    viewBox={Object {}}
+                    width="24px"
                   >
-                    <StyledSvg
-                      className="css-1e3iblq-StyledInlineSvg e1xb5l7j0"
+                    <svg
+                      className="e1xb5l7j0 css-lbx2sj-StyledSvg-StyledInlineSvg e2idor0"
                       height="24px"
                       viewBox={Object {}}
                       width="24px"
                     >
-                      <svg
-                        className="e1xb5l7j0 css-lbx2sj-StyledSvg-StyledInlineSvg e2idor0"
-                        height="24px"
-                        viewBox={Object {}}
-                        width="24px"
-                      >
-                        <use
-                          href="#test"
-                          xlinkHref="#test"
-                        />
-                      </svg>
-                    </StyledSvg>
-                  </InlineSvg>
-                </StyledInlineSvg>
-                <StyledTextBlock>
-                  <Component
+                      <use
+                        href="#test"
+                        xlinkHref="#test"
+                      />
+                    </svg>
+                  </StyledSvg>
+                </InlineSvg>
+              </StyledInlineSvg>
+              <StyledTextBlock>
+                <Component
+                  className="css-1h3n7tg-TextBlock-StyledTextBlock e1xb5l7j2"
+                >
+                  <div
                     className="css-1h3n7tg-TextBlock-StyledTextBlock e1xb5l7j2"
                   >
-                    <div
-                      className="css-1h3n7tg-TextBlock-StyledTextBlock e1xb5l7j2"
-                    >
-                      These settings can only be edited by users with the owner or manager role.
-                    </div>
-                  </Component>
-                </StyledTextBlock>
-              </div>
-            </Base>
+                    These settings can only be edited by users with the owner or manager role.
+                  </div>
+                </Component>
+              </StyledTextBlock>
+            </div>
           </AlertWrapper>
         </Alert>
       </Access>

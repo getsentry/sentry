@@ -331,34 +331,28 @@ exports[`IntegrationDetailsModal renders simple integration 1`] = `
       className="ref-warning"
       type="warning"
     >
-      <Base
-        className="ref-warning css-rofbwt-AlertWrapper e1xb5l7j1"
+      <div
+        className="ref-warning css-3oyttp-AlertWrapper e1xb5l7j1"
         type="warning"
       >
-        <div
-          className="ref-warning css-rofbwt-AlertWrapper e1xb5l7j1"
-          is={null}
-          type="warning"
-        >
-          <StyledTextBlock>
-            <Component
+        <StyledTextBlock>
+          <Component
+            className="css-1h3n7tg-TextBlock-StyledTextBlock e1xb5l7j2"
+          >
+            <div
               className="css-1h3n7tg-TextBlock-StyledTextBlock e1xb5l7j2"
             >
-              <div
-                className="css-1h3n7tg-TextBlock-StyledTextBlock e1xb5l7j2"
-              >
-                <span
-                  dangerouslySetInnerHTML={
-                    Object {
-                      "__html": "This is a an alert example",
-                    }
+              <span
+                dangerouslySetInnerHTML={
+                  Object {
+                    "__html": "This is a an alert example",
                   }
-                />
-              </div>
-            </Component>
-          </StyledTextBlock>
-        </div>
-      </Base>
+                }
+              />
+            </div>
+          </Component>
+        </StyledTextBlock>
+      </div>
     </AlertWrapper>
   </Alert>
   <IntegrationFeatures
