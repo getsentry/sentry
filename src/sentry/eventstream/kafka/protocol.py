@@ -29,7 +29,12 @@ def basic_protocol_handler(unsupported_operations):
         ).replace(tzinfo=pytz.utc)
 
         def _get_attr(name):
-            return event_data[name]
+            try:
+                return event_data[name]
+            except LookupError:
+                if name != 'search_message':
+                    raise
+                return event_data['message']
 
         kwargs = {
             'event': Event(**{
