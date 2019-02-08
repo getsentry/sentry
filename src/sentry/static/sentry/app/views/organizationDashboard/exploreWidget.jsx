@@ -109,11 +109,12 @@ const ExploreButton = styled(({isOpen, ...props}) => <UnstyledButton {...props} 
   border-radius: 0 0 ${p => p.theme.borderRadius} 0;
   ${p => p.isOpen && `z-index: ${p.theme.zIndex.dropdownAutocomplete.actor}`};
 
-  /* covers up borders to create a continous shape */
-  ${p =>
-    p.isOpen ? '&, &:hover, &:active { box-shadow: 0 -1px 0 #fff; }' : ''} &:hover {
+  &:hover {
     color: ${p => p.theme.purple};
   }
+
+  /* covers up borders to create a continous shape */
+  ${p => (p.isOpen ? '&, &:hover, &:active { box-shadow: 0 -1px 0 #fff; }' : '')};
 `;
 
 const ExploreMenu = styled('div')`
