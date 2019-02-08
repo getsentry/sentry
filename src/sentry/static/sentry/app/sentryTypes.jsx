@@ -221,6 +221,12 @@ export const Team = PropTypes.shape({
   slug: PropTypes.string.isRequired,
 });
 
+export const Monitor = PropTypes.shape({
+  id: PropTypes.string.isRequired,
+  name: PropTypes.string.isRequired,
+  dateCreated: PropTypes.string,
+});
+
 export const Project = PropTypes.shape({
   // snuba returns id as number
   id: PropTypes.oneOfType([PropTypes.string, PropTypes.number]).isRequired,
@@ -905,6 +911,7 @@ const SentryTypes = {
   GlobalSelection,
   Group,
   Tag,
+  Monitor,
   PageLinks,
   Project,
   Series,

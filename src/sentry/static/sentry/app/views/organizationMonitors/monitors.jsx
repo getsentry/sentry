@@ -6,6 +6,7 @@ import {Box} from 'grid-emotion';
 
 import AsyncView from 'app/views/asyncView';
 import BetaTag from 'app/components/betaTag';
+import Button from 'app/components/button';
 import {getParams} from 'app/views/organizationEvents/utils/getParams';
 import {Panel, PanelBody, PanelItem} from 'app/components/panels';
 import {PageHeader} from 'app/styles/organization';
@@ -14,6 +15,7 @@ import TimeSince from 'app/components/timeSince';
 import Pagination from 'app/components/pagination';
 import SentryTypes from 'app/sentryTypes';
 import SearchBar from 'app/components/searchBar';
+import space from 'app/styles/space';
 import withOrganization from 'app/utils/withOrganization';
 import {t} from 'app/locale';
 
@@ -74,6 +76,14 @@ class OrganizationMonitors extends AsyncView {
         <PageHeader>
           <HeaderTitle>
             {t('Monitors')} <BetaTag />
+            <Button
+              to={`/organizations/${organization.slug}/monitors/create/`}
+              priority="primary"
+              size="xsmall"
+              style={{marginLeft: space(0.5)}}
+            >
+              New Monitor
+            </Button>
           </HeaderTitle>
           <StyledSearchBar
             organization={organization}

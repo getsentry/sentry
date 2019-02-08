@@ -5,6 +5,7 @@ import six
 
 from croniter import croniter
 from datetime import datetime, timedelta
+from dateutil import rrule
 from django.db import models
 from django.utils import timezone
 from uuid import uuid4
@@ -18,16 +19,42 @@ from sentry.db.models import (
     sane_repr,
 )
 
+SCHEDULE_FREQ_MAP = {
+    'year': rrule.YEARLY,
+    'month': rrule.MONTHLY,
+    'week': rrule.WEEKLY,
+    'day': rrule.DAILY,
+    'hour': rrule.HOURLY,
+    'minute': rrule.MINUTELY,
+}
+
 
 def generate_secret():
     return uuid4().hex + uuid4().hex
 
 
+def get_next_schedule(base_datetime, schedule_type, schedule):
+    if schedule_type == ScheduleType.CRONTAB:
+        itr = croniter(schedule, base_datetime)
+        next_schedule = itr.get_next(datetime)
+    elif schedule_type == ScheduleType.INTERVAL:
+        freq, interval = schedule
+        rule = rrule.rrule(
+            freq=SCHEDULE_FREQ_MAP[freq],
+            interval=interval,
+            dtstart=base_datetime,
+            count=2)
+        if rule[0] > base_datetime:
+            next_schedule = rule[0]
+        else:
+            next_schedule = rule[1]
+    else:
+        raise NotImplementedError('unknown schedule_type')
+
+    return next_schedule
+
+
 class MonitorStatus(ObjectStatus):
-    ACTIVE = 0
-    DISABLED = 1
-    PENDING_DELETION = 2
-    DELETION_IN_PROGRESS = 3
     OK = 4
     ERROR = 5
 
@@ -59,6 +86,20 @@ class MonitorType(object):
         )
 
 
+class ScheduleType(object):
+    UNKNOWN = 0
+    CRONTAB = 1
+    INTERVAL = 2
+
+    @classmethod
+    def as_choices(cls):
+        return (
+            (cls.UNKNOWN, 'unknown'),
+            (cls.CRONTAB, 'crontab'),
+            (cls.INTERVAL, 'interval'),
+        )
+
+
 class Monitor(Model):
     __core__ = True
 
@@ -86,13 +127,21 @@ class Monitor(Model):
 
     __repr__ = sane_repr('guid', 'project_id', 'name')
 
+    def get_audit_log_data(self):
+        return {
+            'name': self.name,
+            'type': self.type,
+            'status': self.status,
+            'config': self.config,
+        }
+
     def get_next_scheduled_checkin(self, last_checkin=None):
         if last_checkin is None:
             last_checkin = self.last_checkin
         tz = pytz.timezone(self.config.get('timezone') or 'UTC')
+        schedule_type = self.config.get('schedule_type', ScheduleType.CRONTAB)
         base_datetime = last_checkin.astimezone(tz)
-        itr = croniter(self.config['schedule'], base_datetime)
-        next_checkin = itr.get_next(datetime)
+        next_checkin = get_next_schedule(base_datetime, schedule_type, self.config['schedule'])
         return next_checkin + timedelta(minutes=int(self.config.get('checkin_margin') or 0))
 
     def mark_failed(self, last_checkin=None):

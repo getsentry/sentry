@@ -29,15 +29,28 @@ class OrganizationMonitorDetails extends AsyncView {
     return `Monitors - ${this.props.params.orgId}`;
   }
 
+  onUpdate = data => {
+    this.setState({
+      monitor: {
+        ...this.state.monitor,
+        ...data,
+      },
+    });
+  };
+
   renderBody() {
     const {monitor} = this.state;
     return (
       <React.Fragment>
-        <MonitorHeader monitor={monitor} />
+        <MonitorHeader
+          monitor={monitor}
+          orgId={this.props.params.orgId}
+          onUpdate={this.onUpdate}
+        />
 
         <MonitorStats monitor={monitor} />
 
-        <Panel>
+        <Panel style={{paddingBottom: 0}}>
           <PanelHeader>{t('Related Issues')}</PanelHeader>
 
           <MonitorIssues monitor={monitor} orgId={this.props.params.orgId} />
