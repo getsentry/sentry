@@ -717,6 +717,7 @@ exports[`OrganizationUserFeedback renders 1`] = `
                               >
                                 <DropdownAutoComplete
                                   alignMenu="left"
+                                  allowActorToggle={true}
                                   blendCorner={false}
                                   className="ewlipse0 css-11ijjr3-StyledProjectSelector"
                                   closeOnSelect={true}
@@ -1326,6 +1327,7 @@ exports[`OrganizationUserFeedback renders 1`] = `
                                 >
                                   <StyledDropdownAutoComplete
                                     alignMenu="left"
+                                    allowActorToggle={true}
                                     blendCorner={false}
                                     closeOnSelect={true}
                                     emptyHidesInput={true}
@@ -1357,6 +1359,7 @@ exports[`OrganizationUserFeedback renders 1`] = `
                                   >
                                     <DropdownAutoComplete
                                       alignMenu="left"
+                                      allowActorToggle={true}
                                       blendCorner={false}
                                       className="css-qn89t6-StyledDropdownAutoComplete e1gsuvme2"
                                       closeOnSelect={true}
