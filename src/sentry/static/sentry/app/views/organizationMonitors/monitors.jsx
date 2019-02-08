@@ -88,11 +88,7 @@ class OrganizationMonitors extends AsyncView {
               return (
                 <PanelItem key={monitor.id}>
                   <Box style={{width: 16}} align="center" justify="center" mr={2}>
-                    <MonitorIcon
-                      status={monitor.status}
-                      lastCheckIn={monitor.lastCheckIn}
-                      size={16}
-                    />
+                    <MonitorIcon status={monitor.status} size={16} />
                   </Box>
                   <Box flex="1" mr={2}>
                     <Link

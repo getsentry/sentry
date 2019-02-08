@@ -94,7 +94,7 @@ def report_monitor_complete(task, retval, **kwargs):
     except (ValueError, TypeError):
         return
 
-    duration = int(time() - start_time)
+    duration = int(time() - start_time * 1000)
 
     session = SafeSession()
     session.put(u'{}/api/0/monitors/{}/checkins/{}/'.format(API_ROOT, monitor_id, checkin_id), headers={
