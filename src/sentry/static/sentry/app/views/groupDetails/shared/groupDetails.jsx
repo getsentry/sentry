@@ -29,7 +29,6 @@ const GroupDetails = createReactClass({
     project: SentryTypes.Project,
     organization: SentryTypes.Organization,
 
-    // environment: SentryTypes.Environment,
     environments: PropTypes.arrayOf(PropTypes.string),
     enableSnuba: PropTypes.bool,
     showGlobalHeader: PropTypes.bool,
