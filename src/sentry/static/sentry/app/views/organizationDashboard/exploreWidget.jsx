@@ -45,7 +45,7 @@ class ExploreWidget extends React.Component {
       <DropdownMenu>
         {({isOpen, getRootProps, getActorProps, getMenuProps}) => {
           return (
-            <ExploreRoot {...getRootProps()}>
+            <ExploreRoot {...getRootProps()} isOpen={isOpen}>
               <div {...getActorProps()}>
                 <ExploreButton isOpen={isOpen}>
                   {t('Explore Data')}
@@ -97,6 +97,7 @@ export default withOrganization(ExploreWidget);
 const ExploreRoot = styled('div')`
   border-left: 1px solid ${p => p.theme.borderLight};
   position: relative;
+  ${p => p.isOpen && 'filter: drop-shadow(-7px -7px 12px rgba(47, 40, 55, 0.04));'};
 `;
 
 const UnstyledButton = props => <Button borderless size="zero" {...props} />;
@@ -107,25 +108,28 @@ const ExploreButton = styled(({isOpen, ...props}) => <UnstyledButton {...props} 
   padding: ${space(1)} ${space(2)};
   border-radius: 0 0 ${p => p.theme.borderRadius} 0;
   ${p => p.isOpen && `z-index: ${p.theme.zIndex.dropdownAutocomplete.actor}`};
-  ${p => p.isOpen && `box-shadow: ${p.theme.dropShadowHeavy}`};
+
   &:hover {
     color: ${p => p.theme.purple};
   }
-  transition: box-shadow 0.25s;
+
+  /* covers up borders to create a continous shape */
+  ${p => (p.isOpen ? '&, &:hover, &:active { box-shadow: 0 -1px 0 #fff; }' : '')};
 `;
 
 const ExploreMenu = styled('div')`
-  display: ${p => (p.isOpen ? 'flex' : 'none')};
+  visibility: ${p => (p.isOpen ? 'visible' : 'hidden')};
+  display: flex;
   flex-direction: column;
+  min-width: 250px;
 
   position: absolute;
   right: -1px;
-  bottom: calc(100% - 1px);
+  bottom: 100%;
   z-index: ${p => p.theme.zIndex.dropdownAutocomplete.menu};
 
   background-color: white;
   border: 1px solid ${p => p.theme.borderLight};
-  box-shadow: ${p => p.theme.dropShadowHeavy};
 `;
 
 const ExploreRow = styled('li')`
@@ -151,6 +155,7 @@ const QueryName = styled('span')`
 `;
 
 const Chevron = styled(InlineSvg)`
-  ${p => (p.isOpen ? `transform: rotate(-90deg);` : '')};
-  transition: transform 0.25s;
+  ${p => (p.isOpen ? `transform: rotate(90deg);` : '')};
+  margin-left: ${p => (p.isOpen ? space(0.5) : 0)};
+  transition: all 0.25s;
 `;
