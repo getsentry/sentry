@@ -194,6 +194,7 @@ const StyledProjectSelector = styled(ProjectSelector)`
 const StyledHeaderItem = styled(HeaderItem)`
   height: 100%;
   width: 100%;
+  ${p => p.locked && 'cursor: default'};
 `;
 
 const StyledInlineSvg = styled(InlineSvg)`
