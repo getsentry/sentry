@@ -6,7 +6,7 @@ import styled from 'react-emotion';
 
 import space from 'app/styles/space';
 
-import {openCreateTeamModal} from 'app/actionCreators/modal';
+// import {openCreateTeamModal} from 'app/actionCreators/modal';
 import ApiMixin from 'app/mixins/apiMixin';
 import OrganizationState from 'app/mixins/organizationState';
 import DropdownLink from 'app/components/dropdownLink';
@@ -15,6 +15,7 @@ import {t} from 'app/locale';
 import Button from 'app/components/button';
 import ProjectSelector from 'app/components/projectHeader/projectSelector';
 import Tooltip from 'app/components/tooltip';
+import HookStore from 'app/stores/hookStore';
 
 const ProjectNav = createReactClass({
   mixins: [ApiMixin, OrganizationState],
@@ -36,8 +37,22 @@ const ProjectNav = createReactClass({
         title: t('Team'),
         to: `/organizations/${org.slug}/teams/new/`,
         onSelect: () => {
-          openCreateTeamModal({
+          // openCreateTeamModal({
+          //   organization: org,
+          //   onClose: data => {
+          //     if (!data) return;
+
+          //     browserHistory.push(`/settings/${org.slug}/teams/${data.slug}/members/`);
+          //   },
+          // });
+
+          const beHerePlease =
+            HookStore.get('component:business-landing-modal').length &&
+            HookStore.get('component:business-landing-modal')[0]();
+
+          beHerePlease({
             organization: org,
+            source: 'commit-and-deploy',
             onClose: data => {
               if (!data) return;
 
