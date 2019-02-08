@@ -17,19 +17,19 @@ class EventTest(TestCase):
                 ('server_name', 'bar'),
             ]}
         )
-        assert event.logger == 'foobar'
         assert event.level == event.group.level
-        assert event.site == 'foo'
-        assert event.server_name == 'bar'
         assert event.culprit == event.group.culprit
 
     def test_pickling_compat(self):
         event = self.create_event(
-            data={'tags': [
-                ('logger', 'foobar'),
-                ('site', 'foo'),
-                ('server_name', 'bar'),
-            ]}
+            message='Hello World!',
+            data={
+                'tags': [
+                    ('logger', 'foobar'),
+                    ('site', 'foo'),
+                    ('server_name', 'bar'),
+                ]
+            }
         )
 
         # Ensure we load and memoize the interfaces as well.
@@ -39,6 +39,10 @@ class EventTest(TestCase):
         # does not appear here or it breaks old workers.
         data = pickle.dumps(event, protocol=2)
         assert 'canonical' not in data
+
+        # Make sure the search message is serialized as message
+        assert 'search_message' not in data
+        assert 'Hello World!' in data
 
         # For testing we remove the backwards compat support in the
         # `NodeData` as well.
@@ -72,10 +76,10 @@ class EventTest(TestCase):
 
     def test_email_subject(self):
         event1 = self.create_event(
-            event_id='a' * 32, group=self.group, tags={'level': 'info'}, message='Foo bar'
+            event_id='a' * 32, group=self.group, tags={'level': 'info'}, data=dict(message='Foo bar')
         )
         event2 = self.create_event(
-            event_id='b' * 32, group=self.group, tags={'level': 'ERROR'}, message='Foo bar'
+            event_id='b' * 32, group=self.group, tags={'level': 'ERROR'}, data=dict(message='Foo bar')
         )
         self.group.level = 30
 
@@ -164,12 +168,12 @@ class EventTest(TestCase):
 
 class EventGetLegacyMessageTest(TestCase):
     def test_message(self):
-        event = self.create_event(message='foo bar')
+        event = self.create_event(search_message='foo bar')
         assert event.get_legacy_message() == 'foo bar'
 
     def test_message_interface(self):
         event = self.create_event(
-            message='biz baz',
+            search_message='biz baz',
             data={'logentry': {
                 'message': 'foo bar'
             }},
@@ -178,7 +182,7 @@ class EventGetLegacyMessageTest(TestCase):
 
     def test_message_interface_with_formatting(self):
         event = self.create_event(
-            message='biz baz',
+            search_message='biz baz',
             data={
                 'logentry': {
                     'message': 'foo %s',

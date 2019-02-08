@@ -9,6 +9,7 @@ from semaphore import meta_with_chunks
 from sentry.api.serializers import Serializer, register, serialize
 from sentry.models import Event, EventError, EventAttachment, Release, UserReport
 from sentry.utils.safe import get_path
+from sentry.constants import LEGACY_MESSAGE_FALLBACK
 
 
 CRASH_FILE_TYPES = set(['event.minidump'])
@@ -112,7 +113,7 @@ class EventSerializer(Serializer):
         meta = get_path(event.data, '_meta', attr)
         return (value, meta_with_chunks(value, meta))
 
-    def _get_legacy_message_with_meta(self, event):
+    def _get_message_with_meta(self, event):
         meta = event.data.get('_meta')
 
         message = get_path(event.data, 'logentry', 'formatted')
@@ -121,10 +122,6 @@ class EventSerializer(Serializer):
         if not message:
             message = get_path(event.data, 'logentry', 'message')
             msg_meta = get_path(meta, 'logentry', 'message')
-
-        if not message:
-            message = event.message
-            msg_meta = None
 
         return (message, meta_with_chunks(message, msg_meta))
 
@@ -200,7 +197,7 @@ class EventSerializer(Serializer):
             if self.should_display_error(error)
         ]
 
-        (message, message_meta) = self._get_legacy_message_with_meta(obj)
+        (message, message_meta) = self._get_message_with_meta(obj)
         (tags, tags_meta) = self._get_tags_with_meta(obj)
         (context, context_meta) = self._get_attr_with_meta(obj, 'extra', {})
         (packages, packages_meta) = self._get_attr_with_meta(obj, 'modules', {})
@@ -223,8 +220,11 @@ class EventSerializer(Serializer):
             'size': obj.size,
             'entries': attrs['entries'],
             'dist': obj.dist,
-            # See GH-3248
             'message': message,
+            'searchMessage': obj.search_message,
+            'title': obj.title,
+            'location': obj.location,
+            'culprit': obj.culprit,
             'user': attrs['user'],
             'contexts': attrs['contexts'],
             'crashFile': attrs['crash_file'],
@@ -296,6 +296,10 @@ class SnubaEvent(object):
         'event_id',
         'project_id',
         'message',
+        'search_message',
+        'title',
+        'location',
+        'culprit',
         'user_id',
         'username',
         'ip_address',
@@ -330,10 +334,19 @@ class SnubaEventSerializer(Serializer):
         return []
 
     def serialize(self, obj, attrs, user):
+        title = obj.title
+        if LEGACY_MESSAGE_FALLBACK:
+            title = title or obj.message
+        message = obj.message
+        if LEGACY_MESSAGE_FALLBACK:
+            message = message or obj.search_message
         result = {
             'eventID': six.text_type(obj.event_id),
             'projectID': six.text_type(obj.project_id),
-            'message': obj.message,
+            'message': message,
+            'title': title,
+            'location': obj.location,
+            'culprit': obj.culprit,
             'dateCreated': obj.timestamp,
             'user': {
                 'id': obj.user_id,

@@ -226,13 +226,13 @@ class Fixtures(object):
 
     @fixture
     def group(self):
-        return self.create_group(message=u'\u3053\u3093\u306b\u3061\u306f')
+        return self.create_group(search_message=u'\u3053\u3093\u306b\u3061\u306f')
 
     @fixture
     def event(self):
         return self.create_event(
             event_id='a' * 32,
-            message=u'\u3053\u3093\u306b\u3061\u306f',
+            search_message=u'\u3053\u3093\u306b\u3061\u306f',
         )
 
     @fixture
@@ -473,8 +473,11 @@ class Fixtures(object):
             kwargs['group'] = self.group
         kwargs.setdefault('project', kwargs['group'].project)
         kwargs.setdefault('data', copy.deepcopy(DEFAULT_EVENT_DATA))
+        message = kwargs.pop('message', None)
+        if message is not None:
+            kwargs['data']['message'] = message
         kwargs.setdefault('platform', kwargs['data'].get('platform', 'python'))
-        kwargs.setdefault('message', kwargs['data'].get('message', 'message'))
+        kwargs.setdefault('search_message', kwargs['data'].get('message', 'message'))
         if kwargs.get('tags'):
             tags = kwargs.pop('tags')
             if isinstance(tags, dict):
@@ -499,7 +502,7 @@ class Fixtures(object):
         # parameter just like our API would
         if 'logentry' not in kwargs['data']:
             kwargs['data']['logentry'] = {
-                'message': kwargs['message'] or '<unlabeled event>',
+                'message': kwargs.get('search_message') or '<unlabeled event>',
             }
 
         if normalize:
@@ -507,7 +510,7 @@ class Fixtures(object):
                                    for_store=False)
             manager.normalize()
             kwargs['data'] = manager.get_data()
-            kwargs['message'] = manager.get_search_message()
+            kwargs['search_message'] = manager.get_search_message()
 
         event = Event(event_id=event_id, **kwargs)
         EventMapping.objects.create(
@@ -633,18 +636,19 @@ class Fixtures(object):
         return event
 
     def create_group(self, project=None, checksum=None, **kwargs):
+        assert 'message' not in kwargs, 'message was removed use search_message instead'
         if checksum:
             warnings.warn('Checksum passed to create_group', DeprecationWarning)
         if project is None:
             project = self.project
-        kwargs.setdefault('message', 'Hello world')
+        kwargs.setdefault('search_message', 'Hello world')
         kwargs.setdefault('data', {})
         if 'type' not in kwargs['data']:
             kwargs['data'].update(
                 {
                     'type': 'default',
                     'metadata': {
-                        'title': kwargs['message'],
+                        'title': kwargs['search_message'],
                     },
                 }
             )

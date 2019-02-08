@@ -65,7 +65,7 @@ class UnmergeTestCase(TestCase):
         events = [
             Event(
                 platform='javascript',
-                message='Hello from JavaScript',
+                search_message='Hello from JavaScript',
                 datetime=now,
                 data={
                     'type': 'default',
@@ -78,7 +78,7 @@ class UnmergeTestCase(TestCase):
             ),
             Event(
                 platform='python',
-                message='Hello from Python',
+                search_message='Hello from Python',
                 datetime=now - timedelta(hours=1),
                 data={
                     'type': 'default',
@@ -91,7 +91,7 @@ class UnmergeTestCase(TestCase):
             ),
             Event(
                 platform='java',
-                message='Hello from Java',
+                search_message='Hello from Java',
                 datetime=now - timedelta(hours=2),
                 data={
                     'type': 'default',
@@ -112,7 +112,7 @@ class UnmergeTestCase(TestCase):
             'first_seen': now - timedelta(hours=2),
             'last_seen': now,
             'platform': 'java',
-            'message': 'Hello from JavaScript',
+            'search_message': 'Hello from JavaScript',
             'level': logging.INFO,
             'score': Group.calculate_score(3, now),
             'logger': 'java',
@@ -135,7 +135,7 @@ class UnmergeTestCase(TestCase):
                 first_seen=now,
                 last_seen=now,
                 platform='javascript',
-                message='Hello from JavaScript',
+                search_message='Hello from JavaScript',
                 level=logging.INFO,
                 score=Group.calculate_score(3, now),
                 logger='javascript',
@@ -151,7 +151,7 @@ class UnmergeTestCase(TestCase):
             [
                 Event(
                     platform='python',
-                    message='Hello from Python',
+                    search_message='Hello from Python',
                     datetime=now - timedelta(hours=1),
                     data={
                         'type': 'default',
@@ -164,7 +164,7 @@ class UnmergeTestCase(TestCase):
                 ),
                 Event(
                     platform='java',
-                    message='Hello from Java',
+                    search_message='Hello from Java',
                     datetime=now - timedelta(hours=2),
                     data={
                         'type': 'default',
@@ -238,7 +238,7 @@ class UnmergeTestCase(TestCase):
                 project_id=project.id,
                 group_id=source.id,
                 event_id=event_id,
-                message='%s' % (id, ),
+                search_message='%s' % (id, ),
                 datetime=now + shift(i),
                 data={
                     'environment': environment,

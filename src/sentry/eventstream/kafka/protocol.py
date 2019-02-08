@@ -28,13 +28,16 @@ def basic_protocol_handler(unsupported_operations):
             "%Y-%m-%dT%H:%M:%S.%fZ",
         ).replace(tzinfo=pytz.utc)
 
+        def _get_attr(name):
+            return event_data[name]
+
         kwargs = {
             'event': Event(**{
-                name: event_data[name] for name in [
+                name: _get_attr(name) for name in [
                     'group_id',
                     'event_id',
                     'project_id',
-                    'message',
+                    'search_message',
                     'platform',
                     'datetime',
                     'data',

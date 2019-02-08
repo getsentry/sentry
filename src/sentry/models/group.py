@@ -21,7 +21,8 @@ from django.utils.translation import ugettext_lazy as _
 
 from sentry import eventtypes, tagstore
 from sentry.constants import (
-    DEFAULT_LOGGER_NAME, EVENT_ORDERING_KEY, LOG_LEVELS, MAX_CULPRIT_LENGTH
+    DEFAULT_LOGGER_NAME, EVENT_ORDERING_KEY, LOG_LEVELS, MAX_CULPRIT_LENGTH,
+    LEGACY_MESSAGE_FALLBACK
 )
 from sentry.db.models import (
     BaseManager, BoundedBigIntegerField, BoundedIntegerField, BoundedPositiveIntegerField,
@@ -100,7 +101,7 @@ class GroupManager(BaseManager):
             short_id=short_id,
         )
 
-    def from_kwargs(self, project, **kwargs):
+    def from_event_data(self, project, **kwargs):
         from sentry.event_manager import HashDiscarded, EventManager
 
         manager = EventManager(kwargs)
@@ -214,7 +215,7 @@ class Group(Model):
     level = BoundedPositiveIntegerField(
         choices=LOG_LEVELS.items(), default=logging.ERROR, blank=True, db_index=True
     )
-    message = models.TextField()
+    search_message = models.TextField(db_column='message')
     culprit = models.CharField(
         max_length=MAX_CULPRIT_LENGTH, blank=True, null=True, db_column='view'
     )
@@ -257,6 +258,15 @@ class Group(Model):
 
     __repr__ = sane_repr('project_id')
 
+    def __getstate__(self):
+        state = Model.__getstate__(self)
+        state['message'] = state.pop('search_message', None)
+        return state
+
+    def __setstate__(self, state):
+        state['search_message'] = state.pop('message')
+        Model.__setstate__(self, state)
+
     def __unicode__(self):
         return "(%s) %s" % (self.times_seen, self.error())
 
@@ -268,9 +278,9 @@ class Group(Model):
         if not self.active_at:
             self.active_at = self.first_seen
         # We limit what we store for the message body
-        self.message = strip(self.message)
-        if self.message:
-            self.message = truncatechars(self.message.splitlines()[0], 255)
+        self.search_message = strip(self.search_message)
+        if self.search_message:
+            self.search_message = truncatechars(self.search_message.splitlines()[0], 255)
         if self.times_seen is None:
             self.times_seen = 1
         self.score = type(self).calculate_score(
@@ -415,32 +425,23 @@ class Group(Model):
         See ``sentry.eventtypes``.
         """
         from sentry.event_manager import get_event_metadata_compat
-        return get_event_metadata_compat(self.data, self.message)
+        return get_event_metadata_compat(self.data)
 
     @property
     def title(self):
         et = eventtypes.get(self.get_event_type())(self.data)
         return et.to_string(self.get_event_metadata())
 
-    def error(self):
-        warnings.warn('Group.error is deprecated, use Group.title', DeprecationWarning)
-        return self.title
-
-    error.short_description = _('error')
-
     @property
-    def message_short(self):
-        warnings.warn('Group.message_short is deprecated, use Group.title', DeprecationWarning)
-        return self.title
+    def location(self):
+        et = eventtypes.get(self.get_event_type())(self.data)
+        return et.get_location(self.get_event_metadata())
+
+    # TODO(mitsuhiko): how to get real_message
 
     @property
     def organization(self):
         return self.project.organization
-
-    @property
-    def checksum(self):
-        warnings.warn('Group.checksum is no longer used', DeprecationWarning)
-        return ''
 
     def get_email_subject(self):
         return '%s - %s' % (
@@ -455,3 +456,29 @@ class Group(Model):
     @classmethod
     def calculate_score(cls, times_seen, last_seen):
         return math.log(float(times_seen or 1)) * 600 + float(last_seen.strftime('%s'))
+
+    # deprecated accessors
+
+    @property
+    def message(self):
+        if LEGACY_MESSAGE_FALLBACK:
+            warnings.warn(
+                'Group.message is deprecated. Use Group.search_message or Group.title instead.',
+                DeprecationWarning)
+            return self.title
+        raise NotImplementedError('This is no longer here')
+
+    def error(self):
+        if LEGACY_MESSAGE_FALLBACK:
+            warnings.warn('Group.error is deprecated, use Group.title', DeprecationWarning)
+            return self.title
+        raise NotImplementedError('This is no longer here')
+
+    error.short_description = _('error')
+
+    @property
+    def message_short(self):
+        if LEGACY_MESSAGE_FALLBACK:
+            warnings.warn('Group.message_short is deprecated, use Group.title', DeprecationWarning)
+            return self.title
+        raise NotImplementedError('This is no longer here')

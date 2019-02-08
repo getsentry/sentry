@@ -236,7 +236,7 @@ class DjangoSearchBackend(SearchBackend):
         group_queryset = QuerySetBuilder({
             'query': CallbackCondition(
                 lambda queryset, query: queryset.filter(
-                    Q(message__icontains=query) | Q(culprit__icontains=query),
+                    Q(search_message__icontains=query) | Q(culprit__icontains=query),
                 ) if query else queryset,
             ),
             'status': CallbackCondition(

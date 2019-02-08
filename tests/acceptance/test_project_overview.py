@@ -26,7 +26,7 @@ class ProjectOverviewTest(AcceptanceTestCase):
         self.project.update(first_event=timezone.now())
         self.create_group(
             project=self.project,
-            message='Foo bar',
+            search_message='Foo bar',
         )
         self.browser.get(self.path)
         self.browser.wait_until('.chart-wrapper')

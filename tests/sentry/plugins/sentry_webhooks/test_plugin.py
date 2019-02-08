@@ -23,7 +23,7 @@ class WebHooksPluginTest(TestCase):
     @responses.activate
     def test_simple_notification(self):
         responses.add(responses.POST, 'http://example.com')
-        group = self.create_group(message='Hello world')
+        group = self.create_group(search_message='Hello world')
         event = self.create_event(
             group=group, message='Hello world', tags={'level': 'warning'}, id=24
         )
