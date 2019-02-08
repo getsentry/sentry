@@ -258,7 +258,7 @@ class ProjectGeneralSettings extends AsyncView {
           <JsonForm
             {...jsonFormProps}
             title={t('Project Details')}
-            fields={[fields.slug, fields.name, fields.platform]}
+            fields={[fields.slug, fields.platform]}
           />
 
           <JsonForm
