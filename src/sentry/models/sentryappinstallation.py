@@ -53,3 +53,7 @@ class SentryAppInstallation(ParanoidModel):
     # Used when first creating an Installation to tell the serializer that the
     # grant code should be included in the serialization.
     is_new = False
+
+    def save(self, *args, **kwargs):
+        self.date_updated = timezone.now()
+        return super(SentryAppInstallation, self).save(*args, **kwargs)
