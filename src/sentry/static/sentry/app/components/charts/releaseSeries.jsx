@@ -1,9 +1,10 @@
 import {withRouter} from 'react-router';
 import PropTypes from 'prop-types';
 import React from 'react';
+import moment from 'moment';
 
 import {addErrorMessage} from 'app/actionCreators/indicator';
-import {getFormattedDate} from 'app/utils/dates';
+import {getUserTimezone} from 'app/utils/dates';
 import {t} from 'app/locale';
 import MarkLine from 'app/components/charts/components/markLine';
 import SentryTypes from 'app/sentryTypes';
@@ -23,6 +24,7 @@ class ReleaseSeries extends React.Component {
     router: PropTypes.object,
     organization: SentryTypes.Organization,
 
+    utc: PropTypes.bool,
     // Array of releases, if empty, component will fetch releases itself
     releases: PropTypes.arrayOf(SentryTypes.Release),
   };
@@ -53,7 +55,7 @@ class ReleaseSeries extends React.Component {
   }
 
   getReleaseSeries = releases => {
-    const {organization, router} = this.props;
+    const {utc, organization, router} = this.props;
 
     return {
       seriesName: 'Releases',
@@ -68,7 +70,9 @@ class ReleaseSeries extends React.Component {
         },
         tooltip: {
           formatter: ({data}) => {
-            return `<div>${getFormattedDate(data.value, 'MMM D, YYYY LT')} <br />
+            return `<div>${moment
+              .tz(data.value, utc ? 'UTC' : getUserTimezone())
+              .format('MMM D, YYYY LT')} <br />
             Release: ${data.name}<br />
             </div>`;
           },
