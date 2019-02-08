@@ -147,9 +147,13 @@ def merge_unreal_context_event(unreal_context, event, project):
 
                 my_regex = re.escape(match.group('package')) + r"(\.dll|\.exe)?$"
 
+                # baseaddr reported in the pcallstack missing most relevant bits:
+                # i.e: 0x0000000080db0000
+                # The image address should be used instead with the offset:
                 it = next(
                     (item for item in images if item.get("name") is not None and re.search(
                         my_regex, item.get("name"), re.IGNORECASE)), {})
+
                 image_addr = it.get('image_addr')
                 if image_addr:
                     # Rebase with the image address if available.
