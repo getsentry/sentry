@@ -8,6 +8,7 @@ import TextField from 'app/components/forms/textField';
 import NumberField from 'app/components/forms/numberField';
 import SelectControl from 'app/components/forms/selectControl';
 import Badge from 'app/components/badge';
+import getDynamicText from 'app/utils/getDynamicText';
 
 import Aggregations from '../aggregations';
 import Conditions from '../conditions';
@@ -92,7 +93,7 @@ export default class QueryFields extends React.Component {
               </SidebarLabel>
               <TextField
                 name="name"
-                value={savedQueryName}
+                value={getDynamicText({value: savedQueryName, fixed: 'query name'})}
                 placeholder={t('Saved search name')}
                 onChange={val => onUpdateName(val)}
               />
