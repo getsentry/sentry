@@ -203,6 +203,6 @@ GUIDES = {
             },
         ],
         'cta_text': _('Customize Alerts'),
-        'cta_link': '/settings/${orgSlug}/${projectSlug}/alerts/rules/',
+        'cta_link': '/settings/${orgSlug}/projects/${projectSlug}/alerts/rules/',
     },
 }
