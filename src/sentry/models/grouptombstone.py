@@ -9,7 +9,7 @@ from sentry.db.models import (
     BoundedPositiveIntegerField, FlexibleForeignKey, GzippedDictField, Model
 )
 
-TOMBSTONE_FIELDS_FROM_GROUP = ('project_id', 'level', 'search_message', 'culprit', 'data')
+TOMBSTONE_FIELDS_FROM_GROUP = ('project_id', 'level', 'message', 'culprit', 'data')
 
 
 class GroupTombstone(Model):
@@ -20,7 +20,7 @@ class GroupTombstone(Model):
     level = BoundedPositiveIntegerField(
         choices=LOG_LEVELS.items(), default=logging.ERROR, blank=True
     )
-    search_message = models.TextField(db_column='message')
+    message = models.TextField()
     culprit = models.CharField(
         max_length=MAX_CULPRIT_LENGTH,
         blank=True,
@@ -48,4 +48,4 @@ class GroupTombstone(Model):
         See ``sentry.eventtypes``.
         """
         from sentry.event_manager import get_event_metadata_compat
-        return get_event_metadata_compat(self.data)
+        return get_event_metadata_compat(self.data, self.message)

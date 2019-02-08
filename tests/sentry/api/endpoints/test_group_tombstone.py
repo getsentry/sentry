@@ -21,7 +21,7 @@ class GroupTombstoneTest(APITestCase):
         tombstone = GroupTombstone.objects.create(
             project_id=group.project_id,
             level=group.level,
-            search_message=group.search_message,
+            message=group.message,
             culprit=group.culprit,
             data=group.data,
             previous_group_id=group.id,
@@ -43,4 +43,4 @@ class GroupTombstoneTest(APITestCase):
 
         response = self.client.get(path)
         assert response.status_code == 200, response
-        assert response.data[0]['message'] == group.search_message
+        assert response.data[0]['message'] == group.message

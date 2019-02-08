@@ -389,8 +389,7 @@ def get_snuba_query_args(query=None, params=None):
             operator = '=' if _filter.operator == '!=' else '!='
             # make message search case insensitive
             kwargs['conditions'].append(
-                [['positionCaseInsensitive', [
-                    ['coalesce', ['search_message', 'message']], "'%s'" % (value,)]], operator, 0]
+                [['positionCaseInsensitive', ['message', "'%s'" % (value,)]], operator, 0]
             )
 
         else:

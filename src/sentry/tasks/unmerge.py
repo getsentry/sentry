@@ -90,7 +90,7 @@ initial_fields = {
         event.get_tag('level'),
         logging.ERROR,
     ),
-    'search_message': lambda event: event.search_message,
+    'message': lambda event: event.message,
     'times_seen': lambda event: 0,
 }
 

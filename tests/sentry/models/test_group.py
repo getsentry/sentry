@@ -126,10 +126,10 @@ class GroupTest(TestCase):
         assert group.first_release == release
 
     def test_save_truncate_message(self):
-        assert len(self.create_group(search_message='x' * 300).search_message) == 255
-        assert self.create_group(search_message='\nfoo\n   ').search_message == 'foo'
-        assert self.create_group(search_message='foo').search_message == 'foo'
-        assert self.create_group(search_message='').search_message == ''
+        assert len(self.create_group(message='x' * 300).message) == 255
+        assert self.create_group(message='\nfoo\n   ').message == 'foo'
+        assert self.create_group(message='foo').message == 'foo'
+        assert self.create_group(message='').message == ''
 
     def test_get_group_with_redirect(self):
         group = self.create_group()

@@ -30,7 +30,7 @@ class SnubaSearchTest(SnubaTestCase):
         self.group1 = self.create_group(
             project=self.project,
             checksum='a' * 32,
-            search_message='foo',
+            message='foo',
             times_seen=5,
             status=GroupStatus.UNRESOLVED,
             last_seen=self.base_datetime,
@@ -40,7 +40,7 @@ class SnubaSearchTest(SnubaTestCase):
             event_id='a' * 32,
             group=self.group1,
             datetime=self.base_datetime - timedelta(days=31),
-            search_message='group1',
+            message='group1',
             stacktrace={
                 'frames': [{
                     'module': 'group1'
@@ -54,7 +54,7 @@ class SnubaSearchTest(SnubaTestCase):
             event_id='c' * 32,
             group=self.group1,
             datetime=self.base_datetime,
-            search_message='group1',
+            message='group1',
             stacktrace={
                 'frames': [{
                     'module': 'group1'
@@ -68,7 +68,7 @@ class SnubaSearchTest(SnubaTestCase):
         self.group2 = self.create_group(
             project=self.project,
             checksum='b' * 32,
-            search_message='bar',
+            message='bar',
             times_seen=10,
             status=GroupStatus.RESOLVED,
             last_seen=self.base_datetime - timedelta(days=30),
@@ -78,7 +78,7 @@ class SnubaSearchTest(SnubaTestCase):
             event_id='b' * 32,
             group=self.group2,
             datetime=self.base_datetime - timedelta(days=30),
-            search_message='group2',
+            message='group2',
             stacktrace={
                 'frames': [{
                     'module': 'group2'
@@ -121,7 +121,7 @@ class SnubaSearchTest(SnubaTestCase):
         self.group_p2 = self.create_group(
             project=self.project2,
             checksum='a' * 32,
-            search_message='foo',
+            message='foo',
             times_seen=6,
             status=GroupStatus.UNRESOLVED,
             last_seen=self.base_datetime - timedelta(days=1),
@@ -131,7 +131,7 @@ class SnubaSearchTest(SnubaTestCase):
             event_id='a' * 32,
             group=self.group_p2,
             datetime=self.base_datetime - timedelta(days=31),
-            search_message='group1',
+            message='group1',
             stacktrace={
                 'frames': [{
                     'module': 'group_p2'
@@ -246,7 +246,7 @@ class SnubaSearchTest(SnubaTestCase):
             self.create_event(
                 group=self.group2,
                 datetime=dt,
-                search_message='group2',
+                message='group2',
                 stacktrace={
                     'frames': [{
                         'module': 'group2'
@@ -457,7 +457,7 @@ class SnubaSearchTest(SnubaTestCase):
             self.create_event(
                 group=self.group2,
                 datetime=dt,
-                search_message='group2',
+                message='group2',
                 stacktrace={
                     'frames': [{
                         'module': 'group2'
@@ -549,7 +549,7 @@ class SnubaSearchTest(SnubaTestCase):
         self.create_event(
             group=self.group1,
             datetime=self.group1.first_seen + timedelta(days=1),
-            search_message='group1',
+            message='group1',
             stacktrace={
                 'frames': [{
                     'module': 'group1'
@@ -646,7 +646,7 @@ class SnubaSearchTest(SnubaTestCase):
         self.create_event(
             group=self.group1,
             datetime=self.group1.last_seen + timedelta(days=1),
-            search_message='group1',
+            message='group1',
             stacktrace={
                 'frames': [{
                     'module': 'group1'
@@ -1024,7 +1024,7 @@ class SnubaSearchTest(SnubaTestCase):
             group = self.create_group(
                 project=self.project,
                 checksum=md5('group {}'.format(i)).hexdigest(),
-                search_message='group {}'.format(i),
+                message='group {}'.format(i),
                 times_seen=5,
                 status=GroupStatus.UNRESOLVED if i % 3 == 0 else GroupStatus.RESOLVED,
                 last_seen=self.base_datetime,
@@ -1034,7 +1034,7 @@ class SnubaSearchTest(SnubaTestCase):
                 event_id=md5('event {}'.format(i)).hexdigest(),
                 group=group,
                 datetime=self.base_datetime - timedelta(days=31),
-                search_message='group {} event'.format(i),
+                message='group {} event'.format(i),
                 stacktrace={
                     'frames': [{
                         'module': 'module {}'.format(i)

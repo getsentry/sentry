@@ -472,7 +472,7 @@ class GroupUpdateTest(APITestCase):
         tombstone = GroupTombstone.objects.get(
             id=GroupHash.objects.get(id=group_hash.id).group_tombstone_id,
         )
-        assert tombstone.search_message == group.search_message
+        assert tombstone.message == group.message
         assert tombstone.culprit == group.culprit
         assert tombstone.project == group.project
         assert tombstone.data == group.data

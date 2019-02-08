@@ -98,7 +98,7 @@ class EventCommittersTest(APITestCase):
             project_id=project.id,
             group_id=group.id,
             event_id='abcd',
-            search_message='hello 123456',
+            message='hello 123456',
             data={
                 'environment': 'production',
                 'type': 'default',

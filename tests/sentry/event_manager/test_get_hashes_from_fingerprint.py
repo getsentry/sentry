@@ -27,7 +27,7 @@ def test_stacktrace_wins_over_http(http_comp_hash, stack_comp_hash):
             },
         },
         platform='python',
-        search_message='Foo bar',
+        message='Foo bar',
     )
     hashes = event.get_hashes()
     assert len(hashes) == 1

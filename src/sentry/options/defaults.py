@@ -58,11 +58,7 @@ register(
 register('redis.options', type=Dict, flags=FLAG_NOSTORE)
 
 # symbolizer specifics
-register(
-    'dsym.cache-path',
-    type=String,
-    default='/tmp/sentry-dsym-cache',
-    flags=FLAG_PRIORITIZE_DISK)
+register('dsym.cache-path', type=String, default='/tmp/sentry-dsym-cache', flags=FLAG_PRIORITIZE_DISK)
 
 # Mail
 register('mail.backend', default='smtp', flags=FLAG_NOSTORE)

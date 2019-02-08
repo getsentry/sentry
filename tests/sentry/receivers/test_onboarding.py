@@ -136,7 +136,7 @@ class OrganizationOnboardingTaskTest(TestCase):
         project = self.create_project(first_event=now)
         project_created.send(project=project, user=self.user, sender=type(project))
         group = self.create_group(
-            project=project, platform='javascript', search_message='javascript error message'
+            project=project, platform='javascript', message='javascript error message'
         )
         first_event_received.send(project=project, group=group, sender=type(project))
 
@@ -159,7 +159,7 @@ class OrganizationOnboardingTaskTest(TestCase):
         assert second_task is not None
 
         second_group = self.create_group(
-            project=second_project, platform='python', search_message='python error message'
+            project=second_project, platform='python', message='python error message'
         )
         first_event_received.send(
             project=second_project, group=second_group, sender=type(second_project)
@@ -257,7 +257,7 @@ class OrganizationOnboardingTaskTest(TestCase):
         project = self.create_project(first_event=now)
         second_project = self.create_project(first_event=now)
         second_group = self.create_group(
-            project=second_project, platform='python', search_message='python error message'
+            project=second_project, platform='python', message='python error message'
         )
         event = self.create_full_event()
         member = self.create_member(organization=self.organization, teams=[self.team], user=user)

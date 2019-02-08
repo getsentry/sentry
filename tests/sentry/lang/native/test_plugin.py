@@ -1605,7 +1605,7 @@ class MinidumpIntegrationTest(TestCase):
     def test_attachment_deletion(self):
         event = self.create_event(
             event_id='a' * 32,
-            search_message='Minidump test event',
+            message='Minidump test event',
         )
 
         attachment = self.create_event_attachment(event=event, name='log.txt')

@@ -26,7 +26,7 @@ class EventsTableBody extends React.PureComponent {
 
     return events.map((event, eventIdx) => {
       const project = projectsMap.get(event.projectID);
-      const trimmedMessage = event.title || event.message.split('\n')[0].substr(0, 100);
+      const trimmedMessage = event.message.split('\n')[0].substr(0, 100);
 
       const hasSentry10 = new Set(organization.features).has('sentry10');
 

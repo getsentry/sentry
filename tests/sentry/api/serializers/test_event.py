@@ -103,11 +103,10 @@ class EventSerializerTest(TestCase):
 
     def test_message_legacy(self):
         event = self.create_event(data={'logentry': None})
-        event.search_message = 'search message'
+        event.message = 'search message'
 
         result = serialize(event)
-        assert result['message'] is None
-        assert result['searchMessage'] == 'search message'
+        assert result['message'] == 'search message'
 
     def test_tags_tuples(self):
         event = self.create_event(

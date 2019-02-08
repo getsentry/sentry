@@ -45,8 +45,7 @@ def requires_kafka(function):
         if not has_kafka_client:
             return pytest.xfail('test requires confluent_kafka which is not installed')
         if 'SENTRY_KAFKA_HOSTS' not in os.environ:
-            return pytest.xfail(
-                'test requires SENTRY_KAFKA_HOSTS environment variable which is not set')
+            return pytest.xfail('test requires SENTRY_KAFKA_HOSTS environment variable which is not set')
         return function(*args, **kwargs)
 
     return wrapper
@@ -537,8 +536,7 @@ def collect_messages_recieved(count):
 
 
 @requires_kafka
-@pytest.mark.xfail(
-    reason='assignment during rebalance requires partition rollback to last committed offset', run=False)
+@pytest.mark.xfail(reason='assignment during rebalance requires partition rollback to last committed offset', run=False)
 def test_consumer_rebalance_from_uncommitted_offset():
     consumer_group = 'consumer-{}'.format(uuid.uuid1().hex)
     synchronize_commit_group = 'consumer-{}'.format(uuid.uuid1().hex)

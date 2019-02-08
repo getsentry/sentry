@@ -423,7 +423,7 @@ class GetSnubaQueryArgsTest(TestCase):
                 ['email', '=', 'foo@example.com'],
                 ['tags[sentry:release]', '=', '1.2.1'],
                 ['tags[fruit]', '=', 'apple'],
-                [['positionCaseInsensitive', [['coalesce', ['search_message', 'message']], "'hello'"]], '!=', 0],
+                [['positionCaseInsensitive', ['message', "'hello'"]], '!=', 0],
             ],
             'filter_keys': {'project_id': [1, 2, 3]},
             'start': datetime.datetime(2015, 5, 18, 10, 15, 1, tzinfo=timezone.utc),
@@ -484,8 +484,7 @@ class GetSnubaQueryArgsTest(TestCase):
         assert get_snuba_query_args('!message:"post_process.process_error HTTPError 403"') == {
             'filter_keys': {},
             'conditions': [[
-                ['positionCaseInsensitive', [['coalesce', ['search_message', 'message']],
-                                             "'post_process.process_error HTTPError 403'"]],
+                ['positionCaseInsensitive', ['message', "'post_process.process_error HTTPError 403'"]],
                 '=',
                 0,
             ]]

@@ -230,16 +230,3 @@ class DoubleAliasingTests(TestCase):
         assert view['logentry'] == 'foo'
         assert view['sentry.interfaces.Message'] == 'foo'
         assert view['message'] == 'foo'
-
-    def test_legacy_message(self):
-        view = CanonicalKeyView({'message': 'bar', 'logentry': 'foo'})
-        assert len(view) == 1
-        assert view.keys() == ['logentry']
-
-        assert 'logentry' in view
-        assert 'sentry.interfaces.Message' in view
-        assert 'message' in view
-
-        assert view['logentry'] == 'foo'
-        assert view['sentry.interfaces.Message'] == 'foo'
-        assert view['message'] == 'foo'

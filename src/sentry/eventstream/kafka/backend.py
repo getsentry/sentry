@@ -132,10 +132,12 @@ class KafkaEventStream(EventStream):
             'event_id': event.event_id,
             'organization_id': project.organization_id,
             'project_id': event.project_id,
-            'search_message': event.search_message,
+            # TODO(mitsuhiko): We do not want to send this incorrect
+            # message but this is what snuba needs at the moment.
+            'message': event.message,
             'platform': event.platform,
             'datetime': event.datetime,
-            'data': event.as_dict(),
+            'data': dict(event.data.items()),
             'primary_hash': primary_hash,
             'retention_days': retention_days,
         }, {

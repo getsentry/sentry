@@ -47,12 +47,8 @@ class MailPluginTest(TestCase):
         assert not self.plugin.should_notify(group=Mock(), event=Mock())
 
     def test_simple_notification(self):
-        group = self.create_group(search_message='Hello world')
-        event = self.create_event(
-            group=group,
-            search_message='Hello world',
-            tags={
-                'level': 'error'})
+        group = self.create_group(message='Hello world')
+        event = self.create_event(group=group, message='Hello world', tags={'level': 'error'})
 
         rule = Rule.objects.create(project=self.project, label='my rule')
 
@@ -81,7 +77,7 @@ class MailPluginTest(TestCase):
         event = Event()
         event.group = group
         event.project = self.project
-        event.search_message = 'hello world'
+        event.message = 'hello world'
         event.interfaces = {'stacktrace': stacktrace}
 
         notification = Notification(event=event)
@@ -108,7 +104,7 @@ class MailPluginTest(TestCase):
         event = Event()
         event.group = group
         event.project = self.project
-        event.search_message = 'Soubor ji\xc5\xbe existuje'
+        event.message = 'Soubor ji\xc5\xbe existuje'
         event.interfaces = {'stacktrace': stacktrace}
 
         notification = Notification(event=event)
@@ -134,7 +130,7 @@ class MailPluginTest(TestCase):
             first_seen=timezone.now(),
             last_seen=timezone.now(),
             project=self.project,
-            search_message=event_manager.get_search_message(),
+            message=event_manager.get_search_message(),
             logger='root',
             short_id=2,
             data={
@@ -145,7 +141,7 @@ class MailPluginTest(TestCase):
 
         event = Event(
             group=group,
-            search_message=group.search_message,
+            message=group.message,
             project=self.project,
             datetime=group.last_seen,
             data=event_data
@@ -177,7 +173,7 @@ class MailPluginTest(TestCase):
             first_seen=timezone.now(),
             last_seen=timezone.now(),
             project=self.project,
-            search_message=event_manager.get_search_message(),
+            message=event_manager.get_search_message(),
             logger='root',
             short_id=2,
             data={
@@ -188,7 +184,7 @@ class MailPluginTest(TestCase):
 
         event = Event(
             group=group,
-            search_message=group.search_message,
+            message=group.message,
             project=self.project,
             datetime=group.last_seen,
             data=event_data,
@@ -256,8 +252,8 @@ class MailPluginTest(TestCase):
         assert user4.pk not in self.plugin.get_sendable_users(project)
 
     def test_notify_users_with_utf8_subject(self):
-        group = self.create_group(search_message='Hello world')
-        event = self.create_event(group=group, search_message=u'רונית מגן', tags={'level': 'error'})
+        group = self.create_group(message='Hello world')
+        event = self.create_event(group=group, message=u'רונית מגן', tags={'level': 'error'})
 
         notification = Notification(event=event)
 
@@ -535,7 +531,7 @@ class MailPluginOwnersTest(TestCase):
             first_seen=timezone.now(),
             last_seen=timezone.now(),
             project=self.project,
-            search_message='hello  world',
+            message='hello  world',
             logger='root',
         )
         ProjectOwnership.objects.create(
@@ -582,7 +578,7 @@ class MailPluginOwnersTest(TestCase):
     def test_get_send_to_with_team_owners(self):
         event = Event(
             group=self.group,
-            search_message=self.group.search_message,
+            message=self.group.message,
             project=self.project,
             datetime=self.group.last_seen,
             data=self.make_event_data('foo.py')
@@ -593,7 +589,7 @@ class MailPluginOwnersTest(TestCase):
     def test_get_send_to_with_user_owners(self):
         event = Event(
             group=self.group,
-            search_message=self.group.search_message,
+            message=self.group.message,
             project=self.project,
             datetime=self.group.last_seen,
             data=self.make_event_data('foo.cbl')
@@ -604,7 +600,7 @@ class MailPluginOwnersTest(TestCase):
     def test_get_send_to_with_user_owner(self):
         event = Event(
             group=self.group,
-            search_message=self.group.search_message,
+            message=self.group.message,
             project=self.project,
             datetime=self.group.last_seen,
             data=self.make_event_data('foo.jx')
@@ -615,7 +611,7 @@ class MailPluginOwnersTest(TestCase):
     def test_get_send_to_with_fallthrough(self):
         event = Event(
             group=self.group,
-            search_message=self.group.search_message,
+            message=self.group.message,
             project=self.project,
             datetime=self.group.last_seen,
             data=self.make_event_data('foo.jx')
@@ -627,7 +623,7 @@ class MailPluginOwnersTest(TestCase):
         ProjectOwnership.objects.get(project_id=self.project.id).update(fallthrough=False)
         event = Event(
             group=self.group,
-            search_message=self.group.search_message,
+            message=self.group.message,
             project=self.project,
             datetime=self.group.last_seen,
             data=self.make_event_data('foo.cpp')
@@ -637,7 +633,7 @@ class MailPluginOwnersTest(TestCase):
     def test_notify_users_with_owners(self):
         event_all_users = Event(
             group=self.group,
-            search_message=self.group.search_message,
+            message=self.group.message,
             project=self.project,
             datetime=self.group.last_seen,
             data=self.make_event_data('foo.cbl'),
@@ -646,7 +642,7 @@ class MailPluginOwnersTest(TestCase):
 
         event_team = Event(
             group=self.group,
-            search_message=self.group.search_message,
+            message=self.group.message,
             project=self.project,
             datetime=self.group.last_seen,
             data=self.make_event_data('foo.py'),
@@ -655,7 +651,7 @@ class MailPluginOwnersTest(TestCase):
 
         event_single_user = Event(
             group=self.group,
-            search_message=self.group.search_message,
+            message=self.group.message,
             project=self.project,
             datetime=self.group.last_seen,
             data=self.make_event_data('foo.jx'),
