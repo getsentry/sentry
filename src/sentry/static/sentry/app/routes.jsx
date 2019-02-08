@@ -665,6 +665,17 @@ function routes() {
               {projectSettingsRoutes}
             </Route>
           </Route>
+
+          <Redirect from=":projectId/" to="projects/:projectId/" />
+          <Redirect from=":projectId/alerts/" to="projects/:projectId/alerts/" />
+          <Redirect
+            from=":projectId/alerts/rules/"
+            to="projects/:projectId/alerts/rules/"
+          />
+          <Redirect
+            from=":projectId/alerts/rules/:ruleId/"
+            to="projects/:projectId/alerts/rules/:ruleId/"
+          />
         </Route>
       </Route>
 
