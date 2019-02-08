@@ -385,6 +385,7 @@ class GlobalSelectionHeader extends React.Component {
                 utc={utc}
                 onChange={this.handleChangeTime}
                 onUpdate={this.handleUpdateTime}
+                organization={organization}
               />
             </HeaderItemPosition>
           </React.Fragment>
