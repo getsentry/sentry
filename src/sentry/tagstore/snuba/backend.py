@@ -49,6 +49,16 @@ def fix_tag_value_data(data):
 
 class SnubaTagStorage(TagStorage):
 
+    # These keys correspond to tags that are typically prefixed with `sentry:`
+    # and will wreak havok in the UI if both the `sentry:`-prefixed and
+    # non-prefixed variations occur in a response. For now, it's easier to hide
+    # these results since they happen relatively infrequently.
+    EXCLUDE_TAG_KEYS = frozenset([
+        'dist',
+        'release',
+        'user',
+    ])
+
     def get_time_range(self, days=90):
         """
         Returns the default (start, end) time range for querrying snuba.
@@ -168,10 +178,11 @@ class SnubaTagStorage(TagStorage):
             ['uniq', 'tags_value', 'values_seen'],
             ['count()', '', 'count']
         ]
+        conditions = [['tags_key', 'NOT IN', self.EXCLUDE_TAG_KEYS]]
 
         # TODO should this be sorted by count() descending, rather than the
         # number of unique values
-        result = snuba.query(start, end, ['tags_key'], [], filters,
+        result = snuba.query(start, end, ['tags_key'], conditions, filters,
                              aggregations, limit=limit, orderby='-values_seen',
                              referrer='tagstore.__get_tag_keys')
 
@@ -361,9 +372,10 @@ class SnubaTagStorage(TagStorage):
             ['min', SEEN_COLUMN, 'first_seen'],
             ['max', SEEN_COLUMN, 'last_seen'],
         ]
+        conditions = [['tags_key', 'NOT IN', self.EXCLUDE_TAG_KEYS]]
 
         values_by_key = snuba.query(
-            start, end, ['tags_key', 'tags_value'], None, filters, aggregations,
+            start, end, ['tags_key', 'tags_value'], conditions, filters, aggregations,
             orderby='-count', limitby=[value_limit, 'tags_key'],
             referrer='tagstore.__get_tag_keys_and_top_values'
         )
