@@ -186,6 +186,10 @@ class SnubaTagStorage(TagStorage):
                 values_seen=data['values_seen'],
                 count=data['count'],
             ) for key, data in six.iteritems(result) if data['values_seen']
+            # HACK(mitsuhiko): these tags were incorretly created on
+            # feb 8th 2019 for 30 minutes.  Ignore them for now to prevent
+            # failures in the UI.
+            if key not in ('release', 'user')
         ])
 
     def __get_tag_value(self, project_id, group_id, environment_id, key, value):
