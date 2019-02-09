@@ -28,10 +28,6 @@ def basic_protocol_handler(unsupported_operations):
             "%Y-%m-%dT%H:%M:%S.%fZ",
         ).replace(tzinfo=pytz.utc)
 
-        # workaround for temporarily bad events
-        if 'search_message' in event_data and not event_data.get('message'):
-            event_data['message'] = event_data['search_message']
-
         kwargs = {
             'event': Event(**{
                 name: event_data[name] for name in [
