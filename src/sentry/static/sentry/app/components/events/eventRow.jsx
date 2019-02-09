@@ -45,7 +45,7 @@ class EventRow extends React.Component {
       <tr>
         <td>
           <h5>
-            <Link to={eventLink}>{event.message}</Link>
+            <Link to={eventLink}>{event.title || event.message}</Link>
           </h5>
           <small className="tagList">
             {tagList.map(tag => {

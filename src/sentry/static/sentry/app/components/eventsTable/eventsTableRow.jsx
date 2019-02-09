@@ -21,6 +21,8 @@ class EventsTableRow extends React.Component {
   };
 
   getEventTitle = event => {
+    // XXX(mitsuhiko): event.title did not exist originally.  At one point
+    // all events will have this and most of this logic could go
     switch (event.type) {
       case 'error':
         if (event.metadata.type && event.metadata.value)
@@ -31,7 +33,7 @@ class EventsTableRow extends React.Component {
       case 'default':
         return event.metadata.title;
       default:
-        return event.message.split('\n')[0];
+        return event.title || event.message.split('\n')[0];
     }
   };
 
