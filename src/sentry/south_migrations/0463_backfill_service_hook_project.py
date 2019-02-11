@@ -40,7 +40,7 @@ class Migration(DataMigration):
                         service_hook_id=service_hook.id,
                     )
                     project = Project.objects.get(id=service_hook.project_id)
-                    service_hook.update(organization_id=project.organization_id)
+                    service_hook.objects.update(organization_id=project.organization_id)
             except IntegrityError:
                 pass
 
