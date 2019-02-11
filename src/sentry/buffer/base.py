@@ -73,10 +73,6 @@ class Buffer(Service):
                 last_seen=update_kwargs['last_seen'],
             )
 
-        # HACK: temporary workaround
-        if model is Group and 'search_message' in update_kwargs:
-            update_kwargs['message'] = update_kwargs.pop('search_message')
-
         _, created = model.objects.create_or_update(values=update_kwargs, **filters)
 
         buffer_incr_complete.send_robust(
