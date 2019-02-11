@@ -37,7 +37,6 @@ import SelectField from 'app/views/settings/components/forms/selectField';
 import SentryTypes from 'app/sentryTypes';
 import SettingsPageHeader from 'app/views/settings/components/settingsPageHeader';
 import StackedBarChart from 'app/components/stackedBarChart';
-import TextBlock from 'app/views/settings/components/text/textBlock';
 import TextCopyInput from 'app/views/settings/components/forms/textCopyInput';
 import TextField from 'app/views/settings/components/forms/textField';
 import getDynamicText from 'app/utils/getDynamicText';
@@ -153,12 +152,10 @@ const KeyStats = createReactClass({
               tooltip={this.renderTooltip}
             />
           ) : (
-            <EmptyMessage css={{flexDirection: 'column', alignItems: 'center'}}>
-              <EmptyHeader>{t('Nothing recorded in the last 30 days.')}</EmptyHeader>
-              <TextBlock css={{marginBottom: 0}}>
-                {t('Total events captured using these credentials.')}
-              </TextBlock>
-            </EmptyMessage>
+            <EmptyMessage
+              title={t('Nothing recorded in the last 30 days.')}
+              description={t('Total events captured using these credentials.')}
+            />
           )}
         </PanelBody>
       </Panel>
@@ -506,7 +503,3 @@ export default class ProjectKeyDetails extends AsyncView {
     );
   }
 }
-
-const EmptyHeader = styled.div`
-  font-size: 1.3em;
-`;

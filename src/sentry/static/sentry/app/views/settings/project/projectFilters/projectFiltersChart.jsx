@@ -199,14 +199,12 @@ const ProjectFiltersChart = createReactClass({
             )}
           {hasLoaded &&
             this.state.blankStats && (
-              <EmptyMessage css={{flexDirection: 'column', alignItems: 'center'}}>
-                <h3 css={noMarginBottom}>{t('Nothing filtered in the last 30 days.')}</h3>
-                <TextBlock css={{fontSize: '0.9em', ...noMarginBottom}}>
-                  {t(
-                    'Issues filtered as a result of your settings below will be shown here.'
-                  )}
-                </TextBlock>
-              </EmptyMessage>
+              <EmptyMessage
+                title={t('Nothing filtered in the last 30 days.')}
+                description={t(
+                  'Issues filtered as a result of your settings below will be shown here.'
+                )}
+              />
             )}
         </PanelBody>
       </Panel>
