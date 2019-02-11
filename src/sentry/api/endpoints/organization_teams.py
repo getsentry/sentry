@@ -1,5 +1,6 @@
 from __future__ import absolute_import
 
+import copy
 import six
 
 from django.db import IntegrityError, transaction
@@ -42,6 +43,10 @@ def list_organization_teams_scenario(runner):
 # OrganizationPermission + team:write
 class OrganizationTeamsPermission(OrganizationPermission):
     def __init__(self):
+        # Deep clone so we don't mutate the dict
+        # on the parent class object.
+        self.scope_map = copy.deepcopy(self.scope_map)
+
         for m in 'POST', 'PUT', 'DELETE':
             self.scope_map[m].append('team:write')
 
