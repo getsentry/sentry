@@ -43,21 +43,6 @@ const ORG_DISABLED_REASON = t(
 const hasOrgOverride = ({organization, name}) => organization[name];
 
 export const fields = {
-  name: {
-    name: 'name',
-    type: 'string',
-    required: true,
-
-    label: t('Legacy Name'),
-    placeholder: t('My Service Name'),
-    help: tct(
-      '[Deprecated] In the future, only [Name] will be used to identify your project',
-      {
-        Deprecated: <strong>DEPRECATED</strong>,
-        Name: <strong>Name</strong>,
-      }
-    ),
-  },
   slug: {
     name: 'slug',
     type: 'string',

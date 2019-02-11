@@ -57,7 +57,6 @@ describe('projectGeneralSettings', function() {
       TestStubs.routerContext()
     );
 
-    expect(wrapper.find('Input[name="name"]').prop('value')).toBe('Project Name');
     expect(wrapper.find('Input[name="slug"]').prop('value')).toBe('project-slug');
     expect(wrapper.find('Input[name="subjectPrefix"]').prop('value')).toBe('[my-org]');
     expect(wrapper.find('RangeSlider[name="resolveAge"]').prop('value')).toBe(48);
