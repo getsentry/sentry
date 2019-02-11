@@ -259,6 +259,15 @@ class IssueBasicMixin(object):
 
         return annotations
 
+    def get_comment_id(self, comment):
+        return comment['id']
+
+    def create_comment(self, issue_id, user_id, group_note):
+        pass
+
+    def update_comment(self, issue_id, user_id, group_note):
+        pass
+
 
 class IssueSyncMixin(IssueBasicMixin):
     comment_key = None

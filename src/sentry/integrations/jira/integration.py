@@ -287,12 +287,22 @@ class JiraIntegration(IntegrationInstallation, IssueSyncMixin):
             'description': issue['fields']['description'],
         }
 
-    def create_comment(self, issue_id, user_id, comment):
+    def create_comment(self, issue_id, user_id, group_note):
         # https://jira.atlassian.com/secure/WikiRendererHelpAction.jspa?section=texteffects
+        comment = group_note.data['text']
+        quoted_comment = self.create_comment_attribution(user_id, comment)
+        return self.get_client().create_comment(issue_id, quoted_comment)
+
+    def create_comment_attribution(self, user_id, comment_text):
         user = User.objects.get(id=user_id)
         attribution = '%s wrote:\n\n' % user.name
-        quoted_comment = '%s{quote}%s{quote}' % (attribution, comment)
-        return self.get_client().create_comment(issue_id, quoted_comment)
+        return '%s{quote}%s{quote}' % (attribution, comment_text)
+
+    def update_comment(self, issue_id, user_id, group_note):
+        quoted_comment = self.create_comment_attribution(user_id, group_note.data['text'])
+        return self.get_client().update_comment(
+            issue_id, group_note.data['external_id'], quoted_comment,
+        )
 
     def search_issues(self, query):
         try:

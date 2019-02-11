@@ -8,7 +8,7 @@ import six
 
 from sentry import analytics, features
 from sentry.models import (
-    ExternalIssue, Group, GroupLink, GroupStatus, Integration, Organization,
+    Activity, ExternalIssue, Group, GroupLink, GroupStatus, Integration, Organization,
     ObjectStatus, OrganizationIntegration, Repository, User
 )
 
@@ -19,12 +19,21 @@ from sentry.tasks.base import instrumented_task, retry
 logger = logging.getLogger('sentry.tasks.integrations')
 
 
+def should_comment_sync(installation, external_issue):
+    organization = Organization.objects.get(id=external_issue.organization_id)
+    has_issue_sync = features.has('organizations:integrations-issue-sync',
+                                  organization)
+    return has_issue_sync and installation.should_sync('comment')
+
+
 @instrumented_task(
     name='sentry.tasks.integrations.post_comment',
     queue='integrations',
     default_retry_delay=60 * 5,
     max_retries=5
 )
+# TODO(lb): Replaced by create_comment method. Remove once all preexisting jobs have executed.
+# no longer in use
 # TODO(jess): Add more retry exclusions once ApiClients have better error handling
 @retry(exclude=(ExternalIssue.DoesNotExist, Integration.DoesNotExist))
 def post_comment(external_issue_id, data, user_id, **kwargs):
@@ -50,6 +59,80 @@ def post_comment(external_issue_id, data, user_id, **kwargs):
             organization_id=external_issue.organization_id,
             user_id=user_id,
         )
+
+
+@instrumented_task(
+    name='sentry.tasks.integrations.create_comment',
+    queue='integrations',
+    default_retry_delay=60 * 5,
+    max_retries=5
+)
+# TODO(jess): Add more retry exclusions once ApiClients have better error handling
+@retry(exclude=(ExternalIssue.DoesNotExist, Integration.DoesNotExist))
+def create_comment(external_issue_id, user_id, group_note_id, **kwargs):
+    external_issue = ExternalIssue.objects.get(id=external_issue_id)
+    installation = Integration.objects.get(
+        id=external_issue.integration_id
+    ).get_installation(
+        organization_id=external_issue.organization_id,
+    )
+
+    if not should_comment_sync(installation, external_issue):
+        return
+    try:
+        note = Activity.objects.get(
+            type=Activity.NOTE,
+            id=group_note_id,
+        )
+    except Activity.DoesNotExist:
+        return
+    comment = installation.create_comment(external_issue.key, user_id, note)
+    note.data['external_id'] = installation.get_comment_id(comment)
+    note.save()
+    analytics.record(
+        # TODO(lb): this should be changed and/or specified?
+        'integration.issue.comments.synced',
+        provider=installation.model.provider,
+        id=installation.model.id,
+        organization_id=external_issue.organization_id,
+        user_id=user_id,
+    )
+
+
+@instrumented_task(
+    name='sentry.tasks.integrations.update_comment',
+    queue='integrations',
+    default_retry_delay=60 * 5,
+    max_retries=5
+)
+# TODO(jess): Add more retry exclusions once ApiClients have better error handling
+@retry(exclude=(ExternalIssue.DoesNotExist, Integration.DoesNotExist))
+def update_comment(external_issue_id, user_id, group_note_id, **kwargs):
+    external_issue = ExternalIssue.objects.get(id=external_issue_id)
+    installation = Integration.objects.get(
+        id=external_issue.integration_id
+    ).get_installation(
+        organization_id=external_issue.organization_id,
+    )
+
+    if not should_comment_sync(installation, external_issue):
+        return
+    try:
+        note = Activity.objects.get(
+            type=Activity.NOTE,
+            id=group_note_id,
+        )
+    except Activity.DoesNotExist:
+        return
+    installation.update_comment(external_issue.key, user_id, note)
+    analytics.record(
+        # TODO(lb): this should be changed and/or specified?
+        'integration.issue.comments.synced',
+        provider=installation.model.provider,
+        id=installation.model.id,
+        organization_id=external_issue.organization_id,
+        user_id=user_id,
+    )
 
 
 @instrumented_task(

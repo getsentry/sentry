@@ -228,4 +228,4 @@ class GroupNoteCreateTest(APITestCase):
                 activity = Activity.objects.get(id=response.data['id'])
                 assert activity.user == self.user
                 assert activity.group == group
-                assert activity.data == {'text': comment}
+                assert activity.data == {'text': comment, 'external_id': '123456789'}

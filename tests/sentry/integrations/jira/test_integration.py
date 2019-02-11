@@ -7,6 +7,7 @@ import six
 
 from django.core.urlresolvers import reverse
 from exam import fixture
+from mock import Mock
 
 from sentry.integrations.exceptions import IntegrationError
 from sentry.models import (
@@ -367,6 +368,9 @@ class MockJiraApiClient(object):
         return json.loads(SAMPLE_GET_ISSUE_RESPONSE.strip())
 
     def create_comment(self, issue_id, comment):
+        return comment
+
+    def update_comment(self, issue_key, comment_id, comment):
         return comment
 
     def create_issue(self, data):
@@ -829,12 +833,43 @@ class JiraIntegrationTest(APITestCase):
         integration.add_organization(org, self.user)
         installation = integration.get_installation(org.id)
 
+        group_note = Mock()
         comment = 'hello world\nThis is a comment.\n\n\n    Glad it\'s quoted'
+        group_note.data = {}
+        group_note.data['text'] = comment
         with mock.patch.object(MockJiraApiClient, 'create_comment') as mock_create_comment:
             def get_client():
                 return MockJiraApiClient()
 
             with mock.patch.object(installation, 'get_client', get_client):
-                installation.create_comment(1, self.user.id, comment)
+                installation.create_comment(1, self.user.id, group_note)
                 assert mock_create_comment.call_args[0][1] == \
                     'Sentry Admin wrote:\n\n{quote}%s{quote}' % comment
+
+    def test_update_comment(self):
+        org = self.organization
+
+        self.user.name = 'Sentry Admin'
+        self.user.save()
+        self.login_as(self.user)
+
+        integration = Integration.objects.create(
+            provider='jira',
+            name='Example Jira',
+        )
+        integration.add_organization(org, self.user)
+        installation = integration.get_installation(org.id)
+
+        group_note = Mock()
+        comment = 'hello world\nThis is a comment.\n\n\n    I\'ve changed it'
+        group_note.data = {}
+        group_note.data['text'] = comment
+        group_note.data['external_id'] = '123'
+        with mock.patch.object(MockJiraApiClient, 'update_comment') as mock_update_comment:
+            def get_client():
+                return MockJiraApiClient()
+
+            with mock.patch.object(installation, 'get_client', get_client):
+                installation.update_comment(1, self.user.id, group_note)
+                assert mock_update_comment.call_args[0] == \
+                    (1, '123', 'Sentry Admin wrote:\n\n{quote}%s{quote}' % comment)

@@ -6,7 +6,8 @@ from sentry.api.base import Endpoint
 from sentry.api.bases.project import ProjectPermission
 from sentry.api.exceptions import ResourceDoesNotExist
 from sentry.utils.sdk import configure_scope
-from sentry.models import Group, GroupStatus, get_group_with_redirect
+from sentry.models import Group, GroupLink, GroupStatus, get_group_with_redirect
+from sentry.tasks.integrations import create_comment, update_comment
 
 logger = logging.getLogger(__name__)
 
@@ -63,3 +64,30 @@ class GroupEndpoint(Endpoint):
         kwargs['group'] = group
 
         return (args, kwargs)
+
+    def get_external_issue_ids(self, group):
+        return GroupLink.objects.filter(
+            project_id=group.project_id,
+            group_id=group.id,
+            linked_type=GroupLink.LinkedType.issue,
+        ).values_list('linked_id', flat=True)
+
+    def create_external_comment(self, request, group, group_note):
+        for external_issue_id in self.get_external_issue_ids(group):
+            create_comment.apply_async(
+                kwargs={
+                    'external_issue_id': external_issue_id,
+                    'group_note_id': group_note.id,
+                    'user_id': request.user.id,
+                }
+            )
+
+    def update_external_comment(self, request, group, group_note):
+        for external_issue_id in self.get_external_issue_ids(group):
+            update_comment.apply_async(
+                kwargs={
+                    'external_issue_id': external_issue_id,
+                    'group_note_id': group_note.id,
+                    'user_id': request.user.id,
+                }
+            )

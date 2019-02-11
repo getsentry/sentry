@@ -52,9 +52,10 @@ class GroupNotesDetailsEndpoint(GroupEndpoint):
 
         if serializer.is_valid():
             # Would be nice to have a last_modified timestamp we could bump here
-            note.data = dict(serializer.object)
+            note.data.update(dict(serializer.object))
             note.save()
-
+            if note.data.get('external_id'):
+                self.update_external_comment(request, group, note)
             return Response(serialize(note, request.user), status=200)
 
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)

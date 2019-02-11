@@ -5,7 +5,7 @@ from mistune import markdown
 
 
 from django.core.urlresolvers import reverse
-from sentry.models import IntegrationExternalProject, OrganizationIntegration
+from sentry.models import IntegrationExternalProject, OrganizationIntegration, User
 from sentry.integrations.issues import IssueSyncMixin
 
 from sentry.integrations.exceptions import ApiUnauthorized, ApiError
@@ -256,3 +256,20 @@ class VstsIssueSync(IssueSyncMixin):
         if external_issue.metadata is None:
             return ''
         return external_issue.metadata['display_name']
+
+    def create_comment(self, issue_id, user_id, group_note):
+        comment = group_note.data['text']
+        quoted_comment = self.create_comment_attribution(user_id, comment)
+        self.get_client().update_work_item(self.instance, issue_id, comment=quoted_comment)
+
+    def create_comment_attribution(self, user_id, comment_text):
+        # VSTS uses markdown or xml
+        # https://docs.microsoft.com/en-us/microsoftteams/platform/concepts/bots/bots-text-formats
+        user = User.objects.get(id=user_id)
+        attribution = '%s wrote:\n\n' % user.name
+        quoted_comment = '%s<blockquote>%s</blockquote>' % (attribution, comment_text)
+        return quoted_comment
+
+    def update_comment(self, issue_id, user_id, external_comment_id, comment_text):
+        # Azure does not support updating comments
+        pass
