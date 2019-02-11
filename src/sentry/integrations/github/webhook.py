@@ -81,7 +81,7 @@ class Webhook(object):
                 if repo.config.get('name') != repo_full_name:
                     repo.config['name'] = repo_full_name
                     repo.name = repo_full_name
-                    repo.url = u'https://github.com/{}'.format(repo_full_name)
+                    repo.url = event['repository']['html_url']
                     repo.save()
 
                 self._handle(integration, event, orgs[repo.organization_id], repo)
