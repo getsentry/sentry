@@ -171,14 +171,6 @@ class TestProcessResourceChange(TestCase):
             slug=self.sentry_app.slug,
         )
 
-        self.hook = self.create_service_hook(
-            actor=self.install,
-            org=self.project.organization,
-            application=self.install.sentry_app.application,
-            project=self.project,
-            events=('issue.created', ),
-        )
-
     def test_group_created_sends_webhook(self, safe_urlopen):
         with self.tasks():
             issue = self.create_group(project=self.project)
