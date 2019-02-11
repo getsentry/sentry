@@ -392,13 +392,21 @@ class JiraIntegration(IntegrationInstallation, IssueSyncMixin):
         kwargs['link_referrer'] = 'jira_integration'
         fields = super(JiraIntegration, self).get_create_issue_config(group, **kwargs)
         params = kwargs.get('params', {})
-        defaults = self.get_project_defaults(group.project_id)
 
-        default_project = params.get('project', defaults.get('project'))
+        defaults = self.get_project_defaults(group.project_id)
+        project_id = params.get('project', defaults.get('project'))
+
         client = self.get_client()
 
+        # If we don't have a jira project selected, fetch the first project
+        # This avoids a potentially very expensive API call to fetch issue
+        # create configuration for *all* projects.
+        jira_projects = client.get_projects_list()
+        if not project_id and len(jira_projects):
+            project_id = jira_projects[0]['id']
+
         try:
-            resp = client.get_create_meta(default_project)
+            meta = client.get_create_meta_for_project(project_id)
         except ApiUnauthorized:
             raise IntegrationError(
                 'Jira returned: Unauthorized. '
@@ -417,19 +425,14 @@ class JiraIntegration(IntegrationInstallation, IssueSyncMixin):
                 'There was an error communicating with the Jira API. '
                 'Please try again or contact support.'
             )
-
-        try:
-            meta = resp['projects'][0]
-        except IndexError:
+        if not meta:
             raise IntegrationError(
-                'Error in Jira configuration, no projects found.'
+                'No projects were found in Jira. Check the permissions for projects.'
             )
 
         # check if the issuetype was passed as a parameter
         issue_type = params.get('issuetype', defaults.get('issuetype'))
-
         issue_type_meta = self.get_issue_type_meta(issue_type, meta)
-
         issue_type_choices = self.make_choices(meta['issuetypes'])
 
         # make sure default issue type is actually
@@ -442,7 +445,7 @@ class JiraIntegration(IntegrationInstallation, IssueSyncMixin):
             {
                 'name': 'project',
                 'label': 'Jira Project',
-                'choices': [(p['id'], p['key']) for p in client.get_projects_list()],
+                'choices': [(p['id'], p['key']) for p in jira_projects],
                 'default': meta['id'],
                 'type': 'select',
                 'updatesForm': True,
@@ -510,9 +513,8 @@ class JiraIntegration(IntegrationInstallation, IssueSyncMixin):
             raise IntegrationFormError({'project': ['Jira project is required']})
 
         meta = client.get_create_meta_for_project(jira_project)
-
         if not meta:
-            raise IntegrationError('Something went wrong. Check your plugin configuration.')
+            raise IntegrationError('Could not fetch issue create configuration from Jira.')
 
         issue_type_meta = self.get_issue_type_meta(data['issuetype'], meta)
 

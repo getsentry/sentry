@@ -140,17 +140,15 @@ class JiraApiClient(ApiClient):
                 return project['key'].encode('utf-8')
         return ''
 
-    def get_create_meta(self, project=None):
-        params = {'expand': 'projects.issuetypes.fields'}
-        if project is not None:
-            params['projectIds'] = project
-        return self.get_cached(
+    def get_create_meta_for_project(self, project):
+        params = {
+            'expand': 'projects.issuetypes.fields',
+            'projectIds': project
+        }
+        metas = self.get_cached(
             self.META_URL,
             params=params,
         )
-
-    def get_create_meta_for_project(self, project):
-        metas = self.get_create_meta(project)
         # We saw an empty JSON response come back from the API :(
         if not metas:
             return None
