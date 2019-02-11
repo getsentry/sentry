@@ -39,11 +39,10 @@ class Migration(DataMigration):
                         project_id=service_hook.project_id,
                         service_hook_id=service_hook.id,
                     )
+                    project = Project.objects.get(id=service_hook.project_id)
+                    service_hook.update(organization_id=project.organization_id)
             except IntegrityError:
                 pass
-
-            project = Project.objects.get(id=service_hook.project_id)
-            service_hook.update(organization_id=project.organization_id)
 
     def backwards(self, orm):
         "Write your backwards methods here."
