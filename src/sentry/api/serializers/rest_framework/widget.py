@@ -1,10 +1,19 @@
 from __future__ import absolute_import
 
+from django.db.models import Max
 from rest_framework import serializers
 
 from sentry.api.bases.discoversavedquery import DiscoverSavedQuerySerializer
 from sentry.api.serializers.rest_framework import JSONField, ListField, ValidationError
-from sentry.models import WidgetDisplayTypes, WidgetDataSourceTypes
+from sentry.models import Widget, WidgetDisplayTypes, WidgetDataSourceTypes
+
+
+def get_next_dashboard_order(dashboard_id):
+    max_order = Widget.objects.filter(
+        dashboard_id=dashboard_id,
+    ).aggregate(Max('order'))['order__max']
+
+    return max_order + 1 if max_order else 1
 
 
 class WidgetDataSourceSerializer(serializers.Serializer):
