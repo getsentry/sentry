@@ -689,6 +689,9 @@ LOGGING = {
         'sentry': {
             'level': 'INFO',
         },
+        'sentry.files': {
+            'level': 'WARNING',
+        },
         'sentry.minidumps': {
             'handlers': ['internal'],
             'propagate': False,
