@@ -32,12 +32,12 @@ def _get_service_hooks(project_id):
     cache_key = u'servicehooks:1:{}'.format(project_id)
     result = cache.get(cache_key)
     if result is None:
-        hook_ids = ServiceHookProject.object.filter(
+        hook_ids = ServiceHookProject.objects.filter(
             project_id=project_id,
         ).values_list('service_hook_id', flat=True)
 
         result = [(h.id, h.events) for h in
-                  ServiceHook.objects.filter(service_hook_id__in=hook_ids)]
+                  ServiceHook.objects.filter(id__in=hook_ids)]
         cache.set(cache_key, result, 60)
     return result
 
