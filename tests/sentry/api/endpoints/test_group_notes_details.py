@@ -80,7 +80,7 @@ class GroupNotesDetailsTest(APITestCase):
 
         assert mock_update_comment.call_count == 1
         assert mock_update_comment.call_args[0][0] == u'123'
-        assert mock_update_comment.call_args[0][1] == 2
+        assert mock_update_comment.call_args[0][1] == self.group.id
         assert mock_update_comment.call_args[0][2] == activity
 
     @patch('sentry.integrations.issues.IssueBasicMixin.update_comment')
