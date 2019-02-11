@@ -1,20 +1,10 @@
 from __future__ import absolute_import
 
-from django.db.models import Max
-
 from sentry.api.bases.organization import (
     OrganizationEndpoint
 )
 from sentry.api.exceptions import ResourceDoesNotExist
 from sentry.models import Dashboard, Widget
-
-
-def get_next_dashboard_order(dashboard_id):
-    max_order = Widget.objects.filter(
-        dashboard_id=dashboard_id,
-    ).aggregate(Max('order'))['order__max']
-
-    return max_order + 1 if max_order else 1
 
 
 class OrganizationDashboardEndpoint(OrganizationEndpoint):
