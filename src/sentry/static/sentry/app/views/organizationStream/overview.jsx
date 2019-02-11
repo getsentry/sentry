@@ -497,11 +497,12 @@ const OrganizationStream = createReactClass({
     const {organization} = this.props;
     const selectedProjects = this.getGlobalSearchProjects();
 
-    // If no projects are selected, then we must check every project the user is a member of
-    const projectsWithoutFirstEvent = !selectedProjects.length
-      ? organization.projects.filter(p => p.isMember).filter(p => !p.firstEvent)
-      : selectedProjects.filter(p => !p.firstEvent);
-    const noEvents = projectsWithoutFirstEvent.length > 0;
+    // If no projects are selected, then we must check every project the user is a
+    // member of and make sure there are no first events for all of the projects
+    const projects = !selectedProjects.length
+      ? organization.projects.filter(p => p.isMember)
+      : selectedProjects;
+    const noFirstEvents = projects.every(p => !p.firstEvent);
 
     if (this.state.issuesLoading) {
       body = this.renderLoading();
@@ -509,8 +510,8 @@ const OrganizationStream = createReactClass({
       body = <LoadingError message={this.state.error} onRetry={this.fetchData} />;
     } else if (this.state.groupIds.length > 0) {
       body = this.renderGroupNodes(this.state.groupIds, this.getGroupStatsPeriod());
-    } else if (noEvents) {
-      body = this.renderAwaitingEvents(selectedProjects);
+    } else if (noFirstEvents) {
+      body = this.renderAwaitingEvents(projects);
     } else {
       body = this.renderEmpty();
     }

@@ -307,26 +307,6 @@ describe('OrganizationStream', function() {
       expect(wrapper.find('EmptyStateWarning')).toHaveLength(1);
     });
 
-    it('displays the getting started state', function() {
-      const proj = TestStubs.ProjectDetails({
-        firstEvent: false,
-      });
-      const org = TestStubs.Organization({
-        access: ['releases'],
-        projects: [proj],
-      });
-      wrapper.setProps({
-        organization: org,
-        selection: {
-          projects: [parseInt(proj.id, 10)],
-          environments: [],
-          datetime: {period: '14d'},
-        },
-      });
-      wrapper.setState({savedSearchLoading: false, issuesLoading: false});
-      expect(wrapper.find('ErrorRobot')).toHaveLength(1);
-    });
-
     it('displays group rows', function() {
       GroupStore.add([group]);
       wrapper.setState({
@@ -337,6 +317,159 @@ describe('OrganizationStream', function() {
       });
       const groups = wrapper.find('StreamGroup');
       expect(groups).toHaveLength(1);
+    });
+  });
+
+  describe('Empty State', function() {
+    const createWrapper = moreProps => {
+      const defaultProps = {
+        selection: {
+          projects: [],
+          environments: [],
+          datetime: {period: '14d'},
+        },
+        location: {query: {query: 'is:unresolved'}, search: 'query=is:unresolved'},
+        params: {orgId: organization.slug},
+        organization: TestStubs.Organization({
+          projects: [],
+        }),
+        ...moreProps,
+      };
+      const localWrapper = shallow(<OrganizationStream {...defaultProps} />);
+      localWrapper.setState({
+        error: false,
+        savedSearchLoading: false,
+        issuesLoading: false,
+        groupIds: [],
+      });
+
+      return localWrapper;
+    };
+
+    it('displays when no projects selected and all projects user is member of, does not have first event', function() {
+      wrapper = createWrapper({
+        organization: TestStubs.Organization({
+          projects: [
+            TestStubs.Project({
+              id: '1',
+              slug: 'foo',
+              isMember: true,
+              firstEvent: false,
+            }),
+            TestStubs.Project({
+              id: '2',
+              slug: 'bar',
+              isMember: true,
+              firstEvent: false,
+            }),
+            TestStubs.Project({
+              id: '3',
+              slug: 'baz',
+              isMember: true,
+              firstEvent: false,
+            }),
+          ],
+        }),
+      });
+
+      expect(wrapper.find('ErrorRobot')).toHaveLength(1);
+    });
+
+    it('does not display when no projects selected and any projects have a first event', function() {
+      wrapper = createWrapper({
+        organization: TestStubs.Organization({
+          projects: [
+            TestStubs.Project({
+              id: '1',
+              slug: 'foo',
+              isMember: true,
+              firstEvent: false,
+            }),
+            TestStubs.Project({
+              id: '2',
+              slug: 'bar',
+              isMember: true,
+              firstEvent: true,
+            }),
+            TestStubs.Project({
+              id: '3',
+              slug: 'baz',
+              isMember: true,
+              firstEvent: false,
+            }),
+          ],
+        }),
+      });
+
+      expect(wrapper.find('ErrorRobot')).toHaveLength(0);
+    });
+
+    it('displays when all selected projects do not have first event', function() {
+      wrapper = createWrapper({
+        selection: {
+          projects: [1, 2],
+          environments: [],
+          datetime: {period: '14d'},
+        },
+        organization: TestStubs.Organization({
+          projects: [
+            TestStubs.Project({
+              id: '1',
+              slug: 'foo',
+              isMember: true,
+              firstEvent: false,
+            }),
+            TestStubs.Project({
+              id: '2',
+              slug: 'bar',
+              isMember: true,
+              firstEvent: false,
+            }),
+            TestStubs.Project({
+              id: '3',
+              slug: 'baz',
+              isMember: true,
+              firstEvent: false,
+            }),
+          ],
+        }),
+      });
+
+      expect(wrapper.find('ErrorRobot')).toHaveLength(1);
+    });
+
+    it('does not display when any selected projects have first event', function() {
+      wrapper = createWrapper({
+        selection: {
+          projects: [1, 2],
+          environments: [],
+          datetime: {period: '14d'},
+        },
+        organization: TestStubs.Organization({
+          projects: [
+            TestStubs.Project({
+              id: '1',
+              slug: 'foo',
+              isMember: true,
+              firstEvent: false,
+            }),
+            TestStubs.Project({
+              id: '2',
+              slug: 'bar',
+              isMember: true,
+              firstEvent: true,
+            }),
+            TestStubs.Project({
+              id: '3',
+              slug: 'baz',
+              isMember: true,
+              firstEvent: true,
+            }),
+          ],
+        }),
+      });
+
+      expect(wrapper.find('ErrorRobot')).toHaveLength(0);
     });
   });
 });
