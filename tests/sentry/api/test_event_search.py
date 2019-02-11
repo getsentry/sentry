@@ -305,6 +305,15 @@ class ParseSearchQueryTest(TestCase):
             ),
         ]
 
+    def test_sooo_many_quotes(self):
+        assert parse_search_query('device.family:"\\"\\"\\"\\"\\"\\"\\"\\"\\"\\""') == [
+            SearchFilter(
+                key=SearchKey(name='device.family'),
+                operator='=',
+                value=SearchValue(raw_value='""""""""""'),
+            ),
+        ]
+
     def test_empty_string(self):
         assert parse_search_query('device.family:""') == [
             SearchFilter(
