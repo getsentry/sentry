@@ -25,6 +25,7 @@ def seperate_resolved_actors(actors):
 class NoteSerializer(serializers.Serializer):
     text = serializers.CharField()
     mentions = ListField(child=ActorField(), required=False)
+    external_id = serializers.CharField(allow_none=True, required=False)
 
     def validate_mentions(self, attrs, source):
         if source in attrs and 'group' in self.context:
