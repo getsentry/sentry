@@ -130,7 +130,7 @@
   "APIMethod": "stub",
   "proxyURL": "http://localhost:8000",
   "scripts": {
-    "test": "node scripts/test.js",
+    "test": "node --experimental-workers scripts/test.js",
     "test-precommit": "yarn test --findRelatedTests --bail",
     "test-ci": "JEST_JUNIT_OUTPUT=.artifacts/jest.junit.xml yarn test --ci --coverage --testResultsProcessor=jest-junit",
     "test-debug": "node --inspect-brk scripts/test.js --runInBand",
