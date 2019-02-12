@@ -173,6 +173,8 @@ CLIENT_RESERVED_ATTRS = (
 CLIENT_IGNORED_ATTRS = (
     # Internal attributes
     'hashes', 'metadata', 'type', 'key_id', 'project', 'received',
+    # Derived attributes
+    'title', 'location',
     # Deprecated attributes
     'applecrashreport', 'device', 'repos', 'query',
 )
