@@ -33,10 +33,7 @@ class GitlabIntegrationTest(IntegrationTestCase):
         super(GitlabIntegrationTest, self).setUp()
         self.init_path_without_guide = '%s%s' % (self.init_path, '?completed_installation_guide')
 
-    def assert_setup_flow(self, user_id='user_id_1', group_id=None):
-        if group_id is None:
-            group_id = self.default_group_id
-
+    def assert_setup_flow(self, user_id='user_id_1'):
         resp = self.client.get(self.init_path)
         assert resp.status_code == 200
         self.assertContains(resp, 'you will need to create a Sentry app in your GitLab instance')
@@ -74,7 +71,7 @@ class GitlabIntegrationTest(IntegrationTestCase):
             responses.GET,
             'https://gitlab.example.com/api/v4/groups/cool-group',
             json={
-                'id': group_id,
+                'id': self.default_group_id,
                 'full_name': 'Cool',
                 'full_path': 'cool-group',
                 'web_url': 'https://gitlab.example.com/groups/cool-group',
@@ -121,7 +118,7 @@ class GitlabIntegrationTest(IntegrationTestCase):
 
         integration = Integration.objects.get(provider=self.provider.key)
 
-        assert integration.external_id == 'gitlab.example.com:cool-group'
+        assert integration.external_id == 'gitlab.example.com:4'
         assert integration.name == 'Cool'
         assert integration.metadata == {
             'instance': 'gitlab.example.com',
