@@ -388,6 +388,7 @@ const OrganizationStream = createReactClass({
     const selected = SelectedGroupStore.getSelectedIds();
     const projects = [...selected]
       .map(id => GroupStore.get(id))
+      .filter(group => group && group.project)
       .map(group => group.project.slug);
 
     const uniqProjects = uniq(projects);
