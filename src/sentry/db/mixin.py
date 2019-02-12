@@ -16,7 +16,7 @@ def delete_pending_deletion_option(instance, **kwargs):
 
 
 class PendingDeletionMixin(object):
-    _rename_fields_on_pending_delete = []
+    _rename_fields_on_pending_delete = frozenset()
 
     def build_pending_deletion_key(self):
         return 'pending-delete:%s:%s' % (self.__class__.__name__, self.id)

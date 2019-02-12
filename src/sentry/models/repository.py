@@ -37,7 +37,7 @@ class Repository(Model, PendingDeletionMixin):
 
     __repr__ = sane_repr('organization_id', 'name', 'provider')
 
-    _rename_fields_on_pending_delete = ['name', 'external_id']
+    _rename_fields_on_pending_delete = frozenset(['name', 'external_id'])
 
     def has_integration_provider(self):
         return self.provider and self.provider.startswith('integrations:')
