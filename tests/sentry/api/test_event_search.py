@@ -225,17 +225,7 @@ class ParseSearchQueryTest(TestCase):
             ),
         ]
 
-    def test_weird_values(self):
-        # quotes within quotes
-        assert parse_search_query('release:"a"thing""') == [
-            SearchFilter(
-                key=SearchKey(name='release'),
-                operator='=',
-                value=SearchValue(raw_value='a"thing"'),
-            ),
-        ]
-
-        # newline within quote
+    def test_newline_within_quote(self):
         assert parse_search_query('release:"a\nrelease"') == [
             SearchFilter(
                 key=SearchKey(name='release'),
@@ -243,11 +233,12 @@ class ParseSearchQueryTest(TestCase):
                 value=SearchValue(raw_value='a\nrelease')
             ),
         ]
-        # newline outside quote
+
+    def test_newline_outside_quote(self):
         with self.assertRaises(IncompleteParseError):
             parse_search_query('release:a\nrelease')
 
-        # tab within quote
+    def test_tab_within_quote(self):
         assert parse_search_query('release:"a\trelease"') == [
             SearchFilter(
                 key=SearchKey(name='release'),
@@ -255,6 +246,8 @@ class ParseSearchQueryTest(TestCase):
                 value=SearchValue(raw_value='a\trelease')
             ),
         ]
+
+    def test_tab_outside_quote(self):
         # tab outside quote
         assert parse_search_query('release:a\trelease') == [
             SearchFilter(
@@ -269,15 +262,15 @@ class ParseSearchQueryTest(TestCase):
             ),
         ]
 
-        # escaped quotes
-        assert parse_search_query('release:"a\"thing\""') == [
+    def test_escaped_quotes(self):
+        assert parse_search_query('release:"a\\"thing\\""') == [
             SearchFilter(
                 key=SearchKey(name='release'),
                 operator='=',
                 value=SearchValue(raw_value='a"thing"')
             ),
         ]
-        assert parse_search_query('release:"a\"\"release"') == [
+        assert parse_search_query('release:"a\\"\\"release"') == [
             SearchFilter(
                 key=SearchKey(name='release'),
                 operator='=',
@@ -285,19 +278,48 @@ class ParseSearchQueryTest(TestCase):
             ),
         ]
 
-        # poorly escaped quotes
-        assert parse_search_query('release:"a release\"') == [
+    def test_multiple_quotes(self):
+        assert parse_search_query('device.family:"" browser.name:"Chrome"') == [
             SearchFilter(
-                key=SearchKey(name='release'),
+                key=SearchKey(name='device.family'),
                 operator='=',
-                value=SearchValue(raw_value='a release')
+                value=SearchValue(raw_value=''),
+            ),
+            SearchFilter(
+                key=SearchKey(name='browser.name'),
+                operator='=',
+                value=SearchValue(raw_value='Chrome'),
             ),
         ]
-        assert parse_search_query('release:\"a release "') == [
+
+        assert parse_search_query('device.family:"\\"" browser.name:"Chrome"') == [
             SearchFilter(
-                key=SearchKey(name='release'),
+                key=SearchKey(name='device.family'),
                 operator='=',
-                value=SearchValue(raw_value='a release ')
+                value=SearchValue(raw_value='"'),
+            ),
+            SearchFilter(
+                key=SearchKey(name='browser.name'),
+                operator='=',
+                value=SearchValue(raw_value='Chrome'),
+            ),
+        ]
+
+    def test_sooo_many_quotes(self):
+        assert parse_search_query('device.family:"\\"\\"\\"\\"\\"\\"\\"\\"\\"\\""') == [
+            SearchFilter(
+                key=SearchKey(name='device.family'),
+                operator='=',
+                value=SearchValue(raw_value='""""""""""'),
+            ),
+        ]
+
+    def test_empty_string(self):
+        assert parse_search_query('device.family:""') == [
+            SearchFilter(
+                key=SearchKey(name='device.family'),
+                operator='=',
+                value=SearchValue(raw_value=''),
             ),
         ]
 
