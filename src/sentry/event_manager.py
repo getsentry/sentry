@@ -1081,7 +1081,7 @@ class EventManager(object):
             group_id=group.id,
             environment_id=environment.id,
             defaults={
-                'first_release_id': release.id if release else None,
+                'first_release': release if release else None,
             },
         )
 

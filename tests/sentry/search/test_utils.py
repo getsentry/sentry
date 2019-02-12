@@ -5,13 +5,22 @@ import mock
 from datetime import datetime, timedelta
 from django.utils import timezone
 
-from sentry.models import EventUser, GroupStatus, Team, User
+from sentry.models import (
+    EventUser,
+    GroupStatus,
+    Release,
+    ReleaseEnvironment,
+    ReleaseProjectEnvironment,
+    Team,
+    User,
+)
 from sentry.testutils import TestCase
 from sentry.search.base import ANY
 from sentry.search.utils import (
     parse_query,
+    get_latest_release,
     get_numeric_field_value,
-    InvalidQuery
+    InvalidQuery,
 )
 
 
@@ -62,7 +71,7 @@ def test_get_numeric_field_value_invalid():
 
 class ParseQueryTest(TestCase):
     def parse_query(self, query):
-        return parse_query([self.project], query, self.user)
+        return parse_query([self.project], query, self.user, None)
 
     def test_simple(self):
         result = self.parse_query('foo bar')
@@ -312,9 +321,46 @@ class ParseQueryTest(TestCase):
         result = self.parse_query('first-release:bar')
         assert result == {'first_release': 'bar', 'tags': {}, 'query': ''}
 
+    def test_first_release_latest(self):
+        result = self.parse_query('first-release:latest')
+        assert result == {'first_release': '', 'tags': {}, 'query': ''}
+        release = self.create_release(
+            project=self.project,
+            version='older_release',
+            date_added=datetime.now() - timedelta(days=1),
+        )
+        result = self.parse_query('first-release:latest')
+        assert result == {'first_release': release.version, 'tags': {}, 'query': ''}
+        release = self.create_release(
+            project=self.project,
+            version='new_release',
+            date_added=datetime.now(),
+        )
+        result = self.parse_query('first-release:latest')
+        assert result == {'first_release': release.version, 'tags': {}, 'query': ''}
+
     def test_release(self):
         result = self.parse_query('release:bar')
         assert result == {'tags': {'sentry:release': 'bar'}, 'query': ''}
+
+    def test_release_latest(self):
+        result = self.parse_query('release:latest')
+        assert result == {'tags': {'sentry:release': ''}, 'query': ''}
+
+        release = self.create_release(
+            project=self.project,
+            version='older_release',
+            date_added=datetime.now() - timedelta(days=1),
+        )
+        result = self.parse_query('release:latest')
+        assert result == {'tags': {'sentry:release': release.version}, 'query': ''}
+        release = self.create_release(
+            project=self.project,
+            version='new_release',
+            date_added=datetime.now(),
+        )
+        result = self.parse_query('release:latest')
+        assert result == {'tags': {'sentry:release': release.version}, 'query': ''}
 
     def test_dist(self):
         result = self.parse_query('dist:123')
@@ -450,3 +496,60 @@ class ParseQueryTest(TestCase):
     def test_quoted_string(self):
         result = self.parse_query('"release:foo"')
         assert result == {'tags': {}, 'query': 'release:foo'}
+
+
+class GetLatestReleaseTest(TestCase):
+    def test(self):
+        with pytest.raises(Release.DoesNotExist):
+            # no releases exist period
+            environment = None
+            get_latest_release([self.project], environment)
+
+        old = Release.objects.create(
+            organization_id=self.project.organization_id,
+            version='old'
+        )
+        old.add_project(self.project)
+
+        new_date = old.date_added + timedelta(minutes=1)
+        new = Release.objects.create(
+            version='new-but-in-environment',
+            organization_id=self.project.organization_id,
+            date_released=new_date,
+        )
+        new.add_project(self.project)
+        ReleaseEnvironment.get_or_create(
+            project=self.project,
+            release=new,
+            environment=self.environment,
+            datetime=new_date,
+        )
+        ReleaseProjectEnvironment.get_or_create(
+            project=self.project,
+            release=new,
+            environment=self.environment,
+            datetime=new_date,
+        )
+
+        newest = Release.objects.create(
+            version='newest-overall',
+            organization_id=self.project.organization_id,
+            date_released=old.date_added + timedelta(minutes=5),
+        )
+        newest.add_project(self.project)
+
+        # latest overall (no environment filter)
+        environment = None
+        result = get_latest_release([self.project], environment)
+        assert result == newest.version
+
+        # latest in environment
+        environment = self.environment
+        result = get_latest_release([self.project], [environment])
+        assert result == new.version
+
+        with pytest.raises(Release.DoesNotExist):
+            # environment with no releases
+            environment = self.create_environment()
+            result = get_latest_release([self.project], [environment])
+            assert result == new.version

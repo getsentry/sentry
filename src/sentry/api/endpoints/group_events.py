@@ -174,7 +174,7 @@ class GroupEventsEndpoint(GroupEndpoint, EnvironmentMixin):
         raw_query = request.GET.get('query')
 
         if raw_query:
-            query_kwargs = parse_query([group.project], raw_query, request.user)
+            query_kwargs = parse_query([group.project], raw_query, request.user, environments)
             query = query_kwargs.pop('query', None)
             tags = query_kwargs.pop('tags', {})
         else:
