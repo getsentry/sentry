@@ -13,11 +13,11 @@ from sentry.api.issue_search import (
     parse_search_query,
 )
 from sentry.models import (
-    Environment, Event, Group, GroupAssignee, GroupBookmark, GroupEnvironment, GroupStatus,
-    GroupSubscription, Release, ReleaseEnvironment, ReleaseProjectEnvironment
+    Environment, Event, Group, GroupAssignee, GroupBookmark, GroupEnvironment,
+    GroupStatus, GroupSubscription
 )
 from sentry.search.base import ANY
-from sentry.search.django.backend import DjangoSearchBackend, get_latest_release
+from sentry.search.django.backend import DjangoSearchBackend
 from sentry.tagstore.v2.backend import AGGREGATE_ENVIRONMENT_ID
 from sentry.testutils import TestCase
 
@@ -182,21 +182,22 @@ class DjangoSearchBackendTest(TestCase):
                     date_added=event.datetime,
                 )
 
-    def make_query(self, projects=None, search_filter_query=None, **kwargs):
+    def make_query(self, projects=None, search_filter_query=None, environments=None, **kwargs):
         search_filters = []
         if search_filter_query is not None:
-            search_filters = self.build_search_filter(search_filter_query, projects)
+            search_filters = self.build_search_filter(search_filter_query, projects, environments)
         return self.backend.query(
             projects if projects is not None else [self.project],
             use_new_filters=self.use_new_filters,
             search_filters=search_filters,
+            environments=environments,
             **kwargs
         )
 
-    def build_search_filter(self, query, projects=None, user=None):
+    def build_search_filter(self, query, projects=None, user=None, environments=None):
         user = user if user is not None else self.user
         projects = projects if projects is not None else [self.project]
-        return convert_query_values(parse_search_query(query), projects, user)
+        return convert_query_values(parse_search_query(query), projects, user, environments)
 
     def test_query(self):
         results = self.make_query(search_filter_query='foo', query='foo')
@@ -847,61 +848,6 @@ class DjangoSearchBackendTest(TestCase):
             search_filter_query='subscribed:%s' % self.user.username
         )
         assert set(results) == set([])
-
-    def test_parse_release_latest(self):
-        with pytest.raises(Release.DoesNotExist):
-            # no releases exist period
-            environment = None
-            result = get_latest_release([self.project], environment)
-
-        old = Release.objects.create(
-            organization_id=self.project.organization_id,
-            version='old'
-        )
-        old.add_project(self.project)
-
-        new_date = old.date_added + timedelta(minutes=1)
-        new = Release.objects.create(
-            version='new-but-in-environment',
-            organization_id=self.project.organization_id,
-            date_released=new_date,
-        )
-        new.add_project(self.project)
-        ReleaseEnvironment.get_or_create(
-            project=self.project,
-            release=new,
-            environment=self.environment,
-            datetime=new_date,
-        )
-        ReleaseProjectEnvironment.get_or_create(
-            project=self.project,
-            release=new,
-            environment=self.environment,
-            datetime=new_date,
-        )
-
-        newest = Release.objects.create(
-            version='newest-overall',
-            organization_id=self.project.organization_id,
-            date_released=old.date_added + timedelta(minutes=5),
-        )
-        newest.add_project(self.project)
-
-        # latest overall (no environment filter)
-        environment = None
-        result = get_latest_release([self.project], environment)
-        assert result == newest.version
-
-        # latest in environment
-        environment = self.environment
-        result = get_latest_release([self.project], [environment])
-        assert result == new.version
-
-        with pytest.raises(Release.DoesNotExist):
-            # environment with no releases
-            environment = self.create_environment()
-            result = get_latest_release([self.project], [environment])
-            assert result == new.version
 
 
 class DjangoSearchBackendWithSearchFiltersTest(DjangoSearchBackendTest):

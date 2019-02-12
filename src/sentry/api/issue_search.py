@@ -14,6 +14,7 @@ from sentry.constants import STATUS_CHOICES
 from sentry.search.utils import (
     parse_actor_value,
     parse_user_value,
+    parse_release,
 )
 
 
@@ -70,22 +71,28 @@ def parse_search_query(query):
     return IssueSearchVisitor().visit(tree)
 
 
-def convert_actor_value(value, projects, user):
+def convert_actor_value(value, projects, user, environments):
     return parse_actor_value(projects, value, user)
 
 
-def convert_user_value(value, projects, user):
+def convert_user_value(value, projects, user, environments):
     return parse_user_value(value, user)
+
+
+def convert_release_value(value, projects, user, environments):
+    return parse_release(value, projects, environments)
 
 
 value_converters = {
     'assigned_to': convert_actor_value,
     'bookmarked_by': convert_user_value,
     'subscribed_by': convert_user_value,
+    'first_release': convert_release_value,
+    'tags[sentry:release]': convert_release_value,
 }
 
 
-def convert_query_values(search_filters, projects, user):
+def convert_query_values(search_filters, projects, user, environments):
     """
     Accepts a collection of SearchFilter objects and converts their values into
     a specific format, based on converters specified in `value_converters`.
@@ -98,7 +105,7 @@ def convert_query_values(search_filters, projects, user):
     def convert_search_filter(search_filter):
         if search_filter.key.name in value_converters:
             converter = value_converters[search_filter.key.name]
-            new_value = converter(search_filter.value.raw_value, projects, user)
+            new_value = converter(search_filter.value.raw_value, projects, user, environments)
             search_filter = search_filter._replace(value=SearchValue(new_value))
         return search_filter
 

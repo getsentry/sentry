@@ -14,11 +14,10 @@ from sentry.api.issue_search import (
     parse_search_query,
 )
 from sentry.models import (
-    Environment, GroupAssignee, GroupBookmark, GroupStatus, GroupSubscription,
-    Release, ReleaseEnvironment, ReleaseProjectEnvironment
+    Environment, GroupAssignee, GroupBookmark, GroupEnvironment, GroupStatus,
+    GroupSubscription,
 )
 from sentry.search.base import ANY
-from sentry.search.django.backend import get_latest_release
 from sentry.search.snuba.backend import SnubaSearchBackend
 from sentry.testutils import SnubaTestCase
 
@@ -166,19 +165,25 @@ class SnubaSearchTest(SnubaTestCase):
 
         return event
 
-    def build_search_filter(self, query, projects=None, user=None):
+    def build_search_filter(self, query, projects=None, user=None, environments=None):
         user = user if user is not None else self.user
         projects = projects if projects is not None else [self.project]
-        return convert_query_values(parse_search_query(query), projects, user)
+        return convert_query_values(parse_search_query(query), projects, user, environments)
 
-    def make_query(self, projects=None, search_filter_query=None, **kwargs):
+    def make_query(self, projects=None, search_filter_query=None, environments=None, **kwargs):
         search_filters = []
+        projects = projects if projects is not None else [self.project]
         if search_filter_query is not None:
-            search_filters = self.build_search_filter(search_filter_query, projects)
+            search_filters = self.build_search_filter(
+                search_filter_query,
+                projects,
+                environments=environments,
+            )
         return self.backend.query(
-            projects if projects is not None else [self.project],
+            projects,
             use_new_filters=self.use_new_filters,
             search_filters=search_filters,
+            environments=environments,
             **kwargs
         )
 
@@ -950,61 +955,6 @@ class SnubaSearchTest(SnubaTestCase):
         )
         assert set(results) == set([])
 
-    def test_parse_release_latest(self):
-        with pytest.raises(Release.DoesNotExist):
-            # no releases exist period
-            environment = None
-            result = get_latest_release([self.project], environment)
-
-        old = Release.objects.create(
-            organization_id=self.project.organization_id,
-            version='old'
-        )
-        old.add_project(self.project)
-
-        new_date = old.date_added + timedelta(minutes=1)
-        new = Release.objects.create(
-            version='new-but-in-environment',
-            organization_id=self.project.organization_id,
-            date_released=new_date,
-        )
-        new.add_project(self.project)
-        ReleaseEnvironment.get_or_create(
-            project=self.project,
-            release=new,
-            environment=self.environment,
-            datetime=new_date,
-        )
-        ReleaseProjectEnvironment.get_or_create(
-            project=self.project,
-            release=new,
-            environment=self.environment,
-            datetime=new_date,
-        )
-
-        newest = Release.objects.create(
-            version='newest-overall',
-            organization_id=self.project.organization_id,
-            date_released=old.date_added + timedelta(minutes=5),
-        )
-        newest.add_project(self.project)
-
-        # latest overall (no environment filter)
-        environment = None
-        result = get_latest_release([self.project], environment)
-        assert result == newest.version
-
-        # latest in environment
-        environment = self.environment
-        result = get_latest_release([self.project], [environment])
-        assert result == new.version
-
-        with pytest.raises(Release.DoesNotExist):
-            # environment with no releases
-            environment = self.create_environment()
-            result = get_latest_release([self.project], [environment])
-            assert result == new.version
-
     @mock.patch('sentry.utils.snuba.raw_query')
     def test_snuba_not_called_optimization(self, query_mock):
         assert self.make_query(query='foo', search_filter_query='foo').results == [self.group1]
@@ -1239,6 +1189,60 @@ class SnubaSearchTest(SnubaTestCase):
 
             assert third_results.hits > 10
             assert third_results.results != second_results.results
+
+    def test_first_release(self):
+        results = self.make_query(
+            first_release='fake',
+            search_filter_query='first_release:%s' % 'fake',
+        )
+        assert set(results) == set([])
+
+        release = self.create_release(self.project)
+
+        results = self.make_query(
+            first_release=release.version,
+            search_filter_query='first_release:%s' % release.version,
+        )
+        assert set(results) == set([])
+
+        self.group1.first_release = release
+        self.group1.save()
+        results = self.make_query(
+            first_release=release.version,
+            search_filter_query='first_release:%s' % release.version,
+        )
+        assert set(results) == set([self.group1])
+
+    def test_first_release_environments(self):
+        results = self.make_query(
+            first_release='fake',
+            environments=[self.environments['production']],
+            search_filter_query='first_release:%s' % 'fake',
+        )
+        assert set(results) == set([])
+
+        release = self.create_release(self.project)
+        group_env = GroupEnvironment.get_or_create(
+            group_id=self.group1.id,
+            environment_id=self.environments['production'].id,
+        )[0]
+
+        results = self.make_query(
+            first_release=release.version,
+            environments=[self.environments['production']],
+            search_filter_query='first_release:%s' % release.version,
+        )
+        assert set(results) == set([])
+
+        group_env.first_release = release
+        group_env.save()
+
+        results = self.make_query(
+            first_release=release.version,
+            environments=[self.environments['production']],
+            search_filter_query='first_release:%s' % release.version,
+        )
+        assert set(results) == set([self.group1])
 
 
 class SnubaSearchBackendWithSearchFiltersTest(SnubaSearchTest):

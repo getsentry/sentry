@@ -1,29 +1,40 @@
 from __future__ import absolute_import
 
-from django.db.models import DateTimeField
+from django.db.models import DateTimeField, DO_NOTHING
 from django.db.models.signals import post_delete
 from django.utils import timezone
 
-from sentry.db.models import BoundedPositiveIntegerField, Model, sane_repr
+from sentry.db.models import (
+    FlexibleForeignKey,
+    Model,
+    sane_repr,
+)
 from sentry.utils.cache import cache
 
 
 class GroupEnvironment(Model):
     __core__ = False
 
-    group_id = BoundedPositiveIntegerField()
-    environment_id = BoundedPositiveIntegerField()
-    first_release_id = BoundedPositiveIntegerField(null=True)
+    group = FlexibleForeignKey('sentry.Group', db_constraint=False)
+    environment = FlexibleForeignKey('sentry.Environment', db_constraint=False)
+    first_release = FlexibleForeignKey(
+        'sentry.Release',
+        null=True,
+        db_constraint=False,
+        # We have no index here, so we don't want to use the ORM's cascade
+        # delete functionality
+        on_delete=DO_NOTHING,
+    )
     first_seen = DateTimeField(default=timezone.now, db_index=True, null=True)
 
     class Meta:
         app_label = 'sentry'
         db_table = 'sentry_groupenvironment'
         index_together = [
-            ('environment_id', 'first_release_id'),
+            ('environment', 'first_release'),
         ]
         unique_together = [
-            ('group_id', 'environment_id'),
+            ('group', 'environment'),
         ]
 
     __repr__ = sane_repr('group_id', 'environment_id')

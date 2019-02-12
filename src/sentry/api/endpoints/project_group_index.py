@@ -65,11 +65,6 @@ class ProjectGroupIndexEndpoint(ProjectEndpoint, EnvironmentMixin):
     permission_classes = (ProjectEventPermission, )
 
     def _search(self, request, project, extra_query_kwargs=None):
-        query_kwargs = build_query_params_from_request(request, [project])
-        if extra_query_kwargs is not None:
-            assert 'environment' not in extra_query_kwargs
-            query_kwargs.update(extra_query_kwargs)
-
         try:
             environment = self._get_environment_from_request(
                 request,
@@ -79,8 +74,15 @@ class ProjectGroupIndexEndpoint(ProjectEndpoint, EnvironmentMixin):
             # XXX: The 1000 magic number for `max_hits` is an abstraction leak
             # from `sentry.api.paginator.BasePaginator.get_result`.
             result = CursorResult([], None, None, hits=0, max_hits=1000)
+            query_kwargs = {}
         else:
-            query_kwargs['environments'] = [environment] if environment is not None else environment
+            environments = [environment] if environment is not None else environment
+            query_kwargs = build_query_params_from_request(request, [project], environments)
+            if extra_query_kwargs is not None:
+                assert 'environment' not in extra_query_kwargs
+                query_kwargs.update(extra_query_kwargs)
+
+            query_kwargs['environments'] = environments
             result = search.query(**query_kwargs)
         return result, query_kwargs
 
