@@ -1,6 +1,5 @@
 import {browserHistory} from 'react-router';
 import React from 'react';
-import styled from 'react-emotion';
 
 import {t} from 'app/locale';
 import AsyncComponent from 'app/components/asyncComponent';
@@ -14,15 +13,9 @@ import getDynamicText from 'app/utils/getDynamicText';
 import IndicatorStore from 'app/stores/indicatorStore';
 import SettingsPageHeader from 'app/views/settings/components/settingsPageHeader';
 import StackedBarChart from 'app/components/stackedBarChart';
-import TextBlock from 'app/views/settings/components/text/textBlock';
 import TextCopyInput from 'app/views/settings/components/forms/textCopyInput';
 
 import ServiceHookSettingsForm from 'app/views/settings/project/serviceHookSettingsForm';
-
-// TODO(dcramer): this is duplicated in ProjectKeyDetails
-const EmptyHeader = styled.div`
-  font-size: 1.3em;
-`;
 
 class HookStats extends AsyncComponent {
   getEndpoints() {
@@ -83,12 +76,10 @@ class HookStats extends AsyncComponent {
               tooltip={this.renderTooltip}
             />
           ) : (
-            <EmptyMessage css={{flexDirection: 'column', alignItems: 'center'}}>
-              <EmptyHeader>{t('Nothing recorded in the last 30 days.')}</EmptyHeader>
-              <TextBlock css={{marginBottom: 0}}>
-                {t('Total webhooks fired for this configuration.')}
-              </TextBlock>
-            </EmptyMessage>
+            <EmptyMessage
+              title={t('Nothing recorded in the last 30 days.')}
+              description={t('Total webhooks fired for this configuration.')}
+            />
           )}
         </PanelBody>
       </Panel>
