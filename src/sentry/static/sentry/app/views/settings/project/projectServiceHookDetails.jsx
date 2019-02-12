@@ -1,6 +1,5 @@
 import {browserHistory} from 'react-router';
 import React from 'react';
-import styled from 'react-emotion';
 
 import {t} from 'app/locale';
 import AsyncComponent from 'app/components/asyncComponent';
@@ -17,11 +16,6 @@ import StackedBarChart from 'app/components/stackedBarChart';
 import TextCopyInput from 'app/views/settings/components/forms/textCopyInput';
 
 import ServiceHookSettingsForm from 'app/views/settings/project/serviceHookSettingsForm';
-
-// TODO(dcramer): this is duplicated in ProjectKeyDetails
-const EmptyHeader = styled.div`
-  font-size: 1.3em;
-`;
 
 class HookStats extends AsyncComponent {
   getEndpoints() {

@@ -13,9 +13,6 @@ import LoadingError from 'app/components/loadingError';
 import LoadingIndicator from 'app/components/loadingIndicator';
 import {Panel, PanelBody, PanelHeader} from 'app/components/panels';
 import StackedBarChart from 'app/components/stackedBarChart';
-import TextBlock from 'app/views/settings/components/text/textBlock';
-
-const noMarginBottom = {marginBottom: 0};
 
 const ProjectFiltersChart = createReactClass({
   displayName: 'ProjectFiltersChart',
