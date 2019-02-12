@@ -55,6 +55,10 @@ class BackButton extends React.Component {
     // otherwise use what we have in latest context (e.g. if you navigated to settings directly)
     const shouldGoBackToProject = lastRoute && lastAppContext === 'project';
 
+    if (organization && organization.features.includes('sentry10')) {
+      return null;
+    }
+
     const projectId = shouldGoBackToProject || !lastAppContext ? params.projectId : null;
     const orgId = params.orgId || (organization && organization.slug);
     const url = projectId ? '/:orgId/:projectId/' : '/:orgId/';
