@@ -10,6 +10,28 @@ from sentry.testutils import APITestCase
 
 
 class OrganizationRepositoryDeleteTest(APITestCase):
+    def setUp(self):
+        super(OrganizationRepositoryDeleteTest, self).setUp()
+
+        class mock_uuid(object):
+            hex = '1234567'
+
+        self.mock_uuid = mock_uuid
+
+    def assert_rename_pending_delete(self, response, repo):
+        assert response.data['status'] == u'pending_deletion'
+        assert response.data['name'] == 'example'  # name displayed matches what the user expects
+
+        assert repo.status == ObjectStatus.PENDING_DELETION
+        assert repo.name == '1234567'
+        assert repo.external_id == '1234567'
+        assert repo.config['pending_deletion_name'] == 'example'
+
+        assert OrganizationOption.objects.filter(
+            organization_id=repo.organization_id,
+            key=repo.build_pending_deletion_key()
+        ).exists()
+
     @patch('sentry.api.endpoints.organization_repository_details.get_transaction_id')
     @patch('sentry.api.endpoints.organization_repository_details.delete_repository')
     def test_delete_no_commits(self, mock_delete_repository, mock_get_transaction_id):
@@ -29,7 +51,8 @@ class OrganizationRepositoryDeleteTest(APITestCase):
                 repo.id,
             ]
         )
-        response = self.client.delete(url)
+        with patch('sentry.db.mixin.uuid4', new=self.mock_uuid):
+            response = self.client.delete(url)
         assert response.status_code == 202, (response.status_code, response.content)
 
         repo = Repository.objects.get(id=repo.id)
@@ -43,6 +66,7 @@ class OrganizationRepositoryDeleteTest(APITestCase):
             },
             countdown=0,
         )
+        self.assert_rename_pending_delete(response, repo)
 
     @patch('sentry.api.endpoints.organization_repository_details.get_transaction_id')
     @patch('sentry.api.endpoints.organization_repository_details.delete_repository')
@@ -67,7 +91,9 @@ class OrganizationRepositoryDeleteTest(APITestCase):
                 repo.id,
             ]
         )
-        response = self.client.delete(url)
+
+        with patch('sentry.db.mixin.uuid4', new=self.mock_uuid):
+            response = self.client.delete(url)
 
         assert response.status_code == 202, (response.status_code, response.content)
 
@@ -81,6 +107,7 @@ class OrganizationRepositoryDeleteTest(APITestCase):
             },
             countdown=3600,
         )
+        self.assert_rename_pending_delete(response, repo)
 
     @patch('sentry.api.endpoints.organization_repository_details.get_transaction_id')
     @patch('sentry.api.endpoints.organization_repository_details.delete_repository')
@@ -103,16 +130,13 @@ class OrganizationRepositoryDeleteTest(APITestCase):
                 repo.id,
             ]
         )
-        with patch('sentry.db.mixin.time', new_callable=lambda: lambda: 1234567):
+
+        with patch('sentry.db.mixin.uuid4', new=self.mock_uuid):
             response = self.client.delete(url)
         assert response.status_code == 202, (response.status_code, response.content)
 
         repo = Repository.objects.get(id=repo.id)
         assert repo.status == ObjectStatus.PENDING_DELETION
-
-        # renamed on pending delete
-        assert repo.name == 'example 1234567'
-        assert repo.external_id == '12345 1234567'
 
         mock_delete_repository.apply_async.assert_called_with(
             kwargs={
@@ -122,6 +146,8 @@ class OrganizationRepositoryDeleteTest(APITestCase):
             },
             countdown=0,
         )
+
+        self.assert_rename_pending_delete(response, repo)
 
     @patch('sentry.api.endpoints.organization_repository_details.get_transaction_id')
     @patch('sentry.api.endpoints.organization_repository_details.delete_repository')
@@ -147,15 +173,14 @@ class OrganizationRepositoryDeleteTest(APITestCase):
                 repo.id,
             ]
         )
-        response = self.client.delete(url)
+
+        with patch('sentry.db.mixin.uuid4', new=self.mock_uuid):
+            response = self.client.delete(url)
 
         assert response.status_code == 202, (response.status_code, response.content)
 
         repo = Repository.objects.get(id=repo.id)
         assert repo.status == ObjectStatus.PENDING_DELETION
-
-        # renamed on pending delete
-        assert repo.name != 'example'
 
         mock_delete_repository.apply_async.assert_called_with(
             kwargs={
@@ -165,6 +190,7 @@ class OrganizationRepositoryDeleteTest(APITestCase):
             },
             countdown=3600,
         )
+        self.assert_rename_pending_delete(response, repo)
 
     def test_put(self):
         self.login_as(user=self.user)
@@ -214,6 +240,7 @@ class OrganizationRepositoryDeleteTest(APITestCase):
             external_id='uuid-external-id',
             organization_id=org.id,
             status=ObjectStatus.PENDING_DELETION,
+            config={'pending_deletion_name': 'example-name'},
         )
 
         OrganizationOption.objects.create(
@@ -246,6 +273,12 @@ class OrganizationRepositoryDeleteTest(APITestCase):
         assert repo.provider == 'integrations:example'
         assert repo.name == 'example-name'
         assert repo.external_id == 'example-external-id'
+        assert repo.config == {}
+
+        assert not OrganizationOption.objects.filter(
+            organization_id=org.id,
+            key=repo.build_pending_deletion_key()
+        ).exists()
 
     def test_put_bad_integration_org(self):
         self.login_as(user=self.user)
@@ -276,10 +309,6 @@ class OrganizationRepositoryDeleteTest(APITestCase):
         assert response.status_code == 400
         assert response.data['detail'] == 'Invalid integration id'
         assert Repository.objects.get(id=repo.id).name == 'example'
-        assert not OrganizationOption.objects.filter(
-            organization_id=org.id,
-            key=repo.build_pending_deletion_key()
-        ).exists()
 
     def test_put_bad_integration_id(self):
         self.login_as(user=self.user)
@@ -306,7 +335,3 @@ class OrganizationRepositoryDeleteTest(APITestCase):
         assert response.status_code == 400
         assert response.data == {'integrationId': ['Enter a whole number.']}
         assert Repository.objects.get(id=repo.id).name == 'example'
-        assert not OrganizationOption.objects.filter(
-            organization_id=org.id,
-            key=repo.build_pending_deletion_key()
-        ).exists()
