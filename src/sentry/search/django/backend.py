@@ -431,10 +431,12 @@ class DjangoSearchBackend(SearchBackend):
         # actual backend.
         return self._query(projects, retention_window_start, group_queryset, tags,
                            environments, sort_by, limit, cursor, count_hits,
-                           paginator_options, **parameters)
+                           paginator_options, search_filters, use_new_filters,
+                           **parameters)
 
     def _query(self, projects, retention_window_start, group_queryset, tags, environments,
-               sort_by, limit, cursor, count_hits, paginator_options, **parameters):
+               sort_by, limit, cursor, count_hits, paginator_options, search_filters,
+               use_new_filters, **parameters):
 
         from sentry.models import (Group, Event, GroupEnvironment, Release)
 
