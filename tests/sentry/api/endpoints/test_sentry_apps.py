@@ -139,6 +139,31 @@ class PostSentryAppsTest(SentryAppsTest):
             {'events': ['issue webhooks require the event:read permission.']}
 
     @with_feature('organizations:internal-catchall')
+    def test_wrong_schema_format(self):
+        self.login_as(user=self.user)
+        kwargs = {'schema': {
+            'elements': [
+                {
+                    'type': 'alert-rule-action',
+                    'required_fields': [
+                        {
+                            'type': 'select',
+                            'label': 'Channel',
+                            'name': 'channel',
+                            'options': [
+                                ['#general'],
+                            ]
+                        },
+                    ],
+                }
+            ],
+        }}
+        response = self._post(**kwargs)
+        assert response.status_code == 422
+        assert response.data == \
+            {'schema': ["['#general'] is too short"]}
+
+    @with_feature('organizations:internal-catchall')
     def test_missing_name(self):
         self.login_as(self.user)
         response = self._post(name=None)
