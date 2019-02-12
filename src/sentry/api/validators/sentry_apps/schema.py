@@ -263,8 +263,8 @@ SCHEMA = {
 }
 
 
-def validate(value, schema=SCHEMA):
+def validate(instance, schema=SCHEMA):
     v = Draft4Validator(schema)
 
-    if not v.is_valid(value):
-        raise best_match(v.iter_errors(value))
+    if not v.is_valid(instance):
+        raise best_match(v.iter_errors(instance))

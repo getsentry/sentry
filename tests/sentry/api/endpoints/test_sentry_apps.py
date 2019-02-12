@@ -135,7 +135,7 @@ class PostSentryAppsTest(SentryAppsTest):
         response = self._post(**kwargs)
 
         assert response.status_code == 422
-        assert response.data['errors'] == \
+        assert response.data == \
             {'events': ['issue webhooks require the event:read permission.']}
 
     @with_feature('organizations:internal-catchall')
@@ -144,7 +144,7 @@ class PostSentryAppsTest(SentryAppsTest):
         response = self._post(name=None)
 
         assert response.status_code == 422, response.content
-        assert 'name' in response.data['errors']
+        assert 'name' in response.data
 
     @with_feature('organizations:internal-catchall')
     def test_missing_scopes(self):
@@ -152,7 +152,7 @@ class PostSentryAppsTest(SentryAppsTest):
         response = self._post(scopes=None)
 
         assert response.status_code == 422, response.content
-        assert 'scopes' in response.data['errors']
+        assert 'scopes' in response.data
 
     @with_feature('organizations:internal-catchall')
     def test_invalid_events(self):
@@ -160,7 +160,7 @@ class PostSentryAppsTest(SentryAppsTest):
         response = self._post(events=['project'])
 
         assert response.status_code == 422, response.content
-        assert 'events' in response.data['errors']
+        assert 'events' in response.data
 
     @with_feature('organizations:internal-catchall')
     def test_invalid_scope(self):
@@ -168,7 +168,7 @@ class PostSentryAppsTest(SentryAppsTest):
         response = self._post(scopes=('not:ascope', ))
 
         assert response.status_code == 422, response.content
-        assert 'scopes' in response.data['errors']
+        assert 'scopes' in response.data
 
     @with_feature('organizations:internal-catchall')
     def test_missing_webhook_url(self):
@@ -176,7 +176,7 @@ class PostSentryAppsTest(SentryAppsTest):
         response = self._post(webhookUrl=None)
 
         assert response.status_code == 422, response.content
-        assert 'webhookUrl' in response.data['errors']
+        assert 'webhookUrl' in response.data
 
     def _post(self, **kwargs):
         body = {
