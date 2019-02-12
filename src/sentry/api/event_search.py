@@ -58,6 +58,20 @@ def translate(pat):
     return '^' + res + '$'
 
 
+# Explaination of quoted string regex, courtesy of Matt
+# "              // literal quote
+# (              // begin capture group
+#   (?:          // begin uncaptured group
+#     [^"]       // any character that's not quote
+#     |          // or
+#     (?<=\\)["] // A quote, preceded by a \ (for escaping)
+#   )            // end uncaptured group
+#   *            // repeat the uncaptured group
+# )              // end captured group
+# ?              // allow to be empty (allow empty quotes)
+# "              // quote literal
+
+
 event_search_grammar = Grammar(r"""
 # raw_search must come at the end, otherwise other
 # search_terms will be treated as a raw query
@@ -85,7 +99,7 @@ is_filter       = negation? "is" sep search_value
 search_key      = key / quoted_key
 search_value    = quoted_value / value
 value           = ~r"\S*"
-quoted_value    = ~r"\"(.*)\""s
+quoted_value    = ~r"\"((?:[^\"]|(?<=\\)[\"])*)?\""s
 key             = ~r"[a-zA-Z0-9_\.-]+"
 # only allow colons in quoted keys
 quoted_key      = ~r"\"([a-zA-Z0-9_\.:-]+)\""
@@ -316,7 +330,7 @@ class SearchVisitor(NodeVisitor):
         return node.text
 
     def visit_quoted_value(self, node, children):
-        return node.match.groups()[0]
+        return node.match.groups()[0].replace('\\"', '"')
 
     def visit_quoted_key(self, node, children):
         return node.match.groups()[0]
