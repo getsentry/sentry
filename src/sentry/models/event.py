@@ -160,6 +160,7 @@ class Event(Model):
 
     @property
     def title(self):
+        # also see event_manager.py which inserts this for snuba
         et = eventtypes.get(self.get_event_type())(self.data)
         return et.to_string(self.get_event_metadata())
 
@@ -170,6 +171,7 @@ class Event(Model):
 
     @property
     def location(self):
+        # also see event_manager.py which inserts this for snuba
         et = eventtypes.get(self.get_event_type())(self.data)
         return et.get_location(self.get_event_metadata())
 
@@ -241,7 +243,12 @@ class Event(Model):
     def dist(self):
         return self.get_tag('sentry:dist')
 
+    def get_raw_data(self):
+        """Returns the internal raw event data dict."""
+        return dict(self.data.items())
+
     def as_dict(self):
+        """Returns the data in normalized form for external consumers."""
         # We use a OrderedDict to keep elements ordered for a potential JSON serializer
         data = OrderedDict()
         data['event_id'] = self.event_id
@@ -264,6 +271,10 @@ class Event(Model):
         # the culprit in from the group.
         if data.get('culprit') is None:
             data['culprit'] = self.group.culprit
+
+        # Override title and location with dynamically generated data
+        data['title'] = self.title
+        data['location'] = self.location
 
         return data
 
