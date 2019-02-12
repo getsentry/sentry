@@ -21,6 +21,7 @@ import ConfigStore from 'app/stores/configStore';
 import EnvironmentStore from 'app/stores/environmentStore';
 import ErrorRobot from 'app/components/errorRobot';
 import {fetchSavedSearches} from 'app/actionCreators/savedSearches';
+import {fetchProjectTagValues} from 'app/actionCreators/tags';
 import GroupStore from 'app/stores/groupStore';
 import LoadingError from 'app/components/loadingError';
 import LoadingIndicator from 'app/components/loadingIndicator';
@@ -670,6 +671,10 @@ const Stream = createReactClass({
     const projectFeatures = this.getProjectFeatures();
     const project = this.getProject();
 
+    const tagValueLoader = (key, search) => {
+      return fetchProjectTagValues(this.api, orgId, projectId, key, search);
+    };
+
     return (
       <div className={classNames(classes)}>
         <div className="stream-content">
@@ -689,6 +694,7 @@ const Stream = createReactClass({
             onSidebarToggle={this.onSidebarToggle}
             isSearchDisabled={this.state.isSidebarVisible}
             savedSearchList={this.state.savedSearchList}
+            tagValueLoader={tagValueLoader}
           />
           <Panel>
             <StreamActions
@@ -720,6 +726,7 @@ const Stream = createReactClass({
           onQueryChange={this.onSearch}
           orgId={params.orgId}
           projectId={params.projectId}
+          tagValueLoader={tagValueLoader}
         />
       </div>
     );
