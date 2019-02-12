@@ -67,6 +67,17 @@ class Repository(Model, PendingDeletionMixin):
             html_template='sentry/emails/unable-to-delete-repo.html',
         )
 
+    def rename_on_pending_deletion(self, fields=None):
+        # Due to the fact that Repository is shown to the user
+        # as it is pending deletion, this is added to display the fields
+        # correctly to the user.
+        self.config['pending_deletion_name'] = self.name
+        super(Repository, self).rename_on_pending_deletion(fields)
+
+    def reset_pending_deletion_field_names(self):
+        del self.config['pending_deletion_name']
+        super(Repository, self).reset_pending_deletion_field_names()
+
 
 def on_delete(instance, actor=None, **kwargs):
     # If there is no provider, we don't have any webhooks, etc to delete

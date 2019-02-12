@@ -3,7 +3,7 @@ from __future__ import absolute_import
 import six
 
 from sentry.api.serializers import Serializer, register
-from sentry.models import Repository
+from sentry.models import ObjectStatus, Repository
 
 
 @register(Repository)
@@ -25,13 +25,19 @@ class RepositorySerializer(Serializer):
                 'id': 'unknown',
                 'name': 'Unknown Provider',
             }
+
+        if obj.status == ObjectStatus.PENDING_DELETION:
+            repo_name = obj.config.get('pending_deletion_name', obj.name)
+        else:
+            repo_name = obj.name
+
         return {
             'id': six.text_type(obj.id),
-            'name': obj.name,
+            'name': repo_name,
             'url': obj.url,
             'provider': provider,
             'status': obj.get_status_display(),
             'dateCreated': obj.date_added,
             'integrationId': integration_id,
-            'externalSlug': external_slug
+            'externalSlug': external_slug,
         }

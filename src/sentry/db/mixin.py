@@ -3,7 +3,7 @@ from __future__ import absolute_import
 import logging
 import six
 
-from time import time
+from uuid import uuid4
 
 from sentry.models import OrganizationOption
 
@@ -27,7 +27,7 @@ class PendingDeletionMixin(object):
 
         for field in fields:
             original_data[field] = getattr(self, field)
-            setattr(self, field, '%s %d' % (original_data[field], time()))
+            setattr(self, field, uuid4().hex)
 
         self.save()
         original_data['id'] = self.id
@@ -54,8 +54,8 @@ class PendingDeletionMixin(object):
 
     def reset_pending_deletion_field_names(self):
         try:
-            original_data = self.get_pending_deletion_option().value
-        except self.__class__.DoesNotExist:
+            option = self.get_pending_deletion_option()
+        except OrganizationOption.DoesNotExist:
             logger.info(
                 'reset-on-pending-deletion.does-not-exist',
                 extra={
@@ -66,7 +66,7 @@ class PendingDeletionMixin(object):
             )
             return False
 
-        for field_name, field_value in six.iteritems(original_data):
+        for field_name, field_value in six.iteritems(option.value):
             if field_name in ('id', 'model'):
                 continue
             setattr(self, field_name, field_value)
