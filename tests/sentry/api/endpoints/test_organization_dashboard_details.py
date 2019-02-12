@@ -152,3 +152,174 @@ class OrganizationDashboardDetailsDeleteTest(OrganizationDashboardDetailsTestCas
         response = self.client.delete(self.url(1234567890))
         assert response.status_code == 404
         assert response.data == {u'detail': 'The requested resource does not exist'}
+
+
+class OrganizationDashboardDetailsPutTest(OrganizationDashboardDetailsTestCase):
+
+    def setUp(self):
+        super(OrganizationDashboardDetailsPutTest, self).setUp()
+        self.widget_3 = Widget.objects.create(
+            dashboard=self.dashboard,
+            order=3,
+            title='Widget 3',
+            display_type=WidgetDisplayTypes.LINE_CHART,
+        )
+        self.widget_4 = Widget.objects.create(
+            dashboard=self.dashboard,
+            order=4,
+            title='Widget 4',
+            display_type=WidgetDisplayTypes.LINE_CHART,
+        )
+        self.widget_ids = [self.widget_1.id, self.widget_2.id, self.widget_3.id, self.widget_4.id]
+
+    def assert_no_changes(self):
+        self.assert_dashboard_and_widgets(self.widget_ids, [1, 2, 3, 4])
+
+    def assert_dashboard_and_widgets(self, widget_ids, order):
+        assert Dashboard.objects.filter(
+            organization=self.organization,
+            id=self.dashboard.id
+        ).exists()
+
+        widgets = self.sort_by_order(Widget.objects.filter(
+            dashboard_id=self.dashboard.id,
+            status=ObjectStatus.VISIBLE,
+        ))
+        assert len(widgets) == len(list(widget_ids))
+
+        for widget, id, order in zip(widgets, widget_ids, order):
+            assert widget.id == id
+            assert widget.order == order
+
+    def test_put(self):
+        response = self.client.put(
+            self.url(self.dashboard.id),
+            data={
+                'title': 'Changed the title',
+                'widgets':
+                [
+                    {'order': 4, 'id': self.widget_1.id},
+                    {'order': 3, 'id': self.widget_2.id},
+                    {'order': 2, 'id': self.widget_3.id},
+                    {'order': 1, 'id': self.widget_4.id},
+                ]
+            }
+        )
+        assert response.status_code == 200
+        self.assert_dashboard_and_widgets(reversed(self.widget_ids), [5, 6, 7, 8])
+
+    def test_change_dashboard_title(self):
+        response = self.client.put(
+            self.url(self.dashboard.id),
+            data={'title': 'Dashboard Hello'}
+        )
+        assert response.status_code == 200
+        assert Dashboard.objects.filter(
+            title='Dashboard Hello',
+            organization=self.organization,
+            id=self.dashboard.id,
+        ).exists()
+
+    def test_reorder_widgets(self):
+        response = self.client.put(
+            self.url(self.dashboard.id),
+            data={
+                'widgets':
+                [
+                    {'order': 4, 'id': self.widget_1.id},
+                    {'order': 3, 'id': self.widget_2.id},
+                    {'order': 2, 'id': self.widget_3.id},
+                    {'order': 1, 'id': self.widget_4.id},
+                ]
+            }
+        )
+        assert response.status_code == 200
+        self.assert_dashboard_and_widgets(reversed(self.widget_ids), [5, 6, 7, 8])
+
+    def test_dashboard_does_not_exist(self):
+        response = self.client.put(self.url(1234567890))
+        assert response.status_code == 404
+        assert response.data == {u'detail': u'The requested resource does not exist'}
+
+    def test_duplicate_order(self):
+        response = self.client.put(
+            self.url(self.dashboard.id),
+            data={
+                'widgets':
+                [
+                    {'order': 4, 'id': self.widget_1.id},
+                    {'order': 4, 'id': self.widget_2.id},
+                    {'order': 2, 'id': self.widget_3.id},
+                    {'order': 1, 'id': self.widget_4.id},
+                ]
+            }
+        )
+        assert response.status_code == 400
+        assert response.data == {'widgets': [u'Widgets must not have duplicate order values.']}
+        self.assert_no_changes()
+
+    def test_partial_reordering_deletes_widgets(self):
+        response = self.client.put(
+            self.url(self.dashboard.id),
+            data={
+                'title': 'Changed the title',
+                'widgets':
+                [
+                    {'order': 2, 'id': self.widget_3.id},
+                    {'order': 1, 'id': self.widget_4.id},
+                ]
+            }
+        )
+        assert response.status_code == 200
+        self.assert_dashboard_and_widgets([self.widget_4.id, self.widget_3.id], [5, 6])
+        deleted_widget_ids = [self.widget_1.id, self.widget_2.id]
+        assert not Widget.objects.filter(id__in=deleted_widget_ids).exists()
+        assert not WidgetDataSource.objects.filter(widget_id__in=deleted_widget_ids).exists()
+
+    def test_widget_does_not_belong_to_dashboard(self):
+        widget = Widget.objects.create(
+            order=5,
+            dashboard=Dashboard.objects.create(
+                organization=self.organization,
+                title='Dashboard 2',
+                created_by=self.user,
+            ),
+            title='Widget 200',
+            display_type=WidgetDisplayTypes.LINE_CHART,
+        )
+        response = self.client.put(
+            self.url(self.dashboard.id),
+            data={
+                'widgets':
+                [
+                    {'order': 5, 'id': self.widget_1.id},
+                    {'order': 4, 'id': self.widget_2.id},
+                    {'order': 3, 'id': self.widget_3.id},
+                    {'order': 2, 'id': self.widget_4.id},
+                    {'order': 1, 'id': widget.id},
+                ]
+            }
+        )
+        assert response.status_code == 400
+        assert response.data == {
+            'widgets': [u'All widgets must exist within this dashboard prior to reordering.']}
+        self.assert_no_changes()
+
+    def test_widget_does_not_exist(self):
+        response = self.client.put(
+            self.url(self.dashboard.id),
+            data={
+                'widgets':
+                [
+                    {'order': 5, 'id': self.widget_1.id},
+                    {'order': 4, 'id': self.widget_2.id},
+                    {'order': 3, 'id': self.widget_3.id},
+                    {'order': 2, 'id': self.widget_4.id},
+                    {'order': 1, 'id': 1234567890},
+                ]
+            }
+        )
+        assert response.status_code == 400
+        assert response.data == {
+            'widgets': [u'All widgets must exist within this dashboard prior to reordering.']}
+        self.assert_no_changes()
