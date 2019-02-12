@@ -13,9 +13,6 @@ import LoadingError from 'app/components/loadingError';
 import LoadingIndicator from 'app/components/loadingIndicator';
 import {Panel, PanelBody, PanelHeader} from 'app/components/panels';
 import StackedBarChart from 'app/components/stackedBarChart';
-import TextBlock from 'app/views/settings/components/text/textBlock';
-
-const noMarginBottom = {marginBottom: 0};
 
 const ProjectFiltersChart = createReactClass({
   displayName: 'ProjectFiltersChart',
@@ -199,14 +196,12 @@ const ProjectFiltersChart = createReactClass({
             )}
           {hasLoaded &&
             this.state.blankStats && (
-              <EmptyMessage css={{flexDirection: 'column', alignItems: 'center'}}>
-                <h3 css={noMarginBottom}>{t('Nothing filtered in the last 30 days.')}</h3>
-                <TextBlock css={{fontSize: '0.9em', ...noMarginBottom}}>
-                  {t(
-                    'Issues filtered as a result of your settings below will be shown here.'
-                  )}
-                </TextBlock>
-              </EmptyMessage>
+              <EmptyMessage
+                title={t('Nothing filtered in the last 30 days.')}
+                description={t(
+                  'Issues filtered as a result of your settings below will be shown here.'
+                )}
+              />
             )}
         </PanelBody>
       </Panel>

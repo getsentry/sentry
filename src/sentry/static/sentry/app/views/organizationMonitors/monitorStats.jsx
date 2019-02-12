@@ -79,7 +79,6 @@ export default class MonitorStats extends AsyncComponent {
             />
           ) : (
             <EmptyMessage
-              css={{flexDirection: 'column', alignItems: 'center'}}
               title={t('Nothing recorded in the last 30 days.')}
               description={t('All check-ins for this monitor.')}
             />

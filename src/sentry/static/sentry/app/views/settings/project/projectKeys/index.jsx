@@ -238,10 +238,10 @@ export default class ProjectKeys extends AsyncView {
   renderEmpty() {
     return (
       <Panel>
-        <EmptyMessage>
-          <span className="icon icon-exclamation" />
-          <p>{t('There are no keys active for this project.')}</p>
-        </EmptyMessage>
+        <EmptyMessage
+          icon="icon-circle-exclamation"
+          description={t('There are no keys active for this project.')}
+        />
       </Panel>
     );
   }
