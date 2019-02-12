@@ -279,7 +279,7 @@ class GitlabIntegrationProvider(IntegrationProvider):
             # This value is embedded then in the webook token that we
             # give to gitlab to allow us to find the integration a hook came
             # from.
-            'external_id': u'{}:{}'.format(hostname, group['full_path']),
+            'external_id': u'{}:{}'.format(hostname, group['id']),
             'metadata': {
                 'icon': group['avatar_url'],
                 'instance': hostname,
