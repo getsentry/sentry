@@ -97,6 +97,9 @@ def devserver(reload, watchers, workers, browser_reload, styleguide, prefix, env
         'limit-post': 1 << 30,
         # do something with chunked
         'http-chunked-input': True,
+        'thunder-lock': False,
+        'timeout': 600,
+        'harakiri': 600,
     }
 
     if reload:
