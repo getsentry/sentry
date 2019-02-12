@@ -52,7 +52,7 @@ class ValidationError(Exception):
     pass
 
 
-def build_query_params_from_request(request, projects):
+def build_query_params_from_request(request, projects, environments):
     query_kwargs = {
         'projects': projects,
         'sort_by': request.GET.get('sort', DEFAULT_SORT_OPTION),
@@ -74,7 +74,7 @@ def build_query_params_from_request(request, projects):
     use_new_filters = request.GET.get('use_new_filters', '0') == '1'
     if query:
         try:
-            query_kwargs.update(parse_query(projects, query, request.user))
+            query_kwargs.update(parse_query(projects, query, request.user, environments))
         except InvalidQuery as e:
             raise ValidationError(
                 u'Your search query could not be parsed: {}'.format(
@@ -85,6 +85,7 @@ def build_query_params_from_request(request, projects):
                 parse_search_query(query),
                 projects,
                 request.user,
+                environments,
             )
         except Exception:
             # TODO: Catch less broad exceptions when we're confident in these

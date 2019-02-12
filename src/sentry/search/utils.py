@@ -8,7 +8,7 @@ from django.db import DataError
 from django.utils import timezone
 
 from sentry.constants import STATUS_CHOICES
-from sentry.models import EventUser, Team, User
+from sentry.models import EventUser, Release, Team, User
 from sentry.search.base import ANY
 from sentry.utils.auth import find_users
 
@@ -209,6 +209,34 @@ def parse_user_value(value, user):
         return User(id=0)
 
 
+def get_latest_release(projects, environments):
+    release_qs = Release.objects.filter(
+        organization_id=projects[0].organization_id,
+        projects__in=projects,
+    )
+
+    if environments is not None:
+        release_qs = release_qs.filter(
+            releaseprojectenvironment__environment__id__in=[
+                environment.id for environment in environments]
+        )
+
+    return release_qs.extra(select={
+        'sort': 'COALESCE(date_released, date_added)',
+    }).order_by('-sort').values_list('version', flat=True)[:1].get()
+
+
+def parse_release(value, projects, environments):
+    if value == 'latest':
+        try:
+            return get_latest_release(projects, environments)
+        except Release.DoesNotExist:
+            # Should just get no results here, so return an empty release name.
+            return ''
+    else:
+        return value
+
+
 numeric_modifiers = [
     (
         '>=', lambda field, value: {
@@ -353,7 +381,7 @@ def split_query_into_tokens(query):
     return tokens
 
 
-def parse_query(projects, query, user):
+def parse_query(projects, query, user, environments):
     # TODO(dcramer): handle query being wrapped in quotes
     tokens = tokenize_query(query)
 
@@ -379,9 +407,9 @@ def parse_query(projects, query, user):
             elif key == 'subscribed':
                 results['subscribed_by'] = parse_user_value(value, user)
             elif key in ('first-release', 'firstRelease'):
-                results['first_release'] = value
+                results['first_release'] = parse_release(value, projects, environments)
             elif key == 'release':
-                results['tags']['sentry:release'] = value
+                results['tags']['sentry:release'] = parse_release(value, projects, environments)
             elif key == 'dist':
                 results['tags']['sentry:dist'] = value
             elif key == 'user':

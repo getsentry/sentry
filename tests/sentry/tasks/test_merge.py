@@ -54,7 +54,7 @@ class MergeGroupTest(TestCase):
 
         assert list(GroupEnvironment.objects.filter(
             group_id=group2.id,
-        ).order_by('environment_id').values_list(
+        ).order_by('environment').values_list(
             'environment_id',
             flat=True,
         )) == [1, 2]

@@ -852,7 +852,8 @@ class EventManager(object):
         data = self._data
 
         project = Project.objects.get_from_cache(id=project_id)
-        project._organization_cache = Organization.objects.get_from_cache(id=project.organization_id)
+        project._organization_cache = Organization.objects.get_from_cache(
+            id=project.organization_id)
 
         # Check to make sure we're not about to do a bunch of work that's
         # already been done if we've processed an event with this ID. (This
@@ -1070,7 +1071,7 @@ class EventManager(object):
             group_id=group.id,
             environment_id=environment.id,
             defaults={
-                'first_release_id': release.id if release else None,
+                'first_release': release if release else None,
             },
         )
 
