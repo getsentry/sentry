@@ -41,9 +41,12 @@ def list_organization_teams_scenario(runner):
 
 # OrganizationPermission + team:write
 class OrganizationTeamsPermission(OrganizationPermission):
-    def __init__(self):
-        for m in 'POST', 'PUT', 'DELETE':
-            self.scope_map[m].append('team:write')
+    scope_map = {
+        'GET': ['org:read', 'org:write', 'org:admin'],
+        'POST': ['org:write', 'org:admin', 'team:write'],
+        'PUT': ['org:write', 'org:admin', 'team:write'],
+        'DELETE': ['org:admin', 'team:write'],
+    }
 
 
 class TeamSerializer(serializers.Serializer):
