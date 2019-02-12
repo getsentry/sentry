@@ -320,28 +320,37 @@ class DjangoSearchBackendTest(TestCase):
 
     def test_tags(self):
         results = self.make_query(
-            tags={'environment': 'staging'})
+            search_filter_query='environment:staging',
+            tags={'environment': 'staging'},
+        )
         assert set(results) == set([self.group2])
 
         results = self.make_query(
-            tags={'environment': 'example.com'})
+            search_filter_query='environment:example.com',
+            tags={'environment': 'example.com'},
+        )
         assert set(results) == set([])
 
         results = self.make_query(
-            tags={'environment': ANY})
+            search_filter_query='has:environment',
+            tags={'environment': ANY},
+        )
         assert set(results) == set([self.group2, self.group1])
 
         results = self.make_query(
-            tags={'environment': 'staging',
-                  'server': 'example.com'})
+            search_filter_query='environment:staging server:example.com',
+            tags={'environment': 'staging', 'server': 'example.com'},
+        )
         assert set(results) == set([self.group2])
 
         results = self.make_query(
-            tags={'environment': 'staging',
-                  'server': ANY})
+            search_filter_query='environment:staging has:server',
+            tags={'environment': 'staging', 'server': ANY},
+        )
         assert set(results) == set([self.group2])
 
         results = self.make_query(
+            search_filter_query='environment:staging server:bar.example.com',
             tags={'environment': 'staging',
                   'server': 'bar.example.com'})
         assert set(results) == set([])

@@ -9,6 +9,7 @@ from datetime import timedelta, datetime
 from django.utils import timezone
 
 from sentry import options
+from sentry.api.event_search import convert_search_filter_to_snuba_query
 from sentry.api.paginator import DateTimePaginator, SequencePaginator, Paginator
 from sentry.event_manager import ALLOWED_FUTURE_DELTA
 from sentry.models import Release, Group, GroupEnvironment
@@ -56,6 +57,10 @@ aggregation_defs = {
     # Only makes sense with WITH TOTALS, returns 1 for an individual group.
     'total': ['uniq', 'issue'],
 }
+issue_only_fields = set([
+    'query', 'status', 'bookmarked_by', 'assigned_to', 'unassigned',
+    'subscribed_by', 'active_at',
+])
 
 
 class SnubaConditionBuilder(object):
@@ -128,7 +133,8 @@ class ScalarCondition(Condition):
 
 class SnubaSearchBackend(ds.DjangoSearchBackend):
     def _query(self, projects, retention_window_start, group_queryset, tags, environments,
-               sort_by, limit, cursor, count_hits, paginator_options, **parameters):
+               sort_by, limit, cursor, count_hits, paginator_options, search_filters,
+               use_new_filters, **parameters):
 
         # TODO: Product decision: we currently search Group.message to handle
         # the `query` parameter, because that's what we've always done. We could
@@ -317,6 +323,8 @@ class SnubaSearchBackend(ds.DjangoSearchBackend):
                 limit=sample_size,
                 offset=0,
                 get_sample=True,
+                search_filters=search_filters,
+                use_new_filters=use_new_filters,
                 **parameters
             )
             snuba_count = len(snuba_groups)
@@ -357,6 +365,8 @@ class SnubaSearchBackend(ds.DjangoSearchBackend):
                 candidate_ids=candidate_ids,
                 limit=chunk_limit,
                 offset=offset,
+                search_filters=search_filters,
+                use_new_filters=use_new_filters,
                 **parameters
             )
             metrics.timing('snuba.search.num_snuba_results', len(snuba_groups))
@@ -455,7 +465,8 @@ class SnubaSearchBackend(ds.DjangoSearchBackend):
 
 def snuba_search(start, end, project_ids, environment_ids, tags,
                  sort_field, cursor=None, candidate_ids=None, limit=None,
-                 offset=0, get_sample=False, **parameters):
+                 offset=0, get_sample=False, search_filters=None,
+                 use_new_filters=False, **parameters):
     """
     This function doesn't strictly benefit from or require being pulled out of the main
     query method above, but the query method is already large and this function at least
@@ -478,25 +489,37 @@ def snuba_search(start, end, project_ids, environment_ids, tags,
     if candidate_ids is not None:
         filters['issue'] = candidate_ids
 
-    having = SnubaConditionBuilder({
-        'age_from': ScalarCondition('first_seen', '>'),
-        'age_to': ScalarCondition('first_seen', '<'),
-        'last_seen_from': ScalarCondition('last_seen', '>'),
-        'last_seen_to': ScalarCondition('last_seen', '<'),
-        'times_seen': CallbackCondition(
-            lambda times_seen: ('times_seen', '=', times_seen),
-        ),
-        'times_seen_lower': ScalarCondition('times_seen', '>'),
-        'times_seen_upper': ScalarCondition('times_seen', '<'),
-    }).build(parameters)
-
     conditions = []
-    for tag, val in sorted(tags.items()):
-        col = u'tags[{}]'.format(tag)
-        if val == ANY:
-            conditions.append((col, '!=', ''))
-        else:
-            conditions.append((col, '=', val))
+    if use_new_filters:
+        having = []
+        for search_filter in search_filters:
+            if search_filter.key.name in issue_only_fields:
+                # Don't filter on issue fields here, they're not available
+                continue
+            converted_filter = convert_search_filter_to_snuba_query(search_filter)
+            if search_filter.key.name in aggregation_defs:
+                having.append(converted_filter)
+            else:
+                conditions.append(converted_filter)
+    else:
+        having = SnubaConditionBuilder({
+            'age_from': ScalarCondition('first_seen', '>'),
+            'age_to': ScalarCondition('first_seen', '<'),
+            'last_seen_from': ScalarCondition('last_seen', '>'),
+            'last_seen_to': ScalarCondition('last_seen', '<'),
+            'times_seen': CallbackCondition(
+                lambda times_seen: ('times_seen', '=', times_seen),
+            ),
+            'times_seen_lower': ScalarCondition('times_seen', '>'),
+            'times_seen_upper': ScalarCondition('times_seen', '<'),
+        }).build(parameters)
+
+        for tag, val in sorted(tags.items()):
+            col = u'tags[{}]'.format(tag)
+            if val == ANY:
+                conditions.append((col, '!=', ''))
+            else:
+                conditions.append((col, '=', val))
 
     extra_aggregations = dependency_aggregations.get(sort_field, [])
     required_aggregations = set([sort_field, 'total'] + extra_aggregations)
