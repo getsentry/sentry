@@ -88,6 +88,11 @@ class TestSchemaValidation(TestCase):
                         },
                     ]
                 },
+                {
+                    'type': 'issue-open-in-link',
+                    'uri': '/sentry/issue',
+                    'params': ['project', 'filename'],
+                },
             ],
         }
 
