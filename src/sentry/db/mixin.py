@@ -29,7 +29,7 @@ class PendingDeletionMixin(object):
             original_data[field] = getattr(self, field)
             setattr(self, field, uuid4().hex)
 
-        self.save()
+        self.save(update_fields=fields)
         original_data['id'] = self.id
         original_data['model'] = self.__class__.__name__
         OrganizationOption.objects.create(
@@ -70,7 +70,7 @@ class PendingDeletionMixin(object):
             if field_name in ('id', 'model'):
                 continue
             setattr(self, field_name, field_value)
-        self.save()
+        self.save(update_fields=[k for k in six.iterkeys(option.value) if k not in ('id', 'model')])
         logger.info(
             'reset-on-pending-deletion.success',
             extra={
