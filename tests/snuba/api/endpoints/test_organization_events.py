@@ -271,20 +271,25 @@ class OrganizationEventsEndpointTest(OrganizationEventsTestBase):
         environment = self.create_environment(project=project, name="production")
         environment2 = self.create_environment(project=project)
         null_env = self.create_environment(project=project, name='')
-        group = self.create_group(project=project)
 
-        event_1 = self.create_event(
-            'a' * 32, group=group, datetime=self.min_ago, tags={'environment': environment.name}
-        )
-        event_2 = self.create_event(
-            'b' * 32, group=group, datetime=self.min_ago, tags={'environment': environment.name}
-        )
-        event_3 = self.create_event(
-            'c' * 32, group=group, datetime=self.min_ago, tags={'environment': environment2.name}
-        )
-        event_4 = self.create_event(
-            'd' * 32, group=group, datetime=self.min_ago,
-        )
+        events = []
+        for event_id, env in [
+            ('a' * 32, environment),
+            ('b' * 32, environment),
+            ('c' * 32, environment2),
+            ('d' * 32, null_env),
+        ]:
+            events.append(self.store_event(
+                data={
+                    'event_id': event_id,
+                    'timestamp': self.min_ago.isoformat()[:19],
+                    'fingerprint': ['put-me-in-group1'],
+                    'environment': env.name or None,
+                },
+                project_id=project.id
+            ))
+
+        event_1, event_2, event_3, event_4 = events
 
         base_url = reverse(
             'sentry-api-0-organization-events',
