@@ -6,6 +6,32 @@ from sentry.testutils import TestCase
 
 
 class DeployNotifyTest(TestCase):
+    def test_notify_if_ready_long_release(self):
+        org = self.create_organization()
+        project = self.create_project(organization=org)
+        release = Release.objects.create(
+            version='a' * 200,
+            organization=org,
+        )
+        release.add_project(project)
+        env = Environment.objects.create(
+            name='production',
+            organization_id=org.id,
+        )
+        deploy = Deploy.objects.create(
+            release=release,
+            organization_id=org.id,
+            environment_id=env.id,
+        )
+        Deploy.notify_if_ready(deploy.id)
+
+        # make sure activity has been created
+        record = Activity.objects.get(
+            type=Activity.DEPLOY,
+            project=project,
+        )
+        assert release.version.startswith(record.ident)
+
     def test_already_notified(self):
         org = self.create_organization()
         project = self.create_project(organization=org)
