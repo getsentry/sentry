@@ -42,7 +42,7 @@ class SentryAppsEndpoint(SentryAppsBaseEndpoint):
 
             return Response(serialize(sentry_app), status=201)
 
-        return Response({'errors': serializer.errors}, status=422)
+        return Response(serializer.errors, status=422)
 
     def _get_user_org(self, request):
         return next(
