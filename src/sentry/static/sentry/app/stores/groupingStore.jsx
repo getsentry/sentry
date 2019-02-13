@@ -280,7 +280,9 @@ const GroupingStore = Reflux.createStore({
     });
   },
 
-  onMerge({params, query}) {
+  // For cross-project views, we need to pass projectId instead of
+  // depending on router params (since we will only have orgId in that case)
+  onMerge({params, query, projectId}) {
     const ids = Array.from(this.mergeList.values());
 
     this.mergeDisabled = true;
@@ -293,11 +295,11 @@ const GroupingStore = Reflux.createStore({
       // Disable merge button
 
       if (params) {
-        const {orgId, groupId, projectId} = params;
+        const {orgId, groupId} = params;
         api.merge(
           {
             orgId,
-            projectId,
+            projectId: projectId || params.projectId,
             itemIds: [...ids, groupId],
             query,
           },
