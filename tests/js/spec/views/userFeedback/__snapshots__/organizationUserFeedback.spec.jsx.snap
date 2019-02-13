@@ -1071,7 +1071,7 @@ exports[`OrganizationUserFeedback renders 1`] = `
                         <div
                           className="css-5udiwc-HeaderItemPosition e165b9e40"
                         >
-                          <withEnvironment(MultipleEnvironmentSelector)
+                          <withOrganizationEnvironments(MultipleEnvironmentSelector)
                             onChange={[Function]}
                             onUpdate={[Function]}
                             organization={
@@ -1504,7 +1504,7 @@ exports[`OrganizationUserFeedback renders 1`] = `
                                 </DropdownAutoComplete>
                               </StyledDropdownAutoComplete>
                             </MultipleEnvironmentSelector>
-                          </withEnvironment(MultipleEnvironmentSelector)>
+                          </withOrganizationEnvironments(MultipleEnvironmentSelector)>
                         </div>
                       </HeaderItemPosition>
                       <HeaderSeparator>

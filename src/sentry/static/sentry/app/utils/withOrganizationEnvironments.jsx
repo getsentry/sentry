@@ -7,7 +7,7 @@ import OrganizationEnvironmentsStore from 'app/stores/organizationEnvironmentsSt
 
 const withOrganizationEnvironments = WrappedComponent =>
   createReactClass({
-    displayName: `withEnvironment(${getDisplayName(WrappedComponent)})`,
+    displayName: `withOrganizationEnvironments(${getDisplayName(WrappedComponent)})`,
 
     mixins: [Reflux.listenTo(OrganizationEnvironmentsStore, 'onChange')],
 
