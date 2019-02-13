@@ -39,6 +39,33 @@ class BitbucketRepositoryProvider(providers.IntegrationRepositoryProvider):
             config['name'] = repo['full_name']
         return config
 
+    def update_repository_data(self, repo, data):
+        """
+        Update repo in database if necessary. Return True if update happened,
+        False otherwise.
+        """
+        updated = False
+
+        new_name = data['identifier']
+        if repo.name != new_name:
+            repo.name = new_name
+            updated = True
+
+        new_url = u'https://bitbucket.org/{}'.format(data['name'])
+        if repo.url != new_url:
+            repo.url = new_url
+            updated = True
+
+        new_config_name = data['name']
+        if repo.config['name'] != new_config_name:
+            repo.config['name'] = new_config_name
+            updated = True
+
+        if updated:
+            repo.save()
+
+        return updated
+
     def get_webhook_secret(self, organization):
         # TODO(LB): Revisit whether Integrations V3 should be using OrganizationOption for storage
         lock = locks.get(u'bitbucket:webhook-secret:{}'.format(organization.id), duration=60)
@@ -57,6 +84,12 @@ class BitbucketRepositoryProvider(providers.IntegrationRepositoryProvider):
         return secret
 
     def build_repository_config(self, organization, data):
+        """
+        Create a webhook and return config data.
+
+        If you ever change what's returned here, you may also need to change
+        update_repository_data method.
+        """
         installation = self.get_installation(data.get('installation'), organization.id)
         client = installation.get_client()
         try:

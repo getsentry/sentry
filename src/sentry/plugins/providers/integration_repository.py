@@ -27,7 +27,34 @@ class IntegrationRepositoryProvider(object):
 
     def dispatch(self, request, organization, **kwargs):
         try:
+            # get data via API (so we know it's up to date)
             config = self.get_repository_data(organization, request.DATA)
+
+        except Exception as e:
+            return self.handle_api_error(e)
+
+        else:
+            # check to see if we already have this repository, and update any
+            # data if applicable
+            repo = Repository.objects.get(
+                organization_id=organization.id,
+                provider=self.id,
+                external_id=config.get('external_id')
+            )
+            if repo is not None:
+                updated = self.update_repository_data(repo, config)
+                if updated:
+                    return Response(serialize(repo, request.user), status=200)
+                return Response({
+                    'errors': {
+                        '__all__': 'A repository with that name already exists'
+                    }
+                },
+                    status=400,
+                )
+
+        # at this point we know it's a new repo
+        try:
             result = self.build_repository_config(
                 organization=organization,
                 data=config,
@@ -35,6 +62,8 @@ class IntegrationRepositoryProvider(object):
         except Exception as e:
             return self.handle_api_error(e)
 
+        # TODO do we need all the try-except business here anymore, or are we
+        # safe to just create the repo record?
         try:
             with transaction.atomic():
                 repo = Repository.objects.create(
@@ -121,6 +150,13 @@ class IntegrationRepositoryProvider(object):
         Gets the necessary repository data through the integration's API
         """
         return config
+
+    def update_repository_data(self, repo, new_data):
+        """
+        Update repo in database if necessary. Return True if update happened,
+        False otherwise.
+        """
+        raise NotImplementedError
 
     def build_repository_config(self, organization, data):
         """
