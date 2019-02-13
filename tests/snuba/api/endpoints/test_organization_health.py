@@ -83,7 +83,7 @@ class OrganizationHealthTest(APITestCase, SnubaTestCase):
                     'environment': env.name or None,
                     'user': {'id': self.user.id},
                 },
-                project_id=self.project.id
+                project_id=project.id
             )
 
         base_url = reverse(
