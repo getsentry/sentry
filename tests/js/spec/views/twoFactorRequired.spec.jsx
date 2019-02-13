@@ -1,11 +1,13 @@
 import React from 'react';
 import {mount} from 'enzyme';
+import Cookies from 'js-cookie';
 
 import TwoFactorRequired from 'app/views/settings/account/accountSecurity/';
 import AccountSecurityWrapper from 'app/views/settings/account/accountSecurity/accountSecurityWrapper';
 
 const ENDPOINT = '/users/me/authenticators/';
 const ORG_ENDPOINT = '/organizations/';
+const PENDING_INVITE = 'pending-invite';
 
 describe('TwoFactorRequired', function() {
   beforeEach(function() {
@@ -17,7 +19,7 @@ describe('TwoFactorRequired', function() {
     });
     MockApiClient.addMockResponse({
       url: ORG_ENDPOINT,
-      body: TestStubs.Organizations({require2FA: false}),
+      body: TestStubs.Organizations(),
     });
   });
 
@@ -34,20 +36,21 @@ describe('TwoFactorRequired', function() {
       TestStubs.routerContext()
     );
     expect(wrapper.find('TwoFactorRequired')).toHaveLength(1);
-    expect(wrapper.find('StyledAlert[className="require-2fa"]')).toHaveLength(0);
+    expect(wrapper.find('StyledAlert[data-test-id="require-2fa"]')).toHaveLength(0);
   });
 
-  it('does not render when 2FA is not required, not 2FA enrolled', function() {
+  it('does not render when 2FA is disabled and no pendingInvite cookie', function() {
     const wrapper = mount(
       <AccountSecurityWrapper>
         <TwoFactorRequired />
       </AccountSecurityWrapper>,
       TestStubs.routerContext()
     );
-    expect(wrapper.find('StyledAlert[className="require-2fa"]')).toHaveLength(0);
+    expect(wrapper.find('TwoFactorRequired')).toHaveLength(1);
+    expect(wrapper.find('StyledAlert[data-test-id="require-2fa"]')).toHaveLength(0);
   });
 
-  it('does not render when 2FA is not required, 2FA is enrolled', function() {
+  it('does not render when 2FA is enrolled and no pendingInvite cookie', function() {
     MockApiClient.addMockResponse({
       url: ENDPOINT,
       body: [TestStubs.Authenticators().Totp({isEnrolled: true})],
@@ -59,10 +62,12 @@ describe('TwoFactorRequired', function() {
       </AccountSecurityWrapper>,
       TestStubs.routerContext()
     );
-    expect(wrapper.find('StyledAlert[className="require-2fa"]')).toHaveLength(0);
+    expect(wrapper.find('TwoFactorRequired')).toHaveLength(0);
+    expect(wrapper.find('StyledAlert[data-test-id="require-2fa"]')).toHaveLength(0);
   });
 
-  it('does not render when 2FA is required, 2FA is enrolled', function() {
+  it('does not render when 2FA is enrolled and has pendingInvite cookie', function() {
+    Cookies.set(PENDING_INVITE, '/accept/5/abcde/');
     MockApiClient.addMockResponse({
       url: ENDPOINT,
       body: [TestStubs.Authenticators().Totp({isEnrolled: true})],
@@ -78,10 +83,13 @@ describe('TwoFactorRequired', function() {
       </AccountSecurityWrapper>,
       TestStubs.routerContext()
     );
-    expect(wrapper.find('StyledAlert[className="require-2fa"]')).toHaveLength(0);
+    expect(wrapper.find('TwoFactorRequired')).toHaveLength(0);
+    expect(wrapper.find('StyledAlert[data-test-id="require-2fa"]')).toHaveLength(0);
+    Cookies.remove(PENDING_INVITE);
   });
 
-  it('renders when 2FA is required for multiple orgs, 2FA is not enrolled', function() {
+  it('renders when 2FA is disabled and has pendingInvite cookie', function() {
+    Cookies.set(PENDING_INVITE, '/accept/5/abcde/');
     MockApiClient.addMockResponse({
       url: ORG_ENDPOINT,
       body: TestStubs.Organizations({require2FA: true}),
@@ -93,33 +101,8 @@ describe('TwoFactorRequired', function() {
       </AccountSecurityWrapper>,
       TestStubs.routerContext()
     );
-    expect(wrapper.find('StyledAlert[className="require-2fa"]')).toHaveLength(1);
-    expect(wrapper.find('StyledAlert[className="require-2fa"]').text()).toEqual(
-      expect.stringContaining('Test 1 and Test 2 organizations')
-    );
-  });
-
-  it('renders when 2FA is required for one org, 2FA is not enrolled', function() {
-    MockApiClient.addMockResponse({
-      url: ORG_ENDPOINT,
-      body: [
-        {
-          id: '1',
-          name: 'test 1',
-          require2FA: true,
-        },
-      ],
-    });
-
-    const wrapper = mount(
-      <AccountSecurityWrapper>
-        <TwoFactorRequired />
-      </AccountSecurityWrapper>,
-      TestStubs.routerContext()
-    );
-    expect(wrapper.find('StyledAlert[className="require-2fa"]')).toHaveLength(1);
-    expect(wrapper.find('StyledAlert[className="require-2fa"]').text()).toEqual(
-      expect.stringContaining('Test 1 organization')
-    );
+    expect(wrapper.find('TwoFactorRequired')).toHaveLength(1);
+    expect(wrapper.find('StyledAlert[data-test-id="require-2fa"]')).toHaveLength(1);
+    Cookies.remove(PENDING_INVITE);
   });
 });
