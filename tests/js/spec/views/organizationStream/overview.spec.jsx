@@ -254,6 +254,30 @@ describe('OrganizationStream', function() {
     });
   });
 
+  describe('componentDidUpdate fetching tags', function() {
+    beforeEach(function() {
+      wrapper = shallow(<OrganizationStream {...props} />, {
+        disableLifecycleMethods: false,
+      });
+      wrapper.instance().fetchData = jest.fn();
+    });
+
+    it('fetches tags on project change', function() {
+      // Called during componentDidMount
+      expect(fetchTagsRequest).toHaveBeenCalledTimes(1);
+
+      const selection = {
+        projects: [99],
+        environments: [],
+        datetime: {period: '24h'},
+      };
+      wrapper.setProps({selection});
+      wrapper.update();
+
+      expect(fetchTagsRequest).toHaveBeenCalledTimes(2);
+    });
+  });
+
   describe('processingIssues', function() {
     beforeEach(function() {
       wrapper = shallow(<OrganizationStream {...props} />);
