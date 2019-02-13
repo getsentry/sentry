@@ -7,9 +7,17 @@ from uuid import uuid4
 
 from sentry.models import Commit, CommitAuthor, CommitFileChange, Release, Repository
 from sentry.testutils import TestCase
-from sentry.utils.committers import _get_commit_file_changes, _get_frame_paths, get_previous_releases, _match_commits_path, score_path_match_length, tokenize_path
+from sentry.utils.committers import (
+    _get_commit_file_changes,
+    _get_frame_paths,
+    _match_commits_path,
+    get_event_file_committers,
+    get_previous_releases,
+    score_path_match_length,
+    tokenize_path
+)
 
-# TODO(lb): Tests are still needed for _get_committers and _get_vent_file_commiters
+# TODO(lb): Tests are still needed for _get_committers and _get_event_file_commiters
 
 
 class CommitTestCase(TestCase):
@@ -207,3 +215,77 @@ class GetPreviousReleasesTestCase(TestCase):
         assert len(releases) == 2
         assert releases[0] == release2
         assert releases[1] == release1
+
+
+class GetEventFileCommitters(CommitTestCase):
+    def setUp(self):
+        super(GetEventFileCommitters, self).setUp()
+        release = self.create_release(
+            project=self.project,
+            version='v12'
+        )
+        release.set_commits([
+            {
+                'id': 'a' * 40,
+                'repository': self.repo.name,
+                'author_email': 'bob@example.com',
+                'author_name': 'Bob',
+                'message': 'i fixed a bug',
+                'patch_set': [
+                    {
+                        'path': 'sentry/example/Application/Application.java',
+                        'type': 'M',
+                    },
+                ]
+            }
+        ])
+        group = self.create_group(
+            project=self.project,
+            message='Kaboom!',
+            first_release=release,
+        )
+        self.event = self.create_event(
+            group=group,
+            message='Kaboom!',
+            platform='java',
+            data={
+                'sdk': {
+                    'name': 'sentry-java',
+                    'version': '1.0',
+                },
+            },
+            stacktrace={
+                'frames': [
+                    {
+                        "function": "invoke0",
+                        "abs_path": "NativeMethodAccessorImpl.java",
+                        "in_app": False,
+                        "module": "jdk.internal.reflect.NativeMethodAccessorImpl",
+                        "filename": "NativeMethodAccessorImpl.java",
+                    },
+                    {
+                        "function": "home",
+                        "abs_path": "Application.java",
+                        "module": "io.sentry.example.Application",
+                        "in_app": True,
+                        "lineno": 30,
+                        "filename": "Application.java",
+                    },
+                    {
+                        "function": "handledError",
+                        "abs_path": "Application.java",
+                        "module": "io.sentry.example.Application",
+                        "in_app": True,
+                        "lineno": 39,
+                        "filename": "Application.java",
+                    }
+                ]
+            }
+        )
+
+    def test_java_sdk_path_mangling(self):
+        result = get_event_file_committers(self.project, self.event)
+        assert len(result) == 1
+        assert 'commits' in result[0]
+        assert len(result[0]['commits']) == 1
+        assert result[0]['commits'][0]['id'] == 'a' * 40
