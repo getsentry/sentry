@@ -71,7 +71,7 @@ def build_query_params_from_request(request, projects, environments):
         query_kwargs['cursor'] = Cursor.from_string(cursor)
 
     query = request.GET.get('query', 'is:unresolved').strip()
-    use_new_filters = request.GET.get('use_new_filters', '0') == '1'
+    use_new_filters = request.GET.get('use_new_filters', '1') == '1'
     if query:
         try:
             query_kwargs.update(parse_query(projects, query, request.user, environments))
