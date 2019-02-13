@@ -36,11 +36,11 @@ class IntegrationRepositoryProvider(object):
         else:
             # check to see if we already have this repository, and update any
             # data if applicable
-            repo = Repository.objects.get(
+            repo = Repository.objects.filter(
                 organization_id=organization.id,
                 provider=self.id,
                 external_id=config.get('external_id')
-            )
+            ).first()
             if repo is not None:
                 updated = self.update_repository_data(repo, config)
                 if updated:
@@ -151,7 +151,7 @@ class IntegrationRepositoryProvider(object):
         """
         return config
 
-    def update_repository_data(self, repo, new_data):
+    def update_repository_data(self, repo, data):
         """
         Update repo in database if necessary. Return True if update happened,
         False otherwise.
