@@ -239,6 +239,9 @@ const OrganizationStream = createReactClass({
     const currentQuery = this.props.location.query || {};
     if ('cursor' in currentQuery) {
       requestParams.cursor = currentQuery.cursor;
+    } else if ('use_new_filters' in currentQuery) {
+      // TODO: Delete this after testing production counts cc/ @wedamija
+      requestParams.use_new_filters = currentQuery.use_new_filters;
     }
 
     if (this.lastRequest) {
