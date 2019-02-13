@@ -63,6 +63,7 @@ from sentry.models import (
 )
 from sentry.plugins import plugins
 from sentry.rules import EventState
+from sentry.tagstore.snuba import SnubaCompatibilityTagStorage
 from sentry.utils import json
 from sentry.utils.auth import SSO_SESSION_KEY
 
@@ -847,11 +848,13 @@ class SnubaTestCase(TestCase):
     def setUp(self):
         super(SnubaTestCase, self).setUp()
         self.snuba_eventstream = SnubaEventStream()
+        self.snuba_tagstore = SnubaCompatibilityTagStorage()
         assert requests.post(settings.SENTRY_SNUBA + '/tests/drop').status_code == 200
 
     def store_event(self, *args, **kwargs):
         with mock.patch('sentry.eventstream.insert', self.snuba_eventstream.insert):
-            return super(SnubaTestCase, self).store_event(*args, **kwargs)
+            with mock.patch('sentry.tagstore.delay_index_event_tags', self.snuba_tagstore.delay_index_event_tags):
+                return super(SnubaTestCase, self).store_event(*args, **kwargs)
 
     def __wrap_event(self, event, data, primary_hash):
         # TODO: Abstract and combine this with the stream code in
