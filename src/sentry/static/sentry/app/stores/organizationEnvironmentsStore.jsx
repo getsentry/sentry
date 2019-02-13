@@ -24,6 +24,7 @@ const OrganizationEnvironmentsStore = Reflux.createStore({
 
   loadInitialData(environments) {
     this.items = environments.map(this.makeEnvironment);
+    this.trigger(this.items);
   },
 
   getActive() {

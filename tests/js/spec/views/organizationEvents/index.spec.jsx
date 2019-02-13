@@ -62,93 +62,6 @@ describe('OrganizationEvents', function() {
       expect(wrapper.find('PageContent')).toHaveLength(1);
     });
 
-    it('updates router when changing environments', async function() {
-      expect(wrapper.find('MultipleEnvironmentSelector').prop('value')).toEqual([]);
-
-      wrapper.find('MultipleEnvironmentSelector HeaderItem').simulate('click');
-      await tick();
-      wrapper.update();
-
-      wrapper
-        .find('EnvironmentSelectorItem')
-        .at(0)
-        .simulate('click');
-
-      await tick();
-      wrapper.update();
-
-      expect(router.push).toHaveBeenLastCalledWith({
-        pathname: '/organizations/org-slug/events/',
-        query: {
-          environment: ['production'],
-          statsPeriod: '14d',
-        },
-      });
-
-      await tick();
-      wrapper.update();
-
-      expect(wrapper.find('MultipleEnvironmentSelector').prop('value')).toEqual([
-        'production',
-      ]);
-
-      // Select a second environment, "staging"
-      wrapper.find('MultipleEnvironmentSelector HeaderItem').simulate('click');
-      await tick();
-      wrapper.update();
-      wrapper
-        .find('EnvironmentSelectorItem')
-        .at(1)
-        .find('MultiSelect')
-        .simulate('click');
-
-      expect(wrapper.find('MultipleEnvironmentSelector').prop('value')).toEqual([
-        'production',
-        'staging',
-      ]);
-
-      // close dropdown
-      wrapper
-        .find('MultipleEnvironmentSelector StyledInput')
-        .simulate('keyDown', {key: 'Escape'});
-
-      await tick();
-      wrapper.update();
-      expect(router.push).toHaveBeenLastCalledWith({
-        pathname: '/organizations/org-slug/events/',
-        query: {
-          environment: ['production', 'staging'],
-          statsPeriod: '14d',
-        },
-      });
-
-      expect(wrapper.find('MultipleEnvironmentSelector').prop('value')).toEqual([
-        'production',
-        'staging',
-      ]);
-
-      // Can clear
-      wrapper.find('MultipleEnvironmentSelector HeaderItem').simulate('click');
-      await tick();
-      wrapper.update();
-
-      wrapper
-        .find('MultipleEnvironmentSelector HeaderItem StyledClose')
-        .simulate('click');
-
-      await tick();
-      wrapper.update();
-
-      expect(wrapper.find('MultipleEnvironmentSelector').prop('value')).toEqual([]);
-      expect(router.push).toHaveBeenCalledWith({
-        pathname: '/organizations/org-slug/events/',
-        query: {
-          environment: [],
-          statsPeriod: '14d',
-        },
-      });
-    });
-
     it('updates router when changing projects', async function() {
       expect(wrapper.find('MultipleProjectSelector').prop('value')).toEqual([]);
 
@@ -232,31 +145,6 @@ describe('OrganizationEvents', function() {
       expect(wrapper.find('TimeRangeSelector').prop('start')).toEqual(start);
       expect(wrapper.find('TimeRangeSelector').prop('end')).toEqual(end);
       expect(wrapper.find('TimeRangeSelector').prop('relative')).toEqual(null);
-    });
-
-    it('does not update router when toggling environment selector without changes', async function() {
-      const prevCallCount = router.push.mock.calls.length;
-
-      wrapper.setProps({
-        router: {
-          ...router,
-          location: {
-            ...router.location,
-            query: {
-              environment: ['production'],
-              statsPeriod: '14d',
-              utc: 'true',
-            },
-          },
-        },
-      });
-
-      // Toggle MultipleProjectSelector
-      wrapper.find('MultipleEnvironmentSelector HeaderItem').simulate('click');
-      wrapper
-        .find('MultipleEnvironmentSelector StyledInput')
-        .simulate('keyDown', {key: 'Escape'});
-      expect(router.push).toHaveBeenCalledTimes(prevCallCount);
     });
 
     it('updates router when changing periods', async function() {

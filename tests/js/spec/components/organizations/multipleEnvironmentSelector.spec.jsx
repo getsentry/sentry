@@ -5,7 +5,6 @@ import {setActiveOrganization} from 'app/actionCreators/organizations';
 import MultipleEnvironmentSelector from 'app/components/organizations/multipleEnvironmentSelector';
 
 describe('MultipleEnvironmentSelector', function() {
-  let getMock;
   let wrapper;
   const onChange = jest.fn();
   const onUpdate = jest.fn();
@@ -18,10 +17,6 @@ describe('MultipleEnvironmentSelector', function() {
   ]);
 
   beforeAll(async function() {
-    getMock = MockApiClient.addMockResponse({
-      url: `/organizations/${organization.slug}/environments/`,
-      body: envs,
-    });
     setActiveOrganization(organization);
     await tick();
   });
@@ -32,25 +27,12 @@ describe('MultipleEnvironmentSelector', function() {
     wrapper = mount(
       <MultipleEnvironmentSelector
         organization={organization}
+        organizationEnvironments={envs}
         onChange={onChange}
         onUpdate={onUpdate}
       />,
       routerContext
     );
-  });
-
-  it('fetches environments when mounting', async function() {
-    expect(getMock).toHaveBeenCalled();
-    await wrapper.find('MultipleEnvironmentSelector HeaderItem').simulate('click');
-    wrapper.update();
-    expect(wrapper.find('FetchOrganizationEnvironments')).toHaveLength(1);
-
-    // Close
-    wrapper.find('MultipleEnvironmentSelector HeaderItem').simulate('click');
-    expect(wrapper.find('FetchOrganizationEnvironments')).toHaveLength(1);
-
-    wrapper.unmount();
-    expect(getMock).toHaveBeenCalledTimes(1);
   });
 
   it('can select and change environments', async function() {

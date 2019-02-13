@@ -11,7 +11,7 @@ import MutedBox from 'app/components/mutedBox';
 import withOrganization from 'app/utils/withOrganization';
 import withEnvironment from 'app/utils/withEnvironment';
 import withGlobalSelection from 'app/utils/withGlobalSelection';
-import OrganizationEnvironmentStore from 'app/stores/organizationEnvironmentsStore';
+import withOrganizationEnvironments from 'app/utils/withOrganizationEnvironments';
 
 import GroupEventToolbar from './eventToolbar';
 import {fetchGroupEventAndMarkSeen} from './utils';
@@ -21,14 +21,16 @@ const GroupSidebarWithLatestContextEnvironment = withEnvironment(props => {
   return <GroupSidebar {...otherProps} environments={environment ? [environment] : []} />;
 });
 
-const GroupSidebarWithGlobalSelectionEnvironment = withGlobalSelection(props => {
-  const {selection, ...otherProps} = props;
-  const environments = OrganizationEnvironmentStore.getActive().filter(env =>
-    selection.environments.includes(env.name)
-  );
+const GroupSidebarWithGlobalSelectionEnvironment = withOrganizationEnvironments(
+  withGlobalSelection(props => {
+    const {selection, organizationEnvironments, ...otherProps} = props;
+    const environments = organizationEnvironments.filter(env =>
+      selection.environments.includes(env.name)
+    );
 
-  return <GroupSidebar {...otherProps} environments={environments} />;
-});
+    return <GroupSidebar {...otherProps} environments={environments} />;
+  })
+);
 
 class GroupEventDetails extends React.Component {
   static propTypes = {
