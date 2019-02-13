@@ -258,13 +258,13 @@ def send_webhooks(installation, event, **kwargs):
         return
 
     # The service hook applies to all projects if there are no
-    # ServiceHookProject records. Otherwise we want to check if we
-    # should send the webhook or not.
-    project_ids = ServiceHookProject.objects.filter(
+    # ServiceHookProject records. Otherwise we want check if
+    # the event is within the allowed projects.
+    project_limited = ServiceHookProject.objects.filter(
         service_hook_id=servicehook.id,
-    ).values_list('project_id', flat=True)
+    ).exists()
 
-    if not project_ids:
+    if not project_limited:
         resource, action = event.split('.')
 
         kwargs['resource'] = resource

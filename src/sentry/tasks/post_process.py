@@ -28,16 +28,15 @@ logger = logging.getLogger('sentry')
 
 
 def _get_service_hooks(project_id):
-    from sentry.models import ServiceHook, ServiceHookProject
+    from sentry.models import ServiceHook
     cache_key = u'servicehooks:1:{}'.format(project_id)
     result = cache.get(cache_key)
     if result is None:
-        hook_ids = ServiceHookProject.objects.filter(
-            project_id=project_id,
-        ).values_list('service_hook_id', flat=True)
 
-        result = [(h.id, h.events) for h in
-                  ServiceHook.objects.filter(id__in=hook_ids)]
+        result = ServiceHook.objects.filter(
+            servicehookproject__project_id=project_id,
+        ).values_list('id', 'events')
+
         cache.set(cache_key, result, 60)
     return result
 
