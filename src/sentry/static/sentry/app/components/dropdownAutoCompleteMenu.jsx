@@ -7,7 +7,6 @@ import styled, {css} from 'react-emotion';
 
 import {t} from 'app/locale';
 import AutoComplete from 'app/components/autoComplete';
-import Button from 'app/components/button';
 import Input from 'app/views/settings/components/forms/controls/input';
 import space from 'app/styles/space';
 import LoadingIndicator from 'app/components/loadingIndicator';
@@ -138,7 +137,6 @@ class DropdownAutoCompleteMenu extends React.Component {
 
     menuFooter: PropTypes.oneOfType([PropTypes.node, PropTypes.func]),
     menuHeader: PropTypes.node,
-
     /**
      * Props to pass to menu component
      */
@@ -153,6 +151,11 @@ class DropdownAutoCompleteMenu extends React.Component {
      * Props to pass to input/filter component
      */
     inputProps: PropTypes.object,
+
+    /**
+     * renderProp for the end (right side) of the search input
+     */
+    inputActions: PropTypes.oneOfType([PropTypes.node, PropTypes.func]),
 
     css: PropTypes.object,
     style: PropTypes.object,
@@ -296,6 +299,7 @@ class DropdownAutoCompleteMenu extends React.Component {
       className,
       menuHeader,
       menuFooter,
+      inputActions,
       menuWithArrow,
       searchPlaceholder,
       itemSize,
@@ -356,6 +360,9 @@ class DropdownAutoCompleteMenu extends React.Component {
           const renderedFooter =
             typeof menuFooter === 'function' ? menuFooter({actions}) : menuFooter;
 
+          const renderedInputActions =
+            typeof inputActions === 'function' ? inputActions() : inputActions;
+
           return (
             <AutoCompleteRoot {...getRootProps()} className={rootClassName}>
               {children({
@@ -390,18 +397,7 @@ class DropdownAutoCompleteMenu extends React.Component {
                       <InputLoadingWrapper>
                         {busy && <LoadingIndicator size={16} mini />}
                       </InputLoadingWrapper>
-                      {menuProps &&
-                        menuProps.showSettingsLink && (
-                          <div>
-                            <StyledButton
-                              to={`/settings/${menuProps &&
-                                menuProps.organization.slug}/projects/`}
-                              size="xsmall"
-                            >
-                              {t('Manage')}
-                            </StyledButton>
-                          </div>
-                        )}
+                      {renderedInputActions}
                     </StyledInputWrapper>
                   )}
                   <div>
@@ -590,22 +586,6 @@ const LabelWithPadding = styled(LabelWithBorder)`
 
 const GroupLabel = styled('div')`
   padding: ${space(0.25)} ${space(1)};
-`;
-
-const StyledButton = styled(Button)`
-  display: block;
-  margin: 0 ${space(1)};
-  box-shadow: none;
-  border: 0;
-  background: ${p => p.theme.offWhite2};
-
-  &:hover,
-  &:active,
-  &:focus {
-    box-shadow: none;
-    border: 0;
-    background: ${p => p.theme.gray1};
-  }
 `;
 
 const StyledMenu = styled('div')`

@@ -723,6 +723,7 @@ exports[`OrganizationUserFeedback renders 1`] = `
                                   closeOnSelect={true}
                                   emptyHidesInput={true}
                                   emptyMessage="You have no projects"
+                                  inputActions={[Function]}
                                   inputProps={
                                     Object {
                                       "style": Object {
@@ -750,48 +751,6 @@ exports[`OrganizationUserFeedback renders 1`] = `
                                   }
                                   maxHeight={500}
                                   menuFooter={[Function]}
-                                  menuProps={
-                                    Object {
-                                      "organization": Object {
-                                        "access": Array [
-                                          "org:read",
-                                          "org:write",
-                                          "org:admin",
-                                          "project:read",
-                                          "project:write",
-                                          "project:admin",
-                                          "team:read",
-                                          "team:write",
-                                          "team:admin",
-                                        ],
-                                        "features": Array [
-                                          "sentry10",
-                                        ],
-                                        "id": "3",
-                                        "name": "Organization Name",
-                                        "onboardingTasks": Array [],
-                                        "projects": Array [
-                                          Object {
-                                            "hasAccess": true,
-                                            "id": "2",
-                                            "isBookmarked": false,
-                                            "isMember": true,
-                                            "name": "Project Name",
-                                            "slug": "project-slug",
-                                            "teams": Array [],
-                                          },
-                                        ],
-                                        "scrapeJavaScript": true,
-                                        "slug": "org-slug",
-                                        "status": Object {
-                                          "id": "active",
-                                          "name": "active",
-                                        },
-                                        "teams": Array [],
-                                      },
-                                      "showSettingsLink": true,
-                                    }
-                                  }
                                   noResultsMessage="No projects found"
                                   onClose={[Function]}
                                   onSelect={[Function]}
@@ -807,6 +766,7 @@ exports[`OrganizationUserFeedback renders 1`] = `
                                     closeOnSelect={true}
                                     emptyHidesInput={true}
                                     emptyMessage="You have no projects"
+                                    inputActions={[Function]}
                                     inputProps={
                                       Object {
                                         "style": Object {
@@ -834,48 +794,6 @@ exports[`OrganizationUserFeedback renders 1`] = `
                                     }
                                     maxHeight={500}
                                     menuFooter={[Function]}
-                                    menuProps={
-                                      Object {
-                                        "organization": Object {
-                                          "access": Array [
-                                            "org:read",
-                                            "org:write",
-                                            "org:admin",
-                                            "project:read",
-                                            "project:write",
-                                            "project:admin",
-                                            "team:read",
-                                            "team:write",
-                                            "team:admin",
-                                          ],
-                                          "features": Array [
-                                            "sentry10",
-                                          ],
-                                          "id": "3",
-                                          "name": "Organization Name",
-                                          "onboardingTasks": Array [],
-                                          "projects": Array [
-                                            Object {
-                                              "hasAccess": true,
-                                              "id": "2",
-                                              "isBookmarked": false,
-                                              "isMember": true,
-                                              "name": "Project Name",
-                                              "slug": "project-slug",
-                                              "teams": Array [],
-                                            },
-                                          ],
-                                          "scrapeJavaScript": true,
-                                          "slug": "org-slug",
-                                          "status": Object {
-                                            "id": "active",
-                                            "name": "active",
-                                          },
-                                          "teams": Array [],
-                                        },
-                                        "showSettingsLink": true,
-                                      }
-                                    }
                                     noResultsMessage="No projects found"
                                     onClose={[Function]}
                                     onSelect={[Function]}
