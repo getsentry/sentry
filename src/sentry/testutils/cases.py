@@ -17,6 +17,7 @@ __all__ = (
 
 import base64
 import calendar
+import contextlib
 import os
 import os.path
 import pytest
@@ -852,9 +853,17 @@ class SnubaTestCase(TestCase):
         assert requests.post(settings.SENTRY_SNUBA + '/tests/drop').status_code == 200
 
     def store_event(self, *args, **kwargs):
-        with mock.patch('sentry.eventstream.insert', self.snuba_eventstream.insert):
-            with mock.patch('sentry.tagstore.delay_index_event_tags', self.snuba_tagstore.delay_index_event_tags):
-                return super(SnubaTestCase, self).store_event(*args, **kwargs)
+        with contextlib.nested(
+            mock.patch('sentry.eventstream.insert',
+                       self.snuba_eventstream.insert),
+            mock.patch('sentry.tagstore.delay_index_event_tags',
+                       self.snuba_tagstore.delay_index_event_tags),
+            mock.patch('sentry.tagstore.incr_tag_value_times_seen',
+                       self.snuba_tagstore.incr_tag_value_times_seen),
+            mock.patch('sentry.tagstore.incr_group_tag_value_times_seen',
+                       self.snuba_tagstore.incr_group_tag_value_times_seen),
+        ):
+            return super(SnubaTestCase, self).store_event(*args, **kwargs)
 
     def __wrap_event(self, event, data, primary_hash):
         # TODO: Abstract and combine this with the stream code in
