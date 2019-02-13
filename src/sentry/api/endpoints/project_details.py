@@ -624,7 +624,7 @@ class ProjectDetailsEndpoint(ProjectEndpoint):
                     'model': type(project).__name__,
                 }
             )
-
-            project.rename_on_pending_deletion()
+            deleted_project = Project.objects.get(id=project.id)
+            deleted_project.rename_on_pending_deletion()
 
         return Response(status=204)
