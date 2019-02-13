@@ -95,9 +95,7 @@ const OrganizationStream = createReactClass({
     });
 
     fetchTags(this.props.organization.slug);
-    fetchOrgMembers(this.api, this.props.organization.slug).then(members => {
-      this.setState({memberList: indexMembersByProject(members)});
-    });
+    this.fetchMemberList();
 
     // Start by getting searches first so if the user is on a saved search
     // we load the correct data the first time.
@@ -118,6 +116,12 @@ const OrganizationStream = createReactClass({
       } else {
         this._poller.disable();
       }
+    }
+
+    // If the project selection has changed reload the member list
+    // allowing autocomplete to be more accurate.
+    if (!isEqual(prevProps.selection.projects, this.props.selection.projects)) {
+      this.fetchMemberList();
     }
 
     const prevQuery = prevProps.location.query;
@@ -219,6 +223,15 @@ const OrganizationStream = createReactClass({
     projects = projects.map(p => p.toString());
 
     return this.props.organization.projects.filter(p => projects.indexOf(p.id) > -1);
+  },
+
+  fetchMemberList() {
+    const projects = this.getGlobalSearchProjects();
+    const projectIds = projects.map(p => p.id);
+
+    fetchOrgMembers(this.api, this.props.organization.slug, projectIds).then(members => {
+      this.setState({memberList: indexMembersByProject(members)});
+    });
   },
 
   fetchData() {
