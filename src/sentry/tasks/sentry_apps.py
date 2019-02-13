@@ -12,7 +12,7 @@ from sentry.tasks.base import instrumented_task, retry
 from sentry.utils.http import absolute_uri
 from sentry.api.serializers import serialize, AppPlatformEvent
 from sentry.models import (
-    SentryAppInstallation, Group, User, ServiceHook, SentryApp,
+    SentryAppInstallation, Group, User, ServiceHook, ServiceHookProject, SentryApp,
 )
 from sentry.models.sentryapp import VALID_EVENTS
 
@@ -258,10 +258,13 @@ def send_webhooks(installation, event, **kwargs):
         return
 
     # The service hook applies to all projects if there are no
-    # ServiceHookProject records. Otherwise want to check if we
+    # ServiceHookProject records. Otherwise we want to check if we
     # should send the webhook or not.
-    projects = servicehook.get_projects()
-    if not projects:
+    project_ids = ServiceHookProject.objects.filter(
+        service_hook_id=servicehook.id,
+    ).values_list('project_id', flat=True)
+
+    if not project_ids:
         resource, action = event.split('.')
 
         kwargs['resource'] = resource

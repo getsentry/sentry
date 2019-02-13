@@ -18,7 +18,7 @@ from sentry.db.models import (
     FlexibleForeignKey,
     sane_repr,
 )
-from sentry.models import SentryApp, Project
+from sentry.models import SentryApp
 
 SERVICE_HOOK_EVENTS = [
     'event.alert',
@@ -112,14 +112,3 @@ class ServiceHook(Model):
             project_id=project.id,
             service_hook_id=self.id,
         )
-
-    def get_projects(self):
-        """
-        Get all projects associated with a service hook.
-
-        """
-        ids = ServiceHookProject.objects.filter(
-            service_hook_id=self.id,
-        ).values_list('project_id', flat=True)
-
-        return Project.objects.filter(id__in=ids)
