@@ -248,12 +248,6 @@ class GetEventFileCommitters(CommitTestCase):
             group=group,
             message='Kaboom!',
             platform='java',
-            data={
-                'sdk': {
-                    'name': 'sentry-java',
-                    'version': '1.0',
-                },
-            },
             stacktrace={
                 'frames': [
                     {

@@ -196,8 +196,7 @@ def get_event_file_committers(project, event, frame_limit=25):
     # the Java SDK might generate better file paths, but for now we use the module
     # path to approximate the file path so that we can intersect it with commit
     # file paths.
-    sdk = event.interfaces.get('sdk')
-    if sdk and sdk.name in ('sentry-java', 'sentry.java'):
+    if event.platform == 'java':
         for frame in frames:
             if '/' not in frame.get('filename') and frame.get('module'):
                 frame['filename'] = frame['module'].replace('.', '/') + '/' + frame['filename']
