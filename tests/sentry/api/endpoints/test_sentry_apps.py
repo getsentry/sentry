@@ -151,6 +151,8 @@ class PostSentryAppsTest(SentryAppsTest):
                             'label': 'Channel',
                             'name': 'channel',
                             'options': [
+                                # option items should have 2 elements
+                                # i.e. ['channel_id', '#general']
                                 ['#general'],
                             ]
                         },

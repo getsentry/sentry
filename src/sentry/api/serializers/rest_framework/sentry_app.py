@@ -5,7 +5,7 @@ from jsonschema.exceptions import ValidationError as SchemaValidationError
 from rest_framework import serializers
 from rest_framework.serializers import Serializer, ValidationError
 
-from sentry.api.validators.sentry_apps.schema import validate
+from sentry.api.validators.sentry_apps.schema import validate as validate_schema
 from sentry.models import ApiScopes
 from sentry.models.sentryapp import VALID_EVENT_RESOURCES, REQUIRED_EVENT_PERMISSIONS
 
@@ -32,9 +32,9 @@ class EventListField(serializers.WritableField):
 class SchemaField(serializers.WritableField):
     def validate(self, data):
         try:
-            validate(data)
+            validate_schema(data)
         except SchemaValidationError as e:
-            raise ValidationError(u'{}'.format(e.message))
+            raise ValidationError(e.message)
 
 
 class SentryAppSerializer(Serializer):
