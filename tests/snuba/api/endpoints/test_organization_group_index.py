@@ -7,7 +7,6 @@ from uuid import uuid4
 
 from django.core.urlresolvers import reverse
 from django.utils import timezone
-from exam import fixture
 from mock import patch, Mock
 
 from sentry.models import (
@@ -22,7 +21,6 @@ from sentry.testutils.helpers import parse_link_header
 
 class GroupListTest(APITestCase, SnubaTestCase):
     endpoint = 'sentry-api-0-organization-group-index'
-    use_new_filters = False
 
     def setUp(self):
         super(GroupListTest, self).setUp()
@@ -41,8 +39,6 @@ class GroupListTest(APITestCase, SnubaTestCase):
             org = self.project.organization.slug
         else:
             org = args[0]
-
-        kwargs['use_new_filters'] = '1' if self.use_new_filters else '0'
         return super(GroupListTest, self).get_response(org, **kwargs)
 
     def test_sort_by_date_with_tag(self):
@@ -387,10 +383,6 @@ class GroupListTest(APITestCase, SnubaTestCase):
             response = self.get_valid_response(statsPeriod='1h')
             assert len(response.data) == 0
 
-
-class GroupListTestWithSearchFilters(GroupListTest):
-    use_new_filters = True
-
     def test_advanced_search_errors(self):
         self.login_as(user=self.user)
         with self.feature({'organizations:advanced-search': False}):
@@ -408,7 +400,6 @@ class GroupListTestWithSearchFilters(GroupListTest):
 class GroupUpdateTest(APITestCase, SnubaTestCase):
     endpoint = 'sentry-api-0-organization-group-index'
     method = 'put'
-    use_new_filters = False
 
     def setUp(self):
         super(GroupUpdateTest, self).setUp()
@@ -419,9 +410,6 @@ class GroupUpdateTest(APITestCase, SnubaTestCase):
             org = self.project.organization.slug
         else:
             org = args[0]
-
-        qs_params = kwargs.get('qs_params', {})
-        qs_params['use_new_filters'] = '1' if self.use_new_filters else '0'
         return super(GroupUpdateTest, self).get_response(org, **kwargs)
 
     def assertNoResolution(self, group):
@@ -1566,29 +1554,15 @@ class GroupUpdateTest(APITestCase, SnubaTestCase):
         assert tombstone.data == group1.data
 
 
-class GroupUpdateTestWithSelectFilters(GroupUpdateTest):
-    use_new_filters = True
-
-
 class GroupDeleteTest(APITestCase, SnubaTestCase):
     endpoint = 'sentry-api-0-organization-group-index'
     method = 'delete'
-    use_new_filters = False
-
-    @fixture
-    def path(self):
-        return u'/api/0/organizations/{}/issues/'.format(
-            self.project.organization.slug,
-        )
 
     def get_response(self, *args, **kwargs):
         if not args:
             org = self.project.organization.slug
         else:
             org = args[0]
-
-        qs_params = kwargs.get('qs_params', {})
-        qs_params['use_new_filters'] = '1' if self.use_new_filters else '0'
         return super(GroupDeleteTest, self).get_response(org, **kwargs)
 
     @patch('sentry.api.helpers.group_index.eventstream')
@@ -1703,7 +1677,3 @@ class GroupDeleteTest(APITestCase, SnubaTestCase):
         for group in groups:
             assert not Group.objects.filter(id=group.id).exists()
             assert not GroupHash.objects.filter(group_id=group.id).exists()
-
-
-class GroupDeleteTestWithSelectFilters(GroupDeleteTest):
-    use_new_filters = True

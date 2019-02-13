@@ -307,7 +307,7 @@ def unassigned_filter(unassigned, projects):
 class DjangoSearchBackend(SearchBackend):
     def query(self, projects, tags=None, environments=None, sort_by='date', limit=100,
               cursor=None, count_hits=False, paginator_options=None, search_filters=None,
-              use_new_filters=False, **parameters):
+              **parameters):
 
         from sentry.models import Group, GroupStatus, GroupSubscription
 
@@ -329,24 +329,10 @@ class DjangoSearchBackend(SearchBackend):
             GroupStatus.PENDING_MERGE,
         ])
 
-        if use_new_filters:
-            query_set_builder_class = SearchFilterQuerySetBuilder
-            query_set_builder_params = search_filters
-        else:
-            query_set_builder_class = NewQuerySetBuilder
-            query_set_builder_params = parameters
-
-        group_queryset = query_set_builder_class({
+        group_queryset = SearchFilterQuerySetBuilder({
             'message': QCallbackCondition(
-                lambda query: Q(
-                    Q(message__icontains=query) | Q(culprit__icontains=query),
-                ),
-                skip_if_falsey=True,
-            ),
-            # TODO: Remove this once we've stopped using old params
-            'query': QCallbackCondition(
-                lambda query: Q(
-                    Q(message__icontains=query) | Q(culprit__icontains=query),
+                lambda message: Q(
+                    Q(message__icontains=message) | Q(culprit__icontains=message),
                 ),
                 skip_if_falsey=True,
             ),
@@ -375,12 +361,7 @@ class DjangoSearchBackend(SearchBackend):
                 ),
             ),
             'active_at': SearchFilterScalarCondition('active_at'),
-            # TODO: These are legacy params. Once we've moved to SearchFilter
-            # entirely then they can be removed, since the `'active_at'`
-            # condition will handle both
-            'active_at_from': ScalarCondition('active_at', 'gt'),
-            'active_at_to': ScalarCondition('active_at', 'lt'),
-        }).build(group_queryset, query_set_builder_params)
+        }).build(group_queryset, search_filters)
 
         # filter out groups which are beyond the retention period
         retention = quotas.get_event_retention(organization=projects[0].organization)
@@ -400,12 +381,11 @@ class DjangoSearchBackend(SearchBackend):
         # actual backend.
         return self._query(projects, retention_window_start, group_queryset, tags,
                            environments, sort_by, limit, cursor, count_hits,
-                           paginator_options, search_filters, use_new_filters,
-                           **parameters)
+                           paginator_options, search_filters, **parameters)
 
     def _query(self, projects, retention_window_start, group_queryset, tags, environments,
                sort_by, limit, cursor, count_hits, paginator_options, search_filters,
-               use_new_filters, **parameters):
+               **parameters):
 
         from sentry.models import (Group, Event, GroupEnvironment, Release)
 
