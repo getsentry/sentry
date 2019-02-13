@@ -8,6 +8,7 @@ const ExtractTextPlugin = require('mini-css-extract-plugin');
 const CompressionPlugin = require('compression-webpack-plugin');
 const OptimizeCssAssetsPlugin = require('optimize-css-assets-webpack-plugin');
 const LodashModuleReplacementPlugin = require('lodash-webpack-plugin');
+const FixStyleOnlyEntriesPlugin = require('webpack-fix-style-only-entries');
 
 const {env} = process;
 
@@ -315,7 +316,7 @@ const legacyCssConfig = {
   output: {
     path: distPath,
   },
-  plugins: [new ExtractTextPlugin()],
+  plugins: [new FixStyleOnlyEntriesPlugin(), new ExtractTextPlugin()],
   resolve: {
     extensions: ['.less', '.js'],
     modules: [staticPrefix, 'node_modules'],
