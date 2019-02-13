@@ -110,9 +110,17 @@ const GroupGroupingView = createReactClass({
     const {query, params} = this.props;
 
     if (params) {
+      // You need at least 1 similarItem to be able to merge, so this should
+      // always exist.
+      //
+      // Similar issues API currently does not return issues across projects,
+      // so we can assume that the first issues project slug is the project in
+      // scope
+      const [firstIssue] = this.state.similarItems;
       GroupingActions.merge({
         params,
         query,
+        projectId: firstIssue.issue.project.slug,
       });
     }
   },
