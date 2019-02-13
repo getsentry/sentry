@@ -204,9 +204,10 @@ class ReleaseActivityEmail(ActivityEmail):
         if has_new_links:
             release_links = [
                 absolute_uri(
-                    u'/organizations/{}/releases/{}/'.format(
+                    u'/organizations/{}/releases/{}/?project={}'.format(
                         self.organization.slug,
                         self.release.version,
+                        p.id,
                     )
                 ) for p in projects
             ]
