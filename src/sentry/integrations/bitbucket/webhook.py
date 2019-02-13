@@ -75,7 +75,7 @@ class PushEventWebhook(Webhook):
         if repo.config.get('name') != repo_full_name:
             repo.config['name'] = repo_full_name
             repo.name = repo_full_name
-            repo.url = event['repository']['website']  # TODO is this the right data???
+            repo.url = u'https://bitbucket.org/{}'.format(repo_full_name)
             repo.save()
 
         for change in event['push']['changes']:
