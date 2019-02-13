@@ -43,15 +43,15 @@ class IntegrationRepositoryProvider(object):
             ).first()
             if repo is not None:
                 updated = self.update_repository_data(repo, config)
-                if updated:
-                    return Response(serialize(repo, request.user), status=200)
-                return Response({
-                    'errors': {
-                        '__all__': 'A repository with that name already exists'
-                    }
-                },
-                    status=400,
-                )
+                if not updated:
+                    return Response({
+                        'errors': {
+                            '__all__': 'That repository already exists'
+                        }
+                    },
+                        status=400,
+                    )
+                return Response(serialize(repo, request.user), status=200)
 
         # at this point we know it's a new repo
         try:
