@@ -34,7 +34,7 @@ env:
     - DJANGO_VERSION=">=1.6.11,<1.7"
     # node's version is pinned by .nvmrc and is autodetected by `nvm install`.
     - NODE_DIR="${HOME}/.nvm/versions/node/v$(< .nvmrc)"
-    - YARN_VERSION="1.3.2"
+    - YARN_VERSION="1.13.0"
 script:
   - make travis-lint-$TEST_SUITE
   - make travis-test-$TEST_SUITE

@@ -9,6 +9,7 @@ endif
 
 PIP = LDFLAGS="$(LDFLAGS)" pip
 WEBPACK = NODE_ENV=production ./node_modules/.bin/webpack
+YARN_VERSION = 1.13.0
 
 develop: setup-git develop-only
 develop-only: update-submodules install-system-pkgs install-yarn-pkgs install-sentry-dev
@@ -56,8 +57,8 @@ node-version-check:
 install-system-pkgs: node-version-check
 	@echo "--> Installing system packages (from Brewfile)"
 	@command -v brew 2>&1 > /dev/null && brew bundle || (echo 'WARNING: homebrew not found or brew bundle failed - skipping system dependencies.')
-	@echo "--> Installing yarn 1.3.2 (via npm)"
-	@npm install -g "yarn@1.3.2"
+	@echo "--> Installing yarn $(YARN_VERSION) (via npm)"
+	@npm install -g "yarn@$(YARN_VERSION)"
 
 install-yarn-pkgs:
 	@echo "--> Installing Yarn packages (for development)"
