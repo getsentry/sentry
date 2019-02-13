@@ -11,7 +11,7 @@ exports[`RuleBuilder renders 1`] = `
       ],
       "results": Array [
         Object {
-          "isThrow": false,
+          "type": "return",
           "value": undefined,
         },
       ],
