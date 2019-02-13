@@ -145,6 +145,19 @@ describe('AccountSecurity', function() {
         .prop('enabled')
     ).toBe(true);
 
+    expect(
+      wrapper
+        .find('RemoveConfirm')
+        .first()
+        .prop('disabled')
+    ).toBe(false);
+    expect(
+      wrapper
+        .find('Tooltip')
+        .first()
+        .prop('disabled')
+    ).toBe(true);
+
     // This will open confirm modal
     wrapper
       .find('Button .icon-trash')
@@ -187,6 +200,10 @@ describe('AccountSecurity', function() {
       TestStubs.routerContext()
     );
     expect(wrapper.find('CircleIndicator').prop('enabled')).toBe(true);
+
+    expect(wrapper.find('RemoveConfirm').prop('disabled')).toBe(true);
+    expect(wrapper.find('Tooltip').prop('disabled')).toBe(false);
+    expect(wrapper.find('Tooltip').prop('title')).toContain('test 1 and test 2');
 
     // This will open confirm modal
     wrapper.find('Button .icon-trash').simulate('click');

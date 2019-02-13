@@ -23,10 +23,6 @@ import RemoveConfirm from 'app/views/settings/account/accountSecurity/components
 import PasswordForm from 'app/views/settings/account/passwordForm';
 import recreateRoute from 'app/utils/recreateRoute';
 
-const AuthenticatorName = styled.span`
-  font-size: 1.2em;
-`;
-
 class AccountSecurity extends AsyncView {
   static PropTypes = {
     authenticators: PropTypes.arrayOf(PropTypes.object).isRequired,
@@ -54,14 +50,17 @@ class AccountSecurity extends AsyncView {
     });
   };
 
+  formatOrgSlugs = () => {
+    const {orgsRequire2fa} = this.props;
+    const slugs = orgsRequire2fa.map(({slug}) => slug);
+
+    return [slugs.slice(0, -1).join(', '), slugs.slice(-1)[0]].join(
+      slugs.length > 1 ? ' and ' : ''
+    );
+  };
+
   renderBody() {
-    const {
-      authenticators,
-      orgsRequire2fa,
-      countEnrolled,
-      deleteDisabled,
-      onDisable,
-    } = this.props;
+    const {authenticators, countEnrolled, deleteDisabled, onDisable} = this.props;
     const isEmpty = !authenticators.length;
 
     return (
@@ -80,8 +79,7 @@ class AccountSecurity extends AsyncView {
           }
         />
 
-        {!isEmpty &&
-          countEnrolled == 0 && <TwoFactorRequired orgsRequire2fa={orgsRequire2fa} />}
+        {!isEmpty && countEnrolled == 0 && <TwoFactorRequired />}
 
         <PasswordForm />
 
@@ -159,7 +157,7 @@ class AccountSecurity extends AsyncView {
                         isEnrolled && (
                           <Tooltip
                             title={t(
-                              "Two-factor authentication is required for at least one organization you're a member of."
+                              `Two-factor authentication is required for organization(s): ${this.formatOrgSlugs()}.`
                             )}
                             disabled={!deleteDisabled}
                           >
@@ -191,5 +189,9 @@ class AccountSecurity extends AsyncView {
     );
   }
 }
+
+const AuthenticatorName = styled.span`
+  font-size: 1.2em;
+`;
 
 export default AccountSecurity;
