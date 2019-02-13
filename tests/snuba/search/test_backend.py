@@ -14,7 +14,7 @@ from sentry.api.issue_search import (
     parse_search_query,
 )
 from sentry.models import (
-    Environment, GroupAssignee, GroupBookmark, GroupStatus, GroupSubscription,
+    Environment, Group, GroupAssignee, GroupBookmark, GroupStatus, GroupSubscription,
     Release, ReleaseEnvironment, ReleaseProjectEnvironment
 )
 from sentry.search.base import ANY
@@ -32,73 +32,83 @@ class SnubaSearchTest(SnubaTestCase):
 
     def setUp(self):
         super(SnubaSearchTest, self).setUp()
-
         self.backend = SnubaSearchBackend()
-        self.environments = {}
+        self.base_datetime = (datetime.utcnow() - timedelta(days=3)).replace(tzinfo=pytz.utc)
 
-        self.base_datetime = (datetime.utcnow() - timedelta(days=7)).replace(tzinfo=pytz.utc)
-        self.group1 = self.create_group(
-            project=self.project,
-            checksum='a' * 32,
-            message='foo',
-            times_seen=5,
-            status=GroupStatus.UNRESOLVED,
-            last_seen=self.base_datetime,
-            first_seen=self.base_datetime - timedelta(days=31),
-        )
-        self.event1 = self.create_event(
-            event_id='a' * 32,
-            group=self.group1,
-            datetime=self.base_datetime - timedelta(days=31),
-            message='foo',
-            stacktrace={
-                'frames': [{
-                    'module': 'group1'
-                }]},
-            tags={
-                'server': 'example.com',
+        self.event1 = self.store_event(
+            data={
+                'fingerprint': ['put-me-in-group1'],
+                'event_id': 'a' * 32,
+                'message': 'foo',
                 'environment': 'production',
-            }
+                'tags': {
+                    'server': 'example.com',
+                },
+                'timestamp': (self.base_datetime - timedelta(days=21)).isoformat()[:19],
+                'stacktrace': {
+                    'frames': [{
+                        'module': 'group1'
+                    }]
+                },
+            },
+            project_id=self.project.id,
         )
-        self.event3 = self.create_event(
-            event_id='c' * 32,
-            group=self.group1,
-            datetime=self.base_datetime,
-            message='group1',
-            stacktrace={
-                'frames': [{
-                    'module': 'group1'
-                }]},
-            tags={
-                'server': 'example.com',
+        self.event3 = self.store_event(
+            data={
+                'fingerprint': ['put-me-in-group1'],
+                'event_id': 'c' * 32,
+                'message': 'group1',
                 'environment': 'production',
-            }
+                'tags': {
+                    'server': 'example.com',
+                },
+                'timestamp': self.base_datetime.isoformat()[:19],
+                'stacktrace': {
+                    'frames': [{
+                        'module': 'group1'
+                    }]
+                },
+            },
+            project_id=self.project.id,
         )
 
-        self.group2 = self.create_group(
-            project=self.project,
-            checksum='b' * 32,
-            message='bar',
-            times_seen=10,
-            status=GroupStatus.RESOLVED,
-            last_seen=self.base_datetime - timedelta(days=30),
-            first_seen=self.base_datetime - timedelta(days=30),
-        )
-        self.event2 = self.create_event(
-            event_id='b' * 32,
-            group=self.group2,
-            datetime=self.base_datetime - timedelta(days=30),
-            message='bar',
-            stacktrace={
-                'frames': [{
-                    'module': 'group2'
-                }]},
-            tags={
-                'server': 'example.com',
+        self.group1 = Group.objects.get(id=self.event1.group.id)
+        assert self.group1.id == self.event3.group.id
+
+        assert self.group1.first_seen == self.event1.datetime
+        assert self.group1.last_seen == self.event3.datetime
+
+        self.group1.times_seen = 5
+        self.group1.status = GroupStatus.UNRESOLVED
+        self.group1.save()
+
+        self.event2 = self.store_event(
+            data={
+                'fingerprint': ['put-me-in-group2'],
+                'event_id': 'b' * 32,
+                'timestamp': (self.base_datetime - timedelta(days=20)).isoformat()[:19],
+                'message': 'bar',
+                'stacktrace': {
+                    'frames': [{
+                        'module': 'group2'
+                    }]
+                },
                 'environment': 'staging',
-                'url': 'http://example.com',
-            }
+                'tags': {
+                    'server': 'example.com',
+                    'url': 'http://example.com',
+                }
+            },
+            project_id=self.project.id
         )
+
+        self.group2 = Group.objects.get(id=self.event2.group.id)
+
+        assert self.group2.first_seen == self.group2.last_seen == self.event2.datetime
+
+        self.group2.status = GroupStatus.RESOLVED
+        self.group2.times_seen = 10
+        self.group2.save()
 
         GroupBookmark.objects.create(
             user=self.user,
@@ -126,45 +136,36 @@ class SnubaSearchTest(SnubaTestCase):
             is_active=False,
         )
 
+        self.environments = {
+            'production': self.event1.get_environment(),
+            'staging': self.event2.get_environment(),
+        }
+
     def set_up_multi_project(self):
         self.project2 = self.create_project(organization=self.project.organization)
-        self.group_p2 = self.create_group(
-            project=self.project2,
-            checksum='a' * 32,
-            message='foo',
-            times_seen=6,
-            status=GroupStatus.UNRESOLVED,
-            last_seen=self.base_datetime - timedelta(days=1),
-            first_seen=self.base_datetime - timedelta(days=31),
-        )
-        self.event_p2 = self.create_event(
-            event_id='a' * 32,
-            group=self.group_p2,
-            datetime=self.base_datetime - timedelta(days=31),
-            message='foo',
-            stacktrace={
-                'frames': [{
-                    'module': 'group_p2'
-                }]},
-            tags={
-                'server': 'example.com',
+        self.event_p2 = self.store_event(
+            data={
+                'event_id': 'a' * 32,
+                'fingerprint': ['put-me-in-groupP2'],
+                'timestamp': (self.base_datetime - timedelta(days=21)).isoformat()[:19],
+                'message': 'foo',
+                'stacktrace': {
+                    'frames': [{
+                        'module': 'group_p2'
+                    }]
+                },
+                'tags': {
+                    'server': 'example.com',
+                },
                 'environment': 'production',
-            }
+            },
+            project_id=self.project2.id
         )
 
-    def create_event(self, *args, **kwargs):
-        event = super(SnubaSearchTest, self).create_event(*args, **kwargs)
-
-        data = event.data.data
-        tags = dict(data.get('tags', []))
-
-        if tags['environment'] not in self.environments:
-            self.environments[tags['environment']] = Environment.get_or_create(
-                event.project,
-                tags['environment'],
-            )
-
-        return event
+        self.group_p2 = Group.objects.get(id=self.event_p2.group.id)
+        self.group_p2.times_seen = 6
+        self.group_p2.last_seen = self.base_datetime - timedelta(days=1)
+        self.group_p2.save()
 
     def build_search_filter(self, query, projects=None, user=None):
         user = user if user is not None else self.user
@@ -280,15 +281,19 @@ class SnubaSearchTest(SnubaTestCase):
                 self.group1.first_seen + timedelta(days=1),
                 self.group1.first_seen + timedelta(days=2),
                 self.group1.last_seen + timedelta(days=1)]:
-            self.create_event(
-                group=self.group2,
-                datetime=dt,
-                message='group2',
-                stacktrace={
-                    'frames': [{
-                        'module': 'group2'
-                    }]},
-                tags={'environment': 'production'}
+            self.store_event(
+                data={
+                    'fingerprint': ['put-me-in-group2'],
+                    'timestamp': dt.isoformat()[:19],
+                    'stacktrace': {
+                        'frames': [{
+                            'module': 'group2'
+                        }]
+                    },
+                    'environment': 'production',
+                    'message': 'group2'
+                },
+                project_id=self.project.id
             )
 
         results = self.make_query(
@@ -515,15 +520,19 @@ class SnubaSearchTest(SnubaTestCase):
                 self.group1.first_seen + timedelta(days=1),
                 self.group1.first_seen + timedelta(days=2),
                 self.group1.last_seen + timedelta(days=1)]:
-            self.create_event(
-                group=self.group2,
-                datetime=dt,
-                message='group2',
-                stacktrace={
-                    'frames': [{
-                        'module': 'group2'
-                    }]},
-                tags={'environment': 'production'}
+            self.store_event(
+                data={
+                    'fingerprint': ['put-me-in-group2'],
+                    'timestamp': dt.isoformat()[:19],
+                    'environment': 'production',
+                    'message': 'group2',
+                    'stacktrace': {
+                        'frames': [{
+                            'module': 'group2'
+                        }]
+                    },
+                },
+                project_id=self.project.id
             )
 
         results = self.backend.query(
@@ -641,17 +650,19 @@ class SnubaSearchTest(SnubaTestCase):
         )
         assert set(results) == set([])
 
-        self.create_event(
-            group=self.group1,
-            datetime=self.group1.first_seen + timedelta(days=1),
-            message='group1',
-            stacktrace={
-                'frames': [{
-                    'module': 'group1'
-                }]},
-            tags={
-                'environment': 'development',
-            }
+        self.store_event(
+            data={
+                'fingerprint': ['put-me-in-group1'],
+                'timestamp': (self.group1.first_seen + timedelta(days=1)).isoformat()[:19],
+                'message': 'group1',
+                'stacktrace': {
+                    'frames': [{
+                        'module': 'group1'
+                    }]
+                },
+                'environment': 'development'
+            },
+            project_id=self.project.id
         )
 
         results = self.make_query(
@@ -663,7 +674,7 @@ class SnubaSearchTest(SnubaTestCase):
         assert set(results) == set([])
 
         results = self.make_query(
-            environments=[self.environments['development']],
+            environments=[Environment.objects.get(name='development')],
             age_from=self.group1.first_seen,
             age_from_inclusive=False,
             search_filter_query='firstSeen:>%s' % date_to_query_format(self.group1.first_seen),
@@ -737,17 +748,19 @@ class SnubaSearchTest(SnubaTestCase):
         )
         assert set(results) == set([])
 
-        self.create_event(
-            group=self.group1,
-            datetime=self.group1.last_seen + timedelta(days=1),
-            message='group1',
-            stacktrace={
-                'frames': [{
-                    'module': 'group1'
-                }]},
-            tags={
+        self.store_event(
+            data={
+                'fingerprint': ['put-me-in-group1'],
+                'timestamp': (self.group1.last_seen + timedelta(days=1)).isoformat()[:19],
+                'message': 'group1',
+                'stacktrace': {
+                    'frames': [{
+                        'module': 'group1'
+                    }]
+                },
                 'environment': 'development',
-            }
+            },
+            project_id=self.project.id
         )
 
         self.group1.update(last_seen=self.group1.last_seen + timedelta(days=1))
@@ -761,7 +774,7 @@ class SnubaSearchTest(SnubaTestCase):
         assert set(results) == set([])
 
         results = self.make_query(
-            environments=[self.environments['development']],
+            environments=[Environment.objects.get(name='development')],
             last_seen_from=self.group1.last_seen,
             last_seen_from_inclusive=False,
             search_filter_query='lastSeen:>%s' % date_to_query_format(self.group1.last_seen),
@@ -771,7 +784,7 @@ class SnubaSearchTest(SnubaTestCase):
         results = self.backend.query(
             [self.project],
             date_to=self.group1.last_seen + timedelta(days=1),
-            environments=[self.environments['development']],
+            environments=[Environment.objects.get(name='development')],
             last_seen_from=self.group1.last_seen,
             last_seen_from_inclusive=True,
             search_filter_query='lastSeen:>=%s' % date_to_query_format(self.group1.last_seen),
@@ -1170,30 +1183,29 @@ class SnubaSearchTest(SnubaTestCase):
         # Every 3rd one is Unresolved
         # Evey 2nd one has tag match=1
         for i in range(400):
-            group = self.create_group(
-                project=self.project,
-                checksum=md5('group {}'.format(i)).hexdigest(),
-                message='group {}'.format(i),
-                times_seen=5,
-                status=GroupStatus.UNRESOLVED if i % 3 == 0 else GroupStatus.RESOLVED,
-                last_seen=self.base_datetime,
-                first_seen=self.base_datetime - timedelta(days=31),
-            )
-            self.create_event(
-                event_id=md5('event {}'.format(i)).hexdigest(),
-                group=group,
-                datetime=self.base_datetime - timedelta(days=31),
-                message='group {} event'.format(i),
-                stacktrace={
-                    'frames': [{
-                        'module': 'module {}'.format(i)
-                    }]
-                },
-                tags={
-                    'match': '{}'.format(i % 2),
+            event = self.store_event(
+                data={
+                    'event_id': md5('event {}'.format(i)).hexdigest(),
+                    'fingerprint': ['put-me-in-group{}'.format(i)],
+                    'timestamp': (self.base_datetime - timedelta(days=21)).isoformat()[:19],
+                    'message': 'group {} event'.format(i),
+                    'stacktrace': {
+                        'frames': [{
+                            'module': 'module {}'.format(i)
+                        }]
+                    },
+                    'tags': {
+                        'match': '{}'.format(i % 2),
+                    },
                     'environment': 'production',
-                }
+                },
+                project_id=self.project.id
             )
+
+            group = event.group
+            group.times_seen = 5
+            group.status = GroupStatus.UNRESOLVED if i % 3 == 0 else GroupStatus.RESOLVED
+            group.save()
 
         # Sample should estimate there are roughly 66 overall matching groups
         # based on a random sample of 100 (or $sample_size) of the total 200
