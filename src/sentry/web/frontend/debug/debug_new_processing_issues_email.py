@@ -66,7 +66,7 @@ class DebugNewProcessingIssuesEmailView(View):
                 'reprocessing_active':
                 self.reprocessing_active,
                 'info_url':
-                absolute_uri('/{}/{}/settings/processing-issues/'.format(
+                absolute_uri('/settings/{}/projects/{}/processing-issues/'.format(
                     org.slug,
                     project.slug,
                 )),
