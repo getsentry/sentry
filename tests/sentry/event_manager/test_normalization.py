@@ -8,7 +8,7 @@ from datetime import datetime
 from django.conf import settings
 
 from sentry.constants import MAX_CULPRIT_LENGTH, DEFAULT_LOGGER_NAME
-from sentry.event_manager import EventManager, ENABLE_RUST
+from sentry.event_manager import EventManager
 
 
 def make_event(**kwargs):
@@ -29,10 +29,7 @@ def test_tags_as_list():
     manager.normalize()
     data = manager.get_data()
 
-    if ENABLE_RUST:
-        assert data['tags'] == [['foo', 'bar']]
-    else:
-        assert data['tags'] == [('foo', 'bar')]
+    assert data['tags'] == [['foo', 'bar']]
 
 
 def test_tags_as_dict():
@@ -40,10 +37,7 @@ def test_tags_as_dict():
     manager.normalize()
     data = manager.get_data()
 
-    if ENABLE_RUST:
-        assert data['tags'] == [['foo', 'bar']]
-    else:
-        assert data['tags'] == [('foo', 'bar')]
+    assert data['tags'] == [['foo', 'bar']]
 
 
 def test_interface_is_relabeled():
@@ -72,35 +66,6 @@ def test_does_default_ip_address_to_user(user):
     data = manager.get_data()
 
     assert data['user']['ip_address'] == '127.0.0.1'
-
-
-@mock.patch('sentry.interfaces.geo.Geo.from_ip_address')
-@pytest.mark.skipif(
-    ENABLE_RUST, reason="geoip is tested in semaphore repo, mock doesnt work for rust")
-def test_does_geo_from_ip(from_ip_address_mock):
-    from sentry.interfaces.geo import Geo
-
-    geo = {
-        'city': 'San Francisco',
-        'country_code': 'US',
-        'region': 'CA',
-    }
-    from_ip_address_mock.return_value = Geo.to_python(geo)
-
-    manager = EventManager(
-        make_event(
-            **{
-                'user': {
-                    'ip_address': '192.168.0.1',
-                },
-            }
-        )
-    )
-
-    manager.normalize()
-    data = manager.get_data()
-    assert data['user']['ip_address'] == '192.168.0.1'
-    assert data['user']['geo'] == geo
 
 
 @mock.patch('sentry.interfaces.geo.geo_by_addr')
@@ -162,9 +127,7 @@ def test_long_transaction():
 
 
 def test_long_message():
-    allowance = 0
-    if ENABLE_RUST:
-        allowance = 200
+    allowance = 200
     manager = EventManager(
         make_event(
             message='x' * (settings.SENTRY_MAX_MESSAGE_LENGTH + 1 + allowance),
@@ -207,8 +170,6 @@ def test_logger():
     manager.normalize()
     data = manager.get_data()
     assert data['logger'] == DEFAULT_LOGGER_NAME
-    if not ENABLE_RUST:
-        assert not any(e.get('name') == 'logger' for e in data.get('errors', []))
 
 
 def test_moves_stacktrace_to_exception():
@@ -289,25 +250,6 @@ def test_event_id_lowercase():
     data = manager.get_data()
 
     assert data['event_id'] == '1234abcd' * 4
-
-
-@pytest.mark.parametrize('key', [
-    'fingerprint', 'modules', 'user', 'request', 'contexts',
-    'breadcrumbs', 'exception', 'stacktrace', 'threads', 'tags',
-    'extra', 'debug_meta', 'sdk', 'repos'
-])
-@pytest.mark.parametrize('value', [{}, [], None])
-def test_removes_some_empty_interfaces(key, value):
-    if ENABLE_RUST and value is not None:
-        # TODO(markus)
-        pytest.skip("Removing empty hashes not yet aligned with Rust")
-    event = make_event()
-    event[key] = value
-
-    manager = EventManager(event)
-    manager.normalize()
-    data = manager.get_data()
-    assert data.get(key) is None
 
 
 @pytest.mark.parametrize('key', ['applecrashreport', 'device', 'repos', 'query'])

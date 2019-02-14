@@ -168,10 +168,6 @@ class EventNormalizeHandler(SocketServer.BaseRequestHandler):
         self.request.close()
 
     def handle_data(self):
-        from sentry.event_manager import ENABLE_RUST
-        if not ENABLE_RUST:
-            return handle_data(self.data)
-
         @catch_errors
         def inner():
             # TODO: Remove this contraption once we no longer get segfaults
