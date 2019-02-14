@@ -10,7 +10,7 @@ from sentry.mediators.sentry_app_installations import Destroyer
 
 class SentryAppInstallationDetailsEndpoint(SentryAppInstallationBaseEndpoint):
     def get(self, request, installation):
-        if not features.has('organizations:internal-catchall',
+        if not features.has('organizations:sentry-apps',
                             installation.organization,
                             actor=request.user):
             return Response(status=404)
@@ -18,7 +18,7 @@ class SentryAppInstallationDetailsEndpoint(SentryAppInstallationBaseEndpoint):
         return Response(serialize(installation))
 
     def delete(self, request, installation):
-        if not features.has('organizations:internal-catchall',
+        if not features.has('organizations:sentry-apps',
                             installation.organization,
                             actor=request.user):
             return Response(status=404)

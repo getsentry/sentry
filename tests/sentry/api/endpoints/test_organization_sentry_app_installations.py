@@ -44,7 +44,7 @@ class SentryAppInstallationsTest(APITestCase):
 
 
 class GetSentryAppInstallationsTest(SentryAppInstallationsTest):
-    @with_feature('organizations:internal-catchall')
+    @with_feature('organizations:sentry-apps')
     def test_superuser_sees_all_installs(self):
         self.login_as(user=self.superuser, superuser=True)
         response = self.client.get(self.url, format='json')
@@ -80,7 +80,7 @@ class GetSentryAppInstallationsTest(SentryAppInstallationsTest):
             'uuid': self.installation.uuid,
         }]
 
-    @with_feature('organizations:internal-catchall')
+    @with_feature('organizations:sentry-apps')
     def test_users_only_sees_installs_on_their_org(self):
         self.login_as(user=self.user)
         response = self.client.get(self.url, format='json')
@@ -114,7 +114,7 @@ class GetSentryAppInstallationsTest(SentryAppInstallationsTest):
 
 
 class PostSentryAppInstallationsTest(SentryAppInstallationsTest):
-    @with_feature('organizations:internal-catchall')
+    @with_feature('organizations:sentry-apps')
     def test_install_unpublished_app(self):
         self.login_as(user=self.user)
         app = self.create_sentry_app(
@@ -139,7 +139,7 @@ class PostSentryAppInstallationsTest(SentryAppInstallationsTest):
         assert response.status_code == 200, response.content
         assert six.viewitems(expected) <= six.viewitems(response.data)
 
-    @with_feature('organizations:internal-catchall')
+    @with_feature('organizations:sentry-apps')
     def test_install_published_app(self):
         self.login_as(user=self.user)
         app = self.create_sentry_app(
@@ -165,7 +165,7 @@ class PostSentryAppInstallationsTest(SentryAppInstallationsTest):
         assert response.status_code == 200, response.content
         assert six.viewitems(expected) <= six.viewitems(response.data)
 
-    @with_feature('organizations:internal-catchall')
+    @with_feature('organizations:sentry-apps')
     def test_members_cannot_install_apps(self):
         user = self.create_user('bar@example.com')
         self.create_member(

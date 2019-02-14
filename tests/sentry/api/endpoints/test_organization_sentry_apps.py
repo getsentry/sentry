@@ -33,7 +33,7 @@ class OrganizationSentryAppsTest(APITestCase):
 
 
 class GetOrganizationSentryAppsTest(OrganizationSentryAppsTest):
-    @with_feature('organizations:internal-catchall')
+    @with_feature('organizations:sentry-apps')
     def test_gets_all_apps_in_own_org(self):
         self.login_as(user=self.user)
         response = self.client.get(self.url, format='json')
@@ -55,7 +55,7 @@ class GetOrganizationSentryAppsTest(OrganizationSentryAppsTest):
             'overview': self.unpublished_app.overview,
         }])
 
-    @with_feature('organizations:internal-catchall')
+    @with_feature('organizations:sentry-apps')
     def test_cannot_see_apps_in_other_orgs(self):
         self.login_as(user=self.user)
         url = reverse('sentry-api-0-organization-sentry-apps', args=[self.super_org.slug])
