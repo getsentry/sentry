@@ -18,7 +18,7 @@ const VALID_QUERY_KEYS = [
 ];
 
 export function getQueryFromQueryString(queryString) {
-  const queryKeys = new Set([...VALID_QUERY_KEYS, 'utc']);
+  const queryKeys = new Set(VALID_QUERY_KEYS);
   const result = {};
   let parsedQuery = queryString;
   parsedQuery = parsedQuery.replace(/^\?|\/$/g, '').split('&');
