@@ -732,9 +732,19 @@ class EventManager(object):
         event_type = self.get_event_type()
         event_metadata = event_type.get_metadata()
 
+        data['hashes'] = hashes
+
+        # we want to freeze not just the metadata and type in but also the
+        # derived attributes.  The reason for this is that we push this
+        # data into kafka for snuba processing and our postprocessing
+        # picks up the data right from the snuba topic.  For most usage
+        # however the data is dynamically overriden by Event.title and
+        # Event.location (See Event.as_dict)
         data['type'] = event_type.key
         data['metadata'] = event_metadata
-        data['hashes'] = hashes
+        data['culprit'] = culprit
+        data['title'] = event_type.to_string(event_metadata)
+        data['location'] = event_type.get_location(event_metadata)
 
         # index components into ``Event.message``
         # See GH-3248

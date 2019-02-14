@@ -137,7 +137,7 @@ class KafkaEventStream(EventStream):
             'message': event.message,
             'platform': event.platform,
             'datetime': event.datetime,
-            'data': dict(event.data.items()),
+            'data': event.get_raw_data(),
             'primary_hash': primary_hash,
             'retention_days': retention_days,
         }, {

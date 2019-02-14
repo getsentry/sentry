@@ -1,9 +1,11 @@
 import MemberActions from 'app/actions/memberActions';
 import MemberListStore from 'app/stores/memberListStore';
 
-export function fetchOrgMembers(api, orgId) {
+export function fetchOrgMembers(api, orgId, projectIds = null) {
   const endpoint = `/organizations/${orgId}/users/`;
-  const promise = api.requestPromise(endpoint, {method: 'GET'});
+  const query = projectIds ? {project: projectIds} : null;
+
+  const promise = api.requestPromise(endpoint, {method: 'GET', query});
   return promise.then(members => {
     members = members.filter(m => m.user);
 

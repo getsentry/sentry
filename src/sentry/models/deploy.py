@@ -77,7 +77,7 @@ class Deploy(Model):
                 activity = Activity.objects.create(
                     type=Activity.DEPLOY,
                     project=project,
-                    ident=release.version,
+                    ident=Activity.get_version_ident(release.version),
                     data={
                         'version': release.version,
                         'deploy_id': deploy.id,
