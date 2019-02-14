@@ -18,7 +18,7 @@ class OrganizationRepositoryDeleteTest(APITestCase):
 
         self.mock_uuid = mock_uuid
 
-    def assert_rename_pending_delete(self, response, repo):
+    def assert_rename_pending_delete(self, response, repo, external_id=None):
         assert response.data['status'] == u'pending_deletion'
         assert response.data['name'] == 'example'  # name displayed matches what the user expects
 
@@ -27,10 +27,16 @@ class OrganizationRepositoryDeleteTest(APITestCase):
         assert repo.external_id == '1234567'
         assert repo.config['pending_deletion_name'] == 'example'
 
-        assert OrganizationOption.objects.filter(
+        option = OrganizationOption.objects.get(
             organization_id=repo.organization_id,
             key=repo.build_pending_deletion_key()
-        ).exists()
+        )
+        assert option.value == {
+            'id': repo.id,
+            'model': Repository.__name__,
+            'name': 'example',
+            'external_id': external_id,
+        }
 
     @patch('sentry.api.endpoints.organization_repository_details.get_transaction_id')
     @patch('sentry.api.endpoints.organization_repository_details.delete_repository')
@@ -78,6 +84,7 @@ class OrganizationRepositoryDeleteTest(APITestCase):
         repo = Repository.objects.create(
             name='example',
             organization_id=org.id,
+            external_id='abc123',
         )
         Commit.objects.create(
             repository_id=repo.id,
@@ -107,7 +114,7 @@ class OrganizationRepositoryDeleteTest(APITestCase):
             },
             countdown=3600,
         )
-        self.assert_rename_pending_delete(response, repo)
+        self.assert_rename_pending_delete(response, repo, 'abc123')
 
     @patch('sentry.api.endpoints.organization_repository_details.get_transaction_id')
     @patch('sentry.api.endpoints.organization_repository_details.delete_repository')
@@ -119,7 +126,7 @@ class OrganizationRepositoryDeleteTest(APITestCase):
         org = self.create_organization(owner=self.user, name='baz')
         repo = Repository.objects.create(
             name='example',
-            external_id='12345',
+            external_id='abc12345',
             organization_id=org.id,
             status=ObjectStatus.DISABLED,
         )
@@ -147,7 +154,7 @@ class OrganizationRepositoryDeleteTest(APITestCase):
             countdown=0,
         )
 
-        self.assert_rename_pending_delete(response, repo)
+        self.assert_rename_pending_delete(response, repo, 'abc12345')
 
     @patch('sentry.api.endpoints.organization_repository_details.get_transaction_id')
     @patch('sentry.api.endpoints.organization_repository_details.delete_repository')
