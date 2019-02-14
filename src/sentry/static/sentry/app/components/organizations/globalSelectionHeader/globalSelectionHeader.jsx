@@ -32,7 +32,7 @@ import SentryTypes from 'app/sentryTypes';
 import TimeRangeSelector from 'app/components/organizations/timeRangeSelector';
 import Tooltip from 'app/components/tooltip';
 import withGlobalSelection from 'app/utils/withGlobalSelection';
-
+import ConfigStore from 'app/stores/configStore';
 import {getStateFromQuery} from './utils';
 
 class GlobalSelectionHeader extends React.Component {
@@ -306,6 +306,12 @@ class GlobalSelectionHeader extends React.Component {
   };
 
   getProjects = () => {
+    const {isSuperuser} = ConfigStore.get('user');
+
+    if (isSuperuser) {
+      return this.props.projects || this.props.organization.projects;
+    }
+
     return (
       this.props.projects ||
       this.props.organization.projects.filter(project => project.isMember)
