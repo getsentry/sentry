@@ -31,7 +31,6 @@ class IssueSearchVisitor(SearchVisitor):
         # on date_from and date_to explicitly
         'date': ['event.timestamp'],
         'times_seen': ['timesSeen'],
-        'timestamp': ['event.timestamp'],
         'sentry:dist': ['dist'],
     }
     numeric_keys = SearchVisitor.numeric_keys.union(['times_seen'])

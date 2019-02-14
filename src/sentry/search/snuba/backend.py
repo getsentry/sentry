@@ -132,6 +132,27 @@ class ScalarCondition(Condition):
         )
 
 
+def get_search_filter(search_filters, name, operator):
+    """
+    Finds the value of a search filter with the passed name and operator. If
+    multiple values are found, returns the most restrictive value
+    :param search_filters: collection of `SearchFilter` objects
+    :param name: Name of the field to find
+    :param operator: '<' or '>'
+    :return: The value of the field if found, else None
+    """
+    assert operator in ('<', '>')
+    comparator = max if operator.startswith('>') else min
+    found_val = None
+    for search_filter in search_filters:
+        # Note that we check operator with `startswith` here so that we handle
+        # <, <=, >, >=
+        if search_filter.key.name == name and search_filter.operator.startswith(operator):
+            val = search_filter.value.raw_value
+            found_val = comparator(val, found_val) if found_val else val
+    return found_val
+
+
 class SnubaSearchBackend(ds.DjangoSearchBackend):
     def _query(self, projects, retention_window_start, group_queryset, tags, environments,
                sort_by, limit, cursor, count_hits, paginator_options, search_filters,
@@ -181,7 +202,18 @@ class SnubaSearchBackend(ds.DjangoSearchBackend):
             )
 
         now = timezone.now()
-        end = parameters.get('date_to')
+        date_to = parameters.get('date_to')
+        end = None
+        if use_new_filters:
+            end_params = filter(
+                None,
+                [date_to, get_search_filter(search_filters, 'date', '<')],
+            )
+            if end_params:
+                end = min(end_params)
+        else:
+            end = date_to
+
         if not end:
             end = now + ALLOWED_FUTURE_DELTA
 
@@ -189,15 +221,29 @@ class SnubaSearchBackend(ds.DjangoSearchBackend):
             # so if the requested sort is `date` (`last_seen`) and there
             # are no other Snuba-based search predicates, we can simply
             # return the results from Postgres.
-            if cursor is None \
-                    and sort_by == 'date' \
-                    and not tags \
-                    and not environments \
-                    and not any(param in parameters for param in [
-                        'age_from', 'age_to', 'last_seen_from',
-                        'last_seen_to', 'times_seen', 'times_seen_lower',
-                        'times_seen_upper'
-                    ]):
+            if (
+                cursor is None
+                and sort_by == 'date'
+                and not environments
+                and (
+                    use_new_filters
+                    or (
+                        not any(param in parameters for param in [
+                            'age_from', 'age_to', 'last_seen_from', 'last_seen_to',
+                            'times_seen', 'times_seen_lower', 'times_seen_upper',
+                        ])
+                        and not tags
+                    )
+                )
+                # This handles tags and date parameters for search filters.
+                and (
+                    not use_new_filters
+                    or not [
+                        sf for sf in search_filters
+                        if sf.key.name not in issue_only_fields.union(['date', 'message'])
+                    ]
+                )
+            ):
                 group_queryset = group_queryset.order_by('-last_seen')
                 paginator = DateTimePaginator(group_queryset, '-last_seen', **paginator_options)
                 # When its a simple django-only search, we count_hits like normal
@@ -214,12 +260,14 @@ class SnubaSearchBackend(ds.DjangoSearchBackend):
             ])
         )
 
-        start = max(
-            filter(None, [
-                retention_date,
-                parameters.get('date_from'),
-            ])
-        )
+        start_params = [parameters.get('date_from'), retention_date]
+
+        # TODO: We should try and consolidate all this logic together a little
+        # better, maybe outside the backend. Should be easier once we're on
+        # just the new search filters
+        if use_new_filters:
+            start_params.append(get_search_filter(search_filters, 'date', '>'))
+        start = max(filter(None, start_params))
 
         end = max([
             retention_date,
@@ -481,8 +529,12 @@ def snuba_search(start, end, project_ids, environment_ids, tags,
     if use_new_filters:
         having = []
         for search_filter in search_filters:
-            if search_filter.key.name in issue_only_fields:
+            if (
                 # Don't filter on issue fields here, they're not available
+                search_filter.key.name in issue_only_fields
+                # We special case date
+                or search_filter.key.name == 'date'
+            ):
                 continue
             converted_filter = convert_search_filter_to_snuba_query(search_filter)
             if search_filter.key.name in aggregation_defs:
