@@ -422,6 +422,10 @@ class Group(Model):
         et = eventtypes.get(self.get_event_type())(self.data)
         return et.to_string(self.get_event_metadata())
 
+    def location(self):
+        et = eventtypes.get(self.get_event_type())(self.data)
+        return et.get_location(self.get_event_metadata())
+
     def error(self):
         warnings.warn('Group.error is deprecated, use Group.title', DeprecationWarning)
         return self.title
