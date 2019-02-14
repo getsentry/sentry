@@ -2,7 +2,7 @@ import PropTypes from 'prop-types';
 import React from 'react';
 import {browserHistory} from 'react-router';
 
-import {addErrorMessage, addSuccessMessage} from 'app/actionCreators/indicator';
+import {addSuccessMessage} from 'app/actionCreators/indicator';
 import {Panel, PanelBody, PanelHeader} from 'app/components/panels';
 import {t} from 'app/locale';
 import AsyncView from 'app/views/asyncView';
@@ -105,7 +105,6 @@ export default class SentryApplicationDetails extends AsyncView {
           initialData={{organization: orgId, isAlertable: false, ...app}}
           model={this.form}
           onSubmitSuccess={this.onSubmitSuccess}
-          onSubmitError={err => addErrorMessage(t('Unable to save change'))}
         >
           <JsonForm location={this.props.location} forms={sentryApplicationForm} />
 

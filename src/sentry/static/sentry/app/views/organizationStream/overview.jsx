@@ -43,6 +43,8 @@ const DEFAULT_QUERY = 'is:unresolved';
 const DEFAULT_SORT = 'date';
 const DEFAULT_STATS_PERIOD = '24h';
 const STATS_PERIODS = new Set(['14d', '24h']);
+// TODO: Delete this after testing production counts cc/ @wedamija
+const NEW_FILTERS_TEST = 'use_new_filters';
 
 const OrganizationStream = createReactClass({
   displayName: 'OrganizationStream',
@@ -239,6 +241,9 @@ const OrganizationStream = createReactClass({
     const currentQuery = this.props.location.query || {};
     if ('cursor' in currentQuery) {
       requestParams.cursor = currentQuery.cursor;
+    } else if (NEW_FILTERS_TEST in currentQuery) {
+      // TODO: Delete this after testing production counts cc/ @wedamija
+      requestParams[NEW_FILTERS_TEST] = currentQuery[NEW_FILTERS_TEST];
     }
 
     if (this.lastRequest) {
@@ -439,6 +444,11 @@ const OrganizationStream = createReactClass({
     }
 
     if (path !== this.props.location.path && !isEqual(query, this.props.location.query)) {
+      // TODO: Delete/revert this after testing production counts cc/ @wedamija
+      if (this.props.location.query[NEW_FILTERS_TEST]) {
+        query[NEW_FILTERS_TEST] = 1;
+      }
+
       browserHistory.push({
         pathname: path,
         query,
