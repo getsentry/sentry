@@ -60,7 +60,7 @@ describe('OrganizationEventsErrors', function() {
     eventsStatsMock = MockApiClient.addMockResponse({
       url: '/organizations/org-slug/events-stats/',
       body: (url, opts) => {
-        return TestStubs.HealthGraph(opts.query);
+        return TestStubs.EventsStats(opts.query);
       },
     });
     eventsMetaMock = MockApiClient.addMockResponse({
@@ -308,7 +308,7 @@ describe('OrganizationEventsContainer', function() {
     eventsStatsMock = MockApiClient.addMockResponse({
       url: '/organizations/org-slug/events-stats/',
       body: (url, opts) => {
-        return TestStubs.HealthGraph(opts.query);
+        return TestStubs.EventsStats(opts.query);
       },
     });
     eventsMetaMock = MockApiClient.addMockResponse({
