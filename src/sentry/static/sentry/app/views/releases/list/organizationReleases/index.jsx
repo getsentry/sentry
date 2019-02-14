@@ -15,7 +15,6 @@ import NoProjectMessage from 'app/components/noProjectMessage';
 import AsyncView from 'app/views/asyncView';
 import withOrganization from 'app/utils/withOrganization';
 import withGlobalSelection from 'app/utils/withGlobalSelection';
-
 import {PageContent, PageHeader} from 'app/styles/organization';
 import PageHeading from 'app/components/pageHeading';
 
@@ -118,12 +117,12 @@ class OrganizationReleases extends AsyncView {
   renderReleaseProgress() {
     const {organization, selection} = this.props;
     const allAccessibleProjects = organization.projects.filter(
-      project => project.isMember
+      project => project.hasAccess
     );
 
     const hasSingleProject =
       selection.projects.length === 1 ||
-      (selection.projects === 0 && allAccessibleProjects.length === 1);
+      (selection.projects.length === 0 && allAccessibleProjects.length === 1);
 
     if (!hasSingleProject) {
       return null;
