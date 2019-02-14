@@ -7,7 +7,6 @@
       <h3>
         {% if metadata.type %}
         <a href="{{group.get_absolute_url}}">{{metadata.type|truncatechars:40}}</a>
-        {% include "sentry/emails/_group_link.html" with text=metadata.type|truncatechars:40 %}
         {% if transaction %}
         <span class="event-subtitle">{{ transaction }}</span>
         {% endif %}
