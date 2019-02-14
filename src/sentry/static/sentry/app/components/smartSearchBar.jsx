@@ -61,6 +61,7 @@ class SmartSearchBar extends React.Component {
     onGetTagValues: PropTypes.func,
 
     onSearch: PropTypes.func,
+
     // If true, excludes the environment tag from the autocompletion list
     // This is because we don't want to treat environment as a tag in some places
     // such as the stream view where it is a top level concept
@@ -551,6 +552,7 @@ const SmartSearchBarContainer = withOrganization(
     },
 
     render() {
+      // SmartSearchBar doesn't use members, but we forward it to cause a re-render.
       return <SmartSearchBar {...this.props} members={this.state.members} />;
     },
   })
