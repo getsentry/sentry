@@ -190,6 +190,15 @@ def small_count(v, precision=1):
     return v
 
 
+@register.filter
+def as_tag_alias(v):
+    return {
+        'sentry:release': 'release',
+        'sentry:dist': 'dist',
+        'sentry:user': 'user',
+    }.get(v, v)
+
+
 @register.simple_tag(takes_context=True)
 def serialize(context, value):
     value = serialize_func(value, context['request'].user)

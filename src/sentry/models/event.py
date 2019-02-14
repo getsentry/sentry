@@ -211,14 +211,8 @@ class Event(Model):
         return self.get_interfaces()
 
     def get_tags(self):
-        aliases = {
-            'sentry:release': 'release',
-            'sentry:dist': 'dist',
-            'sentry:user': 'user',
-        }
-
         try:
-            rv = [(aliases.get(t, t), v) for t, v in get_path(
+            rv = [(t, v) for t, v in get_path(
                 self.data, 'tags', filter=True) or () if t is not None and v is not None]
             rv.sort()
             return rv
