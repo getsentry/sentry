@@ -191,6 +191,16 @@ def get_event_file_committers(project, event, frame_limit=25):
     if not app_frames:
         app_frames = [frame for frame in frames][-frame_limit:]
 
+    # Java stackframes don't have an absolute path in the filename key.
+    # That property is usually just the basename of the file. In the future
+    # the Java SDK might generate better file paths, but for now we use the module
+    # path to approximate the file path so that we can intersect it with commit
+    # file paths.
+    if event.platform == 'java':
+        for frame in frames:
+            if '/' not in frame.get('filename') and frame.get('module'):
+                frame['filename'] = frame['module'].replace('.', '/') + '/' + frame['filename']
+
     # TODO(maxbittker) return this set instead of annotated frames
     # XXX(dcramer): frames may not define a filepath. For example, in Java its common
     # to only have a module name/path
