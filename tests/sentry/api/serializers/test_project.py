@@ -16,7 +16,7 @@ from sentry.api.serializers.models.project import (
     ProjectWithTeamSerializer,
     ProjectSummarySerializer,
 )
-from sentry.models import Deploy, Environment, ReleaseProjectEnvironment
+from sentry.models import Deploy, Environment, Release, ReleaseProjectEnvironment
 from sentry.testutils import TestCase
 
 
@@ -155,49 +155,76 @@ class ProjectWithTeamSerializerTest(TestCase):
 
 
 class ProjectSummarySerializerTest(TestCase):
-    def test_simple(self):
-        date = datetime.datetime(2018, 1, 12, 3, 8, 25, tzinfo=timezone.utc)
-        user = self.create_user(username='foo')
-        organization = self.create_organization(owner=user)
-        team = self.create_team(organization=organization)
-        project = self.create_project(teams=[team], organization=organization, name='foo')
-        project.flags.has_releases = True
-        project.save()
+    def setUp(self):
+        self.date = datetime.datetime(2018, 1, 12, 3, 8, 25, tzinfo=timezone.utc)
+        self.user = self.create_user(username='foo')
+        self.organization = self.create_organization(owner=self.user)
+        team = self.create_team(organization=self.organization)
+        self.project = self.create_project(teams=[team], organization=self.organization, name='foo')
+        self.project.flags.has_releases = True
+        self.project.save()
 
-        release = self.create_release(project)
+        self.release = self.create_release(self.project)
 
-        environment = Environment.objects.create(
-            organization_id=organization.id,
+        environment_1 = Environment.objects.create(
+            organization_id=self.organization.id,
             name='production',
         )
-
-        deploy = Deploy.objects.create(
-            environment_id=environment.id,
-            organization_id=organization.id,
-            release=release,
-            date_finished=date
+        environment_1.add_project(self.project)
+        environment_1.save()
+        environment_2 = Environment.objects.create(
+            organization_id=self.organization.id,
+            name='staging',
         )
-
+        environment_2.add_project(self.project)
+        environment_2.save()
+        deploy = Deploy.objects.create(
+            environment_id=environment_1.id,
+            organization_id=self.organization.id,
+            release=self.release,
+            date_finished=self.date
+        )
         ReleaseProjectEnvironment.objects.create(
-            project_id=project.id,
-            release_id=release.id,
-            environment_id=environment.id,
+            project_id=self.project.id,
+            release_id=self.release.id,
+            environment_id=environment_1.id,
             last_deploy_id=deploy.id
         )
 
-        result = serialize(project, user, ProjectSummarySerializer())
+    def test_simple(self):
+        result = serialize(self.project, self.user, ProjectSummarySerializer())
 
-        assert result['id'] == six.text_type(project.id)
-        assert result['name'] == project.name
-        assert result['slug'] == project.slug
-        assert result['firstEvent'] == project.first_event
+        assert result['id'] == six.text_type(self.project.id)
+        assert result['name'] == self.project.name
+        assert result['slug'] == self.project.slug
+        assert result['firstEvent'] == self.project.first_event
         assert 'releases' in result['features']
-        assert result['platform'] == project.platform
+        assert result['platform'] == self.project.platform
 
         assert result['latestDeploys'] == {
-            'production': {'dateFinished': date, 'version': release.version}
+            'production': {'dateFinished': self.date, 'version': self.release.version}
         }
-        assert result['latestRelease'] == serialize(release)
+        assert result['latestRelease'] == serialize(self.release)
+        assert result['environments'] == ['production', 'staging']
+
+    def test_no_enviroments(self):
+        # remove environments and related models
+        Deploy.objects.all().delete()
+        Release.objects.all().delete()
+        Environment.objects.all().delete()
+
+        result = serialize(self.project, self.user, ProjectSummarySerializer())
+
+        assert result['id'] == six.text_type(self.project.id)
+        assert result['name'] == self.project.name
+        assert result['slug'] == self.project.slug
+        assert result['firstEvent'] == self.project.first_event
+        assert 'releases' in result['features']
+        assert result['platform'] == self.project.platform
+
+        assert result['latestDeploys'] is None
+        assert result['latestRelease'] is None
+        assert result['environments'] is None
 
 
 class ProjectWithOrganizationSerializerTest(TestCase):
