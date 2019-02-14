@@ -53,8 +53,12 @@ describe('Conditions', function() {
     });
 
     // datetime fields are expanded
-    const expected = ['timestamp', '=', '2018-05-05T00:00:00'];
-    expect(getExternal('timestamp = 2018-05-05', COLUMNS)).toEqual(expected);
+    const expectedTimestamp = ['timestamp', '=', '2018-05-05T00:00:00'];
+    expect(getExternal('timestamp = 2018-05-05', COLUMNS)).toEqual(expectedTimestamp);
+
+    // strips double quotes
+    const expectedValue = ['message', '=', 'test'];
+    expect(getExternal('message = "test"', COLUMNS)).toEqual(expectedValue);
   });
 
   it('getInternal()', function() {
