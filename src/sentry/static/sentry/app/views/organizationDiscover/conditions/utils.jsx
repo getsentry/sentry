@@ -83,6 +83,11 @@ export function getExternal(internal, columns) {
       external[2] = internal.replace(strStart, '');
     }
 
+    // Ignore double quotes if they have been entered
+    if (external[2] !== null && external[2].match(/^".*"$/)) {
+      external[2] = external[2].slice(1, -1);
+    }
+
     const type = columns.find(({name}) => name === colValue).type;
 
     if (type === 'number') {
