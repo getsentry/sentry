@@ -138,6 +138,9 @@ class Organization(Model):
             ), (
                 'require_2fa',
                 'Require and enforce two-factor authentication for all members.'
+            ), (
+                'disable_new_visibility_features',
+                'Temporarily opt out of new visibility features and ui',
             ),
         ),
         default=1

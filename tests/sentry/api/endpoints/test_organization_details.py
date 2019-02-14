@@ -252,6 +252,36 @@ class OrganizationUpdateTest(APITestCase):
         assert u'to {}'.format(data['scrubIPAddresses']) in log.data['scrubIPAddresses']
         assert u'to {}'.format(data['scrapeJavaScript']) in log.data['scrapeJavaScript']
 
+    def test_disable_new_visibility_features(self):
+        org = self.create_organization(owner=self.user)
+        assert not org.flags.disable_new_visibility_features
+        self.login_as(user=self.user)
+        url = reverse(
+            'sentry-api-0-organization-details', kwargs={
+                'organization_slug': org.slug,
+            }
+        )
+
+        response = self.client.put(
+            url,
+            data={
+                'disableNewVisibilityFeatures': True,
+            }
+        )
+        assert response.status_code == 200, response.content
+        org = Organization.objects.get(id=org.id)
+        assert org.flags.disable_new_visibility_features
+
+        response = self.client.put(
+            url,
+            data={
+                'disableNewVisibilityFeatures': False,
+            }
+        )
+        assert response.status_code == 200, response.content
+        org = Organization.objects.get(id=org.id)
+        assert not org.flags.disable_new_visibility_features
+
     def test_setting_trusted_relays_forbidden(self):
         org = self.create_organization(owner=self.user)
         self.login_as(user=self.user)
