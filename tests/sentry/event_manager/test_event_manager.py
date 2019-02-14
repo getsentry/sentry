@@ -611,8 +611,13 @@ class EventManagerTest(TransactionTestCase):
         assert event.group_id == event2.group_id
 
         group = Group.objects.get(id=event.group.id)
-        assert group.active_at == event2.datetime
-        assert group.active_at != event.datetime
+        # MySQL removes sub-second portion
+        assert group.active_at.replace(
+            second=0, microsecond=0) == event2.datetime.replace(
+            second=0, microsecond=0)
+        assert group.active_at.replace(
+            second=0, microsecond=0) != event.datetime.replace(
+            second=0, microsecond=0)
 
     def test_invalid_transaction(self):
         dict_input = {'messages': 'foo'}
