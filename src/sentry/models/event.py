@@ -160,14 +160,20 @@ class Event(Model):
 
     @property
     def title(self):
+        # also see event_manager.py which inserts this for snuba
         et = eventtypes.get(self.get_event_type())(self.data)
         return et.to_string(self.get_event_metadata())
 
-    def error(self):
-        warnings.warn('Event.error is deprecated, use Event.title', DeprecationWarning)
-        return self.title
+    @property
+    def culprit(self):
+        # For a while events did not save the culprit
+        return self.data.get('culprit') or self.group.culprit
 
-    error.short_description = _('error')
+    @property
+    def location(self):
+        # also see event_manager.py which inserts this for snuba
+        et = eventtypes.get(self.get_event_type())(self.data)
+        return et.get_location(self.get_event_metadata())
 
     @property
     def real_message(self):
@@ -237,7 +243,12 @@ class Event(Model):
     def dist(self):
         return self.get_tag('sentry:dist')
 
+    def get_raw_data(self):
+        """Returns the internal raw event data dict."""
+        return dict(self.data.items())
+
     def as_dict(self):
+        """Returns the data in normalized form for external consumers."""
         # We use a OrderedDict to keep elements ordered for a potential JSON serializer
         data = OrderedDict()
         data['event_id'] = self.event_id
@@ -261,6 +272,10 @@ class Event(Model):
         if data.get('culprit') is None:
             data['culprit'] = self.group.culprit
 
+        # Override title and location with dynamically generated data
+        data['title'] = self.title
+        data['location'] = self.location
+
         return data
 
     @property
@@ -270,17 +285,18 @@ class Event(Model):
             data_len += len(repr(value))
         return data_len
 
-    # XXX(dcramer): compatibility with plugins
-    def get_level_display(self):
-        warnings.warn(
-            'Event.get_level_display is deprecated. Use Event.tags instead.', DeprecationWarning
-        )
-        return self.group.get_level_display()
-
     @property
     def level(self):
-        warnings.warn('Event.level is deprecated. Use Event.tags instead.', DeprecationWarning)
+        # we might want to move to this:
+        # return LOG_LEVELS_MAP.get(self.get_level_display()) or self.group.level
         return self.group.level
+
+    def get_level_display(self):
+        # we might want to move to this:
+        # return self.get_tag('level') or self.group.get_level_display()
+        return self.group.get_level_display()
+
+    # deprecated accessors
 
     @property
     def logger(self):
@@ -298,14 +314,15 @@ class Event(Model):
         return self.get_tag('server_name')
 
     @property
-    def culprit(self):
-        warnings.warn('Event.culprit is deprecated. Use Group.culprit instead.')
-        return self.group.culprit
-
-    @property
     def checksum(self):
         warnings.warn('Event.checksum is no longer used', DeprecationWarning)
         return ''
+
+    def error(self):
+        warnings.warn('Event.error is deprecated, use Event.title', DeprecationWarning)
+        return self.title
+
+    error.short_description = _('error')
 
     @property
     def transaction(self):

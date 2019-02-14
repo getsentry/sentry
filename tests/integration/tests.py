@@ -193,8 +193,56 @@ class SentryRemoteTest(TestCase):
 
         event_id = json.loads(resp.content)['id']
         instance = Event.objects.get(event_id=event_id)
+        Event.objects.bind_nodes([instance], 'data')
 
         assert instance.message == 'hello'
+        assert instance.data['logentry'] == {'formatted': 'hello'}
+        assert instance.title == instance.data['title'] == 'hello'
+        assert instance.location is instance.data['location'] is None
+
+        assert tagstore.get_tag_key(self.project.id, None, 'foo') is not None
+        assert tagstore.get_tag_value(self.project.id, None, 'foo', 'bar') is not None
+        assert tagstore.get_group_tag_key(
+            self.project.id, instance.group_id, None, 'foo') is not None
+        assert tagstore.get_group_tag_value(
+            instance.project_id,
+            instance.group_id,
+            None,
+            'foo',
+            'bar') is not None
+
+    def test_exception(self):
+        kwargs = {'exception': {
+            'type': 'ZeroDivisionError',
+            'value': 'cannot divide by zero',
+            'stacktrace': {'frames': [
+                {
+                    'filename': 'utils.py',
+                    'in_app': False,
+                    'function': 'raise_it',
+                    'module': 'utils',
+                },
+                {
+                    'filename': 'main.py',
+                    'in_app': True,
+                    'function': 'fail_it',
+                    'module': 'main',
+                }
+            ]}
+        }, 'tags': {'foo': 'bar'}}
+
+        resp = self._postWithHeader(kwargs)
+
+        assert resp.status_code == 200, resp.content
+
+        event_id = json.loads(resp.content)['id']
+        instance = Event.objects.get(event_id=event_id)
+        Event.objects.bind_nodes([instance], 'data')
+
+        assert len(instance.data['exception']) == 1
+        assert instance.title == instance.data['title'] == 'ZeroDivisionError: cannot divide by zero'
+        assert instance.location == instance.data['location'] == 'main.py'
+        assert instance.culprit == instance.data['culprit'] == 'main in fail_it'
 
         assert tagstore.get_tag_key(self.project.id, None, 'foo') is not None
         assert tagstore.get_tag_value(self.project.id, None, 'foo', 'bar') is not None
