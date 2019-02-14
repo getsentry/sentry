@@ -23,13 +23,14 @@ class IssueSearchVisitor(SearchVisitor):
         'bookmarked_by': ['bookmarks'],
         'subscribed_by': ['subscribed'],
         'first_release': ['first-release', 'firstRelease'],
-        'age': ['firstSeen'],
+        'first_seen': ['age', 'firstSeen'],
         'last_seen': ['lastSeen'],
         'active_at': ['activeSince'],
         # TODO: Special case this in the backends, since they currently rely
         # on date_from and date_to explicitly
         'date': ['event.timestamp'],
         'times_seen': ['timesSeen'],
+        'timestamp': ['event.timestamp'],
     }
 
     @cached_property

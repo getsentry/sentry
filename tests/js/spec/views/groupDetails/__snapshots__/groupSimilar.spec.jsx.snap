@@ -80,10 +80,10 @@ exports[`Issues Similar View renders with mocked data 1`] = `
                 "value": "unmergedList is not defined",
               },
               "numComments": 0,
-              "permalink": "http://localhost:8000/sentry/internal/issues/274/",
+              "permalink": "http://localhost:8000/sentry/project-slug/issues/274/",
               "project": Object {
                 "name": "Internal",
-                "slug": "internal",
+                "slug": "project-slug",
               },
               "shareId": "312e323734",
               "shortId": "INTERNAL-4K",
@@ -130,10 +130,10 @@ exports[`Issues Similar View renders with mocked data 1`] = `
                 "value": "Cannot read property 'size' of undefined",
               },
               "numComments": 0,
-              "permalink": "http://localhost:8000/sentry/internal/issues/275/",
+              "permalink": "http://localhost:8000/sentry/project-slug/issues/275/",
               "project": Object {
                 "name": "Internal",
-                "slug": "internal",
+                "slug": "project-slug",
               },
               "shareId": "312e323735",
               "shortId": "INTERNAL-4M",
@@ -204,10 +204,10 @@ exports[`Issues Similar View renders with mocked data 1`] = `
                 "value": "Cannot read property 'stale' of undefined",
               },
               "numComments": 0,
-              "permalink": "http://localhost:8000/sentry/internal/issues/216/",
+              "permalink": "http://localhost:8000/sentry/project-slug/issues/216/",
               "project": Object {
                 "name": "Internal",
-                "slug": "internal",
+                "slug": "project-slug",
               },
               "shareId": "312e323136",
               "shortId": "INTERNAL-2S",
@@ -266,10 +266,10 @@ exports[`Issues Similar View renders with mocked data 1`] = `
                 "value": "Cannot read property 'length' of undefined",
               },
               "numComments": 0,
-              "permalink": "http://localhost:8000/sentry/internal/issues/271/",
+              "permalink": "http://localhost:8000/sentry/project-slug/issues/271/",
               "project": Object {
                 "name": "Internal",
-                "slug": "internal",
+                "slug": "project-slug",
               },
               "shareId": "312e323731",
               "shortId": "INTERNAL-4G",
@@ -583,10 +583,10 @@ exports[`Issues Similar View renders with mocked data 1`] = `
                   "value": "Cannot read property 'length' of undefined",
                 },
                 "numComments": 0,
-                "permalink": "http://localhost:8000/sentry/internal/issues/271/",
+                "permalink": "http://localhost:8000/sentry/project-slug/issues/271/",
                 "project": Object {
                   "name": "Internal",
-                  "slug": "internal",
+                  "slug": "project-slug",
                 },
                 "shareId": "312e323731",
                 "shortId": "INTERNAL-4G",
@@ -687,10 +687,10 @@ exports[`Issues Similar View renders with mocked data 1`] = `
                                   "value": "Cannot read property 'length' of undefined",
                                 },
                                 "numComments": 0,
-                                "permalink": "http://localhost:8000/sentry/internal/issues/271/",
+                                "permalink": "http://localhost:8000/sentry/project-slug/issues/271/",
                                 "project": Object {
                                   "name": "Internal",
-                                  "slug": "internal",
+                                  "slug": "project-slug",
                                 },
                                 "shareId": "312e323731",
                                 "shortId": "INTERNAL-4G",
@@ -724,10 +724,10 @@ exports[`Issues Similar View renders with mocked data 1`] = `
                                     "value": "Cannot read property 'length' of undefined",
                                   },
                                   "numComments": 0,
-                                  "permalink": "http://localhost:8000/sentry/internal/issues/271/",
+                                  "permalink": "http://localhost:8000/sentry/project-slug/issues/271/",
                                   "project": Object {
                                     "name": "Internal",
-                                    "slug": "internal",
+                                    "slug": "project-slug",
                                   },
                                   "shareId": "312e323731",
                                   "shortId": "INTERNAL-4G",
@@ -787,19 +787,19 @@ exports[`Issues Similar View renders with mocked data 1`] = `
                                     ],
                                     "results": Array [
                                       Object {
-                                        "isThrow": false,
+                                        "type": "return",
                                         "value": undefined,
                                       },
                                       Object {
-                                        "isThrow": false,
+                                        "type": "return",
                                         "value": undefined,
                                       },
                                       Object {
-                                        "isThrow": false,
+                                        "type": "return",
                                         "value": undefined,
                                       },
                                       Object {
-                                        "isThrow": false,
+                                        "type": "return",
                                         "value": undefined,
                                       },
                                     ],
@@ -900,10 +900,10 @@ exports[`Issues Similar View renders with mocked data 1`] = `
                                                   "value": "Cannot read property 'length' of undefined",
                                                 },
                                                 "numComments": 0,
-                                                "permalink": "http://localhost:8000/sentry/internal/issues/271/",
+                                                "permalink": "http://localhost:8000/sentry/project-slug/issues/271/",
                                                 "project": Object {
                                                   "name": "Internal",
-                                                  "slug": "internal",
+                                                  "slug": "project-slug",
                                                 },
                                                 "shareId": "312e323731",
                                                 "shortId": "INTERNAL-4G",
@@ -963,19 +963,19 @@ exports[`Issues Similar View renders with mocked data 1`] = `
                                                   ],
                                                   "results": Array [
                                                     Object {
-                                                      "isThrow": false,
+                                                      "type": "return",
                                                       "value": undefined,
                                                     },
                                                     Object {
-                                                      "isThrow": false,
+                                                      "type": "return",
                                                       "value": undefined,
                                                     },
                                                     Object {
-                                                      "isThrow": false,
+                                                      "type": "return",
                                                       "value": undefined,
                                                     },
                                                     Object {
-                                                      "isThrow": false,
+                                                      "type": "return",
                                                       "value": undefined,
                                                     },
                                                   ],
@@ -1064,11 +1064,11 @@ exports[`Issues Similar View renders with mocked data 1`] = `
                               }
                             }
                             numComments={0}
-                            permalink="http://localhost:8000/sentry/internal/issues/271/"
+                            permalink="http://localhost:8000/sentry/project-slug/issues/271/"
                             project={
                               Object {
                                 "name": "Internal",
-                                "slug": "internal",
+                                "slug": "project-slug",
                               }
                             }
                             shareId="312e323731"
@@ -1114,11 +1114,11 @@ exports[`Issues Similar View renders with mocked data 1`] = `
                                   "projectId": "project-slug",
                                 }
                               }
-                              permalink="http://localhost:8000/sentry/internal/issues/271/"
+                              permalink="http://localhost:8000/sentry/project-slug/issues/271/"
                               project={
                                 Object {
                                   "name": "Internal",
-                                  "slug": "internal",
+                                  "slug": "project-slug",
                                 }
                               }
                               router={
@@ -1156,19 +1156,19 @@ exports[`Issues Similar View renders with mocked data 1`] = `
                                     ],
                                     "results": Array [
                                       Object {
-                                        "isThrow": false,
+                                        "type": "return",
                                         "value": undefined,
                                       },
                                       Object {
-                                        "isThrow": false,
+                                        "type": "return",
                                         "value": undefined,
                                       },
                                       Object {
-                                        "isThrow": false,
+                                        "type": "return",
                                         "value": undefined,
                                       },
                                       Object {
-                                        "isThrow": false,
+                                        "type": "return",
                                         "value": undefined,
                                       },
                                     ],

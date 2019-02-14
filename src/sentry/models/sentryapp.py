@@ -17,6 +17,7 @@ from sentry.models.apiscopes import HasApiScopes
 from sentry.db.models import (
     ArrayField,
     BoundedPositiveIntegerField,
+    EncryptedJsonField,
     FlexibleForeignKey,
     ParanoidModel,
 )
@@ -103,6 +104,7 @@ class SentryApp(ParanoidModel, HasApiScopes):
     events = ArrayField(of=models.TextField, null=True)
 
     overview = models.TextField(null=True)
+    schema = EncryptedJsonField(default=dict)
 
     date_added = models.DateTimeField(default=timezone.now)
     date_updated = models.DateTimeField(default=timezone.now)

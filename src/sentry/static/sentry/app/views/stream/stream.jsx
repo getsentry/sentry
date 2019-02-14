@@ -655,6 +655,11 @@ const Stream = createReactClass({
     return body;
   },
 
+  tagValueLoader(key, search) {
+    const {orgId, projectId} = this.props.params;
+    return fetchProjectTagValues(this.api, orgId, projectId, key, search);
+  },
+
   render() {
     // global loading
     if (this.state.loading) {
@@ -670,10 +675,6 @@ const Stream = createReactClass({
     const access = this.getAccess();
     const projectFeatures = this.getProjectFeatures();
     const project = this.getProject();
-
-    const tagValueLoader = (key, search) => {
-      return fetchProjectTagValues(this.api, orgId, projectId, key, search);
-    };
 
     return (
       <div className={classNames(classes)}>
@@ -694,7 +695,7 @@ const Stream = createReactClass({
             onSidebarToggle={this.onSidebarToggle}
             isSearchDisabled={this.state.isSidebarVisible}
             savedSearchList={this.state.savedSearchList}
-            tagValueLoader={tagValueLoader}
+            tagValueLoader={this.tagValueLoader}
           />
           <Panel>
             <StreamActions
@@ -726,7 +727,7 @@ const Stream = createReactClass({
           onQueryChange={this.onSearch}
           orgId={params.orgId}
           projectId={params.projectId}
-          tagValueLoader={tagValueLoader}
+          tagValueLoader={this.tagValueLoader}
         />
       </div>
     );

@@ -22,6 +22,7 @@ describe('OrganizationStream', function() {
   let savedSearch;
 
   let fetchTagsRequest;
+  let fetchMembersRequest;
 
   beforeEach(function() {
     sandbox = sinon.sandbox.create();
@@ -74,7 +75,7 @@ describe('OrganizationStream', function() {
       method: 'GET',
       body: TestStubs.Tags(),
     });
-    MockApiClient.addMockResponse({
+    fetchMembersRequest = MockApiClient.addMockResponse({
       url: '/organizations/org-slug/users/',
       method: 'GET',
       body: [TestStubs.Member({projects: [project.slug]})],
@@ -165,6 +166,8 @@ describe('OrganizationStream', function() {
       await instance.componentDidMount();
       await wrapper.update();
 
+      expect(fetchMembersRequest).toHaveBeenCalled();
+
       const members = instance.state.memberList;
       // Spot check the resulting structure as we munge it a bit.
       expect(members).toBeTruthy();
@@ -215,7 +218,7 @@ describe('OrganizationStream', function() {
     });
   });
 
-  describe('componentDidUpdate', function() {
+  describe('componentDidUpdate fetching groups', function() {
     let fetchDataMock;
     beforeEach(function() {
       fetchDataMock = jest.fn();
@@ -251,6 +254,29 @@ describe('OrganizationStream', function() {
         // Each propery change should cause a new fetch incrementing the call count.
         expect(fetchDataMock).toHaveBeenCalledTimes(i + 1);
       });
+    });
+  });
+
+  describe('componentDidUpdate fetching members', function() {
+    beforeEach(function() {
+      wrapper = shallow(<OrganizationStream {...props} />, {
+        disableLifecycleMethods: false,
+      });
+      wrapper.instance().fetchData = jest.fn();
+    });
+
+    it('fetches memberlist on project change', function() {
+      // Called during componentDidMount
+      expect(fetchMembersRequest).toHaveBeenCalledTimes(1);
+
+      const selection = {
+        projects: [99],
+        environments: [],
+        datetime: {period: '24h'},
+      };
+      wrapper.setProps({selection});
+      wrapper.update();
+      expect(fetchMembersRequest).toHaveBeenCalledTimes(2);
     });
   });
 

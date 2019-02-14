@@ -90,6 +90,7 @@
     "u2f-api": "0.2.3",
     "webpack": "^4.28.1",
     "webpack-cli": "^3.1.2",
+    "webpack-fix-style-only-entries": "^0.2.0",
     "zxcvbn": "^4.4.2"
   },
   "devDependencies": {
@@ -103,7 +104,7 @@
     "@storybook/react": "^4.1.3",
     "babel-eslint": "^10.0.1",
     "babel-gettext-extractor": "^3.0.0",
-    "babel-jest": "23.6.0",
+    "babel-jest": "24.1.0",
     "babel-plugin-dynamic-import-node": "^2.2.0",
     "chai": "3.4.1",
     "enzyme": "3.5.0",
@@ -111,7 +112,7 @@
     "enzyme-to-json": "3.3.1",
     "eslint": "5.11.1",
     "eslint-config-sentry-app": "1.6.1",
-    "jest": "23.6.0",
+    "jest": "24.1.0",
     "jest-junit": "^3.4.1",
     "mockdate": "2.0.2",
     "prettier": "1.7.4",
@@ -131,7 +132,7 @@
   "proxyURL": "http://localhost:8000",
   "scripts": {
     "test": "node scripts/test.js",
-    "test-precommit": "yarn test --findRelatedTests --bail",
+    "test-precommit": "yarn test --bail --findRelatedTests",
     "test-ci": "JEST_JUNIT_OUTPUT=.artifacts/jest.junit.xml yarn test --runInBand --ci --coverage --testResultsProcessor=jest-junit",
     "test-debug": "node --inspect-brk scripts/test.js --runInBand",
     "test-staged": "yarn test --findRelatedTests $(git diff --name-only --cached)",
@@ -147,6 +148,6 @@
   },
   "toolchain": {
     "node": "8.10.0",
-    "yarn": "1.3.2"
+    "yarn": "1.13.0"
   }
 }

@@ -258,15 +258,15 @@ exports[`OrganizationProjects Should render the projects in the store 1`] = `
                                   ],
                                   "results": Array [
                                     Object {
-                                      "isThrow": false,
+                                      "type": "return",
                                       "value": undefined,
                                     },
                                     Object {
-                                      "isThrow": false,
+                                      "type": "return",
                                       "value": undefined,
                                     },
                                     Object {
-                                      "isThrow": false,
+                                      "type": "return",
                                       "value": undefined,
                                     },
                                   ],

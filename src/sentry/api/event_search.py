@@ -1,12 +1,13 @@
 from __future__ import absolute_import
 
 import re
-import six
-
 from collections import namedtuple
-from django.utils.functional import cached_property
+from datetime import datetime
 
+import six
+from django.utils.functional import cached_property
 from parsimonious.exceptions import ParseError
+from parsimonious.nodes import Node
 from parsimonious.grammar import Grammar, NodeVisitor
 
 from sentry.search.utils import (
@@ -15,6 +16,7 @@ from sentry.search.utils import (
     parse_datetime_value,
     InvalidQuery,
 )
+from sentry.utils.dates import to_timestamp
 from sentry.utils.snuba import SENTRY_SNUBA_MAP
 
 WILDCARD_CHARS = re.compile(r'[\*\[\]\?]')
@@ -58,6 +60,20 @@ def translate(pat):
     return '^' + res + '$'
 
 
+# Explaination of quoted string regex, courtesy of Matt
+# "              // literal quote
+# (              // begin capture group
+#   (?:          // begin uncaptured group
+#     [^"]       // any character that's not quote
+#     |          // or
+#     (?<=\\)["] // A quote, preceded by a \ (for escaping)
+#   )            // end uncaptured group
+#   *            // repeat the uncaptured group
+# )              // end captured group
+# ?              // allow to be empty (allow empty quotes)
+# "              // quote literal
+
+
 event_search_grammar = Grammar(r"""
 # raw_search must come at the end, otherwise other
 # search_terms will be treated as a raw query
@@ -76,7 +92,7 @@ rel_time_filter = search_key sep rel_date_format
 # exact time filter for dates
 specific_time_filter = search_key sep date_format
 # Numeric comparison filter
-numeric_filter  = search_key sep operator ~r"[0-9]+"
+numeric_filter  = search_key sep operator? ~r"[0-9]+(?=\s|$)"
 
 # has filter for not null type checks
 has_filter      = negation? "has" sep (search_key / search_value)
@@ -85,7 +101,7 @@ is_filter       = negation? "is" sep search_value
 search_key      = key / quoted_key
 search_value    = quoted_value / value
 value           = ~r"\S*"
-quoted_value    = ~r"\"(.*)\""s
+quoted_value    = ~r"\"((?:[^\"]|(?<=\\)[\"])*)?\""s
 key             = ~r"[a-zA-Z0-9_\.-]+"
 # only allow colons in quoted keys
 quoted_key      = ~r"\"([a-zA-Z0-9_\.:-]+)\""
@@ -108,7 +124,11 @@ SEARCH_MAP = dict({
     'start': 'start',
     'end': 'end',
     'project_id': 'project_id',
+    'first_seen': 'first_seen',
+    'last_seen': 'last_seen',
+    'times_seen': 'times_seen',
 }, **SENTRY_SNUBA_MAP)
+no_conversion = set(['project_id', 'start', 'end'])
 
 
 class InvalidSearchQuery(Exception):
@@ -116,7 +136,11 @@ class InvalidSearchQuery(Exception):
 
 
 class SearchFilter(namedtuple('SearchFilter', 'key operator value')):
-    pass
+
+    def __str__(self):
+        return ''.join(
+            map(six.text_type, (self.key.name, self.operator, self.value.raw_value)),
+        )
 
 
 class SearchKey(namedtuple('SearchKey', 'name')):
@@ -128,6 +152,10 @@ class SearchKey(namedtuple('SearchKey', 'name')):
             return snuba_name
         # assume custom tag if not listed
         return 'tags[%s]' % (self.name,)
+
+    @cached_property
+    def is_tag(self):
+        return self.name not in SEARCH_MAP
 
 
 class SearchValue(namedtuple('SearchValue', 'raw_value')):
@@ -190,10 +218,16 @@ class SearchVisitor(NodeVisitor):
 
     def visit_numeric_filter(self, node, children):
         search_key, _, operator, search_value = children
-        try:
-            search_value = int(search_value.text)
-        except ValueError:
-            raise InvalidSearchQuery('Invalid numeric query: %s' % (search_key,))
+        # Tags are always strings
+        if not search_key.is_tag:
+            try:
+                search_value = int(search_value.text)
+            except ValueError:
+                raise InvalidSearchQuery('Invalid numeric query: %s' % (search_key,))
+        else:
+            search_value = search_value.text
+
+        operator = operator[0] if not isinstance(operator, Node) else '='
 
         return SearchFilter(
             search_key,
@@ -224,6 +258,7 @@ class SearchVisitor(NodeVisitor):
         except InvalidQuery as exc:
             raise InvalidSearchQuery(exc.message)
 
+        # TODO: Handle negations
         if from_val is not None:
             operator = '>='
             search_value = from_val[0]
@@ -248,6 +283,10 @@ class SearchVisitor(NodeVisitor):
         except InvalidQuery as exc:
             raise InvalidSearchQuery(exc.message)
 
+        # TODO: Handle negations here. This is tricky because these will be
+        # separate filters, and to negate this range we need (< val or >= val).
+        # We currently AND all filters together, so we'll need extra logic to
+        # handle. Maybe not necessary to allow negations for this.
         return [
             SearchFilter(
                 search_key,
@@ -316,7 +355,7 @@ class SearchVisitor(NodeVisitor):
         return node.text
 
     def visit_quoted_value(self, node, children):
-        return node.match.groups()[0]
+        return node.match.groups()[0].replace('\\"', '"')
 
     def visit_quoted_key(self, node, children):
         return node.match.groups()[0]
@@ -340,6 +379,54 @@ def convert_endpoint_params(params):
     ]
 
 
+def convert_search_filter_to_snuba_query(search_filter):
+    snuba_name = search_filter.key.snuba_name
+    value = search_filter.value.value
+
+    if snuba_name in no_conversion:
+        return
+    elif snuba_name == 'tags[environment]':
+        env_conditions = []
+        _envs = set(value if isinstance(value, (list, tuple)) else [value])
+        # the "no environment" environment is null in snuba
+        if '' in _envs:
+            _envs.remove('')
+            operator = 'IS NULL' if search_filter.operator == '=' else 'IS NOT NULL'
+            env_conditions.append(['tags[environment]', operator, None])
+
+        if _envs:
+            env_conditions.append(['tags[environment]', 'IN', list(_envs)])
+
+        return env_conditions
+
+    elif snuba_name == 'message':
+        # https://clickhouse.yandex/docs/en/query_language/functions/string_search_functions/#position-haystack-needle
+        # positionCaseInsensitive returns 0 if not found and an index of 1 or more if found
+        # so we should flip the operator here
+        operator = '=' if search_filter.operator == '!=' else '!='
+        # make message search case insensitive
+        return [['positionCaseInsensitive', ['message', "'%s'" % (value,)]], operator, 0]
+
+    else:
+        value = int(to_timestamp(value)) * 1000 if isinstance(value,
+                                                              datetime) and snuba_name != 'timestamp' else value
+
+        if search_filter.operator == '!=' or search_filter.operator == '=' and search_filter.value.value == '':
+            # Handle null columns on (in)equality comparisons. Any comparison between a value
+            # and a null will result to null. There are two cases we handle here:
+            # - A column doesn't equal a value. In this case, we need to convert the column to
+            # an empty string so that we don't exclude rows that have it set to null
+            # - Checking that a value isn't present. In some cases the column will be null,
+            # and in other cases an empty string. To generalize this we convert values in the
+            # column to an empty string and just check for that.
+            snuba_name = ['ifNull', [snuba_name, "''"]]
+
+        if search_filter.value.is_wildcard():
+            return [['match', [snuba_name, "'%s'" % (value,)]], search_filter.operator, 1]
+        else:
+            return [snuba_name, search_filter.operator, value]
+
+
 def get_snuba_query_args(query=None, params=None):
     # NOTE: this function assumes project permissions check already happened
     parsed_filters = []
@@ -361,52 +448,12 @@ def get_snuba_query_args(query=None, params=None):
     }
     for _filter in parsed_filters:
         snuba_name = _filter.key.snuba_name
-        value = _filter.value.value
 
         if snuba_name in ('start', 'end'):
-            kwargs[snuba_name] = value
-
-        elif snuba_name == 'tags[environment]':
-            env_conditions = []
-            _envs = set(value if isinstance(value, (list, tuple)) else [value])
-            # the "no environment" environment is null in snuba
-            if '' in _envs:
-                _envs.remove('')
-                env_conditions.append(['tags[environment]', 'IS NULL', None])
-
-            if _envs:
-                env_conditions.append(['tags[environment]', 'IN', list(_envs)])
-
-            kwargs['conditions'].append(env_conditions)
-
+            kwargs[snuba_name] = _filter.value.value
         elif snuba_name == 'project_id':
-            kwargs['filter_keys'][snuba_name] = value
-
-        elif snuba_name == 'message':
-            # https://clickhouse.yandex/docs/en/query_language/functions/string_search_functions/#position-haystack-needle
-            # positionCaseInsensitive returns 0 if not found and an index of 1 or more if found
-            # so we should flip the operator here
-            operator = '=' if _filter.operator == '!=' else '!='
-            # make message search case insensitive
-            kwargs['conditions'].append(
-                [['positionCaseInsensitive', ['message', "'%s'" % (value,)]], operator, 0]
-            )
-
+            kwargs['filter_keys'][snuba_name] = _filter.value.value
         else:
-            if _filter.operator == '!=' or _filter.operator == '=' and _filter.value.value == '':
-                # Handle null columns on (in)equality comparisons. Any comparison between a value
-                # and a null will result to null. There are two cases we handle here:
-                # - A column doesn't equal a value. In this case, we need to convert the column to
-                # an empty string so that we don't exclude rows that have it set to null
-                # - Checking that a value isn't present. In some cases the column will be null,
-                # and in other cases an empty string. To generalize this we convert values in the
-                # column to an empty string and just check for that.
-                snuba_name = ['ifNull', [snuba_name, "''"]]
-
-            if _filter.value.is_wildcard():
-                kwargs['conditions'].append(
-                    [['match', [snuba_name, "'%s'" % (value,)]], _filter.operator, 1]
-                )
-            else:
-                kwargs['conditions'].append([snuba_name, _filter.operator, value])
+            converted_filter = convert_search_filter_to_snuba_query(_filter)
+            kwargs['conditions'].append(converted_filter)
     return kwargs

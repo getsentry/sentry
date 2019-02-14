@@ -7,7 +7,6 @@ import {addErrorMessage} from 'app/actionCreators/indicator';
 import {t, tct} from 'app/locale';
 import SelectControl from 'app/components/forms/selectControl';
 
-// TODO(billy): Update to use SelectAutocomplete when it is ported to use react-select
 class StreamTagFilter extends React.Component {
   static propTypes = {
     tag: PropTypes.object.isRequired,
