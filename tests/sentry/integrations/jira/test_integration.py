@@ -352,14 +352,11 @@ SAMPLE_TRANSITION_RESPONSE = """
 
 
 class MockJiraApiClient(object):
-    def get_create_meta(self, project=None):
+    def get_create_meta_for_project(self, project):
         resp = json.loads(SAMPLE_CREATE_META_RESPONSE)
         if project == '10001':
             resp['projects'][0]['id'] = '10001'
-        return resp
-
-    def get_create_meta_for_project(self, project):
-        return self.get_create_meta()['projects'][0]
+        return resp['projects'][0]
 
     def get_projects_list(self):
         return json.loads(SAMPLE_PROJECT_LIST_RESPONSE)
