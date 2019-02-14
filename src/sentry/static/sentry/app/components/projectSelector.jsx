@@ -14,6 +14,8 @@ import SentryTypes from 'app/sentryTypes';
 import space from 'app/styles/space';
 import theme from 'app/utils/theme';
 
+const VIRTUALIZED_HEIGHT = 40;
+
 class ProjectSelector extends React.Component {
   static propTypes = {
     // Accepts a project id (slug) and not a project *object* because ProjectSelector
@@ -185,7 +187,7 @@ class ProjectSelector extends React.Component {
         className={className}
         emptyMessage={t('You have no projects')}
         noResultsMessage={t('No projects found')}
-        virtualizedHeight={40}
+        virtualizedHeight={VIRTUALIZED_HEIGHT}
         emptyHidesInput
         inputActions={() => (
           <div>
@@ -307,6 +309,8 @@ const ProjectRow = styled('div')`
   font-size: 14px;
   font-weight: 400;
   padding-left: ${space(1)};
+  height: ${VIRTUALIZED_HEIGHT}px;
+  flex-shrink: 0;
 
   /* thanks bootstrap? */
   input[type='checkbox'] {
@@ -322,16 +326,18 @@ const CreateProjectButton = styled(Button)`
 
 const BadgeWrapper = styled('div')`
   display: flex;
-  ${p => !p.multi && 'flex: 1'};
+  ${p => !p.multi && 'flex-shrink: 1'};
   white-space: nowrap;
   overflow: hidden;
 `;
 
 const BadgeAndBookmark = styled('div')`
   display: flex;
-  flex: 1;
+  flex-shrink: 1;
+  padding-right: ${space(3)};
   overflow: hidden;
   align-items: center;
+  height: 100%;
 `;
 
 const IdBadgeMenuItem = styled(IdBadge)`
