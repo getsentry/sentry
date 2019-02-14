@@ -59,7 +59,7 @@ class ProjectTagKeyDetailsEndpoint(ProjectEndpoint, EnvironmentMixin):
             self.create_audit_entry(
                 request=request,
                 organization=project.organization,
-                target_object=tagkey.id,
+                target_object=getattr(tagkey, 'id', None),
                 event=AuditLogEntryEvent.TAGKEY_REMOVE,
                 data=tagkey.get_audit_log_data(),
             )

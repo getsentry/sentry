@@ -37,6 +37,11 @@ class TagKey(TagType):
         self.count = count
         self.top_values = top_values
 
+    def get_audit_log_data(self):
+        return {
+            'key': self.key,
+        }
+
 
 class TagValue(TagType):
     __slots__ = ['key', 'value', 'times_seen', 'first_seen', 'last_seen']
