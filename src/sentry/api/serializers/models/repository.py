@@ -25,13 +25,14 @@ class RepositorySerializer(Serializer):
                 'id': 'unknown',
                 'name': 'Unknown Provider',
             }
+
         return {
             'id': six.text_type(obj.id),
-            'name': obj.name,
+            'name': obj.config.get('pending_deletion_name', obj.name),
             'url': obj.url,
             'provider': provider,
             'status': obj.get_status_display(),
             'dateCreated': obj.date_added,
             'integrationId': integration_id,
-            'externalSlug': external_slug
+            'externalSlug': external_slug,
         }
