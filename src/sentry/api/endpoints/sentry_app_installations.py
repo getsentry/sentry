@@ -31,7 +31,7 @@ class SentryAppInstallationsSerializer(serializers.Serializer):
 
 
 class SentryAppInstallationsEndpoint(SentryAppInstallationsBaseEndpoint):
-    @requires_feature('organizations:internal-catchall')
+    @requires_feature('organizations:sentry-apps')
     def get(self, request, organization):
         queryset = SentryAppInstallation.objects.filter(
             organization=organization,
@@ -45,7 +45,7 @@ class SentryAppInstallationsEndpoint(SentryAppInstallationsBaseEndpoint):
             on_results=lambda x: serialize(x, request.user),
         )
 
-    @requires_feature('organizations:internal-catchall')
+    @requires_feature('organizations:sentry-apps')
     def post(self, request, organization):
         serializer = SentryAppInstallationsSerializer(data=request.DATA)
 

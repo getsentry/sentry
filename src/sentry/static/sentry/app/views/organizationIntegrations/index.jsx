@@ -38,7 +38,7 @@ class OrganizationIntegrations extends AsyncComponent {
       ['integrations', `/organizations/${orgId}/integrations/`],
       ['plugins', `/organizations/${orgId}/plugins/`, {query}],
     ];
-    if (!this.props.organization.features.includes('internal-catchall')) {
+    if (!this.props.organization.features.includes('sentry-apps')) {
       return endpoints;
     }
     return [

@@ -8,7 +8,7 @@ from sentry.models import SentryApp
 
 
 class OrganizationSentryAppsEndpoint(OrganizationEndpoint):
-    @requires_feature('organizations:internal-catchall')
+    @requires_feature('organizations:sentry-apps')
     def get(self, request, organization):
         queryset = SentryApp.objects.filter(
             owner=organization,

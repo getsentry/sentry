@@ -813,8 +813,11 @@ SENTRY_FEATURES = {
     # Special feature flag primarily used on the sentry.io SAAS product for
     # easily enabling features while in early development.
     'organizations:internal-catchall': False,
+    # Enable organizations to create and utilize Sentry Apps.
+    'organizations:sentry-apps': False,
     # Enable inviting members to organizations.
     'organizations:invite-members': True,
+
 
     # DEPRECATED: pending removal.
     'organizations:js-loader': False,

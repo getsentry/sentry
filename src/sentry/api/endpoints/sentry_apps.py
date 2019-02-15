@@ -12,7 +12,7 @@ from sentry.models import SentryApp
 
 
 class SentryAppsEndpoint(SentryAppsBaseEndpoint):
-    @requires_feature('organizations:internal-catchall', any_org=True)
+    @requires_feature('organizations:sentry-apps', any_org=True)
     def get(self, request):
         return self.paginate(
             request=request,
@@ -22,7 +22,7 @@ class SentryAppsEndpoint(SentryAppsBaseEndpoint):
             on_results=lambda x: serialize(x, request.user),
         )
 
-    @requires_feature('organizations:internal-catchall', any_org=True)
+    @requires_feature('organizations:sentry-apps', any_org=True)
     def post(self, request, organization):
         serializer = SentryAppSerializer(data=request.json_body)
 
