@@ -9,6 +9,7 @@ import PageHeading from 'app/components/pageHeading';
 import Tooltip from 'app/components/tooltip';
 import SentryTypes from 'app/sentryTypes';
 import space from 'app/styles/space';
+import ConfigStore from 'app/stores/configStore';
 /* TODO: replace with I/O when finished */
 import img from '../../images/dashboard/hair-on-fire.svg';
 
@@ -26,7 +27,12 @@ export default class NoProjectMessage extends React.Component {
     const orgId = organization.slug;
     const canCreateProject = organization.access.includes('project:write');
     const canJoinTeam = organization.access.includes('team:read');
-    const hasProjects = organization.projects.some(p => p.isMember && p.hasAccess);
+
+    const {isSuperuser} = ConfigStore.get('user');
+
+    const hasProjects = isSuperuser
+      ? organization.projects.some(p => p.hasAccess)
+      : organization.projects.some(p => p.isMember && p.hasAccess);
 
     return hasProjects ? (
       children
