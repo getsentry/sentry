@@ -107,7 +107,7 @@ key             = ~r"[a-zA-Z0-9_\.-]+"
 quoted_key      = ~r"\"([a-zA-Z0-9_\.:-]+)\""
 
 date_format     = ~r"\d{4}-\d{2}-\d{2}(T\d{2}:\d{2}:\d{2}(\.\d{1,6})?)?"
-rel_date_format = ~r"[\+\-][0-9]+[wdhs]"
+rel_date_format = ~r"[\+\-][0-9]+[wdhm]"
 
 # NOTE: the order in which these operators are listed matters
 # because for example, if < comes before <= it will match that
