@@ -72,6 +72,16 @@ EVENT_PROTOCOL_VERSION = 2
 
 
 class KafkaEventStream(EventStream):
+
+    # These keys correspond to tags that are typically prefixed with `sentry:`
+    # and will wreak havok in the UI if both the `sentry:`-prefixed and
+    # non-prefixed variations occur in a response.
+    UNEXPECTED_TAG_KEYS = frozenset([
+        'dist',
+        'release',
+        'user',
+    ])
+
     def __init__(self, publish_topic='events', producer_configuration=None, **options):
         if producer_configuration is None:
             producer_configuration = {}
@@ -126,6 +136,10 @@ class KafkaEventStream(EventStream):
         retention_days = quotas.get_event_retention(
             organization=project.organization,
         )
+
+        unexpected_tags = set([k for (k, v) in event.get_tags() if k in self.UNEXPECTED_TAG_KEYS])
+        if unexpected_tags:
+            logger.error('%r received unexpected tags: %r', self, unexpected_tags)
 
         self._send(project.id, 'insert', extra_data=({
             'group_id': event.group_id,
