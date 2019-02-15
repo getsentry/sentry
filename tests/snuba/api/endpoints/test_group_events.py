@@ -7,7 +7,6 @@ from django.utils import timezone
 from freezegun import freeze_time
 
 from sentry import options
-from sentry.models import Environment
 from sentry.testutils import APITestCase, SnubaTestCase
 
 
@@ -185,19 +184,22 @@ class GroupEventsTest(APITestCase, SnubaTestCase):
 
     def test_environment(self):
         self.login_as(user=self.user)
-
-        group = self.create_group()
         events = {}
 
         for name in ['production', 'development']:
-            Environment.get_or_create(group.project, name)
-            events[name] = self.create_event(
-                group=group,
-                datetime=self.min_ago,
-                tags={'environment': name},
+            events[name] = self.store_event(
+                data={
+                    'fingerprint': ['put-me-in-group1'],
+                    'timestamp': self.min_ago.isoformat()[:19],
+                    'environment': name
+                },
+                project_id=self.project.id
             )
 
-        url = u'/api/0/issues/{}/events/'.format(group.id)
+        # Asserts that all are in the same group
+        group_id, = set(e.group.id for e in events.values())
+
+        url = u'/api/0/issues/{}/events/'.format(group_id)
         response = self.client.get(url + '?environment=production', format='json')
 
         assert response.status_code == 200, response.content

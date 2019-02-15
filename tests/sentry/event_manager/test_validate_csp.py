@@ -3,7 +3,7 @@ from __future__ import absolute_import
 import pytest
 
 from sentry.coreapi import APIError
-from sentry.event_manager import EventManager, ENABLE_RUST
+from sentry.event_manager import EventManager
 
 
 def validate_and_normalize(report, client_ip='198.51.100.0',
@@ -81,10 +81,7 @@ def test_csp_tags_out_of_bounds():
         }
     }
     result = validate_and_normalize(report)
-    if ENABLE_RUST:
-        assert result['tags'] == [['effective-directive', 'img-src'], None]
-    else:
-        assert result['tags'] == [('effective-directive', 'img-src')]
+    assert result['tags'] == [['effective-directive', 'img-src'], None]
     assert len(result['errors']) == 1
 
 
@@ -138,10 +135,7 @@ def test_hpkp_validate_basic():
         ('port', '443'),
     ]
     assert result['user'] == {'ip_address': '198.51.100.0'}
-    if ENABLE_RUST:
-        expected_headers = [['User-Agent', 'Awesome Browser']]
-    else:
-        expected_headers = [('User-Agent', 'Awesome Browser')]
+    expected_headers = [['User-Agent', 'Awesome Browser']]
 
     assert result['request'] == {
         'url': 'www.example.com',

@@ -9,30 +9,36 @@ class GroupTagsTest(APITestCase, SnubaTestCase):
     def test_multi_env(self):
         now = timezone.now()
         min_ago = now - timedelta(minutes=1)
-        group = self.create_group(first_seen=min_ago, last_seen=now)
-        env = self.create_environment(project=group.project, name='prod')
-        env2 = self.create_environment(project=group.project, name='staging')
-        self.create_event(
-            group=group,
-            tags=[['foo', 'bar'], ['environment', env.name]],
-            datetime=min_ago,
+        env = self.create_environment(project=self.project, name='prod')
+        env2 = self.create_environment(project=self.project, name='staging')
+        self.store_event(
+            data={
+                'fingerprint': ['put-me-in-group1'],
+                'timestamp': min_ago.isoformat()[:19],
+                'environment': env.name,
+                'tags': {'foo': 'bar'},
+            },
+            project_id=self.project.id
         )
-        self.create_event(
-            group=group,
-            tags=[['biz', 'baz'], ['environment', env2.name]],
-            datetime=min_ago,
+        event2 = self.store_event(
+            data={
+                'fingerprint': ['put-me-in-group1'],
+                'timestamp': min_ago.isoformat()[:19],
+                'environment': env2.name,
+                'tags': {'biz': 'baz'},
+            },
+            project_id=self.project.id
         )
 
         self.login_as(user=self.user)
-        url = u'/api/0/issues/{}/tags/?enable_snuba=1'.format(group.id)
+        url = u'/api/0/issues/{}/tags/?enable_snuba=1'.format(event2.group.id)
         response = self.client.get(
             '%s&environment=%s&environment=%s' % (url, env.name, env2.name),
             format='json'
         )
         assert response.status_code == 200
-        assert sorted([
+        assert set([
             (tag['key'], tag['uniqueValues']) for tag in response.data
-        ], key=lambda x: x[0]) == [
+        ]) >= set([
             ('biz', 1), ('environment', 2), ('foo', 1)
-        ]
-        assert len(response.data) == 3
+        ])

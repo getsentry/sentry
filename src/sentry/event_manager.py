@@ -7,9 +7,7 @@ sentry.event_manager
 from __future__ import absolute_import, print_function
 
 import logging
-import os
 import six
-import random
 import jsonschema
 
 from datetime import datetime, timedelta
@@ -17,14 +15,11 @@ from django.conf import settings
 from django.db import connection, IntegrityError, router, transaction
 from django.utils import timezone
 from django.utils.encoding import force_text
-from django.utils.functional import cached_property
-from sentry import options
 
 from sentry import buffer, eventtypes, eventstream, features, tagstore, tsdb, filters
 from sentry.constants import (
-    CLIENT_RESERVED_ATTRS, LOG_LEVELS, LOG_LEVELS_MAP, DEFAULT_LOG_LEVEL,
-    DEFAULT_LOGGER_NAME, MAX_CULPRIT_LENGTH, VALID_PLATFORMS, MAX_TAG_VALUE_LENGTH,
-    CLIENT_IGNORED_ATTRS,
+    LOG_LEVELS, LOG_LEVELS_MAP, MAX_CULPRIT_LENGTH, VALID_PLATFORMS,
+    MAX_TAG_VALUE_LENGTH,
 )
 from sentry.coreapi import (
     APIError,
@@ -35,10 +30,7 @@ from sentry.coreapi import (
     decode_data,
     safely_load_json_string,
 )
-from sentry.interfaces.base import get_interface, prune_empty_keys
-from sentry.interfaces.exception import normalize_mechanism_meta
-from sentry.interfaces.schemas import validate_and_default_interface
-from sentry.lang.native.utils import get_sdk_from_event
+from sentry.interfaces.base import get_interface
 from sentry.models import (
     Activity, Environment, Event, EventError, EventMapping, EventUser, Group,
     GroupEnvironment, GroupHash, GroupLink, GroupRelease, GroupResolution, GroupStatus,
@@ -59,8 +51,7 @@ from sentry.utils.data_filters import (
 )
 from sentry.utils.dates import to_timestamp
 from sentry.utils.db import is_postgres, is_mysql
-from sentry.utils.meta import Meta
-from sentry.utils.safe import ENABLE_TRIMMING, safe_execute, trim, trim_dict, get_path, set_path, setdefault_path
+from sentry.utils.safe import safe_execute, trim, get_path, setdefault_path
 from sentry.utils.strings import truncatechars
 from sentry.utils.geo import rust_geoip
 from sentry.utils.validators import is_float
@@ -80,8 +71,6 @@ SECURITY_REPORT_INTERFACES = (
     "expectct",
     "expectstaple",
 )
-
-ENABLE_RUST = os.environ.get("SENTRY_USE_RUST_NORMALIZER", "false").lower() in ("1", "true")
 
 
 def pop_tag(data, key):
@@ -454,26 +443,9 @@ class EventManager(object):
 
         self._data = data
 
-    @cached_property
-    def use_rust_normalize(self):
-        if self._project is not None:
-            if self._project.id in options.get('store.projects-normalize-in-rust-opt-out'):
-                return False
-            if self._project.id in options.get('store.projects-normalize-in-rust-opt-in'):
-                return True
-            opt_in_rate = options.get('store.projects-normalize-in-rust-percent-opt-in')
-            if opt_in_rate != 0:
-                if opt_in_rate > 0.0:
-                    bucket = ((self._project.id * 2654435761) % (2 ** 32)) % 1000
-                    return bucket <= (opt_in_rate * 1000)
-                else:
-                    return random.random() < -opt_in_rate
-
-        return ENABLE_RUST
-
     def normalize(self):
         tags = {
-            'use_rust_normalize': six.text_type(self.use_rust_normalize)
+            'use_rust_normalize': True
         }
 
         with metrics.timer('events.store.normalize.duration', tags=tags):
@@ -481,7 +453,7 @@ class EventManager(object):
 
         data = self.get_data()
 
-        data['use_rust_normalize'] = self.use_rust_normalize
+        data['use_rust_normalize'] = True
 
         metrics.timing(
             'events.store.normalize.errors',
@@ -494,247 +466,27 @@ class EventManager(object):
             raise RuntimeError('Already normalized')
         self._normalized = True
 
-        if self.use_rust_normalize:
-            from semaphore.processing import StoreNormalizer
-            rust_normalizer = StoreNormalizer(
-                geoip_lookup=rust_geoip,
-                project_id=self._project.id if self._project else None,
-                client_ip=self._client_ip,
-                client=self._auth.client if self._auth else None,
-                key_id=six.text_type(self._key.id) if self._key else None,
-                protocol_version=six.text_type(self.version) if self.version is not None else None,
-                stacktrace_frames_hard_limit=settings.SENTRY_STACKTRACE_FRAMES_HARD_LIMIT,
-                max_stacktrace_frames=settings.SENTRY_MAX_STACKTRACE_FRAMES,
-                valid_platforms=list(VALID_PLATFORMS),
-                max_secs_in_future=MAX_SECS_IN_FUTURE,
-                max_secs_in_past=MAX_SECS_IN_PAST,
-                enable_trimming=ENABLE_TRIMMING,
-            )
+        from semaphore.processing import StoreNormalizer
+        rust_normalizer = StoreNormalizer(
+            geoip_lookup=rust_geoip,
+            project_id=self._project.id if self._project else None,
+            client_ip=self._client_ip,
+            client=self._auth.client if self._auth else None,
+            key_id=six.text_type(self._key.id) if self._key else None,
+            protocol_version=six.text_type(self.version) if self.version is not None else None,
+            stacktrace_frames_hard_limit=settings.SENTRY_STACKTRACE_FRAMES_HARD_LIMIT,
+            max_stacktrace_frames=settings.SENTRY_MAX_STACKTRACE_FRAMES,
+            valid_platforms=list(VALID_PLATFORMS),
+            max_secs_in_future=MAX_SECS_IN_FUTURE,
+            max_secs_in_past=MAX_SECS_IN_PAST,
+            enable_trimming=True,
+        )
 
-            self._data = CanonicalKeyDict(
-                rust_normalizer.normalize_event(dict(self._data))
-            )
+        self._data = CanonicalKeyDict(
+            rust_normalizer.normalize_event(dict(self._data))
+        )
 
-            normalize_user_agent(self._data)
-            return
-
-        data = self._data
-
-        # Before validating with a schema, attempt to cast values to their desired types
-        # so that the schema doesn't have to take every type variation into account.
-        text = six.text_type
-
-        def to_values(v):
-            return {'values': v} if v and isinstance(v, (tuple, list)) else v
-
-        casts = {
-            'environment': lambda v: text(v) if v is not None else v,
-            'event_id': lambda v: v.lower(),
-            'fingerprint': cast_fingerprint,
-            'release': lambda v: text(v) if v is not None else v,
-            'dist': lambda v: text(v).strip() if v is not None else v,
-            'time_spent': lambda v: int(v) if v is not None else v,
-            'tags': lambda v: [(text(v_k).replace(' ', '-').strip(), text(v_v).strip()) for (v_k, v_v) in dict(v).items()],
-            'platform': lambda v: v if v in VALID_PLATFORMS else 'other',
-            'logentry': lambda v: {'message': v} if (v and not isinstance(v, dict)) else (v or None),
-
-            # These can be sent as lists and need to be converted to {'values': [...]}
-            'exception': to_values,
-            'breadcrumbs': to_values,
-            'threads': to_values,
-        }
-
-        meta = Meta(data.get('_meta'))
-
-        for c in casts:
-            value = data.pop(c, None)
-            if value is not None:
-                try:
-                    data[c] = casts[c](value)
-                except Exception as e:
-                    meta.enter(c).add_error(EventError.INVALID_DATA, value, {
-                        'reason': six.text_type(e),
-                    })
-
-        data['timestamp'] = process_timestamp(data.get('timestamp'),
-                                              meta.enter('timestamp'))
-
-        # Fill in ip addresses marked as {{auto}}
-        if self._client_ip:
-            if get_path(data, 'request', 'env', 'REMOTE_ADDR') == '{{auto}}':
-                data['request']['env']['REMOTE_ADDR'] = self._client_ip
-
-            if get_path(data, 'user', 'ip_address') == '{{auto}}':
-                data['user']['ip_address'] = self._client_ip
-
-        # Validate main event body and tags against schema.
-        # XXX(ja): jsonschema does not like CanonicalKeyDict, so we need to pass
-        #          in the inner data dict.
-        validate_and_default_interface(data.data, 'event', meta=meta)
-        if data.get('tags') is not None:
-            validate_and_default_interface(
-                data['tags'], 'tags', name='tags', meta=meta.enter('tags'))
-
-        # Validate interfaces
-        for k in list(iter(data)):
-            if k in CLIENT_RESERVED_ATTRS:
-                continue
-
-            value = data.pop(k)
-
-            # Ignore all top-level None and empty values, regardless whether
-            # they are interfaces or not. For all other unrecognized attributes,
-            # we emit an explicit error, unless they are explicitly ignored.
-            if not value or k in CLIENT_IGNORED_ATTRS:
-                continue
-
-            try:
-                interface = get_interface(k)
-            except ValueError:
-                logger.debug('Ignored unknown attribute: %s', k)
-                meta.enter(k).add_error(EventError.INVALID_ATTRIBUTE)
-                continue
-
-            normalized = interface.normalize(value, meta.enter(k))
-            if normalized:
-                data[interface.path] = normalized
-
-        # Additional data coercion and defaulting we only do for store.
-        if self._for_store:
-            if self._project is not None:
-                data['project'] = self._project.id
-            if self._key is not None:
-                data['key_id'] = self._key.id
-            if self._auth is not None:
-                data['sdk'] = data.get('sdk') or parse_client_as_sdk(self._auth.client)
-
-            level = data.get('level') or DEFAULT_LOG_LEVEL
-            if isinstance(level, int) or (isinstance(level, six.string_types) and level.isdigit()):
-                level = LOG_LEVELS.get(int(level), DEFAULT_LOG_LEVEL)
-            if level not in LOG_LEVELS_MAP:
-                level = DEFAULT_LOG_LEVEL
-            data['level'] = level
-
-            if data.get('dist') and not data.get('release'):
-                data['dist'] = None
-
-            timestamp = data.get('timestamp')
-            if not timestamp:
-                timestamp = timezone.now()
-
-            # TODO (alex) can this all be replaced by utcnow?
-            # it looks like the only time that this would even be hit is when timestamp
-            # is not defined, as the earlier process_timestamp already converts existing
-            # timestamps to floats.
-            if isinstance(timestamp, datetime):
-                # We must convert date to local time so Django doesn't mess it up
-                # based on TIME_ZONE
-                if settings.TIME_ZONE:
-                    if not timezone.is_aware(timestamp):
-                        timestamp = timestamp.replace(tzinfo=timezone.utc)
-                elif timezone.is_aware(timestamp):
-                    timestamp = timestamp.replace(tzinfo=None)
-                timestamp = float(timestamp.strftime('%s'))
-
-            data['timestamp'] = timestamp
-            data['received'] = float(timezone.now().strftime('%s'))
-
-            setdefault_path(data, 'extra', value={})
-            setdefault_path(data, 'logger', value=DEFAULT_LOGGER_NAME)
-            setdefault_path(data, 'tags', value=[])
-
-            # Fix case where legacy apps pass 'environment' as a tag
-            # instead of a top level key.
-            # TODO (alex) save() just reinserts the environment into the tags
-            # TODO (markus) silly conversion between list and dict, hard to fix
-            # without messing up meta
-            tagsdict = dict(data['tags'])
-            environment_tag = tagsdict.pop("environment", None)
-            if not data.get('environment') and environment_tag:
-                data['environment'] = environment_tag
-            data['tags'] = tagsdict.items()
-
-            # the SDKs currently do not describe event types, and we must infer
-            # them from available attributes
-            data['type'] = eventtypes.infer(data).key
-            data['version'] = self.version
-
-        exceptions = get_path(data, 'exception', 'values', filter=True)
-        stacktrace = data.get('stacktrace')
-        if stacktrace and exceptions and len(exceptions) == 1:
-            exceptions[0]['stacktrace'] = stacktrace
-            stacktrace_meta = meta.enter('stacktrace')
-            meta.enter('exception', 'values', 0, 'stacktrace').merge(stacktrace_meta)
-            del data['stacktrace']
-            # TODO(ja): Remove meta data of data['stacktrace'] here, too
-
-        # Exception mechanism needs SDK information to resolve proper names in
-        # exception meta (such as signal names). "SDK Information" really means
-        # the operating system version the event was generated on. Some
-        # normalization still works without sdk_info, such as mach_exception
-        # names (they can only occur on macOS).
-        if exceptions:
-            sdk_info = get_sdk_from_event(data)
-            for ex in exceptions:
-                if 'mechanism' in ex:
-                    normalize_mechanism_meta(ex['mechanism'], sdk_info)
-
-        # This function parses the User Agent from the request if present and fills
-        # contexts with it.
-        normalize_user_agent(data)
-
-        if not get_path(data, "user", "ip_address"):
-            # If there is no User ip_address, update it either from the Http
-            # interface or the client_ip of the request.
-            http_ip = get_path(data, 'request', 'env', 'REMOTE_ADDR')
-            if http_ip:
-                set_path(data, 'user', 'ip_address', value=http_ip)
-            elif self._client_ip:
-                set_path(data, 'user', 'ip_address', value=self._client_ip)
-
-        # Trim values
-        if data.get('logger'):
-            data['logger'] = trim(data['logger'].strip(), 64)
-
-        if data.get('extra'):
-            trim_dict(data['extra'], max_size=settings.SENTRY_MAX_EXTRA_VARIABLE_SIZE)
-
-        if data.get('culprit'):
-            data['culprit'] = trim(data['culprit'], MAX_CULPRIT_LENGTH)
-
-        if data.get('transaction'):
-            # XXX: This will be trimmed again when inserted into tag values
-            data['transaction'] = trim(data['transaction'], MAX_CULPRIT_LENGTH)
-
-        # Move some legacy data into tags
-        site = data.pop('site', None)
-        if site is not None:
-            set_tag(data, 'site', site)
-        server_name = data.pop('server_name', None)
-        if server_name is not None:
-            set_tag(data, 'server_name', server_name)
-
-        for key in ('fingerprint', 'modules', 'tags', 'extra', 'contexts'):
-            if not data.get(key):
-                data.pop(key, None)
-
-        # Merge meta errors into the errors array. We need to iterate over the
-        # raw meta instead of data due to pruned null values.
-        errors = data.get('errors') or []
-        add_meta_errors(errors, meta)
-        add_meta_errors(errors, meta.enter('tags'))
-
-        if errors:
-            data['errors'] = errors
-        elif 'errors' in data:
-            del data['errors']
-
-        if meta.raw():
-            data['_meta'] = meta.raw()
-        elif '_meta' in data:
-            del data['_meta']
-
-        self._data = CanonicalKeyDict(prune_empty_keys(data))
+        normalize_user_agent(self._data)
 
     def should_filter(self):
         '''

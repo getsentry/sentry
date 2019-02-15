@@ -17,6 +17,7 @@ __all__ = (
 
 import base64
 import calendar
+import contextlib
 import os
 import os.path
 import pytest
@@ -24,6 +25,7 @@ import requests
 import six
 import types
 import logging
+import mock
 
 from sentry_sdk import Hub
 
@@ -54,6 +56,7 @@ from sentry.auth.superuser import (
     COOKIE_SECURE as SU_COOKIE_SECURE, COOKIE_DOMAIN as SU_COOKIE_DOMAIN, COOKIE_PATH as SU_COOKIE_PATH
 )
 from sentry.constants import MODULE_ROOT
+from sentry.eventstream.snuba import SnubaEventStream
 from sentry.models import (
     GroupEnvironment, GroupHash, GroupMeta, ProjectOption, Repository, DeletedOrganization,
     Environment, GroupStatus, Organization, TotpInterface, UserReport,
@@ -61,6 +64,7 @@ from sentry.models import (
 )
 from sentry.plugins import plugins
 from sentry.rules import EventState
+from sentry.tagstore.snuba import SnubaCompatibilityTagStorage
 from sentry.utils import json
 from sentry.utils.auth import SSO_SESSION_KEY
 
@@ -844,8 +848,22 @@ class IntegrationTestCase(TestCase):
 class SnubaTestCase(TestCase):
     def setUp(self):
         super(SnubaTestCase, self).setUp()
-
+        self.snuba_eventstream = SnubaEventStream()
+        self.snuba_tagstore = SnubaCompatibilityTagStorage()
         assert requests.post(settings.SENTRY_SNUBA + '/tests/drop').status_code == 200
+
+    def store_event(self, *args, **kwargs):
+        with contextlib.nested(
+            mock.patch('sentry.eventstream.insert',
+                       self.snuba_eventstream.insert),
+            mock.patch('sentry.tagstore.delay_index_event_tags',
+                       self.snuba_tagstore.delay_index_event_tags),
+            mock.patch('sentry.tagstore.incr_tag_value_times_seen',
+                       self.snuba_tagstore.incr_tag_value_times_seen),
+            mock.patch('sentry.tagstore.incr_group_tag_value_times_seen',
+                       self.snuba_tagstore.incr_group_tag_value_times_seen),
+        ):
+            return super(SnubaTestCase, self).store_event(*args, **kwargs)
 
     def __wrap_event(self, event, data, primary_hash):
         # TODO: Abstract and combine this with the stream code in
@@ -872,6 +890,8 @@ class SnubaTestCase(TestCase):
         doesn't run them through the 'real' event pipeline. In a perfect
         world all test events would go through the full regular pipeline.
         """
+        # XXX: Use `store_event` instead of this!
+
         event = super(SnubaTestCase, self).create_event(*args, **kwargs)
 
         data = event.data.data

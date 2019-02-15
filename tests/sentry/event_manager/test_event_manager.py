@@ -14,7 +14,7 @@ from time import time
 
 from sentry.app import tsdb
 from sentry.constants import VERSION_LENGTH
-from sentry.event_manager import HashDiscarded, EventManager, EventUser, ENABLE_RUST
+from sentry.event_manager import HashDiscarded, EventManager, EventUser
 from sentry.event_hashing import md5_from_hash
 from sentry.models import (
     Activity, Environment, Event, ExternalIssue, Group, GroupEnvironment,
@@ -611,8 +611,13 @@ class EventManagerTest(TransactionTestCase):
         assert event.group_id == event2.group_id
 
         group = Group.objects.get(id=event.group.id)
-        assert group.active_at == event2.datetime
-        assert group.active_at != event.datetime
+        # MySQL removes sub-second portion
+        assert group.active_at.replace(
+            second=0, microsecond=0) == event2.datetime.replace(
+            second=0, microsecond=0)
+        assert group.active_at.replace(
+            second=0, microsecond=0) != event.datetime.replace(
+            second=0, microsecond=0)
 
     def test_invalid_transaction(self):
         dict_input = {'messages': 'foo'}
@@ -903,8 +908,7 @@ class EventManagerTest(TransactionTestCase):
             'tags': [42],
         }))
         manager.normalize()
-        if ENABLE_RUST:
-            assert None in manager.get_data().get('tags', [])
+        assert None in manager.get_data().get('tags', [])
         assert 42 not in manager.get_data().get('tags', [])
         event = manager.save(self.project.id)
         assert 42 not in event.tags
@@ -1135,12 +1139,8 @@ class EventManagerTest(TransactionTestCase):
         manager.normalize()
         event = manager.save(self.project.id)
 
-        if ENABLE_RUST:
-            assert event.message == '["asdf"]'
-            assert 'logentry' in event.data
-        else:
-            assert event.message == '<unlabeled event>'
-            assert 'logentry' not in event.data
+        assert event.message == '["asdf"]'
+        assert 'logentry' in event.data
 
     def test_message_attribute_goes_to_interface(self):
         manager = EventManager(make_event(**{

@@ -135,22 +135,22 @@ class GroupListTest(APITestCase, SnubaTestCase):
         assert response.status_code == 400
 
     def test_environment(self):
-        self.create_environment(name='production', organization=self.project.organization)
-        self.create_environment(name='staging', organization=self.project.organization)
-        group = self.create_group(
-            project=self.project,
+        self.store_event(
+            data={
+                'fingerprint': ['put-me-in-group1'],
+                'timestamp': self.min_ago.isoformat()[:19],
+                'environment': 'production',
+            },
+            project_id=self.project.id
         )
-        group2 = self.create_group(
-            project=self.project,
+        self.store_event(
+            data={
+                'fingerprint': ['put-me-in-group2'],
+                'timestamp': self.min_ago.isoformat()[:19],
+                'environment': 'staging',
+            },
+            project_id=self.project.id
         )
-        self.create_event(tags={'environment': 'production'}, group=group, datetime=self.min_ago)
-        self.create_event(
-            tags={
-                'environment': 'staging'},
-            group=group2,
-            datetime=self.min_ago,
-            stacktrace=[
-                ['foo.py']])
 
         self.login_as(user=self.user)
 
@@ -1196,19 +1196,19 @@ class GroupUpdateTest(APITestCase, SnubaTestCase):
         assert response.data['statusDetails']['actor']['id'] == six.text_type(self.user.id)
 
     def test_snooze_user_count(self):
-        group = self.create_group(
-            checksum='a' * 32,
-            status=GroupStatus.RESOLVED,
-            first_seen=self.min_ago - timedelta(seconds=100),
-            last_seen=timezone.now(),
-        )
         for i in range(100):
-            self.create_event(
-                group=group,
-                data={'checksum': six.binary_type(i)},
-                tags={'sentry:user': {'id': six.binary_type(i)}},
-                datetime=self.min_ago - timedelta(seconds=i),
+            event = self.store_event(
+                data={
+                    'fingerprint': ['put-me-in-group-1'],
+                    'user': {'id': six.binary_type(i)},
+                    'timestamp': (self.min_ago - timedelta(seconds=i)).isoformat()[:19]
+                },
+                project_id=self.project.id
             )
+
+        group = Group.objects.get(id=event.group.id)
+        group.status = GroupStatus.RESOLVED
+        group.save()
 
         self.login_as(user=self.user)
 

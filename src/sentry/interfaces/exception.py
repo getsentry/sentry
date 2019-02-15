@@ -1081,7 +1081,8 @@ class Exception(Interface):
         values = meta.get('values', meta)
         for index, value in six.iteritems(values):
             exc = self.values[int(index)]
-            result[index] = exc.get_api_meta(value, is_public=is_public)
+            if exc is not None:
+                result[index] = exc.get_api_meta(value, is_public=is_public)
 
         return {'values': result}
 

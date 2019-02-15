@@ -13,7 +13,7 @@ from mock import patch
 from sentry.api.serializers import serialize
 from sentry.api.serializers.models.group import GroupSerializerSnuba, StreamGroupSerializerSnuba, snuba_tsdb
 from sentry.models import (
-    Environment, GroupEnvironment, GroupLink, GroupResolution, GroupSnooze, GroupStatus,
+    Group, Environment, GroupEnvironment, GroupLink, GroupResolution, GroupSnooze, GroupStatus,
     GroupSubscription, UserOption, UserOptionValue
 )
 from sentry.testutils import APITestCase, SnubaTestCase
@@ -296,7 +296,33 @@ class GroupSerializerSnubaTest(APITestCase, SnubaTestCase):
         assert not result['isSubscribed']
 
     def test_seen_stats(self):
-        group = self.create_group(first_seen=self.week_ago, times_seen=5)
+        environment = self.create_environment(project=self.project)
+        environment2 = self.create_environment(project=self.project)
+
+        events = []
+
+        for event_id, env in [
+            ('a' * 32, environment),
+            ('b' * 32, environment),
+            ('c' * 32, environment2),
+        ]:
+            events.append(self.store_event(
+                data={
+                    'event_id': event_id,
+                    'fingerprint': ['put-me-in-group1'],
+                    'timestamp': self.min_ago.isoformat()[:19],
+                    'environment': env.name
+                },
+                project_id=self.project.id
+            ))
+
+        # Assert all events are in the same group
+        group_id, = set(e.group.id for e in events)
+
+        group = Group.objects.get(id=group_id)
+        group.times_seen = 5
+        group.first_seen = self.week_ago
+        group.save()
 
         # should use group columns when no environments arg passed
         result = serialize(group, serializer=GroupSerializerSnuba(environment_ids=[]))
@@ -304,25 +330,12 @@ class GroupSerializerSnubaTest(APITestCase, SnubaTestCase):
         assert result['lastSeen'] == group.last_seen
         assert result['firstSeen'] == group.first_seen
 
-        environment = self.create_environment(project=group.project)
-        environment2 = self.create_environment(project=group.project)
-
-        self.create_event(
-            'a' * 32, group=group, datetime=self.day_ago, tags={'environment': environment.name}
-        )
-        self.create_event(
-            'b' * 32, group=group, datetime=self.min_ago, tags={'environment': environment.name}
-        )
-        self.create_event(
-            'c' * 32, group=group, datetime=self.min_ago, tags={'environment': environment2.name}
-        )
-
         # update this to something different to make sure it's being used
-        group_env = GroupEnvironment.objects.get(group_id=group.id, environment_id=environment.id)
+        group_env = GroupEnvironment.objects.get(group_id=group_id, environment_id=environment.id)
         group_env.first_seen = self.day_ago - timedelta(days=3)
         group_env.save()
 
-        group_env2 = GroupEnvironment.objects.get(group_id=group.id, environment_id=environment2.id)
+        group_env2 = GroupEnvironment.objects.get(group_id=group_id, environment_id=environment2.id)
 
         result = serialize(
             group, serializer=GroupSerializerSnuba(
