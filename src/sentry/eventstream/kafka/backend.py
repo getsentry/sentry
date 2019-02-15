@@ -15,6 +15,7 @@ from sentry.eventstream.kafka.consumer import SynchronizedConsumer
 from sentry.eventstream.kafka.protocol import get_task_kwargs_for_message
 from sentry.tasks.post_process import post_process_group
 from sentry.utils import json
+from sentry.utils.safe import get_path
 
 logger = logging.getLogger(__name__)
 
@@ -137,7 +138,12 @@ class KafkaEventStream(EventStream):
             organization=project.organization,
         )
 
-        unexpected_tags = set([k for (k, v) in event.get_tags() if k in self.UNEXPECTED_TAG_KEYS])
+        event_data = event.get_raw_data()
+
+        unexpected_tags = set([
+            k for (k, v) in (get_path(event_data, 'tags') or [])
+            if k in self.UNEXPECTED_TAG_KEYS
+        ])
         if unexpected_tags:
             logger.error('%r received unexpected tags: %r', self, unexpected_tags)
 
@@ -151,7 +157,7 @@ class KafkaEventStream(EventStream):
             'message': event.message,
             'platform': event.platform,
             'datetime': event.datetime,
-            'data': event.get_raw_data(),
+            'data': event_data,
             'primary_hash': primary_hash,
             'retention_days': retention_days,
         }, {
