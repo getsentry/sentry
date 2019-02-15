@@ -74,7 +74,8 @@ const InstallPromptBanner = createReactClass({
     return (
       path.indexOf('/getting-started/') !== -1 ||
       path.indexOf('/onboarding/') !== -1 ||
-      path.indexOf('/projects/new/') !== -1
+      path.indexOf('/projects/new/') !== -1 ||
+      path.indexOf('/try-business/') !== -1
     );
   },
 
