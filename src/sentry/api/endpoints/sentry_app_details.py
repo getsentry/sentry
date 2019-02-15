@@ -12,7 +12,7 @@ from sentry.mediators.sentry_apps import Updater, Destroyer
 
 class SentryAppDetailsEndpoint(SentryAppBaseEndpoint):
     def get(self, request, sentry_app):
-        if not features.has('organizations:internal-catchall',
+        if not features.has('organizations:sentry-apps',
                             sentry_app.owner,
                             actor=request.user):
 
@@ -21,7 +21,7 @@ class SentryAppDetailsEndpoint(SentryAppBaseEndpoint):
         return Response(serialize(sentry_app, request.user))
 
     def put(self, request, sentry_app):
-        if not features.has('organizations:internal-catchall',
+        if not features.has('organizations:sentry-apps',
                             sentry_app.owner,
                             actor=request.user):
 
@@ -48,7 +48,7 @@ class SentryAppDetailsEndpoint(SentryAppBaseEndpoint):
         return Response(serializer.errors, status=400)
 
     def delete(self, request, sentry_app):
-        if not features.has('organizations:internal-catchall',
+        if not features.has('organizations:sentry-apps',
                             sentry_app.owner,
                             actor=request.user):
             return Response(status=404)

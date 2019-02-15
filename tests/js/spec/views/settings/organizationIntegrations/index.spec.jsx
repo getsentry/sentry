@@ -69,7 +69,7 @@ describe('OrganizationIntegrations', function() {
         routerContext
       );
 
-      it('renders with internal-catchall', function() {
+      it('renders with sentry-apps', function() {
         Client.addMockResponse({
           url: `/organizations/${org.slug}/integrations/`,
           body: [],
@@ -94,7 +94,7 @@ describe('OrganizationIntegrations', function() {
           url: `/organizations/${org.slug}/sentry-app-installations/`,
           body: [],
         });
-        const organization = {...org, features: ['internal-catchall']};
+        const organization = {...org, features: ['sentry-apps']};
         mount(
           <OrganizationIntegrations organization={organization} params={params} />,
           TestStubs.routerContext([{organization}])
@@ -103,7 +103,7 @@ describe('OrganizationIntegrations', function() {
         expect(installsRequest).toHaveBeenCalled();
       });
 
-      it('Does`t hit sentry apps endpoints when internal-catchall isn`t present', function() {
+      it('Does`t hit sentry apps endpoints when sentry-apps isn`t present', function() {
         expect(sentryAppsRequest).not.toHaveBeenCalled();
         expect(sentryInstallsRequest).not.toHaveBeenCalled();
       });

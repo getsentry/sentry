@@ -73,7 +73,7 @@ const organizationNavigation = [
       {
         path: `${pathPrefix}/developer-settings/`,
         title: t('Developer Settings'),
-        show: ({access, features}) => features.has('internal-catchall'),
+        show: ({access, features}) => features.has('sentry-apps'),
         description: t('Manage developer applications'),
       },
     ],

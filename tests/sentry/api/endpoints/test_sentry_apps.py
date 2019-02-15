@@ -38,7 +38,7 @@ class SentryAppsTest(APITestCase):
 
 
 class GetSentryAppsTest(SentryAppsTest):
-    @with_feature('organizations:internal-catchall')
+    @with_feature('organizations:sentry-apps')
     def test_superuser_sees_all_apps(self):
         self.login_as(user=self.superuser)
 
@@ -50,7 +50,7 @@ class GetSentryAppsTest(SentryAppsTest):
         assert self.unpublished_app.uuid in response_uuids
         assert self.unowned_unpublished_app.uuid in response_uuids
 
-    @with_feature('organizations:internal-catchall')
+    @with_feature('organizations:sentry-apps')
     def test_users_see_published_apps(self):
         self.login_as(user=self.user)
 
@@ -72,7 +72,7 @@ class GetSentryAppsTest(SentryAppsTest):
             'overview': self.published_app.overview,
         } in json.loads(response.content)
 
-    @with_feature('organizations:internal-catchall')
+    @with_feature('organizations:sentry-apps')
     def test_users_see_unpublished_apps_their_org_owns(self):
         self.login_as(user=self.user)
 
@@ -94,7 +94,7 @@ class GetSentryAppsTest(SentryAppsTest):
             'overview': self.unpublished_app.overview,
         } in json.loads(response.content)
 
-    @with_feature('organizations:internal-catchall')
+    @with_feature('organizations:sentry-apps')
     def test_users_dont_see_unpublished_apps_outside_their_orgs(self):
         self.login_as(user=self.user)
 
@@ -113,7 +113,7 @@ class GetSentryAppsTest(SentryAppsTest):
 
 
 class PostSentryAppsTest(SentryAppsTest):
-    @with_feature('organizations:internal-catchall')
+    @with_feature('organizations:sentry-apps')
     def test_creates_sentry_app(self):
         self.login_as(user=self.user)
 
@@ -128,7 +128,7 @@ class PostSentryAppsTest(SentryAppsTest):
         assert response.status_code == 201, response.content
         assert six.viewitems(expected) <= six.viewitems(json.loads(response.content))
 
-    @with_feature('organizations:internal-catchall')
+    @with_feature('organizations:sentry-apps')
     def test_cannot_create_app_without_correct_permissions(self):
         self.login_as(user=self.user)
         kwargs = {'scopes': ('project:read',)}
@@ -138,7 +138,7 @@ class PostSentryAppsTest(SentryAppsTest):
         assert response.data == \
             {'events': ['issue webhooks require the event:read permission.']}
 
-    @with_feature('organizations:internal-catchall')
+    @with_feature('organizations:sentry-apps')
     def test_wrong_schema_format(self):
         self.login_as(user=self.user)
         kwargs = {'schema': {
@@ -165,7 +165,7 @@ class PostSentryAppsTest(SentryAppsTest):
         assert response.data == \
             {'schema': ["['#general'] is too short"]}
 
-    @with_feature('organizations:internal-catchall')
+    @with_feature('organizations:sentry-apps')
     def test_missing_name(self):
         self.login_as(self.user)
         response = self._post(name=None)
@@ -173,7 +173,7 @@ class PostSentryAppsTest(SentryAppsTest):
         assert response.status_code == 422, response.content
         assert 'name' in response.data
 
-    @with_feature('organizations:internal-catchall')
+    @with_feature('organizations:sentry-apps')
     def test_missing_scopes(self):
         self.login_as(self.user)
         response = self._post(scopes=None)
@@ -181,7 +181,7 @@ class PostSentryAppsTest(SentryAppsTest):
         assert response.status_code == 422, response.content
         assert 'scopes' in response.data
 
-    @with_feature('organizations:internal-catchall')
+    @with_feature('organizations:sentry-apps')
     def test_invalid_events(self):
         self.login_as(self.user)
         response = self._post(events=['project'])
@@ -189,7 +189,7 @@ class PostSentryAppsTest(SentryAppsTest):
         assert response.status_code == 422, response.content
         assert 'events' in response.data
 
-    @with_feature('organizations:internal-catchall')
+    @with_feature('organizations:sentry-apps')
     def test_invalid_scope(self):
         self.login_as(self.user)
         response = self._post(scopes=('not:ascope', ))
@@ -197,7 +197,7 @@ class PostSentryAppsTest(SentryAppsTest):
         assert response.status_code == 422, response.content
         assert 'scopes' in response.data
 
-    @with_feature('organizations:internal-catchall')
+    @with_feature('organizations:sentry-apps')
     def test_missing_webhook_url(self):
         self.login_as(self.user)
         response = self._post(webhookUrl=None)

@@ -43,7 +43,7 @@ class SentryAppInstallationDetailsTest(APITestCase):
 
 
 class GetSentryAppInstallationDetailsTest(SentryAppInstallationDetailsTest):
-    @with_feature('organizations:internal-catchall')
+    @with_feature('organizations:sentry-apps')
     def test_access_within_installs_organization(self):
         self.login_as(user=self.user)
         response = self.client.get(self.url, format='json')
@@ -60,7 +60,7 @@ class GetSentryAppInstallationDetailsTest(SentryAppInstallationDetailsTest):
             'uuid': self.installation2.uuid,
         }
 
-    @with_feature('organizations:internal-catchall')
+    @with_feature('organizations:sentry-apps')
     def test_no_access_outside_install_organization(self):
         self.login_as(user=self.user)
 
@@ -80,14 +80,14 @@ class GetSentryAppInstallationDetailsTest(SentryAppInstallationDetailsTest):
 
 
 class DeleteSentryAppInstallationDetailsTest(SentryAppInstallationDetailsTest):
-    @with_feature('organizations:internal-catchall')
+    @with_feature('organizations:sentry-apps')
     def test_delete_install(self):
         self.login_as(user=self.user)
         response = self.client.delete(self.url, format='json')
 
         assert response.status_code == 204
 
-    @with_feature('organizations:internal-catchall')
+    @with_feature('organizations:sentry-apps')
     def test_member_cannot_delete_install(self):
         user = self.create_user('bar@example.com')
         self.create_member(
