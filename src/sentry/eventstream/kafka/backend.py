@@ -141,7 +141,7 @@ class KafkaEventStream(EventStream):
         event_data = event.get_raw_data()
 
         unexpected_tags = set([
-            k for (k, v) in (get_path(event_data, 'tags') or [])
+            k for (k, v) in (get_path(event_data, 'tags', filter=True) or [])
             if k in self.UNEXPECTED_TAG_KEYS
         ])
         if unexpected_tags:
