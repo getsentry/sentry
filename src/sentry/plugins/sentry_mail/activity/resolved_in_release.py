@@ -15,9 +15,10 @@ class ResolvedInReleaseActivityEmail(ActivityEmail):
         data = self.activity.data
 
         if features.has('organizations:sentry10', self.organization):
-            url = u'/organizations/{}/releases/{}/'.format(
+            url = u'/organizations/{}/releases/{}/?project={}'.format(
                 self.organization.slug,
-                data['version']
+                data['version'],
+                self.project.id,
             )
         else:
             url = u'/{}/{}/releases/{}/'.format(
