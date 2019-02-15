@@ -320,7 +320,7 @@ class ProjectSummarySerializer(ProjectWithTeamSerializer):
         for item in item_list:
             attrs[item]['latest_release'] = latest_releases.get(item.id)
             attrs[item]['deploys'] = deploys_by_project.get(item.id)
-            attrs[item]['environments'] = environments_by_project.get(item.id)
+            attrs[item]['environments'] = environments_by_project.get(item.id, [])
 
         return attrs
 

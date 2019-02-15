@@ -224,7 +224,7 @@ class ProjectSummarySerializerTest(TestCase):
 
         assert result['latestDeploys'] is None
         assert result['latestRelease'] is None
-        assert result['environments'] is None
+        assert result['environments'] == []
 
     def test_avoid_hidden_and_no_env(self):
         hidden_env = Environment.objects.create(
