@@ -7,8 +7,7 @@ import TagStore from 'app/stores/tagStore';
 describe('SearchBar', function() {
   let sandbox;
   let options;
-  let projectTagValuesMock;
-  let orgTagValuesMock;
+  let tagValuePromise;
   let supportedTags;
   const clickInput = searchBar => searchBar.find('input[name="query"]').simulate('click');
 
@@ -23,13 +22,8 @@ describe('SearchBar', function() {
       context: {organization: {id: '123'}},
     };
 
-    projectTagValuesMock = MockApiClient.addMockResponse({
-      url: '/projects/123/456/tags/url/values/',
-      body: [],
-    });
-    orgTagValuesMock = MockApiClient.addMockResponse({
-      url: '/organizations/123/tags/url/values/',
-      body: [],
+    tagValuePromise = new Promise(function(resolve, reject) {
+      return resolve([]);
     });
   });
 
@@ -49,10 +43,15 @@ describe('SearchBar', function() {
     });
 
     it('sets state with complete tag', function() {
+      const loader = (key, value) => {
+        expect(key).toEqual('url');
+        expect(value).toEqual('fu');
+        return tagValuePromise;
+      };
       const props = {
         orgId: '123',
-        projectId: '456',
         query: 'url:"fu"',
+        tagValueLoader: loader,
         supportedTags,
       };
       const searchBar = mount(<SearchBar {...props} />, options);
@@ -60,17 +59,20 @@ describe('SearchBar', function() {
       clock.tick(301);
       expect(searchBar.find('SearchDropdown').prop('searchSubstring')).toEqual('"fu"');
       expect(searchBar.find('SearchDropdown').prop('items')).toEqual([]);
-      expect(projectTagValuesMock).toHaveBeenCalledWith(
-        '/projects/123/456/tags/url/values/',
-        expect.objectContaining({query: {query: 'fu'}})
-      );
     });
 
     it('sets state when value has colon', function() {
+      const loader = (key, value) => {
+        expect(key).toEqual('url');
+        expect(value).toEqual('http://example.com');
+        return tagValuePromise;
+      };
+
       const props = {
         orgId: '123',
         projectId: '456',
         query: 'url:"http://example.com"',
+        tagValueLoader: loader,
         supportedTags,
       };
 
@@ -82,49 +84,23 @@ describe('SearchBar', function() {
       );
       expect(searchBar.find('SearchDropdown').prop('items')).toEqual([]);
       clock.tick(301);
-
-      expect(projectTagValuesMock).toHaveBeenCalledWith(
-        '/projects/123/456/tags/url/values/',
-        expect.objectContaining({query: {query: 'http://example.com'}})
-      );
-      expect(orgTagValuesMock).not.toHaveBeenCalled();
     });
 
     it('does not request values when tag is `timesSeen`', function() {
       // This should never get called
-      const mock = MockApiClient.addMockResponse({
-        url: '/projects/123/456/tags/timesSeen/values/',
-        body: [],
-      });
+      const loader = jest.fn(x => x);
+
       const props = {
         orgId: '123',
         projectId: '456',
         query: 'timesSeen:',
+        tagValueLoader: loader,
         supportedTags,
       };
       const searchBar = mount(<SearchBar {...props} />, options);
       clickInput(searchBar);
       clock.tick(301);
-      expect(mock).not.toHaveBeenCalled();
-    });
-
-    it('sets state with complete tag when there is no projectid', function() {
-      const props = {
-        orgId: '123',
-        query: 'url:"fu"',
-        supportedTags,
-      };
-      const searchBar = mount(<SearchBar {...props} />, options);
-      clickInput(searchBar);
-      clock.tick(301);
-      expect(searchBar.find('SearchDropdown').prop('searchSubstring')).toEqual('"fu"');
-      expect(searchBar.find('SearchDropdown').prop('items')).toEqual([]);
-
-      expect(projectTagValuesMock).not.toHaveBeenCalled();
-      expect(orgTagValuesMock).toHaveBeenCalledWith(
-        '/organizations/123/tags/url/values/',
-        expect.objectContaining({query: {query: 'fu'}})
-      );
+      expect(loader).not.toHaveBeenCalled();
     });
   });
 });

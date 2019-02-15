@@ -9,7 +9,7 @@ import ProjectState from 'app/mixins/projectState';
 import TagStore from 'app/stores/tagStore';
 import withEnvironmentInQueryString from 'app/utils/withEnvironmentInQueryString';
 import Stream from 'app/views/stream/stream';
-import {fetchTags} from 'app/actionCreators/tags';
+import {fetchProjectTags} from 'app/actionCreators/tags';
 
 const StreamContainer = createReactClass({
   displayName: 'StreamContainer',
@@ -30,7 +30,7 @@ const StreamContainer = createReactClass({
   componentWillMount() {
     const {orgId, projectId} = this.props.params;
     this.props.setProjectNavSection('stream');
-    fetchTags(orgId, projectId);
+    fetchProjectTags(orgId, projectId);
   },
 
   onTagsChange(tags) {

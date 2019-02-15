@@ -1,46 +1,31 @@
 import React from 'react';
-
 import {mount} from 'enzyme';
+
 import StreamTagFilter from 'app/views/stream/tagFilter';
 
 describe('Stream TagFilter', function() {
-  let projectApiMock;
-  let orgApiMock;
-
-  let organization;
+  let tagValueLoader;
   let project;
 
   beforeEach(function() {
     MockApiClient.clearMockResponses();
-    organization = TestStubs.Organization();
     project = TestStubs.ProjectDetails();
-    projectApiMock = MockApiClient.addMockResponse({
-      url: `/projects/${organization.slug}/${project.slug}/tags/browser/values/`,
-      body: [
-        {
-          count: 0,
-          firstSeen: '2018-05-30T11:33:46.535Z',
-          key: 'browser',
-          lastSeen: '2018-05-30T11:33:46.535Z',
-          name: 'foo',
-          value: 'foo',
-        },
-      ],
-    });
 
-    orgApiMock = MockApiClient.addMockResponse({
-      url: `/organizations/${organization.slug}/tags/browser/values/`,
-      body: [
-        {
-          count: 0,
-          firstSeen: '2018-05-30T11:33:46.535Z',
-          key: 'browser',
-          lastSeen: '2018-05-30T11:33:46.535Z',
-          name: 'foo',
-          value: 'foo',
-        },
-      ],
-    });
+    tagValueLoader = (key, search) => {
+      return new Promise(function(resolve, reject) {
+        const data = [
+          {
+            count: 0,
+            firstSeen: '2018-05-30T11:33:46.535Z',
+            key: 'browser',
+            lastSeen: '2018-05-30T11:33:46.535Z',
+            name: 'foo',
+            value: 'foo',
+          },
+        ];
+        return resolve(data);
+      });
+    };
   });
 
   it('calls API and renders options when opened', async function() {
@@ -49,10 +34,10 @@ describe('Stream TagFilter', function() {
     const wrapper = mount(
       <StreamTagFilter
         tag={tag}
-        orgId={organization.slug}
         projectId={project.slug}
         value=""
         onSelect={selectMock}
+        tagValueLoader={tagValueLoader}
       />
     );
 
@@ -62,7 +47,6 @@ describe('Stream TagFilter', function() {
     await tick();
     wrapper.update();
 
-    expect(projectApiMock).toHaveBeenCalled();
     expect(wrapper.find('div.Select-option').prop('children')).toBe('foo');
 
     wrapper.find('Option').simulate('mouseDown');
@@ -75,9 +59,9 @@ describe('Stream TagFilter', function() {
     const wrapper = mount(
       <StreamTagFilter
         tag={tag}
-        orgId={organization.slug}
         value=""
         onSelect={selectMock}
+        tagValueLoader={tagValueLoader}
       />
     );
 
@@ -87,7 +71,6 @@ describe('Stream TagFilter', function() {
     await tick();
     wrapper.update();
 
-    expect(orgApiMock).toHaveBeenCalled();
     expect(wrapper.find('div.Select-option').prop('children')).toBe('foo');
 
     wrapper.find('Option').simulate('mouseDown');
