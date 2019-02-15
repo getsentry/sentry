@@ -67,7 +67,7 @@ class MonitorForm extends Component {
                     ...this.formDataFromConfig(monitor.type, monitor.config),
                   }
                 : {
-                    project: selectedProject.slug,
+                    project: selectedProject ? selectedProject.slug : null,
                   }
             }
             onSubmitSuccess={this.props.onSubmitSuccess}
