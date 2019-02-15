@@ -16,7 +16,7 @@ from sentry.api.serializers.models.project import (
     ProjectWithTeamSerializer,
     ProjectSummarySerializer,
 )
-from sentry.models import Deploy, Environment, Release, ReleaseProjectEnvironment
+from sentry.models import Deploy, Environment, EnvironmentProject, Release, ReleaseProjectEnvironment
 from sentry.testutils import TestCase
 
 
@@ -225,6 +225,39 @@ class ProjectSummarySerializerTest(TestCase):
         assert result['latestDeploys'] is None
         assert result['latestRelease'] is None
         assert result['environments'] is None
+
+    def test_avoid_hidden_and_no_env(self):
+        hidden_env = Environment.objects.create(
+            organization_id=self.organization.id,
+            name='staging 2',
+        )
+        EnvironmentProject.objects.create(
+            project=self.project,
+            environment=hidden_env,
+            is_hidden=True,
+        )
+
+        no_env = Environment.objects.create(
+            organization_id=self.organization.id,
+            name='',
+        )
+        no_env.add_project(self.project)
+        no_env.save()
+
+        result = serialize(self.project, self.user, ProjectSummarySerializer())
+
+        assert result['id'] == six.text_type(self.project.id)
+        assert result['name'] == self.project.name
+        assert result['slug'] == self.project.slug
+        assert result['firstEvent'] == self.project.first_event
+        assert 'releases' in result['features']
+        assert result['platform'] == self.project.platform
+
+        assert result['latestDeploys'] == {
+            'production': {'dateFinished': self.date, 'version': self.release.version}
+        }
+        assert result['latestRelease'] == serialize(self.release)
+        assert result['environments'] == ['production', 'staging']
 
 
 class ProjectWithOrganizationSerializerTest(TestCase):

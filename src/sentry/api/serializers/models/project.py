@@ -271,7 +271,13 @@ class ProjectSummarySerializer(ProjectWithTeamSerializer):
 
         project_envs = EnvironmentProject.objects.filter(
             project_id__in=[i.id for i in item_list],
+        ).exclude(
+            is_hidden=True
+        ).exclude(
+            # HACK(lb): avoiding the no environment value
+            environment__name=''
         ).values('project_id', 'environment__name')
+
         environments_by_project = defaultdict(list)
         for project_env in project_envs:
             environments_by_project[project_env['project_id']].append(
