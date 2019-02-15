@@ -58,7 +58,11 @@ register(
 register('redis.options', type=Dict, flags=FLAG_NOSTORE)
 
 # symbolizer specifics
-register('dsym.cache-path', type=String, default='/tmp/sentry-dsym-cache', flags=FLAG_PRIORITIZE_DISK)
+register(
+    'dsym.cache-path',
+    type=String,
+    default='/tmp/sentry-dsym-cache',
+    flags=FLAG_PRIORITIZE_DISK)
 
 # Mail
 register('mail.backend', default='smtp', flags=FLAG_NOSTORE)
@@ -153,8 +157,11 @@ register('kafka-publisher.raw-event-sample-rate', default=0.0)
 register('kafka-publisher.max-event-size', default=100000)
 
 # Ingest refactor
-register('store.projects-normalize-in-rust-opt-in', type=Sequence, default=[])
-register('store.projects-normalize-in-rust-opt-out', type=Sequence, default=[])
+register('store.projects-normalize-in-rust-opt-in', type=Sequence, default=[])  # unused
+register('store.projects-normalize-in-rust-opt-out', type=Sequence, default=[])  # unused
 # positive value means stable opt-in in the range 0.0 to 1.0, negative value
 # means random opt-in with the same range.
-register('store.projects-normalize-in-rust-percent-opt-in', default=0.0)
+register('store.projects-normalize-in-rust-percent-opt-in', default=0.0)  # unused
+
+# From 0.0 to 1.0: Randomly disable normalization code in interfaces when loading from db
+register('store.empty-interface-sample-rate', default=0.0)

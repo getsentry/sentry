@@ -14,7 +14,6 @@ from sentry.signals import event_accepted, event_dropped, event_filtered
 from sentry.testutils import (assert_mock_called_once_with_partial, TestCase)
 from sentry.utils import json
 from sentry.utils.data_filters import FilterTypes
-from sentry.event_manager import ENABLE_RUST
 
 
 class SecurityReportCspTest(TestCase):
@@ -465,20 +464,12 @@ class StoreViewTest(TestCase):
         assert resp.status_code == 200, (resp.status_code, resp.content)
 
         call_data = mock_insert_data_to_database.call_args[0][0]
-        if not ENABLE_RUST:
-            assert call_data['request']['data'] == {
-                'password': ['lol'],
-                'foo': ['1'],
-                'bar': ['2'],
-                'baz': ['3']
-            }
-        else:
-            assert call_data['request']['data'] == {
-                'password': 'lol',
-                'foo': '1',
-                'bar': '2',
-                'baz': '3'
-            }
+        assert call_data['request']['data'] == {
+            'password': 'lol',
+            'foo': '1',
+            'bar': '2',
+            'baz': '3'
+        }
 
     @mock.patch('sentry.coreapi.ClientApiHelper.insert_data_to_database')
     def test_scrub_data_on(self, mock_insert_data_to_database):
@@ -499,20 +490,12 @@ class StoreViewTest(TestCase):
         assert resp.status_code == 200, (resp.status_code, resp.content)
 
         call_data = mock_insert_data_to_database.call_args[0][0]
-        if not ENABLE_RUST:
-            assert call_data['request']['data'] == {
-                'password': ['lol'],
-                'foo': ['1'],
-                'bar': ['2'],
-                'baz': ['3']
-            }
-        else:
-            assert call_data['request']['data'] == {
-                'password': 'lol',
-                'foo': '1',
-                'bar': '2',
-                'baz': '3'
-            }
+        assert call_data['request']['data'] == {
+            'password': 'lol',
+            'foo': '1',
+            'bar': '2',
+            'baz': '3'
+        }
 
     @mock.patch('sentry.coreapi.ClientApiHelper.insert_data_to_database')
     def test_scrub_data_defaults(self, mock_insert_data_to_database):
@@ -533,20 +516,12 @@ class StoreViewTest(TestCase):
         assert resp.status_code == 200, (resp.status_code, resp.content)
 
         call_data = mock_insert_data_to_database.call_args[0][0]
-        if not ENABLE_RUST:
-            assert call_data['request']['data'] == {
-                'password': ['[Filtered]'],
-                'foo': ['1'],
-                'bar': ['2'],
-                'baz': ['3']
-            }
-        else:
-            assert call_data['request']['data'] == {
-                'password': '[Filtered]',
-                'foo': '1',
-                'bar': '2',
-                'baz': '3'
-            }
+        assert call_data['request']['data'] == {
+            'password': '[Filtered]',
+            'foo': '1',
+            'bar': '2',
+            'baz': '3'
+        }
 
     @mock.patch('sentry.coreapi.ClientApiHelper.insert_data_to_database')
     def test_scrub_data_sensitive_fields(self, mock_insert_data_to_database):
@@ -568,20 +543,12 @@ class StoreViewTest(TestCase):
         assert resp.status_code == 200, (resp.status_code, resp.content)
 
         call_data = mock_insert_data_to_database.call_args[0][0]
-        if not ENABLE_RUST:
-            assert call_data['request']['data'] == {
-                'password': ['[Filtered]'],
-                'foo': ['[Filtered]'],
-                'bar': ['[Filtered]'],
-                'baz': ['3']
-            }
-        else:
-            assert call_data['request']['data'] == {
-                'password': '[Filtered]',
-                'foo': '[Filtered]',
-                'bar': '[Filtered]',
-                'baz': '3'
-            }
+        assert call_data['request']['data'] == {
+            'password': '[Filtered]',
+            'foo': '[Filtered]',
+            'bar': '[Filtered]',
+            'baz': '3'
+        }
 
     @mock.patch('sentry.coreapi.ClientApiHelper.insert_data_to_database')
     def test_scrub_data_org_override(self, mock_insert_data_to_database):
@@ -604,20 +571,12 @@ class StoreViewTest(TestCase):
         assert resp.status_code == 200, (resp.status_code, resp.content)
 
         call_data = mock_insert_data_to_database.call_args[0][0]
-        if not ENABLE_RUST:
-            assert call_data['request']['data'] == {
-                'password': ['[Filtered]'],
-                'foo': ['1'],
-                'bar': ['2'],
-                'baz': ['3']
-            }
-        else:
-            assert call_data['request']['data'] == {
-                'password': '[Filtered]',
-                'foo': '1',
-                'bar': '2',
-                'baz': '3'
-            }
+        assert call_data['request']['data'] == {
+            'password': '[Filtered]',
+            'foo': '1',
+            'bar': '2',
+            'baz': '3'
+        }
 
     @mock.patch('sentry.coreapi.ClientApiHelper.insert_data_to_database')
     def test_scrub_data_org_override_sensitive_fields(self, mock_insert_data_to_database):
@@ -640,20 +599,12 @@ class StoreViewTest(TestCase):
         assert resp.status_code == 200, (resp.status_code, resp.content)
 
         call_data = mock_insert_data_to_database.call_args[0][0]
-        if not ENABLE_RUST:
-            assert call_data['request']['data'] == {
-                'password': ['[Filtered]'],
-                'foo': ['[Filtered]'],
-                'bar': ['[Filtered]'],
-                'baz': ['[Filtered]']
-            }
-        else:
-            assert call_data['request']['data'] == {
-                'password': '[Filtered]',
-                'foo': '[Filtered]',
-                'bar': '[Filtered]',
-                'baz': '[Filtered]'
-            }
+        assert call_data['request']['data'] == {
+            'password': '[Filtered]',
+            'foo': '[Filtered]',
+            'bar': '[Filtered]',
+            'baz': '[Filtered]'
+        }
 
     @mock.patch('sentry.coreapi.ClientApiHelper.insert_data_to_database')
     def test_uses_client_as_sdk(self, mock_insert_data_to_database):

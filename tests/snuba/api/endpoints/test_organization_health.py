@@ -68,44 +68,23 @@ class OrganizationHealthTest(APITestCase, SnubaTestCase):
         environment2 = self.create_environment(project=project)
         environment3 = self.create_environment(project=project)
         no_env = self.create_environment(project=project, name='')
-        group = self.create_group(project=project)
 
-        self.create_event(
-            'a' * 32,
-            group=group,
-            datetime=self.min_ago,
-            tags={
-                'environment': environment.name,
-                'sentry:user': 'id:%s' % (self.user.id,),
-            },
-        )
-        self.create_event(
-            'b' * 32,
-            group=group,
-            datetime=self.min_ago,
-            tags={
-                'environment': environment2.name,
-                'sentry:user': 'id:%s' % (self.user.id,),
-            },
-        )
-        self.create_event(
-            'c' * 32,
-            group=group,
-            datetime=self.min_ago,
-            tags={
-                'environment': environment3.name,
-                'sentry:user': 'id:%s' % (self.user.id,),
-            },
-        )
-        self.create_event(
-            'd' * 32,
-            group=group,
-            datetime=self.min_ago,
-            tags={
-                'environment': '',
-                'sentry:user': 'id:%s' % (self.user.id,),
-            },
-        )
+        for event_id, env in [
+            ('a' * 32, environment),
+            ('b' * 32, environment2),
+            ('c' * 32, environment3),
+            ('d' * 32, no_env),
+        ]:
+            self.store_event(
+                data={
+                    'event_id': event_id,
+                    'timestamp': self.min_ago.isoformat()[:19],
+                    'fingerprint': ['put-me-in-group1'],
+                    'environment': env.name or None,
+                    'user': {'id': self.user.id},
+                },
+                project_id=project.id
+            )
 
         base_url = reverse(
             'sentry-api-0-organization-health-graph',
@@ -127,7 +106,7 @@ class OrganizationHealthTest(APITestCase, SnubaTestCase):
         response = self.client.get(url, format='json')
 
         assert response.status_code == 200, response.content
-        assert response.data['totals']['count'] == 2
+        assert response.data['totals']['count'] == 2, response.data
 
         # test 'no environment' environment
         url = '%s?%s' % (base_url, urlencode((
