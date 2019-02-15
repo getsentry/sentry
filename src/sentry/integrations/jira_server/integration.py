@@ -275,9 +275,10 @@ class JiraServerIntegrationProvider(IntegrationProvider):
         install = state['installation_data']
         access_token = state['access_token']
 
-        hostname = urlparse(install['url']).netloc
-        external_id = '%s:%s' % (hostname, install['consumer_key'])
         webhook_secret = sha1_text(install['private_key']).hexdigest()
+
+        hostname = urlparse(install['url']).netloc
+        external_id = u'{}:{}'.format(hostname, install['consumer_key'])[:64]
 
         credentials = {
             'consumer_key': install['consumer_key'],
