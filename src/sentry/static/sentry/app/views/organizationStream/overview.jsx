@@ -257,6 +257,9 @@ const OrganizationStream = createReactClass({
     } else if (NEW_FILTERS_TEST in currentQuery) {
       // TODO: Delete this after testing production counts cc/ @wedamija
       requestParams[NEW_FILTERS_TEST] = currentQuery[NEW_FILTERS_TEST];
+    } else if (ConfigStore.get('user').isSuperuser) {
+      // TODO: Delete this after testing production counts cc/ @wedamija
+      requestParams[NEW_FILTERS_TEST] = 1;
     }
 
     if (this.lastRequest) {
