@@ -265,7 +265,7 @@ class Sidebar extends React.Component {
                   />
                 </Feature>
 
-                <Feature features={['events']}>
+                <Feature features={['events']} organization={organization}>
                   <SidebarItem
                     {...sidebarItemProps}
                     onClick={(_id, evt) =>
@@ -307,7 +307,7 @@ class Sidebar extends React.Component {
                 )}
 
                 {!hasSentry10 && (
-                  <Feature features={['discover']}>
+                  <Feature features={['discover']} organization={organization}>
                     <SidebarItem
                       {...sidebarItemProps}
                       onClick={this.hidePanel}
@@ -319,18 +319,16 @@ class Sidebar extends React.Component {
                 )}
               </SidebarSection>
 
-              <Feature features={['sentry10', 'discover']}>
+              <Feature features={['sentry10', 'discover']} organization={organization}>
                 <SidebarSection>
-                  <Feature features={['sentry10', 'discover']}>
-                    <SidebarItem
-                      {...sidebarItemProps}
-                      index
-                      onClick={this.hidePanel}
-                      icon={<InlineSvg src="icon-health" />}
-                      label={t('Dashboards')}
-                      to={`/organizations/${organization.slug}/dashboards/`}
-                    />
-                  </Feature>
+                  <SidebarItem
+                    {...sidebarItemProps}
+                    index
+                    onClick={this.hidePanel}
+                    icon={<InlineSvg src="icon-health" />}
+                    label={t('Dashboards')}
+                    to={`/organizations/${organization.slug}/dashboards/`}
+                  />
                   <SidebarItem
                     {...sidebarItemProps}
                     onClick={this.hidePanel}
@@ -341,7 +339,7 @@ class Sidebar extends React.Component {
                 </SidebarSection>
               </Feature>
 
-              <Feature features={['monitors']}>
+              <Feature features={['monitors']} organization={organization}>
                 <SidebarItem
                   {...sidebarItemProps}
                   onClick={(_id, evt) =>
