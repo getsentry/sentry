@@ -32,6 +32,7 @@ class IssueSearchVisitor(SearchVisitor):
         'date': ['event.timestamp'],
         'times_seen': ['timesSeen'],
         'timestamp': ['event.timestamp'],
+        'sentry:dist': ['dist'],
     }
 
     @cached_property
@@ -88,7 +89,7 @@ value_converters = {
     'bookmarked_by': convert_user_value,
     'subscribed_by': convert_user_value,
     'first_release': convert_release_value,
-    'tags[sentry:release]': convert_release_value,
+    'release': convert_release_value,
 }
 
 
