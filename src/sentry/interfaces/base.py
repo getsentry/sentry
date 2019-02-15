@@ -128,7 +128,7 @@ class Interface(object):
             self._data[name] = value
 
     @classmethod
-    def to_python(cls, data):
+    def to_python(cls, data, **kw):
         """Creates a python interface object from the given raw data.
 
         This function can assume fully normalized and valid data. It can create
@@ -143,7 +143,7 @@ class Interface(object):
             if random.random() <= sample_rate:
                 return cls(**data)
 
-        return cls._to_python(data)
+        return cls._to_python(data, **kw)
 
     @classmethod
     def _to_python(cls, data):
