@@ -9,6 +9,7 @@ exports[`ProjectCard renders 1`] = `
   }
   project={
     Object {
+      "environments": Array [],
       "hasAccess": true,
       "id": "2",
       "isBookmarked": false,
@@ -75,6 +76,7 @@ exports[`ProjectCard renders 1`] = `
                   }
                   project={
                     Object {
+                      "environments": Array [],
                       "hasAccess": true,
                       "id": "2",
                       "isBookmarked": false,
@@ -106,6 +108,7 @@ exports[`ProjectCard renders 1`] = `
                     }
                     project={
                       Object {
+                        "environments": Array [],
                         "hasAccess": true,
                         "id": "2",
                         "isBookmarked": false,
@@ -146,6 +149,7 @@ exports[`ProjectCard renders 1`] = `
                           hideOverflow={true}
                           project={
                             Object {
+                              "environments": Array [],
                               "hasAccess": true,
                               "id": "2",
                               "isBookmarked": false,
@@ -179,6 +183,7 @@ exports[`ProjectCard renders 1`] = `
                             hideAvatar={false}
                             project={
                               Object {
+                                "environments": Array [],
                                 "hasAccess": true,
                                 "id": "2",
                                 "isBookmarked": false,
@@ -216,6 +221,7 @@ exports[`ProjectCard renders 1`] = `
                                     className="css-0"
                                     project={
                                       Object {
+                                        "environments": Array [],
                                         "hasAccess": true,
                                         "id": "2",
                                         "isBookmarked": false,
@@ -243,6 +249,7 @@ exports[`ProjectCard renders 1`] = `
                                       hasTooltip={false}
                                       project={
                                         Object {
+                                          "environments": Array [],
                                           "hasAccess": true,
                                           "id": "2",
                                           "isBookmarked": false,
@@ -270,6 +277,7 @@ exports[`ProjectCard renders 1`] = `
                                         hasTooltip={false}
                                         project={
                                           Object {
+                                            "environments": Array [],
                                             "hasAccess": true,
                                             "id": "2",
                                             "isBookmarked": false,
@@ -648,6 +656,7 @@ exports[`ProjectCard renders 1`] = `
               orgId="org-slug"
               project={
                 Object {
+                  "environments": Array [],
                   "hasAccess": true,
                   "id": "2",
                   "isBookmarked": false,
