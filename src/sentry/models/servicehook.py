@@ -37,6 +37,7 @@ class ServiceHookProject(Model):
     class Meta:
         app_label = 'sentry'
         db_table = 'sentry_servicehookproject'
+        unique_together = (('service_hook', 'project_id'), )
 
 
 def generate_secret():
