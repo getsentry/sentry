@@ -4,18 +4,15 @@ import React from 'react';
 
 import {Client} from 'app/api';
 import {addErrorMessage} from 'app/actionCreators/indicator';
-import {fetchTagValues} from 'app/actionCreators/tags';
 import {t, tct} from 'app/locale';
 import SelectControl from 'app/components/forms/selectControl';
 
-// TODO(billy): Update to use SelectAutocomplete when it is ported to use react-select
 class StreamTagFilter extends React.Component {
   static propTypes = {
     tag: PropTypes.object.isRequired,
-    orgId: PropTypes.string.isRequired,
-    projectId: PropTypes.string,
     value: PropTypes.string,
     onSelect: PropTypes.func,
+    tagValueLoader: PropTypes.func.isRequired,
   };
 
   static tagValueToSelectFormat = ({value}) => {
@@ -56,16 +53,20 @@ class StreamTagFilter extends React.Component {
   }
 
   handleLoadOptions = () => {
-    const {orgId, projectId, tag} = this.props;
+    const {tag, tagValueLoader} = this.props;
     const {textValue} = this.state;
-    if (tag.isInput || tag.predefined) return;
-    if (!this.api) return;
+    if (tag.isInput || tag.predefined) {
+      return;
+    }
+    if (!this.api) {
+      return;
+    }
 
     this.setState({
       isLoading: true,
     });
 
-    fetchTagValues(this.api, tag.key, orgId, projectId, textValue)
+    tagValueLoader(tag.key, textValue)
       .then(resp => {
         this.setState({
           isLoading: false,

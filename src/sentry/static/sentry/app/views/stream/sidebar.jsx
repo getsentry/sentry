@@ -14,12 +14,12 @@ const StreamSidebar = createReactClass({
 
   propTypes: {
     orgId: PropTypes.string.isRequired,
-    projectId: PropTypes.string,
 
     tags: PropTypes.object.isRequired,
     query: PropTypes.string,
     onQueryChange: PropTypes.func.isRequired,
     loading: PropTypes.bool,
+    tagValueLoader: PropTypes.func.isRequired,
   },
 
   getDefaultProps() {
@@ -109,7 +109,7 @@ const StreamSidebar = createReactClass({
   },
 
   render() {
-    const {loading, orgId, projectId, tags} = this.props;
+    const {loading, orgId, tagValueLoader, tags} = this.props;
     return (
       <div className="stream-sidebar">
         {loading ? (
@@ -142,7 +142,7 @@ const StreamSidebar = createReactClass({
                   tag={tag}
                   onSelect={this.onSelectTag}
                   orgId={orgId}
-                  projectId={projectId}
+                  tagValueLoader={tagValueLoader}
                 />
               );
             })}

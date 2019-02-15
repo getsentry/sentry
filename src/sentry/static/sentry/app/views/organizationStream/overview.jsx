@@ -17,7 +17,7 @@ import {extractSelectionParameters} from 'app/components/organizations/globalSel
 import Pagination from 'app/components/pagination';
 import {Panel, PanelBody} from 'app/components/panels';
 import StreamGroup from 'app/components/stream/group';
-import {fetchTags} from 'app/actionCreators/tags';
+import {fetchTags, fetchTagValues} from 'app/actionCreators/tags';
 import {fetchOrgMembers, indexMembersByProject} from 'app/actionCreators/members';
 import {fetchSavedSearches} from 'app/actionCreators/savedSearches';
 import ConfigStore from 'app/stores/configStore';
@@ -96,7 +96,7 @@ const OrganizationStream = createReactClass({
       success: this.onRealtimePoll,
     });
 
-    fetchTags(this.props.organization.slug);
+    this.fetchTags();
     this.fetchMemberList();
 
     // Start by getting searches first so if the user is on a saved search
@@ -120,10 +120,11 @@ const OrganizationStream = createReactClass({
       }
     }
 
-    // If the project selection has changed reload the member list
-    // allowing autocomplete to be more accurate.
+    // If the project selection has changed reload the member list and tag keys
+    // allowing autocomplete and tag sidebar to be more accurate.
     if (!isEqual(prevProps.selection.projects, this.props.selection.projects)) {
       this.fetchMemberList();
+      this.fetchTags();
     }
 
     const prevQuery = prevProps.location.query;
@@ -234,6 +235,11 @@ const OrganizationStream = createReactClass({
     fetchOrgMembers(this.api, this.props.organization.slug, projectIds).then(members => {
       this.setState({memberList: indexMembersByProject(members)});
     });
+  },
+
+  fetchTags() {
+    const {organization, selection} = this.props;
+    fetchTags(this.api, organization.slug, selection.projects);
   },
 
   fetchData() {
@@ -600,6 +606,13 @@ const OrganizationStream = createReactClass({
     );
   },
 
+  tagValueLoader(key, search) {
+    const {orgId} = this.props.params;
+    const projectIds = this.getGlobalSearchProjects().map(p => p.id);
+
+    return fetchTagValues(this.api, orgId, key, search, projectIds);
+  },
+
   render() {
     if (this.state.savedSearchLoading) {
       return this.renderLoading();
@@ -618,19 +631,19 @@ const OrganizationStream = createReactClass({
     let hasReleases = false;
     let projectId = null;
     let latestRelease = null;
+
     const {selectedProject} = this.state;
+    const projects = this.getGlobalSearchProjects();
+
     if (selectedProject) {
       const features = new Set(selectedProject.features);
       hasReleases = features.has('releases');
       latestRelease = selectedProject.latestRelease;
       projectId = selectedProject.slug;
-    } else {
+    } else if (projects.length == 1) {
       // If the user has filtered down to a single project
       // we can hint the autocomplete/savedsearch picker with that.
-      const projects = this.getGlobalSearchProjects();
-      if (projects.length === 1) {
-        projectId = projects[0].slug;
-      }
+      projectId = projects[0].slug;
     }
 
     return (
@@ -652,6 +665,7 @@ const OrganizationStream = createReactClass({
             onSidebarToggle={this.onSidebarToggle}
             isSearchDisabled={this.state.isSidebarVisible}
             savedSearchList={this.state.savedSearchList}
+            tagValueLoader={this.tagValueLoader}
           />
 
           <Panel>
@@ -686,6 +700,7 @@ const OrganizationStream = createReactClass({
           query={query}
           onQueryChange={this.onSearch}
           orgId={params.orgId}
+          tagValueLoader={this.tagValueLoader}
         />
       </div>
     );
