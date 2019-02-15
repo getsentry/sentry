@@ -20,6 +20,11 @@ logger = logging.getLogger("sentry.events")
 interface_logger = logging.getLogger("sentry.interfaces")
 
 
+def _should_skip_to_python():
+    sample_rate = options.get('store.empty-interface-sample-rate')
+    return sample_rate > 0.0 and random.random() <= sample_rate
+
+
 def get_interface(name):
     try:
         name = get_canonical_name(name)
@@ -138,10 +143,8 @@ class Interface(object):
         if data is None:
             return None
 
-        sample_rate = options.get('store.empty-interface-sample-rate')
-        if sample_rate > 0.0:
-            if random.random() <= sample_rate:
-                return cls(**data)
+        if _should_skip_to_python():
+            return cls(**data)
 
         return cls._to_python(data, **kw)
 
