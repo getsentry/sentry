@@ -1,12 +1,14 @@
 from __future__ import absolute_import
 
 from collections import OrderedDict
+import random
 import logging
 import six
 
 from django.conf import settings
 from django.utils.translation import ugettext as _
 
+from sentry import options
 from sentry.utils.canonical import get_canonical_name
 from sentry.utils.html import escape
 from sentry.utils.imports import import_string
@@ -133,7 +135,19 @@ class Interface(object):
         defaults where data is missing but does not need to handle interface
         validation.
         """
-        return cls(**data) if data is not None else None
+        if data is None:
+            return None
+
+        sample_rate = options.get('store.empty-interface-sample-rate')
+        if sample_rate > 0.0:
+            if random.random() <= sample_rate:
+                return cls(**data)
+
+        return cls._to_python(data)
+
+    @classmethod
+    def _to_python(cls, data):
+        return cls(**data)
 
     def get_api_context(self, is_public=False):
         return self.to_json()

@@ -100,7 +100,7 @@ class SecurityReport(Interface):
         raise NotImplementedError
 
     @classmethod
-    def to_python(cls, data):
+    def _to_python(cls, data):
         is_valid, errors = validate_and_default_interface(data, cls.path)
         if not is_valid:
             raise InterfaceValidationError("Invalid interface data")

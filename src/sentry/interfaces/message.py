@@ -48,7 +48,7 @@ class Message(Interface):
     external_type = 'message'
 
     @classmethod
-    def to_python(cls, data):
+    def _to_python(cls, data):
         formatted = stringify(data.get('formatted'))
         message = stringify(data.get('message'))
         if formatted is None and message is None:

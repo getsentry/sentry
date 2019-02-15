@@ -50,7 +50,7 @@ class Sdk(Interface):
     """
 
     @classmethod
-    def to_python(cls, data):
+    def _to_python(cls, data):
         name = data.get('name')
         version = data.get('version')
 

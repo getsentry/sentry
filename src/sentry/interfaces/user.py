@@ -41,7 +41,7 @@ class User(Interface):
     display_score = 2020
 
     @classmethod
-    def to_python(cls, data):
+    def _to_python(cls, data):
         data = data.copy()
 
         ident = data.pop('id', None)
