@@ -651,8 +651,9 @@ describe('Discover', function() {
         expect.anything(),
         expect.objectContaining({
           data: expect.objectContaining({
-            start: '2017-10-02T22:41:20',
-            end: '2017-10-16T22:41:20',
+            start: '2017-10-03T02:41:20',
+            end: '2017-10-17T02:41:20',
+            utc: null,
           }),
         })
       );
@@ -680,8 +681,9 @@ describe('Discover', function() {
         expect.anything(),
         expect.objectContaining({
           data: expect.objectContaining({
-            start: '2017-10-01T00:00:00',
-            end: '2017-10-01T23:59:59',
+            start: '2017-10-01T04:00:00',
+            end: '2017-10-02T03:59:59',
+            utc: null,
           }),
         })
       );
@@ -697,8 +699,27 @@ describe('Discover', function() {
         expect.anything(),
         expect.objectContaining({
           data: expect.objectContaining({
+            start: '2017-10-01T00:00:00',
+            end: '2017-10-01T23:59:59',
+            utc: true,
+          }),
+        })
+      );
+
+      wrapper.find('TimeRangeSelector HeaderItem').simulate('click');
+
+      // Switch from UTC
+      wrapper.find('UtcPicker Checkbox').simulate('change');
+      // Hide dropdown
+      wrapper.find('TimeRangeSelector HeaderItem').simulate('click');
+
+      expect(query).toHaveBeenLastCalledWith(
+        expect.anything(),
+        expect.objectContaining({
+          data: expect.objectContaining({
             start: '2017-10-01T04:00:00',
             end: '2017-10-02T03:59:59',
+            utc: false,
           }),
         })
       );
