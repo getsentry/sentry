@@ -749,8 +749,17 @@ class SnubaCompatibilityTagStorage(SnubaTagStorage):
 
     def delete_tag_key(self, project_id, key):
         # Called by ``ProjectTagKeyDetailsEndpoint.delete``. The return value
-        # is not used.
-        pass
+        # is used for audit logging.
+        try:
+            return [
+                self.get_tag_key(
+                    project_id=project_id,
+                    key=key,
+                    environment_id=None,
+                ),
+            ]
+        except TagKeyNotFound:
+            return []
 
     def incr_tag_value_times_seen(self, project_id, environment_id,
                                   key, value, extra=None, count=1):

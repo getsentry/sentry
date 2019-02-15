@@ -88,7 +88,11 @@ class RetryingStrictRedisCluster(StrictRedisCluster):
     def execute_command(self, *args, **kwargs):
         try:
             return super(self.__class__, self).execute_command(*args, **kwargs)
-        except (ConnectionError, BusyLoadingError):
+        except (
+            ConnectionError,
+            BusyLoadingError,
+            KeyError,  # see: https://github.com/Grokzen/redis-py-cluster/issues/287
+        ):
             self.connection_pool.nodes.reset()
             return super(self.__class__, self).execute_command(*args, **kwargs)
 

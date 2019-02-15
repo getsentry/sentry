@@ -6,13 +6,14 @@ import pytz
 import time
 from datetime import timedelta, datetime
 
+from django.db.models import Q
 from django.utils import timezone
 
 from sentry import options
 from sentry.api.event_search import convert_search_filter_to_snuba_query
 from sentry.api.paginator import DateTimePaginator, SequencePaginator, Paginator
 from sentry.event_manager import ALLOWED_FUTURE_DELTA
-from sentry.models import Release, Group, GroupEnvironment
+from sentry.models import Group
 from sentry.search.django import backend as ds
 from sentry.utils import snuba, metrics
 from sentry.utils.dates import to_timestamp
@@ -59,7 +60,7 @@ aggregation_defs = {
 }
 issue_only_fields = set([
     'query', 'status', 'bookmarked_by', 'assigned_to', 'unassigned',
-    'subscribed_by', 'active_at',
+    'subscribed_by', 'active_at', 'first_release',
 ])
 
 
@@ -141,55 +142,42 @@ class SnubaSearchBackend(ds.DjangoSearchBackend):
         # do that search against every event in Snuba instead, but results may
         # differ.
 
+        if use_new_filters:
+            query_set_builder_class = ds.SearchFilterQuerySetBuilder
+            query_set_builder_params = search_filters
+        else:
+            query_set_builder_class = ds.NewQuerySetBuilder
+            query_set_builder_params = parameters
+
         # TODO: It's possible `first_release` could be handled by Snuba.
         if environments is not None:
-            group_queryset = ds.QuerySetBuilder({
-                'first_release': ds.CallbackCondition(
-                    lambda queryset, version: queryset.extra(
-                        where=[
-                            '{} = {}'.format(
-                                ds.get_sql_column(GroupEnvironment, 'first_release_id'),
-                                ds.get_sql_column(Release, 'id'),
-                            ),
-                            '{} = %s'.format(
-                                ds.get_sql_column(Release, 'organization'),
-                            ),
-                            '{} = %s'.format(
-                                ds.get_sql_column(Release, 'version'),
-                            ),
-                        ],
-                        params=[projects[0].organization_id, version],
-                        tables=[Release._meta.db_table],
-                    ),
+            group_queryset = group_queryset.filter(
+                groupenvironment__environment_id__in=[
+                    environment.id for environment in environments
+                ],
+            )
+            group_queryset = query_set_builder_class({
+                'first_release': ds.QCallbackCondition(
+                    lambda version: Q(
+                        groupenvironment__first_release__organization_id=projects[0].organization_id,
+                        groupenvironment__first_release__version=version,
+                    )
                 ),
             }).build(
-                group_queryset.extra(
-                    where=[
-                        u'{} = {}'.format(
-                            ds.get_sql_column(Group, 'id'),
-                            ds.get_sql_column(GroupEnvironment, 'group_id'),
-                        ),
-                        u'{} IN ({})'.format(
-                            ds.get_sql_column(GroupEnvironment, 'environment_id'),
-                            ', '.join(['%s' for e in environments])
-                        ),
-                    ],
-                    params=[environment.id for environment in environments],
-                    tables=[GroupEnvironment._meta.db_table],
-                ),
-                parameters,
+                group_queryset,
+                query_set_builder_params,
             )
         else:
-            group_queryset = ds.QuerySetBuilder({
-                'first_release': ds.CallbackCondition(
-                    lambda queryset, version: queryset.filter(
+            group_queryset = query_set_builder_class({
+                'first_release': ds.QCallbackCondition(
+                    lambda version: Q(
                         first_release__organization_id=projects[0].organization_id,
                         first_release__version=version,
                     ),
                 ),
             }).build(
                 group_queryset,
-                parameters,
+                query_set_builder_params,
             )
 
         now = timezone.now()

@@ -110,13 +110,16 @@ const GroupGroupingView = createReactClass({
     const {query, params} = this.props;
 
     if (params) {
-      // You need at least 1 similarItem to be able to merge, so this should
-      // always exist.
+      // You need at least 1 similarItem OR filteredSimilarItems to be able to merge,
+      // so `firstIssue` should always exist from one of those lists.
       //
       // Similar issues API currently does not return issues across projects,
       // so we can assume that the first issues project slug is the project in
       // scope
-      const [firstIssue] = this.state.similarItems;
+      const [firstIssue] = this.state.similarItems.length
+        ? this.state.similarItems
+        : this.state.filteredSimilarItems;
+
       GroupingActions.merge({
         params,
         query,

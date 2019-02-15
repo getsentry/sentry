@@ -304,33 +304,12 @@ def unassigned_filter(unassigned, projects):
     return query
 
 
-def get_latest_release(projects, environments):
-    from sentry.models import Release
-
-    release_qs = Release.objects.filter(
-        organization_id=projects[0].organization_id,
-        projects__in=projects,
-    )
-
-    if environments is not None:
-        release_qs = release_qs.filter(
-            releaseprojectenvironment__environment__id__in=[
-                environment.id for environment in environments]
-        )
-
-    return release_qs.extra(select={
-        'sort': 'COALESCE(date_released, date_added)',
-    }).order_by('-sort').values_list(
-        'version', flat=True
-    )[:1].get()
-
-
 class DjangoSearchBackend(SearchBackend):
     def query(self, projects, tags=None, environments=None, sort_by='date', limit=100,
               cursor=None, count_hits=False, paginator_options=None, search_filters=None,
               use_new_filters=False, **parameters):
 
-        from sentry.models import Group, GroupStatus, GroupSubscription, Release
+        from sentry.models import Group, GroupStatus, GroupSubscription
 
         search_filters = search_filters if search_filters is not None else []
 
@@ -343,16 +322,6 @@ class DjangoSearchBackend(SearchBackend):
 
         if tags is None:
             tags = {}
-
-        try:
-            if tags.get('sentry:release') == 'latest':
-                tags['sentry:release'] = get_latest_release(projects, environments)
-
-            if parameters.get('first_release') == 'latest':
-                parameters['first_release'] = get_latest_release(projects, environments)
-        except Release.DoesNotExist:
-            # no matches could possibly be found from this point on
-            return Paginator(Group.objects.none()).get_result()
 
         group_queryset = Group.objects.filter(project__in=projects).exclude(status__in=[
             GroupStatus.PENDING_DELETION,
@@ -481,7 +450,7 @@ class DjangoSearchBackend(SearchBackend):
                     lambda queryset, version: queryset.extra(
                         where=[
                             '{} = {}'.format(
-                                get_sql_column(GroupEnvironment, 'first_release_id'),
+                                get_sql_column(GroupEnvironment, 'first_release'),
                                 get_sql_column(Release, 'id'),
                             ),
                             '{} = %s'.format(
@@ -565,10 +534,10 @@ class DjangoSearchBackend(SearchBackend):
                     where=[
                         '{} = {}'.format(
                             get_sql_column(Group, 'id'),
-                            get_sql_column(GroupEnvironment, 'group_id'),
+                            get_sql_column(GroupEnvironment, 'group'),
                         ),
                         '{} = %s'.format(
-                            get_sql_column(GroupEnvironment, 'environment_id'),
+                            get_sql_column(GroupEnvironment, 'environment'),
                         ),
                     ],
                     params=[environment.id],

@@ -17,7 +17,7 @@ from sentry.auth.superuser import is_active_superuser
 from sentry.constants import StatsPeriod
 from sentry.digests import backend as digests
 from sentry.models import (
-    Project, ProjectAvatar, ProjectBookmark, ProjectOption, ProjectPlatform,
+    EnvironmentProject, Project, ProjectAvatar, ProjectBookmark, ProjectOption, ProjectPlatform,
     ProjectStatus, ProjectTeam, Release, ReleaseProjectEnvironment, Deploy, UserOption, DEFAULT_SUBJECT_TEMPLATE
 )
 from sentry.utils.data_filters import FilterTypes
@@ -269,6 +269,20 @@ class ProjectSummarySerializer(ProjectWithTeamSerializer):
         attrs = super(ProjectSummarySerializer,
                       self).get_attrs(item_list, user)
 
+        project_envs = EnvironmentProject.objects.filter(
+            project_id__in=[i.id for i in item_list],
+        ).exclude(
+            is_hidden=True
+        ).exclude(
+            # HACK(lb): avoiding the no environment value
+            environment__name=''
+        ).values('project_id', 'environment__name')
+
+        environments_by_project = defaultdict(list)
+        for project_env in project_envs:
+            environments_by_project[project_env['project_id']].append(
+                project_env['environment__name'])
+
         release_project_envs = list(ReleaseProjectEnvironment.objects.filter(
             project__in=item_list,
             last_deploy_id__isnull=False
@@ -306,6 +320,7 @@ class ProjectSummarySerializer(ProjectWithTeamSerializer):
         for item in item_list:
             attrs[item]['latest_release'] = latest_releases.get(item.id)
             attrs[item]['deploys'] = deploys_by_project.get(item.id)
+            attrs[item]['environments'] = environments_by_project.get(item.id, [])
 
         return attrs
 
@@ -321,6 +336,7 @@ class ProjectSummarySerializer(ProjectWithTeamSerializer):
             'isMember': attrs['is_member'],
             'hasAccess': attrs['has_access'],
             'dateCreated': obj.date_added,
+            'environments': attrs['environments'],
             'features': feature_list,
             'firstEvent': obj.first_event,
             'platform': obj.platform,
