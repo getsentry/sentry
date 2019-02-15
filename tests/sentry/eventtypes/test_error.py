@@ -60,17 +60,17 @@ class ErrorEventTest(TestCase):
             'value': '',
         }
 
-    def test_to_string_none_value(self):
+    def test_get_title_none_value(self):
         inst = ErrorEvent({})
-        result = inst.to_string({'type': 'Error', 'value': None})
+        result = inst.get_title({'type': 'Error', 'value': None})
         assert result == 'Error'
 
-    def test_to_string_eliminates_values_with_newline(self):
+    def test_get_title_eliminates_values_with_newline(self):
         inst = ErrorEvent({})
-        result = inst.to_string({'type': 'Error', 'value': 'foo\nbar'})
+        result = inst.get_title({'type': 'Error', 'value': 'foo\nbar'})
         assert result == 'Error: foo'
 
-    def test_to_string_handles_empty_value(self):
+    def test_get_title_handles_empty_value(self):
         inst = ErrorEvent({})
-        result = inst.to_string({'type': 'Error', 'value': ''})
+        result = inst.get_title({'type': 'Error', 'value': ''})
         assert result == 'Error'
