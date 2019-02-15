@@ -101,9 +101,9 @@ class ParseSearchQueryTest(TestCase):
 
     def test_other_dates(self):
         # test date format with other name
-        assert parse_search_query('some_date>2015-05-18') == [
+        assert parse_search_query('first_seen>2015-05-18') == [
             SearchFilter(
-                key=SearchKey(name='some_date'),
+                key=SearchKey(name='first_seen'),
                 operator=">",
                 value=SearchValue(
                     raw_value=datetime.datetime(
@@ -119,9 +119,9 @@ class ParseSearchQueryTest(TestCase):
         ]
 
         # test colon format
-        assert parse_search_query('some_date:>2015-05-18') == [
+        assert parse_search_query('first_seen:>2015-05-18') == [
             SearchFilter(
-                key=SearchKey(name='some_date'),
+                key=SearchKey(name='first_seen'),
                 operator=">",
                 value=SearchValue(
                     raw_value=datetime.datetime(
@@ -136,39 +136,54 @@ class ParseSearchQueryTest(TestCase):
             ),
         ]
 
+        assert parse_search_query('random:>2015-05-18') == [
+            SearchFilter(
+                key=SearchKey(name='random'),
+                operator="=",
+                value=SearchValue('>2015-05-18'),
+            ),
+        ]
+
     def test_rel_time_filter(self):
         now = timezone.now()
         with freeze_time(now):
-            assert parse_search_query('some_rel_date:+7d') == [
+            assert parse_search_query('first_seen:+7d') == [
                 SearchFilter(
-                    key=SearchKey(name='some_rel_date'),
+                    key=SearchKey(name='first_seen'),
                     operator="<=",
                     value=SearchValue(
                         raw_value=now - timedelta(days=7),
                     ),
                 ),
             ]
-            assert parse_search_query('some_rel_date:-2w') == [
+            assert parse_search_query('first_seen:-2w') == [
                 SearchFilter(
-                    key=SearchKey(name='some_rel_date'),
+                    key=SearchKey(name='first_seen'),
                     operator=">=",
                     value=SearchValue(
                         raw_value=now - timedelta(days=14),
                     ),
                 ),
             ]
+            assert parse_search_query('random:-2w') == [
+                SearchFilter(
+                    key=SearchKey(name='random'),
+                    operator="=",
+                    value=SearchValue('-2w'),
+                ),
+            ]
 
     def test_specific_time_filter(self):
-        assert parse_search_query('some_rel_date:2018-01-01') == [
+        assert parse_search_query('first_seen:2018-01-01') == [
             SearchFilter(
-                key=SearchKey(name='some_rel_date'),
+                key=SearchKey(name='first_seen'),
                 operator=">=",
                 value=SearchValue(
                     raw_value=datetime.datetime(2018, 1, 1, tzinfo=timezone.utc),
                 ),
             ),
             SearchFilter(
-                key=SearchKey(name='some_rel_date'),
+                key=SearchKey(name='first_seen'),
                 operator="<",
                 value=SearchValue(
                     raw_value=datetime.datetime(2018, 1, 2, tzinfo=timezone.utc),
@@ -176,20 +191,28 @@ class ParseSearchQueryTest(TestCase):
             ),
         ]
 
-        assert parse_search_query('some_rel_date:2018-01-01T05:06:07') == [
+        assert parse_search_query('first_seen:2018-01-01T05:06:07') == [
             SearchFilter(
-                key=SearchKey(name='some_rel_date'),
+                key=SearchKey(name='first_seen'),
                 operator=">=",
                 value=SearchValue(
                     raw_value=datetime.datetime(2018, 1, 1, 5, 1, 7, tzinfo=timezone.utc),
                 ),
             ),
             SearchFilter(
-                key=SearchKey(name='some_rel_date'),
+                key=SearchKey(name='first_seen'),
                 operator="<",
                 value=SearchValue(
                     raw_value=datetime.datetime(2018, 1, 1, 5, 12, 7, tzinfo=timezone.utc),
                 ),
+            ),
+        ]
+
+        assert parse_search_query('random:2018-01-01T05:06:07') == [
+            SearchFilter(
+                key=SearchKey(name='random'),
+                operator="=",
+                value=SearchValue(raw_value='2018-01-01T05:06:07'),
             ),
         ]
 
@@ -409,41 +432,12 @@ class ParseSearchQueryTest(TestCase):
         ]
 
     def test_numeric_filter(self):
-        # test numeric format
-        assert parse_search_query('times_seen:500') == [
+        # Numeric format should still return a string if field isn't whitelisted
+        assert parse_search_query('random_field:>500') == [
             SearchFilter(
-                key=SearchKey(name='times_seen'),
+                key=SearchKey(name='random_field'),
                 operator="=",
-                value=SearchValue(raw_value=500),
-            ),
-        ]
-        assert parse_search_query('times_seen:>500') == [
-            SearchFilter(
-                key=SearchKey(name='times_seen'),
-                operator=">",
-                value=SearchValue(raw_value=500),
-            ),
-        ]
-        assert parse_search_query('times_seen:<500') == [
-            SearchFilter(
-                key=SearchKey(name='times_seen'),
-                operator="<",
-                value=SearchValue(raw_value=500),
-            ),
-        ]
-        # Non numeric shouldn't match
-        assert parse_search_query('times_seen:<hello') == [
-            SearchFilter(
-                key=SearchKey(name='times_seen'),
-                operator="=",
-                value=SearchValue(raw_value="<hello"),
-            ),
-        ]
-        assert parse_search_query('times_seen:<512.1.0') == [
-            SearchFilter(
-                key=SearchKey(name='times_seen'),
-                operator="=",
-                value=SearchValue(raw_value="<512.1.0"),
+                value=SearchValue(raw_value='>500'),
             ),
         ]
 

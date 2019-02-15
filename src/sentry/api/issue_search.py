@@ -34,6 +34,8 @@ class IssueSearchVisitor(SearchVisitor):
         'timestamp': ['event.timestamp'],
         'sentry:dist': ['dist'],
     }
+    numeric_keys = SearchVisitor.numeric_keys.union(['times_seen'])
+    date_keys = SearchVisitor.date_keys.union(['active_at', 'date'])
 
     @cached_property
     def is_filter_translators(self):

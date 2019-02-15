@@ -104,6 +104,45 @@ class ParseSearchQueryTest(TestCase):
             'Invalid value for "is" search, valid values are',
         )
 
+    def test_numeric_filter(self):
+        # test numeric format
+        assert parse_search_query('times_seen:500') == [
+            SearchFilter(
+                key=SearchKey(name='times_seen'),
+                operator="=",
+                value=SearchValue(raw_value=500),
+            ),
+        ]
+        assert parse_search_query('times_seen:>500') == [
+            SearchFilter(
+                key=SearchKey(name='times_seen'),
+                operator=">",
+                value=SearchValue(raw_value=500),
+            ),
+        ]
+        assert parse_search_query('times_seen:<500') == [
+            SearchFilter(
+                key=SearchKey(name='times_seen'),
+                operator="<",
+                value=SearchValue(raw_value=500),
+            ),
+        ]
+        # Non numeric shouldn't match
+        assert parse_search_query('times_seen:<hello') == [
+            SearchFilter(
+                key=SearchKey(name='times_seen'),
+                operator="=",
+                value=SearchValue(raw_value="<hello"),
+            ),
+        ]
+        assert parse_search_query('times_seen:<512.1.0') == [
+            SearchFilter(
+                key=SearchKey(name='times_seen'),
+                operator="=",
+                value=SearchValue(raw_value="<512.1.0"),
+            ),
+        ]
+
 
 class ConvertQueryValuesTest(TestCase):
 
