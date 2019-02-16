@@ -83,6 +83,8 @@ describe('MultipleEnvironmentSelector', function() {
 
     expect(onChange).toHaveBeenCalled();
     expect(onUpdate).toHaveBeenCalled();
+    const selector = wrapper.find('MultipleEnvironmentSelector').instance();
+    expect(selector.state.selectedEnvs).toEqual(new Set([]));
   });
 
   it('selects multiple environments and uses chevron to update', async function() {

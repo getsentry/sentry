@@ -71,10 +71,15 @@ class MultipleEnvironmentSelector extends React.PureComponent {
       const newSelection = validEnvironments.filter(env => selectedEnvs.includes(env));
 
       if (newSelection.length !== selectedEnvs.length) {
-        this.props.onChange(newSelection);
-        this.props.onUpdate();
+        this.replaceSelected(newSelection);
       }
     }
+  }
+
+  replaceSelected(newSelection) {
+    this.setState({selectedEnvs: new Set(newSelection)});
+    this.props.onChange(newSelection);
+    this.props.onUpdate();
   }
 
   /**
@@ -190,14 +195,13 @@ class MultipleEnvironmentSelector extends React.PureComponent {
   getEnvironments() {
     const {organization, selectedProjects} = this.props;
     let environments = [];
-    for (const project of organization.projects) {
+    organization.projects.forEach(function(project) {
       const projectId = parseInt(project.id, 10);
-
       // When selectedProjects is empty all projects are selected.
       if (selectedProjects.includes(projectId) || selectedProjects.length === 0) {
         environments = environments.concat(project.environments);
       }
-    }
+    });
 
     return uniq(environments);
   }
