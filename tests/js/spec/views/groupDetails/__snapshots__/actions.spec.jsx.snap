@@ -71,6 +71,7 @@ exports[`GroupActions render() renders correctly 1`] = `
         "dataScrubberDefaults": false,
         "digestsMaxDelay": 60,
         "digestsMinDelay": 5,
+        "environments": Array [],
         "features": Array [],
         "hasAccess": true,
         "id": "2448",

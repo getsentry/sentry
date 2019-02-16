@@ -73,6 +73,7 @@ exports[`GroupSidebar renders with tags renders 1`] = `
     }
     project={
       Object {
+        "environments": Array [],
         "hasAccess": true,
         "id": "2",
         "isBookmarked": false,
@@ -202,6 +203,7 @@ exports[`GroupSidebar renders with tags renders 1`] = `
     }
     project={
       Object {
+        "environments": Array [],
         "hasAccess": true,
         "id": "2",
         "isBookmarked": false,
@@ -274,6 +276,7 @@ exports[`GroupSidebar renders with tags renders 1`] = `
     orgId="org-slug"
     project={
       Object {
+        "environments": Array [],
         "hasAccess": true,
         "id": "2",
         "isBookmarked": false,

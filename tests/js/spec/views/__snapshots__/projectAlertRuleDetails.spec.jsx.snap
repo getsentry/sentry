@@ -122,6 +122,7 @@ exports[`ProjectAlertRuleDetails Edit alert rule renders 1`] = `
         }
         project={
           Object {
+            "environments": Array [],
             "hasAccess": true,
             "id": "2",
             "isBookmarked": false,
@@ -2653,6 +2654,7 @@ exports[`ProjectAlertRuleDetails New alert rule renders 1`] = `
         }
         project={
           Object {
+            "environments": Array [],
             "hasAccess": true,
             "id": "2",
             "isBookmarked": false,

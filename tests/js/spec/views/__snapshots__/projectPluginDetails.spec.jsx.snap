@@ -44,6 +44,7 @@ exports[`ProjectPluginDetails renders 1`] = `
   }
   project={
     Object {
+      "environments": Array [],
       "hasAccess": true,
       "id": "2",
       "isBookmarked": false,
@@ -105,6 +106,7 @@ exports[`ProjectPluginDetails renders 1`] = `
     }
     project={
       Object {
+        "environments": Array [],
         "hasAccess": true,
         "id": "2",
         "isBookmarked": false,
@@ -369,6 +371,7 @@ exports[`ProjectPluginDetails renders 1`] = `
                 }
                 project={
                   Object {
+                    "environments": Array [],
                     "hasAccess": true,
                     "id": "2",
                     "isBookmarked": false,
@@ -543,6 +546,7 @@ exports[`ProjectPluginDetails renders 1`] = `
                                 }
                                 project={
                                   Object {
+                                    "environments": Array [],
                                     "hasAccess": true,
                                     "id": "2",
                                     "isBookmarked": false,

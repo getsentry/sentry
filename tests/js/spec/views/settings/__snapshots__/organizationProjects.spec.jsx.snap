@@ -383,6 +383,7 @@ exports[`OrganizationProjects Should render the projects in the store 1`] = `
                                 }
                                 project={
                                   Object {
+                                    "environments": Array [],
                                     "hasAccess": true,
                                     "id": "2",
                                     "isBookmarked": false,
@@ -431,6 +432,7 @@ exports[`OrganizationProjects Should render the projects in the store 1`] = `
                                         <ProjectLabel
                                           project={
                                             Object {
+                                              "environments": Array [],
                                               "hasAccess": true,
                                               "id": "2",
                                               "isBookmarked": false,
@@ -445,6 +447,7 @@ exports[`OrganizationProjects Should render the projects in the store 1`] = `
                                             className="project-label"
                                             project={
                                               Object {
+                                                "environments": Array [],
                                                 "hasAccess": true,
                                                 "id": "2",
                                                 "isBookmarked": false,
@@ -487,6 +490,7 @@ exports[`OrganizationProjects Should render the projects in the store 1`] = `
                                 key="2"
                                 project={
                                   Object {
+                                    "environments": Array [],
                                     "hasAccess": true,
                                     "id": "2",
                                     "isBookmarked": false,

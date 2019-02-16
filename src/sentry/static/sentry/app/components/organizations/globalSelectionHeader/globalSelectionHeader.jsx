@@ -374,6 +374,7 @@ class GlobalSelectionHeader extends React.Component {
             <HeaderItemPosition>
               <MultipleEnvironmentSelector
                 organization={organization}
+                selectedProjects={this.props.selection.projects}
                 value={this.state.environments || this.props.selection.environments}
                 onChange={this.handleChangeEnvironments}
                 onUpdate={this.handleUpdateEnvironmments}
