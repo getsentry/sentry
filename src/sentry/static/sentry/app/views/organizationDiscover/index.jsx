@@ -175,7 +175,7 @@ class OrganizationDiscoverContainer extends React.Component {
   render() {
     const {isLoading, savedQuery, view} = this.state;
 
-    const {location, params} = this.props;
+    const {location, params, selection} = this.props;
 
     const {organization} = this.context;
 
@@ -188,6 +188,7 @@ class OrganizationDiscoverContainer extends React.Component {
         >
           <DiscoverWrapper>
             <Discover
+              utc={selection.datetime.utc}
               isLoading={isLoading}
               organization={organization}
               queryBuilder={this.queryBuilder}

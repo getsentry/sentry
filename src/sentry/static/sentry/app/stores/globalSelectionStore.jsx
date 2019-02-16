@@ -23,7 +23,7 @@ const getDefaultSelection = () => {
       [DATE_TIME.START]: null,
       [DATE_TIME.END]: null,
       [DATE_TIME.PERIOD]: DEFAULT_STATS_PERIOD,
-      [DATE_TIME.UTC]: user?.options?.timezone === 'UTC' ? true : undefined,
+      [DATE_TIME.UTC]: user?.options?.timezone === 'UTC' ? true : null,
     },
   };
 };
@@ -74,7 +74,7 @@ const GlobalSelectionStore = Reflux.createStore({
           [DATE_TIME.START]: parsed.start || null,
           [DATE_TIME.END]: parsed.end || null,
           [DATE_TIME.PERIOD]: parsed.period || null,
-          [DATE_TIME.UTC]: parsed.utc || undefined,
+          [DATE_TIME.UTC]: parsed.utc || null,
         },
       };
     } else {
