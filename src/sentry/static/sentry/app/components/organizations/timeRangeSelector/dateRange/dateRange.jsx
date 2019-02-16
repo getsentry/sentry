@@ -181,7 +181,7 @@ class DateRange extends React.Component {
               {t('Use UTC')}
               <Checkbox
                 onChange={onChangeUtc}
-                checked={utc}
+                checked={utc || false}
                 style={{
                   margin: '0 0 0 0.5em',
                 }}
