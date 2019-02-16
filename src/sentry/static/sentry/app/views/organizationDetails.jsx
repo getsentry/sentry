@@ -1,5 +1,6 @@
 import React, {Component} from 'react';
 import PropTypes from 'prop-types';
+import {browserHistory} from 'react-router';
 
 import AlertActions from 'app/actions/alertActions';
 import ErrorBoundary from 'app/components/errorBoundary';
@@ -124,6 +125,14 @@ class OrganizationDetailsBody extends Component {
     organization: PropTypes.object.isRequired,
   };
 
+  componentDidMount() {
+    const {organization} = this.context;
+    const hasSentry10 = new Set(organization.features).has('sentry10');
+
+    if (hasSentry10) {
+      browserHistory.replace(`/organizations/${organization.slug}/`);
+    }
+  }
   render() {
     const {organization} = this.context;
 
