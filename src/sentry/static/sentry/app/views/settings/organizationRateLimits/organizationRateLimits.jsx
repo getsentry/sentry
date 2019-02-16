@@ -113,7 +113,7 @@ export default class OrganizationRateLimit extends React.Component {
                 name="projectRateLimit"
                 label={t('Per-Project Limit')}
                 help={t(
-                  'The maximum percentage of the account limit above that an individual project can consume.'
+                  'The maximum percentage of the account limit (set above) that an individual project can consume.'
                 )}
                 step={5}
                 min={50}
