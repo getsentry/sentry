@@ -4,7 +4,15 @@ from datetime import datetime
 from django.utils import timezone
 
 from sentry.testutils import AcceptanceTestCase
-from sentry.utils.samples import create_sample_event
+from sentry.utils.samples import create_sample_event as _create_sample_event
+
+
+def create_sample_event(*args, **kwargs):
+    event = _create_sample_event(*args, **kwargs)
+    # Prevent Percy screenshot from constantly changing
+    event.datetime = datetime(2017, 9, 6, 0, 0)
+    event.save()
+    return event
 
 
 class IssueDetailsTest(AcceptanceTestCase):
