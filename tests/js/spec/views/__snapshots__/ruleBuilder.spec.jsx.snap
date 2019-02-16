@@ -46,6 +46,7 @@ exports[`RuleBuilder renders 1`] = `
   }
   project={
     Object {
+      "environments": Array [],
       "hasAccess": true,
       "id": "2",
       "isBookmarked": false,
@@ -537,6 +538,7 @@ exports[`RuleBuilder renders 1`] = `
               }
               project={
                 Object {
+                  "environments": Array [],
                   "hasAccess": true,
                   "id": "2",
                   "isBookmarked": false,
@@ -1124,6 +1126,7 @@ exports[`RuleBuilder renders with suggestions 1`] = `
   }
   project={
     Object {
+      "environments": Array [],
       "hasAccess": true,
       "id": "2",
       "isBookmarked": false,
@@ -1831,6 +1834,7 @@ exports[`RuleBuilder renders with suggestions 1`] = `
               }
               project={
                 Object {
+                  "environments": Array [],
                   "hasAccess": true,
                   "id": "2",
                   "isBookmarked": false,
