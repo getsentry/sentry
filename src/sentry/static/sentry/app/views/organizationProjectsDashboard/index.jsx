@@ -1,4 +1,4 @@
-import {Link} from 'react-router';
+import {Link, browserHistory} from 'react-router';
 import LazyLoad from 'react-lazyload';
 import React from 'react';
 import PropTypes from 'prop-types';
@@ -30,6 +30,13 @@ class Dashboard extends React.Component {
 
   componentDidMount() {
     document.body.classList.add('org-dashboard');
+
+    const {organization} = this.props;
+    const hasSentry10 = new Set(organization.features).has('sentry10');
+
+    if (hasSentry10) {
+      browserHistory.replace(`/organizations/${organization.slug}/`);
+    }
   }
   componentWillUnmount() {
     document.body.classList.remove('org-dashboard');
