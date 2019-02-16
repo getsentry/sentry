@@ -33,11 +33,15 @@ OVERRIDE_OPTIONS = {
     'consistent': os.environ.get('SENTRY_SNUBA_CONSISTENT', 'false').lower() in ('true', '1')
 }
 
+# There are several cases here where we support both a top level column name and
+# a tag with the same name. Existing search patterns expect to refer to the tag,
+# so we support <real_column_name>.name to refer to the top level column name.
 SENTRY_SNUBA_MAP = {
     # general
     'id': 'event_id',
     'project.id': 'project_id',
-    'platform': 'platform',
+    # We support platform as both tag and a real column.
+    'platform.name': 'platform',
     'message': 'message',
     'title': 'title',
     'location': 'location',
@@ -45,8 +49,10 @@ SENTRY_SNUBA_MAP = {
     'issue.id': 'issue',
     'timestamp': 'timestamp',
     'time': 'time',
-    'type': 'type',
-    'version': 'version',
+    # We support type as both tag and a real column
+    'type.name': 'type',
+    # We support version as both tag and a real column
+    'version.name': 'version',
     # user
     'user.id': 'user_id',
     'user.email': 'email',
