@@ -107,7 +107,7 @@ key             = ~r"[a-zA-Z0-9_\.-]+"
 quoted_key      = ~r"\"([a-zA-Z0-9_\.:-]+)\""
 
 date_format     = ~r"\d{4}-\d{2}-\d{2}(T\d{2}:\d{2}:\d{2}(\.\d{1,6})?)?"
-rel_date_format = ~r"[\+\-][0-9]+[wdhs]"
+rel_date_format = ~r"[\+\-][0-9]+[wdhm]"
 
 # NOTE: the order in which these operators are listed matters
 # because for example, if < comes before <= it will match that
@@ -176,6 +176,8 @@ class SearchVisitor(NodeVisitor):
     # A list of mappers that map source keys to a target name. Format is
     # <target_name>: [<list of source names>],
     key_mappings = {}
+    numeric_keys = set()
+    date_keys = set(['start', 'end', 'first_seen', 'last_seen', 'timestamp'])
 
     unwrapped_exceptions = (InvalidSearchQuery,)
 
@@ -218,16 +220,16 @@ class SearchVisitor(NodeVisitor):
 
     def visit_numeric_filter(self, node, children):
         search_key, _, operator, search_value = children
-        # Tags are always strings
-        if not search_key.is_tag:
+        operator = operator[0] if not isinstance(operator, Node) else '='
+
+        if search_key.name in self.numeric_keys:
             try:
                 search_value = int(search_value.text)
             except ValueError:
                 raise InvalidSearchQuery('Invalid numeric query: %s' % (search_key,))
         else:
-            search_value = search_value.text
-
-        operator = operator[0] if not isinstance(operator, Node) else '='
+            search_value = operator + search_value.text if operator != '=' else search_value.text
+            operator = '='
 
         return SearchFilter(
             search_key,
@@ -237,10 +239,14 @@ class SearchVisitor(NodeVisitor):
 
     def visit_time_filter(self, node, children):
         search_key, _, operator, search_value = children
-        try:
-            search_value = parse_datetime_string(search_value)
-        except InvalidQuery as exc:
-            raise InvalidSearchQuery(exc.message)
+        if search_key.name in self.date_keys:
+            try:
+                search_value = parse_datetime_string(search_value)
+            except InvalidQuery as exc:
+                raise InvalidSearchQuery(exc.message)
+        else:
+            search_value = operator + search_value if operator != '=' else search_value
+            operator = '='
 
         try:
             return SearchFilter(
@@ -253,18 +259,22 @@ class SearchVisitor(NodeVisitor):
 
     def visit_rel_time_filter(self, node, children):
         search_key, _, value = children
-        try:
-            from_val, to_val = parse_datetime_range(value.text)
-        except InvalidQuery as exc:
-            raise InvalidSearchQuery(exc.message)
+        if search_key.name in self.date_keys:
+            try:
+                from_val, to_val = parse_datetime_range(value.text)
+            except InvalidQuery as exc:
+                raise InvalidSearchQuery(exc.message)
 
-        # TODO: Handle negations
-        if from_val is not None:
-            operator = '>='
-            search_value = from_val[0]
+            # TODO: Handle negations
+            if from_val is not None:
+                operator = '>='
+                search_value = from_val[0]
+            else:
+                operator = '<='
+                search_value = to_val[0]
         else:
-            operator = '<='
-            search_value = to_val[0]
+            operator = '='
+            search_value = value.text
 
         return SearchFilter(
             search_key,
@@ -278,6 +288,13 @@ class SearchVisitor(NodeVisitor):
         # day, and if we specify a specific datetime then it means a few minutes
         # interval on either side of that datetime
         search_key, _, date_value = children
+        if search_key.name not in self.date_keys:
+            return SearchFilter(
+                search_key,
+                '=',
+                SearchValue(date_value),
+            )
+
         try:
             from_val, to_val = parse_datetime_value(date_value)
         except InvalidQuery as exc:

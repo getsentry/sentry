@@ -286,6 +286,7 @@ exports[`OrganizationTeamProjects Should render 1`] = `
                     }
                     project={
                       Object {
+                        "environments": Array [],
                         "hasAccess": true,
                         "id": "2",
                         "isBookmarked": false,
@@ -342,6 +343,7 @@ exports[`OrganizationTeamProjects Should render 1`] = `
                             <ProjectLabel
                               project={
                                 Object {
+                                  "environments": Array [],
                                   "hasAccess": true,
                                   "id": "2",
                                   "isBookmarked": false,
@@ -364,6 +366,7 @@ exports[`OrganizationTeamProjects Should render 1`] = `
                                 className="project-label"
                                 project={
                                   Object {
+                                    "environments": Array [],
                                     "hasAccess": true,
                                     "id": "2",
                                     "isBookmarked": false,

@@ -818,6 +818,12 @@ function routes() {
               component={errorHandler(LazyLoad)}
             />
             <Route
+              path="/organizations/:orgId/monitors/create/"
+              componentPromise={() =>
+                import(/* webpackChunkName: "OrganizationMonitorCreate" */ './views/organizationMonitors/create')}
+              component={errorHandler(LazyLoad)}
+            />
+            <Route
               path="/organizations/:orgId/monitors/:monitorId/"
               componentPromise={() =>
                 import(/* webpackChunkName: "OrganizationMonitorDetails" */ './views/organizationMonitors/details')}

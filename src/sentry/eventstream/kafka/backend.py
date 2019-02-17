@@ -15,6 +15,7 @@ from sentry.eventstream.kafka.consumer import SynchronizedConsumer
 from sentry.eventstream.kafka.protocol import get_task_kwargs_for_message
 from sentry.tasks.post_process import post_process_group
 from sentry.utils import json
+from sentry.utils.safe import get_path
 
 logger = logging.getLogger(__name__)
 
@@ -72,6 +73,16 @@ EVENT_PROTOCOL_VERSION = 2
 
 
 class KafkaEventStream(EventStream):
+
+    # These keys correspond to tags that are typically prefixed with `sentry:`
+    # and will wreak havok in the UI if both the `sentry:`-prefixed and
+    # non-prefixed variations occur in a response.
+    UNEXPECTED_TAG_KEYS = frozenset([
+        'dist',
+        'release',
+        'user',
+    ])
+
     def __init__(self, publish_topic='events', producer_configuration=None, **options):
         if producer_configuration is None:
             producer_configuration = {}
@@ -127,6 +138,15 @@ class KafkaEventStream(EventStream):
             organization=project.organization,
         )
 
+        event_data = event.get_raw_data()
+
+        unexpected_tags = set([
+            k for (k, v) in (get_path(event_data, 'tags', filter=True) or [])
+            if k in self.UNEXPECTED_TAG_KEYS
+        ])
+        if unexpected_tags:
+            logger.error('%r received unexpected tags: %r', self, unexpected_tags)
+
         self._send(project.id, 'insert', extra_data=({
             'group_id': event.group_id,
             'event_id': event.event_id,
@@ -137,7 +157,7 @@ class KafkaEventStream(EventStream):
             'message': event.message,
             'platform': event.platform,
             'datetime': event.datetime,
-            'data': event.get_raw_data(),
+            'data': event_data,
             'primary_hash': primary_hash,
             'retention_days': retention_days,
         }, {

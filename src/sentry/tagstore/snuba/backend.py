@@ -163,8 +163,10 @@ class SnubaTagStorage(TagStorage):
             keys,
         )
 
-    def __get_tag_keys_for_projects(self, projects, group_id,
-                                    environments, start, end, limit=1000, keys=None):
+    def __get_tag_keys_for_projects(
+            self, projects, group_id, environments, start, end, limit=1000,
+            keys=None, **kwargs
+    ):
         filters = {
             'project_id': projects,
         }
@@ -182,9 +184,11 @@ class SnubaTagStorage(TagStorage):
 
         # TODO should this be sorted by count() descending, rather than the
         # number of unique values
-        result = snuba.query(start, end, ['tags_key'], conditions, filters,
-                             aggregations, limit=limit, orderby='-values_seen',
-                             referrer='tagstore.__get_tag_keys')
+        result = snuba.query(
+            start, end, ['tags_key'], conditions, filters, aggregations,
+            limit=limit, orderby='-values_seen',
+            referrer='tagstore.__get_tag_keys', **kwargs
+        )
 
         if group_id is None:
             ctor = TagKey
@@ -240,7 +244,18 @@ class SnubaTagStorage(TagStorage):
 
     def get_tag_keys_for_projects(self, projects, environments, start,
                                   end, status=TagKeyStatus.VISIBLE):
-        return self.__get_tag_keys_for_projects(projects, None, environments, start, end)
+        MAX_UNSAMPLED_PROJECTS = 50
+        # We want to disable FINAL in the snuba query to reduce load.
+        optimize_kwargs = {'turbo': True}
+        # If we are fetching less than MAX_UNSAMPLED_PROJECTS, then disable
+        # the sampling that turbo enables so that we get more accurate results.
+        # We only want sampling when we have a large number of projects, so
+        # that we don't cause performance issues for Snuba.
+        if len(projects) <= MAX_UNSAMPLED_PROJECTS:
+            optimize_kwargs['sample'] = 1
+        return self.__get_tag_keys_for_projects(
+            projects, None, environments, start, end, **optimize_kwargs
+        )
 
     def get_tag_value(self, project_id, environment_id, key, value):
         return self.__get_tag_value(project_id, None, environment_id, key, value)

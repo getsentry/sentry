@@ -38,7 +38,7 @@ class JiraServerIntegrationTest(IntegrationTestCase):
             'url': 'jira.example.com/',
             'verify_ssl': False,
             'consumer_key': 'sentry-bot',
-            'private_key': 'hot-garbage'
+            'private_key': EXAMPLE_PRIVATE_KEY
         }
         resp = self.client.post(self.setup_path, data=data)
         assert resp.status_code == 200
@@ -272,6 +272,47 @@ class JiraServerIntegrationTest(IntegrationTestCase):
 
         integration = Integration.objects.get()
         assert integration.external_id == expected_id
+
+    @responses.activate
+    def test_setup_external_id_length(self):
+        responses.add(
+            responses.POST,
+            'https://jira.example.com/plugins/servlet/oauth/request-token',
+            status=200,
+            content_type='text/plain',
+            body='oauth_token=abc123&oauth_token_secret=def456')
+        responses.add(
+            responses.POST,
+            'https://jira.example.com/plugins/servlet/oauth/access-token',
+            status=200,
+            content_type='text/plain',
+            body='oauth_token=valid-token&oauth_token_secret=valid-secret')
+        responses.add(
+            responses.POST,
+            'https://jira.example.com/rest/webhooks/1.0/webhook',
+            status=204,
+            body='')
+
+        # Start pipeline and go to setup page.
+        self.client.get(self.setup_path)
+
+        # Submit credentials
+        data = {
+            'url': 'https://jira.example.com/',
+            'verify_ssl': False,
+            'consumer_key': 'a-very-long-consumer-key-that-when-combined-with-host-would-overflow',
+            'private_key': EXAMPLE_PRIVATE_KEY
+        }
+        resp = self.client.post(self.setup_path, data=data)
+        assert resp.status_code == 302
+        redirect = 'https://jira.example.com/plugins/servlet/oauth/authorize?oauth_token=abc123'
+        assert redirect == resp['Location']
+
+        resp = self.client.get(self.setup_path + '?oauth_token=xyz789')
+        assert resp.status_code == 200
+
+        integration = Integration.objects.get(provider='jira_server')
+        assert integration.external_id == 'jira.example.com:a-very-long-consumer-key-that-when-combined-wit'
 
     @responses.activate
     def test_setup_create_webhook_failure(self):

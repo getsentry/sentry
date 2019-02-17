@@ -6,7 +6,7 @@
     <div class="event-type error">
       <h3>
         {% if metadata.type %}
-          {% include "sentry/emails/_group_link.html" with text=metadata.type|truncatechars:40 %}
+          <a href="{{group.get_absolute_url}}">{{metadata.type|truncatechars:40}}</a>
           {% if transaction %}
             <span class="event-subtitle">{{ transaction }}</span>
           {% endif %}
@@ -14,11 +14,11 @@
           {% if metadata.value %}
             <small>{{ metadata.value|truncatechars:100|soft_break:40 }}</small>
           {% endif %}
-        {% else %}
-          {% include "sentry/emails/_group_link.html" with text=metadata.value|truncatechars:40 %}
+          {% else %}
+          <a href="{{group.get_absolute_url}}">{{metadata.value|truncatechars:40}}</a>
           <br />
           {% if transaction %}
-            <span class="event-subtitle">{{ transaction }}</span>
+          <span class="event-subtitle">{{ transaction }}</span>
           {% endif %}
         {% endif %}
       </h3>
@@ -26,7 +26,7 @@
   {% elif type == "csp" %}
     <div class="event-type csp">
       <h3>
-        {% include "sentry/emails/_group_link.html" with text=metadata.directive|truncatechars:40 %}
+        <a href="{{group.get_absolute_url}}">{{metadata.directive|truncatechars:40}}</a>
         <br />
         {% if metadata.uri %}
           <span class="event-subtitle">{{ metadata.uri }}</span>
@@ -36,7 +36,7 @@
   {% else %}
     <div class="event-type default">
       <h3>
-        {% include "sentry/emails/_group_link.html" with text=group.title|truncatechars:40 %}
+        <a href="{{group.get_absolute_url}}">{{group.title|truncatechars:40}}</a>
         <br />
         {% if transaction %}
           <span class="event-subtitle">{{ transaction }}</span>

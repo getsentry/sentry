@@ -60,9 +60,10 @@ class DebugNewReleaseEmailView(View):
         if has_new_links:
             release_links = [
                 absolute_uri(
-                    u'/organizations/{}/releases/{}/'.format(
+                    u'/organizations/{}/releases/{}/?project={}'.format(
                         org.slug,
                         release.version,
+                        p.id,
                     )
                 ) for p in projects
             ]

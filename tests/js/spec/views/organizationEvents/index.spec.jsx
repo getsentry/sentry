@@ -9,8 +9,12 @@ import OrganizationEventsContainer from 'app/views/organizationEvents';
 
 describe('OrganizationEvents', function() {
   let wrapper;
+  const environments = ['production', 'staging'];
   const {organization, router, routerContext} = initializeOrg({
-    projects: [{isMember: true}, {isMember: true, slug: 'new-project', id: 3}],
+    projects: [
+      {isMember: true, environments},
+      {isMember: true, slug: 'new-project', id: 3, environments},
+    ],
     organization: {
       features: ['events', 'global-views'],
     },
@@ -26,10 +30,6 @@ describe('OrganizationEvents', function() {
     MockApiClient.addMockResponse({
       url: '/organizations/org-slug/tags/',
       body: [{count: 1, tag: 'transaction'}, {count: 2, tag: 'mechanism'}],
-    });
-    MockApiClient.addMockResponse({
-      url: `/organizations/${organization.slug}/environments/`,
-      body: TestStubs.Environments(),
     });
 
     setActiveOrganization(organization);

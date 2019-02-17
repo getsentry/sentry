@@ -43,6 +43,7 @@ exports[`Stream render() displays the group list 1`] = `
       }
       searchId={null}
       sort="date"
+      tagValueLoader={[Function]}
     />
     <Panel>
       <StreamActions
@@ -106,6 +107,7 @@ exports[`Stream render() displays the group list 1`] = `
               "dataScrubberDefaults": false,
               "digestsMaxDelay": 60,
               "digestsMinDelay": 5,
+              "environments": Array [],
               "features": Array [],
               "firstEvent": true,
               "hasAccess": true,
@@ -166,6 +168,7 @@ exports[`Stream render() displays the group list 1`] = `
     orgId="org-slug"
     projectId="project-slug"
     query="is:unresolved"
+    tagValueLoader={[Function]}
     tags={
       Object {
         "assigned": Object {
@@ -285,6 +288,7 @@ exports[`Stream toggles environment select all environments 1`] = `
       }
       searchId={null}
       sort="date"
+      tagValueLoader={[Function]}
     />
     <Panel>
       <StreamActions
@@ -348,6 +352,7 @@ exports[`Stream toggles environment select all environments 1`] = `
               "dataScrubberDefaults": false,
               "digestsMaxDelay": 60,
               "digestsMinDelay": 5,
+              "environments": Array [],
               "features": Array [],
               "firstEvent": true,
               "hasAccess": true,
@@ -408,6 +413,7 @@ exports[`Stream toggles environment select all environments 1`] = `
     orgId="org-slug"
     projectId="project-slug"
     query="is:unresolved"
+    tagValueLoader={[Function]}
     tags={
       Object {
         "assigned": Object {

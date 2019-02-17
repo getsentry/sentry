@@ -26,6 +26,7 @@ class StreamFilters extends React.Component {
     onSidebarToggle: PropTypes.func,
     onSavedSearchCreate: PropTypes.func.isRequired,
     onSavedSearchSelect: PropTypes.func.isRequired,
+    tagValueLoader: PropTypes.func.isRequired,
   };
 
   static contextTypes = {
@@ -59,6 +60,7 @@ class StreamFilters extends React.Component {
       onSavedSearchCreate,
       onSavedSearchSelect,
       onSortChange,
+      tagValueLoader,
     } = this.props;
 
     return (
@@ -86,12 +88,12 @@ class StreamFilters extends React.Component {
 
               <SearchBar
                 orgId={orgId}
-                projectId={projectId}
                 query={query || ''}
                 onSearch={onSearch}
                 disabled={isSearchDisabled}
                 excludeEnvironment={true}
                 supportedTags={TagStore.getAllTags()}
+                tagValueLoader={tagValueLoader}
               />
               <a
                 className="btn btn-default toggle-stream-sidebar"

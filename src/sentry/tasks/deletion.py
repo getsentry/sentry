@@ -321,6 +321,7 @@ def delete_api_application(object_id, transaction_id=None, **kwargs):
 @retry(exclude=(DeleteAborted, ))
 def generic_delete(app_label, model_name, object_id, transaction_id=None, actor_id=None, **kwargs):
     from sentry import deletions
+    from sentry.models import User
 
     model = get_model(app_label, model_name)
 
@@ -328,6 +329,13 @@ def generic_delete(app_label, model_name, object_id, transaction_id=None, actor_
         instance = model.objects.get(id=object_id)
     except model.DoesNotExist:
         return
+
+    if instance.status != ObjectStatus.DELETION_IN_PROGRESS:
+        pending_delete.send(
+            sender=type(instance),
+            instance=instance,
+            actor=User.objects.get(id=actor_id) if actor_id else None,
+        )
 
     if instance.status == ObjectStatus.VISIBLE:
         raise DeleteAborted
