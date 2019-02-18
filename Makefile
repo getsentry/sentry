@@ -11,9 +11,12 @@ PIP = LDFLAGS="$(LDFLAGS)" pip
 WEBPACK = NODE_ENV=production ./node_modules/.bin/webpack
 YARN_VERSION = 1.13.0
 
-develop: setup-git develop-only
+develop: setup-git ensure-venv develop-only
 develop-only: update-submodules install-system-pkgs install-yarn-pkgs install-sentry-dev
 test: develop lint test-js test-python test-cli
+
+ensure-venv:
+	@./scripts/ensure-venv.sh
 
 build: locale
 
