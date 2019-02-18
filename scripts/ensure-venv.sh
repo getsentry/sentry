@@ -1,4 +1,5 @@
 #!/bin/bash
+set -xe
 
 # if we already have a venv, we can leave
 if [ -f .venv/bin/python ]; then
