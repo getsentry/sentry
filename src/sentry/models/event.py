@@ -139,8 +139,7 @@ class Event(Model):
 
         See ``sentry.eventtypes``.
         """
-        from sentry.event_manager import get_event_metadata_compat
-        return get_event_metadata_compat(self.data)
+        return self.data['metadata']
 
     def get_hashes(self):
         """

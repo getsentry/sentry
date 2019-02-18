@@ -88,18 +88,6 @@ def get_tag(data, key):
             return v
 
 
-def get_event_metadata_compat(data):
-    """This is a fallback path to getting the event metadata.  This is used
-    by some code paths that could potentially deal with old sentry events that
-    do not have metadata yet.  This does not happen in practice any more but
-    the testsuite was never adapted so the tests hit this code path constantly.
-    """
-    etype = data.get('type') or 'default'
-    if 'metadata' not in data:
-        return eventtypes.get(etype)().get_metadata(data)
-    return data['metadata']
-
-
 def count_limit(count):
     # TODO: could we do something like num_to_store = max(math.sqrt(100*count)+59, 200) ?
     # ~ 150 * ((log(n) - 1.5) ^ 2 - 0.25)
