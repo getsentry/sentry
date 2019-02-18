@@ -1,5 +1,7 @@
 from __future__ import absolute_import
 
+from warnings import warn
+
 from sentry.utils.strings import truncatechars, strip
 from sentry.utils.safe import get_path
 
@@ -16,11 +18,16 @@ class BaseEvent(object):
     def get_metadata(self):
         raise NotImplementedError
 
-    def to_string(self, metadata):
+    def get_title(self, metadata):
         raise NotImplementedError
 
     def get_location(self, metadata):
         return None
+
+    def to_string(self, metadata):
+        warn(DeprecationWarning('This method was replaced by get_title',
+                                stacklevel=2))
+        return self.get_title()
 
 
 class DefaultEvent(BaseEvent):
@@ -43,5 +50,5 @@ class DefaultEvent(BaseEvent):
             'title': title,
         }
 
-    def to_string(self, metadata):
+    def get_title(self, metadata):
         return metadata['title']

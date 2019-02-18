@@ -46,7 +46,7 @@ class ErrorEvent(BaseEvent):
 
         return rv
 
-    def to_string(self, metadata):
+    def get_title(self, metadata):
         if not metadata['value']:
             return metadata['type']
         return u'{}: {}'.format(

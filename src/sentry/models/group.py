@@ -422,7 +422,7 @@ class Group(Model):
     @property
     def title(self):
         et = eventtypes.get(self.get_event_type())(self.data)
-        return et.to_string(self.get_event_metadata())
+        return et.get_title(self.get_event_metadata())
 
     def location(self):
         et = eventtypes.get(self.get_event_type())(self.data)
