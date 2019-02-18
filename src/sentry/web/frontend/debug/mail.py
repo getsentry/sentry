@@ -203,12 +203,13 @@ class ActivityMailDebugView(View):
 
         event_manager = EventManager(data)
         event_manager.normalize()
+        data = event_manager.get_data()
         event_type = event_manager.get_event_type()
 
-        group.mesage = event_manager.get_search_message()
+        group.message = event_manager.get_search_message()
         group.data = {
             'type': event_type.key,
-            'metadata': event_type.get_metadata(),
+            'metadata': event_type.get_metadata(data),
         }
 
         event = Event(
@@ -266,6 +267,7 @@ def alert(request):
 
     event_manager = EventManager(data)
     event_manager.normalize()
+    data = event_manager.get_data()
     event = event_manager.save(project.id)
     # Prevent Percy screenshot from constantly changing
     event.datetime = datetime(2017, 9, 6, 0, 0)
@@ -275,7 +277,7 @@ def alert(request):
     group.message = event_manager.get_search_message()
     group.data = {
         'type': event_type.key,
-        'metadata': event_type.get_metadata(),
+        'metadata': event_type.get_metadata(data),
     }
 
     rule = Rule(label="An example rule")
