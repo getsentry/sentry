@@ -2,7 +2,7 @@
 set -xe
 
 # if we already have a venv, we can leave
-if [ -f .venv/bin/python ]; then
+if .venv/bin/python --version &> /dev/null; then
   exit 0
 fi
 
