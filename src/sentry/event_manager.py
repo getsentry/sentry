@@ -743,7 +743,7 @@ class EventManager(object):
         data['type'] = event_type.key
         data['metadata'] = event_metadata
         data['culprit'] = culprit
-        data['title'] = event_type.to_string(event_metadata)
+        data['title'] = event_type.get_title(event_metadata)
         data['location'] = event_type.get_location(event_metadata)
 
         # index components into ``Event.message``

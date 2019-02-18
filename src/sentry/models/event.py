@@ -162,7 +162,7 @@ class Event(Model):
     def title(self):
         # also see event_manager.py which inserts this for snuba
         et = eventtypes.get(self.get_event_type())(self.data)
-        return et.to_string(self.get_event_metadata())
+        return et.get_title(self.get_event_metadata())
 
     @property
     def culprit(self):

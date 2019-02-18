@@ -21,7 +21,7 @@ class CspEvent(BaseEvent):
             'message': csp.get_message(),
         }
 
-    def to_string(self, metadata):
+    def get_title(self, metadata):
         return metadata['message']
 
     def get_location(self, metadata):
@@ -42,7 +42,7 @@ class HpkpEvent(BaseEvent):
             'message': hpkp.get_message(),
         }
 
-    def to_string(self, metadata):
+    def get_title(self, metadata):
         return metadata['message']
 
     def get_location(self, metadata):
@@ -63,7 +63,7 @@ class ExpectCTEvent(BaseEvent):
             'message': expectct.get_message(),
         }
 
-    def to_string(self, metadata):
+    def get_title(self, metadata):
         return metadata['message']
 
     def get_location(self, metadata):
@@ -84,7 +84,7 @@ class ExpectStapleEvent(BaseEvent):
             'message': expectstaple.get_message(),
         }
 
-    def to_string(self, metadata):
+    def get_title(self, metadata):
         return metadata['message']
 
     def get_location(self, metadata):
