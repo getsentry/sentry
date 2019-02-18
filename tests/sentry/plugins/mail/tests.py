@@ -135,7 +135,7 @@ class MailPluginTest(TestCase):
             short_id=2,
             data={
                 'type': event_type.key,
-                'metadata': event_type.get_metadata(),
+                'metadata': event_type.get_metadata(event_data),
             }
         )
 
@@ -178,7 +178,7 @@ class MailPluginTest(TestCase):
             short_id=2,
             data={
                 'type': event_type.key,
-                'metadata': event_type.get_metadata(),
+                'metadata': event_type.get_metadata(event_data),
             }
         )
 

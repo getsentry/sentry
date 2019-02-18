@@ -88,7 +88,7 @@ def get_tag(data, key):
             return v
 
 
-def get_event_metadata_compat(data, fallback_message):
+def get_event_metadata_compat(data):
     """This is a fallback path to getting the event metadata.  This is used
     by some code paths that could potentially deal with old sentry events that
     do not have metadata yet.  This does not happen in practice any more but
@@ -96,7 +96,7 @@ def get_event_metadata_compat(data, fallback_message):
     """
     etype = data.get('type') or 'default'
     if 'metadata' not in data:
-        return eventtypes.get(etype)(data).get_metadata()
+        return eventtypes.get(etype)().get_metadata(data)
     return data['metadata']
 
 
@@ -563,7 +563,7 @@ class EventManager(object):
 
     def get_event_type(self):
         """Returns the event type."""
-        return eventtypes.get(self._data.get('type', 'default'))(self._data)
+        return eventtypes.get(self._data.get('type', 'default'))()
 
     def get_search_message(self, event_metadata=None, culprit=None):
         """This generates the internal event.message attribute which is used
@@ -571,7 +571,7 @@ class EventManager(object):
         the culprit.
         """
         if event_metadata is None:
-            event_metadata = self.get_event_type().get_metadata()
+            event_metadata = self.get_event_type().get_metadata(self._data)
         if culprit is None:
             culprit = self.get_culprit()
 
@@ -730,7 +730,7 @@ class EventManager(object):
         hashes = event.get_hashes()
 
         event_type = self.get_event_type()
-        event_metadata = event_type.get_metadata()
+        event_metadata = event_type.get_metadata(self._data)
 
         data['hashes'] = hashes
 

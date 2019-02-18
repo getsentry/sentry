@@ -9,13 +9,10 @@ from sentry.utils.safe import get_path
 class BaseEvent(object):
     id = None
 
-    def __init__(self, data):
-        self.data = data
-
-    def has_metadata(self):
+    def has_metadata(self, data):
         raise NotImplementedError
 
-    def get_metadata(self):
+    def get_metadata(self, data):
         raise NotImplementedError
 
     def get_title(self, metadata):
@@ -33,13 +30,13 @@ class BaseEvent(object):
 class DefaultEvent(BaseEvent):
     key = 'default'
 
-    def has_metadata(self):
+    def has_metadata(self, data):
         # the default event can always work
         return True
 
-    def get_metadata(self):
-        message = strip(get_path(self.data, 'logentry', 'formatted') or
-                        get_path(self.data, 'logentry', 'message'))
+    def get_metadata(self, data):
+        message = strip(get_path(data, 'logentry', 'formatted') or
+                        get_path(data, 'logentry', 'message'))
 
         if message:
             title = truncatechars(message.splitlines()[0], 100)

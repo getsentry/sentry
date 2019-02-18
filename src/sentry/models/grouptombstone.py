@@ -48,4 +48,4 @@ class GroupTombstone(Model):
         See ``sentry.eventtypes``.
         """
         from sentry.event_manager import get_event_metadata_compat
-        return get_event_metadata_compat(self.data, self.message)
+        return get_event_metadata_compat(self.data)
