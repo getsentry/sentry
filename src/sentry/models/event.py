@@ -140,7 +140,7 @@ class Event(Model):
         See ``sentry.eventtypes``.
         """
         from sentry.event_manager import get_event_metadata_compat
-        return get_event_metadata_compat(self.data, self.message)
+        return get_event_metadata_compat(self.data)
 
     def get_hashes(self):
         """
@@ -161,7 +161,7 @@ class Event(Model):
     @property
     def title(self):
         # also see event_manager.py which inserts this for snuba
-        et = eventtypes.get(self.get_event_type())(self.data)
+        et = eventtypes.get(self.get_event_type())()
         return et.get_title(self.get_event_metadata())
 
     @property
@@ -172,7 +172,7 @@ class Event(Model):
     @property
     def location(self):
         # also see event_manager.py which inserts this for snuba
-        et = eventtypes.get(self.get_event_type())(self.data)
+        et = eventtypes.get(self.get_event_type())()
         return et.get_location(self.get_event_metadata())
 
     @property
@@ -218,9 +218,8 @@ class Event(Model):
 
     def get_tags(self):
         try:
-            rv = [(t, v) for t, v in get_path(
-                self.data, 'tags', filter=True) or () if t is not None and v is not None]
-            rv.sort()
+            rv = sorted([(t, v) for t, v in get_path(
+                self.data, 'tags', filter=True) or () if t is not None and v is not None])
             return rv
         except ValueError:
             # at one point Sentry allowed invalid tag sets such as (foo, bar)
