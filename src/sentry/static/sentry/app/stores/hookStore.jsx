@@ -23,6 +23,7 @@ const validHookNames = new Set([
   'utils:onboarding-survey-url',
   'component:org-auth-view',
   'component:org-members-view',
+  'sidebar:power',
 
   // Additional settings
   'settings:organization-navigation',

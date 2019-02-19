@@ -15,6 +15,7 @@ import {load as loadIncidents} from 'app/actionCreators/incidents';
 import {t} from 'app/locale';
 import ConfigStore from 'app/stores/configStore';
 import Feature from 'app/components/acl/feature';
+import Hook from 'app/components/hook';
 import InlineSvg from 'app/components/inlineSvg';
 import PreferencesStore from 'app/stores/preferencesStore';
 import SentryTypes from 'app/sentryTypes';
@@ -411,6 +412,13 @@ class Sidebar extends React.Component {
         {hasOrganization && (
           <SidebarSectionGroup>
             <SidebarSection>
+              <Hook
+                name="sidebar:power"
+                {...sidebarItemProps}
+                onClick={this.hidePanel}
+                organization={organization}
+              />
+
               <SidebarHelp
                 orientation={orientation}
                 collapsed={collapsed}
