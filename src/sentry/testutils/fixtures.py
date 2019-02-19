@@ -507,6 +507,7 @@ class Fixtures(object):
                                    for_store=False)
             manager.normalize()
             kwargs['data'] = manager.get_data()
+            kwargs['data'].update(manager.materialize_metadata())
             kwargs['message'] = manager.get_search_message()
 
         event = Event(event_id=event_id, **kwargs)
