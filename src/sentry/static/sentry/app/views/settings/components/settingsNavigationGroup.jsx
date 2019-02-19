@@ -2,6 +2,7 @@ import PropTypes from 'prop-types';
 import React from 'react';
 import styled from 'react-emotion';
 
+import Hook from 'app/components/hook';
 import SentryTypes from 'app/sentryTypes';
 import SettingsNavItem from 'app/views/settings/components/settingsNavItem';
 import replaceRouterParams from 'app/utils/replaceRouterParams';
@@ -16,6 +17,11 @@ const SettingsHeading = styled.div`
   font-weight: 600;
   text-transform: uppercase;
   margin-bottom: 20px;
+`;
+
+const StyledItem = styled.div`
+  display: flex;
+  justify-content: space-between;
 `;
 
 export default class NavigationGroup extends React.Component {
@@ -48,13 +54,21 @@ export default class NavigationGroup extends React.Component {
           });
 
           return (
-            <SettingsNavItem
-              key={title}
-              to={to}
-              label={title}
-              index={index}
-              badge={badgeResult}
-            />
+            <StyledItem key={title}>
+              <SettingsNavItem
+                key={title}
+                to={to}
+                label={title}
+                index={index}
+                badge={badgeResult}
+              />
+              <Hook
+                name="sidebar:power-icon"
+                organization={organization}
+                source={title}
+                key={`${title}-power-icon`}
+              />
+            </StyledItem>
           );
         })}
       </NavSection>
