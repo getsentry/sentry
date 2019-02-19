@@ -539,15 +539,13 @@ class EventManager(object):
             'location': event_type.get_location(event_metadata),
         }
 
-    def get_search_message(self, event_metadata=None, culprit=None):
+    def get_search_message(self, event_metadata=None):
         """This generates the internal event.message attribute which is used
         for search purposes.  It adds a bunch of data from the metadata and
         the culprit.
         """
         if event_metadata is None:
             event_metadata = self.get_event_type().get_metadata(self._data)
-        if culprit is None:
-            culprit = self.get_culprit()
 
         data = self._data
         message = ''
@@ -561,10 +559,6 @@ class EventManager(object):
                 value_u = force_text(value, errors='replace')
                 if value_u not in message:
                     message = u'{} {}'.format(message, value_u)
-
-        if culprit and culprit not in message:
-            culprit_u = force_text(culprit, errors='replace')
-            message = u'{} {}'.format(message, culprit_u)
 
         return trim(message.strip(), settings.SENTRY_MAX_MESSAGE_LENGTH)
 
@@ -606,9 +600,6 @@ class EventManager(object):
                 }
             )
             return event
-
-        # Pull out the culprit
-        culprit = self.get_culprit()
 
         # Pull the toplevel data we're interested in
         level = data.get('level')
@@ -713,11 +704,10 @@ class EventManager(object):
         materialized_metadata = self.materialize_metadata()
         event_metadata = materialized_metadata['metadata']
         data.update(materialized_metadata)
-        data['culprit'] = culprit
 
         # index components into ``Event.message``
         # See GH-3248
-        event.message = self.get_search_message(event_metadata, culprit)
+        event.message = self.get_search_message(event_metadata)
         received_timestamp = event.data.get('received') or float(event.datetime.strftime('%s'))
 
         # The group gets the same metadata as the event when it's flushed but
@@ -728,7 +718,7 @@ class EventManager(object):
         kwargs = {
             'platform': platform,
             'message': event.message,
-            'culprit': culprit,
+            'culprit': event_metadata['culprit'],
             'logger': logger_name,
             'level': LOG_LEVELS_MAP.get(level),
             'last_seen': date,
