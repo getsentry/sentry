@@ -507,14 +507,7 @@ class Fixtures(object):
                                    for_store=False)
             manager.normalize()
             kwargs['data'] = manager.get_data()
-
-            event_type = manager.get_event_type()
-            event_metadata = event_type.get_metadata(kwargs['data'])
-            kwargs['data']['type'] = event_type.key
-            kwargs['data']['metadata'] = event_metadata
-            kwargs['data']['title'] = event_type.get_title(event_metadata)
-            kwargs['data']['location'] = event_type.get_location(event_metadata)
-
+            kwargs['data'].update(manager.materialize_metadata())
             kwargs['message'] = manager.get_search_message()
 
         event = Event(event_id=event_id, **kwargs)
