@@ -204,7 +204,7 @@ class ProjectSummarySerializerTest(TestCase):
         assert result['latestDeploys'] == {
             'production': {'dateFinished': self.date, 'version': self.release.version}
         }
-        assert result['latestRelease'] == serialize(self.release)
+        assert result['latestRelease'] == {'version': self.release.version}
         assert result['environments'] == ['production', 'staging']
 
     def test_no_enviroments(self):
@@ -256,7 +256,7 @@ class ProjectSummarySerializerTest(TestCase):
         assert result['latestDeploys'] == {
             'production': {'dateFinished': self.date, 'version': self.release.version}
         }
-        assert result['latestRelease'] == serialize(self.release)
+        assert result['latestRelease'] == {'version': self.release.version}
         assert result['environments'] == ['production', 'staging']
 
 

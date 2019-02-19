@@ -311,14 +311,15 @@ class ProjectSummarySerializer(ProjectWithTeamSerializer):
                     'dateFinished': date_finished
                 }
 
-        latest_release_list = bulk_fetch_project_latest_releases(item_list)
-        latest_releases = {
-            r.actual_project_id: d
-            for r, d in zip(latest_release_list, serialize(latest_release_list, user))
+        # We  just return the version key here so that we cut down on response
+        # size
+        latest_release_verions = {
+            release.actual_project_id: {'version': release.version}
+            for release in bulk_fetch_project_latest_releases(item_list)
         }
 
         for item in item_list:
-            attrs[item]['latest_release'] = latest_releases.get(item.id)
+            attrs[item]['latest_release'] = latest_release_verions.get(item.id)
             attrs[item]['deploys'] = deploys_by_project.get(item.id)
             attrs[item]['environments'] = environments_by_project.get(item.id, [])
 
