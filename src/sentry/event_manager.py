@@ -742,6 +742,7 @@ class EventManager(object):
         materialized_metadata = self.materialize_metadata()
         event_metadata = materialized_metadata['metadata']
         data.update(materialized_metadata)
+        data['culprit'] = culprit
 
         # index components into ``Event.message``
         # See GH-3248
