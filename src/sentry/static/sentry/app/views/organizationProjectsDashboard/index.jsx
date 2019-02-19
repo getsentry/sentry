@@ -97,7 +97,9 @@ class Dashboard extends React.Component {
           );
         })}
         {teamSlugs.length === 0 &&
-          favorites.length === 0 && <NoProjectMessage organization={organization} />}
+          favorites.length === 0 && (
+            <NoProjectMessage organization={organization}>{null}</NoProjectMessage>
+          )}
       </React.Fragment>
     );
   }
