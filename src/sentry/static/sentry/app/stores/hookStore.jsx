@@ -8,6 +8,7 @@ const validHookNames = new Set([
   'routes:admin',
   'routes:organization',
   'routes:onboarding-survey',
+  'routes:organization-root',
 
   // Analytics and tracking hooks
   'amplitude:event',
