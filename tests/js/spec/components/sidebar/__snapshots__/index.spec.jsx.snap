@@ -444,11 +444,6 @@ exports[`Sidebar SidebarDropdown can open Sidebar org/name dropdown menu 1`] = `
       </MenuItemLink>
     </SidebarMenuItem>
     <Hook
-      Components={
-        Object {
-          "SidebarMenuItem": [Function],
-        }
-      }
       name="sidebar:organization-dropdown-menu"
       organization={
         Object {
@@ -991,6 +986,36 @@ exports[`Sidebar SidebarHelp can toggle help menu 1`] = `
     onMouseEnter={[Function]}
     onMouseLeave={[Function]}
   >
+    <Hook
+      name="sidebar:help-menu"
+      organization={
+        Object {
+          "access": Array [
+            "org:read",
+            "org:write",
+            "org:admin",
+            "project:read",
+            "project:write",
+            "project:admin",
+            "team:read",
+            "team:write",
+            "team:admin",
+          ],
+          "features": Array [],
+          "id": "3",
+          "name": "Organization Name",
+          "onboardingTasks": Array [],
+          "projects": Array [],
+          "scrapeJavaScript": true,
+          "slug": "org-slug",
+          "status": Object {
+            "id": "active",
+            "name": "active",
+          },
+          "teams": Array [],
+        }
+      }
+    />
     <SidebarMenuItem
       onClick={[Function]}
     >
