@@ -115,11 +115,9 @@ class TagStorageTest(SnubaTestCase):
         result.sort(key=lambda r: r.key)
         assert result[0].key == 'baz'
         assert result[0].top_values[0].value == 'quux'
-        assert result[0].values_seen == 1
         assert result[0].count == 2
 
         assert result[3].key == 'sentry:release'
-        assert result[3].values_seen == 2
         assert result[3].count == 2
         top_release_values = result[3].top_values
         assert len(top_release_values) == 2
@@ -192,11 +190,6 @@ class TagStorageTest(SnubaTestCase):
             )
         }
         assert set(keys) == set(['baz', 'environment', 'foo', 'sentry:release', 'sentry:user'])
-        for k in keys.values():
-            if k.key not in set(['sentry:release', 'sentry:user']):
-                assert k.values_seen == 1, u'expected {!r} to have 1 unique value'.format(k.key)
-            else:
-                assert k.values_seen == 2
 
     def test_get_group_tag_value(self):
         with pytest.raises(GroupTagValueNotFound):
