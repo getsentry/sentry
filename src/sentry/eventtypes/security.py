@@ -10,16 +10,20 @@ class CspEvent(BaseEvent):
         return data.get('csp') is not None
 
     def get_metadata(self, data):
+        rv = BaseEvent.get_metadata(self, data)
+
         from sentry.interfaces.security import Csp
         # TODO(dcramer): pull get message into here to avoid instantiation
         # or ensure that these get interfaces passed instead of raw data
         csp = Csp.to_python(data['csp'])
 
-        return {
+        rv.update({
             'directive': csp.effective_directive,
             'uri': csp._normalized_blocked_uri,
             'message': csp.get_message(),
-        }
+        })
+
+        return rv
 
     def get_title(self, metadata):
         return metadata['message']
@@ -35,12 +39,14 @@ class HpkpEvent(BaseEvent):
         return data.get('hpkp') is not None
 
     def get_metadata(self, data):
+        rv = BaseEvent.get_metadata(self, data)
         from sentry.interfaces.security import Hpkp
         hpkp = Hpkp.to_python(data['hpkp'])
-        return {
+        rv.update({
             'origin': hpkp.get_origin(),
             'message': hpkp.get_message(),
-        }
+        })
+        return rv
 
     def get_title(self, metadata):
         return metadata['message']
@@ -56,12 +62,14 @@ class ExpectCTEvent(BaseEvent):
         return data.get('expectct') is not None
 
     def get_metadata(self, data):
+        rv = BaseEvent.get_metadata(self, data)
         from sentry.interfaces.security import ExpectCT
         expectct = ExpectCT.to_python(data['expectct'])
-        return {
+        rv.update({
             'origin': expectct.get_origin(),
             'message': expectct.get_message(),
-        }
+        })
+        return rv
 
     def get_title(self, metadata):
         return metadata['message']
@@ -77,12 +85,14 @@ class ExpectStapleEvent(BaseEvent):
         return data.get('expectstaple') is not None
 
     def get_metadata(self, data):
+        rv = BaseEvent.get_metadata(self, data)
         from sentry.interfaces.security import ExpectStaple
         expectstaple = ExpectStaple.to_python(data['expectstaple'])
-        return {
+        rv.update({
             'origin': expectstaple.get_origin(),
             'message': expectstaple.get_message(),
-        }
+        })
+        return rv
 
     def get_title(self, metadata):
         return metadata['message']

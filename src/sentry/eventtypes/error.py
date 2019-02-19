@@ -28,13 +28,12 @@ class ErrorEvent(BaseEvent):
         return exception and any(v is not None for v in six.itervalues(exception))
 
     def get_metadata(self, data):
+        rv = BaseEvent.get_metadata(self)
         exception = get_path(data, 'exception', 'values', -1)
 
         # in some situations clients are submitting non-string data for these
-        rv = {
-            'type': trim(get_path(exception, 'type', default='Error'), 128),
-            'value': trim(get_path(exception, 'value', default=''), 1024),
-        }
+        rv['type'] = trim(get_path(exception, 'type', default='Error'), 128)
+        rv['value'] = trim(get_path(exception, 'value', default=''), 1024)
 
         # Attach crash location
         if exception:
