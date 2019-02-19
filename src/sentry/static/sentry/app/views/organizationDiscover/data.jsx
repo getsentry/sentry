@@ -41,6 +41,8 @@ export const COLUMNS = [
   {name: 'project.name', type: TYPES.STRING},
   {name: 'platform', type: TYPES.STRING},
   {name: 'message', type: TYPES.STRING},
+  {name: 'title', type: TYPES.STRING},
+  {name: 'location', type: TYPES.STRING},
   {name: 'timestamp', type: TYPES.DATETIME},
   {name: 'release', type: TYPES.STRING},
 
