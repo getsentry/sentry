@@ -122,7 +122,6 @@ const SidebarDropdown = withApi(
                         <Hook
                           name="sidebar:organization-dropdown-menu"
                           organization={org}
-                          Components={{SidebarMenuItem}}
                         />
 
                         {!config.singleOrganization && (
