@@ -416,8 +416,7 @@ class Group(Model):
 
         See ``sentry.eventtypes``.
         """
-        from sentry.event_manager import get_event_metadata_compat
-        return get_event_metadata_compat(self.data)
+        return self.data['metadata']
 
     @property
     def title(self):
