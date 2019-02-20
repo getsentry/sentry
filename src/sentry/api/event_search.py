@@ -142,6 +142,16 @@ class SearchFilter(namedtuple('SearchFilter', 'key operator value')):
             map(six.text_type, (self.key.name, self.operator, self.value.raw_value)),
         )
 
+    @cached_property
+    def is_negation(self):
+        # Negations are mostly just using != operators. But we also have
+        # negations on has: filters, which translate to = '', so handle that
+        # case as well.
+        return (
+            self.operator == '!=' and self.value.raw_value != ''
+            or self.operator == '=' and self.value.raw_value == ''
+        )
+
 
 class SearchKey(namedtuple('SearchKey', 'name')):
 

@@ -77,7 +77,9 @@ class ProjectGroupIndexEndpoint(ProjectEndpoint, EnvironmentMixin):
             query_kwargs = {}
         else:
             environments = [environment] if environment is not None else environment
-            query_kwargs = build_query_params_from_request(request, [project], environments)
+            query_kwargs = build_query_params_from_request(
+                request, project.organization, [project], environments,
+            )
             if extra_query_kwargs is not None:
                 assert 'environment' not in extra_query_kwargs
                 query_kwargs.update(extra_query_kwargs)
