@@ -11,7 +11,7 @@ const DATE_TIME_FORMAT = 'YYYY-MM-DDTHH:mm:ss';
  * time that is the current time less the statsPeriod.
  *
  * @param {String} statsPeriod Relative stats period
- * @returns {Object} Object containing start and end date as YYYY-MM-DDTHH:mm:ss
+ * @return {Object} Object containing start and end date as YYYY-MM-DDTHH:mm:ss
  *
  */
 export function parseStatsPeriod(statsPeriod) {
@@ -45,6 +45,7 @@ export function parseStatsPeriod(statsPeriod) {
  * followed by a single character s|m|h|d) display "Other" or "Invalid period" if invalid
  *
  * @param {String} relative Relative stats period
+ * @return {String} Returns either one of the default "Last x days" string, "Other" if period is valid on the backend, or "Invalid period" otherwise
  */
 export function getRelativeSummary(relative) {
   const defaultRelativePeriodString = DEFAULT_RELATIVE_PERIODS[relative];
