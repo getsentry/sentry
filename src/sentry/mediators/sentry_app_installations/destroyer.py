@@ -18,10 +18,12 @@ class Destroyer(Mediator):
         return self.install
 
     def _destroy_authorization(self):
-        self.install.authorization.delete()
+        if self.install.authorization:
+            self.install.authorization.delete()
 
     def _destroy_grant(self):
-        self.install.api_grant.delete()
+        if self.install.api_grant_id:
+            self.install.api_grant.delete()
 
     def _destroy_service_hooks(self):
         hooks = ServiceHook.objects.filter(

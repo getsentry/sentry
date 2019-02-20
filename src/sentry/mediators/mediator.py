@@ -193,7 +193,7 @@ class Mediator(object):
         if param and param.has_default:
             return param.default(self)
 
-        if not param.is_required and not param.has_default:
+        if param and not param.is_required and not param.has_default:
             return None
 
         try:

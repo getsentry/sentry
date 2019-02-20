@@ -1,6 +1,5 @@
 import React from 'react';
 
-import Feature from 'app/components/acl/feature';
 import SentryTypes from 'app/sentryTypes';
 import withGlobalSelection from 'app/utils/withGlobalSelection';
 import withOrganization from 'app/utils/withOrganization';
@@ -17,14 +16,12 @@ class OrganizationGroupDetails extends React.Component {
     const {selection, ...props} = this.props;
 
     return (
-      <Feature features={['sentry10']} renderDisabled>
-        <GroupDetails
-          environments={selection.environments}
-          enableSnuba={true}
-          showGlobalHeader={true}
-          {...props}
-        />
-      </Feature>
+      <GroupDetails
+        environments={selection.environments}
+        enableSnuba={true}
+        showGlobalHeader={true}
+        {...props}
+      />
     );
   }
 }

@@ -149,8 +149,10 @@ class OrganizationEventsEndpointTest(OrganizationEventsTestBase):
         assert response.data['detail'] == "Parse error: 'search' (column 1)"
 
     def test_project_filtering(self):
-        user = self.create_user()
+        user = self.create_user(is_staff=False, is_superuser=False)
         org = self.create_organization()
+        org.flags.allow_joinleave = False
+        org.save()
         team = self.create_team(organization=org)
         self.create_member(organization=org, user=user, teams=[team])
 
