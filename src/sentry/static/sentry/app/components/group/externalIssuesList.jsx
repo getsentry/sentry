@@ -10,6 +10,8 @@ import PluginActions from 'app/components/group/pluginActions';
 import {Box} from 'grid-emotion';
 import {t} from 'app/locale';
 
+import SentryAppIssue from 'app/components/group/sentryAppIssue';
+
 class ExternalIssueList extends AsyncComponent {
   static propTypes = {
     group: SentryTypes.Group.isRequired,
@@ -96,6 +98,7 @@ class ExternalIssueList extends AsyncComponent {
         {integrationIssues && <Box mb={2}>{integrationIssues}</Box>}
         {pluginIssues && <Box mb={2}>{pluginIssues}</Box>}
         {pluginActions && <Box mb={2}>{pluginActions}</Box>}
+        <SentryAppIssue group={this.props.group}/>
       </React.Fragment>
     );
   }
