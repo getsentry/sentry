@@ -118,7 +118,7 @@ const OrganizationDashboard = createReactClass({
   render() {
     return (
       <Flex flex="1" direction="column">
-        <ProjectNav />
+        {!this.getFeatures().has('sentry10') && <ProjectNav />}
         <Dashboard organization={this.context.organization} {...this.props} />
       </Flex>
     );
