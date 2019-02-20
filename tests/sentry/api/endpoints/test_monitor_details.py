@@ -101,6 +101,48 @@ class UpdateMonitorTest(APITestCase):
         monitor = Monitor.objects.get(id=self.monitor.id)
         assert monitor.status == MonitorStatus.OK
 
+    def test_checkin_margin(self):
+        with self.feature({'organizations:monitors': True}):
+            resp = self.client.put(self.path, data={
+                'config': {
+                    'checkin_margin': 30,
+                }
+            })
+
+        assert resp.status_code == 200, resp.content
+        assert resp.data['id'] == six.text_type(self.monitor.guid)
+
+        monitor = Monitor.objects.get(id=self.monitor.id)
+        assert monitor.config['checkin_margin'] == 30
+
+    def test_max_runtime(self):
+        with self.feature({'organizations:monitors': True}):
+            resp = self.client.put(self.path, data={
+                'config': {
+                    'max_runtime': 30,
+                }
+            })
+
+        assert resp.status_code == 200, resp.content
+        assert resp.data['id'] == six.text_type(self.monitor.guid)
+
+        monitor = Monitor.objects.get(id=self.monitor.id)
+        assert monitor.config['max_runtime'] == 30
+
+    def test_invalid_config_param(self):
+        with self.feature({'organizations:monitors': True}):
+            resp = self.client.put(self.path, data={
+                'config': {
+                    'invalid': True,
+                }
+            })
+
+        assert resp.status_code == 200, resp.content
+        assert resp.data['id'] == six.text_type(self.monitor.guid)
+
+        monitor = Monitor.objects.get(id=self.monitor.id)
+        assert 'invalid' not in monitor.config
+
     def test_cronjob_crontab(self):
         with self.feature({'organizations:monitors': True}):
             resp = self.client.put(self.path, data={
@@ -113,10 +155,8 @@ class UpdateMonitorTest(APITestCase):
         assert resp.data['id'] == six.text_type(self.monitor.guid)
 
         monitor = Monitor.objects.get(id=self.monitor.id)
-        assert monitor.config == {
-            'schedule_type': ScheduleType.CRONTAB,
-            'schedule': '*/5 * * * *',
-        }
+        assert monitor.config['schedule_type'] == ScheduleType.CRONTAB
+        assert monitor.config['schedule'] == '*/5 * * * *'
 
     # TODO(dcramer): would be lovely to run the full spectrum, but it requires
     # this test to not be class-based
@@ -140,10 +180,8 @@ class UpdateMonitorTest(APITestCase):
         assert resp.data['id'] == six.text_type(self.monitor.guid)
 
         monitor = Monitor.objects.get(id=self.monitor.id)
-        assert monitor.config == {
-            'schedule_type': ScheduleType.CRONTAB,
-            'schedule': '0 0 1 * *',
-        }
+        assert monitor.config['schedule_type'] == ScheduleType.CRONTAB
+        assert monitor.config['schedule'] == '0 0 1 * *'
 
     def test_cronjob_crontab_invalid(self):
         with self.feature({'organizations:monitors': True}):
@@ -176,10 +214,8 @@ class UpdateMonitorTest(APITestCase):
         assert resp.data['id'] == six.text_type(self.monitor.guid)
 
         monitor = Monitor.objects.get(id=self.monitor.id)
-        assert monitor.config == {
-            'schedule_type': ScheduleType.INTERVAL,
-            'schedule': [1, 'month'],
-        }
+        assert monitor.config['schedule_type'] == ScheduleType.INTERVAL
+        assert monitor.config['schedule'] == [1, 'month']
 
     def test_cronjob_interval_invalid_inteval(self):
         with self.feature({'organizations:monitors': True}):

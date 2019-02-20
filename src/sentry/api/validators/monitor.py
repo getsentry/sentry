@@ -43,6 +43,8 @@ class CronJobValidator(serializers.Serializer):
         choices=zip(SCHEDULE_TYPES.keys(), SCHEDULE_TYPES.keys()),
     )
     schedule = serializers.WritableField()
+    checkin_margin = serializers.IntegerField(required=False)
+    max_runtime = serializers.IntegerField(required=False)
 
     def validate_schedule_type(self, attrs, source):
         value = attrs[source]

@@ -86,4 +86,6 @@ class CreateOrganizationMonitorTest(APITestCase):
         assert monitor.config == {
             'schedule_type': ScheduleType.CRONTAB,
             'schedule': '0 0 * * *',
+            'checkin_margin': None,
+            'max_runtime': None,
         }

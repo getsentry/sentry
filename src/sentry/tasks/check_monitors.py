@@ -11,7 +11,8 @@ from sentry.tasks.base import instrumented_task
 
 logger = logging.getLogger('sentry')
 
-TIMEOUT = timedelta(hours=12)
+# default maximum runtime for a monitor, in minutes
+TIMEOUT = 12 * 60
 
 
 @instrumented_task(name='sentry.tasks.check_monitors', time_limit=15, soft_time_limit=10)
@@ -31,12 +32,15 @@ def check_monitors(current_datetime=None):
         })
         monitor.mark_failed()
 
-    # timeout any monitors still marked as in progress after X time
     qs = MonitorCheckIn.objects.filter(
         status=CheckInStatus.IN_PROGRESS,
-        date_updated__lt=current_datetime - TIMEOUT,
     ).select_related('monitor')[:10000]
+    # check for any monitors which are still running and have exceeded their maximum runtime
     for checkin in qs:
+        timeout = timedelta(minutes=(checkin.monitor.config or {}).get('max_runtime') or TIMEOUT)
+        if checkin.date_updated > current_datetime - timeout:
+            continue
+
         monitor = checkin.monitor
         logger.info('monitor.checkin-timeout', extra={
             'monitor_id': monitor.id,
