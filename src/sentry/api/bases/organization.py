@@ -117,7 +117,7 @@ class OrganizationEndpoint(Endpoint):
         request,
         organization,
         force_global_perms=False,
-        include_allow_joinleave=False,
+        include_all_accessible=False,
     ):
         """
         Determines which project ids to filter the endpoint by. If a list of
@@ -134,7 +134,7 @@ class OrganizationEndpoint(Endpoint):
         `request.auth.has_scope` way of checking permissions, don't use it
         for anything else, we plan to remove this once we remove uses of
         `auth.has_scope`.
-        :param include_allow_joinleave: Whether to factor the organization
+        :param include_all_accessible: Whether to factor the organization
         allow_joinleave flag into permission checks. We should ideally
         standardize how this is used and remove this parameter.
         :return: A list of project ids, or raises PermissionDenied.
@@ -159,7 +159,7 @@ class OrganizationEndpoint(Endpoint):
             if (
                 user and is_active_superuser(request) or
                 requested_projects or
-                include_allow_joinleave
+                include_all_accessible
             ):
                 func = request.access.has_project_access
             else:
@@ -266,7 +266,7 @@ class OrganizationReleasesBaseEndpoint(OrganizationEndpoint):
             request,
             organization,
             force_global_perms=has_valid_api_key,
-            include_allow_joinleave=True,
+            include_all_accessible=True,
         )
 
     def has_release_permission(self, request, organization, release):
