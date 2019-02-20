@@ -157,7 +157,9 @@ export default class AsyncComponent extends React.Component {
       return;
     }
 
-    // TODO(dcramer): this should cancel any existing API requests
+    // Cancel any in flight requests
+    this.api.clear();
+
     this.setState({
       loading: true,
       error: false,
