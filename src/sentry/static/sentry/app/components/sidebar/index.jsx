@@ -266,17 +266,25 @@ class Sidebar extends React.Component {
                 </Feature>
 
                 <Feature features={['events']} organization={organization}>
-                  <SidebarItem
-                    {...sidebarItemProps}
-                    onClick={(_id, evt) =>
-                      this.navigateWithGlobalSelection(
-                        `/organizations/${organization.slug}/events/`,
-                        evt
-                      )}
-                    icon={<InlineSvg src="icon-stack" />}
-                    label={t('Events')}
-                    to={`/organizations/${organization.slug}/events/`}
-                  />
+                  <StyledItem>
+                    <SidebarItem
+                      {...sidebarItemProps}
+                      onClick={(_id, evt) =>
+                        this.navigateWithGlobalSelection(
+                          `/organizations/${organization.slug}/events/`,
+                          evt
+                        )}
+                      icon={<InlineSvg src="icon-stack" />}
+                      label={t('Events')}
+                      to={`/organizations/${organization.slug}/events/`}
+                    />
+                    <Hook
+                      name="sidebar:power-icon"
+                      organization={organization}
+                      source="events"
+                      key={`events-power-icon`}
+                    />
+                  </StyledItem>
                 </Feature>
 
                 {hasSentry10 && (
@@ -308,13 +316,21 @@ class Sidebar extends React.Component {
 
                 {!hasSentry10 && (
                   <Feature features={['discover']} organization={organization}>
-                    <SidebarItem
-                      {...sidebarItemProps}
-                      onClick={this.hidePanel}
-                      icon={<InlineSvg src="icon-discover" />}
-                      label={t('Discover')}
-                      to={`/organizations/${organization.slug}/discover/`}
-                    />
+                    <StyledItem>
+                      <SidebarItem
+                        {...sidebarItemProps}
+                        onClick={this.hidePanel}
+                        icon={<InlineSvg src="icon-discover" />}
+                        label={t('Discover')}
+                        to={`/organizations/${organization.slug}/discover/`}
+                      />
+                      <Hook
+                        name="sidebar:power-icon"
+                        organization={organization}
+                        source="discover"
+                        key={`discover-power-icon`}
+                      />
+                    </StyledItem>
                   </Feature>
                 )}
               </SidebarSection>
@@ -329,13 +345,21 @@ class Sidebar extends React.Component {
                     label={t('Dashboards')}
                     to={`/organizations/${organization.slug}/dashboards/`}
                   />
-                  <SidebarItem
-                    {...sidebarItemProps}
-                    onClick={this.hidePanel}
-                    icon={<InlineSvg src="icon-discover" />}
-                    label={t('Discover')}
-                    to={`/organizations/${organization.slug}/discover/`}
-                  />
+                  <StyledItem>
+                    <SidebarItem
+                      {...sidebarItemProps}
+                      onClick={this.hidePanel}
+                      icon={<InlineSvg src="icon-discover" />}
+                      label={t('Discover')}
+                      to={`/organizations/${organization.slug}/discover/`}
+                    />
+                    <Hook
+                      name="sidebar:power-icon"
+                      organization={organization}
+                      source="discover"
+                      key={`discover-power-icon`}
+                    />
+                  </StyledItem>
                 </SidebarSection>
               </Feature>
 
@@ -572,4 +596,9 @@ const SidebarCollapseItem = styled(SidebarItem)`
   @media (max-width: ${p => p.theme.breakpoints[0]}) {
     display: none;
   }
+`;
+const StyledItem = styled.div`
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
 `;

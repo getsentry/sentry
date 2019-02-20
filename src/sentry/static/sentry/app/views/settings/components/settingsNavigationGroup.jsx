@@ -22,6 +22,7 @@ const SettingsHeading = styled.div`
 const StyledItem = styled.div`
   display: flex;
   justify-content: space-between;
+  align-items: center;
 `;
 
 export default class NavigationGroup extends React.Component {
@@ -65,7 +66,7 @@ export default class NavigationGroup extends React.Component {
               <Hook
                 name="sidebar:power-icon"
                 organization={organization}
-                source={title}
+                source={title.toLowerCase()}
                 key={`${title}-power-icon`}
               />
             </StyledItem>
