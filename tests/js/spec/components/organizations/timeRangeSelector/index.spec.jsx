@@ -28,6 +28,22 @@ describe('TimeRangeSelector', function() {
     onChange.mockReset();
   });
 
+  it('renders when given relative period not in dropdown', function() {
+    wrapper = mount(
+      <TimeRangeSelector showAbsolute={false} showRelative={false} relative="9d" />,
+      routerContext
+    );
+    expect(wrapper.find('HeaderItem').text()).toEqual('Other');
+  });
+
+  it('renders when given an invalid relative period', function() {
+    wrapper = mount(
+      <TimeRangeSelector showAbsolute={false} showRelative={false} relative="1w" />,
+      routerContext
+    );
+    expect(wrapper.find('HeaderItem').text()).toEqual('Invalid period');
+  });
+
   it('hides relative and absolute selectors', async function() {
     wrapper = mount(
       <TimeRangeSelector showAbsolute={false} showRelative={false} />,
