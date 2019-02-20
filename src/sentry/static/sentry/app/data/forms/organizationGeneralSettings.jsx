@@ -46,6 +46,12 @@ const formGroups = [
         label: t('Early Adopter'),
         help: t("Opt-in to new features before they're released to the public"),
       },
+      {
+        name: 'disableNewVisibilityFeatures',
+        type: 'boolean',
+        label: t('Disable Visibility Features'),
+        help: t('Temporarily opt-out of new cross-project visibility features'),
+      },
     ],
   },
 
