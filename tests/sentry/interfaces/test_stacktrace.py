@@ -748,7 +748,7 @@ class StacktraceTest(TestCase):
                 ]
             )
         )
-        assert stacktrace.get_culprit_string(platform='cocoa') == ''
+        assert stacktrace.get_culprit_string(platform='cocoa') is None
 
     def test_emoji_culprit(self):
         stacktrace = Stacktrace.to_python(
