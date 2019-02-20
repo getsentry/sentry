@@ -766,6 +766,10 @@ function routes() {
         <Route component={errorHandler(OrganizationRoot)}>
           <IndexRoute component={errorHandler(OrganizationDashboard)} />
           <Route
+            path="/organizations/:orgId/projects/"
+            component={errorHandler(OrganizationDashboard)}
+          />
+          <Route
             path="/organizations/:orgId/stats/"
             component={errorHandler(OrganizationStats)}
           />
