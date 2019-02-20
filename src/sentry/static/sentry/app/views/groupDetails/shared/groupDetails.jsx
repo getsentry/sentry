@@ -116,6 +116,7 @@ const GroupDetails = createReactClass({
               location.search +
               location.hash
           );
+          return;
         }
 
         const project = this.props.project || ProjectsStore.getById(data.project.id);
