@@ -97,6 +97,7 @@ class OrganizationSerializer(Serializer):
             'name': obj.name or obj.slug,
             'dateCreated': obj.date_added,
             'isEarlyAdopter': bool(obj.flags.early_adopter),
+            'disableNewVisibilityFeatures': bool(obj.flags.disable_new_visibility_features),
             'require2FA': bool(obj.flags.require_2fa),
             'avatar': avatar,
             'features': feature_list
