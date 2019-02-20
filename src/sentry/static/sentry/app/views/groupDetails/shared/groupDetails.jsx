@@ -108,7 +108,7 @@ const GroupDetails = createReactClass({
         // https://github.com/reactjs/react-router/blob/v2.0.1/modules/index.js#L25
         if (this.props.params.groupId != data.id) {
           const location = this.props.location;
-          return void browserHistory.push(
+          browserHistory.push(
             location.pathname.replace(
               `/issues/${this.props.params.groupId}/`,
               `/issues/${data.id}/`
@@ -133,7 +133,7 @@ const GroupDetails = createReactClass({
           project,
         });
 
-        return void GroupStore.loadInitialData([data]);
+        GroupStore.loadInitialData([data]);
       },
       error: (_, _textStatus, errorThrown) => {
         let errorType = null;
@@ -254,7 +254,9 @@ const GroupDetails = createReactClass({
                 />
               )}
               {isLoading ? (
-                <LoadingIndicator />
+                <PageContent>
+                  <LoadingIndicator />
+                </PageContent>
               ) : (
                 this.renderContent(shouldShowGlobalHeader)
               )}
