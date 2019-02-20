@@ -22,9 +22,9 @@ build: locale
 
 reset-db:
 	@echo "--> Dropping existing 'sentry' database"
-	dropdb sentry || true
+	dropdb -h 127.0.0.1 -U postgres sentry || true
 	@echo "--> Creating 'sentry' database"
-	createdb -E utf-8 sentry
+	createdb -h 127.0.0.1 -U postgres -E utf-8 sentry
 	@echo "--> Applying migrations"
 	sentry upgrade
 

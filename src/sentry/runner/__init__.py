@@ -65,6 +65,7 @@ list(
             'sentry.runner.commands.start.start', 'sentry.runner.commands.tsdb.tsdb',
             'sentry.runner.commands.upgrade.upgrade',
             'sentry.runner.commands.permissions.permissions',
+            'sentry.runner.commands.devservices.devservices',
         )
     )
 )
