@@ -9,7 +9,10 @@ from django.conf import settings
 from django.template.loader import render_to_string
 from exam import fixture
 
-from sentry.interfaces.stacktrace import (Frame, Stacktrace, get_context, is_url, slim_frame_data)
+from sentry.interfaces.stacktrace import (
+    Frame, Stacktrace, get_context, is_url, slim_frame_data,
+    trim_function_name
+)
 from sentry.models import Event
 from sentry.testutils import TestCase
 
@@ -23,6 +26,16 @@ def test_is_url():
     assert is_url('webpack:///./app/index.jsx') is False  # webpack bundle
     assert is_url('data:,') is False
     assert is_url('blob:\x00') is False
+
+
+def test_trim_function_name():
+    assert trim_function_name('+[foo:(bar)]', 'objc') == '+[foo:(bar)]'
+    assert trim_function_name('[foo:(bar)]', 'objc') == '[foo:(bar)]'
+    assert trim_function_name('-[foo:(bar)]', 'objc') == '-[foo:(bar)]'
+    assert trim_function_name(
+        '(anonymous namespace)::foo(int)',
+        'native') == '(anonymous namespace)::foo'
+    assert trim_function_name('foo::bar::foo(int)', 'native') == 'foo::bar::foo'
 
 
 class GetContextTest(TestCase):
@@ -735,7 +748,7 @@ class StacktraceTest(TestCase):
                 ]
             )
         )
-        assert stacktrace.get_culprit_string(platform='cocoa') == '-[CRLCrashAsyncSafeThread crash]'
+        assert stacktrace.get_culprit_string(platform='cocoa') == ''
 
     def test_emoji_culprit(self):
         stacktrace = Stacktrace.to_python(
@@ -777,7 +790,7 @@ class StacktraceTest(TestCase):
                 ]
             )
         )
-        assert stacktrace.get_culprit_string(platform='cocoa') == '-[CRLCrashAsyncSafeThread crash]'
+        assert stacktrace.get_culprit_string(platform='cocoa') == ''
 
     def test_compute_hashes_does_not_group_different_js_errors(self):
         interface = Stacktrace.to_python(

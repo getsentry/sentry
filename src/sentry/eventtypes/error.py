@@ -39,9 +39,9 @@ class ErrorEvent(BaseEvent):
         loc = get_crash_location(exception, data.get('platform'))
         rv = {}
 
-        # If the exception mechanism indicates a synthesized exception we do not
+        # If the exception mechanism indicates a synthetic exception we do not
         # want to record the type and value into the metadata.
-        if not get_path(exception, 'mechanism', 'synthesized'):
+        if not get_path(exception, 'mechanism', 'synthetic'):
             rv.update({
                 'type': trim(get_path(exception, 'type', default='Error'), 128),
                 'value': trim(get_path(exception, 'value', default=''), 1024),

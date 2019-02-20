@@ -105,6 +105,10 @@ def trim_function_name(func, platform):
     # TODO(mitsuhiko): we actually want to use the language information here
     # but we don't have that yet.
     if platform in ('objc', 'cocoa', 'native'):
+        # objc function
+        if func.startswith(('[', '+[', '-[')):
+            return func
+        # c/c++ function hopefully
         match = _native_function_trim_re.match(func.strip())
         if match is not None:
             return match.group(1).strip()
