@@ -49,8 +49,8 @@ const formGroups = [
       {
         name: 'disableNewVisibilityFeatures',
         type: 'boolean',
-        label: t('Disable Visibility Features'),
-        help: t('Temporarily opt-out of new cross-project visibility features'),
+        label: t('Disable New Product Features'),
+        help: t('Temporarily opt-out of new product changes'),
       },
     ],
   },
