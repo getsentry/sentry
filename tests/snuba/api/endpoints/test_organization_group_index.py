@@ -391,6 +391,19 @@ class GroupListTest(APITestCase, SnubaTestCase):
 class GroupListTestWithSearchFilters(GroupListTest):
     use_new_filters = True
 
+    def test_advanced_search_errors(self):
+        self.login_as(user=self.user)
+        with self.feature({'organizations:advanced_search': False}):
+            response = self.get_response(sort_by='date', query='!has:user')
+            assert response.status_code == 400, response.data
+            assert (
+                'You need access to the advanced search feature to use negative '
+                'search' == response.data['detail']
+            )
+
+        response = self.get_response(sort_by='date', query='!has:user')
+        assert response.status_code == 200, response.data
+
 
 class GroupUpdateTest(APITestCase, SnubaTestCase):
     endpoint = 'sentry-api-0-organization-group-index'

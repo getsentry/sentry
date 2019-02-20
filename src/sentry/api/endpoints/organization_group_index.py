@@ -27,7 +27,9 @@ search = SnubaSearchBackend(**settings.SENTRY_SEARCH_OPTIONS)
 class OrganizationGroupIndexEndpoint(OrganizationEventsEndpointBase):
 
     def _search(self, request, organization, projects, environments, extra_query_kwargs=None):
-        query_kwargs = build_query_params_from_request(request, projects, environments)
+        query_kwargs = build_query_params_from_request(
+            request, organization, projects, environments,
+        )
         if extra_query_kwargs is not None:
             assert 'environment' not in extra_query_kwargs
             query_kwargs.update(extra_query_kwargs)
