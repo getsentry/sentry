@@ -52,7 +52,7 @@ class ValidationError(Exception):
     pass
 
 
-def build_query_params_from_request(request, projects, environments):
+def build_query_params_from_request(request, organization, projects, environments):
     query_kwargs = {
         'projects': projects,
         'sort_by': request.GET.get('sort', DEFAULT_SORT_OPTION),
@@ -95,10 +95,43 @@ def build_query_params_from_request(request, projects, environments):
             # If something goes wrong here we just want to use the working
             # filters
             use_new_filters = False
+        if use_new_filters:
+            validate_search_filter_permissions(organization, search_filters)
         query_kwargs['search_filters'] = search_filters
 
     query_kwargs['use_new_filters'] = use_new_filters
     return query_kwargs
+
+
+# List of conditions that mark a SearchFilter as an advanced search. Format is
+# (lambda SearchFilter(): <boolean condition>, '<feature_name')
+advanced_search_features = [
+    (lambda search_filter: search_filter.is_negation, 'negative search'),
+    (lambda search_filter: search_filter.value.is_wildcard(), 'wildcard search'),
+]
+
+
+def validate_search_filter_permissions(organization, search_filters):
+    """
+    Verifies that an organization is allowed to perform the query that they
+    submitted.
+    If the org is using a feature they don't have access to, raises
+    `ValidationError` with information which part of the query they don't have
+    access to.
+    :param search_filters:
+    """
+    # If the organization has advanced search, then no need to perform any
+    # other checks since they're allowed to use all search features
+    if features.has('organizations:advanced_search', organization):
+        return
+
+    for search_filter in search_filters:
+        for feature_condition, feature_name in advanced_search_features:
+            if feature_condition(search_filter):
+                raise ValidationError(
+                    u'You need access to the advanced search feature to use {}'.format(
+                        feature_name),
+                )
 
 
 def get_by_short_id(organization_id, is_short_id_lookup, query):
