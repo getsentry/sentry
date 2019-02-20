@@ -16,6 +16,7 @@ import ProjectsStatsStore from 'app/stores/projectsStatsStore';
 import SentryTypes from 'app/sentryTypes';
 import Tooltip from 'app/components/tooltip';
 import space from 'app/styles/space';
+import withOrganization from 'app/utils/withOrganization';
 
 import Chart from './chart';
 import Deploys from './deploys';
@@ -23,6 +24,7 @@ import NoEvents from './noEvents';
 
 class ProjectCard extends React.Component {
   static propTypes = {
+    organization: SentryTypes.Organization.isRequired,
     project: SentryTypes.Project.isRequired,
     params: PropTypes.object,
     hasProjectAccess: PropTypes.bool,
@@ -54,8 +56,10 @@ class ProjectCard extends React.Component {
   };
 
   render() {
-    const {project, hasProjectAccess, params} = this.props;
-    const {firstEvent, isBookmarked, stats, slug} = project;
+    const {organization, project, hasProjectAccess, params} = this.props;
+    const {id, firstEvent, isBookmarked, stats, slug} = project;
+
+    const hasSentry10 = new Set(organization.features).has('sentry10');
 
     const bookmarkText = isBookmarked
       ? t('Remove from bookmarks')
@@ -71,7 +75,13 @@ class ProjectCard extends React.Component {
                 avatarSize={24}
                 displayName={
                   hasProjectAccess ? (
-                    <Link to={`/${params.orgId}/${slug}/`}>
+                    <Link
+                      to={
+                        hasSentry10
+                          ? `/organizations/${params.orgId}/issues/?project=${id}`
+                          : `/${params.orgId}/${slug}/`
+                      }
+                    >
                       <strong>{slug}</strong>
                     </Link>
                   ) : (
@@ -91,7 +101,7 @@ class ProjectCard extends React.Component {
               <Chart stats={stats} noEvents={!firstEvent} />
               {!firstEvent && <NoEvents />}
             </ChartContainer>
-            <Deploys project={project} orgId={params.orgId} />
+            <Deploys project={project} organization={organization} />
           </StyledProjectCard>
         ) : (
           <LoadingCard />
@@ -184,4 +194,4 @@ const StyledIdBadge = styled(IdBadge)`
 `;
 
 export {ProjectCard};
-export default withRouter(ProjectCardContainer);
+export default withRouter(withOrganization(ProjectCardContainer));

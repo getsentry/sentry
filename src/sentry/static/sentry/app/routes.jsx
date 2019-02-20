@@ -772,6 +772,10 @@ function routes() {
           <IndexRoute component={errorHandler(OrganizationDashboard)} />
           {hooksRootOrgRoutes}
           <Route
+            path="/organizations/:orgId/projects/"
+            component={errorHandler(OrganizationDashboard)}
+          />
+          <Route
             path="/organizations/:orgId/stats/"
             component={errorHandler(OrganizationStats)}
           />
