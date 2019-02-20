@@ -36,6 +36,10 @@ _filename_version_re = re.compile(
 )/""", re.X | re.I
 )
 
+# Native function trim re.  For now this is a simple hack until we have the
+# language hints in which will let us trim this down better.
+_native_function_trim_re = re.compile(r'^(.[^(]*)\(')
+
 # OpenJDK auto-generated classes for reflection access:
 #   sun.reflect.GeneratedSerializationConstructorAccessor123
 #   sun.reflect.GeneratedConstructorAccessor456
@@ -95,6 +99,16 @@ def trim_package(pkg):
     if pkg.endswith(('.dylib', '.so', '.a')):
         pkg = pkg.rsplit('.', 1)[0]
     return pkg
+
+
+def trim_function_name(func, platform):
+    # TODO(mitsuhiko): we actually want to use the language information here
+    # but we don't have that yet.
+    if platform in ('objc', 'cocoa', 'native'):
+        match = _native_function_trim_re.match(func.strip())
+        if match is not None:
+            return match.group(1).strip()
+    return func
 
 
 def to_hex_addr(addr):
@@ -628,10 +642,10 @@ class Frame(Interface):
         # not necessarily be the same platform).
         if self.platform is not None:
             platform = self.platform
-        if platform in ('objc', 'cocoa', 'native'):
-            return self.function or '?'
         fileloc = self.module or self.filename
-        if not fileloc:
+        # File location is necessary and for native platforms we no longer
+        # produce a culprit at all.
+        if not fileloc or platform in ('objc', 'cocoa', 'native'):
             return ''
         elif platform in ('javascript', 'node'):
             # function and fileloc might be unicode here, so let it coerce

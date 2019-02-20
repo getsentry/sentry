@@ -710,6 +710,7 @@ class Mechanism(Interface):
     >>>         "relevant_address": "0x1"
     >>>     },
     >>>     "handled": false,
+    >>>     "synthesized": false,
     >>>     "help_link": "https://developer.apple.com/library/content/qa/qa1367/_index.html",
     >>>     "meta": {
     >>>         "mach_exception": {
@@ -762,6 +763,7 @@ class Mechanism(Interface):
 
         kwargs = {
             'type': trim(data['type'], 128),
+            'synthesized': data.get('synthesized') or False,
             'description': trim(data.get('description'), 1024),
             'help_link': trim(data.get('help_link'), 1024),
             'handled': data.get('handled'),
@@ -778,6 +780,7 @@ class Mechanism(Interface):
     def to_json(self):
         return prune_empty_keys({
             'type': self.type,
+            'synthesized': self.synthesized,
             'description': self.description,
             'help_link': self.help_link,
             'handled': self.handled,
