@@ -121,7 +121,7 @@ features = FeatureSet(
         'message:message:character-shingles': MessageFeature(
             lambda message: text_shingle(
                 5,
-                message.message,
+                message.formatted,
             ),
         ),
     },
