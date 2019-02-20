@@ -340,7 +340,6 @@ const IdBadgeMenuItem = styled(IdBadge)`
 `;
 
 const MultiSelectWrapper = styled('div')`
-  margin: -${space(1)};
   padding: ${space(1)};
 `;
 
@@ -350,7 +349,7 @@ const MultiSelect = styled(CheckboxFancy)`
 
 const ManageButton = styled(Button)`
   display: block;
-  margin: 0 ${space(1)};
+  margin: 0 ${space(2)};
   box-shadow: none;
   border: 0;
   background: ${p => p.theme.offWhite2};
