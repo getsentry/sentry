@@ -15,6 +15,7 @@ from sentry.api.bases.organization import (
 )
 from sentry.api.exceptions import ResourceDoesNotExist
 from sentry.api.utils import MAX_STATS_PERIOD
+from sentry.auth.access import from_request, NoAccess
 from sentry.models import ApiKey
 from sentry.testutils import TestCase
 
@@ -105,6 +106,10 @@ class BaseOrganizationEndpointTest(TestCase):
         return self.create_user('tester@test.com')
 
     @fixture
+    def member(self):
+        return self.create_user('member@test.com')
+
+    @fixture
     def owner(self):
         return self.create_user('owner@test.com')
 
@@ -123,6 +128,7 @@ class BaseOrganizationEndpointTest(TestCase):
         if user is None:
             user = self.user
         request.user = user
+        request.access = from_request(request, self.org)
         return request
 
 
@@ -132,6 +138,7 @@ class GetProjectIdsTest(BaseOrganizationEndpointTest):
         self.team_1 = self.create_team(organization=self.org)
         self.team_2 = self.create_team(organization=self.org)
         self.team_3 = self.create_team(organization=self.org)
+        self.create_team_membership(user=self.member, team=self.team_2)
         self.project_1 = self.create_project(
             organization=self.org,
             teams=[self.team_1, self.team_3],
@@ -152,6 +159,7 @@ class GetProjectIdsTest(BaseOrganizationEndpointTest):
         request_args = {}
         if project_ids:
             request_args['project'] = project_ids
+
         result = self.endpoint.get_projects(
             self.build_request(user=user, active_superuser=active_superuser, **request_args),
             self.org,
@@ -164,12 +172,13 @@ class GetProjectIdsTest(BaseOrganizationEndpointTest):
         self.run_test([])
         # Should get everything if super user
         self.run_test([self.project_1, self.project_2], user=self.user, active_superuser=True)
-        # owner only sees projects they have direct access to
-        self.run_test([], user=self.owner)
-        # Should get everything if org is public
+        # owner sees projects they have access to if they're included as query params
+        self.run_test([self.project_1, self.project_2], user=self.owner)
+        # Should get everything if org is public and ids are specified
         self.org.flags.allow_joinleave = True
         self.org.save()
-        self.run_test([self.project_1, self.project_2], include_allow_joinleave=True)
+        self.run_test([self.project_1, self.project_2], user=self.member,
+                      project_ids=[self.project_1.id, self.project_2.id])
         self.run_test([], include_allow_joinleave=False)
 
     def test_no_ids_teams(self):
@@ -185,22 +194,26 @@ class GetProjectIdsTest(BaseOrganizationEndpointTest):
 
         self.run_test([self.project_1], user=self.user, project_ids=[
                       self.project_1.id], active_superuser=True)
-        # owner only sees projects they have direct access to
-        with self.assertRaises(PermissionDenied):
-            self.run_test([self.project_1], user=self.owner, project_ids=[self.project_1.id])
+
+        # owner should see project if they explicitly request it, even if the don't
+        # have membership
+        self.run_test([self.project_1], user=self.owner, project_ids=[self.project_1.id])
 
         self.org.flags.allow_joinleave = True
         self.org.save()
         self.run_test(
             [self.project_1],
+            user=self.member,
             project_ids=[self.project_1.id],
-            include_allow_joinleave=True,
         )
+
+        self.org.flags.allow_joinleave = False
+        self.org.save()
         with self.assertRaises(PermissionDenied):
             self.run_test(
                 [self.project_1],
+                user=self.member,
                 project_ids=[self.project_1.id],
-                include_allow_joinleave=False,
             )
 
     def test_ids_teams(self):
@@ -218,6 +231,7 @@ class GetProjectIdsTest(BaseOrganizationEndpointTest):
     def test_none_user(self):
         request = RequestFactory().get('/')
         request.session = {}
+        request.access = NoAccess()
         result = self.endpoint.get_projects(request, self.org)
         assert [] == result
 
@@ -295,6 +309,7 @@ class GetFilterParamsTest(BaseOrganizationEndpointTest):
             request_args['end'] = end
         if stats_period:
             request_args['statsPeriod'] = stats_period
+
         result = self.endpoint.get_filter_params(
             self.build_request(user=user, active_superuser=active_superuser, **request_args),
             self.org,

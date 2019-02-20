@@ -12,8 +12,7 @@ from sentry.api.utils import (
 )
 from sentry.auth.superuser import is_active_superuser
 from sentry.models import (
-    ApiKey, Authenticator, Organization, OrganizationMemberTeam, Project,
-    ProjectStatus, ReleaseProject,
+    ApiKey, Authenticator, Organization, Project, ProjectStatus, ReleaseProject,
 )
 from sentry.utils import auth
 from sentry.utils.sdk import configure_scope
@@ -146,29 +145,27 @@ class OrganizationEndpoint(Endpoint):
 
         user = getattr(request, 'user', None)
 
-        if (
-            user and is_active_superuser(request)
-            or include_allow_joinleave and organization.flags.allow_joinleave
-            or force_global_perms
-        ):
-            qs = Project.objects.filter(
-                organization=organization,
-                status=ProjectStatus.VISIBLE,
-            )
-        else:
-            qs = Project.objects.filter(
-                organization=organization,
-                teams__in=OrganizationMemberTeam.objects.filter(
-                    organizationmember__user=user,
-                    organizationmember__organization=organization,
-                ).values_list('team'),
-                status=ProjectStatus.VISIBLE,
-            )
+        qs = Project.objects.filter(
+            organization=organization,
+            status=ProjectStatus.VISIBLE,
+        )
 
         if project_ids:
             qs = qs.filter(id__in=project_ids)
 
-        projects = list(qs)
+        if force_global_perms:
+            projects = list(qs)
+        else:
+            if (
+                user and is_active_superuser(request) or
+                requested_projects or
+                include_allow_joinleave
+            ):
+                func = request.access.has_project_access
+            else:
+                func = request.access.has_project_membership
+            projects = [p for p in qs if func(p)]
+
         project_ids = set(p.id for p in projects)
 
         if requested_projects and project_ids != requested_projects:
