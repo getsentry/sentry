@@ -12,6 +12,7 @@ describe('ProjectCard', function() {
   beforeEach(function() {
     wrapper = mount(
       <ProjectCard
+        organization={TestStubs.Organization()}
         project={TestStubs.Project({
           stats: [[1525042800, 1], [1525046400, 2]],
           platform: 'javascript',
@@ -72,6 +73,7 @@ describe('ProjectCard', function() {
 
     wrapper = mount(
       <ProjectCard
+        organization={TestStubs.Organization()}
         project={TestStubs.Project({
           stats: [[1525042800, 1], [1525046400, 2]],
           platform: 'javascript',
@@ -101,7 +103,11 @@ describe('ProjectCard', function() {
 
   it('renders loading placeholder card if there are no stats', function() {
     wrapper = mount(
-      <ProjectCard project={TestStubs.Project()} params={{orgId: 'org-slug'}} />,
+      <ProjectCard
+        organization={TestStubs.Organization()}
+        project={TestStubs.Project()}
+        params={{orgId: 'org-slug'}}
+      />,
       TestStubs.routerContext()
     );
 
