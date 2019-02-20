@@ -670,7 +670,7 @@ class JiraIntegrationTest(APITestCase):
 
         assert len(responses.calls) == 2
 
-        # assert user above was searched for
+        # assert user above was successfully assigned
         assign_issue_response = responses.calls[1][1]
         assert assign_issue_url in assign_issue_response.url
         assert assign_issue_response.status_code == 200
