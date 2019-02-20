@@ -55,6 +55,14 @@ class TestDestroyer(TestCase):
         assert not ApiGrant.objects.filter(pk=grant.id).exists()
 
     @responses.activate
+    def test_deletes_without_grant(self):
+        self.install.api_grant.delete()
+        self.install.update(api_grant=None)
+
+        responses.add(responses.POST, 'https://example.com/webhook')
+        assert self.destroyer.call()
+
+    @responses.activate
     def test_deletes_service_hooks(self):
         hook = self.create_service_hook(
             application=self.sentry_app.application,
