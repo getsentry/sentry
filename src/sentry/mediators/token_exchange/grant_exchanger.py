@@ -25,6 +25,10 @@ class GrantExchanger(Mediator):
     def call(self):
         self._validate()
 
+        # Once it's exchanged it's no longer valid and should not be
+        # exchangable, so we delete it.
+        self._delete_grant()
+
         return ApiToken.objects.create(
             user=self.user,
             application=self.application,
@@ -56,6 +60,9 @@ class GrantExchanger(Mediator):
 
     def _grant_is_active(self):
         return self.grant.expires_at > datetime.now(pytz.UTC)
+
+    def _delete_grant(self):
+        self.grant.delete()
 
     @memoize
     def grant(self):
