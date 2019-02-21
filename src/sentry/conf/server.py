@@ -792,7 +792,7 @@ SENTRY_FEATURES = {
     'auth:register': True,
 
     # Enable advanced search features, like negation and wildcard matching.
-    'organizations:advanced_search': True,
+    'organizations:advanced-search': True,
     # Enable obtaining and using API keys.
     'organizations:api-keys': False,
     # Enable creating organizations within sentry (if SENTRY_SINGLE_ORGANIZATION
