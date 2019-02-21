@@ -2,7 +2,7 @@
 .coverage
 .storybook-out/
 .DS_Store
-.venv/
+.venv
 *.egg-info
 *.pyc
 *.log
