@@ -6,6 +6,7 @@ from datetime import timedelta
 from django.conf import settings
 from django.utils import timezone
 
+from sentry.models import Project
 from sentry.tasks.base import instrumented_task
 from sentry.utils.locking import UnableToAcquireLock
 
@@ -22,6 +23,7 @@ def reprocess_events(project_id, **kwargs):
     have_more = False
     lock = app.locks.get(lock_key, duration=60)
 
+    project = Project.objects.get_from_cache(id=project_id)
     try:
         with lock.acquire():
             raw_events, have_more = ProcessingIssue.objects \
@@ -29,7 +31,8 @@ def reprocess_events(project_id, **kwargs):
             if raw_events:
                 helper = ClientApiHelper()
                 for raw_event in raw_events:
-                    helper.insert_data_to_database(raw_event.data.data, from_reprocessing=True)
+                    helper.insert_data_to_database(
+                        project, raw_event.data.data, from_reprocessing=True)
                     create_reprocessing_report(project_id=project_id, event_id=raw_event.event_id)
                     # Here we only delete the raw event but leave the
                     # reprocessing report alive.  When the queue

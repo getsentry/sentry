@@ -167,6 +167,7 @@ class Monitor(Model):
         if not affected:
             return False
 
+        project = Project.objects.get_from_cache(id=self.project_id)
         event_manager = EventManager(
             {
                 'logentry': {
@@ -178,7 +179,7 @@ class Monitor(Model):
                     },
                 },
             },
-            project=Project(id=self.project_id),
+            project=project,
         )
         event_manager.normalize()
         data = event_manager.get_data()

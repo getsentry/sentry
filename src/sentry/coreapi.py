@@ -17,18 +17,20 @@ import re
 import six
 import zlib
 
+from django.conf import settings
 from django.core.exceptions import SuspiciousOperation
 from django.utils.crypto import constant_time_compare
 from gzip import GzipFile
 from six import BytesIO
 from time import time
 
+from sentry import features
 from sentry.attachments import attachment_cache
 from sentry.cache import default_cache
 from sentry.models import ProjectKey
 from sentry.tasks.store import preprocess_event, \
     preprocess_event_from_reprocessing
-from sentry.utils import json
+from sentry.utils import kafka, json
 from sentry.utils.auth import parse_auth_header
 from sentry.utils.http import origin_from_request
 from sentry.utils.strings import decompress
@@ -161,7 +163,7 @@ class ClientApiHelper(object):
         if sdk:
             sdk.pop('client_ip', None)
 
-    def insert_data_to_database(self, data, start_time=None,
+    def insert_data_to_database(self, project, data, start_time=None,
                                 from_reprocessing=False, attachments=None):
         if start_time is None:
             start_time = time()
@@ -172,7 +174,6 @@ class ClientApiHelper(object):
 
         cache_timeout = 3600
         cache_key = cache_key_for_event(data)
-        default_cache.set(cache_key, data, cache_timeout)
 
         # Attachments will be empty or None if the "event-attachments" feature
         # is turned off. For native crash reports it will still contain the
@@ -180,10 +181,23 @@ class ClientApiHelper(object):
         if attachments is not None:
             attachment_cache.set(cache_key, attachments, cache_timeout)
 
-        task = from_reprocessing and \
-            preprocess_event_from_reprocessing or preprocess_event
-        task.delay(cache_key=cache_key, start_time=start_time,
-                   event_id=data['event_id'])
+        if features.has('projects:kafka-preprocess', project=project):
+            kafka.producer.produce(
+                topic=settings.KAFKA_PREPROCESS_TOPIC,
+                value=json.dumps({
+                    'attachments_cache_key': cache_key,
+                    'start_time': start_time,
+                    'from_reprocessing': from_reprocessing,
+                    'data': data,
+                })
+            )
+        else:
+            default_cache.set(cache_key, data, cache_timeout)
+
+            task = from_reprocessing and \
+                preprocess_event_from_reprocessing or preprocess_event
+            task.delay(cache_key=cache_key, start_time=start_time,
+                       event_id=data['event_id'])
 
 
 @six.add_metaclass(abc.ABCMeta)

@@ -868,6 +868,11 @@ SENTRY_FEATURES = {
     # Enable functionality to trigger service hooks upon event ingestion.
     'projects:servicehooks': False,
 
+    # TODO: Document
+    'projects:kafka-preprocess': False,
+    'projects:kafka-process': False,
+    'projects:kafka-save': False,
+
     # Don't add feature defaults down here! Please add them in their associated
     # group sorted alphabetically.
 }
@@ -1472,3 +1477,12 @@ INVALID_EMAIL_ADDRESS_PATTERN = re.compile(r'\@qq\.com$', re.I)
 SENTRY_USER_PERMISSIONS = (
     'broadcasts.admin',
 )
+
+KAFKA_PRODUCER_OPTIONS = {
+    'bootstrap.servers': 'localhost:9092',
+    'message.max.bytes': 50000000,  # 50MB, default is 1MB
+}
+
+KAFKA_PREPROCESS_TOPIC = 'preprocess-events'
+KAFKA_PROCESS_TOPIC = 'process-events'
+KAFKA_EVENT_SAVE_TOPIC = 'save-events'
