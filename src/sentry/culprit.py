@@ -17,8 +17,6 @@ def generate_culprit(data):
     platform = data.get('platform')
     exceptions = get_path(data, 'exception', 'values')
     if exceptions:
-        import pprint
-        pprint.pprint(exceptions)
         # Synthetic events no longer get a culprit
         last_exception = get_path(exceptions, -1)
         if last_exception and (last_exception.get('mechanism') or {}).get('synthetic'):
@@ -46,6 +44,8 @@ def generate_culprit(data):
 def get_stacktrace_culprit(stacktrace, platform):
     default = None
     for frame in reversed(stacktrace['frames']):
+        if not frame:
+            continue
         if frame.get('in_app'):
             culprit = get_frame_culprit(frame, platform=platform)
             if culprit:
