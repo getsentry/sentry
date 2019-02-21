@@ -3,6 +3,7 @@ import React from 'react';
 
 import {createFuzzySearch} from 'app/utils/createFuzzySearch';
 import {openSudo, openHelpSearchModal} from 'app/actionCreators/modal';
+import {toggleLocaleDebug} from 'app/locale';
 import Access from 'app/components/acl/access';
 
 const ACTIONS = [
@@ -23,6 +24,13 @@ const ACTIONS = [
       openSudo({
         superuser: true,
       }),
+  },
+
+  {
+    title: 'Toggle Translation Markers',
+    description: 'Toggles translation markers on or off in the application',
+    requiresSuperuser: true,
+    action: () => toggleLocaleDebug(),
   },
 
   {
