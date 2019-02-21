@@ -192,6 +192,7 @@ class ProjectSelector extends React.Component {
         inputActions={() => (
           <div>
             <ManageButton to={`/settings/${org.slug}/projects/`} size="xsmall">
+              <StyledSettingsIcon src="icon-settings" />
               {t('Manage')}
             </ManageButton>
           </div>
@@ -287,7 +288,7 @@ class ProjectSelectorItem extends React.PureComponent {
         </BadgeAndBookmark>
 
         {multi && (
-          <MultiSelectWrapper onClick={this.handleClick}>
+          <MultiSelectWrapper onClick={this.handleClick} checked={isChecked}>
             <MultiSelect checked={isChecked} />
           </MultiSelectWrapper>
         )}
@@ -347,6 +348,7 @@ const MultiSelectWrapper = styled('div')`
 
   &:hover ${MultiSelect} {
     transform: scale(1.1);
+    border-color: ${p => (p.checked ? p.theme.purple : p.theme.gray2)};
   }
 `;
 
@@ -363,10 +365,10 @@ const BadgeAndBookmark = styled('div')`
     text-decoration: underline;
     color: ${p => p.theme.blue};
   }
+`;
 
-  &:hover + ${MultiSelectWrapper} {
-    opacity: 0.8;
-  }
+const StyledSettingsIcon = styled(InlineSvg)`
+  margin-right: ${space(0.25)};
 `;
 
 const ManageButton = styled(Button)`
@@ -375,6 +377,7 @@ const ManageButton = styled(Button)`
   box-shadow: none;
   border: 0;
   background: ${p => p.theme.offWhite2};
+  color: ${p => p.theme.gray3};
   transition: 0.2s transform;
 
   &:hover,
@@ -383,6 +386,7 @@ const ManageButton = styled(Button)`
     box-shadow: none;
     border: 0;
     background: ${p => p.theme.gray1};
+    color: #000;
   }
 `;
 
