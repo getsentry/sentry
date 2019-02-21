@@ -49,7 +49,7 @@ class InstallationNotifier(Mediator):
             resource='installation',
             action=self.action,
             install=self.install,
-            data=data,
+            data={'installation': data},
             actor=self.user,
         )
 

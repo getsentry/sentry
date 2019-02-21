@@ -54,15 +54,17 @@ class TestInstallationNotifier(TestCase):
                 'uuid': self.install.uuid,
             },
             'data': {
-                'app': {
-                    'uuid': self.sentry_app.uuid,
-                    'slug': self.sentry_app.slug,
+                'installation': {
+                    'app': {
+                        'uuid': self.sentry_app.uuid,
+                        'slug': self.sentry_app.slug,
+                    },
+                    'organization': {
+                        'slug': self.org.slug,
+                    },
+                    'uuid': self.install.uuid,
+                    'code': self.install.api_grant.code,
                 },
-                'organization': {
-                    'slug': self.org.slug,
-                },
-                'uuid': self.install.uuid,
-                'code': self.install.api_grant.code,
             },
             'actor': {
                 'id': self.user.id,
@@ -95,15 +97,17 @@ class TestInstallationNotifier(TestCase):
                 'uuid': self.install.uuid,
             },
             'data': {
-                'app': {
-                    'uuid': self.sentry_app.uuid,
-                    'slug': self.sentry_app.slug,
+                'installation': {
+                    'app': {
+                        'uuid': self.sentry_app.uuid,
+                        'slug': self.sentry_app.slug,
+                    },
+                    'organization': {
+                        'slug': self.org.slug,
+                    },
+                    'uuid': self.install.uuid,
+                    'code': self.install.api_grant.code,
                 },
-                'organization': {
-                    'slug': self.org.slug,
-                },
-                'uuid': self.install.uuid,
-                'code': self.install.api_grant.code,
             },
             'actor': {
                 'id': self.user.id,
