@@ -235,67 +235,117 @@ exports[`ProjectEnvironments render active renders empty message 1`] = `
         ]
       }
     >
-      <AccessContainer
+      <withConfig(AccessContainer)
         access={
           Array [
             "project:write",
           ]
         }
       >
-        <Access
+        <AccessContainer
           access={
             Array [
               "project:write",
             ]
           }
-          configUser={
+          config={
             Object {
-              "email": "foo@example.com",
-              "flags": Object {
-                "newsletter_consent_prompt": false,
+              "features": Set {},
+              "messages": Array [],
+              "user": Object {
+                "email": "foo@example.com",
+                "flags": Object {
+                  "newsletter_consent_prompt": false,
+                },
+                "hasPasswordAuth": true,
+                "id": "1",
+                "isAuthenticated": true,
+                "name": "Foo Bar",
+                "options": Object {
+                  "timezone": "UTC",
+                },
+                "permissions": Set {},
+                "username": "foo@example.com",
               },
-              "hasPasswordAuth": true,
-              "id": "1",
-              "isAuthenticated": true,
-              "name": "Foo Bar",
-              "options": Object {
-                "timezone": "UTC",
-              },
-              "permissions": Set {},
-              "username": "foo@example.com",
             }
           }
-          organization={
-            Object {
-              "access": Array [
-                "org:read",
-                "org:write",
-                "org:admin",
-                "project:read",
+        >
+          <Access
+            access={
+              Array [
                 "project:write",
-                "project:admin",
-                "team:read",
-                "team:write",
-                "team:admin",
-              ],
-              "features": Array [],
-              "id": "3",
-              "name": "Organization Name",
-              "onboardingTasks": Array [],
-              "projects": Array [],
-              "scrapeJavaScript": true,
-              "slug": "org-slug",
-              "status": Object {
-                "id": "active",
-                "name": "active",
-              },
-              "teams": Array [],
+              ]
             }
-          }
-          renderNoAccessMessage={false}
-          requireAll={true}
-        />
-      </AccessContainer>
+            config={
+              Object {
+                "features": Set {},
+                "messages": Array [],
+                "user": Object {
+                  "email": "foo@example.com",
+                  "flags": Object {
+                    "newsletter_consent_prompt": false,
+                  },
+                  "hasPasswordAuth": true,
+                  "id": "1",
+                  "isAuthenticated": true,
+                  "name": "Foo Bar",
+                  "options": Object {
+                    "timezone": "UTC",
+                  },
+                  "permissions": Set {},
+                  "username": "foo@example.com",
+                },
+              }
+            }
+            configUser={
+              Object {
+                "email": "foo@example.com",
+                "flags": Object {
+                  "newsletter_consent_prompt": false,
+                },
+                "hasPasswordAuth": true,
+                "id": "1",
+                "isAuthenticated": true,
+                "name": "Foo Bar",
+                "options": Object {
+                  "timezone": "UTC",
+                },
+                "permissions": Set {},
+                "username": "foo@example.com",
+              }
+            }
+            organization={
+              Object {
+                "access": Array [
+                  "org:read",
+                  "org:write",
+                  "org:admin",
+                  "project:read",
+                  "project:write",
+                  "project:admin",
+                  "team:read",
+                  "team:write",
+                  "team:admin",
+                ],
+                "features": Array [],
+                "id": "3",
+                "name": "Organization Name",
+                "onboardingTasks": Array [],
+                "projects": Array [],
+                "scrapeJavaScript": true,
+                "slug": "org-slug",
+                "status": Object {
+                  "id": "active",
+                  "name": "active",
+                },
+                "teams": Array [],
+              }
+            }
+            renderNoAccessMessage={false}
+            requireAll={true}
+          />
+        </AccessContainer>
+      </withConfig(AccessContainer)>
     </PermissionAlert>
     <Panel>
       <Component
@@ -602,67 +652,117 @@ exports[`ProjectEnvironments render active renders environment list and sets sta
         ]
       }
     >
-      <AccessContainer
+      <withConfig(AccessContainer)
         access={
           Array [
             "project:write",
           ]
         }
       >
-        <Access
+        <AccessContainer
           access={
             Array [
               "project:write",
             ]
           }
-          configUser={
+          config={
             Object {
-              "email": "foo@example.com",
-              "flags": Object {
-                "newsletter_consent_prompt": false,
+              "features": Set {},
+              "messages": Array [],
+              "user": Object {
+                "email": "foo@example.com",
+                "flags": Object {
+                  "newsletter_consent_prompt": false,
+                },
+                "hasPasswordAuth": true,
+                "id": "1",
+                "isAuthenticated": true,
+                "name": "Foo Bar",
+                "options": Object {
+                  "timezone": "UTC",
+                },
+                "permissions": Set {},
+                "username": "foo@example.com",
               },
-              "hasPasswordAuth": true,
-              "id": "1",
-              "isAuthenticated": true,
-              "name": "Foo Bar",
-              "options": Object {
-                "timezone": "UTC",
-              },
-              "permissions": Set {},
-              "username": "foo@example.com",
             }
           }
-          organization={
-            Object {
-              "access": Array [
-                "org:read",
-                "org:write",
-                "org:admin",
-                "project:read",
+        >
+          <Access
+            access={
+              Array [
                 "project:write",
-                "project:admin",
-                "team:read",
-                "team:write",
-                "team:admin",
-              ],
-              "features": Array [],
-              "id": "3",
-              "name": "Organization Name",
-              "onboardingTasks": Array [],
-              "projects": Array [],
-              "scrapeJavaScript": true,
-              "slug": "org-slug",
-              "status": Object {
-                "id": "active",
-                "name": "active",
-              },
-              "teams": Array [],
+              ]
             }
-          }
-          renderNoAccessMessage={false}
-          requireAll={true}
-        />
-      </AccessContainer>
+            config={
+              Object {
+                "features": Set {},
+                "messages": Array [],
+                "user": Object {
+                  "email": "foo@example.com",
+                  "flags": Object {
+                    "newsletter_consent_prompt": false,
+                  },
+                  "hasPasswordAuth": true,
+                  "id": "1",
+                  "isAuthenticated": true,
+                  "name": "Foo Bar",
+                  "options": Object {
+                    "timezone": "UTC",
+                  },
+                  "permissions": Set {},
+                  "username": "foo@example.com",
+                },
+              }
+            }
+            configUser={
+              Object {
+                "email": "foo@example.com",
+                "flags": Object {
+                  "newsletter_consent_prompt": false,
+                },
+                "hasPasswordAuth": true,
+                "id": "1",
+                "isAuthenticated": true,
+                "name": "Foo Bar",
+                "options": Object {
+                  "timezone": "UTC",
+                },
+                "permissions": Set {},
+                "username": "foo@example.com",
+              }
+            }
+            organization={
+              Object {
+                "access": Array [
+                  "org:read",
+                  "org:write",
+                  "org:admin",
+                  "project:read",
+                  "project:write",
+                  "project:admin",
+                  "team:read",
+                  "team:write",
+                  "team:admin",
+                ],
+                "features": Array [],
+                "id": "3",
+                "name": "Organization Name",
+                "onboardingTasks": Array [],
+                "projects": Array [],
+                "scrapeJavaScript": true,
+                "slug": "org-slug",
+                "status": Object {
+                  "id": "active",
+                  "name": "active",
+                },
+                "teams": Array [],
+              }
+            }
+            renderNoAccessMessage={false}
+            requireAll={true}
+          />
+        </AccessContainer>
+      </withConfig(AccessContainer)>
     </PermissionAlert>
     <Panel>
       <Component
@@ -747,95 +847,136 @@ exports[`ProjectEnvironments render active renders environment list and sets sta
                           </div>
                         </Base>
                       </Flex>
-                      <AccessContainer
+                      <withConfig(AccessContainer)
                         access={
                           Array [
                             "project:write",
                           ]
                         }
                       >
-                        <Access
+                        <AccessContainer
                           access={
                             Array [
                               "project:write",
                             ]
                           }
-                          configUser={
+                          config={
                             Object {
-                              "email": "foo@example.com",
-                              "flags": Object {
-                                "newsletter_consent_prompt": false,
+                              "features": Set {},
+                              "messages": Array [],
+                              "user": Object {
+                                "email": "foo@example.com",
+                                "flags": Object {
+                                  "newsletter_consent_prompt": false,
+                                },
+                                "hasPasswordAuth": true,
+                                "id": "1",
+                                "isAuthenticated": true,
+                                "name": "Foo Bar",
+                                "options": Object {
+                                  "timezone": "UTC",
+                                },
+                                "permissions": Set {},
+                                "username": "foo@example.com",
                               },
-                              "hasPasswordAuth": true,
-                              "id": "1",
-                              "isAuthenticated": true,
-                              "name": "Foo Bar",
-                              "options": Object {
-                                "timezone": "UTC",
-                              },
-                              "permissions": Set {},
-                              "username": "foo@example.com",
                             }
                           }
-                          organization={
-                            Object {
-                              "access": Array [
-                                "org:read",
-                                "org:write",
-                                "org:admin",
-                                "project:read",
-                                "project:write",
-                                "project:admin",
-                                "team:read",
-                                "team:write",
-                                "team:admin",
-                              ],
-                              "features": Array [],
-                              "id": "3",
-                              "name": "Organization Name",
-                              "onboardingTasks": Array [],
-                              "projects": Array [],
-                              "scrapeJavaScript": true,
-                              "slug": "org-slug",
-                              "status": Object {
-                                "id": "active",
-                                "name": "active",
-                              },
-                              "teams": Array [],
-                            }
-                          }
-                          renderNoAccessMessage={false}
-                          requireAll={true}
                         >
-                          <div>
-                            <EnvironmentButton
-                              disabled={false}
-                              onClick={[Function]}
-                              size="xsmall"
-                            >
-                              <Button
-                                className="css-10adnmx-EnvironmentButton ezuela50"
+                          <Access
+                            access={
+                              Array [
+                                "project:write",
+                              ]
+                            }
+                            config={
+                              Object {
+                                "features": Set {},
+                                "messages": Array [],
+                                "user": Object {
+                                  "email": "foo@example.com",
+                                  "flags": Object {
+                                    "newsletter_consent_prompt": false,
+                                  },
+                                  "hasPasswordAuth": true,
+                                  "id": "1",
+                                  "isAuthenticated": true,
+                                  "name": "Foo Bar",
+                                  "options": Object {
+                                    "timezone": "UTC",
+                                  },
+                                  "permissions": Set {},
+                                  "username": "foo@example.com",
+                                },
+                              }
+                            }
+                            configUser={
+                              Object {
+                                "email": "foo@example.com",
+                                "flags": Object {
+                                  "newsletter_consent_prompt": false,
+                                },
+                                "hasPasswordAuth": true,
+                                "id": "1",
+                                "isAuthenticated": true,
+                                "name": "Foo Bar",
+                                "options": Object {
+                                  "timezone": "UTC",
+                                },
+                                "permissions": Set {},
+                                "username": "foo@example.com",
+                              }
+                            }
+                            organization={
+                              Object {
+                                "access": Array [
+                                  "org:read",
+                                  "org:write",
+                                  "org:admin",
+                                  "project:read",
+                                  "project:write",
+                                  "project:admin",
+                                  "team:read",
+                                  "team:write",
+                                  "team:admin",
+                                ],
+                                "features": Array [],
+                                "id": "3",
+                                "name": "Organization Name",
+                                "onboardingTasks": Array [],
+                                "projects": Array [],
+                                "scrapeJavaScript": true,
+                                "slug": "org-slug",
+                                "status": Object {
+                                  "id": "active",
+                                  "name": "active",
+                                },
+                                "teams": Array [],
+                              }
+                            }
+                            renderNoAccessMessage={false}
+                            requireAll={true}
+                          >
+                            <div>
+                              <EnvironmentButton
                                 disabled={false}
                                 onClick={[Function]}
                                 size="xsmall"
                               >
-                                <StyledButton
-                                  aria-label="Set as default"
+                                <Button
                                   className="css-10adnmx-EnvironmentButton ezuela50"
                                   disabled={false}
                                   onClick={[Function]}
-                                  role="button"
                                   size="xsmall"
                                 >
-                                  <Component
+                                  <StyledButton
                                     aria-label="Set as default"
-                                    className="ezuela50 css-fp1reu-StyledButton-getColors-EnvironmentButton eqrebog0"
+                                    className="css-10adnmx-EnvironmentButton ezuela50"
                                     disabled={false}
                                     onClick={[Function]}
                                     role="button"
                                     size="xsmall"
                                   >
-                                    <button
+                                    <Component
                                       aria-label="Set as default"
                                       className="ezuela50 css-fp1reu-StyledButton-getColors-EnvironmentButton eqrebog0"
                                       disabled={false}
@@ -843,28 +984,37 @@ exports[`ProjectEnvironments render active renders environment list and sets sta
                                       role="button"
                                       size="xsmall"
                                     >
-                                      <ButtonLabel
+                                      <button
+                                        aria-label="Set as default"
+                                        className="ezuela50 css-fp1reu-StyledButton-getColors-EnvironmentButton eqrebog0"
+                                        disabled={false}
+                                        onClick={[Function]}
+                                        role="button"
                                         size="xsmall"
                                       >
-                                        <Component
-                                          className="css-uthd1f-ButtonLabel eqrebog1"
+                                        <ButtonLabel
                                           size="xsmall"
                                         >
-                                          <span
+                                          <Component
                                             className="css-uthd1f-ButtonLabel eqrebog1"
+                                            size="xsmall"
                                           >
-                                            Set as default
-                                          </span>
-                                        </Component>
-                                      </ButtonLabel>
-                                    </button>
-                                  </Component>
-                                </StyledButton>
-                              </Button>
-                            </EnvironmentButton>
-                          </div>
-                        </Access>
-                      </AccessContainer>
+                                            <span
+                                              className="css-uthd1f-ButtonLabel eqrebog1"
+                                            >
+                                              Set as default
+                                            </span>
+                                          </Component>
+                                        </ButtonLabel>
+                                      </button>
+                                    </Component>
+                                  </StyledButton>
+                                </Button>
+                              </EnvironmentButton>
+                            </div>
+                          </Access>
+                        </AccessContainer>
+                      </withConfig(AccessContainer)>
                     </div>
                   </Base>
                 </PanelItem>
@@ -918,95 +1068,136 @@ exports[`ProjectEnvironments render active renders environment list and sets sta
                           </div>
                         </Base>
                       </Flex>
-                      <AccessContainer
+                      <withConfig(AccessContainer)
                         access={
                           Array [
                             "project:write",
                           ]
                         }
                       >
-                        <Access
+                        <AccessContainer
                           access={
                             Array [
                               "project:write",
                             ]
                           }
-                          configUser={
+                          config={
                             Object {
-                              "email": "foo@example.com",
-                              "flags": Object {
-                                "newsletter_consent_prompt": false,
+                              "features": Set {},
+                              "messages": Array [],
+                              "user": Object {
+                                "email": "foo@example.com",
+                                "flags": Object {
+                                  "newsletter_consent_prompt": false,
+                                },
+                                "hasPasswordAuth": true,
+                                "id": "1",
+                                "isAuthenticated": true,
+                                "name": "Foo Bar",
+                                "options": Object {
+                                  "timezone": "UTC",
+                                },
+                                "permissions": Set {},
+                                "username": "foo@example.com",
                               },
-                              "hasPasswordAuth": true,
-                              "id": "1",
-                              "isAuthenticated": true,
-                              "name": "Foo Bar",
-                              "options": Object {
-                                "timezone": "UTC",
-                              },
-                              "permissions": Set {},
-                              "username": "foo@example.com",
                             }
                           }
-                          organization={
-                            Object {
-                              "access": Array [
-                                "org:read",
-                                "org:write",
-                                "org:admin",
-                                "project:read",
-                                "project:write",
-                                "project:admin",
-                                "team:read",
-                                "team:write",
-                                "team:admin",
-                              ],
-                              "features": Array [],
-                              "id": "3",
-                              "name": "Organization Name",
-                              "onboardingTasks": Array [],
-                              "projects": Array [],
-                              "scrapeJavaScript": true,
-                              "slug": "org-slug",
-                              "status": Object {
-                                "id": "active",
-                                "name": "active",
-                              },
-                              "teams": Array [],
-                            }
-                          }
-                          renderNoAccessMessage={false}
-                          requireAll={true}
                         >
-                          <div>
-                            <EnvironmentButton
-                              disabled={false}
-                              onClick={[Function]}
-                              size="xsmall"
-                            >
-                              <Button
-                                className="css-10adnmx-EnvironmentButton ezuela50"
+                          <Access
+                            access={
+                              Array [
+                                "project:write",
+                              ]
+                            }
+                            config={
+                              Object {
+                                "features": Set {},
+                                "messages": Array [],
+                                "user": Object {
+                                  "email": "foo@example.com",
+                                  "flags": Object {
+                                    "newsletter_consent_prompt": false,
+                                  },
+                                  "hasPasswordAuth": true,
+                                  "id": "1",
+                                  "isAuthenticated": true,
+                                  "name": "Foo Bar",
+                                  "options": Object {
+                                    "timezone": "UTC",
+                                  },
+                                  "permissions": Set {},
+                                  "username": "foo@example.com",
+                                },
+                              }
+                            }
+                            configUser={
+                              Object {
+                                "email": "foo@example.com",
+                                "flags": Object {
+                                  "newsletter_consent_prompt": false,
+                                },
+                                "hasPasswordAuth": true,
+                                "id": "1",
+                                "isAuthenticated": true,
+                                "name": "Foo Bar",
+                                "options": Object {
+                                  "timezone": "UTC",
+                                },
+                                "permissions": Set {},
+                                "username": "foo@example.com",
+                              }
+                            }
+                            organization={
+                              Object {
+                                "access": Array [
+                                  "org:read",
+                                  "org:write",
+                                  "org:admin",
+                                  "project:read",
+                                  "project:write",
+                                  "project:admin",
+                                  "team:read",
+                                  "team:write",
+                                  "team:admin",
+                                ],
+                                "features": Array [],
+                                "id": "3",
+                                "name": "Organization Name",
+                                "onboardingTasks": Array [],
+                                "projects": Array [],
+                                "scrapeJavaScript": true,
+                                "slug": "org-slug",
+                                "status": Object {
+                                  "id": "active",
+                                  "name": "active",
+                                },
+                                "teams": Array [],
+                              }
+                            }
+                            renderNoAccessMessage={false}
+                            requireAll={true}
+                          >
+                            <div>
+                              <EnvironmentButton
                                 disabled={false}
                                 onClick={[Function]}
                                 size="xsmall"
                               >
-                                <StyledButton
-                                  aria-label="Set as default"
+                                <Button
                                   className="css-10adnmx-EnvironmentButton ezuela50"
                                   disabled={false}
                                   onClick={[Function]}
-                                  role="button"
                                   size="xsmall"
                                 >
-                                  <Component
+                                  <StyledButton
                                     aria-label="Set as default"
-                                    className="ezuela50 css-fp1reu-StyledButton-getColors-EnvironmentButton eqrebog0"
+                                    className="css-10adnmx-EnvironmentButton ezuela50"
                                     disabled={false}
                                     onClick={[Function]}
                                     role="button"
                                     size="xsmall"
                                   >
-                                    <button
+                                    <Component
                                       aria-label="Set as default"
                                       className="ezuela50 css-fp1reu-StyledButton-getColors-EnvironmentButton eqrebog0"
                                       disabled={false}
@@ -1014,53 +1205,53 @@ exports[`ProjectEnvironments render active renders environment list and sets sta
                                       role="button"
                                       size="xsmall"
                                     >
-                                      <ButtonLabel
+                                      <button
+                                        aria-label="Set as default"
+                                        className="ezuela50 css-fp1reu-StyledButton-getColors-EnvironmentButton eqrebog0"
+                                        disabled={false}
+                                        onClick={[Function]}
+                                        role="button"
                                         size="xsmall"
                                       >
-                                        <Component
-                                          className="css-uthd1f-ButtonLabel eqrebog1"
+                                        <ButtonLabel
                                           size="xsmall"
                                         >
-                                          <span
+                                          <Component
                                             className="css-uthd1f-ButtonLabel eqrebog1"
+                                            size="xsmall"
                                           >
-                                            Set as default
-                                          </span>
-                                        </Component>
-                                      </ButtonLabel>
-                                    </button>
-                                  </Component>
-                                </StyledButton>
-                              </Button>
-                            </EnvironmentButton>
-                            <EnvironmentButton
-                              disabled={false}
-                              onClick={[Function]}
-                              size="xsmall"
-                            >
-                              <Button
-                                className="css-10adnmx-EnvironmentButton ezuela50"
+                                            <span
+                                              className="css-uthd1f-ButtonLabel eqrebog1"
+                                            >
+                                              Set as default
+                                            </span>
+                                          </Component>
+                                        </ButtonLabel>
+                                      </button>
+                                    </Component>
+                                  </StyledButton>
+                                </Button>
+                              </EnvironmentButton>
+                              <EnvironmentButton
                                 disabled={false}
                                 onClick={[Function]}
                                 size="xsmall"
                               >
-                                <StyledButton
-                                  aria-label="Hide"
+                                <Button
                                   className="css-10adnmx-EnvironmentButton ezuela50"
                                   disabled={false}
                                   onClick={[Function]}
-                                  role="button"
                                   size="xsmall"
                                 >
-                                  <Component
+                                  <StyledButton
                                     aria-label="Hide"
-                                    className="ezuela50 css-fp1reu-StyledButton-getColors-EnvironmentButton eqrebog0"
+                                    className="css-10adnmx-EnvironmentButton ezuela50"
                                     disabled={false}
                                     onClick={[Function]}
                                     role="button"
                                     size="xsmall"
                                   >
-                                    <button
+                                    <Component
                                       aria-label="Hide"
                                       className="ezuela50 css-fp1reu-StyledButton-getColors-EnvironmentButton eqrebog0"
                                       disabled={false}
@@ -1068,28 +1259,37 @@ exports[`ProjectEnvironments render active renders environment list and sets sta
                                       role="button"
                                       size="xsmall"
                                     >
-                                      <ButtonLabel
+                                      <button
+                                        aria-label="Hide"
+                                        className="ezuela50 css-fp1reu-StyledButton-getColors-EnvironmentButton eqrebog0"
+                                        disabled={false}
+                                        onClick={[Function]}
+                                        role="button"
                                         size="xsmall"
                                       >
-                                        <Component
-                                          className="css-uthd1f-ButtonLabel eqrebog1"
+                                        <ButtonLabel
                                           size="xsmall"
                                         >
-                                          <span
+                                          <Component
                                             className="css-uthd1f-ButtonLabel eqrebog1"
+                                            size="xsmall"
                                           >
-                                            Hide
-                                          </span>
-                                        </Component>
-                                      </ButtonLabel>
-                                    </button>
-                                  </Component>
-                                </StyledButton>
-                              </Button>
-                            </EnvironmentButton>
-                          </div>
-                        </Access>
-                      </AccessContainer>
+                                            <span
+                                              className="css-uthd1f-ButtonLabel eqrebog1"
+                                            >
+                                              Hide
+                                            </span>
+                                          </Component>
+                                        </ButtonLabel>
+                                      </button>
+                                    </Component>
+                                  </StyledButton>
+                                </Button>
+                              </EnvironmentButton>
+                            </div>
+                          </Access>
+                        </AccessContainer>
+                      </withConfig(AccessContainer)>
                     </div>
                   </Base>
                 </PanelItem>
@@ -1175,95 +1375,136 @@ exports[`ProjectEnvironments render active renders environment list and sets sta
                           </div>
                         </Base>
                       </Flex>
-                      <AccessContainer
+                      <withConfig(AccessContainer)
                         access={
                           Array [
                             "project:write",
                           ]
                         }
                       >
-                        <Access
+                        <AccessContainer
                           access={
                             Array [
                               "project:write",
                             ]
                           }
-                          configUser={
+                          config={
                             Object {
-                              "email": "foo@example.com",
-                              "flags": Object {
-                                "newsletter_consent_prompt": false,
+                              "features": Set {},
+                              "messages": Array [],
+                              "user": Object {
+                                "email": "foo@example.com",
+                                "flags": Object {
+                                  "newsletter_consent_prompt": false,
+                                },
+                                "hasPasswordAuth": true,
+                                "id": "1",
+                                "isAuthenticated": true,
+                                "name": "Foo Bar",
+                                "options": Object {
+                                  "timezone": "UTC",
+                                },
+                                "permissions": Set {},
+                                "username": "foo@example.com",
                               },
-                              "hasPasswordAuth": true,
-                              "id": "1",
-                              "isAuthenticated": true,
-                              "name": "Foo Bar",
-                              "options": Object {
-                                "timezone": "UTC",
-                              },
-                              "permissions": Set {},
-                              "username": "foo@example.com",
                             }
                           }
-                          organization={
-                            Object {
-                              "access": Array [
-                                "org:read",
-                                "org:write",
-                                "org:admin",
-                                "project:read",
-                                "project:write",
-                                "project:admin",
-                                "team:read",
-                                "team:write",
-                                "team:admin",
-                              ],
-                              "features": Array [],
-                              "id": "3",
-                              "name": "Organization Name",
-                              "onboardingTasks": Array [],
-                              "projects": Array [],
-                              "scrapeJavaScript": true,
-                              "slug": "org-slug",
-                              "status": Object {
-                                "id": "active",
-                                "name": "active",
-                              },
-                              "teams": Array [],
-                            }
-                          }
-                          renderNoAccessMessage={false}
-                          requireAll={true}
                         >
-                          <div>
-                            <EnvironmentButton
-                              disabled={false}
-                              onClick={[Function]}
-                              size="xsmall"
-                            >
-                              <Button
-                                className="css-10adnmx-EnvironmentButton ezuela50"
+                          <Access
+                            access={
+                              Array [
+                                "project:write",
+                              ]
+                            }
+                            config={
+                              Object {
+                                "features": Set {},
+                                "messages": Array [],
+                                "user": Object {
+                                  "email": "foo@example.com",
+                                  "flags": Object {
+                                    "newsletter_consent_prompt": false,
+                                  },
+                                  "hasPasswordAuth": true,
+                                  "id": "1",
+                                  "isAuthenticated": true,
+                                  "name": "Foo Bar",
+                                  "options": Object {
+                                    "timezone": "UTC",
+                                  },
+                                  "permissions": Set {},
+                                  "username": "foo@example.com",
+                                },
+                              }
+                            }
+                            configUser={
+                              Object {
+                                "email": "foo@example.com",
+                                "flags": Object {
+                                  "newsletter_consent_prompt": false,
+                                },
+                                "hasPasswordAuth": true,
+                                "id": "1",
+                                "isAuthenticated": true,
+                                "name": "Foo Bar",
+                                "options": Object {
+                                  "timezone": "UTC",
+                                },
+                                "permissions": Set {},
+                                "username": "foo@example.com",
+                              }
+                            }
+                            organization={
+                              Object {
+                                "access": Array [
+                                  "org:read",
+                                  "org:write",
+                                  "org:admin",
+                                  "project:read",
+                                  "project:write",
+                                  "project:admin",
+                                  "team:read",
+                                  "team:write",
+                                  "team:admin",
+                                ],
+                                "features": Array [],
+                                "id": "3",
+                                "name": "Organization Name",
+                                "onboardingTasks": Array [],
+                                "projects": Array [],
+                                "scrapeJavaScript": true,
+                                "slug": "org-slug",
+                                "status": Object {
+                                  "id": "active",
+                                  "name": "active",
+                                },
+                                "teams": Array [],
+                              }
+                            }
+                            renderNoAccessMessage={false}
+                            requireAll={true}
+                          >
+                            <div>
+                              <EnvironmentButton
                                 disabled={false}
                                 onClick={[Function]}
                                 size="xsmall"
                               >
-                                <StyledButton
-                                  aria-label="Hide"
+                                <Button
                                   className="css-10adnmx-EnvironmentButton ezuela50"
                                   disabled={false}
                                   onClick={[Function]}
-                                  role="button"
                                   size="xsmall"
                                 >
-                                  <Component
+                                  <StyledButton
                                     aria-label="Hide"
-                                    className="ezuela50 css-fp1reu-StyledButton-getColors-EnvironmentButton eqrebog0"
+                                    className="css-10adnmx-EnvironmentButton ezuela50"
                                     disabled={false}
                                     onClick={[Function]}
                                     role="button"
                                     size="xsmall"
                                   >
-                                    <button
+                                    <Component
                                       aria-label="Hide"
                                       className="ezuela50 css-fp1reu-StyledButton-getColors-EnvironmentButton eqrebog0"
                                       disabled={false}
@@ -1271,28 +1512,37 @@ exports[`ProjectEnvironments render active renders environment list and sets sta
                                       role="button"
                                       size="xsmall"
                                     >
-                                      <ButtonLabel
+                                      <button
+                                        aria-label="Hide"
+                                        className="ezuela50 css-fp1reu-StyledButton-getColors-EnvironmentButton eqrebog0"
+                                        disabled={false}
+                                        onClick={[Function]}
+                                        role="button"
                                         size="xsmall"
                                       >
-                                        <Component
-                                          className="css-uthd1f-ButtonLabel eqrebog1"
+                                        <ButtonLabel
                                           size="xsmall"
                                         >
-                                          <span
+                                          <Component
                                             className="css-uthd1f-ButtonLabel eqrebog1"
+                                            size="xsmall"
                                           >
-                                            Hide
-                                          </span>
-                                        </Component>
-                                      </ButtonLabel>
-                                    </button>
-                                  </Component>
-                                </StyledButton>
-                              </Button>
-                            </EnvironmentButton>
-                          </div>
-                        </Access>
-                      </AccessContainer>
+                                            <span
+                                              className="css-uthd1f-ButtonLabel eqrebog1"
+                                            >
+                                              Hide
+                                            </span>
+                                          </Component>
+                                        </ButtonLabel>
+                                      </button>
+                                    </Component>
+                                  </StyledButton>
+                                </Button>
+                              </EnvironmentButton>
+                            </div>
+                          </Access>
+                        </AccessContainer>
+                      </withConfig(AccessContainer)>
                     </div>
                   </Base>
                 </PanelItem>
@@ -1541,67 +1791,117 @@ exports[`ProjectEnvironments render hidden renders empty message 1`] = `
         ]
       }
     >
-      <AccessContainer
+      <withConfig(AccessContainer)
         access={
           Array [
             "project:write",
           ]
         }
       >
-        <Access
+        <AccessContainer
           access={
             Array [
               "project:write",
             ]
           }
-          configUser={
+          config={
             Object {
-              "email": "foo@example.com",
-              "flags": Object {
-                "newsletter_consent_prompt": false,
+              "features": Set {},
+              "messages": Array [],
+              "user": Object {
+                "email": "foo@example.com",
+                "flags": Object {
+                  "newsletter_consent_prompt": false,
+                },
+                "hasPasswordAuth": true,
+                "id": "1",
+                "isAuthenticated": true,
+                "name": "Foo Bar",
+                "options": Object {
+                  "timezone": "UTC",
+                },
+                "permissions": Set {},
+                "username": "foo@example.com",
               },
-              "hasPasswordAuth": true,
-              "id": "1",
-              "isAuthenticated": true,
-              "name": "Foo Bar",
-              "options": Object {
-                "timezone": "UTC",
-              },
-              "permissions": Set {},
-              "username": "foo@example.com",
             }
           }
-          organization={
-            Object {
-              "access": Array [
-                "org:read",
-                "org:write",
-                "org:admin",
-                "project:read",
+        >
+          <Access
+            access={
+              Array [
                 "project:write",
-                "project:admin",
-                "team:read",
-                "team:write",
-                "team:admin",
-              ],
-              "features": Array [],
-              "id": "3",
-              "name": "Organization Name",
-              "onboardingTasks": Array [],
-              "projects": Array [],
-              "scrapeJavaScript": true,
-              "slug": "org-slug",
-              "status": Object {
-                "id": "active",
-                "name": "active",
-              },
-              "teams": Array [],
+              ]
             }
-          }
-          renderNoAccessMessage={false}
-          requireAll={true}
-        />
-      </AccessContainer>
+            config={
+              Object {
+                "features": Set {},
+                "messages": Array [],
+                "user": Object {
+                  "email": "foo@example.com",
+                  "flags": Object {
+                    "newsletter_consent_prompt": false,
+                  },
+                  "hasPasswordAuth": true,
+                  "id": "1",
+                  "isAuthenticated": true,
+                  "name": "Foo Bar",
+                  "options": Object {
+                    "timezone": "UTC",
+                  },
+                  "permissions": Set {},
+                  "username": "foo@example.com",
+                },
+              }
+            }
+            configUser={
+              Object {
+                "email": "foo@example.com",
+                "flags": Object {
+                  "newsletter_consent_prompt": false,
+                },
+                "hasPasswordAuth": true,
+                "id": "1",
+                "isAuthenticated": true,
+                "name": "Foo Bar",
+                "options": Object {
+                  "timezone": "UTC",
+                },
+                "permissions": Set {},
+                "username": "foo@example.com",
+              }
+            }
+            organization={
+              Object {
+                "access": Array [
+                  "org:read",
+                  "org:write",
+                  "org:admin",
+                  "project:read",
+                  "project:write",
+                  "project:admin",
+                  "team:read",
+                  "team:write",
+                  "team:admin",
+                ],
+                "features": Array [],
+                "id": "3",
+                "name": "Organization Name",
+                "onboardingTasks": Array [],
+                "projects": Array [],
+                "scrapeJavaScript": true,
+                "slug": "org-slug",
+                "status": Object {
+                  "id": "active",
+                  "name": "active",
+                },
+                "teams": Array [],
+              }
+            }
+            renderNoAccessMessage={false}
+            requireAll={true}
+          />
+        </AccessContainer>
+      </withConfig(AccessContainer)>
     </PermissionAlert>
     <Panel>
       <Component
@@ -1908,67 +2208,117 @@ exports[`ProjectEnvironments render hidden renders environment list 1`] = `
         ]
       }
     >
-      <AccessContainer
+      <withConfig(AccessContainer)
         access={
           Array [
             "project:write",
           ]
         }
       >
-        <Access
+        <AccessContainer
           access={
             Array [
               "project:write",
             ]
           }
-          configUser={
+          config={
             Object {
-              "email": "foo@example.com",
-              "flags": Object {
-                "newsletter_consent_prompt": false,
+              "features": Set {},
+              "messages": Array [],
+              "user": Object {
+                "email": "foo@example.com",
+                "flags": Object {
+                  "newsletter_consent_prompt": false,
+                },
+                "hasPasswordAuth": true,
+                "id": "1",
+                "isAuthenticated": true,
+                "name": "Foo Bar",
+                "options": Object {
+                  "timezone": "UTC",
+                },
+                "permissions": Set {},
+                "username": "foo@example.com",
               },
-              "hasPasswordAuth": true,
-              "id": "1",
-              "isAuthenticated": true,
-              "name": "Foo Bar",
-              "options": Object {
-                "timezone": "UTC",
-              },
-              "permissions": Set {},
-              "username": "foo@example.com",
             }
           }
-          organization={
-            Object {
-              "access": Array [
-                "org:read",
-                "org:write",
-                "org:admin",
-                "project:read",
+        >
+          <Access
+            access={
+              Array [
                 "project:write",
-                "project:admin",
-                "team:read",
-                "team:write",
-                "team:admin",
-              ],
-              "features": Array [],
-              "id": "3",
-              "name": "Organization Name",
-              "onboardingTasks": Array [],
-              "projects": Array [],
-              "scrapeJavaScript": true,
-              "slug": "org-slug",
-              "status": Object {
-                "id": "active",
-                "name": "active",
-              },
-              "teams": Array [],
+              ]
             }
-          }
-          renderNoAccessMessage={false}
-          requireAll={true}
-        />
-      </AccessContainer>
+            config={
+              Object {
+                "features": Set {},
+                "messages": Array [],
+                "user": Object {
+                  "email": "foo@example.com",
+                  "flags": Object {
+                    "newsletter_consent_prompt": false,
+                  },
+                  "hasPasswordAuth": true,
+                  "id": "1",
+                  "isAuthenticated": true,
+                  "name": "Foo Bar",
+                  "options": Object {
+                    "timezone": "UTC",
+                  },
+                  "permissions": Set {},
+                  "username": "foo@example.com",
+                },
+              }
+            }
+            configUser={
+              Object {
+                "email": "foo@example.com",
+                "flags": Object {
+                  "newsletter_consent_prompt": false,
+                },
+                "hasPasswordAuth": true,
+                "id": "1",
+                "isAuthenticated": true,
+                "name": "Foo Bar",
+                "options": Object {
+                  "timezone": "UTC",
+                },
+                "permissions": Set {},
+                "username": "foo@example.com",
+              }
+            }
+            organization={
+              Object {
+                "access": Array [
+                  "org:read",
+                  "org:write",
+                  "org:admin",
+                  "project:read",
+                  "project:write",
+                  "project:admin",
+                  "team:read",
+                  "team:write",
+                  "team:admin",
+                ],
+                "features": Array [],
+                "id": "3",
+                "name": "Organization Name",
+                "onboardingTasks": Array [],
+                "projects": Array [],
+                "scrapeJavaScript": true,
+                "slug": "org-slug",
+                "status": Object {
+                  "id": "active",
+                  "name": "active",
+                },
+                "teams": Array [],
+              }
+            }
+            renderNoAccessMessage={false}
+            requireAll={true}
+          />
+        </AccessContainer>
+      </withConfig(AccessContainer)>
     </PermissionAlert>
     <Panel>
       <Component
@@ -2058,95 +2408,136 @@ exports[`ProjectEnvironments render hidden renders environment list 1`] = `
                           </div>
                         </Base>
                       </Flex>
-                      <AccessContainer
+                      <withConfig(AccessContainer)
                         access={
                           Array [
                             "project:write",
                           ]
                         }
                       >
-                        <Access
+                        <AccessContainer
                           access={
                             Array [
                               "project:write",
                             ]
                           }
-                          configUser={
+                          config={
                             Object {
-                              "email": "foo@example.com",
-                              "flags": Object {
-                                "newsletter_consent_prompt": false,
+                              "features": Set {},
+                              "messages": Array [],
+                              "user": Object {
+                                "email": "foo@example.com",
+                                "flags": Object {
+                                  "newsletter_consent_prompt": false,
+                                },
+                                "hasPasswordAuth": true,
+                                "id": "1",
+                                "isAuthenticated": true,
+                                "name": "Foo Bar",
+                                "options": Object {
+                                  "timezone": "UTC",
+                                },
+                                "permissions": Set {},
+                                "username": "foo@example.com",
                               },
-                              "hasPasswordAuth": true,
-                              "id": "1",
-                              "isAuthenticated": true,
-                              "name": "Foo Bar",
-                              "options": Object {
-                                "timezone": "UTC",
-                              },
-                              "permissions": Set {},
-                              "username": "foo@example.com",
                             }
                           }
-                          organization={
-                            Object {
-                              "access": Array [
-                                "org:read",
-                                "org:write",
-                                "org:admin",
-                                "project:read",
-                                "project:write",
-                                "project:admin",
-                                "team:read",
-                                "team:write",
-                                "team:admin",
-                              ],
-                              "features": Array [],
-                              "id": "3",
-                              "name": "Organization Name",
-                              "onboardingTasks": Array [],
-                              "projects": Array [],
-                              "scrapeJavaScript": true,
-                              "slug": "org-slug",
-                              "status": Object {
-                                "id": "active",
-                                "name": "active",
-                              },
-                              "teams": Array [],
-                            }
-                          }
-                          renderNoAccessMessage={false}
-                          requireAll={true}
                         >
-                          <div>
-                            <EnvironmentButton
-                              disabled={false}
-                              onClick={[Function]}
-                              size="xsmall"
-                            >
-                              <Button
-                                className="css-10adnmx-EnvironmentButton ezuela50"
+                          <Access
+                            access={
+                              Array [
+                                "project:write",
+                              ]
+                            }
+                            config={
+                              Object {
+                                "features": Set {},
+                                "messages": Array [],
+                                "user": Object {
+                                  "email": "foo@example.com",
+                                  "flags": Object {
+                                    "newsletter_consent_prompt": false,
+                                  },
+                                  "hasPasswordAuth": true,
+                                  "id": "1",
+                                  "isAuthenticated": true,
+                                  "name": "Foo Bar",
+                                  "options": Object {
+                                    "timezone": "UTC",
+                                  },
+                                  "permissions": Set {},
+                                  "username": "foo@example.com",
+                                },
+                              }
+                            }
+                            configUser={
+                              Object {
+                                "email": "foo@example.com",
+                                "flags": Object {
+                                  "newsletter_consent_prompt": false,
+                                },
+                                "hasPasswordAuth": true,
+                                "id": "1",
+                                "isAuthenticated": true,
+                                "name": "Foo Bar",
+                                "options": Object {
+                                  "timezone": "UTC",
+                                },
+                                "permissions": Set {},
+                                "username": "foo@example.com",
+                              }
+                            }
+                            organization={
+                              Object {
+                                "access": Array [
+                                  "org:read",
+                                  "org:write",
+                                  "org:admin",
+                                  "project:read",
+                                  "project:write",
+                                  "project:admin",
+                                  "team:read",
+                                  "team:write",
+                                  "team:admin",
+                                ],
+                                "features": Array [],
+                                "id": "3",
+                                "name": "Organization Name",
+                                "onboardingTasks": Array [],
+                                "projects": Array [],
+                                "scrapeJavaScript": true,
+                                "slug": "org-slug",
+                                "status": Object {
+                                  "id": "active",
+                                  "name": "active",
+                                },
+                                "teams": Array [],
+                              }
+                            }
+                            renderNoAccessMessage={false}
+                            requireAll={true}
+                          >
+                            <div>
+                              <EnvironmentButton
                                 disabled={false}
                                 onClick={[Function]}
                                 size="xsmall"
                               >
-                                <StyledButton
-                                  aria-label="Show"
+                                <Button
                                   className="css-10adnmx-EnvironmentButton ezuela50"
                                   disabled={false}
                                   onClick={[Function]}
-                                  role="button"
                                   size="xsmall"
                                 >
-                                  <Component
+                                  <StyledButton
                                     aria-label="Show"
-                                    className="ezuela50 css-fp1reu-StyledButton-getColors-EnvironmentButton eqrebog0"
+                                    className="css-10adnmx-EnvironmentButton ezuela50"
                                     disabled={false}
                                     onClick={[Function]}
                                     role="button"
                                     size="xsmall"
                                   >
-                                    <button
+                                    <Component
                                       aria-label="Show"
                                       className="ezuela50 css-fp1reu-StyledButton-getColors-EnvironmentButton eqrebog0"
                                       disabled={false}
@@ -2154,28 +2545,37 @@ exports[`ProjectEnvironments render hidden renders environment list 1`] = `
                                       role="button"
                                       size="xsmall"
                                     >
-                                      <ButtonLabel
+                                      <button
+                                        aria-label="Show"
+                                        className="ezuela50 css-fp1reu-StyledButton-getColors-EnvironmentButton eqrebog0"
+                                        disabled={false}
+                                        onClick={[Function]}
+                                        role="button"
                                         size="xsmall"
                                       >
-                                        <Component
-                                          className="css-uthd1f-ButtonLabel eqrebog1"
+                                        <ButtonLabel
                                           size="xsmall"
                                         >
-                                          <span
+                                          <Component
                                             className="css-uthd1f-ButtonLabel eqrebog1"
+                                            size="xsmall"
                                           >
-                                            Show
-                                          </span>
-                                        </Component>
-                                      </ButtonLabel>
-                                    </button>
-                                  </Component>
-                                </StyledButton>
-                              </Button>
-                            </EnvironmentButton>
-                          </div>
-                        </Access>
-                      </AccessContainer>
+                                            <span
+                                              className="css-uthd1f-ButtonLabel eqrebog1"
+                                            >
+                                              Show
+                                            </span>
+                                          </Component>
+                                        </ButtonLabel>
+                                      </button>
+                                    </Component>
+                                  </StyledButton>
+                                </Button>
+                              </EnvironmentButton>
+                            </div>
+                          </Access>
+                        </AccessContainer>
+                      </withConfig(AccessContainer)>
                     </div>
                   </Base>
                 </PanelItem>

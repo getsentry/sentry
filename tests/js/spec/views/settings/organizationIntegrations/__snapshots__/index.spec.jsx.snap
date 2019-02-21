@@ -87,124 +87,174 @@ exports[`OrganizationIntegrations render() with installed integrations Displays 
       ]
     }
   >
-    <AccessContainer
+    <withConfig(AccessContainer)
       access={
         Array [
           "org:integrations",
         ]
       }
     >
-      <Access
+      <AccessContainer
         access={
           Array [
             "org:integrations",
           ]
         }
-        configUser={
+        config={
           Object {
-            "email": "foo@example.com",
-            "flags": Object {
-              "newsletter_consent_prompt": false,
+            "features": Set {},
+            "messages": Array [],
+            "user": Object {
+              "email": "foo@example.com",
+              "flags": Object {
+                "newsletter_consent_prompt": false,
+              },
+              "hasPasswordAuth": true,
+              "id": "1",
+              "isAuthenticated": true,
+              "name": "Foo Bar",
+              "options": Object {
+                "timezone": "UTC",
+              },
+              "permissions": Set {},
+              "username": "foo@example.com",
             },
-            "hasPasswordAuth": true,
-            "id": "1",
-            "isAuthenticated": true,
-            "name": "Foo Bar",
-            "options": Object {
-              "timezone": "UTC",
-            },
-            "permissions": Set {},
-            "username": "foo@example.com",
           }
         }
-        organization={
-          Object {
-            "access": Array [
-              "org:read",
-              "org:write",
-              "org:admin",
-              "project:read",
-              "project:write",
-              "project:admin",
-              "team:read",
-              "team:write",
-              "team:admin",
-            ],
-            "features": Array [],
-            "id": "3",
-            "name": "Organization Name",
-            "onboardingTasks": Array [],
-            "projects": Array [],
-            "scrapeJavaScript": true,
-            "slug": "org-slug",
-            "status": Object {
-              "id": "active",
-              "name": "active",
-            },
-            "teams": Array [],
-          }
-        }
-        renderNoAccessMessage={false}
-        requireAll={true}
       >
-        <Alert
-          icon="icon-warning-sm"
-          iconSize="24px"
-          type="warning"
+        <Access
+          access={
+            Array [
+              "org:integrations",
+            ]
+          }
+          config={
+            Object {
+              "features": Set {},
+              "messages": Array [],
+              "user": Object {
+                "email": "foo@example.com",
+                "flags": Object {
+                  "newsletter_consent_prompt": false,
+                },
+                "hasPasswordAuth": true,
+                "id": "1",
+                "isAuthenticated": true,
+                "name": "Foo Bar",
+                "options": Object {
+                  "timezone": "UTC",
+                },
+                "permissions": Set {},
+                "username": "foo@example.com",
+              },
+            }
+          }
+          configUser={
+            Object {
+              "email": "foo@example.com",
+              "flags": Object {
+                "newsletter_consent_prompt": false,
+              },
+              "hasPasswordAuth": true,
+              "id": "1",
+              "isAuthenticated": true,
+              "name": "Foo Bar",
+              "options": Object {
+                "timezone": "UTC",
+              },
+              "permissions": Set {},
+              "username": "foo@example.com",
+            }
+          }
+          organization={
+            Object {
+              "access": Array [
+                "org:read",
+                "org:write",
+                "org:admin",
+                "project:read",
+                "project:write",
+                "project:admin",
+                "team:read",
+                "team:write",
+                "team:admin",
+              ],
+              "features": Array [],
+              "id": "3",
+              "name": "Organization Name",
+              "onboardingTasks": Array [],
+              "projects": Array [],
+              "scrapeJavaScript": true,
+              "slug": "org-slug",
+              "status": Object {
+                "id": "active",
+                "name": "active",
+              },
+              "teams": Array [],
+            }
+          }
+          renderNoAccessMessage={false}
+          requireAll={true}
         >
-          <AlertWrapper
-            className="ref-warning"
+          <Alert
+            icon="icon-warning-sm"
+            iconSize="24px"
             type="warning"
           >
-            <div
-              className="ref-warning css-3oyttp-AlertWrapper e1xb5l7j1"
+            <AlertWrapper
+              className="ref-warning"
               type="warning"
             >
-              <StyledInlineSvg
-                size="24px"
-                src="icon-warning-sm"
+              <div
+                className="ref-warning css-3oyttp-AlertWrapper e1xb5l7j1"
+                type="warning"
               >
-                <InlineSvg
-                  className="css-1e3iblq-StyledInlineSvg e1xb5l7j0"
+                <StyledInlineSvg
                   size="24px"
                   src="icon-warning-sm"
                 >
-                  <StyledSvg
+                  <InlineSvg
                     className="css-1e3iblq-StyledInlineSvg e1xb5l7j0"
-                    height="24px"
-                    viewBox={Object {}}
-                    width="24px"
+                    size="24px"
+                    src="icon-warning-sm"
                   >
-                    <svg
-                      className="e1xb5l7j0 css-lbx2sj-StyledSvg-StyledInlineSvg e2idor0"
+                    <StyledSvg
+                      className="css-1e3iblq-StyledInlineSvg e1xb5l7j0"
                       height="24px"
                       viewBox={Object {}}
                       width="24px"
                     >
-                      <use
-                        href="#test"
-                        xlinkHref="#test"
-                      />
-                    </svg>
-                  </StyledSvg>
-                </InlineSvg>
-              </StyledInlineSvg>
-              <StyledTextBlock>
-                <Component
-                  className="css-1h3n7tg-TextBlock-StyledTextBlock e1xb5l7j2"
-                >
-                  <div
+                      <svg
+                        className="e1xb5l7j0 css-lbx2sj-StyledSvg-StyledInlineSvg e2idor0"
+                        height="24px"
+                        viewBox={Object {}}
+                        width="24px"
+                      >
+                        <use
+                          href="#test"
+                          xlinkHref="#test"
+                        />
+                      </svg>
+                    </StyledSvg>
+                  </InlineSvg>
+                </StyledInlineSvg>
+                <StyledTextBlock>
+                  <Component
                     className="css-1h3n7tg-TextBlock-StyledTextBlock e1xb5l7j2"
                   >
-                    These settings can only be edited by users with the owner or manager role.
-                  </div>
-                </Component>
-              </StyledTextBlock>
-            </div>
-          </AlertWrapper>
-        </Alert>
-      </Access>
-    </AccessContainer>
+                    <div
+                      className="css-1h3n7tg-TextBlock-StyledTextBlock e1xb5l7j2"
+                    >
+                      These settings can only be edited by users with the owner or manager role.
+                    </div>
+                  </Component>
+                </StyledTextBlock>
+              </div>
+            </AlertWrapper>
+          </Alert>
+        </Access>
+      </AccessContainer>
+    </withConfig(AccessContainer)>
   </PermissionAlert>
   <MigrationWarnings
     onInstall={[Function]}
@@ -1396,264 +1446,304 @@ exports[`OrganizationIntegrations render() with installed integrations Displays 
                             }
                           }
                         >
-                          <AccessContainer
+                          <withConfig(AccessContainer)
                             access={
                               Array [
                                 "org:integrations",
                               ]
                             }
                           >
-                            <Access
+                            <AccessContainer
                               access={
                                 Array [
                                   "org:integrations",
                                 ]
                               }
-                              configUser={
+                              config={
                                 Object {
-                                  "email": "foo@example.com",
-                                  "flags": Object {
-                                    "newsletter_consent_prompt": false,
+                                  "features": Set {},
+                                  "messages": Array [],
+                                  "user": Object {
+                                    "email": "foo@example.com",
+                                    "flags": Object {
+                                      "newsletter_consent_prompt": false,
+                                    },
+                                    "hasPasswordAuth": true,
+                                    "id": "1",
+                                    "isAuthenticated": true,
+                                    "name": "Foo Bar",
+                                    "options": Object {
+                                      "timezone": "UTC",
+                                    },
+                                    "permissions": Set {},
+                                    "username": "foo@example.com",
                                   },
-                                  "hasPasswordAuth": true,
-                                  "id": "1",
-                                  "isAuthenticated": true,
-                                  "name": "Foo Bar",
-                                  "options": Object {
-                                    "timezone": "UTC",
-                                  },
-                                  "permissions": Set {},
-                                  "username": "foo@example.com",
                                 }
                               }
-                              organization={
-                                Object {
-                                  "access": Array [
-                                    "org:read",
-                                    "org:write",
-                                    "org:admin",
-                                    "project:read",
-                                    "project:write",
-                                    "project:admin",
-                                    "team:read",
-                                    "team:write",
-                                    "team:admin",
-                                  ],
-                                  "features": Array [],
-                                  "id": "3",
-                                  "name": "Organization Name",
-                                  "onboardingTasks": Array [],
-                                  "projects": Array [],
-                                  "scrapeJavaScript": true,
-                                  "slug": "org-slug",
-                                  "status": Object {
-                                    "id": "active",
-                                    "name": "active",
-                                  },
-                                  "teams": Array [],
-                                }
-                              }
-                              renderNoAccessMessage={false}
-                              requireAll={true}
                             >
-                              <Flex
-                                align="center"
-                                className="css-1gojchp-StyledInstalledIntegration e1egfpwi4"
-                                key="1"
+                              <Access
+                                access={
+                                  Array [
+                                    "org:integrations",
+                                  ]
+                                }
+                                config={
+                                  Object {
+                                    "features": Set {},
+                                    "messages": Array [],
+                                    "user": Object {
+                                      "email": "foo@example.com",
+                                      "flags": Object {
+                                        "newsletter_consent_prompt": false,
+                                      },
+                                      "hasPasswordAuth": true,
+                                      "id": "1",
+                                      "isAuthenticated": true,
+                                      "name": "Foo Bar",
+                                      "options": Object {
+                                        "timezone": "UTC",
+                                      },
+                                      "permissions": Set {},
+                                      "username": "foo@example.com",
+                                    },
+                                  }
+                                }
+                                configUser={
+                                  Object {
+                                    "email": "foo@example.com",
+                                    "flags": Object {
+                                      "newsletter_consent_prompt": false,
+                                    },
+                                    "hasPasswordAuth": true,
+                                    "id": "1",
+                                    "isAuthenticated": true,
+                                    "name": "Foo Bar",
+                                    "options": Object {
+                                      "timezone": "UTC",
+                                    },
+                                    "permissions": Set {},
+                                    "username": "foo@example.com",
+                                  }
+                                }
+                                organization={
+                                  Object {
+                                    "access": Array [
+                                      "org:read",
+                                      "org:write",
+                                      "org:admin",
+                                      "project:read",
+                                      "project:write",
+                                      "project:admin",
+                                      "team:read",
+                                      "team:write",
+                                      "team:admin",
+                                    ],
+                                    "features": Array [],
+                                    "id": "3",
+                                    "name": "Organization Name",
+                                    "onboardingTasks": Array [],
+                                    "projects": Array [],
+                                    "scrapeJavaScript": true,
+                                    "slug": "org-slug",
+                                    "status": Object {
+                                      "id": "active",
+                                      "name": "active",
+                                    },
+                                    "teams": Array [],
+                                  }
+                                }
+                                renderNoAccessMessage={false}
+                                requireAll={true}
                               >
-                                <Base
+                                <Flex
                                   align="center"
-                                  className="e1egfpwi4 css-1r8fo78-StyledInstalledIntegration"
+                                  className="css-1gojchp-StyledInstalledIntegration e1egfpwi4"
+                                  key="1"
                                 >
-                                  <div
+                                  <Base
+                                    align="center"
                                     className="e1egfpwi4 css-1r8fo78-StyledInstalledIntegration"
-                                    is={null}
                                   >
-                                    <Box
-                                      flex={1}
+                                    <div
+                                      className="e1egfpwi4 css-1r8fo78-StyledInstalledIntegration"
+                                      is={null}
                                     >
-                                      <Base
-                                        className="css-vti0ei"
+                                      <Box
                                         flex={1}
                                       >
-                                        <div
+                                        <Base
                                           className="css-vti0ei"
-                                          is={null}
+                                          flex={1}
                                         >
-                                          <IntegrationItem
-                                            compact={true}
-                                            integration={
-                                              Object {
-                                                "configData": Object {},
-                                                "configOrganization": Array [],
-                                                "domainName": "github.com/test-integration",
-                                                "icon": "http://example.com/integration_icon.png",
-                                                "id": "1",
-                                                "name": "Test Integration",
-                                                "projects": Array [],
-                                                "provider": Object {
-                                                  "canAdd": true,
-                                                  "features": Array [],
-                                                  "key": "github",
-                                                  "name": "GitHub",
-                                                },
-                                              }
-                                            }
+                                          <div
+                                            className="css-vti0ei"
+                                            is={null}
                                           >
-                                            <Flex>
-                                              <Base
-                                                className="css-sncxrr"
-                                              >
-                                                <div
+                                            <IntegrationItem
+                                              compact={true}
+                                              integration={
+                                                Object {
+                                                  "configData": Object {},
+                                                  "configOrganization": Array [],
+                                                  "domainName": "github.com/test-integration",
+                                                  "icon": "http://example.com/integration_icon.png",
+                                                  "id": "1",
+                                                  "name": "Test Integration",
+                                                  "projects": Array [],
+                                                  "provider": Object {
+                                                    "canAdd": true,
+                                                    "features": Array [],
+                                                    "key": "github",
+                                                    "name": "GitHub",
+                                                  },
+                                                }
+                                              }
+                                            >
+                                              <Flex>
+                                                <Base
                                                   className="css-sncxrr"
-                                                  is={null}
                                                 >
-                                                  <Box>
-                                                    <Base
-                                                      className="css-roynbj"
-                                                    >
-                                                      <div
+                                                  <div
+                                                    className="css-sncxrr"
+                                                    is={null}
+                                                  >
+                                                    <Box>
+                                                      <Base
                                                         className="css-roynbj"
-                                                        is={null}
                                                       >
-                                                        <IntegrationIcon
-                                                          integration={
-                                                            Object {
-                                                              "configData": Object {},
-                                                              "configOrganization": Array [],
-                                                              "domainName": "github.com/test-integration",
-                                                              "icon": "http://example.com/integration_icon.png",
-                                                              "id": "1",
-                                                              "name": "Test Integration",
-                                                              "projects": Array [],
-                                                              "provider": Object {
-                                                                "canAdd": true,
-                                                                "features": Array [],
-                                                                "key": "github",
-                                                                "name": "GitHub",
-                                                              },
-                                                            }
-                                                          }
-                                                          size={22}
+                                                        <div
+                                                          className="css-roynbj"
+                                                          is={null}
                                                         >
-                                                          <Icon
+                                                          <IntegrationIcon
+                                                            integration={
+                                                              Object {
+                                                                "configData": Object {},
+                                                                "configOrganization": Array [],
+                                                                "domainName": "github.com/test-integration",
+                                                                "icon": "http://example.com/integration_icon.png",
+                                                                "id": "1",
+                                                                "name": "Test Integration",
+                                                                "projects": Array [],
+                                                                "provider": Object {
+                                                                  "canAdd": true,
+                                                                  "features": Array [],
+                                                                  "key": "github",
+                                                                  "name": "GitHub",
+                                                                },
+                                                              }
+                                                            }
                                                             size={22}
-                                                            src="http://example.com/integration_icon.png"
                                                           >
-                                                            <img
-                                                              className="css-f8xrkt-Icon e17bf5d30"
+                                                            <Icon
                                                               size={22}
                                                               src="http://example.com/integration_icon.png"
-                                                            />
-                                                          </Icon>
-                                                        </IntegrationIcon>
-                                                      </div>
-                                                    </Base>
-                                                  </Box>
-                                                  <Labels
-                                                    compact={true}
-                                                  >
-                                                    <div
-                                                      className="css-j2micm-Labels ettpo130"
+                                                            >
+                                                              <img
+                                                                className="css-f8xrkt-Icon e17bf5d30"
+                                                                size={22}
+                                                                src="http://example.com/integration_icon.png"
+                                                              />
+                                                            </Icon>
+                                                          </IntegrationIcon>
+                                                        </div>
+                                                      </Base>
+                                                    </Box>
+                                                    <Labels
+                                                      compact={true}
                                                     >
-                                                      <IntegrationName>
-                                                        <div
-                                                          className="css-ksmg3c-IntegrationName ettpo131"
-                                                        >
-                                                          Test Integration
-                                                        </div>
-                                                      </IntegrationName>
-                                                      <DomainName
-                                                        compact={true}
+                                                      <div
+                                                        className="css-j2micm-Labels ettpo130"
                                                       >
-                                                        <div
-                                                          className="css-equk2k-DomainName ettpo132"
+                                                        <IntegrationName>
+                                                          <div
+                                                            className="css-ksmg3c-IntegrationName ettpo131"
+                                                          >
+                                                            Test Integration
+                                                          </div>
+                                                        </IntegrationName>
+                                                        <DomainName
+                                                          compact={true}
                                                         >
-                                                          github.com/test-integration
-                                                        </div>
-                                                      </DomainName>
-                                                    </div>
-                                                  </Labels>
-                                                </div>
-                                              </Base>
-                                            </Flex>
-                                          </IntegrationItem>
-                                        </div>
-                                      </Base>
-                                    </Box>
-                                    <Box>
-                                      <Base
-                                        className="css-roynbj"
-                                      >
-                                        <div
+                                                          <div
+                                                            className="css-equk2k-DomainName ettpo132"
+                                                          >
+                                                            github.com/test-integration
+                                                          </div>
+                                                        </DomainName>
+                                                      </div>
+                                                    </Labels>
+                                                  </div>
+                                                </Base>
+                                              </Flex>
+                                            </IntegrationItem>
+                                          </div>
+                                        </Base>
+                                      </Box>
+                                      <Box>
+                                        <Base
                                           className="css-roynbj"
-                                          is={null}
-                                        />
-                                      </Base>
-                                    </Box>
-                                    <Box>
-                                      <Base
-                                        className="css-roynbj"
-                                      >
-                                        <div
-                                          className="css-roynbj"
-                                          is={null}
                                         >
-                                          <Confirm
-                                            cancelText="Cancel"
-                                            confirmText="Delete"
-                                            disableConfirmButton={false}
-                                            disabled={true}
-                                            message={
-                                              <React.Fragment>
-                                                <Alert
-                                                  icon="icon-circle-exclamation"
-                                                  iconSize="24px"
-                                                  type="error"
-                                                >
-                                                  Deleting this integration has consequences!
-                                                </Alert>
-                                                Deleting this integration will remove any project associated data. This action cannot be undone. Are you sure you want to delete this integration?
-                                              </React.Fragment>
-                                            }
-                                            onConfirm={[Function]}
-                                            priority="danger"
+                                          <div
+                                            className="css-roynbj"
+                                            is={null}
+                                          />
+                                        </Base>
+                                      </Box>
+                                      <Box>
+                                        <Base
+                                          className="css-roynbj"
+                                        >
+                                          <div
+                                            className="css-roynbj"
+                                            is={null}
                                           >
-                                            <StyledButton
-                                              borderless={true}
+                                            <Confirm
+                                              cancelText="Cancel"
+                                              confirmText="Delete"
+                                              disableConfirmButton={false}
                                               disabled={true}
-                                              icon="icon-trash"
-                                              onClick={[Function]}
+                                              message={
+                                                <React.Fragment>
+                                                  <Alert
+                                                    icon="icon-circle-exclamation"
+                                                    iconSize="24px"
+                                                    type="error"
+                                                  >
+                                                    Deleting this integration has consequences!
+                                                  </Alert>
+                                                  Deleting this integration will remove any project associated data. This action cannot be undone. Are you sure you want to delete this integration?
+                                                </React.Fragment>
+                                              }
+                                              onConfirm={[Function]}
+                                              priority="danger"
                                             >
-                                              <Button
+                                              <StyledButton
                                                 borderless={true}
-                                                className="css-1j0nrmm-StyledButton ejqw4f70"
                                                 disabled={true}
                                                 icon="icon-trash"
                                                 onClick={[Function]}
                                               >
-                                                <StyledButton
-                                                  aria-label="Remove"
+                                                <Button
                                                   borderless={true}
                                                   className="css-1j0nrmm-StyledButton ejqw4f70"
                                                   disabled={true}
-                                                  href={null}
+                                                  icon="icon-trash"
                                                   onClick={[Function]}
-                                                  role="button"
-                                                  to={null}
                                                 >
-                                                  <Component
+                                                  <StyledButton
                                                     aria-label="Remove"
                                                     borderless={true}
-                                                    className="ejqw4f70 css-h1aems-StyledButton-getColors-StyledButton eqrebog0"
+                                                    className="css-1j0nrmm-StyledButton ejqw4f70"
                                                     disabled={true}
                                                     href={null}
                                                     onClick={[Function]}
                                                     role="button"
                                                     to={null}
                                                   >
-                                                    <button
+                                                    <Component
                                                       aria-label="Remove"
+                                                      borderless={true}
                                                       className="ejqw4f70 css-h1aems-StyledButton-getColors-StyledButton eqrebog0"
                                                       disabled={true}
                                                       href={null}
@@ -1661,97 +1751,82 @@ exports[`OrganizationIntegrations render() with installed integrations Displays 
                                                       role="button"
                                                       to={null}
                                                     >
-                                                      <ButtonLabel
-                                                        borderless={true}
+                                                      <button
+                                                        aria-label="Remove"
+                                                        className="ejqw4f70 css-h1aems-StyledButton-getColors-StyledButton eqrebog0"
+                                                        disabled={true}
+                                                        href={null}
+                                                        onClick={[Function]}
+                                                        role="button"
+                                                        to={null}
                                                       >
-                                                        <Component
+                                                        <ButtonLabel
                                                           borderless={true}
-                                                          className="css-uthd1f-ButtonLabel eqrebog1"
                                                         >
-                                                          <span
+                                                          <Component
+                                                            borderless={true}
                                                             className="css-uthd1f-ButtonLabel eqrebog1"
                                                           >
-                                                            <Icon
-                                                              hasChildren={true}
+                                                            <span
+                                                              className="css-uthd1f-ButtonLabel eqrebog1"
                                                             >
-                                                              <Component
-                                                                className="css-1jxtush-Icon eqrebog2"
+                                                              <Icon
                                                                 hasChildren={true}
                                                               >
-                                                                <span
+                                                                <Component
                                                                   className="css-1jxtush-Icon eqrebog2"
+                                                                  hasChildren={true}
                                                                 >
-                                                                  <StyledInlineSvg
-                                                                    size="16px"
-                                                                    src="icon-trash"
+                                                                  <span
+                                                                    className="css-1jxtush-Icon eqrebog2"
                                                                   >
-                                                                    <InlineSvg
-                                                                      className="css-1ov3rcq-StyledInlineSvg eqrebog3"
+                                                                    <StyledInlineSvg
                                                                       size="16px"
                                                                       src="icon-trash"
                                                                     >
-                                                                      <StyledSvg
+                                                                      <InlineSvg
                                                                         className="css-1ov3rcq-StyledInlineSvg eqrebog3"
-                                                                        height="16px"
-                                                                        viewBox={Object {}}
-                                                                        width="16px"
+                                                                        size="16px"
+                                                                        src="icon-trash"
                                                                       >
-                                                                        <svg
-                                                                          className="eqrebog3 css-1jjmnki-StyledSvg-StyledInlineSvg e2idor0"
+                                                                        <StyledSvg
+                                                                          className="css-1ov3rcq-StyledInlineSvg eqrebog3"
                                                                           height="16px"
                                                                           viewBox={Object {}}
                                                                           width="16px"
                                                                         >
-                                                                          <use
-                                                                            href="#test"
-                                                                            xlinkHref="#test"
-                                                                          />
-                                                                        </svg>
-                                                                      </StyledSvg>
-                                                                    </InlineSvg>
-                                                                  </StyledInlineSvg>
-                                                                </span>
-                                                              </Component>
-                                                            </Icon>
-                                                            Remove
-                                                          </span>
-                                                        </Component>
-                                                      </ButtonLabel>
-                                                    </button>
-                                                  </Component>
-                                                </StyledButton>
-                                              </Button>
-                                            </StyledButton>
-                                            <Modal
-                                              animation={false}
-                                              autoFocus={true}
-                                              backdrop={true}
-                                              bsClass="modal"
-                                              dialogComponentClass={[Function]}
-                                              enforceFocus={true}
-                                              keyboard={true}
-                                              manager={
-                                                ModalManager {
-                                                  "add": [Function],
-                                                  "containers": Array [],
-                                                  "data": Array [],
-                                                  "handleContainerOverflow": true,
-                                                  "hideSiblingNodes": true,
-                                                  "isTopModal": [Function],
-                                                  "modals": Array [],
-                                                  "remove": [Function],
-                                                }
-                                              }
-                                              onHide={[Function]}
-                                              renderBackdrop={[Function]}
-                                              restoreFocus={true}
-                                              show={false}
-                                            >
+                                                                          <svg
+                                                                            className="eqrebog3 css-1jjmnki-StyledSvg-StyledInlineSvg e2idor0"
+                                                                            height="16px"
+                                                                            viewBox={Object {}}
+                                                                            width="16px"
+                                                                          >
+                                                                            <use
+                                                                              href="#test"
+                                                                              xlinkHref="#test"
+                                                                            />
+                                                                          </svg>
+                                                                        </StyledSvg>
+                                                                      </InlineSvg>
+                                                                    </StyledInlineSvg>
+                                                                  </span>
+                                                                </Component>
+                                                              </Icon>
+                                                              Remove
+                                                            </span>
+                                                          </Component>
+                                                        </ButtonLabel>
+                                                      </button>
+                                                    </Component>
+                                                  </StyledButton>
+                                                </Button>
+                                              </StyledButton>
                                               <Modal
+                                                animation={false}
                                                 autoFocus={true}
                                                 backdrop={true}
-                                                backdropClassName="modal-backdrop"
-                                                containerClassName="modal-open"
+                                                bsClass="modal"
+                                                dialogComponentClass={[Function]}
                                                 enforceFocus={true}
                                                 keyboard={true}
                                                 manager={
@@ -1766,23 +1841,48 @@ exports[`OrganizationIntegrations render() with installed integrations Displays 
                                                     "remove": [Function],
                                                   }
                                                 }
-                                                onEntering={[Function]}
-                                                onExited={[Function]}
                                                 onHide={[Function]}
                                                 renderBackdrop={[Function]}
                                                 restoreFocus={true}
                                                 show={false}
-                                              />
-                                            </Modal>
-                                          </Confirm>
-                                        </div>
-                                      </Base>
-                                    </Box>
-                                  </div>
-                                </Base>
-                              </Flex>
-                            </Access>
-                          </AccessContainer>
+                                              >
+                                                <Modal
+                                                  autoFocus={true}
+                                                  backdrop={true}
+                                                  backdropClassName="modal-backdrop"
+                                                  containerClassName="modal-open"
+                                                  enforceFocus={true}
+                                                  keyboard={true}
+                                                  manager={
+                                                    ModalManager {
+                                                      "add": [Function],
+                                                      "containers": Array [],
+                                                      "data": Array [],
+                                                      "handleContainerOverflow": true,
+                                                      "hideSiblingNodes": true,
+                                                      "isTopModal": [Function],
+                                                      "modals": Array [],
+                                                      "remove": [Function],
+                                                    }
+                                                  }
+                                                  onEntering={[Function]}
+                                                  onExited={[Function]}
+                                                  onHide={[Function]}
+                                                  renderBackdrop={[Function]}
+                                                  restoreFocus={true}
+                                                  show={false}
+                                                />
+                                              </Modal>
+                                            </Confirm>
+                                          </div>
+                                        </Base>
+                                      </Box>
+                                    </div>
+                                  </Base>
+                                </Flex>
+                              </Access>
+                            </AccessContainer>
+                          </withConfig(AccessContainer)>
                         </InstalledIntegration>
                       </Component>
                     </StyledInstalledIntegration>
@@ -2791,264 +2891,304 @@ exports[`OrganizationIntegrations render() with installed integrations Displays 
                             }
                           }
                         >
-                          <AccessContainer
+                          <withConfig(AccessContainer)
                             access={
                               Array [
                                 "org:integrations",
                               ]
                             }
                           >
-                            <Access
+                            <AccessContainer
                               access={
                                 Array [
                                   "org:integrations",
                                 ]
                               }
-                              configUser={
+                              config={
                                 Object {
-                                  "email": "foo@example.com",
-                                  "flags": Object {
-                                    "newsletter_consent_prompt": false,
+                                  "features": Set {},
+                                  "messages": Array [],
+                                  "user": Object {
+                                    "email": "foo@example.com",
+                                    "flags": Object {
+                                      "newsletter_consent_prompt": false,
+                                    },
+                                    "hasPasswordAuth": true,
+                                    "id": "1",
+                                    "isAuthenticated": true,
+                                    "name": "Foo Bar",
+                                    "options": Object {
+                                      "timezone": "UTC",
+                                    },
+                                    "permissions": Set {},
+                                    "username": "foo@example.com",
                                   },
-                                  "hasPasswordAuth": true,
-                                  "id": "1",
-                                  "isAuthenticated": true,
-                                  "name": "Foo Bar",
-                                  "options": Object {
-                                    "timezone": "UTC",
-                                  },
-                                  "permissions": Set {},
-                                  "username": "foo@example.com",
                                 }
                               }
-                              organization={
-                                Object {
-                                  "access": Array [
-                                    "org:read",
-                                    "org:write",
-                                    "org:admin",
-                                    "project:read",
-                                    "project:write",
-                                    "project:admin",
-                                    "team:read",
-                                    "team:write",
-                                    "team:admin",
-                                  ],
-                                  "features": Array [],
-                                  "id": "3",
-                                  "name": "Organization Name",
-                                  "onboardingTasks": Array [],
-                                  "projects": Array [],
-                                  "scrapeJavaScript": true,
-                                  "slug": "org-slug",
-                                  "status": Object {
-                                    "id": "active",
-                                    "name": "active",
-                                  },
-                                  "teams": Array [],
-                                }
-                              }
-                              renderNoAccessMessage={false}
-                              requireAll={true}
                             >
-                              <Flex
-                                align="center"
-                                className="css-1gojchp-StyledInstalledIntegration e1egfpwi4"
-                                key="2"
+                              <Access
+                                access={
+                                  Array [
+                                    "org:integrations",
+                                  ]
+                                }
+                                config={
+                                  Object {
+                                    "features": Set {},
+                                    "messages": Array [],
+                                    "user": Object {
+                                      "email": "foo@example.com",
+                                      "flags": Object {
+                                        "newsletter_consent_prompt": false,
+                                      },
+                                      "hasPasswordAuth": true,
+                                      "id": "1",
+                                      "isAuthenticated": true,
+                                      "name": "Foo Bar",
+                                      "options": Object {
+                                        "timezone": "UTC",
+                                      },
+                                      "permissions": Set {},
+                                      "username": "foo@example.com",
+                                    },
+                                  }
+                                }
+                                configUser={
+                                  Object {
+                                    "email": "foo@example.com",
+                                    "flags": Object {
+                                      "newsletter_consent_prompt": false,
+                                    },
+                                    "hasPasswordAuth": true,
+                                    "id": "1",
+                                    "isAuthenticated": true,
+                                    "name": "Foo Bar",
+                                    "options": Object {
+                                      "timezone": "UTC",
+                                    },
+                                    "permissions": Set {},
+                                    "username": "foo@example.com",
+                                  }
+                                }
+                                organization={
+                                  Object {
+                                    "access": Array [
+                                      "org:read",
+                                      "org:write",
+                                      "org:admin",
+                                      "project:read",
+                                      "project:write",
+                                      "project:admin",
+                                      "team:read",
+                                      "team:write",
+                                      "team:admin",
+                                    ],
+                                    "features": Array [],
+                                    "id": "3",
+                                    "name": "Organization Name",
+                                    "onboardingTasks": Array [],
+                                    "projects": Array [],
+                                    "scrapeJavaScript": true,
+                                    "slug": "org-slug",
+                                    "status": Object {
+                                      "id": "active",
+                                      "name": "active",
+                                    },
+                                    "teams": Array [],
+                                  }
+                                }
+                                renderNoAccessMessage={false}
+                                requireAll={true}
                               >
-                                <Base
+                                <Flex
                                   align="center"
-                                  className="e1egfpwi4 css-1r8fo78-StyledInstalledIntegration"
+                                  className="css-1gojchp-StyledInstalledIntegration e1egfpwi4"
+                                  key="2"
                                 >
-                                  <div
+                                  <Base
+                                    align="center"
                                     className="e1egfpwi4 css-1r8fo78-StyledInstalledIntegration"
-                                    is={null}
                                   >
-                                    <Box
-                                      flex={1}
+                                    <div
+                                      className="e1egfpwi4 css-1r8fo78-StyledInstalledIntegration"
+                                      is={null}
                                     >
-                                      <Base
-                                        className="css-vti0ei"
+                                      <Box
                                         flex={1}
                                       >
-                                        <div
+                                        <Base
                                           className="css-vti0ei"
-                                          is={null}
+                                          flex={1}
                                         >
-                                          <IntegrationItem
-                                            compact={true}
-                                            integration={
-                                              Object {
-                                                "configData": Object {},
-                                                "configOrganization": Array [],
-                                                "domainName": "jira.com/test-integration",
-                                                "icon": "http://jira.example.com/integration_icon.png",
-                                                "id": "2",
-                                                "name": "Jira Test Integration",
-                                                "projects": Array [],
-                                                "provider": Object {
-                                                  "canAdd": true,
-                                                  "features": Array [],
-                                                  "key": "jira",
-                                                  "name": "Jira",
-                                                },
-                                              }
-                                            }
+                                          <div
+                                            className="css-vti0ei"
+                                            is={null}
                                           >
-                                            <Flex>
-                                              <Base
-                                                className="css-sncxrr"
-                                              >
-                                                <div
+                                            <IntegrationItem
+                                              compact={true}
+                                              integration={
+                                                Object {
+                                                  "configData": Object {},
+                                                  "configOrganization": Array [],
+                                                  "domainName": "jira.com/test-integration",
+                                                  "icon": "http://jira.example.com/integration_icon.png",
+                                                  "id": "2",
+                                                  "name": "Jira Test Integration",
+                                                  "projects": Array [],
+                                                  "provider": Object {
+                                                    "canAdd": true,
+                                                    "features": Array [],
+                                                    "key": "jira",
+                                                    "name": "Jira",
+                                                  },
+                                                }
+                                              }
+                                            >
+                                              <Flex>
+                                                <Base
                                                   className="css-sncxrr"
-                                                  is={null}
                                                 >
-                                                  <Box>
-                                                    <Base
-                                                      className="css-roynbj"
-                                                    >
-                                                      <div
+                                                  <div
+                                                    className="css-sncxrr"
+                                                    is={null}
+                                                  >
+                                                    <Box>
+                                                      <Base
                                                         className="css-roynbj"
-                                                        is={null}
                                                       >
-                                                        <IntegrationIcon
-                                                          integration={
-                                                            Object {
-                                                              "configData": Object {},
-                                                              "configOrganization": Array [],
-                                                              "domainName": "jira.com/test-integration",
-                                                              "icon": "http://jira.example.com/integration_icon.png",
-                                                              "id": "2",
-                                                              "name": "Jira Test Integration",
-                                                              "projects": Array [],
-                                                              "provider": Object {
-                                                                "canAdd": true,
-                                                                "features": Array [],
-                                                                "key": "jira",
-                                                                "name": "Jira",
-                                                              },
-                                                            }
-                                                          }
-                                                          size={22}
+                                                        <div
+                                                          className="css-roynbj"
+                                                          is={null}
                                                         >
-                                                          <Icon
+                                                          <IntegrationIcon
+                                                            integration={
+                                                              Object {
+                                                                "configData": Object {},
+                                                                "configOrganization": Array [],
+                                                                "domainName": "jira.com/test-integration",
+                                                                "icon": "http://jira.example.com/integration_icon.png",
+                                                                "id": "2",
+                                                                "name": "Jira Test Integration",
+                                                                "projects": Array [],
+                                                                "provider": Object {
+                                                                  "canAdd": true,
+                                                                  "features": Array [],
+                                                                  "key": "jira",
+                                                                  "name": "Jira",
+                                                                },
+                                                              }
+                                                            }
                                                             size={22}
-                                                            src="http://jira.example.com/integration_icon.png"
                                                           >
-                                                            <img
-                                                              className="css-f8xrkt-Icon e17bf5d30"
+                                                            <Icon
                                                               size={22}
                                                               src="http://jira.example.com/integration_icon.png"
-                                                            />
-                                                          </Icon>
-                                                        </IntegrationIcon>
-                                                      </div>
-                                                    </Base>
-                                                  </Box>
-                                                  <Labels
-                                                    compact={true}
-                                                  >
-                                                    <div
-                                                      className="css-j2micm-Labels ettpo130"
+                                                            >
+                                                              <img
+                                                                className="css-f8xrkt-Icon e17bf5d30"
+                                                                size={22}
+                                                                src="http://jira.example.com/integration_icon.png"
+                                                              />
+                                                            </Icon>
+                                                          </IntegrationIcon>
+                                                        </div>
+                                                      </Base>
+                                                    </Box>
+                                                    <Labels
+                                                      compact={true}
                                                     >
-                                                      <IntegrationName>
-                                                        <div
-                                                          className="css-ksmg3c-IntegrationName ettpo131"
-                                                        >
-                                                          Jira Test Integration
-                                                        </div>
-                                                      </IntegrationName>
-                                                      <DomainName
-                                                        compact={true}
+                                                      <div
+                                                        className="css-j2micm-Labels ettpo130"
                                                       >
-                                                        <div
-                                                          className="css-equk2k-DomainName ettpo132"
+                                                        <IntegrationName>
+                                                          <div
+                                                            className="css-ksmg3c-IntegrationName ettpo131"
+                                                          >
+                                                            Jira Test Integration
+                                                          </div>
+                                                        </IntegrationName>
+                                                        <DomainName
+                                                          compact={true}
                                                         >
-                                                          jira.com/test-integration
-                                                        </div>
-                                                      </DomainName>
-                                                    </div>
-                                                  </Labels>
-                                                </div>
-                                              </Base>
-                                            </Flex>
-                                          </IntegrationItem>
-                                        </div>
-                                      </Base>
-                                    </Box>
-                                    <Box>
-                                      <Base
-                                        className="css-roynbj"
-                                      >
-                                        <div
+                                                          <div
+                                                            className="css-equk2k-DomainName ettpo132"
+                                                          >
+                                                            jira.com/test-integration
+                                                          </div>
+                                                        </DomainName>
+                                                      </div>
+                                                    </Labels>
+                                                  </div>
+                                                </Base>
+                                              </Flex>
+                                            </IntegrationItem>
+                                          </div>
+                                        </Base>
+                                      </Box>
+                                      <Box>
+                                        <Base
                                           className="css-roynbj"
-                                          is={null}
-                                        />
-                                      </Base>
-                                    </Box>
-                                    <Box>
-                                      <Base
-                                        className="css-roynbj"
-                                      >
-                                        <div
-                                          className="css-roynbj"
-                                          is={null}
                                         >
-                                          <Confirm
-                                            cancelText="Cancel"
-                                            confirmText="Delete"
-                                            disableConfirmButton={false}
-                                            disabled={true}
-                                            message={
-                                              <React.Fragment>
-                                                <Alert
-                                                  icon="icon-circle-exclamation"
-                                                  iconSize="24px"
-                                                  type="error"
-                                                >
-                                                  Deleting this integration has consequences!
-                                                </Alert>
-                                                Deleting this integration will remove any project associated data. This action cannot be undone. Are you sure you want to delete this integration?
-                                              </React.Fragment>
-                                            }
-                                            onConfirm={[Function]}
-                                            priority="danger"
+                                          <div
+                                            className="css-roynbj"
+                                            is={null}
+                                          />
+                                        </Base>
+                                      </Box>
+                                      <Box>
+                                        <Base
+                                          className="css-roynbj"
+                                        >
+                                          <div
+                                            className="css-roynbj"
+                                            is={null}
                                           >
-                                            <StyledButton
-                                              borderless={true}
+                                            <Confirm
+                                              cancelText="Cancel"
+                                              confirmText="Delete"
+                                              disableConfirmButton={false}
                                               disabled={true}
-                                              icon="icon-trash"
-                                              onClick={[Function]}
+                                              message={
+                                                <React.Fragment>
+                                                  <Alert
+                                                    icon="icon-circle-exclamation"
+                                                    iconSize="24px"
+                                                    type="error"
+                                                  >
+                                                    Deleting this integration has consequences!
+                                                  </Alert>
+                                                  Deleting this integration will remove any project associated data. This action cannot be undone. Are you sure you want to delete this integration?
+                                                </React.Fragment>
+                                              }
+                                              onConfirm={[Function]}
+                                              priority="danger"
                                             >
-                                              <Button
+                                              <StyledButton
                                                 borderless={true}
-                                                className="css-1j0nrmm-StyledButton ejqw4f70"
                                                 disabled={true}
                                                 icon="icon-trash"
                                                 onClick={[Function]}
                                               >
-                                                <StyledButton
-                                                  aria-label="Remove"
+                                                <Button
                                                   borderless={true}
                                                   className="css-1j0nrmm-StyledButton ejqw4f70"
                                                   disabled={true}
-                                                  href={null}
+                                                  icon="icon-trash"
                                                   onClick={[Function]}
-                                                  role="button"
-                                                  to={null}
                                                 >
-                                                  <Component
+                                                  <StyledButton
                                                     aria-label="Remove"
                                                     borderless={true}
-                                                    className="ejqw4f70 css-h1aems-StyledButton-getColors-StyledButton eqrebog0"
+                                                    className="css-1j0nrmm-StyledButton ejqw4f70"
                                                     disabled={true}
                                                     href={null}
                                                     onClick={[Function]}
                                                     role="button"
                                                     to={null}
                                                   >
-                                                    <button
+                                                    <Component
                                                       aria-label="Remove"
+                                                      borderless={true}
                                                       className="ejqw4f70 css-h1aems-StyledButton-getColors-StyledButton eqrebog0"
                                                       disabled={true}
                                                       href={null}
@@ -3056,97 +3196,82 @@ exports[`OrganizationIntegrations render() with installed integrations Displays 
                                                       role="button"
                                                       to={null}
                                                     >
-                                                      <ButtonLabel
-                                                        borderless={true}
+                                                      <button
+                                                        aria-label="Remove"
+                                                        className="ejqw4f70 css-h1aems-StyledButton-getColors-StyledButton eqrebog0"
+                                                        disabled={true}
+                                                        href={null}
+                                                        onClick={[Function]}
+                                                        role="button"
+                                                        to={null}
                                                       >
-                                                        <Component
+                                                        <ButtonLabel
                                                           borderless={true}
-                                                          className="css-uthd1f-ButtonLabel eqrebog1"
                                                         >
-                                                          <span
+                                                          <Component
+                                                            borderless={true}
                                                             className="css-uthd1f-ButtonLabel eqrebog1"
                                                           >
-                                                            <Icon
-                                                              hasChildren={true}
+                                                            <span
+                                                              className="css-uthd1f-ButtonLabel eqrebog1"
                                                             >
-                                                              <Component
-                                                                className="css-1jxtush-Icon eqrebog2"
+                                                              <Icon
                                                                 hasChildren={true}
                                                               >
-                                                                <span
+                                                                <Component
                                                                   className="css-1jxtush-Icon eqrebog2"
+                                                                  hasChildren={true}
                                                                 >
-                                                                  <StyledInlineSvg
-                                                                    size="16px"
-                                                                    src="icon-trash"
+                                                                  <span
+                                                                    className="css-1jxtush-Icon eqrebog2"
                                                                   >
-                                                                    <InlineSvg
-                                                                      className="css-1ov3rcq-StyledInlineSvg eqrebog3"
+                                                                    <StyledInlineSvg
                                                                       size="16px"
                                                                       src="icon-trash"
                                                                     >
-                                                                      <StyledSvg
+                                                                      <InlineSvg
                                                                         className="css-1ov3rcq-StyledInlineSvg eqrebog3"
-                                                                        height="16px"
-                                                                        viewBox={Object {}}
-                                                                        width="16px"
+                                                                        size="16px"
+                                                                        src="icon-trash"
                                                                       >
-                                                                        <svg
-                                                                          className="eqrebog3 css-1jjmnki-StyledSvg-StyledInlineSvg e2idor0"
+                                                                        <StyledSvg
+                                                                          className="css-1ov3rcq-StyledInlineSvg eqrebog3"
                                                                           height="16px"
                                                                           viewBox={Object {}}
                                                                           width="16px"
                                                                         >
-                                                                          <use
-                                                                            href="#test"
-                                                                            xlinkHref="#test"
-                                                                          />
-                                                                        </svg>
-                                                                      </StyledSvg>
-                                                                    </InlineSvg>
-                                                                  </StyledInlineSvg>
-                                                                </span>
-                                                              </Component>
-                                                            </Icon>
-                                                            Remove
-                                                          </span>
-                                                        </Component>
-                                                      </ButtonLabel>
-                                                    </button>
-                                                  </Component>
-                                                </StyledButton>
-                                              </Button>
-                                            </StyledButton>
-                                            <Modal
-                                              animation={false}
-                                              autoFocus={true}
-                                              backdrop={true}
-                                              bsClass="modal"
-                                              dialogComponentClass={[Function]}
-                                              enforceFocus={true}
-                                              keyboard={true}
-                                              manager={
-                                                ModalManager {
-                                                  "add": [Function],
-                                                  "containers": Array [],
-                                                  "data": Array [],
-                                                  "handleContainerOverflow": true,
-                                                  "hideSiblingNodes": true,
-                                                  "isTopModal": [Function],
-                                                  "modals": Array [],
-                                                  "remove": [Function],
-                                                }
-                                              }
-                                              onHide={[Function]}
-                                              renderBackdrop={[Function]}
-                                              restoreFocus={true}
-                                              show={false}
-                                            >
+                                                                          <svg
+                                                                            className="eqrebog3 css-1jjmnki-StyledSvg-StyledInlineSvg e2idor0"
+                                                                            height="16px"
+                                                                            viewBox={Object {}}
+                                                                            width="16px"
+                                                                          >
+                                                                            <use
+                                                                              href="#test"
+                                                                              xlinkHref="#test"
+                                                                            />
+                                                                          </svg>
+                                                                        </StyledSvg>
+                                                                      </InlineSvg>
+                                                                    </StyledInlineSvg>
+                                                                  </span>
+                                                                </Component>
+                                                              </Icon>
+                                                              Remove
+                                                            </span>
+                                                          </Component>
+                                                        </ButtonLabel>
+                                                      </button>
+                                                    </Component>
+                                                  </StyledButton>
+                                                </Button>
+                                              </StyledButton>
                                               <Modal
+                                                animation={false}
                                                 autoFocus={true}
                                                 backdrop={true}
-                                                backdropClassName="modal-backdrop"
-                                                containerClassName="modal-open"
+                                                bsClass="modal"
+                                                dialogComponentClass={[Function]}
                                                 enforceFocus={true}
                                                 keyboard={true}
                                                 manager={
@@ -3161,23 +3286,48 @@ exports[`OrganizationIntegrations render() with installed integrations Displays 
                                                     "remove": [Function],
                                                   }
                                                 }
-                                                onEntering={[Function]}
-                                                onExited={[Function]}
                                                 onHide={[Function]}
                                                 renderBackdrop={[Function]}
                                                 restoreFocus={true}
                                                 show={false}
-                                              />
-                                            </Modal>
-                                          </Confirm>
-                                        </div>
-                                      </Base>
-                                    </Box>
-                                  </div>
-                                </Base>
-                              </Flex>
-                            </Access>
-                          </AccessContainer>
+                                              >
+                                                <Modal
+                                                  autoFocus={true}
+                                                  backdrop={true}
+                                                  backdropClassName="modal-backdrop"
+                                                  containerClassName="modal-open"
+                                                  enforceFocus={true}
+                                                  keyboard={true}
+                                                  manager={
+                                                    ModalManager {
+                                                      "add": [Function],
+                                                      "containers": Array [],
+                                                      "data": Array [],
+                                                      "handleContainerOverflow": true,
+                                                      "hideSiblingNodes": true,
+                                                      "isTopModal": [Function],
+                                                      "modals": Array [],
+                                                      "remove": [Function],
+                                                    }
+                                                  }
+                                                  onEntering={[Function]}
+                                                  onExited={[Function]}
+                                                  onHide={[Function]}
+                                                  renderBackdrop={[Function]}
+                                                  restoreFocus={true}
+                                                  show={false}
+                                                />
+                                              </Modal>
+                                            </Confirm>
+                                          </div>
+                                        </Base>
+                                      </Box>
+                                    </div>
+                                  </Base>
+                                </Flex>
+                              </Access>
+                            </AccessContainer>
+                          </withConfig(AccessContainer)>
                         </InstalledIntegration>
                       </Component>
                     </StyledInstalledIntegration>
@@ -3280,124 +3430,174 @@ exports[`OrganizationIntegrations render() without integrations Displays integra
       ]
     }
   >
-    <AccessContainer
+    <withConfig(AccessContainer)
       access={
         Array [
           "org:integrations",
         ]
       }
     >
-      <Access
+      <AccessContainer
         access={
           Array [
             "org:integrations",
           ]
         }
-        configUser={
+        config={
           Object {
-            "email": "foo@example.com",
-            "flags": Object {
-              "newsletter_consent_prompt": false,
+            "features": Set {},
+            "messages": Array [],
+            "user": Object {
+              "email": "foo@example.com",
+              "flags": Object {
+                "newsletter_consent_prompt": false,
+              },
+              "hasPasswordAuth": true,
+              "id": "1",
+              "isAuthenticated": true,
+              "name": "Foo Bar",
+              "options": Object {
+                "timezone": "UTC",
+              },
+              "permissions": Set {},
+              "username": "foo@example.com",
             },
-            "hasPasswordAuth": true,
-            "id": "1",
-            "isAuthenticated": true,
-            "name": "Foo Bar",
-            "options": Object {
-              "timezone": "UTC",
-            },
-            "permissions": Set {},
-            "username": "foo@example.com",
           }
         }
-        organization={
-          Object {
-            "access": Array [
-              "org:read",
-              "org:write",
-              "org:admin",
-              "project:read",
-              "project:write",
-              "project:admin",
-              "team:read",
-              "team:write",
-              "team:admin",
-            ],
-            "features": Array [],
-            "id": "3",
-            "name": "Organization Name",
-            "onboardingTasks": Array [],
-            "projects": Array [],
-            "scrapeJavaScript": true,
-            "slug": "org-slug",
-            "status": Object {
-              "id": "active",
-              "name": "active",
-            },
-            "teams": Array [],
-          }
-        }
-        renderNoAccessMessage={false}
-        requireAll={true}
       >
-        <Alert
-          icon="icon-warning-sm"
-          iconSize="24px"
-          type="warning"
+        <Access
+          access={
+            Array [
+              "org:integrations",
+            ]
+          }
+          config={
+            Object {
+              "features": Set {},
+              "messages": Array [],
+              "user": Object {
+                "email": "foo@example.com",
+                "flags": Object {
+                  "newsletter_consent_prompt": false,
+                },
+                "hasPasswordAuth": true,
+                "id": "1",
+                "isAuthenticated": true,
+                "name": "Foo Bar",
+                "options": Object {
+                  "timezone": "UTC",
+                },
+                "permissions": Set {},
+                "username": "foo@example.com",
+              },
+            }
+          }
+          configUser={
+            Object {
+              "email": "foo@example.com",
+              "flags": Object {
+                "newsletter_consent_prompt": false,
+              },
+              "hasPasswordAuth": true,
+              "id": "1",
+              "isAuthenticated": true,
+              "name": "Foo Bar",
+              "options": Object {
+                "timezone": "UTC",
+              },
+              "permissions": Set {},
+              "username": "foo@example.com",
+            }
+          }
+          organization={
+            Object {
+              "access": Array [
+                "org:read",
+                "org:write",
+                "org:admin",
+                "project:read",
+                "project:write",
+                "project:admin",
+                "team:read",
+                "team:write",
+                "team:admin",
+              ],
+              "features": Array [],
+              "id": "3",
+              "name": "Organization Name",
+              "onboardingTasks": Array [],
+              "projects": Array [],
+              "scrapeJavaScript": true,
+              "slug": "org-slug",
+              "status": Object {
+                "id": "active",
+                "name": "active",
+              },
+              "teams": Array [],
+            }
+          }
+          renderNoAccessMessage={false}
+          requireAll={true}
         >
-          <AlertWrapper
-            className="ref-warning"
+          <Alert
+            icon="icon-warning-sm"
+            iconSize="24px"
             type="warning"
           >
-            <div
-              className="ref-warning css-3oyttp-AlertWrapper e1xb5l7j1"
+            <AlertWrapper
+              className="ref-warning"
               type="warning"
             >
-              <StyledInlineSvg
-                size="24px"
-                src="icon-warning-sm"
+              <div
+                className="ref-warning css-3oyttp-AlertWrapper e1xb5l7j1"
+                type="warning"
               >
-                <InlineSvg
-                  className="css-1e3iblq-StyledInlineSvg e1xb5l7j0"
+                <StyledInlineSvg
                   size="24px"
                   src="icon-warning-sm"
                 >
-                  <StyledSvg
+                  <InlineSvg
                     className="css-1e3iblq-StyledInlineSvg e1xb5l7j0"
-                    height="24px"
-                    viewBox={Object {}}
-                    width="24px"
+                    size="24px"
+                    src="icon-warning-sm"
                   >
-                    <svg
-                      className="e1xb5l7j0 css-lbx2sj-StyledSvg-StyledInlineSvg e2idor0"
+                    <StyledSvg
+                      className="css-1e3iblq-StyledInlineSvg e1xb5l7j0"
                       height="24px"
                       viewBox={Object {}}
                       width="24px"
                     >
-                      <use
-                        href="#test"
-                        xlinkHref="#test"
-                      />
-                    </svg>
-                  </StyledSvg>
-                </InlineSvg>
-              </StyledInlineSvg>
-              <StyledTextBlock>
-                <Component
-                  className="css-1h3n7tg-TextBlock-StyledTextBlock e1xb5l7j2"
-                >
-                  <div
+                      <svg
+                        className="e1xb5l7j0 css-lbx2sj-StyledSvg-StyledInlineSvg e2idor0"
+                        height="24px"
+                        viewBox={Object {}}
+                        width="24px"
+                      >
+                        <use
+                          href="#test"
+                          xlinkHref="#test"
+                        />
+                      </svg>
+                    </StyledSvg>
+                  </InlineSvg>
+                </StyledInlineSvg>
+                <StyledTextBlock>
+                  <Component
                     className="css-1h3n7tg-TextBlock-StyledTextBlock e1xb5l7j2"
                   >
-                    These settings can only be edited by users with the owner or manager role.
-                  </div>
-                </Component>
-              </StyledTextBlock>
-            </div>
-          </AlertWrapper>
-        </Alert>
-      </Access>
-    </AccessContainer>
+                    <div
+                      className="css-1h3n7tg-TextBlock-StyledTextBlock e1xb5l7j2"
+                    >
+                      These settings can only be edited by users with the owner or manager role.
+                    </div>
+                  </Component>
+                </StyledTextBlock>
+              </div>
+            </AlertWrapper>
+          </Alert>
+        </Access>
+      </AccessContainer>
+    </withConfig(AccessContainer)>
   </PermissionAlert>
   <MigrationWarnings
     onInstall={[Function]}
