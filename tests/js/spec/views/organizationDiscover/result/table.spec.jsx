@@ -32,7 +32,7 @@ describe('ResultTable', function() {
       query: {fields: ['col1'], aggregations: []},
     });
     const widths = wrapper.instance().getColumnWidths(500);
-    expect(widths).toEqual([345, 153]);
+    expect(widths).toEqual([347, 151]);
   });
 
   it('getRowHeight()', function() {
