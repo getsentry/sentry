@@ -1,7 +1,5 @@
 from __future__ import absolute_import
 
-from rest_framework.exceptions import PermissionDenied
-
 from sentry.api.base import DocSection
 from sentry.api.bases.organization import OrganizationReleasesBaseEndpoint
 from sentry.api.exceptions import ResourceDoesNotExist
@@ -34,7 +32,7 @@ class CommitFileChangeEndpoint(OrganizationReleasesBaseEndpoint):
             raise ResourceDoesNotExist
 
         if not self.has_release_permission(request, organization, release):
-            raise PermissionDenied
+            raise ResourceDoesNotExist
 
         queryset = list(
             CommitFileChange.objects.filter(

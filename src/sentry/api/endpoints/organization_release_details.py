@@ -1,7 +1,6 @@
 from __future__ import absolute_import
 
 from rest_framework import serializers
-from rest_framework.exceptions import PermissionDenied
 from rest_framework.response import Response
 
 from sentry.api.base import DocSection
@@ -82,7 +81,7 @@ class OrganizationReleaseDetailsEndpoint(OrganizationReleasesBaseEndpoint):
             raise ResourceDoesNotExist
 
         if not self.has_release_permission(request, organization, release):
-            raise PermissionDenied
+            raise ResourceDoesNotExist
 
         return Response(serialize(release, request.user))
 
@@ -128,7 +127,7 @@ class OrganizationReleaseDetailsEndpoint(OrganizationReleasesBaseEndpoint):
             raise ResourceDoesNotExist
 
         if not self.has_release_permission(request, organization, release):
-            raise PermissionDenied
+            raise ResourceDoesNotExist
 
         serializer = ReleaseSerializer(data=request.DATA)
 
@@ -210,7 +209,7 @@ class OrganizationReleaseDetailsEndpoint(OrganizationReleasesBaseEndpoint):
             raise ResourceDoesNotExist
 
         if not self.has_release_permission(request, organization, release):
-            raise PermissionDenied
+            raise ResourceDoesNotExist
 
         # we don't want to remove the first_release metadata on the Group, and
         # while people might want to kill a release (maybe to remove files),
