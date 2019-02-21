@@ -15,7 +15,7 @@ from sentry.utils.strings import truncatechars
 
 def generate_culprit(data):
     platform = data.get('platform')
-    exceptions = get_path(data, 'exception', 'values')
+    exceptions = get_path(data, 'exception', 'values', filter=True)
     if exceptions:
         # Synthetic events no longer get a culprit
         last_exception = get_path(exceptions, -1)
