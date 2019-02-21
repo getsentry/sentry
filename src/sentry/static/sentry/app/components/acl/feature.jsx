@@ -1,12 +1,10 @@
 import PropTypes from 'prop-types';
 import React from 'react';
-import Reflux from 'reflux';
-import createReactClass from 'create-react-class';
 
 import {descopeFeatureName} from 'app/utils';
-import ConfigStore from 'app/stores/configStore';
 import HookStore from 'app/stores/hookStore';
 import SentryTypes from 'app/sentryTypes';
+import withConfig from 'app/utils/withConfig';
 
 import ComingSoon from './comingSoon';
 
@@ -170,32 +168,21 @@ class Feature extends React.Component {
   }
 }
 
-const FeatureContainer = createReactClass({
-  displayName: 'FeatureContainer',
+class FeatureContainer extends React.Component {
+  static propTypes = {
+    config: SentryTypes.Config.isRequired,
+  };
 
   // TODO(billy): We can derive org/project from latestContextStore if needed,
   // but let's keep it simple for now and use org/project from context
-  contextTypes: {
+  static contextTypes = {
     organization: SentryTypes.Organization,
     project: SentryTypes.Project,
-  },
-
-  mixins: [Reflux.listenTo(ConfigStore, 'onConfigStoreUpdate')],
-
-  getInitialState() {
-    return {
-      config: ConfigStore.getConfig() || {},
-    };
-  },
-
-  onConfigStoreUpdate(config) {
-    if (config === this.state.config) return;
-    this.setState({config});
-  },
+  };
 
   render() {
-    const features = this.state.config.features
-      ? Array.from(this.state.config.features)
+    const features = this.props.config.features
+      ? Array.from(this.props.config.features)
       : [];
 
     return (
@@ -206,7 +193,7 @@ const FeatureContainer = createReactClass({
         {...this.props}
       />
     );
-  },
-});
+  }
+}
 
-export default FeatureContainer;
+export default withConfig(FeatureContainer);
