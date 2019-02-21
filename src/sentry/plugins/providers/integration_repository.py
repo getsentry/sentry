@@ -40,7 +40,7 @@ class IntegrationRepositoryProvider(object):
                 organization_id=organization.id,
                 provider=self.id,
                 external_id=config.get('external_id')
-            ).first()
+            )[0]
             if repo is not None:
                 updated = self.update_repository_data(repo, config)
                 if not updated:

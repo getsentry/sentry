@@ -75,6 +75,10 @@ class PushEventWebhook(Webhook):
         if repo.config.get('name') != repo_full_name:
             repo.config['name'] = repo_full_name
             repo.name = repo_full_name
+            # building the URL manually here since it's not returned from the API
+            # see https://confluence.atlassian.com/bitbucket/event-payloads-740262817.html#EventPayloads-entity_repository
+            # and click on 'Repository property' underneath the table for example data
+            # sadly, neither 'links' nor 'website' give us what we need
             repo.url = u'https://bitbucket.org/{}'.format(repo_full_name)
             repo.save()
 
