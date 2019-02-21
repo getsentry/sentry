@@ -15,7 +15,7 @@ import {load as loadIncidents} from 'app/actionCreators/incidents';
 import {t} from 'app/locale';
 import ConfigStore from 'app/stores/configStore';
 import Feature from 'app/components/acl/feature';
-import Hook from 'app/components/hook';
+import HookStore from 'app/stores/hookStore';
 import InlineSvg from 'app/components/inlineSvg';
 import PreferencesStore from 'app/stores/preferencesStore';
 import SentryTypes from 'app/sentryTypes';
@@ -278,12 +278,13 @@ class Sidebar extends React.Component {
                       label={t('Events')}
                       to={`/organizations/${organization.slug}/events/`}
                     />
-                    <Hook
-                      name="sidebar:power-icon"
-                      organization={organization}
-                      source="events"
-                      key={`events-power-icon`}
-                    />
+
+                    {HookStore.get('sidebar:power-icon').length &&
+                      HookStore.get('sidebar:power-icon')[0]({
+                        organization,
+                        source: 'events',
+                        collapsed,
+                      })}
                   </StyledItem>
                 </Feature>
 
@@ -324,12 +325,13 @@ class Sidebar extends React.Component {
                         label={t('Discover')}
                         to={`/organizations/${organization.slug}/discover/`}
                       />
-                      <Hook
-                        name="sidebar:power-icon"
-                        organization={organization}
-                        source="discover"
-                        key={`discover-power-icon`}
-                      />
+
+                      {HookStore.get('sidebar:power-icon').length &&
+                        HookStore.get('sidebar:power-icon')[0]({
+                          organization,
+                          source: 'discover',
+                          collapsed,
+                        })}
                     </StyledItem>
                   </Feature>
                 )}
@@ -353,12 +355,12 @@ class Sidebar extends React.Component {
                       label={t('Discover')}
                       to={`/organizations/${organization.slug}/discover/`}
                     />
-                    <Hook
-                      name="sidebar:power-icon"
-                      organization={organization}
-                      source="discover"
-                      key={`discover-power-icon`}
-                    />
+                    {HookStore.get('sidebar:power-icon').length &&
+                      HookStore.get('sidebar:power-icon')[0]({
+                        organization,
+                        source: 'discover',
+                        ...sidebarItemProps,
+                      })}
                   </StyledItem>
                 </SidebarSection>
               </Feature>
@@ -436,13 +438,12 @@ class Sidebar extends React.Component {
         {hasOrganization && (
           <SidebarSectionGroup>
             <SidebarSection>
-              <Hook
-                name="sidebar:power"
-                {...sidebarItemProps}
-                onClick={this.hidePanel}
-                organization={organization}
-              />
-
+              {HookStore.get('sidebar:power').length &&
+                HookStore.get('sidebar:power')[0]({
+                  organization,
+                  onClick: this.hidePanel,
+                  ...sidebarItemProps,
+                })}
               <SidebarHelp
                 orientation={orientation}
                 collapsed={collapsed}
