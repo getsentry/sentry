@@ -16,7 +16,7 @@ class ValidateSearchFilterPermissionsTest(TestCase):
     def test_negative(self):
         query = '!has:user'
         with self.feature(
-                {'organizations:advanced_search': False},
+                {'organizations:advanced-search': False},
         ), self.assertRaisesRegexp(ValidationError, '.*negative search.*'):
             self.run_test(query)
 
@@ -24,7 +24,7 @@ class ValidateSearchFilterPermissionsTest(TestCase):
 
         query = '!something:123'
         with self.feature(
-                {'organizations:advanced_search': False},
+                {'organizations:advanced-search': False},
         ), self.assertRaisesRegexp(ValidationError, '.*negative search.*'):
             self.run_test(query)
 
@@ -33,7 +33,7 @@ class ValidateSearchFilterPermissionsTest(TestCase):
     def test_wildcard(self):
         query = 'abc:hello*'
         with self.feature(
-                {'organizations:advanced_search': False},
+                {'organizations:advanced-search': False},
         ), self.assertRaisesRegexp(ValidationError, '.*wildcard search.*'):
             self.run_test(query)
 
@@ -41,7 +41,7 @@ class ValidateSearchFilterPermissionsTest(TestCase):
 
         query = 'raw * search'
         with self.feature(
-                {'organizations:advanced_search': False},
+                {'organizations:advanced-search': False},
         ), self.assertRaisesRegexp(ValidationError, '.*wildcard search.*'):
             self.run_test(query)
 

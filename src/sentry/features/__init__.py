@@ -50,7 +50,7 @@ default_manager.add('auth:register')
 default_manager.add('organizations:create')
 
 # Organization scoped features
-default_manager.add('organizations:advanced_search', OrganizationFeature)  # NOQA
+default_manager.add('organizations:advanced-search', OrganizationFeature)  # NOQA
 default_manager.add('organizations:api-keys', OrganizationFeature)  # NOQA
 default_manager.add('organizations:discover', OrganizationFeature)  # NOQA
 default_manager.add('organizations:events', OrganizationFeature)  # NOQA

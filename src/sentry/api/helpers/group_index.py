@@ -122,7 +122,7 @@ def validate_search_filter_permissions(organization, search_filters):
     """
     # If the organization has advanced search, then no need to perform any
     # other checks since they're allowed to use all search features
-    if features.has('organizations:advanced_search', organization):
+    if features.has('organizations:advanced-search', organization):
         return
 
     for search_filter in search_filters:

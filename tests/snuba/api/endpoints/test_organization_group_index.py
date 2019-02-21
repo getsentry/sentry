@@ -393,7 +393,7 @@ class GroupListTestWithSearchFilters(GroupListTest):
 
     def test_advanced_search_errors(self):
         self.login_as(user=self.user)
-        with self.feature({'organizations:advanced_search': False}):
+        with self.feature({'organizations:advanced-search': False}):
             response = self.get_response(sort_by='date', query='!has:user')
             assert response.status_code == 400, response.data
             assert (
