@@ -1,28 +1,19 @@
 import PropTypes from 'prop-types';
 import React from 'react';
-import createReactClass from 'create-react-class';
-import Reflux from 'reflux';
 import styled from 'react-emotion';
 
+import SentryTypes from 'app/sentryTypes';
 import {analytics} from 'app/utils/analytics';
 import Alert from 'app/components/alert';
-import ConfigStore from 'app/stores/configStore';
+import withConfig from 'app/utils/withConfig';
 import {getPlatformName} from 'app/views/onboarding/utils';
 import {t} from 'app/locale';
 
-const InstallPromptBanner = createReactClass({
-  displayName: 'installPromptBanner',
-  propTypes: {
+class InstallPromptBanner extends React.Component {
+  static propTypes = {
     organization: PropTypes.object,
-  },
-
-  mixins: [Reflux.listenTo(ConfigStore, 'onConfigStoreUpdate')],
-
-  getInitialState() {
-    return {
-      sentFirstEvent: this.sentFirstEvent(),
-    };
-  },
+    config: SentryTypes.Config,
+  };
 
   componentDidMount() {
     const {href} = window.location;
@@ -31,18 +22,12 @@ const InstallPromptBanner = createReactClass({
       org_id: parseInt(organization.id, 10),
       page: href,
     });
-  },
-
-  onConfigStoreUpdate(config) {
-    if (!this.state.sentFirstEvent && config.sentFirstEvent) {
-      this.setState({sentFirstEvent: true});
-    }
-  },
+  }
 
   sentFirstEvent() {
-    const {projects} = this.props.organization;
-    return !!projects.find(project => project.firstEvent);
-  },
+    const {organization: {projects}, config} = this.props;
+    return !!projects.find(p => p.firstEvent) || !!config.sentFirstEvent;
+  }
 
   getUrl() {
     const {organization} = this.props;
@@ -57,7 +42,7 @@ const InstallPromptBanner = createReactClass({
       url = `/onboarding/${organization.slug}/${project.slug}/configure/${project.platform}`;
     }
     return url;
-  },
+  }
 
   recordAnalytics() {
     const {href} = window.location;
@@ -66,7 +51,7 @@ const InstallPromptBanner = createReactClass({
       org_id: parseInt(organization.id, 10),
       page: href,
     });
-  },
+  }
 
   inSetupFlow() {
     const path = window.location.pathname;
@@ -77,10 +62,10 @@ const InstallPromptBanner = createReactClass({
       path.indexOf('/projects/new/') !== -1 ||
       path.indexOf('/try-business/') !== -1
     );
-  },
+  }
 
   render() {
-    const {sentFirstEvent} = this.state;
+    const sentFirstEvent = this.sentFirstEvent();
     const hideBanner = sentFirstEvent || this.inSetupFlow();
 
     return (
@@ -96,8 +81,8 @@ const InstallPromptBanner = createReactClass({
         )}
       </React.Fragment>
     );
-  },
-});
+  }
+}
 
 const StyledAlert = styled(Alert)`
   padding: ${p => p.theme.grid}px ${p => p.theme.grid * 2}px;
@@ -113,4 +98,5 @@ const StyledAlert = styled(Alert)`
   }
 `;
 
-export default InstallPromptBanner;
+export {InstallPromptBanner};
+export default withConfig(InstallPromptBanner);

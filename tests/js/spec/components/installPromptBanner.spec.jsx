@@ -1,6 +1,6 @@
 import React from 'react';
 import {shallow} from 'enzyme';
-import InstallPromptBanner from 'app/components/installPromptBanner';
+import {InstallPromptBanner} from 'app/components/installPromptBanner';
 
 describe('InstallPromptBanner', function() {
   it('renders', function() {
@@ -8,7 +8,7 @@ describe('InstallPromptBanner', function() {
     const project2 = TestStubs.Project({firstEvent: null});
     const organization = TestStubs.Organization({projects: [project1, project2]});
     const wrapper = shallow(
-      <InstallPromptBanner organization={organization} />,
+      <InstallPromptBanner config={{}} organization={organization} />,
       TestStubs.routerContext()
     );
     expect(wrapper.find('StyledAlert').exists()).toBe(true);

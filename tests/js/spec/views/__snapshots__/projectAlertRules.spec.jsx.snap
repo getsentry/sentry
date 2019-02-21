@@ -384,67 +384,117 @@ exports[`projectAlertRules renders 1`] = `
           ]
         }
       >
-        <AccessContainer
+        <withConfig(AccessContainer)
           access={
             Array [
               "project:write",
             ]
           }
         >
-          <Access
+          <AccessContainer
             access={
               Array [
                 "project:write",
               ]
             }
-            configUser={
+            config={
               Object {
-                "email": "foo@example.com",
-                "flags": Object {
-                  "newsletter_consent_prompt": false,
+                "features": Set {},
+                "messages": Array [],
+                "user": Object {
+                  "email": "foo@example.com",
+                  "flags": Object {
+                    "newsletter_consent_prompt": false,
+                  },
+                  "hasPasswordAuth": true,
+                  "id": "1",
+                  "isAuthenticated": true,
+                  "name": "Foo Bar",
+                  "options": Object {
+                    "timezone": "UTC",
+                  },
+                  "permissions": Set {},
+                  "username": "foo@example.com",
                 },
-                "hasPasswordAuth": true,
-                "id": "1",
-                "isAuthenticated": true,
-                "name": "Foo Bar",
-                "options": Object {
-                  "timezone": "UTC",
-                },
-                "permissions": Set {},
-                "username": "foo@example.com",
               }
             }
-            organization={
-              Object {
-                "access": Array [
-                  "org:read",
-                  "org:write",
-                  "org:admin",
-                  "project:read",
+          >
+            <Access
+              access={
+                Array [
                   "project:write",
-                  "project:admin",
-                  "team:read",
-                  "team:write",
-                  "team:admin",
-                ],
-                "features": Array [],
-                "id": "3",
-                "name": "Organization Name",
-                "onboardingTasks": Array [],
-                "projects": Array [],
-                "scrapeJavaScript": true,
-                "slug": "org-slug",
-                "status": Object {
-                  "id": "active",
-                  "name": "active",
-                },
-                "teams": Array [],
+                ]
               }
-            }
-            renderNoAccessMessage={false}
-            requireAll={true}
-          />
-        </AccessContainer>
+              config={
+                Object {
+                  "features": Set {},
+                  "messages": Array [],
+                  "user": Object {
+                    "email": "foo@example.com",
+                    "flags": Object {
+                      "newsletter_consent_prompt": false,
+                    },
+                    "hasPasswordAuth": true,
+                    "id": "1",
+                    "isAuthenticated": true,
+                    "name": "Foo Bar",
+                    "options": Object {
+                      "timezone": "UTC",
+                    },
+                    "permissions": Set {},
+                    "username": "foo@example.com",
+                  },
+                }
+              }
+              configUser={
+                Object {
+                  "email": "foo@example.com",
+                  "flags": Object {
+                    "newsletter_consent_prompt": false,
+                  },
+                  "hasPasswordAuth": true,
+                  "id": "1",
+                  "isAuthenticated": true,
+                  "name": "Foo Bar",
+                  "options": Object {
+                    "timezone": "UTC",
+                  },
+                  "permissions": Set {},
+                  "username": "foo@example.com",
+                }
+              }
+              organization={
+                Object {
+                  "access": Array [
+                    "org:read",
+                    "org:write",
+                    "org:admin",
+                    "project:read",
+                    "project:write",
+                    "project:admin",
+                    "team:read",
+                    "team:write",
+                    "team:admin",
+                  ],
+                  "features": Array [],
+                  "id": "3",
+                  "name": "Organization Name",
+                  "onboardingTasks": Array [],
+                  "projects": Array [],
+                  "scrapeJavaScript": true,
+                  "slug": "org-slug",
+                  "status": Object {
+                    "id": "active",
+                    "name": "active",
+                  },
+                  "teams": Array [],
+                }
+              }
+              renderNoAccessMessage={false}
+              requireAll={true}
+            />
+          </AccessContainer>
+        </withConfig(AccessContainer)>
       </PermissionAlert>
       <div
         className="rules-list"
