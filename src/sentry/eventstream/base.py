@@ -27,6 +27,7 @@ class EventStream(Service):
         'end_unmerge',
         'start_delete_tag',
         'end_delete_tag',
+        'requires_post_process_forwarder',
         'run_post_process_forwarder',
     )
 
@@ -69,6 +70,10 @@ class EventStream(Service):
     def end_delete_tag(self, state):
         pass
 
+    def requires_post_process_forwarder(self):
+        return False
+
     def run_post_process_forwarder(self, consumer_group, commit_log_topic,
                                    synchronize_commit_group, commit_batch_size=100, initial_offset_reset='latest'):
+        assert not self.requires_post_process_forwarder()
         raise ForwarderNotRequired
