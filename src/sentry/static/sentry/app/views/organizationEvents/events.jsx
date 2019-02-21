@@ -1,3 +1,5 @@
+import {addErrorMessage} from 'app/actionCreators/indicator';
+
 import * as Sentry from '@sentry/browser';
 import {Flex} from 'grid-emotion';
 import {isEqual} from 'lodash';
@@ -125,6 +127,13 @@ class OrganizationEvents extends AsyncView {
 
   getTitle() {
     return `Events - ${this.props.organization.slug}`;
+  }
+
+  onRequestError(resp, args) {
+    // Allow children to implement this
+    if (resp && resp.responseJSON && resp.responseJSON.detail) {
+      addErrorMessage(resp.responseJSON.detail);
+    }
   }
 
   handleZoom = () => this.setState({zoomed: true});
