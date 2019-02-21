@@ -22,7 +22,7 @@ logger = logging.getLogger(__name__)
 
 # Beware! Changing this protocol (introducing a new version, or the message
 # format/fields themselves) requires consideration of all downstream consumers.
-# This includes the post-processing relay code!
+# This includes the post-process forwarder code!
 EVENT_PROTOCOL_VERSION = 2
 
 # Version 1 format: (1, TYPE, [...REST...])
@@ -291,9 +291,9 @@ class KafkaEventStream(EventStream):
             asynchronous=False
         )
 
-    def relay(self, consumer_group, commit_log_topic,
-              synchronize_commit_group, commit_batch_size=100, initial_offset_reset='latest'):
-        logger.debug('Starting relay...')
+    def run_post_process_forwarder(self, consumer_group, commit_log_topic,
+                                   synchronize_commit_group, commit_batch_size=100, initial_offset_reset='latest'):
+        logger.debug('Starting post-process forwarder...')
 
         consumer = SynchronizedConsumer(
             bootstrap_servers=self.producer_configuration['bootstrap.servers'],

@@ -253,32 +253,45 @@ def cron(**options):
         ).run()
 
 
-@run.command()
-@click.option('--consumer-group', default='snuba-post-processor',
-              help='Consumer group used to track event offsets that have been enqueued for post-processing.')
-@click.option('--commit-log-topic', default='snuba-commit-log',
-              help='Topic that the Snuba writer is publishing its committed offsets to.')
-@click.option('--synchronize-commit-group', default='snuba-consumers',
-              help='Consumer group that the Snuba writer is committing its offset as.')
-@click.option('--commit-batch-size', default=1000, type=int,
-              help='How many messages to process (may or may not result in an enqueued task) before committing offsets.')
-@click.option('--initial-offset-reset', default='latest', type=click.Choice(['earliest', 'latest']),
-              help='Position in the commit log topic to begin reading from when no prior offset has been recorded.')
-@log_options()
-@configuration
-def relay(**options):
-    from sentry import eventstream
-    from sentry.eventstream.base import RelayNotRequired
-    try:
-        eventstream.relay(
-            consumer_group=options['consumer_group'],
-            commit_log_topic=options['commit_log_topic'],
-            synchronize_commit_group=options['synchronize_commit_group'],
-            commit_batch_size=options['commit_batch_size'],
-            initial_offset_reset=options['initial_offset_reset'],
-        )
-    except RelayNotRequired:
-        sys.stdout.write(
-            'The configured event stream backend does not need a relay '
-            'process to enqueue post-processing tasks. Exiting...\n')
-        return
+def _make_forwarder_command():
+    # XXX: Calling ``run.command`` mutates the option specifications for some
+    # reason that I don't care to identify (they only get picked up for the
+    # first registered command), so we have to create two distinct instances of
+    # this function for the temporary "relay" alas to work correctly. After the
+    # alias is removed, this hack can be removed and the task function can be
+    # defined at module level like everything else is normally.
+
+    @click.option('--consumer-group', default='snuba-post-processor',
+                  help='Consumer group used to track event offsets that have been enqueued for post-processing.')
+    @click.option('--commit-log-topic', default='snuba-commit-log',
+                  help='Topic that the Snuba writer is publishing its committed offsets to.')
+    @click.option('--synchronize-commit-group', default='snuba-consumers',
+                  help='Consumer group that the Snuba writer is committing its offset as.')
+    @click.option('--commit-batch-size', default=1000, type=int,
+                  help='How many messages to process (may or may not result in an enqueued task) before committing offsets.')
+    @click.option('--initial-offset-reset', default='latest', type=click.Choice(['earliest', 'latest']),
+                  help='Position in the commit log topic to begin reading from when no prior offset has been recorded.')
+    @log_options()
+    @configuration
+    def post_process_forwarder(**options):
+        from sentry import eventstream
+        from sentry.eventstream.base import ForwarderNotRequired
+        try:
+            eventstream.run_post_process_forwarder(
+                consumer_group=options['consumer_group'],
+                commit_log_topic=options['commit_log_topic'],
+                synchronize_commit_group=options['synchronize_commit_group'],
+                commit_batch_size=options['commit_batch_size'],
+                initial_offset_reset=options['initial_offset_reset'],
+            )
+        except ForwarderNotRequired:
+            sys.stdout.write(
+                'The configured event stream backend does not need a forwarder '
+                'process to enqueue post-process tasks. Exiting...\n')
+            return
+
+    return post_process_forwarder
+
+
+run.command('relay')(_make_forwarder_command())  # temporary alias for compatibility
+run.command('post-process-forwarder')(_make_forwarder_command())

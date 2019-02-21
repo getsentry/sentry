@@ -9,9 +9,9 @@ from sentry.tasks.post_process import post_process_group
 logger = logging.getLogger(__name__)
 
 
-class RelayNotRequired(NotImplementedError):
+class ForwarderNotRequired(NotImplementedError):
     """
-    Exception raised if this backend does not require a relay process to
+    Exception raised if this backend does not require a forwarder process to
     enqueue post-processing tasks.
     """
 
@@ -27,7 +27,7 @@ class EventStream(Service):
         'end_unmerge',
         'start_delete_tag',
         'end_delete_tag',
-        'relay',
+        'run_post_process_forwarder',
     )
 
     def insert(self, group, event, is_new, is_sample, is_regression,
@@ -63,12 +63,12 @@ class EventStream(Service):
     def end_unmerge(self, state):
         pass
 
-    def relay(self, consumer_group, commit_log_topic,
-              synchronize_commit_group, commit_batch_size=100, initial_offset_reset='latest'):
-        raise RelayNotRequired
-
     def start_delete_tag(self, project_id, tag):
         pass
 
     def end_delete_tag(self, state):
         pass
+
+    def run_post_process_forwarder(self, consumer_group, commit_log_topic,
+                                   synchronize_commit_group, commit_batch_size=100, initial_offset_reset='latest'):
+        raise ForwarderNotRequired
