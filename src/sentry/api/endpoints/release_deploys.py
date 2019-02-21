@@ -4,7 +4,6 @@ from django.db.models import F
 from django.utils import timezone
 
 from rest_framework import serializers
-from rest_framework.exceptions import PermissionDenied
 from rest_framework.response import Response
 
 from sentry.api.base import DocSection
@@ -52,7 +51,7 @@ class ReleaseDeploysEndpoint(OrganizationReleasesBaseEndpoint):
             raise ResourceDoesNotExist
 
         if not self.has_release_permission(request, organization, release):
-            raise PermissionDenied
+            raise ResourceDoesNotExist
 
         queryset = Deploy.objects.filter(
             organization_id=organization.id,
@@ -94,7 +93,7 @@ class ReleaseDeploysEndpoint(OrganizationReleasesBaseEndpoint):
             raise ResourceDoesNotExist
 
         if not self.has_release_permission(request, organization, release):
-            raise PermissionDenied
+            raise ResourceDoesNotExist
 
         serializer = DeploySerializer(data=request.DATA)
 

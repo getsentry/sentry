@@ -75,7 +75,7 @@ class ReleaseDetailsTest(APITestCase):
             }
         )
         response = self.client.get(url)
-        assert response.status_code == 403
+        assert response.status_code == 404
 
     def test_multiple_projects(self):
         user = self.create_user(is_staff=False, is_superuser=False)
@@ -241,7 +241,7 @@ class UpdateReleaseDetailsTest(APITestCase):
             }
         )
         response = self.client.put(url, {'ref': 'master'})
-        assert response.status_code == 403
+        assert response.status_code == 404
 
     @patch('sentry.tasks.commits.fetch_commits')
     def test_deprecated_head_commits(self, mock_fetch_commits):
@@ -374,7 +374,7 @@ class UpdateReleaseDetailsTest(APITestCase):
             }
         )
         response = self.client.put(url, {'ref': 'master'})
-        assert response.status_code == 403
+        assert response.status_code == 404
 
     def test_commits(self):
         user = self.create_user(is_staff=False, is_superuser=False)
