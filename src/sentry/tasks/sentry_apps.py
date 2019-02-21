@@ -149,7 +149,9 @@ def _process_resource_change(action, sender, instance_id, retryer=None, *args, *
     )
 
     for installation in installations:
-        send_webhooks(installation, event, data=serialize(instance))
+        data = {}
+        data[name] = serialize(instance)
+        send_webhooks(installation, event, data=data)
 
 
 @instrumented_task('sentry.tasks.process_resource_change', **TASK_OPTIONS)
