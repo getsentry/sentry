@@ -187,7 +187,7 @@ class TestProcessResourceChange(TestCase):
 
         assert data['action'] == 'created'
         assert data['installation']['uuid'] == self.install.uuid
-        assert data['data']['id'] == six.text_type(issue.id)
+        assert data['data']['issue']['id'] == six.text_type(issue.id)
         assert faux(safe_urlopen).kwargs_contain('headers.Content-Type')
         assert faux(safe_urlopen).kwargs_contain('headers.Request-ID')
         assert faux(safe_urlopen).kwargs_contain('headers.Sentry-Hook-Resource')
