@@ -238,7 +238,7 @@ class OrganizationEndpoint(Endpoint):
 
         # Track the 'active' organization when the request came from
         # a cookie based agent (react app)
-        if request.auth is None and request.user:
+        if request.auth is None and request.user and not is_active_superuser(request):
             request.session['activeorg'] = organization.slug
 
         kwargs['organization'] = organization
