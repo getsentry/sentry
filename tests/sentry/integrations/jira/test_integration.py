@@ -640,6 +640,42 @@ class JiraIntegrationTest(APITestCase):
                 installation.sync_status_outbound(external_issue, True, project.id)
                 mock_transition_issue.assert_called_with('SEN-5', '31')
 
+    @responses.activate
+    def test_sync_assignee_outbound_case_insensitive(self):
+        self.user = self.create_user(email='bob@example.com')
+        issue_id = 'APP-123'
+        installation = self.integration.get_installation(self.organization.id)
+        assign_issue_url = 'https://example.atlassian.net/rest/api/2/issue/%s/assignee' % issue_id
+        external_issue = ExternalIssue.objects.create(
+            organization_id=self.organization.id,
+            integration_id=installation.model.id,
+            key=issue_id,
+        )
+        responses.add(
+            responses.GET,
+            'https://example.atlassian.net/rest/api/2/user/assignable/search',
+            json=[{
+                'emailAddress': 'Bob@example.com',
+                'name': 'Bob Example'
+            }],
+            match_querystring=False,
+        )
+        responses.add(
+            responses.PUT,
+            assign_issue_url,
+            json={},
+            match_querystring=False,
+        )
+        installation.sync_assignee_outbound(external_issue, self.user)
+
+        assert len(responses.calls) == 2
+
+        # assert user above was successfully assigned
+        assign_issue_response = responses.calls[1][1]
+        assert assign_issue_url in assign_issue_response.url
+        assert assign_issue_response.status_code == 200
+        assert assign_issue_response.request.body == '{"name": "Bob Example"}'
+
     def test_update_organization_config(self):
         org = self.organization
         self.login_as(self.user)
