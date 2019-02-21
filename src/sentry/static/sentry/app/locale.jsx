@@ -3,6 +3,8 @@ import Jed from 'jed';
 import React from 'react';
 import {sprintf} from 'sprintf-js';
 import _ from 'lodash';
+import {css} from 'react-emotion';
+
 import {getTranslations} from 'app/translations';
 
 let LOCALE_DEBUG = false;
@@ -12,14 +14,21 @@ if (sessionStorage && sessionStorage.getItem('localeDebug') == '1') {
   LOCALE_DEBUG = true;
 }
 
+const markerCss = css`
+  background: #ff801790;
+  outline: 2px solid #ff801790;
+`;
+
 export function setLocaleDebug(value) {
   sessionStorage.setItem('localeDebug', value ? '1' : '0');
   /*eslint no-console:0*/
-  console.log(
-    'Locale debug is: ',
-    value ? 'on' : 'off',
-    '. Reload page to apply changes!'
-  );
+  console.log(`Locale debug is: ${value ? 'on' : 'off'}. Reload page to apply changes!`);
+}
+
+export function toggleLocaleDebug(value) {
+  const currentValue = sessionStorage.getItem('localeDebug');
+  setLocaleDebug(currentValue !== '1');
+  window.location.reload();
 }
 
 let i18n = null;
@@ -178,7 +187,7 @@ function mark(rv) {
     key: null,
     ref: null,
     props: {
-      className: 'translation-wrapper',
+      className: markerCss,
       children: _.isArray(rv) ? rv : [rv],
     },
     _owner: null,
@@ -186,7 +195,7 @@ function mark(rv) {
   };
 
   proxy.toString = function() {
-    return '🇦🇹' + rv + '🇦🇹';
+    return '✅' + rv + '✅';
   };
 
   return proxy;
