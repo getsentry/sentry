@@ -129,3 +129,26 @@ def test_culprit_for_javascript_event():
         }
     })
     assert culprit == 'fooBar(foo/baz.js)'
+
+
+def test_culprit_for_python_event():
+    culprit = get_culprit({
+        'platform': 'python',
+        'exception': {
+            'type': 'ZeroDivisionError',
+            'value': 'integer division or modulo by zero',
+            'stacktrace': {
+                'frames': [
+                    {
+                        'filename': 'foo/baz.py',
+                        'module': 'foo.baz',
+                        'package': 'foo/baz.py',
+                        'lineno': 23,
+                        'in_app': True,
+                        'function': 'it_failed',
+                    }
+                ]
+            }
+        }
+    })
+    assert culprit == 'foo.baz in it_failed'
