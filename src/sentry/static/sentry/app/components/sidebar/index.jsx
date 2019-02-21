@@ -281,9 +281,9 @@ class Sidebar extends React.Component {
 
                     {HookStore.get('sidebar:power-icon').length &&
                       HookStore.get('sidebar:power-icon')[0]({
+                        collapsed,
                         organization,
                         source: 'events',
-                        collapsed,
                       })}
                   </StyledItem>
                 </Feature>
@@ -328,9 +328,9 @@ class Sidebar extends React.Component {
 
                       {HookStore.get('sidebar:power-icon').length &&
                         HookStore.get('sidebar:power-icon')[0]({
+                          collapsed,
                           organization,
                           source: 'discover',
-                          collapsed,
                         })}
                     </StyledItem>
                   </Feature>
@@ -357,9 +357,9 @@ class Sidebar extends React.Component {
                     />
                     {HookStore.get('sidebar:power-icon').length &&
                       HookStore.get('sidebar:power-icon')[0]({
+                        collapsed,
                         organization,
                         source: 'discover',
-                        ...sidebarItemProps,
                       })}
                   </StyledItem>
                 </SidebarSection>
@@ -438,10 +438,9 @@ class Sidebar extends React.Component {
         {hasOrganization && (
           <SidebarSectionGroup>
             <SidebarSection>
-              {HookStore.get('sidebar:power').length &&
-                HookStore.get('sidebar:power')[0]({
+              {HookStore.get('sidebar:bottom-items').length &&
+                HookStore.get('sidebar:bottom-items')[0]({
                   organization,
-                  onClick: this.hidePanel,
                   ...sidebarItemProps,
                 })}
               <SidebarHelp
