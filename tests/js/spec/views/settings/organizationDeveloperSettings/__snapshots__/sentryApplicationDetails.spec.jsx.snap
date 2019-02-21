@@ -645,16 +645,16 @@ exports[`Sentry Application Details edit existing application renders() it shows
                         title="Application Details"
                       >
                         <Panel
-                          id="Application Details"
+                          id="Application-Details"
                           key="Application Details"
                         >
                           <Component
                             className="css-yahxlu-Panel e1laxa7d0"
-                            id="Application Details"
+                            id="Application-Details"
                           >
                             <div
                               className="css-yahxlu-Panel e1laxa7d0"
-                              id="Application Details"
+                              id="Application-Details"
                             >
                               <PanelHeader>
                                 <Component
@@ -7631,12 +7631,12 @@ exports[`Sentry Application Details edit existing application renders() it shows
                                                                                             >
                                                                                               <span
                                                                                                 className="Select-multi-value-wrapper"
-                                                                                                id="react-select-14--value"
+                                                                                                id="react-select-8--value"
                                                                                               >
                                                                                                 <Value
                                                                                                   disabled={false}
-                                                                                                  id="react-select-14--value-item"
-                                                                                                  instancePrefix="react-select-14-"
+                                                                                                  id="react-select-8--value-item"
+                                                                                                  instancePrefix="react-select-8-"
                                                                                                   onClick={null}
                                                                                                   placeholder="--"
                                                                                                   value={
@@ -7652,7 +7652,7 @@ exports[`Sentry Application Details edit existing application renders() it shows
                                                                                                     <span
                                                                                                       aria-selected="true"
                                                                                                       className="Select-value-label"
-                                                                                                      id="react-select-14--value-item"
+                                                                                                      id="react-select-8--value-item"
                                                                                                       role="option"
                                                                                                     >
                                                                                                       Read
@@ -7660,7 +7660,7 @@ exports[`Sentry Application Details edit existing application renders() it shows
                                                                                                   </div>
                                                                                                 </Value>
                                                                                                 <AutosizeInput
-                                                                                                  aria-activedescendant="react-select-14--value"
+                                                                                                  aria-activedescendant="react-select-8--value"
                                                                                                   aria-expanded="false"
                                                                                                   aria-haspopup="false"
                                                                                                   aria-owns=""
@@ -7684,7 +7684,7 @@ exports[`Sentry Application Details edit existing application renders() it shows
                                                                                                     }
                                                                                                   >
                                                                                                     <input
-                                                                                                      aria-activedescendant="react-select-14--value"
+                                                                                                      aria-activedescendant="react-select-8--value"
                                                                                                       aria-expanded="false"
                                                                                                       aria-haspopup="false"
                                                                                                       aria-owns=""
@@ -9309,12 +9309,12 @@ exports[`Sentry Application Details edit existing application renders() it shows
                                                                                             >
                                                                                               <span
                                                                                                 className="Select-multi-value-wrapper"
-                                                                                                id="react-select-15--value"
+                                                                                                id="react-select-9--value"
                                                                                               >
                                                                                                 <Value
                                                                                                   disabled={false}
-                                                                                                  id="react-select-15--value-item"
-                                                                                                  instancePrefix="react-select-15-"
+                                                                                                  id="react-select-9--value-item"
+                                                                                                  instancePrefix="react-select-9-"
                                                                                                   onClick={null}
                                                                                                   placeholder="--"
                                                                                                   value={
@@ -9330,7 +9330,7 @@ exports[`Sentry Application Details edit existing application renders() it shows
                                                                                                     <span
                                                                                                       aria-selected="true"
                                                                                                       className="Select-value-label"
-                                                                                                      id="react-select-15--value-item"
+                                                                                                      id="react-select-9--value-item"
                                                                                                       role="option"
                                                                                                     >
                                                                                                       No Access
@@ -9338,7 +9338,7 @@ exports[`Sentry Application Details edit existing application renders() it shows
                                                                                                   </div>
                                                                                                 </Value>
                                                                                                 <AutosizeInput
-                                                                                                  aria-activedescendant="react-select-15--value"
+                                                                                                  aria-activedescendant="react-select-9--value"
                                                                                                   aria-expanded="false"
                                                                                                   aria-haspopup="false"
                                                                                                   aria-owns=""
@@ -9362,7 +9362,7 @@ exports[`Sentry Application Details edit existing application renders() it shows
                                                                                                     }
                                                                                                   >
                                                                                                     <input
-                                                                                                      aria-activedescendant="react-select-15--value"
+                                                                                                      aria-activedescendant="react-select-9--value"
                                                                                                       aria-expanded="false"
                                                                                                       aria-haspopup="false"
                                                                                                       aria-owns=""
@@ -10907,12 +10907,12 @@ exports[`Sentry Application Details edit existing application renders() it shows
                                                                                             >
                                                                                               <span
                                                                                                 className="Select-multi-value-wrapper"
-                                                                                                id="react-select-16--value"
+                                                                                                id="react-select-10--value"
                                                                                               >
                                                                                                 <Value
                                                                                                   disabled={false}
-                                                                                                  id="react-select-16--value-item"
-                                                                                                  instancePrefix="react-select-16-"
+                                                                                                  id="react-select-10--value-item"
+                                                                                                  instancePrefix="react-select-10-"
                                                                                                   onClick={null}
                                                                                                   placeholder="--"
                                                                                                   value={
@@ -10928,7 +10928,7 @@ exports[`Sentry Application Details edit existing application renders() it shows
                                                                                                     <span
                                                                                                       aria-selected="true"
                                                                                                       className="Select-value-label"
-                                                                                                      id="react-select-16--value-item"
+                                                                                                      id="react-select-10--value-item"
                                                                                                       role="option"
                                                                                                     >
                                                                                                       No Access
@@ -10936,7 +10936,7 @@ exports[`Sentry Application Details edit existing application renders() it shows
                                                                                                   </div>
                                                                                                 </Value>
                                                                                                 <AutosizeInput
-                                                                                                  aria-activedescendant="react-select-16--value"
+                                                                                                  aria-activedescendant="react-select-10--value"
                                                                                                   aria-expanded="false"
                                                                                                   aria-haspopup="false"
                                                                                                   aria-owns=""
@@ -10960,7 +10960,7 @@ exports[`Sentry Application Details edit existing application renders() it shows
                                                                                                     }
                                                                                                   >
                                                                                                     <input
-                                                                                                      aria-activedescendant="react-select-16--value"
+                                                                                                      aria-activedescendant="react-select-10--value"
                                                                                                       aria-expanded="false"
                                                                                                       aria-haspopup="false"
                                                                                                       aria-owns=""
@@ -12585,12 +12585,12 @@ exports[`Sentry Application Details edit existing application renders() it shows
                                                                                             >
                                                                                               <span
                                                                                                 className="Select-multi-value-wrapper"
-                                                                                                id="react-select-17--value"
+                                                                                                id="react-select-11--value"
                                                                                               >
                                                                                                 <Value
                                                                                                   disabled={false}
-                                                                                                  id="react-select-17--value-item"
-                                                                                                  instancePrefix="react-select-17-"
+                                                                                                  id="react-select-11--value-item"
+                                                                                                  instancePrefix="react-select-11-"
                                                                                                   onClick={null}
                                                                                                   placeholder="--"
                                                                                                   value={
@@ -12606,7 +12606,7 @@ exports[`Sentry Application Details edit existing application renders() it shows
                                                                                                     <span
                                                                                                       aria-selected="true"
                                                                                                       className="Select-value-label"
-                                                                                                      id="react-select-17--value-item"
+                                                                                                      id="react-select-11--value-item"
                                                                                                       role="option"
                                                                                                     >
                                                                                                       No Access
@@ -12614,7 +12614,7 @@ exports[`Sentry Application Details edit existing application renders() it shows
                                                                                                   </div>
                                                                                                 </Value>
                                                                                                 <AutosizeInput
-                                                                                                  aria-activedescendant="react-select-17--value"
+                                                                                                  aria-activedescendant="react-select-11--value"
                                                                                                   aria-expanded="false"
                                                                                                   aria-haspopup="false"
                                                                                                   aria-owns=""
@@ -12638,7 +12638,7 @@ exports[`Sentry Application Details edit existing application renders() it shows
                                                                                                     }
                                                                                                   >
                                                                                                     <input
-                                                                                                      aria-activedescendant="react-select-17--value"
+                                                                                                      aria-activedescendant="react-select-11--value"
                                                                                                       aria-expanded="false"
                                                                                                       aria-haspopup="false"
                                                                                                       aria-owns=""
@@ -14263,12 +14263,12 @@ exports[`Sentry Application Details edit existing application renders() it shows
                                                                                             >
                                                                                               <span
                                                                                                 className="Select-multi-value-wrapper"
-                                                                                                id="react-select-18--value"
+                                                                                                id="react-select-12--value"
                                                                                               >
                                                                                                 <Value
                                                                                                   disabled={false}
-                                                                                                  id="react-select-18--value-item"
-                                                                                                  instancePrefix="react-select-18-"
+                                                                                                  id="react-select-12--value-item"
+                                                                                                  instancePrefix="react-select-12-"
                                                                                                   onClick={null}
                                                                                                   placeholder="--"
                                                                                                   value={
@@ -14284,7 +14284,7 @@ exports[`Sentry Application Details edit existing application renders() it shows
                                                                                                     <span
                                                                                                       aria-selected="true"
                                                                                                       className="Select-value-label"
-                                                                                                      id="react-select-18--value-item"
+                                                                                                      id="react-select-12--value-item"
                                                                                                       role="option"
                                                                                                     >
                                                                                                       No Access
@@ -14292,7 +14292,7 @@ exports[`Sentry Application Details edit existing application renders() it shows
                                                                                                   </div>
                                                                                                 </Value>
                                                                                                 <AutosizeInput
-                                                                                                  aria-activedescendant="react-select-18--value"
+                                                                                                  aria-activedescendant="react-select-12--value"
                                                                                                   aria-expanded="false"
                                                                                                   aria-haspopup="false"
                                                                                                   aria-owns=""
@@ -14316,7 +14316,7 @@ exports[`Sentry Application Details edit existing application renders() it shows
                                                                                                     }
                                                                                                   >
                                                                                                     <input
-                                                                                                      aria-activedescendant="react-select-18--value"
+                                                                                                      aria-activedescendant="react-select-12--value"
                                                                                                       aria-expanded="false"
                                                                                                       aria-haspopup="false"
                                                                                                       aria-owns=""
@@ -15941,12 +15941,12 @@ exports[`Sentry Application Details edit existing application renders() it shows
                                                                                             >
                                                                                               <span
                                                                                                 className="Select-multi-value-wrapper"
-                                                                                                id="react-select-19--value"
+                                                                                                id="react-select-13--value"
                                                                                               >
                                                                                                 <Value
                                                                                                   disabled={false}
-                                                                                                  id="react-select-19--value-item"
-                                                                                                  instancePrefix="react-select-19-"
+                                                                                                  id="react-select-13--value-item"
+                                                                                                  instancePrefix="react-select-13-"
                                                                                                   onClick={null}
                                                                                                   placeholder="--"
                                                                                                   value={
@@ -15962,7 +15962,7 @@ exports[`Sentry Application Details edit existing application renders() it shows
                                                                                                     <span
                                                                                                       aria-selected="true"
                                                                                                       className="Select-value-label"
-                                                                                                      id="react-select-19--value-item"
+                                                                                                      id="react-select-13--value-item"
                                                                                                       role="option"
                                                                                                     >
                                                                                                       No Access
@@ -15970,7 +15970,7 @@ exports[`Sentry Application Details edit existing application renders() it shows
                                                                                                   </div>
                                                                                                 </Value>
                                                                                                 <AutosizeInput
-                                                                                                  aria-activedescendant="react-select-19--value"
+                                                                                                  aria-activedescendant="react-select-13--value"
                                                                                                   aria-expanded="false"
                                                                                                   aria-haspopup="false"
                                                                                                   aria-owns=""
@@ -15994,7 +15994,7 @@ exports[`Sentry Application Details edit existing application renders() it shows
                                                                                                     }
                                                                                                   >
                                                                                                     <input
-                                                                                                      aria-activedescendant="react-select-19--value"
+                                                                                                      aria-activedescendant="react-select-13--value"
                                                                                                       aria-expanded="false"
                                                                                                       aria-haspopup="false"
                                                                                                       aria-owns=""
@@ -19473,16 +19473,16 @@ exports[`Sentry Application Details new sentry application renders() it shows em
                         title="Application Details"
                       >
                         <Panel
-                          id="Application Details"
+                          id="Application-Details"
                           key="Application Details"
                         >
                           <Component
                             className="css-yahxlu-Panel e1laxa7d0"
-                            id="Application Details"
+                            id="Application-Details"
                           >
                             <div
                               className="css-yahxlu-Panel e1laxa7d0"
-                              id="Application Details"
+                              id="Application-Details"
                             >
                               <PanelHeader>
                                 <Component
