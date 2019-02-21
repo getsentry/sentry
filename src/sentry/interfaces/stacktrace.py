@@ -640,23 +640,6 @@ class Frame(Interface):
             }
         ).strip('\n')
 
-    def get_culprit_string(self, platform=None):
-        # If this frame has a platform, we use it instead of the one that
-        # was passed in (as that one comes from the exception which might
-        # not necessarily be the same platform).
-        if self.platform is not None:
-            platform = self.platform
-        fileloc = self.module or self.filename
-        # File location is necessary and for native platforms we no longer
-        # produce a culprit at all.
-        if not fileloc or platform in ('objc', 'cocoa', 'native'):
-            return ''
-        elif platform in ('javascript', 'node'):
-            # function and fileloc might be unicode here, so let it coerce
-            # to a unicode string if needed.
-            return '%s(%s)' % (self.function or '?', fileloc)
-        return '%s in %s' % (fileloc, self.function or '?', )
-
 
 class Stacktrace(Interface):
     """
@@ -962,14 +945,3 @@ class Stacktrace(Interface):
             )
 
         return '\n'.join(result)
-
-    def get_culprit_string(self, platform=None):
-        default = None
-        for frame in reversed(self.frames):
-            if frame.in_app:
-                culprit = frame.get_culprit_string(platform=platform)
-                if culprit:
-                    return culprit
-            elif default is None:
-                default = frame.get_culprit_string(platform=platform)
-        return default
