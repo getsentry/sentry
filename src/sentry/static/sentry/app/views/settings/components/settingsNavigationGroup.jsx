@@ -64,10 +64,10 @@ export default class NavigationGroup extends React.Component {
                 badge={badgeResult}
               />
               <Hook
-                name="sidebar:power-icon"
+                name="sidebar:secondary-icon"
                 organization={organization}
                 source={title.toLowerCase()}
-                key={`${title}-power-icon`}
+                key={`${title}`}
               />
             </StyledItem>
           );

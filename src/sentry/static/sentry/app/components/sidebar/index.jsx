@@ -279,8 +279,8 @@ class Sidebar extends React.Component {
                       to={`/organizations/${organization.slug}/events/`}
                     />
 
-                    {HookStore.get('sidebar:power-icon').length &&
-                      HookStore.get('sidebar:power-icon')[0]({
+                    {HookStore.get('sidebar:secondary-icon').length &&
+                      HookStore.get('sidebar:secondary-icon')[0]({
                         collapsed,
                         organization,
                         source: 'events',
@@ -326,8 +326,8 @@ class Sidebar extends React.Component {
                         to={`/organizations/${organization.slug}/discover/`}
                       />
 
-                      {HookStore.get('sidebar:power-icon').length &&
-                        HookStore.get('sidebar:power-icon')[0]({
+                      {HookStore.get('sidebar:secondary-icon').length &&
+                        HookStore.get('sidebar:secondary-icon')[0]({
                           collapsed,
                           organization,
                           source: 'discover',
@@ -355,8 +355,8 @@ class Sidebar extends React.Component {
                       label={t('Discover')}
                       to={`/organizations/${organization.slug}/discover/`}
                     />
-                    {HookStore.get('sidebar:power-icon').length &&
-                      HookStore.get('sidebar:power-icon')[0]({
+                    {HookStore.get('sidebar:secondary-icon').length &&
+                      HookStore.get('sidebar:secondary-icon')[0]({
                         collapsed,
                         organization,
                         source: 'discover',
