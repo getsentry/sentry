@@ -1,16 +1,17 @@
+import {omit} from 'lodash';
 import React from 'react';
-
 import createReactClass from 'create-react-class';
 
-import LoadingIndicator from 'app/components/loadingIndicator';
-import LoadingError from 'app/components/loadingError';
-import DropdownLink from 'app/components/dropdownLink';
-import MenuItem from 'app/components/menuItem';
+import {Panel, PanelHeader, PanelBody} from 'app/components/panels';
+import {URL_PARAM} from 'app/components/organizations/globalSelectionHeader/constants';
+import {t} from 'app/locale';
 import ApiMixin from 'app/mixins/apiMixin';
 import CommitRow from 'app/components/commitRow';
-import {Panel, PanelHeader, PanelBody} from 'app/components/panels';
-import {t} from 'app/locale';
+import DropdownLink from 'app/components/dropdownLink';
 import EmptyStateWarning from 'app/components/emptyStateWarning';
+import LoadingError from 'app/components/loadingError';
+import LoadingIndicator from 'app/components/loadingIndicator';
+import MenuItem from 'app/components/menuItem';
 
 const ReleaseCommits = createReactClass({
   displayName: 'ReleaseCommits',
@@ -28,7 +29,8 @@ const ReleaseCommits = createReactClass({
   componentDidMount() {
     this.api.request(this.getPath(), {
       method: 'GET',
-      data: this.props.location.query,
+      // We need to omit global selection header url params because they are not supported
+      data: omit(this.props.location.query, Object.values(URL_PARAM)),
       success: (data, _, jqXHR) => {
         this.setState({
           error: false,

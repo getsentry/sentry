@@ -1,20 +1,22 @@
+import {Flex} from 'grid-emotion';
+import {omit} from 'lodash';
 import PropTypes from 'prop-types';
 import React from 'react';
-import {Flex} from 'grid-emotion';
 
-import SentryTypes from 'app/sentryTypes';
-import Tooltip from 'app/components/tooltip';
+import {Panel, PanelHeader, PanelBody, PanelItem} from 'app/components/panels';
+import {URL_PARAM} from 'app/components/organizations/globalSelectionHeader/constants';
+import {t} from 'app/locale';
+import EmptyStateWarning from 'app/components/emptyStateWarning';
 import FileSize from 'app/components/fileSize';
+import IndicatorStore from 'app/stores/indicatorStore';
+import LinkWithConfirmation from 'app/components/linkWithConfirmation';
 import LoadingError from 'app/components/loadingError';
 import LoadingIndicator from 'app/components/loadingIndicator';
-import IndicatorStore from 'app/stores/indicatorStore';
 import Pagination from 'app/components/pagination';
-import LinkWithConfirmation from 'app/components/linkWithConfirmation';
-import {t} from 'app/locale';
-import {Panel, PanelHeader, PanelBody, PanelItem} from 'app/components/panels';
-import EmptyStateWarning from 'app/components/emptyStateWarning';
-import withOrganization from 'app/utils/withOrganization';
+import SentryTypes from 'app/sentryTypes';
+import Tooltip from 'app/components/tooltip';
 import withApi from 'app/utils/withApi';
+import withOrganization from 'app/utils/withOrganization';
 
 class ReleaseArtifacts extends React.Component {
   static propTypes = {
@@ -36,12 +38,6 @@ class ReleaseArtifacts extends React.Component {
     this.fetchData();
   }
 
-  componentDidUpdate(prevProps) {
-    if (this.props.location.search !== prevProps.location.search) {
-      this.fetchData();
-    }
-  }
-
   getFilesEndpoint() {
     const {orgId, projectId, version} = this.props.params;
     const encodedVersion = encodeURIComponent(version);
@@ -59,7 +55,8 @@ class ReleaseArtifacts extends React.Component {
 
     this.props.api.request(this.getFilesEndpoint(), {
       method: 'GET',
-      data: this.props.location.query,
+      // We need to omit global selection header url params because they are not supported
+      data: omit(this.props.location.query, Object.values(URL_PARAM)),
       success: (data, _, jqXHR) => {
         this.setState({
           error: false,
