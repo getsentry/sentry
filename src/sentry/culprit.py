@@ -19,7 +19,7 @@ def generate_culprit(data):
     if exceptions:
         # Synthetic events no longer get a culprit
         last_exception = get_path(exceptions, -1)
-        if last_exception and (last_exception.get('mechanism') or {}).get('synthetic'):
+        if get_path(last_exception, 'mechanism', 'synthetic'):
             return ''
 
         stacktraces = [e['stacktrace'] for e in exceptions if get_path(e, 'stacktrace', 'frames')]
