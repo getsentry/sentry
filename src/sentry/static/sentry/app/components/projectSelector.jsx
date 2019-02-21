@@ -337,22 +337,7 @@ const IdBadgeMenuItem = styled(IdBadge)`
   user-select: none;
 `;
 
-const BadgeAndBookmark = styled('div')`
-  display: flex;
-  flex-shrink: 1;
-  padding-right: ${space(4)};
-  overflow: hidden;
-  align-items: center;
-  height: 100%;
-
-  &:hover ${IdBadgeMenuItem} {
-    text-decoration: underline;
-    color: ${p => p.theme.blue};
-  }
-`;
-
 const MultiSelect = styled(CheckboxFancy)`
-  flex-shrink: 0;
   transition: 0.2s transform;
 `;
 
@@ -362,6 +347,25 @@ const MultiSelectWrapper = styled('div')`
 
   &:hover ${MultiSelect} {
     transform: scale(1.1);
+  }
+`;
+
+const BadgeAndBookmark = styled('div')`
+  display: flex;
+  flex-shrink: 1;
+  padding-right: ${space(1)};
+  overflow: hidden;
+  align-items: center;
+  height: 100%;
+  flex-grow: 1;
+
+  &:hover ${IdBadgeMenuItem} {
+    text-decoration: underline;
+    color: ${p => p.theme.blue};
+  }
+
+  &:hover + ${MultiSelectWrapper} {
+    opacity: 0.8;
   }
 `;
 
