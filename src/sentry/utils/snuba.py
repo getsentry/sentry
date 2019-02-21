@@ -106,7 +106,7 @@ SENTRY_SNUBA_MAP = {
     'contexts.value': 'contexts.value',
     # misc
     'release': 'tags[sentry:release]',
-    'user': 'sentry:user',
+    'user': 'tags[sentry:user]',
 }
 
 
