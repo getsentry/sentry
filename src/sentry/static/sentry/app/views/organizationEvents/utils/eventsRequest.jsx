@@ -136,8 +136,12 @@ class EventsRequest extends React.PureComponent {
 
     try {
       timeseriesData = await doEventsRequest(api, props);
-    } catch (err) {
-      addErrorMessage(t('Error loading chart data'));
+    } catch (resp) {
+      if (resp && resp.responseJSON && resp.responseJSON.detail) {
+        addErrorMessage(resp.responseJSON.detail);
+      } else {
+        addErrorMessage(t('Error loading chart data'));
+      }
       timeseriesData = null;
     }
 
