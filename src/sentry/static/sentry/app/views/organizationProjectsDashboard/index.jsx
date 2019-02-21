@@ -11,6 +11,7 @@ import IdBadge from 'app/components/idBadge';
 import NoProjectMessage from 'app/components/noProjectMessage';
 import OrganizationState from 'app/mixins/organizationState';
 import ProjectsStatsStore from 'app/stores/projectsStatsStore';
+import ConfigStore from 'app/stores/configStore';
 import getProjectsByTeams from 'app/utils/getProjectsByTeams';
 import {sortProjects} from 'app/utils';
 import getRouteStringFromRoutes from 'app/utils/getRouteStringFromRoutes';
@@ -49,7 +50,10 @@ class Dashboard extends React.Component {
   render() {
     const {teams, projects, params, organization} = this.props;
     const sortedProjects = sortProjects(projects);
-    const {projectsByTeam} = getProjectsByTeams(teams, sortedProjects);
+
+    const {isSuperuser} = ConfigStore.get('user');
+
+    const {projectsByTeam} = getProjectsByTeams(teams, sortedProjects, isSuperuser);
     const teamSlugs = Object.keys(projectsByTeam).sort();
     const favorites = projects.filter(project => project.isBookmarked);
     const access = new Set(organization.access);
