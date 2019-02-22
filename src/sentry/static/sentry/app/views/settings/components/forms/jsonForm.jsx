@@ -1,11 +1,13 @@
 import {Box} from 'grid-emotion';
 import PropTypes from 'prop-types';
 import React from 'react';
+import * as Sentry from '@sentry/browser';
 import scrollToElement from 'scroll-to-element';
 
+import {Panel, PanelBody, PanelHeader} from 'app/components/panels';
 import {defined} from 'app/utils';
 import FieldFromConfig from 'app/views/settings/components/forms/fieldFromConfig';
-import {Panel, PanelBody, PanelHeader} from 'app/components/panels';
+import {sanitizeQuerySelector} from 'app/utils/sanitizeQuerySelector';
 
 class JsonForm extends React.Component {
   static propTypes = {
@@ -84,7 +86,14 @@ class JsonForm extends React.Component {
     // Push onto callback queue so it runs after the DOM is updated,
     // this is required when navigating from a different page so that
     // the element is rendered on the page before trying to getElementById.
-    scrollToElement(hash, {align: 'middle', offset: -100});
+    try {
+      scrollToElement(sanitizeQuerySelector(decodeURIComponent(hash)), {
+        align: 'middle',
+        offset: -100,
+      });
+    } catch (err) {
+      Sentry.captureException(err);
+    }
   }
 
   render() {
@@ -188,7 +197,7 @@ class FormPanel extends React.Component {
     const shouldRenderHeader = typeof renderHeader === 'function';
 
     return (
-      <Panel key={title} id={title}>
+      <Panel key={title} id={sanitizeQuerySelector(title)}>
         <PanelHeader>{title}</PanelHeader>
         <PanelBody>
           {shouldRenderHeader && renderHeader({title, fields})}

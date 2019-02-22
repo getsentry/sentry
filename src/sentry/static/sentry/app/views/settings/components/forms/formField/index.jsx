@@ -14,6 +14,7 @@ import InlineSvg from 'app/components/inlineSvg';
 import PanelAlert from 'app/components/panels/panelAlert';
 import Spinner from 'app/views/settings/components/forms/spinner';
 import returnButton from 'app/views/settings/components/forms/returnButton';
+import {sanitizeQuerySelector} from 'app/utils/sanitizeQuerySelector';
 import space from 'app/styles/space';
 
 const FormFieldErrorReason = styled.div`
@@ -254,7 +255,7 @@ class FormField extends React.Component {
   }
 
   getId() {
-    return this.props.name;
+    return sanitizeQuerySelector(this.props.name);
   }
 
   getModel() {
