@@ -22,7 +22,8 @@ const WEBPACK_MODE = IS_PRODUCTION ? 'production' : 'development';
 
 // this is set by setup.py sdist
 const staticPrefix = path.join(__dirname, 'static');
-const distPath = env.SENTRY_STATIC_DIST_PATH || path.join(staticPrefix, 'dist');
+const sentryStaticPrefix = path.join(__dirname, 'src/sentry/static/sentry');
+const distPath = env.SENTRY_STATIC_DIST_PATH || path.join(sentryStaticPrefix, 'dist');
 
 /**
  * Locale file extraction build step
