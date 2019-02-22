@@ -4,7 +4,7 @@ import React from 'react';
 import moment from 'moment';
 import styled from 'react-emotion';
 
-import {DEFAULT_RELATIVE_PERIODS, DEFAULT_STATS_PERIOD} from 'app/constants';
+import {DEFAULT_STATS_PERIOD} from 'app/constants';
 import {analytics} from 'app/utils/analytics';
 import {
   getLocalToSystem,
@@ -12,8 +12,8 @@ import {
   getUserTimezone,
   getUtcToSystem,
 } from 'app/utils/dates';
+import {getRelativeSummary} from 'app/components/organizations/timeRangeSelector/utils';
 import {parsePeriodToHours} from 'app/utils';
-import getRouteStringFromRoutes from 'app/utils/getRouteStringFromRoutes';
 import {t} from 'app/locale';
 import DateRange from 'app/components/organizations/timeRangeSelector/dateRange';
 import DateSummary from 'app/components/organizations/timeRangeSelector/dateSummary';
@@ -24,6 +24,7 @@ import RelativeSelector from 'app/components/organizations/timeRangeSelector/dat
 import SelectorItem from 'app/components/organizations/timeRangeSelector/dateRange/selectorItem';
 import SentryTypes from 'app/sentryTypes';
 import getDynamicText from 'app/utils/getDynamicText';
+import getRouteStringFromRoutes from 'app/utils/getRouteStringFromRoutes';
 
 // Strips timezone from local date, creates a new moment date object with timezone
 // Then returns as a Date object
@@ -279,7 +280,7 @@ class TimeRangeSelector extends React.PureComponent {
     const isAbsoluteSelected = !!start && !!end;
 
     const summary = relative ? (
-      `${DEFAULT_RELATIVE_PERIODS[relative]}`
+      getRelativeSummary(relative)
     ) : (
       <DateSummary utc={this.state.utc} start={start} end={end} />
     );
