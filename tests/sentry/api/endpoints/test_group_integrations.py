@@ -88,5 +88,6 @@ class GroupIntegrationsTest(APITestCase):
 
         path = u'/api/0/issues/{}/integrations/'.format(group.id)
 
-        response = self.client.get(path)
+        with self.feature({'organizations:integrations-issue-basic': False}):
+            response = self.client.get(path)
         assert response.data == []
