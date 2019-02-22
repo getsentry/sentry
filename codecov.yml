@@ -10,7 +10,7 @@ coverage:
         target: 90%
       javascript:
         paths:
-        - "src/sentry/static/sentry/app"
+        - "static/app"
         target: 60%
   ignore:
   - src/sentry/lint/.*
@@ -22,5 +22,5 @@ coverage:
   - src/debug_toolbar/.*
   - src/social_auth/.*
   - src/south/.*
-  - src/sentry/static/sentry/app/routes.jsx
+  - static/app/routes.jsx
 comment: false

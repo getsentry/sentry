@@ -1,10 +1,7 @@
 /*eslint-env node*/
 module.exports = {
   verbose: false,
-  collectCoverageFrom: [
-    'tests/js/spec/**/*.{js,jsx}',
-    'src/sentry/static/sentry/app/**/*.{js,jsx}',
-  ],
+  collectCoverageFrom: ['tests/js/spec/**/*.{js,jsx}', 'static/app/**/*.{js,jsx}'],
   coverageReporters: ['html', 'lcov', 'cobertura'],
   coverageDirectory: '.artifacts/coverage/',
   snapshotSerializers: ['enzyme-to-json/serializer'],
@@ -16,7 +13,7 @@ module.exports = {
     'integration-docs-platforms':
       '<rootDir>/tests/fixtures/integration-docs/_platforms.json',
   },
-  modulePaths: ['<rootDir>/src/sentry/static/sentry'],
+  modulePaths: ['<rootDir>/static'],
   setupFiles: [
     '<rootDir>/tests/js/throw-on-react-error.js',
     '<rootDir>/tests/js/setup.js',

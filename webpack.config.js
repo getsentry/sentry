@@ -21,7 +21,7 @@ const USE_HOT_MODULE_RELOAD = !IS_PRODUCTION && WEBPACK_DEV_PORT && SENTRY_DEVSE
 const WEBPACK_MODE = IS_PRODUCTION ? 'production' : 'development';
 
 // this is set by setup.py sdist
-const staticPrefix = path.join(__dirname, 'src/sentry/static/sentry');
+const staticPrefix = path.join(__dirname, 'static');
 const distPath = env.SENTRY_STATIC_DIST_PATH || path.join(staticPrefix, 'dist');
 
 /**
@@ -353,7 +353,7 @@ if (USE_HOT_MODULE_RELOAD) {
     },
     // Required for getsentry
     disableHostCheck: true,
-    contentBase: './src/sentry/static/sentry',
+    contentBase: './static',
     hot: true,
     // If below is false, will reload on errors
     hotOnly: true,

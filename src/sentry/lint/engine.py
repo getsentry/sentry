@@ -75,7 +75,7 @@ def get_js_files(file_list=None, snapshots=False):
         extensions = ('.js', '.jsx')
 
     if file_list is None:
-        file_list = ['tests/js', 'src/sentry/static/sentry/app']
+        file_list = ['tests/js', 'static/app']
     return [
         x for x in get_files_for_list(file_list)
         if x.endswith(extensions)
@@ -84,7 +84,7 @@ def get_js_files(file_list=None, snapshots=False):
 
 def get_less_files(file_list=None):
     if file_list is None:
-        file_list = ['src/sentry/static/sentry/less', 'src/sentry/static/sentry/app']
+        file_list = ['static/less', 'static/app']
     return [x for x in get_files_for_list(file_list) if x.endswith(('.less'))]
 
 

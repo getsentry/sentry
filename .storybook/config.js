@@ -7,7 +7,7 @@ import {checkA11y} from '@storybook/addon-a11y';
 import {setOptions} from '@storybook/addon-options';
 import {withKnobs} from '@storybook/addon-knobs';
 
-import theme from '../src/sentry/static/sentry/app/utils/theme';
+import theme from '../static/app/utils/theme';
 import './storybook.less';
 
 const withTheme = storyFn => <ThemeProvider theme={theme}>{storyFn()}</ThemeProvider>;

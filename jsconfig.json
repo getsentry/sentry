@@ -7,8 +7,8 @@
     "experimentalDecorators": true,
     "baseUrl": ".",
     "paths": {
-      "app/*": ["src/sentry/static/sentry/app/*"]
+      "app/*": ["static/app/*"]
     }
   },
-  "include": ["src/sentry/static/sentry/app/**/*"]
+  "include": ["static/app/**/*"]
 }
