@@ -1,30 +1,26 @@
 import {browserHistory} from 'react-router';
 import React from 'react';
-import createReactClass from 'create-react-class';
 import PropTypes from 'prop-types';
 import styled from 'react-emotion';
 import * as Sentry from '@sentry/browser';
 
 import {analytics} from 'app/utils/analytics';
-import ApiMixin from 'app/mixins/apiMixin';
+import withApi from 'app/utils/withApi';
 import Button from 'app/components/button';
 import IndicatorStore from 'app/stores/indicatorStore';
 import SentryTypes from 'app/sentryTypes';
 import {t} from 'app/locale';
 
-const CreateSampleEvent = createReactClass({
-  displayName: 'createSampleEvent',
-
-  propTypes: {
+class CreateSampleEvent extends React.Component {
+  static propTypes = {
+    api: PropTypes.object,
     params: PropTypes.object.isRequired,
     source: PropTypes.string.isRequired,
-  },
+  };
 
-  contextTypes: {
+  static contextTypes = {
     organization: SentryTypes.Organization.isRequired,
-  },
-
-  mixins: [ApiMixin],
+  };
 
   componentDidMount() {
     const {projectId} = this.props.params;
@@ -39,11 +35,11 @@ const CreateSampleEvent = createReactClass({
       project_id: parseInt(project.id, 10),
     };
     analytics('sample_event.button_viewed', data);
-  },
+  }
 
   createSampleEvent() {
     // TODO(DENA): swap out for action creator
-    const {orgId, projectId} = this.props.params;
+    const {api, params: {orgId, projectId}} = this.props;
     const {organization} = this.context;
     const url = `/projects/${orgId}/${projectId}/create-sample/`;
     const project = organization.projects.find(proj => proj.slug === projectId);
@@ -55,7 +51,7 @@ const CreateSampleEvent = createReactClass({
       source: 'installation',
     });
 
-    this.api.request(url, {
+    api.request(url, {
       method: 'POST',
       success: data => {
         const issueUrl = hasSentry10
@@ -74,7 +70,7 @@ const CreateSampleEvent = createReactClass({
         IndicatorStore.addError('Unable to create a sample event');
       },
     });
-  },
+  }
 
   render() {
     return (
@@ -84,8 +80,8 @@ const CreateSampleEvent = createReactClass({
         </StyledButton>
       </div>
     );
-  },
-});
+  }
+}
 
 const StyledButton = styled(Button)`
   div {
@@ -93,4 +89,4 @@ const StyledButton = styled(Button)`
   }
 `;
 
-export default CreateSampleEvent;
+export default withApi(CreateSampleEvent);
