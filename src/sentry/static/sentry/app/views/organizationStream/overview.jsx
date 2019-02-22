@@ -168,7 +168,8 @@ const OrganizationStream = createReactClass({
     if (this.state.savedSearch) {
       return this.state.savedSearch.query;
     }
-    return this.props.location.query.query || DEFAULT_QUERY;
+    const {query} = this.props.location.query;
+    return typeof query === 'undefined' ? DEFAULT_QUERY : query;
   },
 
   getSort() {
