@@ -1,49 +1,44 @@
 import PropTypes from 'prop-types';
 import React from 'react';
-import createReactClass from 'create-react-class';
 
 import {logException} from 'app/utils/logging';
 import {t} from 'app/locale';
 import ActivityItem from 'app/components/activity/item';
-import ApiMixin from 'app/mixins/apiMixin';
 import ErrorBoundary from 'app/components/errorBoundary';
 import LoadingError from 'app/components/loadingError';
 import LoadingIndicator from 'app/components/loadingIndicator';
 import Pagination from 'app/components/pagination';
 import SentryTypes from 'app/sentryTypes';
 import space from 'app/styles/space';
+import withApi from 'app/utils/withApi';
 
-const ActivityFeed = createReactClass({
-  displayName: 'ActivityFeed',
-
-  propTypes: {
+class ActivityFeed extends React.Component {
+  static propTypes = {
+    api: PropTypes.object,
     organization: SentryTypes.Organization,
     endpoint: PropTypes.string,
     query: PropTypes.object,
     pagination: PropTypes.bool,
-  },
+  };
 
-  mixins: [ApiMixin],
+  static defaultProps = {
+    pagination: true,
+    query: {},
+  };
 
-  getDefaultProps() {
-    return {
-      pagination: true,
-      query: {},
-    };
-  },
-
-  getInitialState() {
-    return {
+  constructor(props) {
+    super(props);
+    this.state = {
       itemList: [],
       loading: true,
       error: false,
       pageLinks: null,
     };
-  },
+  }
 
   componentWillMount() {
     this.fetchData();
-  },
+  }
 
   componentWillReceiveProps(nextProps) {
     const location = this.props.location;
@@ -54,16 +49,12 @@ const ActivityFeed = createReactClass({
     ) {
       this.remountComponent();
     }
-  },
-
-  remountComponent() {
-    this.setState(this.getInitialState(), this.fetchData);
-  },
+  }
 
   fetchData() {
     const location = this.props.location;
-    this.api.clear();
-    this.api.request(this.props.endpoint, {
+    this.props.api.clear();
+    this.props.api.request(this.props.endpoint, {
       method: 'GET',
       query: {
         cursor: location.query.cursor || '',
@@ -84,7 +75,7 @@ const ActivityFeed = createReactClass({
         });
       },
     });
-  },
+  }
 
   renderResults() {
     let body;
@@ -119,7 +110,7 @@ const ActivityFeed = createReactClass({
     } else body = this.renderEmpty();
 
     return body;
-  },
+  }
 
   renderLoading() {
     return (
@@ -127,11 +118,11 @@ const ActivityFeed = createReactClass({
         <LoadingIndicator />
       </div>
     );
-  },
+  }
 
   renderEmpty() {
     return <div className="box empty">{t('Nothing to show here, move along.')}</div>;
-  },
+  }
 
   render() {
     return (
@@ -143,7 +134,7 @@ const ActivityFeed = createReactClass({
           )}
       </div>
     );
-  },
-});
+  }
+}
 
-export default ActivityFeed;
+export default withApi(ActivityFeed);
