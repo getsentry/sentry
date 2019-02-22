@@ -441,6 +441,69 @@ class ParseSearchQueryTest(TestCase):
             ),
         ]
 
+    def test_quotes_filtered_on_raw(self):
+        # Enclose the full raw query? Strip it.
+        assert parse_search_query('thinger:unknown "what is this?"') == [
+            SearchFilter(
+                key=SearchKey(name='thinger'),
+                operator='=',
+                value=SearchValue(raw_value='unknown'),
+            ),
+            SearchFilter(
+                key=SearchKey(name='message'),
+                operator='=',
+                value=SearchValue(raw_value='what is this?'),
+            ),
+        ]
+
+        # Enclose the full query? Strip it and the whole query is raw.
+        assert parse_search_query('"thinger:unknown what is this?"') == [
+            SearchFilter(
+                key=SearchKey(name='message'),
+                operator='=',
+                value=SearchValue(raw_value='thinger:unknown what is this?'),
+            ),
+        ]
+
+        # Allow a single quotation at end
+        assert parse_search_query('end"') == [
+            SearchFilter(
+                key=SearchKey(name='message'),
+                operator='=',
+                value=SearchValue(raw_value='end"'),
+            ),
+        ]
+
+        # Allow a single quotation at beginning
+        assert parse_search_query('"beginning') == [
+            SearchFilter(
+                key=SearchKey(name='message'),
+                operator='=',
+                value=SearchValue(raw_value='"beginning'),
+            ),
+        ]
+
+        # Allow a single quotation
+        assert parse_search_query('"') == [
+            SearchFilter(
+                key=SearchKey(name='message'),
+                operator='=',
+                value=SearchValue(raw_value='"'),
+            ),
+        ]
+
+        # Empty quotations become a dropped term
+        assert parse_search_query('""') == []
+
+        # Allow a search for space
+        assert parse_search_query('" "') == [
+            SearchFilter(
+                key=SearchKey(name='message'),
+                operator='=',
+                value=SearchValue(raw_value=' '),
+            ),
+        ]
+
 
 class GetSnubaQueryArgsTest(TestCase):
     def test_simple(self):
