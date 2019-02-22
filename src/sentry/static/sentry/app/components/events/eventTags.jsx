@@ -29,7 +29,7 @@ class EventTags extends React.Component {
 
     const {event, group, organization, orgId, projectId} = this.props;
 
-    const hasSentry10 = false && new Set(organization.features).has('sentry10');
+    const hasSentry10 = new Set(organization.features).has('sentry10');
 
     const streamPath = hasSentry10
       ? `/organizations/${orgId}/issues/`
