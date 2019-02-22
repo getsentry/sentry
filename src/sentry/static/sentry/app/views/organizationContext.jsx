@@ -33,7 +33,6 @@ const OrganizationContext = createReactClass({
 
   propTypes: {
     includeSidebar: PropTypes.bool,
-    ignoreError: PropTypes.bool,
     useLastOrganization: PropTypes.bool,
   },
 
@@ -188,15 +187,13 @@ const OrganizationContext = createReactClass({
   },
 
   render() {
-    const {ignoreError} = this.props;
-
     if (this.state.loading) {
       return (
         <LoadingIndicator triangle={true}>
           {t('Loading data for your organization.')}
         </LoadingIndicator>
       );
-    } else if (this.state.error && !ignoreError) {
+    } else if (this.state.error) {
       return (
         <React.Fragment>
           {this.renderSidebar()}

@@ -1,4 +1,3 @@
-import PropTypes from 'prop-types';
 import React, {Component} from 'react';
 
 import {Client} from 'app/api';
@@ -147,7 +146,7 @@ class OrganizationDetailsBody extends Component {
 export default class OrganizationDetails extends Component {
   render() {
     return (
-      <OrganizationContext ignoreError includeSidebar useLastOrganization {...this.props}>
+      <OrganizationContext includeSidebar useLastOrganization {...this.props}>
         <OrganizationDetailsBody>{this.props.children}</OrganizationDetailsBody>
       </OrganizationContext>
     );
