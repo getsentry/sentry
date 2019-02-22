@@ -5,16 +5,16 @@ import styled from 'react-emotion';
 import {sortArray} from 'app/utils';
 import {t} from 'app/locale';
 import Button from 'app/components/button';
-import CheckboxFancy from 'app/components/checkboxFancy';
 import InlineSvg from 'app/components/inlineSvg';
 import DropdownAutoComplete from 'app/components/dropdownAutoComplete';
+import DropdownAutoCompleteMultiRow, {
+  VIRTUALIZED_HEIGHT,
+} from 'app/components/dropdownAutoCompleteMultiRow';
 import Highlight from 'app/components/highlight';
 import IdBadge from 'app/components/idBadge';
 import SentryTypes from 'app/sentryTypes';
 import space from 'app/styles/space';
 import theme from 'app/utils/theme';
-
-const VIRTUALIZED_HEIGHT = 40;
 
 class ProjectSelector extends React.Component {
   static propTypes = {
@@ -274,25 +274,21 @@ class ProjectSelectorItem extends React.PureComponent {
     const {project, multi, inputValue, isChecked} = this.props;
 
     return (
-      <ProjectRow>
-        <BadgeAndBookmark>
-          <BadgeWrapper multi={multi}>
-            <IdBadgeMenuItem
-              project={project}
-              avatarSize={16}
-              displayName={<Highlight text={inputValue}>{project.slug}</Highlight>}
-              avatarProps={{consistentWidth: true}}
-            />
-          </BadgeWrapper>
-          {project.isBookmarked && <BookmarkIcon src="icon-star-small-filled" />}
-        </BadgeAndBookmark>
-
-        {multi && (
-          <MultiSelectWrapper onClick={this.handleClick} checked={isChecked}>
-            <MultiSelect checked={isChecked} />
-          </MultiSelectWrapper>
-        )}
-      </ProjectRow>
+      <DropdownAutoCompleteMultiRow
+        checked={isChecked}
+        onCheckClick={this.handleClick}
+        noMultiFeature={!multi}
+      >
+        <BadgeWrapper multi={multi}>
+          <IdBadgeMenuItem
+            project={project}
+            avatarSize={16}
+            displayName={<Highlight text={inputValue}>{project.slug}</Highlight>}
+            avatarProps={{consistentWidth: true}}
+          />
+        </BadgeWrapper>
+        {project.isBookmarked && <BookmarkIcon src="icon-star-small-filled" />}
+      </DropdownAutoCompleteMultiRow>
     );
   }
 }
@@ -301,22 +297,6 @@ const BookmarkIcon = styled(InlineSvg)`
   margin-left: ${space(0.5)};
   color: ${p => p.theme.yellowOrange};
   margin-top: -2px; /* trivial alignment bump */
-`;
-
-const ProjectRow = styled('div')`
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  font-size: 14px;
-  font-weight: 400;
-  padding-left: ${space(1)};
-  height: ${VIRTUALIZED_HEIGHT}px;
-  flex-shrink: 0;
-
-  /* thanks bootstrap? */
-  input[type='checkbox'] {
-    margin: 0;
-  }
 `;
 
 const CreateProjectButton = styled(Button)`
@@ -336,35 +316,6 @@ const IdBadgeMenuItem = styled(IdBadge)`
   flex: 1;
   overflow: hidden;
   user-select: none;
-`;
-
-const MultiSelect = styled(CheckboxFancy)`
-  transition: 0.2s transform;
-`;
-
-const MultiSelectWrapper = styled('div')`
-  padding: ${space(1)};
-`;
-
-  &:hover ${MultiSelect} {
-    transform: scale(1.1);
-    border-color: ${p => (p.checked ? p.theme.purple : p.theme.gray2)};
-  }
-`;
-
-const BadgeAndBookmark = styled('div')`
-  display: flex;
-  flex-shrink: 1;
-  padding-right: ${space(1)};
-  overflow: hidden;
-  align-items: center;
-  height: 100%;
-  flex-grow: 1;
-
-  &:hover ${IdBadgeMenuItem} {
-    text-decoration: underline;
-    color: ${p => p.theme.blue};
-  }
 `;
 
 const StyledSettingsIcon = styled(InlineSvg)`
