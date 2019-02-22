@@ -812,10 +812,10 @@ SENTRY_FEATURES = {
     'organizations:set-grouping-config': False,
     # Enable integration functionality to create and link groups to issues on
     # external services.
-    'organizations:integrations-issue-basic': False,
+    'organizations:integrations-issue-basic': True,
     # Enable interface functionality to synchronize groups between sentry and
     # issues on external services.
-    'organizations:integrations-issue-sync': False,
+    'organizations:integrations-issue-sync': True,
     # Special feature flag primarily used on the sentry.io SAAS product for
     # easily enabling features while in early development.
     'organizations:internal-catchall': False,
