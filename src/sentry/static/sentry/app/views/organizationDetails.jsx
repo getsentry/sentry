@@ -1,19 +1,20 @@
-import React, {Component} from 'react';
 import PropTypes from 'prop-types';
+import React, {Component} from 'react';
 
-import AlertActions from 'app/actions/alertActions';
-import ErrorBoundary from 'app/components/errorBoundary';
-import Button from 'app/components/button';
 import {Client} from 'app/api';
-import OrganizationContext from 'app/views/organizationContext';
-import NarrowLayout from 'app/components/narrowLayout';
+import {t, tct} from 'app/locale';
+import AlertActions from 'app/actions/alertActions';
+import Button from 'app/components/button';
+import ErrorBoundary from 'app/components/errorBoundary';
 import Footer from 'app/components/footer';
 import InstallPromptBanner from 'app/components/installPromptBanner';
-import {t, tct} from 'app/locale';
+import NarrowLayout from 'app/components/narrowLayout';
+import OrganizationContext from 'app/views/organizationContext';
+import SentryTypes from 'app/sentryTypes';
 
 class DeletionInProgress extends Component {
   static propTypes = {
-    organization: PropTypes.object.isRequired,
+    organization: SentryTypes.Organization.isRequired,
   };
 
   render() {
@@ -35,7 +36,7 @@ class DeletionInProgress extends Component {
 
 class DeletionPending extends Component {
   static propTypes = {
-    organization: PropTypes.object.isRequired,
+    organization: SentryTypes.Organization.isRequired,
   };
 
   constructor(...args) {
@@ -121,7 +122,7 @@ class DeletionPending extends Component {
 
 class OrganizationDetailsBody extends Component {
   static contextTypes = {
-    organization: PropTypes.object.isRequired,
+    organization: SentryTypes.Organization,
   };
 
   render() {

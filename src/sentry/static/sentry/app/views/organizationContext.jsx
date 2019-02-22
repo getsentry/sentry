@@ -96,6 +96,11 @@ const OrganizationContext = createReactClass({
   },
 
   fetchData() {
+    if (!this.getOrganizationSlug()) {
+      this.setState({loading: false});
+      return;
+    }
+
     const promises = [
       this.api.requestPromise(this.getOrganizationDetailsEndpoint()),
       fetchOrganizationEnvironments(this.api, this.getOrganizationSlug()),
