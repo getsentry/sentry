@@ -13,6 +13,10 @@ body {
   overflow-x: hidden;
   min-height: 100vh;
 
+  .sentry-error-embed-wrapper {
+    z-index: 1005;
+  }
+
   &.new-settings {
     overflow-y: scroll;
     background-image: none;
@@ -21,9 +25,6 @@ body {
 
     .messages-container {
       margin: 0;
-    }
-    .sentry-error-embed-wrapper {
-      z-index: 1005;
     }
   }
 
@@ -45,6 +46,7 @@ body {
     padding-top: 0;
     padding-bottom: 0;
     overflow: hidden;
+
     footer {
       display: none;
     }
@@ -124,6 +126,7 @@ body.narrow {
 
     .with-padding {
       padding: 20px 30px 0;
+
       .form-actions {
         margin: 20px 0 0;
         padding: 20px 0;
@@ -326,8 +329,10 @@ body.auth {
     &-main {
       flex-grow: 1;
     }
+
     &-toggle {
       text-align: right;
+
       label {
         color: @gray-lighter;
         font-size: 14px;
@@ -349,6 +354,7 @@ body.auth {
     padding-left: 15px;
     margin-left: 10px;
     color: @40;
+
     &.active {
       color: @yellow-orange;
     }
@@ -444,6 +450,7 @@ footer {
 
   a {
     color: @gray;
+
     &:hover {
       color: @gray-dark;
     }
@@ -506,15 +513,19 @@ footer {
   body {
     color: @gray-darkest;
   }
+
   header {
     display: none;
   }
+
   .toolbar {
     display: none;
   }
+
   .content {
     padding: 0 !important;
   }
+
   #CModal,
   footer {
     display: none;
@@ -656,6 +667,7 @@ footer {
           border-top: 1px solid @trim;
           padding-top: 20px;
           margin-top: 20px;
+
           p {
             margin-top: 0;
           }
