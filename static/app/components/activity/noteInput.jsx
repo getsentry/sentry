@@ -17,7 +17,8 @@ import {logException} from 'app/utils/logging';
 import localStorage from 'app/utils/localStorage';
 import NavTabs from 'app/components/navTabs';
 import {t} from 'app/locale';
-import mentionsStyle from 'app/../styles/mentions-styles';
+
+import mentionsStyle from './mentions-styles';
 
 const localStorageKey = 'noteinput:latest';
 
