@@ -151,7 +151,12 @@ class DateRange extends React.Component {
 
     // Restraints on the time range that you can select
     // Can't select dates in the future b/c we're not fortune tellers (yet)
-    const minDate = getStartOfPeriodAgo(maxPickableDays, 'days');
+    //
+    // We want `maxPickableDays` - 1 (if today is Jan 5, max is 3 days, the minDate should be Jan 3)
+    // Subtract additional day  because we force the end date to be inclusive,
+    // so when you pick Jan 1 the time becomes Jan 1 @ 23:59:59,
+    // (or really, Jan 2 @ 00:00:00 - 1 second), while the start time is at 00:00
+    const minDate = getStartOfPeriodAgo(maxPickableDays - 2, 'days');
     const maxDate = new Date();
 
     return (
