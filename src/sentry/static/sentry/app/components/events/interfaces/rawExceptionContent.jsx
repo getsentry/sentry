@@ -1,53 +1,48 @@
 import PropTypes from 'prop-types';
 import React from 'react';
-import createReactClass from 'create-react-class';
 import rawStacktraceContent from 'app/components/events/interfaces/rawStacktraceContent';
-import ApiMixin from 'app/mixins/apiMixin';
 import LoadingIndicator from 'app/components/loadingIndicator';
 import LoadingError from 'app/components/loadingError';
 import ClippedBox from 'app/components/clippedBox';
 
-const RawExceptionContent = createReactClass({
-  displayName: 'RawExceptionContent',
-
-  propTypes: {
+class RawExceptionContent extends React.Component {
+  static propTypes = {
     type: PropTypes.oneOf(['original', 'minified']),
     platform: PropTypes.string,
     eventId: PropTypes.string,
     values: PropTypes.array.isRequired,
-  },
+  };
 
-  mixins: [ApiMixin],
-
-  getInitialState() {
-    return {
+  constructor(props) {
+    super(props);
+    this.state = {
       loading: false,
       error: false,
       crashReport: '',
     };
-  },
+  }
 
   componentDidMount() {
     if (this.isNative()) {
       this.fetchAppleCrashReport();
     }
-  },
+  }
 
   componentDidUpdate(prevProps) {
     if (this.isNative() && this.props.type !== prevProps.type) {
       this.fetchAppleCrashReport();
     }
-  },
+  }
 
   isNative() {
     const {platform} = this.props;
     return platform === 'cocoa' || platform === 'native';
-  },
+  }
 
   getAppleCrashReportEndpoint() {
     const minified = this.props.type == 'minified';
     return `/events/${this.props.eventId}/apple-crash-report?minified=${minified}`;
-  },
+  }
 
   fetchAppleCrashReport() {
     this.setState({
@@ -71,7 +66,7 @@ const RawExceptionContent = createReactClass({
         });
       },
     });
-  },
+  }
 
   render() {
     const {type} = this.props;
@@ -109,7 +104,7 @@ const RawExceptionContent = createReactClass({
     });
 
     return <div>{children}</div>;
-  },
-});
+  }
+}
 
 export default RawExceptionContent;
