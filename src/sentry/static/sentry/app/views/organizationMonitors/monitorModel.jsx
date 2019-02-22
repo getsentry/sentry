@@ -7,9 +7,8 @@ export default class MonitorModel extends FormModel {
         if (!data.config) data.config = {};
         if (k === 'config.schedule.frequency' || k === 'config.schedule.interval') {
           if (!Array.isArray(data.config.schedule)) {
-            data.config.schedule = [0, 'minute'];
+            data.config.schedule = [null, null];
           }
-          data.config.schedule[0] = parseInt(v, 10);
         }
 
         if (k === 'config.schedule.frequency') {
