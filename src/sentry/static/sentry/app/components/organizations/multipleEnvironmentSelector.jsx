@@ -7,9 +7,7 @@ import {analytics} from 'app/utils/analytics';
 import getRouteStringFromRoutes from 'app/utils/getRouteStringFromRoutes';
 import {t} from 'app/locale';
 import DropdownAutoComplete from 'app/components/dropdownAutoComplete';
-import DropdownAutoCompleteMultiRow, {
-  VIRTUALIZED_HEIGHT,
-} from 'app/components/dropdownAutoCompleteMultiRow';
+import DropdownAutoCompleteMultiRow from 'app/components/dropdownAutoCompleteMultiRow';
 import HeaderItem from 'app/components/organizations/headerItem';
 import Highlight from 'app/components/highlight';
 import InlineSvg from 'app/components/inlineSvg';
@@ -232,7 +230,7 @@ class MultipleEnvironmentSelector extends React.PureComponent {
         inputProps={{style: {padding: 8, paddingLeft: 14}}}
         emptyMessage={t('You have no environments')}
         noResultsMessage={t('No environments found')}
-        virtualizedHeight={VIRTUALIZED_HEIGHT}
+        virtualizedHeight={theme.headerSelectorRowHeight}
         emptyHidesInput
         menuProps={{style: {position: 'relative'}}}
         items={environments.map(env => ({

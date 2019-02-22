@@ -27,7 +27,7 @@ exports[`DateSummary renders 1`] = `
                 <div
                   className="css-ul1hyh-Time eyxmd2r3"
                 >
-                  22:38
+                  19:38
                 </div>
               </Time>
             </div>
@@ -56,7 +56,7 @@ exports[`DateSummary renders 1`] = `
                 <div
                   className="css-ul1hyh-Time eyxmd2r3"
                 >
-                  22:38
+                  19:38
                 </div>
               </Time>
             </div>

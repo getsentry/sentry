@@ -5,8 +5,6 @@ import styled from 'react-emotion';
 import CheckboxFancy from 'app/components/checkboxFancy';
 import space from 'app/styles/space';
 
-export const VIRTUALIZED_HEIGHT = 40;
-
 class DropdownAutoCompleteMultiRow extends React.Component {
   static propTypes = {
     checked: PropTypes.bool,
@@ -42,7 +40,7 @@ const Container = styled('div')`
   font-size: 14px;
   font-weight: 400;
   padding-left: ${space(1)};
-  height: ${VIRTUALIZED_HEIGHT}px;
+  height: ${p => p.theme.headerSelectorRowHeight}px;
   flex-shrink: 0;
 
   /* thanks bootstrap? */

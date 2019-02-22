@@ -7,9 +7,7 @@ import {t} from 'app/locale';
 import Button from 'app/components/button';
 import InlineSvg from 'app/components/inlineSvg';
 import DropdownAutoComplete from 'app/components/dropdownAutoComplete';
-import DropdownAutoCompleteMultiRow, {
-  VIRTUALIZED_HEIGHT,
-} from 'app/components/dropdownAutoCompleteMultiRow';
+import DropdownAutoCompleteMultiRow from 'app/components/dropdownAutoCompleteMultiRow';
 import Highlight from 'app/components/highlight';
 import IdBadge from 'app/components/idBadge';
 import SentryTypes from 'app/sentryTypes';
@@ -187,7 +185,7 @@ class ProjectSelector extends React.Component {
         className={className}
         emptyMessage={t('You have no projects')}
         noResultsMessage={t('No projects found')}
-        virtualizedHeight={VIRTUALIZED_HEIGHT}
+        virtualizedHeight={theme.headerSelectorRowHeight}
         emptyHidesInput
         inputActions={() => (
           <div>
