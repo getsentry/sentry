@@ -3,7 +3,7 @@ import React from 'react';
 import {mount} from 'enzyme';
 import {openSudo} from 'app/actionCreators/modal';
 import ConfigStore from 'app/stores/configStore';
-import OrganizationContext from 'app/views/organizationContext';
+import {OrganizationContext} from 'app/views/organizationContext';
 import ProjectsStore from 'app/stores/projectsStore';
 import TeamStore from 'app/stores/teamStore';
 import GlobalSelectionStore from 'app/stores/globalSelectionStore';

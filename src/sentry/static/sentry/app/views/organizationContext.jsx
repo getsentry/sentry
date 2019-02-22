@@ -35,6 +35,7 @@ const OrganizationContext = createReactClass({
   propTypes: {
     includeSidebar: PropTypes.bool,
     useLastOrganization: PropTypes.bool,
+    organizations: PropTypes.arrayOf(SentryTypes.Organization),
   },
 
   childContextTypes: {
@@ -220,6 +221,7 @@ const OrganizationContext = createReactClass({
 });
 
 export default withOrganizations(OrganizationContext);
+export {OrganizationContext};
 
 const ErrorWrapper = styled('div')`
   padding: ${space(3)};
