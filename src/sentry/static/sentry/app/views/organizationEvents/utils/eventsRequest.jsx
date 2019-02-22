@@ -3,6 +3,7 @@ import PropTypes from 'prop-types';
 import React from 'react';
 
 import {addErrorMessage} from 'app/actionCreators/indicator';
+import {canIncludePreviousPeriod} from 'app/views/organizationEvents/utils/canIncludePreviousPeriod';
 import {doEventsRequest} from 'app/actionCreators/events';
 import {t} from 'app/locale';
 import SentryTypes from 'app/sentryTypes';
@@ -160,7 +161,7 @@ class EventsRequest extends React.PureComponent {
    * Returns `null` if data does not exist
    */
   getData = data => {
-    const {includePrevious} = this.props;
+    const {period, includePrevious} = this.props;
 
     if (!data) {
       return {
@@ -169,7 +170,7 @@ class EventsRequest extends React.PureComponent {
       };
     }
 
-    const hasPreviousPeriod = includePrevious;
+    const hasPreviousPeriod = canIncludePreviousPeriod(includePrevious, period);
     // Take the floor just in case, but data should always be divisible by 2
     const dataMiddleIndex = Math.floor(data.length / 2);
 
