@@ -324,9 +324,10 @@ class ProjectCopyTest(TestCase):
     def copy_project_settings(self):
         project = self.create_project()
 
-        project.copy_settings_from(self.project)
+        assert project.copy_settings_from(self.project)
 
         # assert the settings were copied
+        project = Project.objects.get(project_id=project.id)
         expected_env = [('environment-1', True), ('environment-2', False)]
         self.assert_project_environments(project, expected_env)
         expected_option = [('project-option-1', {'stuff': 'stuff'}), ('project-option-2', {})]
@@ -339,14 +340,19 @@ class ProjectCopyTest(TestCase):
         self.assert_project_rules(project, ['rule-1', 'rule-2'])
 
         # assert the settings of the copied from were not changed
+        project = Project.objects.get(project_id=self.project.id)
         self.assert_project_environments(
-            self.project, [
-                ('environment-1', True), ('environment-2', False)])
+            project,
+            [
+                ('environment-1', True),
+                ('environment-2', False)
+            ]
+        )
         expected_option = [('project-option-1', {'stuff': 'stuff'}), ('project-option-2', {})]
-        self.assert_project_options(self.project, expected_option)
-        self.assert_project_teams(self.project, [self.team.id])
-        self.assert_project_ownership(self.project, {
+        self.assert_project_options(project, expected_option)
+        self.assert_project_teams(project, [self.team.id])
+        self.assert_project_ownership(project, {
             'raw': 'some text', 'schema': {'json': 'json'},
             'fallthrough': True, 'is_active': True
         })
-        self.assert_project_rules(self.project, ['rule-1', 'rule-2'])
+        self.assert_project_rules(project, ['rule-1', 'rule-2'])

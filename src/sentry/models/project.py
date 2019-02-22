@@ -413,30 +413,34 @@ class Project(Model):
         Copies project level settings of the inputted project
         - General Settings
         - ProjectTeams
-        #hmmm there appear to be more to rules than I can figure out at first glance
         - Alerts Settings and Rules
-        #looking at project_tags.py it uses tagstore... I need to double check this is something we want to copy over and use.
-        - Tags
         - EnvironmentProjects
         - ProjectOwnership Rules and settings
-        #still need to find...
         - Project Inbound Data Filters
+
+        Returns True if the settings have successfully been copied over
+        Returns False otherwise
         """
         from sentry.models import (
-            EnvironmentProject, ProjectOption, ProjectOwnership, ProjectTeam, Rule
+            EnvironmentProject, ProjectOption, ProjectOwnership, Rule
         )
         model_list = [EnvironmentProject, ProjectOption, ProjectOwnership, ProjectTeam, Rule]
 
-        for model in model_list:
-            # remove all previous project settings
-            model.objects.filter(
-                project_id=self.id,
-            ).delete()
+        try:
+            with transaction.atomic():
+                for model in model_list:
+                    # remove all previous project settings
+                    model.objects.filter(
+                        project_id=self.id,
+                    ).delete()
 
-            # add settings from other project to self
-            for setting in model.objects.filter(
-                project_id=project.id
-            ):
-                setting.pk = None
-                setting.project_id = self.id
-                setting.save()
+                    # add settings from other project to self
+                    for setting in model.objects.filter(
+                        project_id=project.id
+                    ):
+                        setting.pk = None
+                        setting.project_id = self.id
+                        setting.save()
+        except IntegrityError:
+            return False
+        return True
