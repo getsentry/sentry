@@ -291,6 +291,9 @@ class KafkaEventStream(EventStream):
             asynchronous=False
         )
 
+    def requires_post_process_forwarder(self):
+        return True
+
     def run_post_process_forwarder(self, consumer_group, commit_log_topic,
                                    synchronize_commit_group, commit_batch_size=100, initial_offset_reset='latest'):
         logger.debug('Starting post-process forwarder...')
