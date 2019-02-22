@@ -33,6 +33,8 @@ const OrganizationContext = createReactClass({
 
   propTypes: {
     includeSidebar: PropTypes.bool,
+    ignoreError: PropTypes.bool,
+    useLastOrganization: PropTypes.bool,
   },
 
   childContextTypes: {
@@ -61,10 +63,12 @@ const OrganizationContext = createReactClass({
   },
 
   componentWillReceiveProps(nextProps) {
-    if (
-      nextProps.params.orgId !== this.props.params.orgId ||
-      nextProps.location.state === 'refresh'
-    ) {
+    const hasOrgIdAndChanged =
+      nextProps.params.orgId &&
+      this.props.params.orgId &&
+      nextProps.params.orgId !== this.props.params.orgId;
+
+    if (hasOrgIdAndChanged || nextProps.location.state === 'refresh') {
       this.remountComponent();
     }
   },
@@ -84,10 +88,17 @@ const OrganizationContext = createReactClass({
     this.remountComponent();
   },
 
+  getOrganizationSlug() {
+    return (
+      this.props.params.orgId ||
+      (this.props.useLastOrganization && ConfigStore.get('lastOrganization'))
+    );
+  },
+
   fetchData() {
     const promises = [
       this.api.requestPromise(this.getOrganizationDetailsEndpoint()),
-      fetchOrganizationEnvironments(this.api, this.props.params.orgId),
+      fetchOrganizationEnvironments(this.api, this.getOrganizationSlug()),
     ];
 
     Promise.all(promises)
@@ -139,7 +150,7 @@ const OrganizationContext = createReactClass({
   },
 
   getOrganizationDetailsEndpoint() {
-    return '/organizations/' + this.props.params.orgId + '/';
+    return `/organizations/${this.getOrganizationSlug()}/`;
   },
 
   getTitle() {
@@ -172,13 +183,15 @@ const OrganizationContext = createReactClass({
   },
 
   render() {
+    const {ignoreError} = this.props;
+
     if (this.state.loading) {
       return (
         <LoadingIndicator triangle={true}>
           {t('Loading data for your organization.')}
         </LoadingIndicator>
       );
-    } else if (this.state.error) {
+    } else if (this.state.error && !ignoreError) {
       return (
         <React.Fragment>
           {this.renderSidebar()}

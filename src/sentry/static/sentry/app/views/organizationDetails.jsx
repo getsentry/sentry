@@ -127,7 +127,7 @@ class OrganizationDetailsBody extends Component {
   render() {
     const {organization} = this.context;
 
-    if (organization.status)
+    if (organization && organization.status)
       if (organization.status.id === 'pending_deletion') {
         return <DeletionPending organization={organization} />;
       } else if (organization.status.id === 'deletion_in_progress') {
@@ -135,7 +135,7 @@ class OrganizationDetailsBody extends Component {
       }
     return (
       <React.Fragment>
-        <InstallPromptBanner organization={organization} />
+        {organization && <InstallPromptBanner organization={organization} />}
         <ErrorBoundary>{this.props.children}</ErrorBoundary>
         <Footer />
       </React.Fragment>
@@ -146,7 +146,7 @@ class OrganizationDetailsBody extends Component {
 export default class OrganizationDetails extends Component {
   render() {
     return (
-      <OrganizationContext includeSidebar {...this.props}>
+      <OrganizationContext ignoreError includeSidebar useLastOrganization {...this.props}>
         <OrganizationDetailsBody>{this.props.children}</OrganizationDetailsBody>
       </OrganizationContext>
     );

@@ -2,7 +2,6 @@
 
 exports[`SettingsLayout renders 1`] = `
 <Fragment>
-  <withOrganizations(withLatestContext(withRouter(SidebarContainer))) />
   <SettingsColumn>
     <SettingsHeader>
       <Flex
@@ -25,7 +24,6 @@ exports[`SettingsLayout renders 1`] = `
     <MaxWidthContainer>
       <Content />
     </MaxWidthContainer>
-    <Footer />
   </SettingsColumn>
 </Fragment>
 `;

@@ -3,8 +3,6 @@ import PropTypes from 'prop-types';
 import React from 'react';
 import styled from 'react-emotion';
 
-import Sidebar from 'app/components/sidebar';
-import Footer from 'app/components/footer';
 import space from 'app/styles/space';
 
 import SettingsBackButton from './settingsBackButton';
@@ -28,7 +26,6 @@ class SettingsLayout extends React.Component {
     const childRoute = childProps.route || route || {};
     return (
       <React.Fragment>
-        <Sidebar />
         <SettingsColumn>
           <SettingsHeader>
             <Flex align="center" width={1}>
@@ -52,7 +49,6 @@ class SettingsLayout extends React.Component {
             )}
             <Content>{children}</Content>
           </MaxWidthContainer>
-          <Footer />
         </SettingsColumn>
       </React.Fragment>
     );

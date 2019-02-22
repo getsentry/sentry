@@ -7,11 +7,20 @@ import SentryTypes from 'app/sentryTypes';
 import withLatestContext from 'app/utils/withLatestContext';
 
 const StyledSettingsWrapper = styled.div`
+  display: flex;
+  flex: 1;
   font-family: 'Rubik', sans-serif;
   font-size: 16px;
   color: ${p => p.theme.gray5};
-  margin: 0 auto;
+  margin-bottom: -20px; /* to account for footer margin top */
   line-height: 1;
+
+  .messages-container {
+    margin: 0;
+  }
+  .sentry-error-embed-wrapper {
+    z-index: 1005;
+  }
 `;
 
 class SettingsWrapper extends React.Component {
@@ -37,14 +46,6 @@ class SettingsWrapper extends React.Component {
     return {
       lastAppContext: this.state.lastAppContext,
     };
-  }
-
-  componentDidMount() {
-    document.body.classList.add('new-settings');
-  }
-
-  componentWillUnmount() {
-    document.body.classList.remove('new-settings');
   }
 
   render() {
