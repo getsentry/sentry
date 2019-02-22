@@ -65,9 +65,11 @@ class Sidebar extends React.Component {
     this.routerListener =
       router &&
       router.listen(() => {
+        this.hashChangeHandler();
         $('.tooltip').tooltip('hide');
       });
 
+    this.hashChangeHandler();
     this.doCollapse(this.props.collapsed);
   }
 
@@ -135,7 +137,7 @@ class Sidebar extends React.Component {
 
   hashChangeHandler = () => {
     if (window.location.hash == '#welcome') {
-      this.setState({showTodos: true});
+      this.togglePanel('todos');
     }
   };
 

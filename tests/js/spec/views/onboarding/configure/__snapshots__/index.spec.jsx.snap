@@ -273,6 +273,18 @@ exports[`Configure should render correctly render() should render platform docs 
                         ],
                       }
                     }
+                    project={
+                      Object {
+                        "environments": Array [],
+                        "hasAccess": true,
+                        "id": "2",
+                        "isBookmarked": false,
+                        "isMember": true,
+                        "name": "Project Name",
+                        "slug": "project-slug",
+                        "teams": Array [],
+                      }
+                    }
                   >
                     <ProjectInstallPlatform
                       linkPath={[Function]}
@@ -338,6 +350,18 @@ exports[`Configure should render correctly render() should render platform docs 
                               "name": "js",
                             },
                           ],
+                        }
+                      }
+                      project={
+                        Object {
+                          "environments": Array [],
+                          "hasAccess": true,
+                          "id": "2",
+                          "isBookmarked": false,
+                          "isMember": true,
+                          "name": "Project Name",
+                          "slug": "project-slug",
+                          "teams": Array [],
                         }
                       }
                     >

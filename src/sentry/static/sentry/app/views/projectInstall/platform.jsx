@@ -21,6 +21,7 @@ const ProjectInstallPlatform = createReactClass({
 
   propTypes: {
     organization: SentryTypes.Organization.isRequired,
+    project: SentryTypes.Project.isRequired,
     // eslint-disable-next-line react/no-unused-prop-types
     platformData: PropTypes.object.isRequired,
     linkPath: PropTypes.func,
@@ -110,7 +111,7 @@ const ProjectInstallPlatform = createReactClass({
 
   render() {
     const {integration, platform} = this.state;
-    const {organization, params: {orgId, projectId}} = this.props;
+    const {organization, project, params: {orgId, projectId}} = this.props;
 
     if (!integration || !platform) {
       return <NotFound />;
@@ -119,7 +120,7 @@ const ProjectInstallPlatform = createReactClass({
     const hasSentry10 = new Set(organization.features).has('sentry10');
 
     const issueStreamLink = hasSentry10
-      ? `/organizations/${orgId}/issues/#welcome`
+      ? `/organizations/${orgId}/issues/?project=${project.id}#welcome`
       : `/${orgId}/${projectId}/#welcome`;
 
     const gettingStartedLink = hasSentry10
