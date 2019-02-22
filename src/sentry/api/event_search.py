@@ -224,10 +224,10 @@ class SearchVisitor(NodeVisitor):
     def visit_raw_search(self, node, children):
         value = node.text
 
-        if value.startswith('"') and value.endswith('"') and value != '"':
-            value = value.strip('"')
+        while value.startswith('"') and value.endswith('"') and value != '"':
+            value = value[1:-1]
 
-        if len(value) == 0:
+        if not value:
             return None
 
         return SearchFilter(

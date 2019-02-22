@@ -504,6 +504,24 @@ class ParseSearchQueryTest(TestCase):
             ),
         ]
 
+        # Strip in a balanced manner
+        assert parse_search_query('""woof"') == [
+            SearchFilter(
+                key=SearchKey(name='message'),
+                operator='=',
+                value=SearchValue(raw_value='"woof'),
+            ),
+        ]
+
+        # Don't try this at home kids
+        assert parse_search_query('"""""""""') == [
+            SearchFilter(
+                key=SearchKey(name='message'),
+                operator='=',
+                value=SearchValue(raw_value='"'),
+            ),
+        ]
+
 
 class GetSnubaQueryArgsTest(TestCase):
     def test_simple(self):
