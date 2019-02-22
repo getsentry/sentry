@@ -1,25 +1,13 @@
 import React from 'react';
 import {shallow} from 'enzyme';
 
-import {Client} from 'app/api';
 import {ProjectInstallPlatform} from 'app/views/projectInstall/platform';
 
 describe('ProjectInstallPlatform', function() {
-  let sandbox;
-
-  beforeEach(function() {
-    sandbox = sinon.sandbox.create();
-
-    this.stubbedApiRequest = sandbox.stub(Client.prototype, 'request');
-  });
-
-  afterEach(function() {
-    sandbox.restore();
-  });
-
   describe('render()', function() {
     const baseProps = {
       organization: TestStubs.Organization(),
+      project: TestStubs.Project(),
       location: {query: {}},
       platformData: {
         platforms: [
