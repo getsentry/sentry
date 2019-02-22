@@ -18,6 +18,7 @@ from sentry.db.models import (
     Model, BoundedPositiveIntegerField, BoundedBigIntegerField, GzippedDictField,
     FlexibleForeignKey, sane_repr
 )
+from sentry.search.utils import convert_user_tag_to_query
 from sentry.tagstore.query import TagStoreManager
 from sentry.utils.cache import cache
 from sentry.utils.hashlib import md5_text
@@ -158,12 +159,18 @@ class TagValueSerializer(Serializer):
     def serialize(self, obj, attrs, user):
         from sentry import tagstore
 
-        return {
+        key = tagstore.get_standardized_key(obj.key)
+        serialized = {
             'id': six.text_type(obj.id),
-            'key': tagstore.get_standardized_key(obj.key),
+            'key': key,
             'name': attrs['name'],
             'value': obj.value,
             'count': obj.times_seen,
             'lastSeen': obj.last_seen,
             'firstSeen': obj.first_seen,
         }
+
+        query = convert_user_tag_to_query(key, obj.value)
+        if query:
+            serialized['query'] = query
+        return serialized

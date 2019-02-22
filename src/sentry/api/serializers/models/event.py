@@ -8,6 +8,7 @@ from semaphore import meta_with_chunks
 
 from sentry.api.serializers import Serializer, register, serialize
 from sentry.models import Event, EventError, EventAttachment, Release, UserReport
+from sentry.search.utils import convert_user_tag_to_query
 from sentry.utils.safe import get_path
 
 
@@ -327,12 +328,16 @@ class SnubaEventSerializer(Serializer):
         keys = getattr(obj, 'tags.key', None)
         values = getattr(obj, 'tags.value', None)
         if keys and values and len(keys) == len(values):
-            return sorted([
-                {
-                    'key': k.split('sentry:', 1)[-1],
-                    'value': v,
-                } for (k, v) in zip(keys, values)
-            ], key=lambda x: x['key'])
+            results = []
+            for key, value in zip(keys, values):
+                key = key.split('sentry:', 1)[-1]
+                result = {'key': key, 'value': value}
+                query = convert_user_tag_to_query(key, value)
+                if query:
+                    result['query'] = query
+                results.append(result)
+            results.sort(key=lambda x: x['key'])
+            return results
         return []
 
     def serialize(self, obj, attrs, user):

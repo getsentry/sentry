@@ -2,12 +2,17 @@
 
 from __future__ import absolute_import
 
+from datetime import datetime
+
 import six
 
 from sentry.api.serializers import serialize
-from sentry.api.serializers.models.event import SharedEventSerializer
-from sentry.testutils import TestCase
+from sentry.api.serializers.models.event import (
+    SharedEventSerializer,
+    SnubaEvent,
+)
 from sentry.models import EventError
+from sentry.testutils import TestCase
 
 
 class EventSerializerTest(TestCase):
@@ -194,3 +199,39 @@ class SharedEventSerializerTest(TestCase):
         assert 'errors' not in result
         for entry in result['entries']:
             assert entry['type'] != 'breadcrumbs'
+
+
+class SnubaEventSerializerTest(TestCase):
+    def test_user(self):
+        event = SnubaEvent({
+            'event_id': 'a',
+            'project_id': 1,
+            'message': 'hello there',
+            'title': 'hi',
+            'location': 'somewhere',
+            'culprit': 'foo',
+            'timestamp': datetime.now(),
+            'user_id': 123,
+            'email': 'test@test.com',
+            'username': 'test',
+            'ip_address': '192.168.0.1',
+            'tags.key': ['sentry:user'],
+            'tags.value': ['email:test@test.com'],
+        })
+        result = serialize(event)
+        assert result['eventID'] == event.event_id
+        assert result['projectID'] == six.text_type(event.project_id)
+        assert result['message'] == event.message
+        assert result['title'] == event.title
+        assert result['location'] == event.location
+        assert result['culprit'] == event.culprit
+        assert result['dateCreated'] == event.timestamp
+        assert result['user']['id'] == event.user_id
+        assert result['user']['email'] == event.email
+        assert result['user']['username'] == event.username
+        assert result['user']['ipAddress'] == event.ip_address
+        assert result['tags'] == [{
+            'key': 'user',
+            'value': 'email:test@test.com',
+            'query': 'user.email:test@test.com',
+        }]

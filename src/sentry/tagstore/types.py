@@ -2,6 +2,7 @@ from __future__ import absolute_import
 
 import six
 
+from sentry.search.utils import convert_user_tag_to_query
 from sentry.tagstore.base import TagKeyStatus
 
 
@@ -103,12 +104,18 @@ class TagKeySerializer(Serializer):
 class TagValueSerializer(Serializer):
     def serialize(self, obj, attrs, user):
         from sentry import tagstore
-
-        return {
-            'key': tagstore.get_standardized_key(obj.key),
+        key = tagstore.get_standardized_key(obj.key)
+        serialized = {
+            'key': key,
             'name': tagstore.get_tag_value_label(obj.key, obj.value),
             'value': obj.value,
             'count': obj.times_seen,
             'lastSeen': obj.last_seen,
             'firstSeen': obj.first_seen,
         }
+
+        query = convert_user_tag_to_query(key, obj.value)
+        if query:
+            serialized['query'] = query
+
+        return serialized

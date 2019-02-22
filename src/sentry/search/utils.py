@@ -8,7 +8,7 @@ from django.db import DataError
 from django.utils import timezone
 
 from sentry.constants import STATUS_CHOICES
-from sentry.models import EventUser, Release, Team, User
+from sentry.models import EventUser, KEYWORD_MAP, Release, Team, User
 from sentry.search.base import ANY
 from sentry.utils.auth import find_users
 
@@ -444,3 +444,14 @@ def parse_query(projects, query, user, environments):
     results['query'] = ' '.join(results['query'])
 
     return results
+
+
+def convert_user_tag_to_query(key, value):
+    """
+    Converts a user tag to a query string that can be used to search for that
+    user. Returns None if not a user tag.
+    """
+    if key == 'user' and ':' in value:
+        sub_key, value = value.split(':', 1)
+        if KEYWORD_MAP.get_key(sub_key, None):
+            return 'user.%s:%s' % (sub_key, value)

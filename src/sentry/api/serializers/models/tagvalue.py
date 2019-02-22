@@ -4,6 +4,7 @@ import six
 
 from sentry.api.serializers import Serializer, serialize
 from sentry.models import EventUser
+from sentry.search.utils import convert_user_tag_to_query
 
 
 class EnvironmentTagValueSerializer(Serializer):
@@ -38,6 +39,11 @@ class UserTagValueSerializer(Serializer):
             }
         else:
             result = serialize(attrs['user'], user)
+
+        query = convert_user_tag_to_query('user', obj.value)
+        if query:
+            result['query'] = query
+
         result.update(
             {
                 'value': obj.value,
