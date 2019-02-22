@@ -5,24 +5,25 @@ import Reflux from 'reflux';
 import createReactClass from 'create-react-class';
 import styled from 'react-emotion';
 
+import {fetchOrganizationEnvironments} from 'app/actionCreators/environments';
 import {openSudo} from 'app/actionCreators/modal';
 import {setActiveOrganization} from 'app/actionCreators/organizations';
 import {t} from 'app/locale';
 import Alert from 'app/components/alert';
 import ApiMixin from 'app/mixins/apiMixin';
 import ConfigStore from 'app/stores/configStore';
+import GlobalSelectionStore from 'app/stores/globalSelectionStore';
 import HookStore from 'app/stores/hookStore';
 import LoadingError from 'app/components/loadingError';
 import LoadingIndicator from 'app/components/loadingIndicator';
+import OrganizationEnvironmentsStore from 'app/stores/organizationEnvironmentsStore';
 import ProjectActions from 'app/actions/projectActions';
 import ProjectsStore from 'app/stores/projectsStore';
 import SentryTypes from 'app/sentryTypes';
 import Sidebar from 'app/components/sidebar';
 import TeamStore from 'app/stores/teamStore';
 import space from 'app/styles/space';
-import GlobalSelectionStore from 'app/stores/globalSelectionStore';
-import OrganizationEnvironmentsStore from 'app/stores/organizationEnvironmentsStore';
-import {fetchOrganizationEnvironments} from 'app/actionCreators/environments';
+import withOrganizations from 'app/utils/withOrganizations';
 
 const ERROR_TYPES = {
   ORG_NOT_FOUND: 'ORG_NOT_FOUND',
@@ -90,7 +91,11 @@ const OrganizationContext = createReactClass({
   getOrganizationSlug() {
     return (
       this.props.params.orgId ||
-      (this.props.useLastOrganization && ConfigStore.get('lastOrganization'))
+      (this.props.useLastOrganization &&
+        (ConfigStore.get('lastOrganization') ||
+          (this.props.organizations &&
+            this.props.organizations.length &&
+            this.props.organizations[0].slug)))
     );
   },
 
@@ -214,7 +219,7 @@ const OrganizationContext = createReactClass({
   },
 });
 
-export default OrganizationContext;
+export default withOrganizations(OrganizationContext);
 
 const ErrorWrapper = styled('div')`
   padding: ${space(3)};
