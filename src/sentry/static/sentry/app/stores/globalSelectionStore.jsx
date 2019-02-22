@@ -143,7 +143,7 @@ const GlobalSelectionStore = Reflux.createStore({
     // Do nothing if no org is loaded or user is not an org member. Only
     // organizations that a user has membership in will be available via the
     // organizations store
-    if (!this.organization || OrganizationsStore.get(this.organization.slug)) {
+    if (!this.organization || !OrganizationsStore.get(this.organization.slug)) {
       return;
     }
 
