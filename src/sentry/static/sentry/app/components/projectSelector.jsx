@@ -275,7 +275,7 @@ class ProjectSelectorItem extends React.PureComponent {
       <GlobalSelectionHeaderRow
         checked={isChecked}
         onCheckClick={this.handleClick}
-        noMultiFeature={!multi}
+        multi={multi}
       >
         <BadgeWrapper multi={multi}>
           <IdBadgeMenuItem

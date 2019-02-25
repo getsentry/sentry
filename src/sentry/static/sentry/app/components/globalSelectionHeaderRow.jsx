@@ -8,22 +8,22 @@ import space from 'app/styles/space';
 class GlobalSelectionHeaderRow extends React.Component {
   static propTypes = {
     checked: PropTypes.bool,
-    noMultiFeature: PropTypes.bool,
+    multi: PropTypes.bool,
     onCheckClick: PropTypes.func,
     children: PropTypes.node,
   };
 
   static defaultProps = {
-    noMultiFeature: false,
+    multi: true,
   };
 
   render() {
-    const {checked, onCheckClick, noMultiFeature, children, ...props} = this.props;
+    const {checked, onCheckClick, multi, children, ...props} = this.props;
 
     return (
       <Container {...props}>
-        <Content hasMultiFeature={!noMultiFeature}>{children}</Content>
-        {!noMultiFeature && (
+        <Content multi={multi}>{children}</Content>
+        {multi && (
           <CheckboxWrapper onClick={onCheckClick} checked={checked}>
             <Checkbox checked={checked} />
           </CheckboxWrapper>
@@ -59,8 +59,8 @@ const Content = styled('div')`
   flex-grow: 1;
 
   &:hover {
-    text-decoration: ${p => (p.hasMultiFeature ? 'underline' : null)};
-    color: ${p => (p.hasMultiFeature ? p.theme.blue : null)};
+    text-decoration: ${p => (p.multi ? 'underline' : null)};
+    color: ${p => (p.multi ? p.theme.blue : null)};
   }
 `;
 
