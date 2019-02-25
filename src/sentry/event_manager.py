@@ -493,10 +493,10 @@ class EventManager(object):
 
     @property
     def is_none_event(self):
-        return self.data.get('type') == 'none'
+        return self._data.get('type') == 'none'
 
     def get_event_id(self):
-        return self.data.get('event_id')
+        return self._data.get('event_id')
 
     def get_data(self):
         return self._data
