@@ -37,7 +37,7 @@ class CreateSampleEvent extends React.Component {
     analytics('sample_event.button_viewed', data);
   }
 
-  createSampleEvent() {
+  createSampleEvent = () => {
     // TODO(DENA): swap out for action creator
     const {api, params: {orgId, projectId}} = this.props;
     const {organization} = this.context;
@@ -70,7 +70,7 @@ class CreateSampleEvent extends React.Component {
         IndicatorStore.addError('Unable to create a sample event');
       },
     });
-  }
+  };
 
   render() {
     return (
