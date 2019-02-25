@@ -1478,9 +1478,24 @@ SENTRY_USER_PERMISSIONS = (
     'broadcasts.admin',
 )
 
-KAFKA_PRODUCER_OPTIONS = {
-    'bootstrap.servers': 'localhost:9092',
-    'message.max.bytes': 50000000,  # 50MB, default is 1MB
+KAFKA_CLUSTERS = {
+    'default': {
+        'bootstrap.servers': 'localhost:9092',
+        'message.max.bytes': 50000000,  # 50MB, default is 1MB
+    }
+}
+
+KAFKA_TOPICS = {
+    # Topic name and cluster can be overridden like so:
+    # 'preprocess-events': {
+    #     'cluster': 'other-cluster', # key into KAFKA_CLUSTERS dictionary
+    #     'topic': 'other-preprocess-events',
+    # },
+
+    # Otherwise the `default` cluster and the default topic name(s) are used.
+    'preprocess-events': {},
+    'process-events': {},
+    'save-events': {},
 }
 
 KAFKA_PREPROCESS_TOPIC = 'preprocess-events'

@@ -17,7 +17,6 @@ import re
 import six
 import zlib
 
-from django.conf import settings
 from django.core.exceptions import SuspiciousOperation
 from django.utils.crypto import constant_time_compare
 from gzip import GzipFile
@@ -182,8 +181,7 @@ class ClientApiHelper(object):
             attachment_cache.set(cache_key, attachments, cache_timeout)
 
         if features.has('projects:kafka-preprocess', project=project):
-            kafka.producer.produce(
-                topic=settings.KAFKA_PREPROCESS_TOPIC,
+            kafka.producers.get('preprocess-events').produce(
                 value=json.dumps({
                     'attachments_cache_key': cache_key,
                     'start_time': start_time,
