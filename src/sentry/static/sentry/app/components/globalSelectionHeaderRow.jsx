@@ -7,10 +7,10 @@ import space from 'app/styles/space';
 
 class GlobalSelectionHeaderRow extends React.Component {
   static propTypes = {
-    checked: PropTypes.bool,
+    checked: PropTypes.bool.isRequired,
     multi: PropTypes.bool,
-    onCheckClick: PropTypes.func,
-    children: PropTypes.node,
+    onCheckClick: PropTypes.func.isRequired,
+    children: PropTypes.node.isRequired,
   };
 
   static defaultProps = {
