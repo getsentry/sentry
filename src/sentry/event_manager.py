@@ -346,6 +346,7 @@ class EventManager(object):
         for_store=True,
     ):
         self._data = _decode_event(data, content_encoding=content_encoding)
+        self._spans = None
         self.version = version
         self._project = project
         self._client_ip = client_ip
@@ -444,9 +445,9 @@ class EventManager(object):
             enable_trimming=True,
         )
 
-        self._data = CanonicalKeyDict(
-            rust_normalizer.normalize_event(dict(self._data))
-        )
+        new_data = rust_normalizer.normalize_event(dict(self._data))
+        self._spans = new_data.pop('spans', None)
+        self._data = CanonicalKeyDict(new_data)
 
         normalize_user_agent(self._data)
 
@@ -490,8 +491,18 @@ class EventManager(object):
 
         return (False, None)
 
+    @property
+    def is_none_event(self):
+        return self.data.get('type') == 'none'
+
+    def get_event_id(self):
+        return self.data.get('event_id')
+
     def get_data(self):
         return self._data
+
+    def get_spans(self):
+        return self._spans
 
     def _get_event_instance(self, project_id=None):
         data = self._data

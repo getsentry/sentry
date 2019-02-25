@@ -182,13 +182,23 @@ def process_event(event_manager, project, key, remote_addr, helper, attachments)
             timestamp=tsdb_start_time,
         )
 
+    event_id = event_manager.get_event_id()
+
+    # TODO: If there are spans, do something with them.
+    spans = event_manager.get_spans()
+    if spans is not None:
+        pass
+
+    # If we are a none event we skip the rest and do not actually create
+    # an event.
+    if event_manager.is_none_event:
+        return
+
     org_options = OrganizationOption.objects.get_all_values(
         project.organization_id)
 
     data = event_manager.get_data()
     del event_manager
-
-    event_id = data['event_id']
 
     # TODO(dcramer): ideally we'd only validate this if the event_id was
     # supplied by the user
