@@ -6,7 +6,7 @@ import six
 from django.core.urlresolvers import reverse
 
 from sentry.constants import RESERVED_PROJECT_SLUGS
-from sentry.models import Project, ProjectBookmark, ProjectStatus, UserOption, DeletedProject, ProjectRedirect, AuditLogEntry, AuditLogEntryEvent
+from sentry.models import Project, ProjectOption, ProjectBookmark, ProjectStatus, UserOption, DeletedProject, ProjectRedirect, AuditLogEntry, AuditLogEntryEvent
 from sentry.testutils import APITestCase
 
 
@@ -620,6 +620,78 @@ class ProjectUpdateTest(APITestCase):
         assert resp.status_code == 400
         assert self.project.get_option('digests:mail:minimum_delay') == min_delay
         assert self.project.get_option('digests:mail:maximum_delay') == max_delay
+
+    def test_copy_settings_from_another_project(self):
+        options_dict = {
+            'sentry:resolve_age': 1,
+            'sentry:scrub_data': False,
+            'sentry:scrub_defaults': False,
+        }
+        other_project = self.create_project()
+        for key, value in six.iteritems(options_dict):
+            ProjectOption.objects.create(
+                project_id=other_project.id,
+                key=key,
+                value=value,
+            )
+
+        resp = self.client.put(self.path, data={
+            'copy_from_project': other_project.id
+        })
+        assert resp.status_code == 200
+        options = ProjectOption.objects.filter(
+            project_id=self.project.id,
+        )
+        assert len(options) == 3
+        for option, key, value in zip(options, six.iteritems(options_dict)):
+            assert option.key == key
+            assert option.value == value
+
+        options = ProjectOption.objects.filter(
+            project_id=other_project.id,
+        )
+        assert len(options) == 3
+        for option, key, value in zip(options, six.iteritems(options_dict)):
+            assert option.key == key
+            assert option.value == value
+
+    def test_copy_settings_with_additional_params(self):
+        # Right now these are overwritten with the copied project's settings
+        options_dict = {
+            'sentry:resolve_age': 1,
+            'sentry:scrub_data': False,
+            'sentry:scrub_defaults': False,
+        }
+        other_project = self.create_project()
+        for key, value in six.iteritems(options_dict):
+            ProjectOption.objects.create(
+                project_id=other_project.id,
+                key=key,
+                value=value,
+            )
+
+        resp = self.client.put(self.path, data={
+            'copy_from_project': other_project.id,
+            'sentry:resolve_age': 2,
+            'sentry:scrub_data': True,
+            'sentry:scrub_defaults': True,
+        })
+        assert resp.status_code == 200
+        options = ProjectOption.objects.filter(
+            project_id=self.project.id,
+        )
+        assert len(options) == 3
+        for option, key, value in zip(options, six.iteritems(options_dict)):
+            assert option.key == key
+            assert option.value == value
+
+        options = ProjectOption.objects.filter(
+            project_id=other_project.id,
+        )
+        assert len(options) == 3
+        for option, key, value in zip(options, six.iteritems(options_dict)):
+            assert option.key == key
+            assert option.value == value
 
 
 class ProjectDeleteTest(APITestCase):

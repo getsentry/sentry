@@ -100,6 +100,7 @@ class ProjectAdminSerializer(ProjectMemberSerializer):
     allowedDomains = ListField(child=OriginField(), required=False)
     resolveAge = serializers.IntegerField(required=False)
     platform = serializers.CharField(required=False)
+    copy_from_project = serializers.IntegerField(required=False)
 
     def validate_digestsMinDelay(self, attrs, source):
         max_delay = attrs['digestsMaxDelay'] if 'digestsMaxDelay' in attrs else self.context['project'].get_option(
@@ -162,6 +163,18 @@ class ProjectAdminSerializer(ProjectMemberSerializer):
         if not has_relays:
             raise serializers.ValidationError(
                 'Organization does not have the relay feature enabled'
+            )
+        return attrs
+
+    def validate_copy_from_project(self, attrs, source):
+        project_id = attrs[source]
+        part_of_same_org = Project.objects.filter(
+            id=project_id,
+            organization_id=self.context['project'].organization_id
+        ).exists()
+        if not part_of_same_org:
+            raise serializers.ValidationError(
+                'Project settings cannot be copied from a project of a different organization.'
             )
         return attrs
 
@@ -512,6 +525,8 @@ class ProjectDetailsEndpoint(ProjectEndpoint):
                             'detail': ['You do not have that feature enabled']
                         }, status=400
                     )
+            if 'copy_from_project' in result:
+                project.copy_settings_from(result['copy_from_project'])
 
             self.create_audit_entry(
                 request=request,
