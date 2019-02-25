@@ -198,6 +198,8 @@ def get_event_file_committers(project, event, frame_limit=25):
     # file paths.
     if event.platform == 'java':
         for frame in frames:
+            if frame.get('filename') is None:
+                continue
             if '/' not in frame.get('filename') and frame.get('module'):
                 frame['filename'] = frame['module'].replace('.', '/') + '/' + frame['filename']
 
