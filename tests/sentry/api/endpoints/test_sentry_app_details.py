@@ -203,7 +203,7 @@ class UpdateSentryAppDetailsTest(SentryAppDetailsTest):
 class DeleteSentryAppDetailsTest(SentryAppDetailsTest):
     @with_feature('organizations:sentry-apps')
     def test_delete_unpublished_app(self):
-        self.login_as(user=self.superuser)
+        self.login_as(user=self.superuser, superuser=True)
         url = reverse(
             'sentry-api-0-sentry-app-details',
             args=[self.unpublished_app.slug],
@@ -213,7 +213,7 @@ class DeleteSentryAppDetailsTest(SentryAppDetailsTest):
 
     @with_feature('organizations:sentry-apps')
     def test_cannot_delete_published_app(self):
-        self.login_as(user=self.superuser)
+        self.login_as(user=self.superuser, superuser=True)
         url = reverse(
             'sentry-api-0-sentry-app-details',
             args=[self.published_app.slug],
