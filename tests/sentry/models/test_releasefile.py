@@ -27,6 +27,13 @@ class ReleaseFileTestCase(TestCase):
             '~/foo.js',
         ]
 
+        assert n('http://example.com/foo.js?bar#baz') == [
+            'http://example.com/foo.js?bar',
+            'http://example.com/foo.js',
+            '~/foo.js?bar',
+            '~/foo.js',
+        ]
+
         # This is the current behavior, but seems weird to me.
         # unclear if we actually experience this case in the real
         # world, but worth documenting the behavior
