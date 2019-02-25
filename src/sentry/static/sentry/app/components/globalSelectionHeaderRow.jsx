@@ -57,6 +57,7 @@ const Content = styled('div')`
   align-items: center;
   height: 100%;
   flex-grow: 1;
+  user-select: none;
 
   &:hover {
     text-decoration: ${p => (p.multi ? 'underline' : null)};

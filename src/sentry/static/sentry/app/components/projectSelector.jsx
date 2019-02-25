@@ -305,7 +305,7 @@ const CreateProjectButton = styled(Button)`
 
 const BadgeWrapper = styled('div')`
   display: flex;
-  ${p => !p.multi && 'flex-shrink: 1'};
+  ${p => !p.multi && 'flex: 1'};
   white-space: nowrap;
   overflow: hidden;
 `;
@@ -313,7 +313,6 @@ const BadgeWrapper = styled('div')`
 const IdBadgeMenuItem = styled(IdBadge)`
   flex: 1;
   overflow: hidden;
-  user-select: none;
 `;
 
 const StyledSettingsIcon = styled(InlineSvg)`
