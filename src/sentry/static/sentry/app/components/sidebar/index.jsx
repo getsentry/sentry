@@ -266,26 +266,18 @@ class Sidebar extends React.Component {
                 </Feature>
 
                 <Feature features={['events']} organization={organization}>
-                  <StyledItem>
-                    <SidebarItem
-                      {...sidebarItemProps}
-                      onClick={(_id, evt) =>
-                        this.navigateWithGlobalSelection(
-                          `/organizations/${organization.slug}/events/`,
-                          evt
-                        )}
-                      icon={<InlineSvg src="icon-stack" />}
-                      label={t('Events')}
-                      to={`/organizations/${organization.slug}/events/`}
-                    />
-
-                    {HookStore.get('sidebar:secondary-icon').length &&
-                      HookStore.get('sidebar:secondary-icon')[0]({
-                        collapsed,
-                        organization,
-                        source: 'events',
-                      })}
-                  </StyledItem>
+                  <SidebarItem
+                    {...sidebarItemProps}
+                    onClick={(_id, evt) =>
+                      this.navigateWithGlobalSelection(
+                        `/organizations/${organization.slug}/events/`,
+                        evt
+                      )}
+                    icon={<InlineSvg src="icon-stack" />}
+                    label={t('Events')}
+                    to={`/organizations/${organization.slug}/events/`}
+                    id="events"
+                  />
                 </Feature>
 
                 {hasSentry10 && (
@@ -317,22 +309,14 @@ class Sidebar extends React.Component {
 
                 {!hasSentry10 && (
                   <Feature features={['discover']} organization={organization}>
-                    <StyledItem>
-                      <SidebarItem
-                        {...sidebarItemProps}
-                        onClick={this.hidePanel}
-                        icon={<InlineSvg src="icon-discover" />}
-                        label={t('Discover')}
-                        to={`/organizations/${organization.slug}/discover/`}
-                      />
-
-                      {HookStore.get('sidebar:secondary-icon').length &&
-                        HookStore.get('sidebar:secondary-icon')[0]({
-                          collapsed,
-                          organization,
-                          source: 'discover',
-                        })}
-                    </StyledItem>
+                    <SidebarItem
+                      {...sidebarItemProps}
+                      onClick={this.hidePanel}
+                      icon={<InlineSvg src="icon-discover" />}
+                      label={t('Discover')}
+                      to={`/organizations/${organization.slug}/discover/`}
+                      id="discover"
+                    />
                   </Feature>
                 )}
               </SidebarSection>
@@ -346,22 +330,16 @@ class Sidebar extends React.Component {
                     icon={<InlineSvg src="icon-health" />}
                     label={t('Dashboards')}
                     to={`/organizations/${organization.slug}/dashboards/`}
+                    id="customizable-dashboards"
                   />
-                  <StyledItem>
-                    <SidebarItem
-                      {...sidebarItemProps}
-                      onClick={this.hidePanel}
-                      icon={<InlineSvg src="icon-discover" />}
-                      label={t('Discover')}
-                      to={`/organizations/${organization.slug}/discover/`}
-                    />
-                    {HookStore.get('sidebar:secondary-icon').length &&
-                      HookStore.get('sidebar:secondary-icon')[0]({
-                        collapsed,
-                        organization,
-                        source: 'discover',
-                      })}
-                  </StyledItem>
+                  <SidebarItem
+                    {...sidebarItemProps}
+                    onClick={this.hidePanel}
+                    icon={<InlineSvg src="icon-discover" />}
+                    label={t('Discover')}
+                    to={`/organizations/${organization.slug}/discover/`}
+                    id="discover"
+                  />
                 </SidebarSection>
               </Feature>
 
@@ -596,9 +574,4 @@ const SidebarCollapseItem = styled(SidebarItem)`
   @media (max-width: ${p => p.theme.breakpoints[0]}) {
     display: none;
   }
-`;
-const StyledItem = styled.div`
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
 `;

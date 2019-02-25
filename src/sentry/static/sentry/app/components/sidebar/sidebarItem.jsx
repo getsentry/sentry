@@ -2,6 +2,7 @@ import {withRouter} from 'react-router';
 import PropTypes from 'prop-types';
 import React from 'react';
 import styled, {css} from 'react-emotion';
+import HookOrDefault from 'app/components/hookOrDefault';
 
 import Link from '../link';
 import TextOverflow from '../textOverflow';
@@ -69,6 +70,10 @@ class SidebarItem extends React.Component {
 
     const isTop = orientation === 'top';
     const placement = isTop ? 'bottom' : 'right';
+    const TextOverflowHook = HookOrDefault({
+      hookName: 'sidebar:item-label',
+      defaultComponent: TextOverflow,
+    });
 
     return (
       <Tooltip
@@ -89,7 +94,7 @@ class SidebarItem extends React.Component {
             {!collapsed &&
               !isTop && (
                 <SidebarItemLabel>
-                  <TextOverflow>{label}</TextOverflow>
+                  {<TextOverflowHook id={this.props.id}>{label}</TextOverflowHook>}
                 </SidebarItemLabel>
               )}
             {badge > 0 && (
@@ -192,6 +197,9 @@ const SidebarItemLabel = styled('span')`
   white-space: nowrap;
   opacity: 1;
   flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
 `;
 
 const getCollapsedBadgeStyle = ({collapsed, theme}) => {
