@@ -114,10 +114,12 @@ class SentryApp(ParanoidModel, HasApiScopes):
         db_table = 'sentry_sentryapp'
 
     @classmethod
-    def visible_for_user(cls, user):
-        if user.is_superuser:
+    def visible_for_user(cls, request):
+        from sentry.auth.superuser import is_active_superuser
+        if is_active_superuser(request):
             return cls.objects.all()
 
+        user = request.user
         return cls.objects.filter(
             Q(status=SentryAppStatus.PUBLISHED) | Q(owner__in=user.get_orgs()),
         )

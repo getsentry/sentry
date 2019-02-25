@@ -16,7 +16,7 @@ class SentryAppsEndpoint(SentryAppsBaseEndpoint):
     def get(self, request):
         return self.paginate(
             request=request,
-            queryset=SentryApp.visible_for_user(request.user),
+            queryset=SentryApp.visible_for_user(request),
             order_by='-date_added',
             paginator_cls=OffsetPaginator,
             on_results=lambda x: serialize(x, request.user),

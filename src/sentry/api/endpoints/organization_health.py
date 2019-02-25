@@ -10,6 +10,7 @@ from django.utils import timezone
 from sentry.api.bases import OrganizationEndpoint, EnvironmentMixin
 from sentry.api.utils import get_date_range_from_params, InvalidParams
 from sentry.api.exceptions import ResourceDoesNotExist
+from sentry.auth.superuser import is_active_superuser
 from sentry.models import (
     Project, ProjectStatus, OrganizationMemberTeam,
     Environment,
@@ -40,7 +41,7 @@ class OrganizationHealthEndpointBase(OrganizationEndpoint, EnvironmentMixin):
         project_ids = set(map(int, request.GET.getlist('project')))
 
         before = project_ids.copy()
-        if request.user.is_superuser:
+        if is_active_superuser(request):
             # Superusers can query any projects within the organization
             qs = Project.objects.filter(
                 organization=organization,
