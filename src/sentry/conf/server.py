@@ -867,10 +867,11 @@ SENTRY_FEATURES = {
     'projects:sample-events': True,
     # Enable functionality to trigger service hooks upon event ingestion.
     'projects:servicehooks': False,
-
-    # TODO: Document
+    # Use Kafka (instead of Celery) for preprocess task messages.
     'projects:kafka-preprocess': False,
+    # Use Kafka (instead of Celery) for process task messages.
     'projects:kafka-process': False,
+    # Use Kafka (instead of Celery) for save_event task messages.
     'projects:kafka-save': False,
 
     # Don't add feature defaults down here! Please add them in their associated
