@@ -48,4 +48,4 @@ class DefaultEvent(BaseEvent):
         }
 
     def get_title(self, metadata):
-        return metadata['title']
+        return metadata.get('title') or '<untitled>'
