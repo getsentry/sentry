@@ -171,14 +171,6 @@ class TestProcessResourceChange(TestCase):
             slug=self.sentry_app.slug,
         )
 
-        self.hook = self.create_service_hook(
-            actor=self.install,
-            org=self.project.organization,
-            application=self.install.sentry_app.application,
-            project=self.project,
-            events=('issue.created', ),
-        )
-
     def test_group_created_sends_webhook(self, safe_urlopen):
         with self.tasks():
             issue = self.create_group(project=self.project)
@@ -286,3 +278,29 @@ class TestWorkflowNotification(TestCase):
         assert faux(safe_urlopen).kwarg_equals('data.actor.type', 'application', format='json')
         assert faux(safe_urlopen).kwarg_equals('data.actor.id', 'sentry', format='json')
         assert faux(safe_urlopen).kwarg_equals('data.actor.name', 'Sentry', format='json')
+
+    def test_does_not_send_if_no_service_hook_exists(self, safe_urlopen):
+        sentry_app = self.create_sentry_app(
+            name='Another App',
+            organization=self.project.organization,
+            events=[],
+        )
+        install = self.create_sentry_app_installation(
+            organization=self.project.organization,
+            slug=sentry_app.slug,
+        )
+        workflow_notification(install.id, self.issue.id, 'assigned', self.user.id)
+        assert not safe_urlopen.called
+
+    def test_does_not_send_if_event_not_in_app_events(self, safe_urlopen):
+        sentry_app = self.create_sentry_app(
+            name='Another App',
+            organization=self.project.organization,
+            events=['issue.resolved', 'issue.ignored'],
+        )
+        install = self.create_sentry_app_installation(
+            organization=self.project.organization,
+            slug=sentry_app.slug,
+        )
+        workflow_notification(install.id, self.issue.id, 'assigned', self.user.id)
+        assert not safe_urlopen.called

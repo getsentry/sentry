@@ -7,7 +7,7 @@ from django.utils import timezone
 from mock import Mock, patch
 
 from sentry import tagstore
-from sentry.models import Group, GroupSnooze, GroupStatus, ServiceHook
+from sentry.models import Group, GroupSnooze, GroupStatus
 from sentry.testutils import TestCase
 from sentry.tasks.merge import merge_groups
 from sentry.tasks.post_process import index_event_tags, post_process_group
@@ -124,10 +124,10 @@ class PostProcessGroupTest(TestCase):
         group = self.create_group(project=self.project)
         event = self.create_event(group=group)
 
-        hook = ServiceHook.objects.create(
-            project_id=self.project.id,
-            organization_id=self.project.organization_id,
-            actor_id=self.user.id,
+        hook = self.create_service_hook(
+            project=self.project,
+            organization=self.project.organization,
+            actor=self.user,
             events=['event.created'],
         )
 
@@ -158,10 +158,10 @@ class PostProcessGroupTest(TestCase):
             (mock_callback, mock_futures),
         ]
 
-        hook = ServiceHook.objects.create(
-            project_id=self.project.id,
-            organization_id=self.project.organization_id,
-            actor_id=self.user.id,
+        hook = self.create_service_hook(
+            project=self.project,
+            organization=self.project.organization,
+            actor=self.user,
             events=['event.alert'],
         )
 
@@ -188,10 +188,10 @@ class PostProcessGroupTest(TestCase):
 
         mock_processor.return_value.apply.return_value = []
 
-        ServiceHook.objects.create(
-            project_id=self.project.id,
-            organization_id=self.project.organization_id,
-            actor_id=self.user.id,
+        self.create_service_hook(
+            project=self.project,
+            organization=self.project.organization,
+            actor=self.user,
             events=['event.alert'],
         )
 
@@ -211,10 +211,10 @@ class PostProcessGroupTest(TestCase):
         group = self.create_group(project=self.project)
         event = self.create_event(group=group)
 
-        ServiceHook.objects.create(
-            project_id=self.project.id,
-            organization_id=self.project.organization_id,
-            actor_id=self.user.id,
+        self.create_service_hook(
+            project=self.project,
+            organization=self.project.organization,
+            actor=self.user,
             events=[],
         )
 

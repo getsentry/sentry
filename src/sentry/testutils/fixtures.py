@@ -782,7 +782,7 @@ class Fixtures(object):
             org = self.create_organization(owner=actor)
         if not project:
             project = self.create_project(organization=org)
-        if not events:
+        if events is None:
             events = ('event.created',)
         if not url:
             url = 'https://example.com/sentry/webhook'
