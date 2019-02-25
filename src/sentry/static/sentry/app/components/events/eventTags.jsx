@@ -27,7 +27,7 @@ class EventTags extends React.Component {
     const tags = this.props.event.tags;
     if (_.isEmpty(tags)) return null;
 
-    const {organization, orgId, projectId} = this.props;
+    const {event, group, organization, orgId, projectId} = this.props;
 
     const hasSentry10 = new Set(organization.features).has('sentry10');
 
@@ -41,8 +41,8 @@ class EventTags extends React.Component {
 
     return (
       <EventDataSection
-        group={this.props.group}
-        event={this.props.event}
+        group={group}
+        event={event}
         title={t('Tags')}
         type="tags"
         className="p-b-1"
@@ -54,7 +54,10 @@ class EventTags extends React.Component {
                 <Link
                   to={{
                     pathname: streamPath,
-                    query: {query: `${tag.key}:"${tag.value}"`},
+                    query: {
+                      query: `${tag.key}:"${tag.value}"`,
+                      ...(hasSentry10 && {project: group.project.id}),
+                    },
                   }}
                 >
                   <DeviceName>{tag.value}</DeviceName>
@@ -71,7 +74,14 @@ class EventTags extends React.Component {
                     orgId={orgId}
                     projectId={projectId}
                   >
-                    <Link to={`${releasesPath}${tag.value}/`}>
+                    <Link
+                      to={{
+                        pathname: `${releasesPath}${tag.value}/`,
+                        query: {
+                          ...(hasSentry10 && {project: group.project.id}),
+                        },
+                      }}
+                    >
                       <InlineSvg src="icon-circle-info" size="14px" />
                     </Link>
                   </VersionHoverCard>
