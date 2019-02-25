@@ -5,7 +5,7 @@ import styled from 'react-emotion';
 import CheckboxFancy from 'app/components/checkboxFancy';
 import space from 'app/styles/space';
 
-class DropdownAutoCompleteMultiRow extends React.Component {
+class GlobalSelectionHeaderRow extends React.Component {
   static propTypes = {
     checked: PropTypes.bool,
     noMultiFeature: PropTypes.bool,
@@ -83,4 +83,4 @@ const CheckboxWrapper = styled('div')`
   }
 `;
 
-export default DropdownAutoCompleteMultiRow;
+export default GlobalSelectionHeaderRow;

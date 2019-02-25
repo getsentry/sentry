@@ -7,7 +7,7 @@ import {t} from 'app/locale';
 import Button from 'app/components/button';
 import InlineSvg from 'app/components/inlineSvg';
 import DropdownAutoComplete from 'app/components/dropdownAutoComplete';
-import DropdownAutoCompleteMultiRow from 'app/components/dropdownAutoCompleteMultiRow';
+import GlobalSelectionHeaderRow from 'app/components/globalSelectionHeaderRow';
 import Highlight from 'app/components/highlight';
 import IdBadge from 'app/components/idBadge';
 import SentryTypes from 'app/sentryTypes';
@@ -272,7 +272,7 @@ class ProjectSelectorItem extends React.PureComponent {
     const {project, multi, inputValue, isChecked} = this.props;
 
     return (
-      <DropdownAutoCompleteMultiRow
+      <GlobalSelectionHeaderRow
         checked={isChecked}
         onCheckClick={this.handleClick}
         noMultiFeature={!multi}
@@ -286,7 +286,7 @@ class ProjectSelectorItem extends React.PureComponent {
           />
         </BadgeWrapper>
         {project.isBookmarked && <BookmarkIcon src="icon-star-small-filled" />}
-      </DropdownAutoCompleteMultiRow>
+      </GlobalSelectionHeaderRow>
     );
   }
 }

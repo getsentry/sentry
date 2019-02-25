@@ -7,7 +7,7 @@ import {analytics} from 'app/utils/analytics';
 import getRouteStringFromRoutes from 'app/utils/getRouteStringFromRoutes';
 import {t} from 'app/locale';
 import DropdownAutoComplete from 'app/components/dropdownAutoComplete';
-import DropdownAutoCompleteMultiRow from 'app/components/dropdownAutoCompleteMultiRow';
+import GlobalSelectionHeaderRow from 'app/components/globalSelectionHeaderRow';
 import HeaderItem from 'app/components/organizations/headerItem';
 import Highlight from 'app/components/highlight';
 import InlineSvg from 'app/components/inlineSvg';
@@ -311,9 +311,9 @@ class EnvironmentSelectorItem extends React.PureComponent {
   render() {
     const {environment, inputValue, isChecked} = this.props;
     return (
-      <DropdownAutoCompleteMultiRow checked={isChecked} onCheckClick={this.handleClick}>
+      <GlobalSelectionHeaderRow checked={isChecked} onCheckClick={this.handleClick}>
         <Highlight text={inputValue}>{environment}</Highlight>
-      </DropdownAutoCompleteMultiRow>
+      </GlobalSelectionHeaderRow>
     );
   }
 }
