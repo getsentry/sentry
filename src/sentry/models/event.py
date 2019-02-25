@@ -139,7 +139,10 @@ class Event(Model):
 
         See ``sentry.eventtypes``.
         """
-        return self.data['metadata']
+        # For some inexplicable reason we have some cases where the data
+        # is completely empty.  In that case we want to hobble along
+        # further.
+        return self.data.get('metadata') or {}
 
     def get_hashes(self):
         """
