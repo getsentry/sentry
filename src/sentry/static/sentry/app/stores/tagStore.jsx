@@ -89,6 +89,18 @@ const TagStore = Reflux.createStore({
         values: [],
         predefined: true,
       },
+      'user.id': {
+        key: 'user.id',
+      },
+      'user.username': {
+        key: 'user.username',
+      },
+      'user.email': {
+        key: 'user.email',
+      },
+      'user.ip': {
+        key: 'user.ip',
+      },
     };
     this.trigger(this.tags);
   },
