@@ -63,9 +63,9 @@ class AvatarChooser extends React.Component {
     this.setState({model});
   }
 
-  updateDataUrlState(dataUrlState) {
+  updateDataUrlState = dataUrlState => {
     this.setState(dataUrlState);
-  }
+  };
 
   handleError(msg) {
     addErrorMessage(msg);
@@ -78,7 +78,7 @@ class AvatarChooser extends React.Component {
     addSuccessMessage(t('Successfully saved avatar preferences'));
   }
 
-  handleSaveSettings(ev) {
+  handleSaveSettings = ev => {
     const {endpoint, api} = this.props;
     const {model, dataUrl} = this.state;
     ev.preventDefault();
@@ -100,7 +100,7 @@ class AvatarChooser extends React.Component {
       },
       error: this.handleError.bind(this, 'There was an error saving your preferences.'),
     });
-  }
+  };
 
   handleChange(id) {
     const model = {...this.state.model};
