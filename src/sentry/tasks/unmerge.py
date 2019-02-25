@@ -75,11 +75,19 @@ def merge_mappings(values):
     return result
 
 
+def _generate_culprit(event):
+    # XXX(mitsuhiko): workaround: some old events do not have this data yet.
+    # This should be save delete by end of 2019 even considering slow on-prem
+    # releases.  Platform was added back to data in december 2018.
+    data = event.data
+    if data.get('platform') is None:
+        data = dict(data.items())
+        data['platform'] = event.platform
+    return generate_culprit(data)
+
+
 initial_fields = {
-    'culprit': lambda event: generate_culprit(
-        event.data,
-        event.platform,
-    ),
+    'culprit': lambda event: _generate_culprit(event),
     'data': lambda event: {
         'last_received': event.data.get('received') or float(event.datetime.strftime('%s')),
         'type': event.data['type'],
