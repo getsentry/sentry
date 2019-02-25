@@ -9,6 +9,11 @@ from sentry.utils import json
 
 
 class ConsumerWorker(AbstractBatchWorker):
+    def __init__(self):
+        self.preprocess_topic = settings.KAFKA_TOPICS[settings.KAFKA_PREPROCESS]['topic']
+        self.process_topic = settings.KAFKA_TOPICS[settings.KAFKA_PROCESS]['topic']
+        self.save_topic = settings.KAFKA_TOPICS[settings.KAFKA_SAVE]['topic']
+
     def process_message(self, message):
         value = json.loads(message.value())
         topic = message.topic()
@@ -18,7 +23,7 @@ class ConsumerWorker(AbstractBatchWorker):
         # pprint(value)
         # print("\n\n\n")
 
-        if topic == settings.KAFKA_PREPROCESS_TOPIC:
+        if topic == self.preprocess_topic:
             data = value['data']
             event_id = data['event_id']
             cache_key = value['attachments_cache_key']
@@ -30,7 +35,7 @@ class ConsumerWorker(AbstractBatchWorker):
             )
 
             store_tasks._do_preprocess_event(cache_key, data, start_time, event_id, process_task)
-        elif topic == settings.KAFKA_PROCESS_TOPIC:
+        elif topic == self.process_topic:
             data = value['data']
             event_id = data['event_id']
             cache_key = value['attachments_cache_key']
@@ -42,7 +47,7 @@ class ConsumerWorker(AbstractBatchWorker):
             )
 
             store_tasks._do_process_event(cache_key, start_time, event_id, process_task, data=data)
-        elif topic == settings.KAFKA_EVENT_SAVE_TOPIC:
+        elif topic == self.save_topic:
             data = value['data']
             event_id = data['event_id']
             cache_key = value['attachments_cache_key']

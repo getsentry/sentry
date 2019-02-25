@@ -1486,19 +1486,21 @@ KAFKA_CLUSTERS = {
     }
 }
 
+KAFKA_PREPROCESS = 'preprocess-events'
+KAFKA_PROCESS = 'process-events'
+KAFKA_SAVE = 'save-events'
+
 KAFKA_TOPICS = {
-    # Topic name and cluster can be overridden like so:
-    # 'preprocess-events': {
-    #     'cluster': 'other-cluster', # key into KAFKA_CLUSTERS dictionary
-    #     'topic': 'other-preprocess-events',
-    # },
-
-    # Otherwise the `default` cluster and the default topic name(s) are used.
-    'preprocess-events': {},
-    'process-events': {},
-    'save-events': {},
+    KAFKA_PREPROCESS: {
+        'cluster': 'default',
+        'topic': KAFKA_PREPROCESS,
+    },
+    KAFKA_PROCESS: {
+        'cluster': 'default',
+        'topic': KAFKA_PROCESS,
+    },
+    KAFKA_SAVE: {
+        'cluster': 'default',
+        'topic': KAFKA_SAVE,
+    },
 }
-
-KAFKA_PREPROCESS_TOPIC = 'preprocess-events'
-KAFKA_PROCESS_TOPIC = 'process-events'
-KAFKA_EVENT_SAVE_TOPIC = 'save-events'

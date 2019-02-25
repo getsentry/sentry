@@ -13,6 +13,7 @@ from datetime import datetime
 import six
 
 from time import time
+from django.conf import settings
 from django.utils import timezone
 
 from sentry import features, reprocessing
@@ -61,13 +62,14 @@ def should_process(data):
 
 def submit_process(project, from_reprocessing, cache_key, event_id, start_time, data):
     if features.has('projects:kafka-process', project=project):
-        kafka.producers.get('process-events').produce(
+        kafka.produce_sync(
+            settings.KAFKA_PROCESS,
             value=json.dumps({
                 'attachments_cache_key': cache_key,
                 'start_time': start_time,
                 'from_reprocessing': from_reprocessing,
                 'data': data,
-            })
+            }),
         )
     else:
         task = process_event_from_reprocessing if from_reprocessing else process_event
@@ -76,12 +78,13 @@ def submit_process(project, from_reprocessing, cache_key, event_id, start_time, 
 
 def submit_save_event(project, cache_key, event_id, start_time, data):
     if features.has('projects:kafka-save', project=project):
-        kafka.producers.get('save-events').produce(
+        kafka.produce_sync(
+            settings.KAFKA_SAVE,
             value=json.dumps({
                 'attachments_cache_key': cache_key,
                 'start_time': start_time,
                 'data': data,
-            })
+            }),
         )
     else:
         if cache_key:

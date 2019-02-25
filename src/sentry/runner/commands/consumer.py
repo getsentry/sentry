@@ -25,11 +25,7 @@ def consumer(**options):
     from batching_kafka_consumer import BatchingKafkaConsumer
     from sentry.consumer import ConsumerWorker
 
-    known_topics = [
-        settings.KAFKA_PREPROCESS_TOPIC,
-        settings.KAFKA_PROCESS_TOPIC,
-        settings.KAFKA_EVENT_SAVE_TOPIC
-    ]
+    known_topics = [x['topic'] for x in settings.KAFKA_TOPICS.values()]
 
     for topic in options['topic']:
         if topic not in known_topics:
