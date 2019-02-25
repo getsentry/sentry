@@ -184,6 +184,6 @@ class Monitor(Model):
         event_manager.normalize()
         data = event_manager.get_data()
         helper = ClientApiHelper(project_id=self.project_id)
-        helper.insert_data_to_database(data)
+        helper.insert_data_to_database(project, data)
         monitor_failed.send(monitor=self, sender=type(self))
         return True
