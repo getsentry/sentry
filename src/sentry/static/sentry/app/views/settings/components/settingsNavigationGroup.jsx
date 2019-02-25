@@ -2,7 +2,6 @@ import PropTypes from 'prop-types';
 import React from 'react';
 import styled from 'react-emotion';
 
-import Hook from 'app/components/hook';
 import SentryTypes from 'app/sentryTypes';
 import SettingsNavItem from 'app/views/settings/components/settingsNavItem';
 import replaceRouterParams from 'app/utils/replaceRouterParams';
@@ -19,12 +18,6 @@ const SettingsHeading = styled.div`
   margin-bottom: 20px;
 `;
 
-const StyledItem = styled.div`
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-`;
-
 export default class NavigationGroup extends React.Component {
   static propTypes = {
     ...SentryTypes.NavigationGroup,
@@ -32,6 +25,7 @@ export default class NavigationGroup extends React.Component {
     project: SentryTypes.Project,
     access: PropTypes.object,
     features: PropTypes.object,
+    id: PropTypes.string,
   };
 
   static contextTypes = {
@@ -45,7 +39,7 @@ export default class NavigationGroup extends React.Component {
     return (
       <NavSection data-test-id={name}>
         <SettingsHeading>{name}</SettingsHeading>
-        {items.map(({path, title, index, show, badge}) => {
+        {items.map(({path, title, index, show, badge, id}) => {
           if (typeof show === 'function' && !show(this.props)) return null;
           if (typeof show !== 'undefined' && !show) return null;
           const badgeResult = typeof badge === 'function' ? badge(this.props) : null;
@@ -55,21 +49,14 @@ export default class NavigationGroup extends React.Component {
           });
 
           return (
-            <StyledItem key={title}>
-              <SettingsNavItem
-                key={title}
-                to={to}
-                label={title}
-                index={index}
-                badge={badgeResult}
-              />
-              <Hook
-                name="sidebar:secondary-icon"
-                organization={organization}
-                source={title.toLowerCase()}
-                key={`${title}`}
-              />
-            </StyledItem>
+            <SettingsNavItem
+              key={title}
+              to={to}
+              label={title}
+              index={index}
+              badge={badgeResult}
+              id={id}
+            />
           );
         })}
       </NavSection>

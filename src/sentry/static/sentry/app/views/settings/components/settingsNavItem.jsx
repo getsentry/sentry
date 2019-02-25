@@ -4,19 +4,27 @@ import React from 'react';
 import styled from 'react-emotion';
 
 import Badge from 'app/components/badge';
+import HookOrDefault from 'app/components/hookOrDefault';
 import Tag from 'app/views/settings/components/tag';
+import TextOverflow from 'app/components/textOverflow';
 
 class SettingsNavItem extends React.Component {
   static propTypes = {
     label: PropTypes.node.isRequired,
     badge: PropTypes.node,
     index: PropTypes.bool,
+    id: PropTypes.string,
   };
 
   render() {
-    const {badge, label, index, ...props} = this.props;
+    const {badge, label, index, id, ...props} = this.props;
 
     let renderedBadge = '';
+
+    const LabelHook = HookOrDefault({
+      hookName: 'sidebar:item-label',
+      defaultComponent: TextOverflow,
+    });
 
     if (badge === 'new') {
       renderedBadge = (
@@ -30,7 +38,9 @@ class SettingsNavItem extends React.Component {
 
     return (
       <StyledNavItem onlyActiveOnIndex={index} activeClassName="active" {...props}>
-        {label} {badge ? renderedBadge : null}
+        <LabelHook id={id}>{label}</LabelHook>
+
+        {badge ? renderedBadge : null}
       </StyledNavItem>
     );
   }
@@ -46,6 +56,7 @@ const StyledNavItem = styled(Link)`
   font-size: 14px;
   line-height: 30px;
   position: relative;
+  width: 100%;
 
   &.active {
     color: ${p => p.theme.gray5};

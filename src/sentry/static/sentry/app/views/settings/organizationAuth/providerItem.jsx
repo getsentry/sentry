@@ -125,7 +125,7 @@ const LockedFeature = ({provider, features, className, ...props}) => (
       />
     }
   >
-    <Tag icon="icon-power-features">disabled</Tag>
+    <Tag icon="icon-lock">disabled</Tag>
   </DisabledHovercard>
 );
 

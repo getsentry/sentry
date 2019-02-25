@@ -82,7 +82,7 @@ class Hovercard extends React.Component {
   }
 
   render() {
-    const {containerClassName, className, header, body, bodyClassName} = this.props;
+    const {bodyClassName, containerClassName, className, header, body} = this.props;
     const {rendered, visible, position} = this.state;
 
     // Maintain the hovercard class name for BC with less styles
