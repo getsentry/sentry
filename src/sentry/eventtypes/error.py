@@ -61,7 +61,7 @@ class ErrorEvent(BaseEvent):
         ty = metadata.get('type')
         if ty is None:
             return metadata.get('function') or '<unknown>'
-        if not metadata['value']:
+        if not metadata.get('value'):
             return ty
         return u'{}: {}'.format(
             ty,
