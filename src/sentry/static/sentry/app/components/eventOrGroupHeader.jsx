@@ -63,8 +63,11 @@ class EventOrGroupHeader extends React.Component {
 
   getLocation() {
     const {data} = this.props;
-    const {metadata} = data || {};
-    return metadata.filename || null;
+    if (data.type === 'error') {
+      const {metadata} = data || {};
+      return metadata.filename || null;
+    }
+    return null;
   }
 
   getTitle() {

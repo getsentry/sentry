@@ -18,8 +18,7 @@ from django.utils.encoding import force_text
 
 from sentry import buffer, eventtypes, eventstream, features, tagstore, tsdb, filters
 from sentry.constants import (
-    LOG_LEVELS, LOG_LEVELS_MAP, MAX_CULPRIT_LENGTH, VALID_PLATFORMS,
-    MAX_TAG_VALUE_LENGTH,
+    LOG_LEVELS, LOG_LEVELS_MAP, VALID_PLATFORMS, MAX_TAG_VALUE_LENGTH,
 )
 from sentry.coreapi import (
     APIError,
@@ -52,11 +51,11 @@ from sentry.utils.data_filters import (
 from sentry.utils.dates import to_timestamp
 from sentry.utils.db import is_postgres, is_mysql
 from sentry.utils.safe import safe_execute, trim, get_path, setdefault_path
-from sentry.utils.strings import truncatechars
 from sentry.utils.geo import rust_geoip
 from sentry.utils.validators import is_float
 from sentry.utils.contexts_normalization import normalize_user_agent
 from sentry.stacktraces import normalize_in_app
+from sentry.culprit import generate_culprit
 
 
 logger = logging.getLogger("sentry.events")
@@ -133,31 +132,6 @@ else:
             return False
 
         return True
-
-
-def generate_culprit(data, platform=None):
-    exceptions = get_path(data, 'exception', 'values')
-    if exceptions:
-        stacktraces = [e['stacktrace'] for e in exceptions if get_path(e, 'stacktrace', 'frames')]
-    else:
-        stacktrace = data.get('stacktrace')
-        if stacktrace and stacktrace.get('frames'):
-            stacktraces = [stacktrace]
-        else:
-            stacktraces = None
-
-    culprit = None
-
-    if not culprit and stacktraces:
-        from sentry.interfaces.stacktrace import Stacktrace
-        culprit = Stacktrace.to_python(stacktraces[-1]).get_culprit_string(
-            platform=platform,
-        )
-
-    if not culprit and data.get('request'):
-        culprit = get_path(data, 'request', 'url')
-
-    return truncatechars(culprit or '', MAX_CULPRIT_LENGTH)
 
 
 def plugin_is_regression(group, event):
@@ -545,7 +519,7 @@ class EventManager(object):
         return force_text(
             self._data.get('culprit') or
             self._data.get('transaction') or
-            generate_culprit(self._data, platform=self._data['platform']) or
+            generate_culprit(self._data) or
             ''
         )
 

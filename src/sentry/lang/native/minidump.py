@@ -78,6 +78,7 @@ def merge_process_state_event(data, state, cfi=None):
         'mechanism': {
             'type': 'minidump',
             'handled': False,
+            'synthetic': True,
             # We cannot extract exception codes or signals with the breakpad
             # extractor just yet. Once these capabilities are added to symbolic,
             # these values should go in the mechanism here.

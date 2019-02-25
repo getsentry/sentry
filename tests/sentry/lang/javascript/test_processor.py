@@ -569,7 +569,7 @@ class GenerateModulesTest(TestCase):
         }
         generate_modules(data)
         fix_culprit(data)
-        assert data['culprit'] == 'bar in oops'
+        assert data['culprit'] == 'oops(bar)'
 
     def test_ensure_module_names(self):
         from sentry.lang.javascript.plugin import generate_modules
