@@ -57,7 +57,6 @@ class TagStorage(Service):
 
         'get_group_ids_for_users',
         'get_group_tag_values_for_users',
-        'get_group_ids_for_search_filter',
 
         'get_group_tag_keys_and_top_values',
 
@@ -67,7 +66,6 @@ class TagStorage(Service):
         'get_group_tag_value_iter',
 
         'get_group_tag_value_qs',
-        'get_event_tag_qs',
     ])
 
     __write_methods__ = frozenset([
@@ -350,12 +348,6 @@ class TagStorage(Service):
         """
         raise NotImplementedError
 
-    def get_event_tag_qs(self, project_id, environment_id, key, value):
-        """
-        >>> get_event_tag_qs(1, 2, 'environment', 'prod')
-        """
-        raise NotImplementedError
-
     def get_groups_user_counts(self, project_ids, group_ids, environment_ids,
                                start=None, end=None):
         """
@@ -404,13 +396,6 @@ class TagStorage(Service):
     def get_group_tag_values_for_users(self, event_users, limit=100):
         """
         >>> get_group_tag_values_for_users([EventUser(1), EventUser(2)])
-        """
-        raise NotImplementedError
-
-    def get_group_ids_for_search_filter(
-            self, project_id, environment_id, tags, candidates=None, limit=1000):
-        """
-        >>> get_group_ids_for_search_filter(1, 2, [('key1', 'value1'), ('key2', 'value2')])
         """
         raise NotImplementedError
 

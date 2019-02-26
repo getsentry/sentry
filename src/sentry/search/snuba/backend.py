@@ -71,14 +71,9 @@ def get_search_filter(search_filters, name, operator):
 
 
 class SnubaSearchBackend(ds.DjangoSearchBackend):
-    def _query(self, projects, retention_window_start, group_queryset, tags, environments,
+    def _query(self, projects, retention_window_start, group_queryset, environments,
                sort_by, limit, cursor, count_hits, paginator_options, search_filters,
                **parameters):
-
-        # TODO: Product decision: we currently search Group.message to handle
-        # the `query` parameter, because that's what we've always done. We could
-        # do that search against every event in Snuba instead, but results may
-        # differ.
 
         # TODO: It's possible `first_release` could be handled by Snuba.
         if environments is not None:
@@ -87,7 +82,7 @@ class SnubaSearchBackend(ds.DjangoSearchBackend):
                     environment.id for environment in environments
                 ],
             )
-            group_queryset = ds.SearchFilterQuerySetBuilder({
+            group_queryset = ds.QuerySetBuilder({
                 'first_release': ds.QCallbackCondition(
                     lambda version: Q(
                         groupenvironment__first_release__organization_id=projects[0].organization_id,
@@ -96,7 +91,7 @@ class SnubaSearchBackend(ds.DjangoSearchBackend):
                 ),
             }).build(group_queryset, search_filters)
         else:
-            group_queryset = ds.SearchFilterQuerySetBuilder({
+            group_queryset = ds.QuerySetBuilder({
                 'first_release': ds.QCallbackCondition(
                     lambda version: Q(
                         first_release__organization_id=projects[0].organization_id,
