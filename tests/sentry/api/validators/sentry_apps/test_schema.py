@@ -89,9 +89,9 @@ class TestSchemaValidation(TestCase):
                     ]
                 },
                 {
-                    'type': 'issue-open-in-link',
+                    'type': 'stacktrace-link',
                     'uri': '/sentry/issue',
-                    'params': ['project', 'filename'],
+                    'params': ['filename', 'lineno'],
                 },
             ],
         }

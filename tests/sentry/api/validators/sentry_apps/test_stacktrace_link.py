@@ -8,9 +8,9 @@ from .util import invalid_schema, validate_component
 class TestOpenInSchemaValidation(TestCase):
     def setUp(self):
         self.schema = {
-            'type': 'issue-open-in-link',
+            'type': 'stacktrace-link',
             'uri': '/sentry/issue',
-            'params': ['project', 'filename'],
+            'params': ['filename', 'lineno'],
         }
 
     def test_valid_schema(self):
@@ -20,6 +20,7 @@ class TestOpenInSchemaValidation(TestCase):
         del self.schema['params']
         validate_component(self.schema)
 
+    @invalid_schema
     def test_empty_params(self):
         self.schema['params'] = []
         validate_component(self.schema)
