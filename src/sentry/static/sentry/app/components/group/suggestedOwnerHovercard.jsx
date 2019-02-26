@@ -125,7 +125,7 @@ const CommitIcon = styled(p => <InlineSvg src="icon-commit" size="16px" {...p} /
   flex-shrink: 0;
 `;
 
-const CommitMessage = styled(({message, date, ...props}) => (
+const CommitMessage = styled(({message = '', date, ...props}) => (
   <div {...props}>
     {message.split('\n')[0]}
     <CommitDate date={date} />
