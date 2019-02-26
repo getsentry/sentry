@@ -692,11 +692,6 @@ class SnubaTagStorage(TagStorage):
         # search backend.
         raise NotImplementedError
 
-    def get_event_tag_qs(self, project_id, environment_id, key, value):
-        # This method is not implemented because it is only used by the Django
-        # search backend.
-        raise NotImplementedError
-
     def get_group_event_filter(self, project_id, group_id, environment_ids, tags, start, end):
         default_start, default_end = self.get_time_range()
         start = max(start, default_start) if start else default_start
@@ -724,13 +719,6 @@ class SnubaTagStorage(TagStorage):
             return None
 
         return {'event_id__in': event_id_set}
-
-    def get_group_ids_for_search_filter(
-            self, project_id, environment_id, tags, candidates=None, limit=1000):
-        # This method is not implemented since the `group.id` column doesn't
-        # exist in Snuba. This logic is implemented in the search backend
-        # instead.
-        raise NotImplementedError
 
 
 class SnubaCompatibilityTagStorage(SnubaTagStorage):
