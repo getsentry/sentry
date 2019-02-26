@@ -18,11 +18,6 @@ class ConsumerWorker(AbstractBatchWorker):
         value = json.loads(message.value())
         topic = message.topic()
 
-        # from pprint import pprint
-        # print("topic: %s" % topic)
-        # pprint(value)
-        # print("\n\n\n")
-
         if topic == self.preprocess_topic:
             data = value['data']
             event_id = data['event_id']
@@ -35,6 +30,7 @@ class ConsumerWorker(AbstractBatchWorker):
             )
 
             store_tasks._do_preprocess_event(cache_key, data, start_time, event_id, process_task)
+
         elif topic == self.process_topic:
             data = value['data']
             event_id = data['event_id']
@@ -47,6 +43,7 @@ class ConsumerWorker(AbstractBatchWorker):
             )
 
             store_tasks._do_process_event(cache_key, start_time, event_id, process_task, data=data)
+
         elif topic == self.save_topic:
             data = value['data']
             event_id = data['event_id']
@@ -55,8 +52,9 @@ class ConsumerWorker(AbstractBatchWorker):
             project_id = data['project']
 
             store_tasks.save_event(cache_key, data, start_time, event_id, project_id)
+
         else:
-            raise RuntimeError("Message from unknown topic?")
+            raise RuntimeError("Message from unknown topic '%s': %s" % (topic, value))
 
     def flush_batch(self, batch):
         pass
