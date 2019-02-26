@@ -22,7 +22,7 @@ class SettingsNavItem extends React.Component {
 
     const LabelHook = HookOrDefault({
       hookName: 'sidebar:item-label',
-      defaultComponent: React.Fragment,
+      defaultComponent: ({children}) => <React.Fragment {...children} />,
     });
 
     if (badge === 'new') {
