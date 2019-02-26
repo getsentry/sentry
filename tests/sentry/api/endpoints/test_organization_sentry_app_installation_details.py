@@ -58,6 +58,7 @@ class GetSentryAppInstallationDetailsTest(SentryAppInstallationDetailsTest):
                 'slug': self.org.slug,
             },
             'uuid': self.installation2.uuid,
+            'code': self.installation2.api_grant.code,
         }
 
     @with_feature('organizations:sentry-apps')

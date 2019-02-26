@@ -4,7 +4,7 @@ from mock import patch
 from datetime import datetime, timedelta
 
 from sentry.coreapi import APIUnauthorized
-from sentry.models import ApiApplication, SentryApp
+from sentry.models import ApiApplication, SentryApp, ApiGrant
 from sentry.mediators.token_exchange import GrantExchanger
 from sentry.testutils import TestCase
 
@@ -70,3 +70,8 @@ class TestGrantExchanger(TestCase):
     def test_sentry_app_must_exist(self, _):
         with self.assertRaises(APIUnauthorized):
             self.grant_exchanger.call()
+
+    def test_deletes_grant_on_successful_exchange(self):
+        grant_id = self.install.api_grant_id
+        self.grant_exchanger.call()
+        assert not ApiGrant.objects.filter(id=grant_id)

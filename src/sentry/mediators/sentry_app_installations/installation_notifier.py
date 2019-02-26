@@ -36,7 +36,7 @@ class InstallationNotifier(Mediator):
     def request(self):
         attrs = {}
 
-        if self.install.is_new and self.api_grant:
+        if self.action == 'created' and self.api_grant:
             attrs['code'] = self.api_grant.code
 
         data = SentryAppInstallationSerializer().serialize(
