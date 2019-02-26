@@ -5,5 +5,6 @@ brew 'openssl'
 brew 'geoip'
 brew 'postgresql@9.6', link: true
 
-tap 'caskroom/cask'
+tap 'homebrew/cask'
 cask 'chromedriver'
+cask 'docker'
