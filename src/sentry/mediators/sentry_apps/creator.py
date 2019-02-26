@@ -5,7 +5,8 @@ import six
 from collections import Iterable
 
 from sentry.mediators import Mediator, Param
-from sentry.models import (ApiApplication, SentryApp, User)
+from sentry.models import (ApiApplication, SentryApp, SentryAppComponent, User,)
+from sentry.utils import json
 
 
 class Creator(Mediator):
@@ -13,6 +14,7 @@ class Creator(Mediator):
     organization = Param('sentry.models.Organization')
     scopes = Param(Iterable)
     events = Param(Iterable, default=lambda self: [])
+    schema = Param(six.string_types, default=lambda self: '{}')
     webhook_url = Param(six.string_types)
     redirect_url = Param(six.string_types, required=False)
     is_alertable = Param(bool, default=False)
@@ -22,6 +24,7 @@ class Creator(Mediator):
         self.proxy = self._create_proxy_user()
         self.api_app = self._create_api_application()
         self.app = self._create_sentry_app()
+        self._create_ui_components()
         return self.app
 
     def _create_proxy_user(self):
@@ -45,8 +48,19 @@ class Creator(Mediator):
             proxy_user_id=self.proxy.id,
             scope_list=self.scopes,
             events=expand_events(self.events),
+            schema=self.schema or '{}',
             webhook_url=self.webhook_url,
             redirect_url=self.redirect_url,
             is_alertable=self.is_alertable,
             overview=self.overview,
         )
+
+    def _create_ui_components(self):
+        schema = json.loads(self.schema or '{}')
+
+        for element in schema.get('elements', []):
+            SentryAppComponent.objects.create(
+                type=element['type'],
+                sentry_app_id=self.app.id,
+                schema=element,
+            )

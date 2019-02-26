@@ -174,6 +174,7 @@ from .endpoints.release_deploys import ReleaseDeploysEndpoint
 from .endpoints.debug_files import DebugFilesEndpoint, DifAssembleEndpoint, \
     UnknownDebugFilesEndpoint, AssociateDSymFilesEndpoint
 from .endpoints.sentry_apps import SentryAppsEndpoint
+from .endpoints.sentry_app_components import SentryAppComponentsEndpoint
 from .endpoints.sentry_app_details import SentryAppDetailsEndpoint
 from .endpoints.sentry_app_authorizations import SentryAppAuthorizationsEndpoint
 from .endpoints.shared_group_details import SharedGroupDetailsEndpoint
@@ -1220,7 +1221,11 @@ urlpatterns = patterns(
         SentryAppDetailsEndpoint.as_view(),
         name='sentry-api-0-sentry-app-details'
     ),
-
+    url(
+        r'^/sentry-apps/(?P<sentry_app_slug>[^\/]+)/components/$',
+        SentryAppComponentsEndpoint.as_view(),
+        name='sentry-api-0-sentry-app-components'
+    ),
     url(
         r'^sentry-app-installations/(?P<uuid>[^\/]+)/authorizations/$',
         SentryAppAuthorizationsEndpoint.as_view(),
