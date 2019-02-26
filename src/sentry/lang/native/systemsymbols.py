@@ -1,5 +1,6 @@
 from __future__ import absolute_import
 
+import time
 import logging
 
 from requests.exceptions import RequestException
@@ -30,6 +31,7 @@ def lookup_system_symbols(symbols, sdk_info=None, cpu_name=None):
     }
 
     attempts = 0
+    wait = 0.5
 
     with sess:
         while 1:
@@ -47,3 +49,5 @@ def lookup_system_symbols(symbols, sdk_info=None, cpu_name=None):
                 if attempts > MAX_ATTEMPTS:
                     logger.error('Failed to contact system symbol server', exc_info=True)
                     return
+                time.sleep(wait)
+                wait *= 2.0
