@@ -12,6 +12,24 @@ describe('GroupSidebar', function() {
 
   beforeEach(function() {
     MockApiClient.addMockResponse({
+      url: '/projects/org-slug/project-slug/events/1/committers/',
+      body: {committers: []},
+    });
+
+    MockApiClient.addMockResponse({
+      url: '/projects/org-slug/project-slug/events/1/owners/',
+      body: {
+        owners: [],
+        rules: [],
+      },
+    });
+
+    MockApiClient.addMockResponse({
+      url: '/groups/1/integrations/',
+      body: [],
+    });
+
+    MockApiClient.addMockResponse({
       url: '/issues/1/participants/',
       body: [],
     });
@@ -49,10 +67,9 @@ describe('GroupSidebar', function() {
 
   describe('renders with tags', function() {
     it('renders', function() {
-      expect(wrapper).toMatchSnapshot();
-    });
-
-    it('renders tags', function() {
+      expect(wrapper.find('SuggestedOwners')).toHaveLength(1);
+      expect(wrapper.find('GroupReleaseStats')).toHaveLength(1);
+      expect(wrapper.find('ExternalIssueList')).toHaveLength(1);
       expect(wrapper.find('[data-test-id="group-tag"]')).toHaveLength(5);
     });
   });
