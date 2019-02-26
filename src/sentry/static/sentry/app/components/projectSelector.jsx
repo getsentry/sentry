@@ -5,9 +5,9 @@ import styled from 'react-emotion';
 import {sortArray} from 'app/utils';
 import {t} from 'app/locale';
 import Button from 'app/components/button';
-import CheckboxFancy from 'app/components/checkboxFancy';
 import InlineSvg from 'app/components/inlineSvg';
 import DropdownAutoComplete from 'app/components/dropdownAutoComplete';
+import GlobalSelectionHeaderRow from 'app/components/globalSelectionHeaderRow';
 import Highlight from 'app/components/highlight';
 import IdBadge from 'app/components/idBadge';
 import SentryTypes from 'app/sentryTypes';
@@ -185,11 +185,12 @@ class ProjectSelector extends React.Component {
         className={className}
         emptyMessage={t('You have no projects')}
         noResultsMessage={t('No projects found')}
-        virtualizedHeight={40}
+        virtualizedHeight={theme.headerSelectorRowHeight}
         emptyHidesInput
         inputActions={() => (
           <div>
             <ManageButton to={`/settings/${org.slug}/projects/`} size="xsmall">
+              <StyledSettingsIcon src="icon-settings" />
               {t('Manage')}
             </ManageButton>
           </div>
@@ -271,25 +272,21 @@ class ProjectSelectorItem extends React.PureComponent {
     const {project, multi, inputValue, isChecked} = this.props;
 
     return (
-      <ProjectRow>
-        <BadgeAndBookmark>
-          <BadgeWrapper multi={multi}>
-            <IdBadgeMenuItem
-              project={project}
-              avatarSize={16}
-              displayName={<Highlight text={inputValue}>{project.slug}</Highlight>}
-              avatarProps={{consistentWidth: true}}
-            />
-          </BadgeWrapper>
-          {project.isBookmarked && <BookmarkIcon src="icon-star-small-filled" />}
-        </BadgeAndBookmark>
-
-        {multi && (
-          <MultiSelectWrapper onClick={this.handleClick}>
-            <MultiSelect checked={isChecked} />
-          </MultiSelectWrapper>
-        )}
-      </ProjectRow>
+      <GlobalSelectionHeaderRow
+        checked={isChecked}
+        onCheckClick={this.handleClick}
+        multi={multi}
+      >
+        <BadgeWrapper multi={multi}>
+          <IdBadgeMenuItem
+            project={project}
+            avatarSize={16}
+            displayName={<Highlight text={inputValue}>{project.slug}</Highlight>}
+            avatarProps={{consistentWidth: true}}
+          />
+        </BadgeWrapper>
+        {project.isBookmarked && <BookmarkIcon src="icon-star-small-filled" />}
+      </GlobalSelectionHeaderRow>
     );
   }
 }
@@ -298,20 +295,6 @@ const BookmarkIcon = styled(InlineSvg)`
   margin-left: ${space(0.5)};
   color: ${p => p.theme.yellowOrange};
   margin-top: -2px; /* trivial alignment bump */
-`;
-
-const ProjectRow = styled('div')`
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  font-size: 14px;
-  font-weight: 400;
-  padding-left: ${space(1)};
-
-  /* thanks bootstrap? */
-  input[type='checkbox'] {
-    margin: 0;
-  }
 `;
 
 const CreateProjectButton = styled(Button)`
@@ -327,24 +310,13 @@ const BadgeWrapper = styled('div')`
   overflow: hidden;
 `;
 
-const BadgeAndBookmark = styled('div')`
-  display: flex;
-  flex: 1;
-  overflow: hidden;
-  align-items: center;
-`;
-
 const IdBadgeMenuItem = styled(IdBadge)`
   flex: 1;
   overflow: hidden;
 `;
 
-const MultiSelectWrapper = styled('div')`
-  padding: ${space(1)};
-`;
-
-const MultiSelect = styled(CheckboxFancy)`
-  flex-shrink: 0;
+const StyledSettingsIcon = styled(InlineSvg)`
+  margin-right: ${space(0.25)};
 `;
 
 const ManageButton = styled(Button)`
@@ -353,6 +325,8 @@ const ManageButton = styled(Button)`
   box-shadow: none;
   border: 0;
   background: ${p => p.theme.offWhite2};
+  color: ${p => p.theme.gray3};
+  transition: 0.2s transform;
 
   &:hover,
   &:active,
@@ -360,6 +334,7 @@ const ManageButton = styled(Button)`
     box-shadow: none;
     border: 0;
     background: ${p => p.theme.gray1};
+    color: #000;
   }
 `;
 
