@@ -88,6 +88,10 @@ class TestSchemaValidation(TestCase):
                         },
                     ]
                 },
+                {
+                    'type': 'stacktrace-link',
+                    'uri': '/sentry/issue',
+                },
             ],
         }
 
