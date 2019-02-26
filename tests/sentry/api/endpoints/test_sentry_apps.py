@@ -40,7 +40,7 @@ class SentryAppsTest(APITestCase):
 class GetSentryAppsTest(SentryAppsTest):
     @with_feature('organizations:sentry-apps')
     def test_superuser_sees_all_apps(self):
-        self.login_as(user=self.superuser)
+        self.login_as(user=self.superuser, superuser=True)
 
         response = self.client.get(self.url, format='json')
         response_uuids = set(o['uuid'] for o in response.data)

@@ -12,7 +12,7 @@ from sentry.tasks.base import instrumented_task, retry
 from sentry.utils.http import absolute_uri
 from sentry.api.serializers import serialize, AppPlatformEvent
 from sentry.models import (
-    SentryAppInstallation, Group, User, ServiceHook, Project, SentryApp,
+    SentryAppInstallation, Group, User, ServiceHook, ServiceHookProject, SentryApp,
 )
 from sentry.models.sentryapp import VALID_EVENTS
 
@@ -246,21 +246,25 @@ def notify_sentry_app(event, futures):
 
 
 def send_webhooks(installation, event, **kwargs):
-    project_ids = Project.objects.filter(
-        organization_id=installation.organization_id,
-    ).values_list('id', flat=True)
+    try:
+        servicehook = ServiceHook.objects.get(
+            organization_id=installation.organization_id,
+            actor_id=installation.id,
+        )
+    except ServiceHook.DoesNotExist:
+        return
 
-    servicehooks = ServiceHook.objects.filter(
-        project_id__in=project_ids,
-    )
+    if event not in servicehook.events:
+        return
 
-    for servicehook in filter(lambda s: event in s.events, servicehooks):
-        if not servicehook.created_by_sentry_app:
-            continue
+    # The service hook applies to all projects if there are no
+    # ServiceHookProject records. Otherwise we want check if
+    # the event is within the allowed projects.
+    project_limited = ServiceHookProject.objects.filter(
+        service_hook_id=servicehook.id,
+    ).exists()
 
-        if servicehook.sentry_app != installation.sentry_app:
-            continue
-
+    if not project_limited:
         resource, action = event.split('.')
 
         kwargs['resource'] = resource

@@ -314,6 +314,20 @@ describe('SmartSearchBar', function() {
       expect(searchBar.state.activeSearchItem).toEqual(0);
     });
 
+    it('sets state when incomplete tag has negation operator', function() {
+      const props = {
+        orgId: '123',
+        projectId: '456',
+        query: '!fu',
+        supportedTags,
+      };
+      const searchBar = mount(<SmartSearchBar {...props} />, options).instance();
+      searchBar.updateAutoCompleteItems();
+      expect(searchBar.state.searchTerm).toEqual('fu');
+      expect(searchBar.state.searchItems).toEqual([]);
+      expect(searchBar.state.activeSearchItem).toEqual(0);
+    });
+
     it('sets state when incomplete tag as second input', function() {
       const props = {
         orgId: '123',

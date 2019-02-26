@@ -5,8 +5,11 @@ import LoadingIndicator from 'app/components/loadingIndicator';
 import LoadingError from 'app/components/loadingError';
 import ClippedBox from 'app/components/clippedBox';
 
+import withApi from 'app/utils/withApi';
+
 class RawExceptionContent extends React.Component {
   static propTypes = {
+    api: PropTypes.object,
     type: PropTypes.oneOf(['original', 'minified']),
     platform: PropTypes.string,
     eventId: PropTypes.string,
@@ -50,7 +53,7 @@ class RawExceptionContent extends React.Component {
       error: false,
       crashReport: '',
     });
-    this.api.request(this.getAppleCrashReportEndpoint(), {
+    this.props.api.request(this.getAppleCrashReportEndpoint(), {
       method: 'GET',
       success: data => {
         this.setState({
@@ -86,7 +89,11 @@ class RawExceptionContent extends React.Component {
           content = <ClippedBox clipHeight={250}>{this.state.crashReport}</ClippedBox>;
           downloadButton = (
             <a
-              href={this.api.baseUrl + this.getAppleCrashReportEndpoint() + '&download=1'}
+              href={
+                this.props.api.baseUrl +
+                this.getAppleCrashReportEndpoint() +
+                '&download=1'
+              }
               className="btn btn-default btn-sm pull-right"
             >
               Download
@@ -107,4 +114,4 @@ class RawExceptionContent extends React.Component {
   }
 }
 
-export default RawExceptionContent;
+export default withApi(RawExceptionContent);

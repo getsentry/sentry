@@ -6,6 +6,7 @@ from sentry.utils.sdk import configure_scope
 from sentry.api.authentication import ClientIdSecretAuthentication
 from sentry.api.base import Endpoint
 from sentry.api.permissions import SentryPermission
+from sentry.auth.superuser import is_active_superuser
 from sentry.models import SentryApp, SentryAppInstallation, Organization
 
 
@@ -44,7 +45,7 @@ class SentryAppsPermission(SentryPermission):
 
         self.determine_access(request, organization)
 
-        if request.user.is_superuser:
+        if is_active_superuser(request):
             return True
 
         # User must be a part of the Org they're trying to create the app in.
@@ -111,7 +112,7 @@ class SentryAppPermission(SentryPermission):
 
         self.determine_access(request, sentry_app.owner)
 
-        if request.user.is_superuser:
+        if is_active_superuser(request):
             return True
 
         # User must be in the Org who owns the app.
@@ -162,7 +163,7 @@ class SentryAppInstallationsPermission(SentryPermission):
 
         self.determine_access(request, organization)
 
-        if request.user.is_superuser:
+        if is_active_superuser(request):
             return True
 
         if organization not in request.user.get_orgs():
@@ -178,7 +179,7 @@ class SentryAppInstallationsBaseEndpoint(Endpoint):
     permission_classes = (SentryAppInstallationsPermission, )
 
     def convert_args(self, request, organization_slug, *args, **kwargs):
-        if request.user.is_superuser:
+        if is_active_superuser(request):
             organizations = Organization.objects.all()
         else:
             organizations = request.user.get_orgs()
@@ -206,7 +207,7 @@ class SentryAppInstallationPermission(SentryPermission):
 
         self.determine_access(request, installation.organization)
 
-        if request.user.is_superuser:
+        if is_active_superuser(request):
             return True
 
         if installation.organization not in request.user.get_orgs():

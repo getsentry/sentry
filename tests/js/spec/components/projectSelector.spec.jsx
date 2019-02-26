@@ -160,7 +160,7 @@ describe('ProjectSelector', function() {
 
     // Select first project
     wrapper
-      .find('MultiSelectWrapper')
+      .find('CheckboxWrapper')
       .first()
       .simulate('click');
 
@@ -178,7 +178,7 @@ describe('ProjectSelector', function() {
 
     // Select first project
     wrapper
-      .find('MultiSelect')
+      .find('CheckboxWrapper')
       .at(0)
       .simulate('click', {target: {checked: true}});
 
@@ -201,7 +201,7 @@ describe('ProjectSelector', function() {
 
     // second project
     wrapper
-      .find('MultiSelect')
+      .find('CheckboxWrapper')
       .at(1)
       .simulate('click', {target: {checked: true}});
 
@@ -231,7 +231,7 @@ describe('ProjectSelector', function() {
 
     // Can unselect item
     wrapper
-      .find('MultiSelect')
+      .find('CheckboxWrapper')
       .at(1)
       .simulate('click', {target: {checked: false}});
 
