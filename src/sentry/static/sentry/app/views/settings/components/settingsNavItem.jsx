@@ -55,7 +55,6 @@ const StyledNavItem = styled(Link)`
   font-size: 14px;
   line-height: 30px;
   position: relative;
-  width: 100%;
 
   &.active {
     color: ${p => p.theme.gray5};

@@ -95,11 +95,9 @@ class SidebarItem extends React.Component {
             {!collapsed &&
               !isTop && (
                 <SidebarItemLabel>
-                  {
-                    <LabelHook id={this.props.id}>
-                      <TextOverflow>{label}</TextOverflow>
-                    </LabelHook>
-                  }
+                  <LabelHook id={this.props.id}>
+                    <TextOverflow>{label}</TextOverflow>
+                  </LabelHook>
                 </SidebarItemLabel>
               )}
             {badge > 0 && (
