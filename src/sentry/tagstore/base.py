@@ -353,9 +353,11 @@ class TagStorage(Service):
         """
         raise NotImplementedError
 
-    def get_groups_user_counts(self, project_ids, group_ids, environment_ids):
+    def get_groups_user_counts(self, project_ids, group_ids, environment_ids,
+                               start=None, end=None):
         """
         >>> get_groups_user_counts([1, 2], [2, 3], [4, 5])
+        `start` and `end` are only used by the snuba backend
         """
         raise NotImplementedError
 
