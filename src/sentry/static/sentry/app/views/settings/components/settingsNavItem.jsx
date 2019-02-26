@@ -6,7 +6,6 @@ import styled from 'react-emotion';
 import Badge from 'app/components/badge';
 import HookOrDefault from 'app/components/hookOrDefault';
 import Tag from 'app/views/settings/components/tag';
-import TextOverflow from 'app/components/textOverflow';
 
 class SettingsNavItem extends React.Component {
   static propTypes = {
@@ -23,7 +22,7 @@ class SettingsNavItem extends React.Component {
 
     const LabelHook = HookOrDefault({
       hookName: 'sidebar:item-label',
-      defaultComponent: TextOverflow,
+      defaultComponent: React.Fragment,
     });
 
     if (badge === 'new') {

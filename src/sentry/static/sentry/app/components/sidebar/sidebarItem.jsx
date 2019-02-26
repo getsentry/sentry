@@ -71,9 +71,9 @@ class SidebarItem extends React.Component {
 
     const isTop = orientation === 'top';
     const placement = isTop ? 'bottom' : 'right';
-    const TextOverflowHook = HookOrDefault({
+    const LabelHook = HookOrDefault({
       hookName: 'sidebar:item-label',
-      defaultComponent: TextOverflow,
+      defaultComponent: React.Fragment,
     });
 
     return (
@@ -95,7 +95,11 @@ class SidebarItem extends React.Component {
             {!collapsed &&
               !isTop && (
                 <SidebarItemLabel>
-                  {<TextOverflowHook id={this.props.id}>{label}</TextOverflowHook>}
+                  {
+                    <LabelHook id={this.props.id}>
+                      <TextOverflow>{label}</TextOverflow>
+                    </LabelHook>
+                  }
                 </SidebarItemLabel>
               )}
             {badge > 0 && (
