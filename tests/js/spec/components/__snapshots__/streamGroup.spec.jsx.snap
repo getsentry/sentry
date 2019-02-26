@@ -196,18 +196,20 @@ exports[`StreamGroup renders with anchors 1`] = `
       ]
     }
   >
-    <ProjectBadge
-      avatarSize={20}
-      hideAvatar={false}
-      hideName={true}
-      hideOverflow={true}
-      project={
-        Object {
-          "id": "13",
-          "slug": "test",
+    <Tooltip>
+      <ProjectBadge
+        avatarSize={20}
+        hideAvatar={false}
+        hideName={true}
+        hideOverflow={true}
+        project={
+          Object {
+            "id": "13",
+            "slug": "test",
+          }
         }
-      }
-    />
+      />
+    </Tooltip>
   </Flex>
   <Box
     className="hidden-xs hidden-sm"

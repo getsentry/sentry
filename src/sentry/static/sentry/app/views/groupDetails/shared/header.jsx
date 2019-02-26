@@ -15,6 +15,7 @@ import EventOrGroupTitle from 'app/components/eventOrGroupTitle';
 import GuideAnchor from 'app/components/assistant/guideAnchor';
 import OrganizationState from 'app/mixins/organizationState';
 import ProjectBadge from 'app/components/idBadge/projectBadge';
+import qs from 'query-string';
 import Tooltip from 'app/components/tooltip';
 import {t} from 'app/locale';
 import SentryTypes from 'app/sentryTypes';
@@ -178,19 +179,27 @@ const GroupHeader = createReactClass({
               )}
               <div className="count align-right m-l-1">
                 <h6 className="nav-header">{t('Project')}</h6>
-                {hasProjectAccess ? (
-                  <StyledLink
-                    to={
-                      hasSentry10
-                        ? `/organizations/${orgId}/issues/?project=${project.id}`
-                        : `/${orgId}/${project.slug}/`
-                    }
-                  >
+                <Tooltip title={project.name} tooltipOptions={{placement: 'bottom'}}>
+                  {hasProjectAccess ? (
+                    <StyledLink
+                      to={
+                        hasSentry10
+                          ? {
+                              pathname: `/organizations/${orgId}/issues/`,
+                              query: {
+                                ...qs.parse(window.location.search),
+                                project: project.id,
+                              },
+                            }
+                          : `/${orgId}/${project.slug}/`
+                      }
+                    >
+                      <ProjectBadge project={project} avatarSize={22} hideName={true} />
+                    </StyledLink>
+                  ) : (
                     <ProjectBadge project={project} avatarSize={22} hideName={true} />
-                  </StyledLink>
-                ) : (
-                  <ProjectBadge project={project} avatarSize={22} hideName={true} />
-                )}
+                  )}
+                </Tooltip>
               </div>
               <div className="count align-right m-l-1">
                 <h6 className="nav-header">{t('Events')}</h6>
