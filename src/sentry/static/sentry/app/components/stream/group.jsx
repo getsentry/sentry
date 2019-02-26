@@ -16,6 +16,7 @@ import GroupChart from 'app/components/stream/groupChart';
 import GroupCheckBox from 'app/components/stream/groupCheckBox';
 import GroupStore from 'app/stores/groupStore';
 import GuideAnchor from 'app/components/assistant/guideAnchor';
+import ProjectBadge from 'app/components/idBadge/projectBadge';
 import ProjectState from 'app/mixins/projectState';
 import SelectedGroupStore from 'app/stores/selectedGroupStore';
 
@@ -103,11 +104,19 @@ const StreamGroup = createReactClass({
         <Box w={160} mx={2} className="hidden-xs hidden-sm">
           <GroupChart id={data.id} statsPeriod={this.props.statsPeriod} data={data} />
         </Box>
-        <Flex w={[40, 60, 80, 80]} mx={2} justify="flex-end">
+        <Flex
+          w={[40, 50, 60, 70]}
+          mx={2}
+          justify="flex-end"
+          className="hidden-xs hidden-sm"
+        >
+          <ProjectBadge project={data.project} avatarSize={18} hideName={true} />
+        </Flex>
+        <Flex w={[40, 50, 60, 70]} mx={2} justify="flex-end">
           {hasGuideAnchor && <GuideAnchor target="events" type="text" />}
           <StyledCount value={data.count} />
         </Flex>
-        <Flex w={[40, 60, 80, 80]} mx={2} justify="flex-end">
+        <Flex w={[40, 50, 60, 70]} mx={2} justify="flex-end">
           {hasGuideAnchor && <GuideAnchor target="users" type="text" />}
           <StyledCount value={data.userCount} />
         </Flex>

@@ -92,7 +92,7 @@ class BaseBadge extends React.PureComponent {
 export default BaseBadge;
 
 const StyledAvatar = styled(Avatar)`
-  margin-right: ${space(1)};
+  margin-right: ${p => (p.hideName ? 0 : space(1))};
   flex-shrink: 0;
 `;
 

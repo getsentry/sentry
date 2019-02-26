@@ -148,14 +148,40 @@ exports[`StreamGroup renders with anchors 1`] = `
     />
   </Box>
   <Flex
+    className="hidden-xs hidden-sm"
     justify="flex-end"
     mx={2}
     w={
       Array [
         40,
+        50,
         60,
-        80,
-        80,
+        70,
+      ]
+    }
+  >
+    <ProjectBadge
+      avatarSize={18}
+      hideAvatar={false}
+      hideName={true}
+      hideOverflow={true}
+      project={
+        Object {
+          "id": "13",
+          "slug": "test",
+        }
+      }
+    />
+  </Flex>
+  <Flex
+    justify="flex-end"
+    mx={2}
+    w={
+      Array [
+        40,
+        50,
+        60,
+        70,
       ]
     }
   >
@@ -171,9 +197,9 @@ exports[`StreamGroup renders with anchors 1`] = `
     w={
       Array [
         40,
+        50,
         60,
-        80,
-        80,
+        70,
       ]
     }
   >
