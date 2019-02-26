@@ -523,8 +523,9 @@ class SnubaTagStorage(TagStorage):
                 )
         return values
 
-    def get_groups_user_counts(self, project_ids, group_ids, environment_ids):
-        start, end = self.get_time_range()
+    def get_groups_user_counts(self, project_ids, group_ids, environment_ids, start=None, end=None):
+        if start is None or end is None:
+            start, end = self.get_time_range()
         filters = {
             'project_id': project_ids,
             'issue': group_ids,
