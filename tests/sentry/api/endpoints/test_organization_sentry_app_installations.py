@@ -59,6 +59,7 @@ class GetSentryAppInstallationsTest(SentryAppInstallationsTest):
                 'slug': self.org.slug,
             },
             'uuid': self.installation2.uuid,
+            'code': self.installation2.api_grant.code,
         }]
 
         url = reverse(
@@ -78,6 +79,7 @@ class GetSentryAppInstallationsTest(SentryAppInstallationsTest):
                 'slug': self.super_org.slug,
             },
             'uuid': self.installation.uuid,
+            'code': self.installation.api_grant.code,
         }]
 
     @with_feature('organizations:sentry-apps')
@@ -95,6 +97,7 @@ class GetSentryAppInstallationsTest(SentryAppInstallationsTest):
                 'slug': self.org.slug,
             },
             'uuid': self.installation2.uuid,
+            'code': self.installation2.api_grant.code,
         }]
 
         # Org the User is not a part of

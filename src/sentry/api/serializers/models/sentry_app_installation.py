@@ -19,7 +19,7 @@ class SentryAppInstallationSerializer(Serializer):
             'uuid': install.uuid,
         }
 
-        if 'code' in attrs:
-            data['code'] = attrs['code']
+        if install.api_grant:
+            data['code'] = install.api_grant.code
 
         return data
