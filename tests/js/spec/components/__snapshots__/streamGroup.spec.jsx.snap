@@ -148,32 +148,6 @@ exports[`StreamGroup renders with anchors 1`] = `
     />
   </Box>
   <Flex
-    className="hidden-xs hidden-sm"
-    justify="flex-end"
-    mx={2}
-    w={
-      Array [
-        40,
-        50,
-        60,
-        70,
-      ]
-    }
-  >
-    <ProjectBadge
-      avatarSize={18}
-      hideAvatar={false}
-      hideName={true}
-      hideOverflow={true}
-      project={
-        Object {
-          "id": "13",
-          "slug": "test",
-        }
-      }
-    />
-  </Flex>
-  <Flex
     justify="flex-end"
     mx={2}
     w={
@@ -208,6 +182,32 @@ exports[`StreamGroup renders with anchors 1`] = `
       type="text"
     />
     <StyledCount />
+  </Flex>
+  <Flex
+    className="hidden-xs hidden-sm"
+    justify="flex-end"
+    mx={2}
+    w={
+      Array [
+        40,
+        50,
+        60,
+        70,
+      ]
+    }
+  >
+    <ProjectBadge
+      avatarSize={20}
+      hideAvatar={false}
+      hideName={true}
+      hideOverflow={true}
+      project={
+        Object {
+          "id": "13",
+          "slug": "test",
+        }
+      }
+    />
   </Flex>
   <Box
     className="hidden-xs hidden-sm"

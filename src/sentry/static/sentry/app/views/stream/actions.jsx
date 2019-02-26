@@ -498,14 +498,14 @@ const StreamActions = createReactClass({
               </GraphToggle>
             </Flex>
           </Box>
-          <Box w={[40, 50, 60, 70]} mx={2} className="align-right hidden-xs hidden-sm">
-            <ToolbarHeader>{t('Project')}</ToolbarHeader>
-          </Box>
           <Box w={[40, 50, 60, 70]} mx={2} className="align-right">
             <ToolbarHeader>{t('Events')}</ToolbarHeader>
           </Box>
           <Box w={[40, 50, 60, 70]} mx={2} className="align-right">
             <ToolbarHeader>{t('Users')}</ToolbarHeader>
+          </Box>
+          <Box w={[40, 50, 60, 70]} mx={2} className="align-right hidden-xs hidden-sm">
+            <ToolbarHeader>{t('Project')}</ToolbarHeader>
           </Box>
           <Box w={80} mx={2} className="align-right hidden-xs hidden-sm">
             <ToolbarHeader>{t('Assignee')}</ToolbarHeader>
