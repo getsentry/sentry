@@ -1243,7 +1243,7 @@ class GroupUpdateTest(APITestCase, SnubaTestCase):
         assert response.data['statusDetails']['actor']['id'] == six.text_type(self.user.id)
 
     def test_snooze_user_count(self):
-        for i in range(100):
+        for i in range(10):
             event = self.store_event(
                 data={
                     'fingerprint': ['put-me-in-group-1'],
@@ -1262,15 +1262,15 @@ class GroupUpdateTest(APITestCase, SnubaTestCase):
         response = self.get_valid_response(
             qs_params={'id': group.id},
             status='ignored',
-            ignoreUserCount=100,
+            ignoreUserCount=10,
         )
         snooze = GroupSnooze.objects.get(group=group)
         assert snooze.count is None
         assert snooze.until is None
-        assert snooze.user_count == 100
+        assert snooze.user_count == 10
         assert snooze.user_window is None
         assert snooze.window is None
-        assert snooze.state['users_seen'] == 100
+        assert snooze.state['users_seen'] == 10
 
         assert response.data['status'] == 'ignored'
         assert response.data['statusDetails']['ignoreCount'] == snooze.count
