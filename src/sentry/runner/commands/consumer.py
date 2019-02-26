@@ -26,8 +26,8 @@ def consumer(**options):
     from sentry.consumer import ConsumerWorker
 
     known_topics = [x['topic'] for x in settings.KAFKA_TOPICS.values()]
-
-    for topic in options['topic']:
+    topics = options['topic']
+    for topic in topics:
         if topic not in known_topics:
             raise RuntimeError("topic '%s' is not one of: %s" % (topic, known_topics))
 
