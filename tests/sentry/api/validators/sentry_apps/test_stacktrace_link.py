@@ -10,27 +10,12 @@ class TestOpenInSchemaValidation(TestCase):
         self.schema = {
             'type': 'stacktrace-link',
             'uri': '/sentry/issue',
-            'params': ['filename', 'lineno'],
         }
 
     def test_valid_schema(self):
         validate_component(self.schema)
 
-    def test_no_params(self):
-        del self.schema['params']
-        validate_component(self.schema)
-
-    @invalid_schema
-    def test_empty_params(self):
-        self.schema['params'] = []
-        validate_component(self.schema)
-
     @invalid_schema
     def test_missing_uri(self):
         del self.schema['uri']
-        validate_component(self.schema)
-
-    @invalid_schema
-    def test_invalid_params_option(self):
-        self.schema['params'] = ['project', 'tag']
         validate_component(self.schema)

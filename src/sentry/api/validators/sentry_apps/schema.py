@@ -255,14 +255,6 @@ SCHEMA = {
                 'uri': {
                     '$ref': '#/definitions/uri',
                 },
-                'params': {
-                    'type': 'array',
-                    'minItems': 1,
-                    'items': {
-                        'type': 'string',
-                        'enum': ['filename', 'lineno']
-                    },
-                },
             },
             'required': ['type', 'uri']
         },
