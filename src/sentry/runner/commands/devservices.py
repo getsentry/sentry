@@ -4,6 +4,16 @@ import os
 import click
 
 
+def get_docker_client():
+    import docker
+    client = docker.from_env()
+    try:
+        client.ping()
+        return client
+    except Exception:
+        raise click.ClickException('Make sure Docker is running.')
+
+
 def get_or_create(client, thing, name):
     import docker
     try:
@@ -44,9 +54,9 @@ def up(project, exclude):
     from sentry.runner import configure
     configure()
 
-    import docker
     from django.conf import settings
-    client = docker.from_env()
+
+    client = get_docker_client()
 
     # This is brittle, but is the best way now to limit what
     # services are run if they're not needed.
@@ -112,8 +122,7 @@ def up(project, exclude):
 @click.argument('service', nargs=-1)
 def down(project, service):
     "Shut down all services."
-    import docker
-    client = docker.from_env()
+    client = get_docker_client()
 
     prefix = project + '_'
 
@@ -133,8 +142,7 @@ def rm(project, service):
 
     click.confirm('Are you sure you want to continue?\nThis will delete all of your Sentry related data!', abort=True)
 
-    import docker
-    client = docker.from_env()
+    client = get_docker_client()
 
     prefix = project + '_'
 
