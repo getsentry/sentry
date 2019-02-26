@@ -544,8 +544,10 @@ class SharedGroupSerializer(GroupSerializer):
 
 
 class GroupSerializerSnuba(GroupSerializerBase):
-    def __init__(self, environment_ids=None):
+    def __init__(self, environment_ids=None, start=None, end=None):
         self.environment_ids = environment_ids
+        self.start = start
+        self.end = end
 
     def _get_seen_stats(self, item_list, user):
         tagstore = SnubaTagStorage()
@@ -555,6 +557,8 @@ class GroupSerializerSnuba(GroupSerializerBase):
             project_ids,
             group_ids,
             environment_ids=self.environment_ids,
+            start=self.start,
+            end=self.end,
         )
 
         first_seen = {}
