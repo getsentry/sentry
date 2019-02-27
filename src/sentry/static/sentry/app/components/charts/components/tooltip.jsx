@@ -8,7 +8,7 @@ function defaultFormatAxisLabel(value, isTimestamp, utc) {
     return value;
   }
 
-  return getFormattedDate(value, 'MMM D, YYYY', utc);
+  return getFormattedDate(value, 'MMM D, YYYY', {local: !utc});
 }
 
 function valueFormatter(value) {
