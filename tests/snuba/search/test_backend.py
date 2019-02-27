@@ -556,7 +556,7 @@ class SnubaSearchTest(SnubaTestCase):
             count_hits=True,
         )
         assert list(results) == [self.group1]
-        assert results.hits == 1  # TODO this is actually wrong because of the cursor
+        assert results.hits == 2
 
         results = self.backend.query(
             [self.project],
@@ -567,7 +567,7 @@ class SnubaSearchTest(SnubaTestCase):
             count_hits=True,
         )
         assert list(results) == []
-        assert results.hits == 1  # TODO this is actually wrong because of the cursor
+        assert results.hits == 2
 
     def test_active_at_filter(self):
         results = self.make_query(
