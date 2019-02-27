@@ -68,13 +68,13 @@ const GroupTagValues = createReactClass({
 
     try {
       const [tagKey, tagValueResponse] = await Promise.all(promises);
-      // eslint-disable-next-line no-unused-vars
-      const [tagValueList, _, jqXhr] = tagValueResponse;
+      const [tagValueList, , jqXHR] = tagValueResponse;
 
       this.setState({
         tagKey,
         tagValueList,
         loading: false,
+        pageLinks: jqXHR.getResponseHeader('Link'),
       });
     } catch (rejections) {
       // eslint-disable-next-line no-console
