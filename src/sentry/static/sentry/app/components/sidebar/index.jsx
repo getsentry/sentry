@@ -426,7 +426,7 @@ class Sidebar extends React.Component {
         {hasOrganization && (
           <SidebarSectionGroup>
             <SidebarSection>
-              {HookStore.get('sidebar:bottom-items').length &&
+              {HookStore.get('sidebar:bottom-items').length > 0 &&
                 HookStore.get('sidebar:bottom-items')[0]({
                   organization,
                   ...sidebarItemProps,

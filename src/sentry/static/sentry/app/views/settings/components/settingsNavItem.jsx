@@ -18,12 +18,14 @@ class SettingsNavItem extends React.Component {
   render() {
     const {badge, label, index, id, ...props} = this.props;
 
-    let renderedBadge = '';
-
     const LabelHook = HookOrDefault({
       hookName: 'sidebar:item-label',
-      defaultComponent: ({children}) => <React.Fragment {...children} />,
+      defaultComponent: ({children}) => {
+        return <React.Fragment>{children}</React.Fragment>;
+      },
     });
+
+    let renderedBadge = '';
 
     if (badge === 'new') {
       renderedBadge = (

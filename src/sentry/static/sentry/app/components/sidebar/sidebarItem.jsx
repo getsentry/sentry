@@ -73,7 +73,9 @@ class SidebarItem extends React.Component {
     const placement = isTop ? 'bottom' : 'right';
     const LabelHook = HookOrDefault({
       hookName: 'sidebar:item-label',
-      defaultComponent: ({children}) => <React.Fragment {...children} />,
+      defaultComponent: ({children}) => {
+        return <React.Fragment>{children}</React.Fragment>;
+      },
     });
 
     return (
