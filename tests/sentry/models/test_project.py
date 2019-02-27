@@ -356,3 +356,6 @@ class ProjectCopyTest(TestCase):
             'fallthrough': True, 'is_active': True
         })
         self.assert_project_rules(project, ['rule-1', 'rule-2'])
+
+    def copy_with_previous_settings(self):
+        pass
