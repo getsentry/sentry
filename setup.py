@@ -97,11 +97,11 @@ class SentrySDistCommand(SDistCommand):
 
 class SentryBuildCommand(BuildCommand):
     def run(self):
-        BuildCommand.run(self)
         if not IS_LIGHT_BUILD:
             self.run_command('build_integration_docs')
             self.run_command('build_assets')
             self.run_command('build_js_sdk_registry')
+        BuildCommand.run(self)
 
 
 class SentryDevelopCommand(DevelopCommand):
