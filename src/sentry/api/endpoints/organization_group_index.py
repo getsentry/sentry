@@ -127,8 +127,8 @@ class OrganizationGroupIndexEndpoint(OrganizationEventsEndpointBase):
 
             group = get_by_short_id(organization.id, request.GET.get('shortIdLookup'), query)
             if group is not None:
-                # check to make sure user has access to project
-                if group.project_id in project_ids:
+                # check all projects user has access to
+                if request.access.has_project_access(group.project):
                     response = Response(
                         serialize(
                             [group], request.user, serializer()

@@ -241,15 +241,27 @@ class GroupListTest(APITestCase, SnubaTestCase):
         response = self.get_valid_response(query=short_id, shortIdLookup=1)
         assert len(response.data) == 1
 
-    def test_lookup_by_short_id_no_perms(self):
+    def test_lookup_by_short_id_ignores_project_list(self):
         organization = self.create_organization()
         project = self.create_project(organization=organization)
         project2 = self.create_project(organization=organization)
-        team = self.create_team(organization=organization)
-        project2.add_team(team)
+        group = self.create_group(project=project2)
+        user = self.create_user()
+        self.create_member(organization=organization, user=user)
+
+        short_id = group.qualified_short_id
+
+        self.login_as(user=user)
+
+        response = self.get_valid_response(organization.slug, project=project.id, query=short_id, shortIdLookup=1)
+        assert len(response.data) == 1
+
+    def test_lookup_by_short_id_no_perms(self):
+        organization = self.create_organization()
+        project = self.create_project(organization=organization)
         group = self.create_group(project=project)
         user = self.create_user()
-        self.create_member(organization=organization, user=user, teams=[team])
+        self.create_member(organization=organization, user=user, has_global_access=False)
 
         short_id = group.qualified_short_id
 
