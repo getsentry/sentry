@@ -15,6 +15,7 @@ class Hovercard extends React.Component {
     containerClassName: PropTypes.string,
     header: PropTypes.node,
     body: PropTypes.node,
+    bodyClassName: PropTypes.string,
   };
 
   static defaultProps = {
@@ -81,7 +82,7 @@ class Hovercard extends React.Component {
   }
 
   render() {
-    const {containerClassName, className, header, body} = this.props;
+    const {bodyClassName, containerClassName, className, header, body} = this.props;
     const {rendered, visible, position} = this.state;
 
     // Maintain the hovercard class name for BC with less styles
@@ -104,7 +105,7 @@ class Hovercard extends React.Component {
             innerRef={this.cardElement}
           >
             {header && <Header>{header}</Header>}
-            {body && <Body>{body}</Body>}
+            {body && <Body className={bodyClassName}>{body}</Body>}
           </StyledHovercard>
         )}
       </Container>
