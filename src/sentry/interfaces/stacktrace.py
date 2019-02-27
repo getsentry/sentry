@@ -452,7 +452,7 @@ class Frame(Interface):
             'colno': self.colno
         })
 
-    def get_hash(self, platform=None):
+    def get_hash(self, platform=None, variant='system'):
         """
         The hash of the frame varies depending on the data available.
 
@@ -462,6 +462,9 @@ class Frame(Interface):
 
         This is one of the few areas in Sentry that isn't platform-agnostic.
         """
+        if variant not in ('app', 'system'):
+            return []
+
         platform = self.platform or platform
         output = []
         # Safari throws [native code] frames in for calls like ``forEach``
@@ -834,18 +837,10 @@ class Stacktrace(Interface):
             'registers': self.registers,
         })
 
-    def compute_hashes(self, platform=None):
-        system_hash = self.get_hash(platform, system_frames=True)
-        if not system_hash:
+    def get_hash(self, platform=None, variant='system'):
+        if variant not in ('app', 'system'):
             return []
 
-        app_hash = self.get_hash(platform, system_frames=False)
-        if system_hash == app_hash or not app_hash:
-            return [system_hash]
-
-        return [system_hash, app_hash]
-
-    def get_hash(self, platform=None, system_frames=True):
         frames = self.frames
 
         # TODO(dcramer): this should apply only to platform=javascript
@@ -859,6 +854,7 @@ class Stacktrace(Interface):
         if stack_invalid:
             return []
 
+        system_frames = variant == 'system'
         if not system_frames:
             total_frames = len(frames)
             frames = [f for f in frames if f.in_app] or frames
@@ -876,11 +872,11 @@ class Stacktrace(Interface):
         # stacktraces that only differ by the number of recursive calls should
         # hash the same, so we squash recursive calls by comparing each frame
         # to the previous frame
-        output.extend(frames[0].get_hash(platform))
+        output.extend(frames[0].get_hash(platform, variant=variant))
         prev_frame = frames[0]
         for frame in frames[1:]:
             if not is_recursion(frame, prev_frame):
-                output.extend(frame.get_hash(platform))
+                output.extend(frame.get_hash(platform, variant=variant))
             prev_frame = frame
         return output
 
