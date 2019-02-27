@@ -1,3 +1,3 @@
 from __future__ import absolute_import
 
-from .requester import Requester
+from .select_requester import SelectRequester  # NOQA
