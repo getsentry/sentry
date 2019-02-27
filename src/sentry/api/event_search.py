@@ -24,7 +24,6 @@ WILDCARD_CHARS = re.compile(r'[\*\[\]\?]')
 
 def translate(pat):
     """Translate a shell PATTERN to a regular expression.
-    There is no way to quote meta-characters.
     modified from: https://github.com/python/cpython/blob/2.7/Lib/fnmatch.py#L85
     """
 
@@ -33,7 +32,13 @@ def translate(pat):
     while i < n:
         c = pat[i]
         i = i + 1
-        if c == '*':
+        # fnmatch.translate has no way to handle escaping metacharacters.
+        # Applied this basic patch to handle it:
+        # https://bugs.python.org/file27570/issue8402.1.patch
+        if c == '\\':
+            res += re.escape(pat[i])
+            i += 1
+        elif c == '*':
             res = res + '.*'
         elif c == '?':
             res = res + '.'
@@ -427,12 +432,19 @@ def convert_search_filter_to_snuba_query(search_filter):
         return env_conditions
 
     elif snuba_name == 'message':
-        # https://clickhouse.yandex/docs/en/query_language/functions/string_search_functions/#position-haystack-needle
-        # positionCaseInsensitive returns 0 if not found and an index of 1 or more if found
-        # so we should flip the operator here
-        operator = '=' if search_filter.operator == '!=' else '!='
-        # make message search case insensitive
-        return [['positionCaseInsensitive', ['message', "'%s'" % (value,)]], operator, 0]
+        if search_filter.value.is_wildcard():
+            # XXX: We don't want the '^$' values at the beginning and end of
+            # the regex since we want to find the pattern anywhere in the
+            # message. Strip off here
+            value = search_filter.value.value[1:-1]
+            return [['match', ['message', "'(?i)%s'" % (value,)]], search_filter.operator, 1]
+        else:
+            # https://clickhouse.yandex/docs/en/query_language/functions/string_search_functions/#position-haystack-needle
+            # positionCaseInsensitive returns 0 if not found and an index of 1 or more if found
+            # so we should flip the operator here
+            operator = '=' if search_filter.operator == '!=' else '!='
+            # make message search case insensitive
+            return [['positionCaseInsensitive', ['message', "'%s'" % (value,)]], operator, 0]
 
     else:
         value = int(to_timestamp(value)) * 1000 if isinstance(value,
@@ -449,7 +461,7 @@ def convert_search_filter_to_snuba_query(search_filter):
             snuba_name = ['ifNull', [snuba_name, "''"]]
 
         if search_filter.value.is_wildcard():
-            return [['match', [snuba_name, "'%s'" % (value,)]], search_filter.operator, 1]
+            return [['match', [snuba_name, "'(?i)%s'" % (value,)]], search_filter.operator, 1]
         else:
             return [snuba_name, search_filter.operator, value]
 
