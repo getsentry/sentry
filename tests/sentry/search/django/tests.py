@@ -27,7 +27,6 @@ def date_to_query_format(date):
 
 
 class DjangoSearchBackendTest(TestCase):
-    use_new_filters = False
 
     def create_backend(self):
         return DjangoSearchBackend()
@@ -188,7 +187,6 @@ class DjangoSearchBackendTest(TestCase):
             search_filters = self.build_search_filter(search_filter_query, projects, environments)
         return self.backend.query(
             projects if projects is not None else [self.project],
-            use_new_filters=self.use_new_filters,
             search_filters=search_filters,
             environments=environments,
             **kwargs
@@ -848,7 +846,3 @@ class DjangoSearchBackendTest(TestCase):
             search_filter_query='subscribed:%s' % self.user.username
         )
         assert set(results) == set([])
-
-
-class DjangoSearchBackendWithSearchFiltersTest(DjangoSearchBackendTest):
-    use_new_filters = True

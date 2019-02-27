@@ -12,7 +12,7 @@ DATABASES = {
         'NAME': 'sentry',
         'USER': 'postgres',
         'PASSWORD': '',
-        'HOST': '',
+        'HOST': '127.0.0.1',
         'PORT': '',
         'AUTOCOMMIT': True,
         'ATOMIC_REQUESTS': False,
