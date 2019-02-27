@@ -493,5 +493,4 @@ def _do_save_event(cache_key=None, data=None, start_time=None, event_id=None,
 @instrumented_task(name='sentry.tasks.store.save_event', queue='events.save_event')
 def save_event(cache_key=None, data=None, start_time=None, event_id=None,
                project_id=None, **kwargs):
-    _do_save_event(cache_key=None, data=None, start_time=None, event_id=None,
-                   project_id=None, **kwargs)
+    _do_save_event(cache_key, data, start_time, event_id, project_id, **kwargs)
