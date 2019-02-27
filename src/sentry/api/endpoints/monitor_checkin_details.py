@@ -125,7 +125,8 @@ class MonitorCheckInDetailsEndpoint(Endpoint):
         with transaction.atomic():
             checkin.update(**params)
             if checkin.status == CheckInStatus.ERROR:
-                monitor.mark_failed(current_datetime)
+                if not monitor.mark_failed(current_datetime):
+                    return self.respond(serialize(checkin, request.user), status=208)
             else:
                 monitor_params = {
                     'last_checkin': current_datetime,

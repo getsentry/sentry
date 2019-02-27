@@ -7,6 +7,7 @@ from croniter import croniter
 from datetime import datetime, timedelta
 from dateutil import rrule
 from django.db import models
+from django.db.models import Q
 from django.utils import timezone
 from uuid import uuid4
 
@@ -154,13 +155,13 @@ class Monitor(Model):
 
         if last_checkin is None:
             next_checkin_base = timezone.now()
-            last_checkin = self.last_checkin
+            last_checkin = self.last_checkin or timezone.now()
         else:
             next_checkin_base = last_checkin
 
         affected = type(self).objects.filter(
+            Q(last_checkin__lte=last_checkin) | Q(last_checkin__isnull=True),
             id=self.id,
-            last_checkin=self.last_checkin,
         ).update(
             next_checkin=self.get_next_scheduled_checkin(next_checkin_base),
             status=MonitorStatus.ERROR,
