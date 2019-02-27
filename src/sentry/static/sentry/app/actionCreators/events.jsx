@@ -1,3 +1,4 @@
+import {canIncludePreviousPeriod} from 'app/views/organizationEvents/utils/canIncludePreviousPeriod';
 import {getPeriod} from 'app/utils/getPeriod';
 
 const BASE_URL = org => `/organizations/${org.slug}/events-stats/`;
@@ -31,7 +32,7 @@ export const doEventsRequest = (
     query,
   }
 ) => {
-  const shouldDoublePeriod = includePrevious;
+  const shouldDoublePeriod = canIncludePreviousPeriod(includePrevious, period);
   const urlQuery = {
     interval,
     project,
