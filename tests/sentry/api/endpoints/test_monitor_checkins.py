@@ -28,15 +28,15 @@ class CreateMonitorCheckInTest(APITestCase):
                 'status': 'ok'
             })
 
-        assert resp.status_code == 200, resp.content
+        assert resp.status_code == 201, resp.content
 
         checkin = MonitorCheckIn.objects.get(guid=resp.data['id'])
         assert checkin.status == CheckInStatus.OK
 
         monitor = Monitor.objects.get(id=monitor.id)
-        assert monitor.next_checkin == monitor.get_next_scheduled_checkin(checkin.date_added)
         assert monitor.status == MonitorStatus.OK
         assert monitor.last_checkin == checkin.date_added
+        assert monitor.next_checkin == monitor.get_next_scheduled_checkin(checkin.date_added)
 
     def test_failing(self):
         user = self.create_user()
@@ -58,12 +58,12 @@ class CreateMonitorCheckInTest(APITestCase):
                 'status': 'error'
             })
 
-        assert resp.status_code == 200, resp.content
+        assert resp.status_code == 201, resp.content
 
         checkin = MonitorCheckIn.objects.get(guid=resp.data['id'])
         assert checkin.status == CheckInStatus.ERROR
 
         monitor = Monitor.objects.get(id=monitor.id)
-        assert monitor.next_checkin == monitor.get_next_scheduled_checkin(checkin.date_added)
         assert monitor.status == MonitorStatus.ERROR
         assert monitor.last_checkin == checkin.date_added
+        assert monitor.next_checkin == monitor.get_next_scheduled_checkin(checkin.date_added)
