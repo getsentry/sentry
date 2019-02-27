@@ -56,6 +56,7 @@ def up(project, exclude):
 
     from django.conf import settings
 
+    import docker
     client = get_docker_client()
 
     # This is brittle, but is the best way now to limit what
@@ -142,6 +143,7 @@ def rm(project, service):
 
     click.confirm('Are you sure you want to continue?\nThis will delete all of your Sentry related data!', abort=True)
 
+    import docker
     client = get_docker_client()
 
     prefix = project + '_'
