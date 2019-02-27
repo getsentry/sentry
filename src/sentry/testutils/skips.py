@@ -7,6 +7,7 @@ sentry.testutils.skips
 """
 from __future__ import absolute_import
 
+import os
 import socket
 import pytest
 
@@ -35,3 +36,12 @@ def cassandra_is_available():
 requires_cassandra = pytest.mark.skipif(
     not cassandra_is_available(), reason="requires cassandra server running"
 )
+
+
+def xfail_if_not_postgres(reason):
+    def decorator(function):
+        return pytest.mark.xfail(
+            os.environ.get('TEST_SUITE') != 'postgres',
+            reason=reason,
+        )(function)
+    return decorator
