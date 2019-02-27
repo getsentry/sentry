@@ -21,3 +21,6 @@ class SnubaEventStream(KafkaEventStream):
             return resp
         except urllib3.exceptions.HTTPError as err:
             raise snuba.SnubaError(err)
+
+    def requires_post_process_forwarder(self):
+        return False
