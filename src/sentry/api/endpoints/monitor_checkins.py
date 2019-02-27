@@ -76,7 +76,8 @@ class MonitorCheckInsEndpoint(MonitorEndpoint):
                 status=getattr(CheckInStatus, result['status'].upper()),
             )
             if checkin.status == CheckInStatus.ERROR:
-                monitor.mark_failed(last_checkin=checkin.date_added)
+                if not monitor.mark_failed(last_checkin=checkin.date_added):
+                    return self.respond(serialize(checkin, request.user), status=200)
             else:
                 monitor_params = {
                     'last_checkin': checkin.date_added,
@@ -90,4 +91,4 @@ class MonitorCheckInsEndpoint(MonitorEndpoint):
                     last_checkin__gt=checkin.date_added,
                 ).update(**monitor_params)
 
-        return self.respond(serialize(checkin, request.user))
+        return self.respond(serialize(checkin, request.user), status=201)
