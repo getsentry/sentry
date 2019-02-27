@@ -1292,18 +1292,21 @@ class SnubaSearchTest(SnubaTestCase):
         )
         assert set(results) == set()
         results = self.make_query(
-            search_filter_query='environment:production \[hing\]',
+            search_filter_query='environment:production [hing]',
         )
         assert set(results) == set([escaped_event.group])
         results = self.make_query(
-            search_filter_query='environment:production s*\]',
+            search_filter_query='environment:production s*]',
         )
         assert set(results) == set([escaped_event.group])
-        results = self.make_query(
-            search_filter_query='environment:production [s][of][mz]',
-        )
-        assert set(results) == set([escaped_event.group])
-        results = self.make_query(
-            search_filter_query='environment:production [z][of][mz]',
-        )
-        assert set(results) == set()
+        # TODO: Disabling tests that use [] syntax for the moment. Re-enable
+        # these if we decide to add back in, or remove if this comment has been
+        # here a while.
+        # results = self.make_query(
+        #     search_filter_query='environment:production [s][of][mz]',
+        # )
+        # assert set(results) == set([escaped_event.group])
+        # results = self.make_query(
+        #     search_filter_query='environment:production [z][of][mz]',
+        # )
+        # assert set(results) == set()

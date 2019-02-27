@@ -40,26 +40,29 @@ def translate(pat):
             i += 1
         elif c == '*':
             res = res + '.*'
-        elif c == '?':
-            res = res + '.'
-        elif c == '[':
-            j = i
-            if j < n and pat[j] == '!':
-                j = j + 1
-            if j < n and pat[j] == ']':
-                j = j + 1
-            while j < n and pat[j] != ']':
-                j = j + 1
-            if j >= n:
-                res = res + '\\['
-            else:
-                stuff = pat[i:j].replace('\\', '\\\\')
-                i = j + 1
-                if stuff[0] == '!':
-                    stuff = '^' + stuff[1:]
-                elif stuff[0] == '^':
-                    stuff = '\\' + stuff
-                res = '%s[%s]' % (res, stuff)
+        # TODO: We're disabling everything except for wildcard matching for the
+        # moment. Just commenting this code out for the moment, since there's a
+        # reasonable chance we'll add this back in in the future.
+        # elif c == '?':
+        #     res = res + '.'
+        # elif c == '[':
+        #     j = i
+        #     if j < n and pat[j] == '!':
+        #         j = j + 1
+        #     if j < n and pat[j] == ']':
+        #         j = j + 1
+        #     while j < n and pat[j] != ']':
+        #         j = j + 1
+        #     if j >= n:
+        #         res = res + '\\['
+        #     else:
+        #         stuff = pat[i:j].replace('\\', '\\\\')
+        #         i = j + 1
+        #         if stuff[0] == '!':
+        #             stuff = '^' + stuff[1:]
+        #         elif stuff[0] == '^':
+        #             stuff = '\\' + stuff
+        #         res = '%s[%s]' % (res, stuff)
         else:
             res = res + re.escape(c)
     return '^' + res + '$'
