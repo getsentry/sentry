@@ -272,7 +272,7 @@ class GetEventFileCommitters(CommitTestCase):
                 'message': 'i fixed a bug',
                 'patch_set': [
                     {
-                        'path': 'sentry/example/Application/Application.java',
+                        'path': 'src/main/java/io/sentry/example/Application.java',
                         'type': 'M',
                     },
                 ]
