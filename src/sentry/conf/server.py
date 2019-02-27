@@ -1486,9 +1486,9 @@ KAFKA_CLUSTERS = {
     }
 }
 
-KAFKA_PREPROCESS = 'preprocess-events'
-KAFKA_PROCESS = 'process-events'
-KAFKA_SAVE = 'save-events'
+KAFKA_PREPROCESS = 'events-preprocess'
+KAFKA_PROCESS = 'events-process'
+KAFKA_SAVE = 'events-save'
 
 KAFKA_TOPICS = {
     KAFKA_PREPROCESS: {

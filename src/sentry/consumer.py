@@ -43,22 +43,27 @@ def handle_save(message):
     start_time = message['start_time']
     project_id = data['project']
 
-    store_tasks.save_event(cache_key, data, start_time, event_id, project_id)
+    store_tasks._do_save_event(cache_key, data, start_time, event_id, project_id)
 
 
 class ConsumerWorker(AbstractBatchWorker):
     def __init__(self):
-        self.dispatch = {
-            settings.KAFKA_TOPICS[settings.KAFKA_PREPROCESS]['topic']: handle_preprocess,
-            settings.KAFKA_TOPICS[settings.KAFKA_PROCESS]['topic']: handle_process,
-            settings.KAFKA_TOPICS[settings.KAFKA_SAVE]['topic']: handle_save,
-        }
+        self.dispatch = {}
+        for key, handler in (
+            (settings.KAFKA_PREPROCESS, handle_preprocess),
+            (settings.KAFKA_PROCESS, handle_process),
+            (settings.KAFKA_SAVE, handle_save)
+        ):
+            topic = settings.KAFKA_TOPICS[key]['topic']
+            self.dispatch[topic] = handler
 
-    def process_message(self, kafka_message):
-        topic = kafka_message.topic()
-        message = json.loads(kafka_message.value())
+    def process_message(self, message):
+        topic = message.topic()
+        return self._handle(topic, json.loads(message.value()))
+
+    def _handle(self, topic, message):
         handler = self.dispatch[topic]
-        handler(message)
+        return handler(message)
 
     def flush_batch(self, batch):
         pass
