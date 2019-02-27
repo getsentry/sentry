@@ -564,8 +564,8 @@ class GetSnubaQueryArgsTest(TestCase):
     def test_wildcard(self):
         assert get_snuba_query_args('release:3.1.* user.email:*@example.com') == {
             'conditions': [
-                [['match', ['tags[sentry:release]', "'^3\\.1\\..*$'"]], '=', 1],
-                [['match', ['email', "'^.*\\@example\\.com$'"]], '=', 1],
+                [['match', ['tags[sentry:release]', "'(?i)^3\\.1\\..*$'"]], '=', 1],
+                [['match', ['email', "'(?i)^.*\\@example\\.com$'"]], '=', 1],
             ],
             'filter_keys': {},
         }
@@ -573,8 +573,30 @@ class GetSnubaQueryArgsTest(TestCase):
     def test_negated_wildcard(self):
         assert get_snuba_query_args('!release:3.1.* user.email:*@example.com') == {
             'conditions': [
-                [['match', [['ifNull', ['tags[sentry:release]', "''"]], "'^3\\.1\\..*$'"]], '!=', 1],
-                [['match', ['email', "'^.*\\@example\\.com$'"]], '=', 1],
+                [['match', [['ifNull', ['tags[sentry:release]', "''"]],
+                            "'(?i)^3\\.1\\..*$'"]], '!=', 1],
+                [['match', ['email', "'(?i)^.*\\@example\\.com$'"]], '=', 1],
+            ],
+            'filter_keys': {},
+        }
+
+    def test_escaped_wildcard(self):
+        assert get_snuba_query_args('release:3.1.\\* user.email:\\*@example.com') == {
+            'conditions': [
+                [['match', ['tags[sentry:release]', "'(?i)^3\\.1\\.\\*$'"]], '=', 1],
+                [['match', ['email', "'(?i)^\*\\@example\\.com$'"]], '=', 1],
+            ],
+            'filter_keys': {},
+        }
+        assert get_snuba_query_args('release:\\\\\\*') == {
+            'conditions': [
+                [['match', ['tags[sentry:release]', "'(?i)^\\\\\\*$'"]], '=', 1],
+            ],
+            'filter_keys': {},
+        }
+        assert get_snuba_query_args('release:\\\\*') == {
+            'conditions': [
+                [['match', ['tags[sentry:release]', "'(?i)^\\\\.*$'"]], '=', 1],
             ],
             'filter_keys': {},
         }

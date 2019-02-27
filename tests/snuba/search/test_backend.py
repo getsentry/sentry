@@ -19,7 +19,10 @@ from sentry.models import (
 )
 from sentry.search.base import ANY
 from sentry.search.snuba.backend import SnubaSearchBackend
-from sentry.testutils import SnubaTestCase
+from sentry.testutils import (
+    SnubaTestCase,
+    xfail_if_not_postgres,
+)
 
 
 def date_to_query_format(date):
@@ -556,7 +559,7 @@ class SnubaSearchTest(SnubaTestCase):
             count_hits=True,
         )
         assert list(results) == [self.group1]
-        assert results.hits == 1  # TODO this is actually wrong because of the cursor
+        assert results.hits == 2
 
         results = self.backend.query(
             [self.project],
@@ -567,7 +570,7 @@ class SnubaSearchTest(SnubaTestCase):
             count_hits=True,
         )
         assert list(results) == []
-        assert results.hits == 1  # TODO this is actually wrong because of the cursor
+        assert results.hits == 2
 
     def test_active_at_filter(self):
         results = self.make_query(
@@ -1259,3 +1262,58 @@ class SnubaSearchTest(SnubaTestCase):
 
         results = self.make_query(search_filter_query='"bar"', query='"bar"')
         assert set(results) == set([self.group2])
+
+    @xfail_if_not_postgres('Wildcard searching only supported in Postgres')
+    def test_wildcard(self):
+        escaped_event = self.store_event(
+            data={
+                'fingerprint': ['hello-there'],
+                'event_id': 'f' * 32,
+                'message': 'somet[hing]',
+                'environment': 'production',
+                'tags': {
+                    'server': 'example.com',
+                },
+                'timestamp': self.base_datetime.isoformat()[:19],
+                'stacktrace': {
+                    'frames': [{
+                        'module': 'group1'
+                    }]
+                },
+            },
+            project_id=self.project.id,
+        )
+        # Note: Adding in `environment:production` so that we make sure we query
+        # in both snuba and postgres
+        results = self.make_query(
+            search_filter_query='environment:production so*t',
+        )
+        assert set(results) == set([escaped_event.group])
+        # Make sure it's case insensitive
+        results = self.make_query(
+            search_filter_query='environment:production SO*t',
+        )
+        assert set(results) == set([escaped_event.group])
+        results = self.make_query(
+            search_filter_query='environment:production so*zz',
+        )
+        assert set(results) == set()
+        results = self.make_query(
+            search_filter_query='environment:production [hing]',
+        )
+        assert set(results) == set([escaped_event.group])
+        results = self.make_query(
+            search_filter_query='environment:production s*]',
+        )
+        assert set(results) == set([escaped_event.group])
+        # TODO: Disabling tests that use [] syntax for the moment. Re-enable
+        # these if we decide to add back in, or remove if this comment has been
+        # here a while.
+        # results = self.make_query(
+        #     search_filter_query='environment:production [s][of][mz]',
+        # )
+        # assert set(results) == set([escaped_event.group])
+        # results = self.make_query(
+        #     search_filter_query='environment:production [z][of][mz]',
+        # )
+        # assert set(results) == set()
