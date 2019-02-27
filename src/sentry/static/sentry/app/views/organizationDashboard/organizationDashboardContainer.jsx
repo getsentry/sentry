@@ -27,7 +27,7 @@ class OrganizationDashboardContainer extends React.Component {
           <NoProjectMessage organization={organization}>
             <PageHeader>
               <PageHeading withMargins>
-                {t('Dashboard')} <BetaTag />
+                {t('Dashboards')} <BetaTag />
               </PageHeading>
             </PageHeader>
 
