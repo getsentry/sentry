@@ -4,9 +4,6 @@ from __future__ import absolute_import
 
 from datetime import datetime, timedelta
 
-import pytest
-from django.conf import settings
-
 from sentry import tagstore
 from sentry.api.issue_search import (
     convert_query_values,
@@ -18,8 +15,9 @@ from sentry.models import (
 )
 from sentry.search.base import ANY
 from sentry.search.django.backend import DjangoSearchBackend
-from sentry.tagstore.v2.backend import AGGREGATE_ENVIRONMENT_ID
 from sentry.testutils import TestCase
+
+AGGREGATE_ENVIRONMENT_ID = 0
 
 
 def date_to_query_format(date):
@@ -699,33 +697,6 @@ class DjangoSearchBackendTest(TestCase):
             )
         )
         assert set(results) == set([self.group1, self.group2])
-
-    @pytest.mark.xfail(
-        not settings.SENTRY_TAGSTORE.startswith('sentry.tagstore.v2'),
-        reason='unsupported on legacy backend due to insufficient index',
-    )
-    def test_date_filter_with_environment(self):
-        results = self.backend.query(
-            [self.project],
-            environments=[self.environments['production']],
-            date_from=self.event2.datetime,
-        )
-        assert set(results) == set([self.group1])
-
-        results = self.backend.query(
-            [self.project],
-            environments=[self.environments['production']],
-            date_to=self.event1.datetime + timedelta(minutes=1),
-        )
-        assert set(results) == set([self.group1])
-
-        results = self.backend.query(
-            [self.project],
-            environments=[self.environments['staging']],
-            date_from=self.event1.datetime,
-            date_to=self.event2.datetime + timedelta(minutes=1),
-        )
-        assert set(results) == set([self.group2])
 
     def test_unassigned(self):
         results = self.make_query(

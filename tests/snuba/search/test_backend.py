@@ -2,9 +2,7 @@ from __future__ import absolute_import
 
 import mock
 import pytz
-import pytest
 from datetime import datetime, timedelta
-from django.conf import settings
 from django.utils import timezone
 from hashlib import md5
 
@@ -820,33 +818,6 @@ class SnubaSearchTest(SnubaTestCase):
             )
         )
         assert set(results) == set([self.group1, self.group2])
-
-    @pytest.mark.xfail(
-        not settings.SENTRY_TAGSTORE.startswith('sentry.tagstore.v2'),
-        reason='unsupported on legacy backend due to insufficient index',
-    )
-    def test_date_filter_with_environment(self):
-        results = self.backend.query(
-            [self.project],
-            environments=[self.environments['production']],
-            date_from=self.event2.datetime,
-        )
-        assert set(results) == set([self.group1])
-
-        results = self.backend.query(
-            [self.project],
-            environments=[self.environments['production']],
-            date_to=self.event1.datetime + timedelta(minutes=1),
-        )
-        assert set(results) == set([self.group1])
-
-        results = self.backend.query(
-            [self.project],
-            environments=[self.environments['staging']],
-            date_from=self.event1.datetime,
-            date_to=self.event2.datetime + timedelta(minutes=1),
-        )
-        assert set(results) == set([self.group2])
 
     def test_unassigned(self):
         results = self.make_query(

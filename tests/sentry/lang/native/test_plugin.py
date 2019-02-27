@@ -1,12 +1,10 @@
 from __future__ import absolute_import
 
 import os
-import pytest
 import zipfile
 from mock import patch
 from six import BytesIO
 
-from django.conf import settings
 from django.core.urlresolvers import reverse
 from django.core.files.uploadedfile import SimpleUploadedFile
 
@@ -18,11 +16,6 @@ from symbolic import parse_addr, SymbolicError, SymCache
 
 
 class BasicResolvingIntegrationTest(TestCase):
-
-    @pytest.mark.skipif(
-        settings.SENTRY_TAGSTORE == 'sentry.tagstore.v2.V2TagStorage',
-        reason='Queries are completly different when using tagstore'
-    )
     @patch('sentry.lang.native.symbolizer.Symbolizer._symbolize_app_frame')
     def test_frame_resolution(self, symbolize_frame):
         object_name = (
