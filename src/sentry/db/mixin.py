@@ -3,6 +3,7 @@ from __future__ import absolute_import
 import logging
 import six
 
+from db import transaction
 from uuid import uuid4
 
 from sentry.models import OrganizationOption
@@ -24,19 +25,21 @@ class PendingDeletionMixin(object):
     def rename_on_pending_deletion(self, fields=None):
         fields = fields or self._rename_fields_on_pending_delete
         original_data = {}
-
-        for field in fields:
-            original_data[field] = getattr(self, field)
-            setattr(self, field, uuid4().hex)
-
-        self.save()
         original_data['id'] = self.id
         original_data['model'] = self.__class__.__name__
-        OrganizationOption.objects.create(
-            organization_id=self.organization_id,
-            key=self.build_pending_deletion_key(),
-            value=original_data,
-        )
+
+        with transaction.atomic():
+            for field in fields:
+                original_data[field] = getattr(self, field)
+                setattr(self, field, uuid4().hex)
+
+            self.save(update_fields=fields)
+            OrganizationOption.objects.create(
+                organization_id=self.organization_id,
+                key=self.build_pending_deletion_key(),
+                value=original_data,
+            )
+
         logger.info(
             'rename-on-pending-deletion',
             extra={
@@ -66,11 +69,14 @@ class PendingDeletionMixin(object):
             )
             return False
 
-        for field_name, field_value in six.iteritems(option.value):
-            if field_name in ('id', 'model'):
-                continue
-            setattr(self, field_name, field_value)
-        self.save()
+        fields_to_save = []
+        with transaction.atomic():
+            for field_name, field_value in six.iteritems(option.value):
+                if field_name in ('id', 'model'):
+                    continue
+                fields_to_save.append(field_name)
+                setattr(self, field_name, field_value)
+            self.save(update_fields=fields_to_save)
         logger.info(
             'reset-on-pending-deletion.success',
             extra={
