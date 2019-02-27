@@ -372,7 +372,7 @@ exports[`OrganizationUserFeedback renders 1`] = `
                           },
                         ],
                         Array [
-                          "/org-slug/project-slug/issues/1/",
+                          "/organizations/org-slug/projects/project-slug/events/12345678901234567890123456789012/",
                         ],
                         Array [
                           "/org-slug/project-slug/",
@@ -522,7 +522,7 @@ exports[`OrganizationUserFeedback renders 1`] = `
                             },
                           ],
                           Array [
-                            "/org-slug/project-slug/issues/1/",
+                            "/organizations/org-slug/projects/project-slug/events/12345678901234567890123456789012/",
                           ],
                           Array [
                             "/org-slug/project-slug/",
@@ -2072,6 +2072,7 @@ exports[`OrganizationUserFeedback renders 1`] = `
                                       "tags": Array [],
                                     }
                                   }
+                                  eventId="12345678901234567890123456789012"
                                   id="1"
                                   key="123"
                                 >
@@ -2109,6 +2110,7 @@ exports[`OrganizationUserFeedback renders 1`] = `
                                         "tags": Array [],
                                       }
                                     }
+                                    eventId="12345678901234567890123456789012"
                                     id="1"
                                     organization={
                                       Object {
@@ -2204,6 +2206,7 @@ exports[`OrganizationUserFeedback renders 1`] = `
                                                 "tags": Array [],
                                               }
                                             }
+                                            eventId="12345678901234567890123456789012"
                                             organization={
                                               Object {
                                                 "access": Array [
@@ -2264,13 +2267,13 @@ exports[`OrganizationUserFeedback renders 1`] = `
                                                   <h3
                                                     className="truncate"
                                                   >
-                                                    <ProjectLink
-                                                      to="/org-slug/project-slug/issues/1/"
+                                                    <Link
+                                                      to="/organizations/org-slug/projects/project-slug/events/12345678901234567890123456789012/"
                                                     >
                                                       <Link
                                                         onlyActiveOnIndex={false}
                                                         style={Object {}}
-                                                        to="/org-slug/project-slug/issues/1/"
+                                                        to="/organizations/org-slug/projects/project-slug/events/12345678901234567890123456789012/"
                                                       >
                                                         <a
                                                           onClick={[Function]}
@@ -2285,7 +2288,7 @@ exports[`OrganizationUserFeedback renders 1`] = `
                                                           <span />
                                                         </a>
                                                       </Link>
-                                                    </ProjectLink>
+                                                    </Link>
                                                   </h3>
                                                 </div>
                                               </Base>
