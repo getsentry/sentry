@@ -44,7 +44,6 @@ class SidebarHelp extends React.Component {
                   hasPanel={false}
                   icon={<InlineSvg src="icon-circle-question" />}
                   label={t('Help')}
-                  id="help"
                 />
               </HelpActor>
 

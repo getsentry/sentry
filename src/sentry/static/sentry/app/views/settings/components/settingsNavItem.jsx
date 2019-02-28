@@ -4,7 +4,6 @@ import React from 'react';
 import styled from 'react-emotion';
 
 import Badge from 'app/components/badge';
-import HookOrDefault from 'app/components/hookOrDefault';
 import Tag from 'app/views/settings/components/tag';
 
 class SettingsNavItem extends React.Component {
@@ -12,18 +11,10 @@ class SettingsNavItem extends React.Component {
     label: PropTypes.node.isRequired,
     badge: PropTypes.node,
     index: PropTypes.bool,
-    id: PropTypes.string,
   };
 
   render() {
-    const {badge, label, index, id, ...props} = this.props;
-
-    const LabelHook = HookOrDefault({
-      hookName: 'sidebar:item-label',
-      defaultComponent: ({children}) => {
-        return <React.Fragment>{children}</React.Fragment>;
-      },
-    });
+    const {badge, label, index, ...props} = this.props;
 
     let renderedBadge = '';
 
@@ -39,9 +30,7 @@ class SettingsNavItem extends React.Component {
 
     return (
       <StyledNavItem onlyActiveOnIndex={index} activeClassName="active" {...props}>
-        <LabelHook id={id}>{label}</LabelHook>
-
-        {badge ? renderedBadge : null}
+        {label} {badge ? renderedBadge : null}
       </StyledNavItem>
     );
   }
