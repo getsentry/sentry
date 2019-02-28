@@ -139,13 +139,13 @@ const StreamActions = createReactClass({
     allResultsVisible: PropTypes.bool,
     orgId: PropTypes.string.isRequired,
     projectId: PropTypes.string,
+    selection: SentryTypes.GlobalSelection.isRequired,
     groupIds: PropTypes.instanceOf(Array).isRequired,
     onRealtimeChange: PropTypes.func.isRequired,
     onSelectStatsPeriod: PropTypes.func.isRequired,
     realtimeActive: PropTypes.bool.isRequired,
     statsPeriod: PropTypes.string.isRequired,
     query: PropTypes.string.isRequired,
-    environment: SentryTypes.Environment,
     queryCount: PropTypes.number,
     hasReleases: PropTypes.bool,
     latestRelease: PropTypes.object,
@@ -155,7 +155,6 @@ const StreamActions = createReactClass({
 
   getDefaultProps() {
     return {
-      projectId: '',
       hasReleases: false,
       latestRelease: null,
     };
@@ -203,16 +202,18 @@ const StreamActions = createReactClass({
   },
 
   onUpdate(data) {
+    const {selection} = this.props;
     this.actionSelectedGroups(itemIds => {
       const loadingIndicator = IndicatorStore.add(t('Saving changes..'));
       this.api.bulkUpdate(
         {
           orgId: this.props.orgId,
-          projectId: this.props.projectId,
           itemIds,
           data,
           query: this.props.query,
-          environment: this.props.environment && this.props.environment.name,
+          project: selection.projects,
+          environment: selection.environments,
+          ...selection.datetime,
         },
         {
           complete: () => {
@@ -225,15 +226,17 @@ const StreamActions = createReactClass({
 
   onDelete(event) {
     const loadingIndicator = IndicatorStore.add(t('Removing events..'));
+    const {selection} = this.props;
 
     this.actionSelectedGroups(itemIds => {
       this.api.bulkDelete(
         {
           orgId: this.props.orgId,
-          projectId: this.props.projectId,
           itemIds,
           query: this.props.query,
-          environment: this.props.environment && this.props.environment.name,
+          project: selection.projects,
+          environment: selection.environments,
+          ...selection.datetime,
         },
         {
           complete: () => {
@@ -246,15 +249,17 @@ const StreamActions = createReactClass({
 
   onMerge(event) {
     const loadingIndicator = IndicatorStore.add(t('Merging events..'));
+    const {selection} = this.props;
 
     this.actionSelectedGroups(itemIds => {
       this.api.merge(
         {
           orgId: this.props.orgId,
-          projectId: this.props.projectId,
           itemIds,
           query: this.props.query,
-          environment: this.props.environment && this.props.environment.name,
+          project: selection.projects,
+          environment: selection.environments,
+          ...selection.datetime,
         },
         {
           complete: () => {
