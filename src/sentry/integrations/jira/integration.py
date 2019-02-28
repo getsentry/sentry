@@ -398,23 +398,32 @@ class JiraIntegration(IntegrationInstallation, IssueSyncMixin):
 
         return issue_type_meta
 
-    def get_create_issue_config(self, group, **kwargs):
-        kwargs['link_referrer'] = 'jira_integration'
-        fields = super(JiraIntegration, self).get_create_issue_config(group, **kwargs)
-        params = kwargs.get('params', {})
+    def get_issue_create_meta(self, client, project_id, jira_projects):
+        if project_id:
+            return self.fetch_issue_create_meta(client, project_id)
 
-        defaults = self.get_project_defaults(group.project_id)
-        project_id = params.get('project', defaults.get('project'))
+        # If we don't have a jira projectid, iterate all projects and find
+        # the first project that has metadata. We only want one project as getting
+        # all project metadata is expensive and wasteful. In the first run experience,
+        # the user won't have a 'last used' project id so we need to iterate available
+        # projects until we find one that we can get metadata for.
+        if len(jira_projects):
+            attempts = 0
+            for fallback in jira_projects:
+                attempts += 1
+                meta = self.fetch_issue_create_meta(client, fallback['id'])
+                if meta:
+                    logging.info('jira.issue-create-meta.attempts', extra={
+                        'organization_id': self.organization_id,
+                        'attempts': attempts,
+                    })
+                    return meta
+        raise IntegrationError(
+            'Could not get issue create metadata for any Jira projects. '
+            'Ensure that your project permissions are correct.'
+        )
 
-        client = self.get_client()
-
-        # If we don't have a jira project selected, fetch the first project
-        # This avoids a potentially very expensive API call to fetch issue
-        # create configuration for *all* projects.
-        jira_projects = client.get_projects_list()
-        if not project_id and len(jira_projects):
-            project_id = jira_projects[0]['id']
-
+    def fetch_issue_create_meta(self, client, project_id):
         try:
             meta = client.get_create_meta_for_project(project_id)
         except ApiUnauthorized:
@@ -427,7 +436,7 @@ class JiraIntegration(IntegrationInstallation, IssueSyncMixin):
                 'jira.error-fetching-issue-config',
                 extra={
                     'integration_id': self.model.id,
-                    'organization_id': group.organization.id,
+                    'organization_id': self.organization_id,
                     'error': exc.message,
                 }
             )
@@ -435,9 +444,23 @@ class JiraIntegration(IntegrationInstallation, IssueSyncMixin):
                 'There was an error communicating with the Jira API. '
                 'Please try again or contact support.'
             )
+        return meta
+
+    def get_create_issue_config(self, group, **kwargs):
+        kwargs['link_referrer'] = 'jira_integration'
+        fields = super(JiraIntegration, self).get_create_issue_config(group, **kwargs)
+        params = kwargs.get('params', {})
+
+        defaults = self.get_project_defaults(group.project_id)
+        project_id = params.get('project', defaults.get('project'))
+
+        client = self.get_client()
+        jira_projects = client.get_projects_list()
+        meta = self.get_issue_create_meta(client, project_id, jira_projects)
         if not meta:
             raise IntegrationError(
-                'No projects were found in Jira. Check the permissions for projects.'
+                'Could not fetch issue create metadata from Jira. '
+                'Ensure that the integration user has access to the requested project.'
             )
 
         # check if the issuetype was passed as a parameter
