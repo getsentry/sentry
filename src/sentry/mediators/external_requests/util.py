@@ -24,8 +24,25 @@ SELECT_OPTIONS_SCHEMA = {
     }
 }
 
+ISSUE_LINKER_SCHEMA = {
+    'type': 'object',
+    'properties': {
+        'webUrl': {
+            'type': 'string',
+        },
+        'identifier': {
+            'type': 'string',
+        },
+        'project': {
+            'type': 'string',
+        }
+    },
+    'required': ['webUrl', 'identifier', 'project'],
+}
+
 SCHEMA_LIST = {
     'select': SELECT_OPTIONS_SCHEMA,
+    'issue_link': ISSUE_LINKER_SCHEMA,
 }
 
 
