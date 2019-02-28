@@ -481,7 +481,7 @@ def main(num_events=1, extra_events=False):
                 )[0]
                 commit = Commit.objects.get_or_create(
                     organization_id=org.id,
-                    repository_id=repo[0].id,
+                    repository_id=repo.id,
                     key=raw_commit['key'],
                     defaults={
                         'author': author,
@@ -521,7 +521,7 @@ def main(num_events=1, extra_events=False):
             # create an unreleased commit
             Commit.objects.get_or_create(
                 organization_id=org.id,
-                repository_id=repo[0].id,
+                repository_id=repo.id,
                 key=sha1(uuid4().hex).hexdigest(),
                 defaults={
                     'author': CommitAuthor.objects.get_or_create(
@@ -675,7 +675,7 @@ def main(num_events=1, extra_events=False):
             if event5:
                 Commit.objects.get_or_create(
                     organization_id=org.id,
-                    repository_id=repo[0].id,
+                    repository_id=repo.id,
                     key=sha1(uuid4().hex).hexdigest(),
                     defaults={
                         'author': CommitAuthor.objects.get_or_create(
