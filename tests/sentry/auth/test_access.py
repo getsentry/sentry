@@ -22,6 +22,7 @@ class FromUserTest(TestCase):
         assert not result.has_team_access(team)
         assert not result.has_team_scope(team, 'project:read')
         assert not result.has_project_access(project)
+        assert not result.has_projects_access([project])
         assert not result.has_project_scope(project, 'project:read')
         assert not result.has_project_membership(project)
 
@@ -43,6 +44,7 @@ class FromUserTest(TestCase):
         assert result.has_team_access(team)
         assert result.has_team_scope(team, 'project:read')
         assert result.has_project_access(project)
+        assert result.has_projects_access([project])
         assert result.has_project_scope(project, 'project:read')
         assert result.has_project_membership(project)
 
@@ -67,6 +69,7 @@ class FromUserTest(TestCase):
         assert not result.has_team_access(team)
         assert not result.has_team_scope(team, 'project:read')
         assert not result.has_project_access(project)
+        assert not result.has_projects_access([project])
         assert not result.has_project_scope(project, 'project:read')
         assert not result.has_project_membership(project)
 
@@ -92,6 +95,7 @@ class FromUserTest(TestCase):
         assert result.has_team_access(team)
         assert result.has_team_scope(team, 'project:read')
         assert result.has_project_access(project)
+        assert result.has_projects_access([project])
         assert result.has_project_scope(project, 'project:read')
         assert not result.has_project_membership(project)
 
@@ -113,6 +117,7 @@ class FromUserTest(TestCase):
         assert result.has_team_access(team)
         assert result.has_team_scope(team, 'project:read')
         assert result.has_project_access(project)
+        assert result.has_projects_access([project])
         assert result.has_project_scope(project, 'project:read')
         assert result.has_project_membership(project)
 
@@ -221,5 +226,6 @@ class DefaultAccessTest(TestCase):
         assert not result.has_team_access(Mock())
         assert not result.has_team_scope(Mock(), 'project:read')
         assert not result.has_project_access(Mock())
+        assert not result.has_projects_access([Mock()])
         assert not result.has_project_scope(Mock(), 'project:read')
         assert not result.has_project_membership(Mock())
