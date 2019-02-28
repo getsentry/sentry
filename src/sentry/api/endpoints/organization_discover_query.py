@@ -7,16 +7,13 @@ from copy import deepcopy
 
 from rest_framework import serializers
 from rest_framework.response import Response
-from rest_framework.exceptions import PermissionDenied
 
 from sentry.api.serializers.rest_framework import ListField
 from sentry.api.bases.organization import OrganizationPermission
 from sentry.api.bases import OrganizationEndpoint
 from sentry.api.paginator import GenericOffsetPaginator
 from sentry.api.utils import get_date_range_from_params, InvalidParams
-from sentry.models import Project, ProjectStatus, OrganizationMember, OrganizationMemberTeam
 from sentry.utils import snuba
-from sentry import roles
 from sentry import features
 from sentry.auth.superuser import is_active_superuser
 
@@ -112,15 +109,6 @@ class DiscoverQuerySerializer(serializers.Serializer):
         data['end'] = end
 
         return data
-
-    def validate_projects(self, attrs, source):
-        projects = attrs[source]
-        org_projects = set(project[0] for project in self.context['projects'])
-
-        if not set(projects).issubset(org_projects):
-            raise PermissionDenied
-
-        return attrs
 
     def validate_conditions(self, attrs, source):
         # Handle error (exception_stacks), stack(exception_frames)
@@ -282,24 +270,6 @@ class OrganizationDiscoverQueryEndpoint(OrganizationEndpoint):
                 projects,
             ), status=200)
 
-    def has_projects_access(self, user, organization, requested_projects):
-        member = OrganizationMember.objects.get(
-            user=user, organization=organization)
-
-        has_global_access = roles.get(member.role).is_global
-
-        if has_global_access:
-            return True
-
-        member_project_list = Project.objects.filter(
-            organization=organization,
-            teams__in=OrganizationMemberTeam.objects.filter(
-                organizationmember=member,
-            ).values('team'),
-        ).values_list('id', flat=True)
-
-        return set(requested_projects).issubset(set(member_project_list))
-
     def post(self, request, organization):
 
         if not features.has('organizations:discover', organization, actor=request.user):
@@ -307,17 +277,16 @@ class OrganizationDiscoverQueryEndpoint(OrganizationEndpoint):
 
         requested_projects = request.DATA['projects']
 
-        if not is_active_superuser(request) and not self.has_projects_access(
-            request.user, organization, requested_projects
-        ):
+        allowed_projects = self.get_projects(request, organization)
+
+        allowed_project_ids = [p.id for p in allowed_projects]
+
+        has_projects_access = set(requested_projects).issubset(set(allowed_project_ids))
+
+        if not is_active_superuser(request) and not has_projects_access:
             return Response("Invalid projects", status=400)
 
-        projects = Project.objects.filter(
-            organization=organization,
-            status=ProjectStatus.VISIBLE,
-        ).values_list('id', 'slug')
-
-        serializer = DiscoverQuerySerializer(data=request.DATA, context={'projects': projects})
+        serializer = DiscoverQuerySerializer(data=request.DATA)
 
         if not serializer.is_valid():
             return Response(serializer.errors, status=400)
@@ -329,8 +298,8 @@ class OrganizationDiscoverQueryEndpoint(OrganizationEndpoint):
         selected_columns = [] if has_aggregations else serialized.get('fields')
 
         projects_map = {}
-        for project in projects:
-            projects_map[project[0]] = project[1]
+        for project in allowed_projects:
+            projects_map[project.id] = project.slug
 
         # Make sure that all selected fields are in the group by clause if there
         # are aggregations
