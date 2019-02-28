@@ -33,8 +33,6 @@ const validHookNames = new Set([
   'organization:header',
   'sidebar:help-menu',
   'sidebar:organization-dropdown-menu',
-  'sidebar:bottom-items',
-  'sidebar:item-label',
 
   // Used to provide a component for integration features.
   'integrations:feature-gates',
