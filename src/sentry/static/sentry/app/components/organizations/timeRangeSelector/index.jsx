@@ -207,6 +207,7 @@ class TimeRangeSelector extends React.PureComponent {
       end: null,
       utc: this.state.utc,
     };
+    this.setState(newDateTime);
     this.callCallback(onChange, newDateTime);
     this.handleUpdate(newDateTime);
   };
