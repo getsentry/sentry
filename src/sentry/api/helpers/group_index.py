@@ -28,7 +28,6 @@ from sentry.models import (
     Team, User, UserOption
 )
 from sentry.models.group import looks_like_short_id
-from sentry.search.utils import InvalidQuery, parse_query
 from sentry.api.issue_search import (
     convert_query_values,
     InvalidSearchQuery,
@@ -72,13 +71,6 @@ def build_query_params_from_request(request, organization, projects, environment
 
     query = request.GET.get('query', 'is:unresolved').strip()
     if query:
-        try:
-            query_kwargs.update(parse_query(projects, query, request.user, environments))
-        except InvalidQuery as e:
-            raise ValidationError(
-                u'Your search query could not be parsed: {}'.format(
-                    e.message)
-            )
         try:
             search_filters = convert_query_values(
                 parse_search_query(query),
