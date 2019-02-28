@@ -676,6 +676,7 @@ const OrganizationStream = createReactClass({
             <StreamActions
               orgId={params.orgId}
               projectId={projectId}
+              selection={this.props.selection}
               hasReleases={hasReleases}
               latestRelease={latestRelease}
               query={query}
