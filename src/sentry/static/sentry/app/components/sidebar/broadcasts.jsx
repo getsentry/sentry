@@ -150,7 +150,6 @@ const Broadcasts = createReactClass({
           icon={<InlineSvg src="icon-broadcast" size="22px" />}
           label={t("What's new")}
           onClick={this.handleShowPanel}
-          id="broadcasts"
         />
 
         {showPanel &&
