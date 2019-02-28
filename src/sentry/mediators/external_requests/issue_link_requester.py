@@ -14,8 +14,32 @@ from sentry.utils import json
 
 class IssueLinkRequester(Mediator):
     """
-    Makes a request to another service and returns
-    the response.
+    1. Makes a POST request to another service with data used for creating or
+    linking a Sentry issue to an issue in the other service.
+
+    The data sent to the other service is always in the following format:
+        {
+            'installtionId': <install_uuid>,
+            'issueId': <sentry_group_id>,
+            'webUrl': <sentry_group_web_url>,
+            <fields>,
+        }
+
+    <fields> are any of the 'create' or 'link' form fields (determined by
+    the schema for that particular service)
+
+    2. Validates the response format from the other service and returns the
+    payload.
+
+    The data sent to the other service is always in the following format:
+        {
+            'identifier': <some_identifier>,
+            'webUrl': <external_issue_web_url>,
+            'project': <top_level_identifier>,
+        }
+
+    The project and identifier are use to generate the display text for the linked
+    issue in the UI (i.e. <project>#<identifier>)
     """
 
     install = Param('sentry.models.SentryAppInstallation')

@@ -33,7 +33,7 @@ class TestSelectRequester(TestCase):
 
         responses.add(
             method=responses.GET,
-            url='https://example.com/get-issues?project=boop&installationId=f3d37e3a-9a87-4651-8463-d375118f4996',
+            url='https://example.com/get-issues?projectSlug=boop&installationId=f3d37e3a-9a87-4651-8463-d375118f4996',
             body='[{"label": "An Issue", "value": "12345"}]',
             status=200,
             content_type='application/json',
@@ -57,7 +57,7 @@ class TestSelectRequester(TestCase):
         }
         responses.add(
             method=responses.GET,
-            url='https://example.com/get-issues?project=boop&installationId=f3d37e3a-9a87-4651-8463-d375118f4996',
+            url='https://example.com/get-issues?projectSlug=boop&installationId=f3d37e3a-9a87-4651-8463-d375118f4996',
             json=invalid_format,
             status=200,
             content_type='application/json',

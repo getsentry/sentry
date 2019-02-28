@@ -14,8 +14,12 @@ from sentry.utils.cache import memoize
 
 class SelectRequester(Mediator):
     """
-    Makes a request to another service and returns
-    the response.
+    1. Makes a GET request to another service to fetch data needed to populate
+    the SelectField dropdown in the UI.
+
+    `installationId` and `project` are included in the params of the request
+
+    2. Validates and formats the response.
     """
 
     install = Param('sentry.models.SentryAppInstallation')
@@ -31,7 +35,7 @@ class SelectRequester(Mediator):
         url = u'https://{}{}'.format(domain, self.uri)
         url += '?' + urlencode({
             'installationId': self.install.uuid,
-            'project': self.project.slug,
+            'projectSlug': self.project.slug,
         })
         return url
 
