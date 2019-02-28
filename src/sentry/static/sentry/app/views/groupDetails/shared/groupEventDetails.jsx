@@ -1,4 +1,5 @@
 import React from 'react';
+import PropTypes from 'prop-types';
 
 import SentryTypes from 'app/sentryTypes';
 import {withMeta} from 'app/components/events/meta/metaProxy';
@@ -9,32 +10,16 @@ import LoadingIndicator from 'app/components/loadingIndicator';
 import ResolutionBox from 'app/components/resolutionBox';
 import MutedBox from 'app/components/mutedBox';
 import withOrganization from 'app/utils/withOrganization';
-import withEnvironment from 'app/utils/withEnvironment';
-import withGlobalSelection from 'app/utils/withGlobalSelection';
-import OrganizationEnvironmentStore from 'app/stores/organizationEnvironmentsStore';
 
 import GroupEventToolbar from './eventToolbar';
 import {fetchGroupEventAndMarkSeen} from './utils';
-
-const GroupSidebarWithLatestContextEnvironment = withEnvironment(props => {
-  const {environment, ...otherProps} = props;
-  return <GroupSidebar {...otherProps} environments={environment ? [environment] : []} />;
-});
-
-const GroupSidebarWithGlobalSelectionEnvironment = withGlobalSelection(props => {
-  const {selection, ...otherProps} = props;
-  const environments = OrganizationEnvironmentStore.getActive().filter(env =>
-    selection.environments.includes(env.name)
-  );
-
-  return <GroupSidebar {...otherProps} environments={environments} />;
-});
 
 class GroupEventDetails extends React.Component {
   static propTypes = {
     group: SentryTypes.Group.isRequired,
     project: SentryTypes.Project.isRequired,
     organization: SentryTypes.Organization.isRequired,
+    environments: PropTypes.arrayOf(SentryTypes.Environment).isRequired,
   };
 
   constructor(props) {
@@ -85,12 +70,8 @@ class GroupEventDetails extends React.Component {
       });
   };
   render() {
-    const {group, project, organization, params} = this.props;
+    const {group, project, organization, environments} = this.props;
     const evt = withMeta(this.state.event);
-
-    const SidebarWithEnvironment = params.projectId
-      ? GroupSidebarWithLatestContextEnvironment
-      : GroupSidebarWithGlobalSelectionEnvironment;
 
     return (
       <div>
@@ -133,7 +114,12 @@ class GroupEventDetails extends React.Component {
             )}
           </div>
           <div className="secondary">
-            <SidebarWithEnvironment project={project} group={group} event={evt} />
+            <GroupSidebar
+              project={project}
+              group={group}
+              event={evt}
+              environments={environments}
+            />
           </div>
         </div>
       </div>
