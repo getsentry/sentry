@@ -15,7 +15,6 @@ from sentry.api.paginator import GenericOffsetPaginator
 from sentry.api.utils import get_date_range_from_params, InvalidParams
 from sentry.utils import snuba
 from sentry import features
-from sentry.auth.superuser import is_active_superuser
 
 
 class OrganizationDiscoverQueryPermission(OrganizationPermission):
@@ -283,7 +282,7 @@ class OrganizationDiscoverQueryEndpoint(OrganizationEndpoint):
 
         has_projects_access = set(requested_projects).issubset(set(allowed_project_ids))
 
-        if not is_active_superuser(request) and not has_projects_access:
+        if not has_projects_access:
             return Response("Invalid projects", status=400)
 
         serializer = DiscoverQuerySerializer(data=request.DATA)
