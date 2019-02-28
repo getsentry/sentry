@@ -165,7 +165,13 @@ class OrganizationGroupIndexEndpoint(OrganizationEventsEndpointBase):
         context = serialize(results, request.user, serializer())
 
         # HACK: remove auto resolved entries
-        if query_kwargs.get('status') == GroupStatus.UNRESOLVED:
+        # TODO: We should try to integrate this into the search backend, since
+        # this can cause us to arbitrarily return fewer results than requested.
+        status = [
+            search_filter for search_filter in query_kwargs.get('search_filters', [])
+            if search_filter.key.name == 'status'
+        ]
+        if status and status[0].value.raw_value == GroupStatus.UNRESOLVED:
             context = [r for r in context if r['status'] == 'unresolved']
 
         response = Response(context)

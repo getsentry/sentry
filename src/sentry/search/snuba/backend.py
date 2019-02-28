@@ -200,10 +200,11 @@ def get_search_filter(search_filters, name, operator):
 
 
 class SnubaSearchBackend(SearchBackend):
-    def query(self, projects, tags=None, environments=None, sort_by='date', limit=100,
-              cursor=None, count_hits=False, paginator_options=None, search_filters=None,
-              **parameters):
-
+    def query(
+        self, projects, environments=None, sort_by='date', limit=100,
+        cursor=None, count_hits=False, paginator_options=None,
+        search_filters=None, date_from=None, date_to=None,
+    ):
         from sentry.models import Group, GroupStatus, GroupSubscription
 
         search_filters = search_filters if search_filters is not None else []
@@ -214,9 +215,6 @@ class SnubaSearchBackend(SearchBackend):
 
         if paginator_options is None:
             paginator_options = {}
-
-        if tags is None:
-            tags = {}
 
         group_queryset = Group.objects.filter(project__in=projects).exclude(status__in=[
             GroupStatus.PENDING_DELETION,
@@ -292,12 +290,12 @@ class SnubaSearchBackend(SearchBackend):
         return self._query(
             projects, retention_window_start, group_queryset, environments,
             sort_by, limit, cursor, count_hits, paginator_options,
-            search_filters, **parameters
+            search_filters, date_from, date_to,
         )
 
     def _query(self, projects, retention_window_start, group_queryset, environments,
                sort_by, limit, cursor, count_hits, paginator_options, search_filters,
-               **parameters):
+               date_from, date_to):
 
         # TODO: It's possible `first_release` could be handled by Snuba.
         if environments is not None:
@@ -333,7 +331,7 @@ class SnubaSearchBackend(SearchBackend):
         end = None
         end_params = filter(
             None,
-            [parameters.get('date_to'), get_search_filter(search_filters, 'date', '<')],
+            [date_to, get_search_filter(search_filters, 'date', '<')],
         )
         if end_params:
             end = min(end_params)
@@ -375,7 +373,7 @@ class SnubaSearchBackend(SearchBackend):
         # better, maybe outside the backend. Should be easier once we're on
         # just the new search filters
         start_params = [
-            parameters.get('date_from'),
+            date_from,
             retention_date,
             get_search_filter(search_filters, 'date', '>'),
         ]

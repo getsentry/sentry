@@ -81,7 +81,7 @@ class GroupListTest(APITestCase, SnubaTestCase):
 
         response = self.get_response(sort_by='date', query='timesSeen:>1k')
         assert response.status_code == 400
-        assert 'could not' in response.data['detail']
+        assert 'Invalid format for numeric search' in response.data['detail']
 
     def test_simple_pagination(self):
         now = timezone.now()
