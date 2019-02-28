@@ -1256,6 +1256,13 @@ class SnubaSearchTest(SnubaTestCase):
         )
         assert set(results) == set([self.group1])
 
+    def test_query_enclosed_in_quotes(self):
+        results = self.make_query(search_filter_query='"foo"', query='"foo"')
+        assert set(results) == set([self.group1])
+
+        results = self.make_query(search_filter_query='"bar"', query='"bar"')
+        assert set(results) == set([self.group2])
+
     @xfail_if_not_postgres('Wildcard searching only supported in Postgres')
     def test_wildcard(self):
         escaped_event = self.store_event(

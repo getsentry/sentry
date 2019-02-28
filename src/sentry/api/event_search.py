@@ -230,10 +230,18 @@ class SearchVisitor(NodeVisitor):
         return search_term[0]
 
     def visit_raw_search(self, node, children):
+        value = node.text
+
+        while value.startswith('"') and value.endswith('"') and value != '"':
+            value = value[1:-1]
+
+        if not value:
+            return None
+
         return SearchFilter(
             SearchKey('message'),
             "=",
-            SearchValue(node.text),
+            SearchValue(value),
         )
 
     def visit_numeric_filter(self, node, children):
