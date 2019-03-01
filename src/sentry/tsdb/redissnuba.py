@@ -58,6 +58,7 @@ model_backends = {
     model: ('redis', 'redis') if model not in SnubaTSDB.model_columns else ('snuba', 'dummy') for model in BaseTSDB.models
 }
 
+
 def selector_func(method, callargs):
     spec = method_specifications.get(method)
     if spec is None:
