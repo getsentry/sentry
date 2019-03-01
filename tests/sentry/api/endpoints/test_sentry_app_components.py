@@ -44,3 +44,69 @@ class SentryAppComponentsTest(APITestCase):
             'schema': self.component.schema,
             'sentryAppId': self.sentry_app.id,
         }
+
+
+class OrganizationSentryAppComponentsTest(APITestCase):
+    def setUp(self):
+        self.user = self.create_user()
+        self.org = self.create_organization(owner=self.user)
+
+        self.sentry_app1 = self.create_sentry_app(
+            schema=json.dumps({
+                'elements': [self.create_issue_link_schema()],
+            })
+        )
+
+        self.sentry_app2 = self.create_sentry_app(
+            schema=json.dumps({
+                'elements': [self.create_issue_link_schema()],
+            })
+        )
+
+        self.sentry_app3 = self.create_sentry_app(
+            schema=json.dumps({
+                'elements': [self.create_issue_link_schema()],
+            })
+        )
+
+        self.create_sentry_app_installation(
+            slug=self.sentry_app1.slug,
+            organization=self.org,
+        )
+
+        self.create_sentry_app_installation(
+            slug=self.sentry_app2.slug,
+            organization=self.org,
+        )
+
+        self.component1 = self.sentry_app1.components.first()
+        self.component2 = self.sentry_app2.components.first()
+        self.component3 = self.sentry_app3.components.first()
+
+        self.url = reverse(
+            'sentry-api-0-org-sentry-app-components',
+            args=[self.org.slug],
+        )
+
+        self.login_as(user=self.user)
+
+    @with_feature('organizations:sentry-apps')
+    def test_retrieves_all_components_for_installed_apps(self):
+        response = self.client.get(self.url, format='json')
+
+        assert response.status_code == 200
+        assert self.component3.uuid not in [d['uuid'] for d in response.data]
+        assert response.data == [
+            {
+                'uuid': six.binary_type(self.component1.uuid),
+                'type': 'issue-link',
+                'schema': self.component1.schema,
+                'sentryAppId': self.sentry_app1.id,
+            },
+            {
+                'uuid': six.binary_type(self.component2.uuid),
+                'type': 'issue-link',
+                'schema': self.component2.schema,
+                'sentryAppId': self.sentry_app2.id,
+            },
+        ]
