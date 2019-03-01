@@ -6,8 +6,7 @@ import React from 'react';
 import {NEGATION_OPERATOR, SEARCH_WILDCARD} from 'app/constants';
 import {addErrorMessage} from 'app/actionCreators/indicator';
 import {defined} from 'app/utils';
-import {fetchEventFieldValues} from 'app/actionCreators/events';
-import {fetchOrganizationTags} from 'app/actionCreators/tags';
+import {fetchOrganizationTags, fetchTagValues} from 'app/actionCreators/tags';
 import {t} from 'app/locale';
 import SentryTypes from 'app/sentryTypes';
 import SmartSearchBar from 'app/components/smartSearchBar';
@@ -59,7 +58,7 @@ class SearchBar extends React.PureComponent {
   getEventFieldValues = memoize((tag, query) => {
     const {api, organization} = this.props;
 
-    return fetchEventFieldValues(api, organization.slug, tag.key, query).then(
+    return fetchTagValues(api, organization.slug, tag.key, query).then(
       results => flatten(results.filter(({name}) => defined(name)).map(({name}) => name)),
       () => {
         throw new Error('Unable to fetch event field values');
