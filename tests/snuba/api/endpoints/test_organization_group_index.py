@@ -493,6 +493,26 @@ class GroupUpdateTest(APITestCase, SnubaTestCase):
             group=new_group4,
         )
 
+    def test_resolve_member(self):
+        group = self.create_group(checksum='a' * 32, status=GroupStatus.UNRESOLVED)
+        member = self.create_user()
+        self.create_member(
+            organization=self.organization,
+            teams=group.project.teams.all(),
+            user=member,
+        )
+
+        self.login_as(user=member)
+        response = self.get_valid_response(
+            qs_params={'status': 'unresolved', 'project': self.project.id},
+            status='resolved',
+        )
+        assert response.data == {
+            'status': 'resolved',
+            'statusDetails': {},
+        }
+        assert response.status_code == 200
+
     def test_bulk_resolve(self):
         self.login_as(user=self.user)
 
