@@ -323,7 +323,10 @@ export class Client {
   }
 
   merge(params, options) {
-    const path = '/projects/' + params.orgId + '/' + params.projectId + '/issues/';
+    const path = params.projectId
+      ? `/projects/${params.orgId}/${params.projectId}/issues/`
+      : `/organizations/${params.orgId}/issues/`;
+
     const query = paramsToQueryArgs(params);
     const id = uniqueId();
 
