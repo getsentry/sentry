@@ -9,7 +9,6 @@ from django.utils.functional import cached_property
 from sentry.eventstream.kafka.consumer import SynchronizedConsumer
 from sentry.eventstream.kafka.protocol import get_task_kwargs_for_message
 from sentry.eventstream.snuba import SnubaProtocolEventStream
-from sentry.tasks.post_process import post_process_group
 from sentry.utils import json
 
 
@@ -190,7 +189,7 @@ class KafkaEventStream(SnubaProtocolEventStream):
 
                 task_kwargs = get_task_kwargs_for_message(message.value())
                 if task_kwargs is not None:
-                    post_process_group.delay(**task_kwargs)
+                    self._dispatch_post_process_group_task(**task_kwargs)
 
                 if i % commit_batch_size == 0:
                     commit_offsets()
