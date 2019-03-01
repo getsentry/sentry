@@ -167,10 +167,16 @@ class StacktraceTest(TestCase):
         )
 
         result = interface.compute_hashes()
-        assert result == [
+        assert sorted(result) == sorted([
             ['foo.py', 1, 'bar.py', 1],
             ['foo.py', 1],
-        ]
+        ])
+
+        result = interface.get_hashes()
+        assert result == {
+            'system': ['foo.py', 1, 'bar.py', 1],
+            'app': ['foo.py', 1],
+        }
 
     def test_compute_hashes(self):
         interface = Stacktrace.to_python(
@@ -188,8 +194,15 @@ class StacktraceTest(TestCase):
                 ]
             )
         )
+
         result = interface.compute_hashes('python')
-        assert result == [['a/foo.py', 1, 'a/bar.py', 1], ['a/foo.py', 1]]
+        assert sorted(result) == sorted([['a/foo.py', 1, 'a/bar.py', 1], ['a/foo.py', 1]])
+
+        result = interface.get_hashes('python')
+        assert result == {
+            'system': ['a/foo.py', 1, 'a/bar.py', 1],
+            'app': ['a/foo.py', 1],
+        }
 
     def test_compute_hashes_cocoa(self):
         interface = Stacktrace.to_python(
@@ -208,7 +221,7 @@ class StacktraceTest(TestCase):
             )
         )
         result = interface.compute_hashes('cocoa')
-        assert result == [['bar.m', 1, 'baz.m', 1], ['bar.m', 1]]
+        assert sorted(result) == sorted([['bar.m', 1, 'baz.m', 1], ['bar.m', 1]])
 
     def test_compute_hashes_with_minimal_app_frames(self):
         frames = [{
