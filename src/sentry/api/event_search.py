@@ -244,47 +244,33 @@ class SearchVisitor(NodeVisitor):
             SearchValue(value),
         )
 
-    def visit_numeric_filter(self, node, children):
-        search_key, _, operator, search_value = children
+    def visit_numeric_filter(self, node, (search_key, _, operator, search_value)):
         operator = operator[0] if not isinstance(operator, Node) else '='
 
         if search_key.name in self.numeric_keys:
             try:
-                search_value = int(search_value.text)
+                search_value = SearchValue(int(search_value.text))
             except ValueError:
                 raise InvalidSearchQuery('Invalid numeric query: %s' % (search_key,))
+            return SearchFilter(search_key, operator, search_value)
         else:
-            search_value = operator + search_value.text if operator != '=' else search_value.text
-            operator = '='
+            search_value = SearchValue(
+                operator + search_value.text if operator != '=' else search_value.text,
+            )
+            return self._handle_basic_filter(search_key, '=', search_value)
 
-        return SearchFilter(
-            search_key,
-            operator,
-            SearchValue(search_value),
-        )
-
-    def visit_time_filter(self, node, children):
-        search_key, _, operator, search_value = children
+    def visit_time_filter(self, node, (search_key, _, operator, search_value)):
         if search_key.name in self.date_keys:
             try:
                 search_value = parse_datetime_string(search_value)
             except InvalidQuery as exc:
                 raise InvalidSearchQuery(exc.message)
+            return SearchFilter(search_key, operator, SearchValue(search_value))
         else:
             search_value = operator + search_value if operator != '=' else search_value
-            operator = '='
+            return self._handle_basic_filter(search_key, '=', SearchValue(search_value))
 
-        try:
-            return SearchFilter(
-                search_key,
-                operator,
-                SearchValue(search_value),
-            )
-        except KeyError:
-            raise InvalidSearchQuery('Unsupported search term: %s' % (search_key,))
-
-    def visit_rel_time_filter(self, node, children):
-        search_key, _, value = children
+    def visit_rel_time_filter(self, node, (search_key, _, value)):
         if search_key.name in self.date_keys:
             try:
                 from_val, to_val = parse_datetime_range(value.text)
@@ -298,28 +284,16 @@ class SearchVisitor(NodeVisitor):
             else:
                 operator = '<='
                 search_value = to_val[0]
+            return SearchFilter(search_key, operator, SearchValue(search_value))
         else:
-            operator = '='
-            search_value = value.text
+            return self._handle_basic_filter(search_key, '=', SearchValue(value.text))
 
-        return SearchFilter(
-            search_key,
-            operator,
-            SearchValue(search_value),
-        )
-
-    def visit_specific_time_filter(self, node, children):
-        # Note that this is a behaviour implemented for dates in our current
-        # searches. If we specify a specific date, it means any event on that
-        # day, and if we specify a specific datetime then it means a few minutes
-        # interval on either side of that datetime
-        search_key, _, date_value = children
+    def visit_specific_time_filter(self, node, (search_key, _, date_value)):
+        # If we specify a specific date, it means any event on that day, and if
+        # we specify a specific datetime then it means a few minutes interval
+        # on either side of that datetime
         if search_key.name not in self.date_keys:
-            return SearchFilter(
-                search_key,
-                '=',
-                SearchValue(date_value),
-            )
+            return self._handle_basic_filter(search_key, '=', SearchValue(date_value))
 
         try:
             from_val, to_val = parse_datetime_value(date_value)
@@ -357,9 +331,17 @@ class SearchVisitor(NodeVisitor):
 
         return node.text == '!'
 
-    def visit_basic_filter(self, node, children):
-        negation, search_key, _, search_value = children
+    def visit_basic_filter(self, node, (negation, search_key, _, search_value)):
         operator = '!=' if self.is_negated(negation) else '='
+        return self._handle_basic_filter(search_key, operator, search_value)
+
+    def _handle_basic_filter(self, search_key, operator, search_value):
+        # If a date or numeric key gets down to the basic filter, then it means
+        # that the value wasn't in a valid format, so raise here.
+        if search_key.name in self.date_keys:
+            raise InvalidSearchQuery('Invalid format for date search')
+        if search_key.name in self.numeric_keys:
+            raise InvalidSearchQuery('Invalid format for numeric search')
 
         return SearchFilter(search_key, operator, search_value)
 
