@@ -964,7 +964,7 @@ class SingleException(Interface):
             if self.value:
                 value_component.update(values=[self.value])
             else:
-                value_component.update(hint='value takes precedence')
+                value_component.update(hint='stacktrace takes precedence')
 
         return GroupingComponent(
             id='exception',
