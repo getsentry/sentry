@@ -7,7 +7,7 @@ from django.conf import settings
 
 from rest_framework.response import Response
 
-from sentry.api.bases import OrganizationEventsEndpointBase
+from sentry.api.bases import OrganizationEventsEndpointBase, OrganizationEventPermission
 from sentry.api.helpers.group_index import (
     build_query_params_from_request, delete_groups, get_by_short_id, update_groups, ValidationError
 )
@@ -25,6 +25,7 @@ search = SnubaSearchBackend(**settings.SENTRY_SEARCH_OPTIONS)
 
 
 class OrganizationGroupIndexEndpoint(OrganizationEventsEndpointBase):
+    permission_classes = (OrganizationEventPermission, )
 
     def _search(self, request, organization, projects, environments, extra_query_kwargs=None):
         query_kwargs = build_query_params_from_request(

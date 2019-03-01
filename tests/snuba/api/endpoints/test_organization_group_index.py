@@ -253,7 +253,11 @@ class GroupListTest(APITestCase, SnubaTestCase):
 
         self.login_as(user=user)
 
-        response = self.get_valid_response(organization.slug, project=project.id, query=short_id, shortIdLookup=1)
+        response = self.get_valid_response(
+            organization.slug,
+            project=project.id,
+            query=short_id,
+            shortIdLookup=1)
         assert len(response.data) == 1
 
     def test_lookup_by_short_id_no_perms(self):
@@ -364,7 +368,7 @@ class GroupListTest(APITestCase, SnubaTestCase):
         assert len(response.data) == 0
 
     def test_token_auth(self):
-        token = ApiToken.objects.create(user=self.user, scope_list=['org:read'])
+        token = ApiToken.objects.create(user=self.user, scope_list=['event:read'])
         response = self.client.get(
             reverse('sentry-api-0-organization-group-index', args=[self.project.organization.slug]),
             format='json',
