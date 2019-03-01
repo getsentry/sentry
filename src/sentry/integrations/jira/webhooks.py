@@ -102,7 +102,6 @@ class JiraIssueUpdatedWebhook(Endpoint):
             logger.info(
                 'missing-changelog', extra={
                     'integration_id': integration.id,
-                    'data': data,
                 }
             )
             return self.respond()
