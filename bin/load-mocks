@@ -246,11 +246,6 @@ def create_sample_time_series(event, release=None):
         ), now, int(count * 0.1))
 
         frequencies = [
-            (tsdb.models.frequent_projects_by_organization, {
-                project.organization_id: {
-                    project.id: count,
-                },
-            }),
             (tsdb.models.frequent_issues_by_project, {
                 project.id: {
                     group.id: count,
@@ -293,11 +288,6 @@ def create_sample_time_series(event, release=None):
         ), now, int(count * 0.1))
 
         frequencies = [
-            (tsdb.models.frequent_projects_by_organization, {
-                project.organization_id: {
-                    project.id: count,
-                },
-            }),
             (tsdb.models.frequent_issues_by_project, {
                 project.id: {
                     group.id: count,
