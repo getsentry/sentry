@@ -25,6 +25,7 @@ export default class NavigationGroup extends React.Component {
     project: SentryTypes.Project,
     access: PropTypes.object,
     features: PropTypes.object,
+    id: PropTypes.string,
   };
 
   static contextTypes = {
@@ -38,7 +39,7 @@ export default class NavigationGroup extends React.Component {
     return (
       <NavSection data-test-id={name}>
         <SettingsHeading>{name}</SettingsHeading>
-        {items.map(({path, title, index, show, badge}) => {
+        {items.map(({path, title, index, show, badge, id}) => {
           if (typeof show === 'function' && !show(this.props)) return null;
           if (typeof show !== 'undefined' && !show) return null;
           const badgeResult = typeof badge === 'function' ? badge(this.props) : null;
@@ -54,6 +55,7 @@ export default class NavigationGroup extends React.Component {
               label={title}
               index={index}
               badge={badgeResult}
+              id={id}
             />
           );
         })}
