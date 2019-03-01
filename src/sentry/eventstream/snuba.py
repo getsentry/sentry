@@ -266,6 +266,6 @@ class SnubaEventStream(SnubaProtocolEventStream):
         super(SnubaEventStream, self).insert(group, event, is_new, is_sample,
                                              is_regression, is_new_group_environment,
                                              primary_hash, skip_consume)
-        self._dispatch_post_process_group_task(group, event, is_new, is_sample,
+        self._dispatch_post_process_group_task(event, is_new, is_sample,
                                                is_regression, is_new_group_environment,
                                                primary_hash, skip_consume)
