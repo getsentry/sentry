@@ -62,6 +62,7 @@ class OrganizationEventPermission(OrganizationPermission):
         'DELETE': ['event:admin'],
     }
 
+
 # These are based on ProjectReleasePermission
 # additional checks to limit actions to releases
 # associated with projects people have access to
