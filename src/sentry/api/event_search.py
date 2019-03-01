@@ -19,7 +19,7 @@ from sentry.search.utils import (
 from sentry.utils.dates import to_timestamp
 from sentry.utils.snuba import SENTRY_SNUBA_MAP
 
-WILDCARD_CHARS = re.compile(r'[\*\[\]\?]')
+WILDCARD_CHARS = re.compile(r'[\*]')
 
 
 def translate(pat):
