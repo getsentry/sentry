@@ -31,11 +31,6 @@ describe('GlobalSelectionHeader', function() {
     jest.spyOn(globalActions, 'updateDateTime');
     jest.spyOn(globalActions, 'updateEnvironments');
     jest.spyOn(globalActions, 'updateProjects');
-
-    MockApiClient.addMockResponse({
-      url: `/organizations/${organization.slug}/environments/`,
-      body: TestStubs.Environments(),
-    });
   });
 
   beforeEach(function() {
@@ -244,6 +239,41 @@ describe('GlobalSelectionHeader', function() {
       );
 
       expect(globalActions.updateProjects).toHaveBeenCalledWith([3]);
+    });
+  });
+
+  describe('forceProject selection mode', function() {
+    const initialData = initializeOrg({
+      organization: {features: ['global-views']},
+      projects: [
+        {id: 1, slug: 'staging-project', environments: ['staging']},
+        {id: 2, slug: 'prod-project', environments: ['prod']},
+      ],
+      router: {
+        location: {query: {}},
+      },
+    });
+
+    const wrapper = mount(
+      <GlobalSelectionHeader
+        organization={initialData.organization}
+        forceProject={initialData.organization.projects[0]}
+      />,
+      initialData.routerContext
+    );
+
+    it('renders a back button to the forced project', function() {
+      const back = wrapper.find('BackButtonWrapper');
+      expect(back).toHaveLength(1);
+    });
+
+    it('renders only environments from the forced project', async function() {
+      await wrapper.find('MultipleEnvironmentSelector HeaderItem').simulate('click');
+      await wrapper.update();
+
+      const items = wrapper.find('MultipleEnvironmentSelector EnvironmentSelectorItem');
+      expect(items.length).toEqual(1);
+      expect(items.at(0).text()).toBe('staging');
     });
   });
 });

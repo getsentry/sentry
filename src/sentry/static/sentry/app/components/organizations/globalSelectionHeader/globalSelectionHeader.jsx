@@ -325,6 +325,7 @@ class GlobalSelectionHeader extends React.Component {
   };
 
   getBackButton = () => {
+    const {organization, location} = this.props;
     return (
       <BackButtonWrapper>
         <Tooltip
@@ -332,8 +333,7 @@ class GlobalSelectionHeader extends React.Component {
           tooltipOptions={{placement: 'bottom'}}
         >
           <BackToIssues
-            to={`/organizations/${this.props.organization.slug}/issues/${window.location
-              .search}`}
+            to={`/organizations/${organization.slug}/issues/${location.search}`}
           >
             <InlineSvg src="icon-arrow-left" />
           </BackToIssues>
@@ -353,6 +353,11 @@ class GlobalSelectionHeader extends React.Component {
       showEnvironmentSelector,
     } = this.props;
     const {period, start, end, utc} = this.props.selection.datetime || {};
+
+    const selectedProjects = forceProject
+      ? [parseInt(forceProject.id, 10)]
+      : this.props.selection.projects;
+
     return (
       <Header className={className}>
         <HeaderItemPosition>
@@ -374,7 +379,7 @@ class GlobalSelectionHeader extends React.Component {
             <HeaderItemPosition>
               <MultipleEnvironmentSelector
                 organization={organization}
-                selectedProjects={this.props.selection.projects}
+                selectedProjects={selectedProjects}
                 value={this.state.environments || this.props.selection.environments}
                 onChange={this.handleChangeEnvironments}
                 onUpdate={this.handleUpdateEnvironmments}

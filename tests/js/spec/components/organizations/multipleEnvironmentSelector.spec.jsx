@@ -82,7 +82,6 @@ describe('MultipleEnvironmentSelector', function() {
     await wrapper.update();
 
     expect(onChange).toHaveBeenCalled();
-    expect(onUpdate).toHaveBeenCalled();
     const selector = wrapper.find('MultipleEnvironmentSelector').instance();
     expect(selector.state.selectedEnvs).toEqual(new Set([]));
   });
