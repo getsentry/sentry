@@ -239,18 +239,6 @@ exports[`Stream render() displays the group list 1`] = `
           "predefined": true,
           "values": Array [],
         },
-        "user.email": Object {
-          "key": "user.email",
-        },
-        "user.id": Object {
-          "key": "user.id",
-        },
-        "user.ip": Object {
-          "key": "user.ip",
-        },
-        "user.username": Object {
-          "key": "user.username",
-        },
       }
     }
   />
@@ -495,18 +483,6 @@ exports[`Stream toggles environment select all environments 1`] = `
           "name": "Times Seen",
           "predefined": true,
           "values": Array [],
-        },
-        "user.email": Object {
-          "key": "user.email",
-        },
-        "user.id": Object {
-          "key": "user.id",
-        },
-        "user.ip": Object {
-          "key": "user.ip",
-        },
-        "user.username": Object {
-          "key": "user.username",
         },
       }
     }
