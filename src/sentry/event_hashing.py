@@ -11,23 +11,39 @@ HASH_RE = re.compile(r'^[0-9a-f]{32}$')
 DEFAULT_FINGERPRINT_VALUES = frozenset(['{{ default }}', '{{default}}'])
 
 
+DEFAULT_HINTS = {
+    '!salt': 'a static salt',
+}
+
+
 class GroupingComponent(object):
 
     def __init__(self, id, hint=None, contributes=True, values=None):
         self.id = id
+        if hint is None:
+            hint = DEFAULT_HINTS.get(id)
         self.hint = hint
         self.contributes = contributes
         if values is None:
             values = []
         self.values = values
 
+    def update(self, hint=None, contributes=None, values=None):
+        if hint is not None:
+            self.hint = hint
+        if contributes is not None:
+            self.contributes = contributes
+        if values is not None:
+            self.values = values
+
     def flatten_values(self):
         rv = []
-        for value in self.values:
-            if isinstance(value, GroupingComponent):
-                rv.extend(value.flatten_values())
-            else:
-                rv.append(value)
+        if self.contributes:
+            for value in self.values:
+                if isinstance(value, GroupingComponent):
+                    rv.extend(value.flatten_values())
+                else:
+                    rv.append(value)
         return rv
 
     def as_dict(self):
