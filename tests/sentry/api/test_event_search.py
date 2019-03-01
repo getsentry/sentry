@@ -441,6 +441,87 @@ class ParseSearchQueryTest(TestCase):
             ),
         ]
 
+    def test_quotes_filtered_on_raw(self):
+        # Enclose the full raw query? Strip it.
+        assert parse_search_query('thinger:unknown "what is this?"') == [
+            SearchFilter(
+                key=SearchKey(name='thinger'),
+                operator='=',
+                value=SearchValue(raw_value='unknown'),
+            ),
+            SearchFilter(
+                key=SearchKey(name='message'),
+                operator='=',
+                value=SearchValue(raw_value='what is this?'),
+            ),
+        ]
+
+        # Enclose the full query? Strip it and the whole query is raw.
+        assert parse_search_query('"thinger:unknown what is this?"') == [
+            SearchFilter(
+                key=SearchKey(name='message'),
+                operator='=',
+                value=SearchValue(raw_value='thinger:unknown what is this?'),
+            ),
+        ]
+
+        # Allow a single quotation at end
+        assert parse_search_query('end"') == [
+            SearchFilter(
+                key=SearchKey(name='message'),
+                operator='=',
+                value=SearchValue(raw_value='end"'),
+            ),
+        ]
+
+        # Allow a single quotation at beginning
+        assert parse_search_query('"beginning') == [
+            SearchFilter(
+                key=SearchKey(name='message'),
+                operator='=',
+                value=SearchValue(raw_value='"beginning'),
+            ),
+        ]
+
+        # Allow a single quotation
+        assert parse_search_query('"') == [
+            SearchFilter(
+                key=SearchKey(name='message'),
+                operator='=',
+                value=SearchValue(raw_value='"'),
+            ),
+        ]
+
+        # Empty quotations become a dropped term
+        assert parse_search_query('""') == []
+
+        # Allow a search for space
+        assert parse_search_query('" "') == [
+            SearchFilter(
+                key=SearchKey(name='message'),
+                operator='=',
+                value=SearchValue(raw_value=' '),
+            ),
+        ]
+
+        # Strip in a balanced manner
+        assert parse_search_query('""woof"') == [
+            SearchFilter(
+                key=SearchKey(name='message'),
+                operator='=',
+                value=SearchValue(raw_value='"woof'),
+            ),
+        ]
+
+        # Don't try this at home kids
+        assert parse_search_query('"""""""""') == [
+            SearchFilter(
+                key=SearchKey(name='message'),
+                operator='=',
+                value=SearchValue(raw_value='"'),
+            ),
+        ]
+
 
 class GetSnubaQueryArgsTest(TestCase):
     def test_simple(self):
@@ -483,8 +564,8 @@ class GetSnubaQueryArgsTest(TestCase):
     def test_wildcard(self):
         assert get_snuba_query_args('release:3.1.* user.email:*@example.com') == {
             'conditions': [
-                [['match', ['tags[sentry:release]', "'^3\\.1\\..*$'"]], '=', 1],
-                [['match', ['email', "'^.*\\@example\\.com$'"]], '=', 1],
+                [['match', ['tags[sentry:release]', "'(?i)^3\\.1\\..*$'"]], '=', 1],
+                [['match', ['email', "'(?i)^.*\\@example\\.com$'"]], '=', 1],
             ],
             'filter_keys': {},
         }
@@ -492,8 +573,30 @@ class GetSnubaQueryArgsTest(TestCase):
     def test_negated_wildcard(self):
         assert get_snuba_query_args('!release:3.1.* user.email:*@example.com') == {
             'conditions': [
-                [['match', [['ifNull', ['tags[sentry:release]', "''"]], "'^3\\.1\\..*$'"]], '!=', 1],
-                [['match', ['email', "'^.*\\@example\\.com$'"]], '=', 1],
+                [['match', [['ifNull', ['tags[sentry:release]', "''"]],
+                            "'(?i)^3\\.1\\..*$'"]], '!=', 1],
+                [['match', ['email', "'(?i)^.*\\@example\\.com$'"]], '=', 1],
+            ],
+            'filter_keys': {},
+        }
+
+    def test_escaped_wildcard(self):
+        assert get_snuba_query_args('release:3.1.\\* user.email:\\*@example.com') == {
+            'conditions': [
+                [['match', ['tags[sentry:release]', "'(?i)^3\\.1\\.\\*$'"]], '=', 1],
+                [['match', ['email', "'(?i)^\*\\@example\\.com$'"]], '=', 1],
+            ],
+            'filter_keys': {},
+        }
+        assert get_snuba_query_args('release:\\\\\\*') == {
+            'conditions': [
+                [['match', ['tags[sentry:release]', "'(?i)^\\\\\\*$'"]], '=', 1],
+            ],
+            'filter_keys': {},
+        }
+        assert get_snuba_query_args('release:\\\\*') == {
+            'conditions': [
+                [['match', ['tags[sentry:release]', "'(?i)^\\\\.*$'"]], '=', 1],
             ],
             'filter_keys': {},
         }
