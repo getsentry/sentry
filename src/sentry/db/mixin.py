@@ -3,7 +3,7 @@ from __future__ import absolute_import
 import logging
 import six
 
-from db import transaction
+from django.db import transaction
 from uuid import uuid4
 
 from sentry.models import OrganizationOption
