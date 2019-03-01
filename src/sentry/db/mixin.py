@@ -28,11 +28,11 @@ class PendingDeletionMixin(object):
         original_data['id'] = self.id
         original_data['model'] = self.__class__.__name__
 
-        with transaction.atomic():
-            for field in fields:
-                original_data[field] = getattr(self, field)
-                setattr(self, field, uuid4().hex)
+        for field in fields:
+            original_data[field] = getattr(self, field)
+            setattr(self, field, uuid4().hex)
 
+        with transaction.atomic():
             self.save(update_fields=fields)
             OrganizationOption.objects.create(
                 organization_id=self.organization_id,
@@ -70,13 +70,16 @@ class PendingDeletionMixin(object):
             return False
 
         fields_to_save = []
+
+        for field_name, field_value in six.iteritems(option.value):
+            if field_name in ('id', 'model'):
+                continue
+            fields_to_save.append(field_name)
+            setattr(self, field_name, field_value)
+
         with transaction.atomic():
-            for field_name, field_value in six.iteritems(option.value):
-                if field_name in ('id', 'model'):
-                    continue
-                fields_to_save.append(field_name)
-                setattr(self, field_name, field_value)
             self.save(update_fields=fields_to_save)
+
         logger.info(
             'reset-on-pending-deletion.success',
             extra={
