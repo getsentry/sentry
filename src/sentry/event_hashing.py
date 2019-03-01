@@ -30,6 +30,11 @@ class GroupingComponent(object):
             values = []
         self.values = values
 
+    def get_subcomponent(self, id):
+        for value in self.values:
+            if isinstance(value, GroupingComponent) and value.id == id:
+                return value
+
     def update(self, hint=None, contributes=None, values=None):
         if hint is not None:
             self.hint = hint
