@@ -78,7 +78,7 @@ class ThreadsTest(TestCase):
 
     def test_compute_hashes(self):
         result = self.interface.compute_hashes()
-        self.assertEquals(result, [[['foo/baz.c', 'main']]])
+        self.assertEquals(result, [['foo/baz.c', 'main']])
 
     def test_no_hash(self):
         interface = Threads.to_python(

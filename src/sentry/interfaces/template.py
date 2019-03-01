@@ -58,7 +58,9 @@ class Template(Interface):
         }
         return cls(**kwargs)
 
-    def get_hash(self, platform=None):
+    def get_hash(self, platform=None, variant='system'):
+        if variant not in ('app', 'system'):
+            return []
         return [self.filename, self.context_line]
 
     def to_string(self, event, is_public=False, **kwargs):
