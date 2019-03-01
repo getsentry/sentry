@@ -86,17 +86,12 @@ class Threads(Interface):
         else:
             return meta
 
-    def get_hash(self, platform=None):
+    def get_hash(self, platform=None, variant='system'):
+        if variant not in ('app', 'system'):
+            return []
         if len(self.values) != 1:
             return []
         stacktrace = self.values[0].get('stacktrace')
         if not stacktrace:
             return []
-        system_hash = stacktrace.get_hash(system_frames=True)
-        if not system_hash:
-            return []
-        app_hash = stacktrace.get_hash(system_frames=False)
-        if system_hash == app_hash or not app_hash:
-            return [system_hash]
-
-        return [system_hash, app_hash]
+        return stacktrace.get_hash(platform, variant=variant)

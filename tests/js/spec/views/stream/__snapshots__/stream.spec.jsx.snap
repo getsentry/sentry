@@ -62,6 +62,20 @@ exports[`Stream render() displays the group list 1`] = `
         query="is:unresolved"
         queryCount={0}
         realtimeActive={false}
+        selection={
+          Object {
+            "datetime": Object {
+              "end": null,
+              "period": null,
+              "start": null,
+              "utc": null,
+            },
+            "environments": Array [],
+            "projects": Array [
+              3559,
+            ],
+          }
+        }
         statsPeriod="24h"
       />
       <PanelBody
@@ -111,7 +125,7 @@ exports[`Stream render() displays the group list 1`] = `
               "features": Array [],
               "firstEvent": true,
               "hasAccess": true,
-              "id": "3559",
+              "id": 3559,
               "isBookmarked": false,
               "isMember": true,
               "name": "Foo Project",
@@ -238,18 +252,6 @@ exports[`Stream render() displays the group list 1`] = `
           "name": "Times Seen",
           "predefined": true,
           "values": Array [],
-        },
-        "user.email": Object {
-          "key": "user.email",
-        },
-        "user.id": Object {
-          "key": "user.id",
-        },
-        "user.ip": Object {
-          "key": "user.ip",
-        },
-        "user.username": Object {
-          "key": "user.username",
         },
       }
     }
@@ -319,6 +321,20 @@ exports[`Stream toggles environment select all environments 1`] = `
         query="is:unresolved"
         queryCount={0}
         realtimeActive={false}
+        selection={
+          Object {
+            "datetime": Object {
+              "end": null,
+              "period": null,
+              "start": null,
+              "utc": null,
+            },
+            "environments": Array [],
+            "projects": Array [
+              3559,
+            ],
+          }
+        }
         statsPeriod="24h"
       />
       <PanelBody
@@ -368,7 +384,7 @@ exports[`Stream toggles environment select all environments 1`] = `
               "features": Array [],
               "firstEvent": true,
               "hasAccess": true,
-              "id": "3559",
+              "id": 3559,
               "isBookmarked": false,
               "isMember": true,
               "name": "Foo Project",
@@ -495,18 +511,6 @@ exports[`Stream toggles environment select all environments 1`] = `
           "name": "Times Seen",
           "predefined": true,
           "values": Array [],
-        },
-        "user.email": Object {
-          "key": "user.email",
-        },
-        "user.id": Object {
-          "key": "user.id",
-        },
-        "user.ip": Object {
-          "key": "user.ip",
-        },
-        "user.username": Object {
-          "key": "user.username",
         },
       }
     }

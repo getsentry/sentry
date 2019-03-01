@@ -41,6 +41,20 @@ export function paramsToQueryArgs(params) {
   if (params.query && !isNil(params.environment)) {
     p.environment = params.environment;
   }
+
+  // only include projects if it is not null/undefined/an empty array
+  if (params.query && params.project && params.project.length) {
+    p.project = params.project;
+  }
+
+  // only include date filters if they are not null/undefined
+  if (params.query) {
+    ['start', 'end', 'period', 'utc'].forEach(prop => {
+      if (!isNil(params[prop])) {
+        p[prop === 'period' ? 'statsPeriod' : prop] = params[prop];
+      }
+    });
+  }
   return p;
 }
 
@@ -309,7 +323,10 @@ export class Client {
   }
 
   merge(params, options) {
-    const path = '/projects/' + params.orgId + '/' + params.projectId + '/issues/';
+    const path = params.projectId
+      ? `/projects/${params.orgId}/${params.projectId}/issues/`
+      : `/organizations/${params.orgId}/issues/`;
+
     const query = paramsToQueryArgs(params);
     const id = uniqueId();
 

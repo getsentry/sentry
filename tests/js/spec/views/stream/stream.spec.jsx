@@ -43,7 +43,7 @@ describe('Stream', function() {
       id: '2448',
     });
     project = TestStubs.ProjectDetails({
-      id: '3559',
+      id: 3559,
       name: 'Foo Project',
       slug: 'project-slug',
       firstEvent: true,
