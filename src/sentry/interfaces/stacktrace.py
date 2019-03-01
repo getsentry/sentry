@@ -898,11 +898,13 @@ class Stacktrace(Interface):
             'registers': self.registers,
         })
 
-    def get_hash(self, platform=None, variant='system'):
+    def get_grouping_component(self, platform=None, variant='system'):
         if variant not in ('app', 'system'):
-            return []
+            return None
 
         frames = self.frames
+        contributes = True
+        hint = None
 
         # TODO(dcramer): this should apply only to platform=javascript
         # Browser JS will often throw errors (from inlined code in an HTML page)
@@ -910,36 +912,42 @@ class Stacktrace(Interface):
         # document as the filename. In this case the hash is often not usable as
         # the context cannot be trusted and the URL is dynamic (this also means
         # the line number cannot be trusted).
-        stack_invalid = (len(frames) == 1 and not frames[0].function and frames[0].is_url())
-
-        if stack_invalid:
-            return []
-
-        system_frames = variant == 'system'
-        if not system_frames:
+        if (len(frames) == 1 and not frames[0].function and frames[0].is_url()):
+            contributes = False
+            hint = 'ignored single frame stack'
+        elif variant == 'app':
             total_frames = len(frames)
-            frames = [f for f in frames if f.in_app] or frames
+            in_app_count = sum(1 if f.in_app else 0 for f in frames)
 
             # if app frames make up less than 10% of the stacktrace discard
             # the hash as invalid
-            if len(frames) / float(total_frames) < 0.10:
-                return []
+            if in_app_count / float(total_frames) < 0.10:
+                contributes = False
+                hint = 'less than 10% of frames are in-app'
 
-        if not frames:
-            return []
-
-        output = []
-
-        # stacktraces that only differ by the number of recursive calls should
-        # hash the same, so we squash recursive calls by comparing each frame
-        # to the previous frame
-        output.extend(frames[0].get_hash(platform, variant=variant))
-        prev_frame = frames[0]
-        for frame in frames[1:]:
-            if not is_recursion(frame, prev_frame):
-                output.extend(frame.get_hash(platform, variant=variant))
+        values = []
+        prev_frame = None
+        for frame in frames:
+            frame_component = frame.get_grouping_component(platform, variant)
+            if variant == 'app' and not frame.in_app:
+                frame_component.update(
+                    contributes=False,
+                    hint='non app frame',
+                )
+            elif prev_frame is not None and is_recursion(frame, prev_frame):
+                frame_component.update(
+                    contributes=False,
+                    hint='ignored due to recursion',
+                )
+            values.append(frame_component)
             prev_frame = frame
-        return output
+
+        return GroupingComponent(
+            id='stacktrace',
+            values=values,
+            contributes=contributes,
+            hint=hint,
+        )
 
     def to_string(self, event, is_public=False, **kwargs):
         return self.get_stacktrace(event, system_frames=False, max_frames=10)
