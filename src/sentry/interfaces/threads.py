@@ -3,6 +3,7 @@ from __future__ import absolute_import
 from sentry.interfaces.base import Interface, prune_empty_keys
 from sentry.interfaces.stacktrace import Stacktrace
 from sentry.utils.safe import trim
+from sentry.event_hashing import GroupingComponent
 
 __all__ = ('Threads', )
 
@@ -86,12 +87,28 @@ class Threads(Interface):
         else:
             return meta
 
-    def get_hash(self, platform=None, variant='system'):
+    def get_grouping_component(self, platform=None, variant='system'):
         if variant not in ('app', 'system'):
-            return []
+            return None
+
         if len(self.values) != 1:
-            return []
+            return GroupingComponent(
+                id='threads',
+                contributes=False,
+                hint='ignored because contains %d threads' % len(self.values),
+            )
+
         stacktrace = self.values[0].get('stacktrace')
         if not stacktrace:
-            return []
-        return stacktrace.get_hash(platform, variant=variant)
+            return GroupingComponent(
+                id='threads',
+                contributes=False,
+                hint='thread has no stacktrace',
+            )
+
+        return GroupingComponent(
+            id='threads',
+            values=[
+                stacktrace.get_grouping_component(platform, variant),
+            ]
+        )
