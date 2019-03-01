@@ -17,6 +17,9 @@ DEFAULT_HINTS = {
 
 
 class GroupingComponent(object):
+    """A grouping component is a recursive structure that is flattened
+    into components to make a hash for grouping purposes.
+    """
 
     def __init__(self, id, hint=None, contributes=None, values=None):
         self.id = id
@@ -31,11 +34,13 @@ class GroupingComponent(object):
         self.values = values
 
     def get_subcomponent(self, id):
+        """Looks up a subcomponent by the id and returns the first or `None`."""
         for value in self.values:
             if isinstance(value, GroupingComponent) and value.id == id:
                 return value
 
     def update(self, hint=None, contributes=None, values=None):
+        """Updates an already existing component with new values."""
         if hint is not None:
             self.hint = hint
         if values is not None:
@@ -46,6 +51,9 @@ class GroupingComponent(object):
             self.contributes = contributes
 
     def flatten_values(self):
+        """Recursively walks the component and flattens it into a list of
+        values.
+        """
         rv = []
         if self.contributes:
             for value in self.values:
@@ -56,6 +64,7 @@ class GroupingComponent(object):
         return rv
 
     def as_dict(self, skip_empty=False):
+        """Converts the component tree into a dictionary."""
         rv = {
             'id': self.id,
             'contributes': self.contributes,

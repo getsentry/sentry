@@ -146,7 +146,8 @@ class Event(Model):
 
     def get_hashes(self):
         """
-        Returns the calculated hashes for the event.
+        Returns the calculated hashes for the event.  This uses the stored
+        information if available.
         """
         from sentry.event_hashing import calculate_event_hashes
         # If we have hashes stored in the data we use them, otherwise we
@@ -155,6 +156,13 @@ class Event(Model):
         if hashes is not None:
             return hashes
         return calculate_event_hashes(self)
+
+    def get_grouping_components(self):
+        """This returns all known grouping components for this event
+        calculated on the file.
+        """
+        from sentry.event_hashing import get_grouping_components
+        return get_grouping_components(self)
 
     def get_primary_hash(self):
         # TODO: This *might* need to be protected from an IndexError?
