@@ -173,6 +173,18 @@ class ParseSearchQueryTest(TestCase):
                 ),
             ]
 
+    def test_invalid_date_formats(self):
+        invalid_queries = [
+            'first_seen:hello',
+            'first_seen:123',
+        ]
+        for invalid_query in invalid_queries:
+            with self.assertRaises(
+                InvalidSearchQuery,
+                expected_regex='Invalid format for numeric search',
+            ):
+                parse_search_query(invalid_query)
+
     def test_specific_time_filter(self):
         assert parse_search_query('first_seen:2018-01-01') == [
             SearchFilter(
@@ -521,6 +533,29 @@ class ParseSearchQueryTest(TestCase):
                 value=SearchValue(raw_value='"'),
             ),
         ]
+
+    def _build_search_filter(self, key_name, operator, value):
+        return SearchFilter(
+            key=SearchKey(name=key_name),
+            operator=operator,
+            value=SearchValue(raw_value=value),
+        )
+
+    def test_basic_fallthrough(self):
+        # These should all fall through to basic equal searches, even though they
+        # look like numeric, date, etc.
+        queries = [
+            ('random:<hello', self._build_search_filter('random', '=', '<hello')),
+            ('random:<512.1.0', self._build_search_filter('random', '=', '<512.1.0')),
+            ('random:2018-01-01', self._build_search_filter('random', '=', '2018-01-01')),
+            ('random:+7d', self._build_search_filter('random', '=', '+7d')),
+            ('random:>2018-01-01', self._build_search_filter('random', '=', '>2018-01-01')),
+            ('random:2018-01-01', self._build_search_filter('random', '=', '2018-01-01')),
+            ('random:hello', self._build_search_filter('random', '=', 'hello')),
+            ('random:123', self._build_search_filter('random', '=', '123')),
+        ]
+        for query, expected in queries:
+            assert parse_search_query(query) == [expected]
 
 
 class GetSnubaQueryArgsTest(TestCase):
