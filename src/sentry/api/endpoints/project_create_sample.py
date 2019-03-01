@@ -12,7 +12,7 @@ class ProjectCreateSampleEndpoint(ProjectEndpoint):
 
     def post(self, request, project):
         event = create_sample_event(
-            project, platform=project.platform, default='javascript', level=0
+            project, platform=project.platform, default='javascript',
         )
 
         data = serialize(event, request.user)
