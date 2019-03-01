@@ -198,7 +198,13 @@ class Interface(object):
     def to_json(self):
         return prune_empty_keys(self._data)
 
+    def get_grouping_component(self, platform=None, variant='system'):
+        return None
+
     def get_hash(self, platform=None, variant='system'):
+        component = self.get_grouping_component(platform, variant)
+        if component is not None:
+            return component.flatten_values()
         return []
 
     def get_hashes(self, platform=None):

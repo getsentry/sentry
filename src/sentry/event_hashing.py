@@ -11,6 +11,43 @@ HASH_RE = re.compile(r'^[0-9a-f]{32}$')
 DEFAULT_FINGERPRINT_VALUES = frozenset(['{{ default }}', '{{default}}'])
 
 
+class GroupingComponent(object):
+
+    def __init__(self, id, hint=None, contributes=True, values=None):
+        self.id = id
+        self.hint = hint
+        self.contributes = contributes
+        if values is None:
+            values = []
+        self.values = values
+
+    def flatten_values(self):
+        rv = []
+        for value in self.values:
+            if isinstance(value, GroupingComponent):
+                rv.extend(value.flatten_values())
+            else:
+                rv.append(value)
+        return rv
+
+    def as_dict(self):
+        rv = {'id': self.id, 'contributes': self.contributes, 'hint': self.hint, 'values': []}
+        for value in self.values:
+            if isinstance(value, GroupingComponent):
+                rv['values'].append(value.as_dict())
+            else:
+                rv['values'].append(value)
+        return rv
+
+    def __repr__(self):
+        return 'GroupingComponent(%r, hint=%r, contributes=%r, values=%r)' % (
+            self.id,
+            self.hint,
+            self.contributes,
+            self.values,
+        )
+
+
 def md5_from_hash(hash_bits):
     result = md5()
     for bit in hash_bits:

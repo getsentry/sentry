@@ -15,6 +15,7 @@ import six
 from django.conf import settings
 
 from sentry.interfaces.base import Interface, InterfaceValidationError, prune_empty_keys
+from sentry.event_hashing import GroupingComponent
 from sentry.utils import json
 from sentry.utils.safe import trim
 
@@ -89,10 +90,13 @@ class Message(Interface):
             'params': self.params or None
         })
 
-    def get_hash(self, platform=None, variant='system'):
+    def get_grouping_component(self, platform=None, variant='system'):
         if variant not in ('app', 'system'):
-            return []
-        return [self.message or self.formatted]
+            return None
+        return GroupingComponent(
+            id='message',
+            values=[self.message or self.formatted],
+        )
 
     def to_string(self, event, is_public=False, **kwargs):
         return self.formatted or self.message
