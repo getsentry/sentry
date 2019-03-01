@@ -261,7 +261,7 @@ class SnubaEventStream(SnubaProtocolEventStream):
     def requires_post_process_forwarder(self):
         return False
 
-    def insert(self, event, is_new, is_sample, is_regression,
+    def insert(self, group, event, is_new, is_sample, is_regression,
                is_new_group_environment, primary_hash, skip_consume=False):
         super(SnubaEventStream, self).insert(event, is_new, is_sample,
                                              is_regression, is_new_group_environment,
