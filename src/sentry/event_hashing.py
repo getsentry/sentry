@@ -18,11 +18,13 @@ DEFAULT_HINTS = {
 
 class GroupingComponent(object):
 
-    def __init__(self, id, hint=None, contributes=True, values=None):
+    def __init__(self, id, hint=None, contributes=None, values=None):
         self.id = id
         if hint is None:
             hint = DEFAULT_HINTS.get(id)
         self.hint = hint
+        if contributes is None:
+            contributes = bool(values)
         self.contributes = contributes
         if values is None:
             values = []
@@ -31,10 +33,12 @@ class GroupingComponent(object):
     def update(self, hint=None, contributes=None, values=None):
         if hint is not None:
             self.hint = hint
+        if values is not None:
+            if contributes is None:
+                contributes = bool(values)
+            self.values = values
         if contributes is not None:
             self.contributes = contributes
-        if values is not None:
-            self.values = values
 
     def flatten_values(self):
         rv = []
@@ -46,12 +50,22 @@ class GroupingComponent(object):
                     rv.append(value)
         return rv
 
-    def as_dict(self):
-        rv = {'id': self.id, 'contributes': self.contributes, 'hint': self.hint, 'values': []}
+    def as_dict(self, skip_empty=False):
+        rv = {
+            'id': self.id,
+            'contributes': self.contributes,
+            'hint': self.hint,
+            'values': []
+        }
         for value in self.values:
             if isinstance(value, GroupingComponent):
-                rv['values'].append(value.as_dict())
+                if skip_empty and not value.values:
+                    continue
+                rv['values'].append(value.as_dict(skip_empty=skip_empty))
             else:
+                # this basically assumes that a value is only a primitive
+                # and never an object or list.  This should be okay
+                # because we verify this.
                 rv['values'].append(value)
         return rv
 

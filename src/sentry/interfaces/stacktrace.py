@@ -25,6 +25,7 @@ from sentry.interfaces.schemas import validate_and_default_interface
 from sentry.models import UserOption
 from sentry.utils.safe import trim, trim_dict
 from sentry.web.helpers import render_to_string
+from sentry.event_hashing import GroupingComponent
 
 _ruby_anon_func = re.compile(r'_\d{2,}')
 _filename_version_re = re.compile(
@@ -199,8 +200,11 @@ def remove_function_outliers(function):
     - Block functions have metadata that we don't care about.
     """
     if function.startswith('block '):
-        return 'block'
-    return _ruby_anon_func.sub('_<anon>', function)
+        return 'block', 'ruby block'
+    new_function = _ruby_anon_func.sub('_<anon>', function)
+    if new_function != function:
+        return new_function, 'trimmed integer suffix'
+    return new_function, None
 
 
 def remove_filename_outliers(filename, platform=None):
@@ -216,22 +220,38 @@ def remove_filename_outliers(filename, platform=None):
     # the dwarf files does not contain prefix information) and that might
     # contain things like /Users/foo/Dropbox/...
     if platform == 'cocoa':
-        return posixpath.basename(filename)
-    elif platform == 'java':
-        filename = _java_assist_enhancer_re.sub(r'\1<auto>', filename)
-    return _filename_version_re.sub('<version>/', filename)
+        return posixpath.basename(filename), 'stripped to basename'
+
+    removed = []
+    if platform == 'java':
+        new_filename = _java_assist_enhancer_re.sub(r'\1<auto>', filename)
+        if new_filename != filename:
+            removed.append('javassist parts')
+            filename = new_filename
+
+    new_filename = _filename_version_re.sub('<version>/', filename)
+    if new_filename != filename:
+        removed.append('version')
+        filename = new_filename
+
+    if removed:
+        return filename, 'removed %s' % ' and '.join(removed)
+    return filename, None
 
 
 def remove_module_outliers(module, platform=None):
     """Remove things that augment the module but really should not."""
     if platform == 'java':
         if module[:35] == 'sun.reflect.GeneratedMethodAccessor':
-            return 'sun.reflect.GeneratedMethodAccessor'
+            return 'sun.reflect.GeneratedMethodAccessor', 'removed reflection marker'
+        old_module = module
         module = _java_reflect_enhancer_re.sub(r'\1<auto>', module)
         module = _java_cglib_enhancer_re.sub(r'\1<auto>', module)
         module = _java_assist_enhancer_re.sub(r'\1<auto>', module)
         module = _clojure_enhancer_re.sub(r'\1<auto>', module)
-    return module
+        if old_module != module:
+            return module, 'removed codegen marker'
+    return module, None
 
 
 def slim_frame_data(frames, frame_allowance=settings.SENTRY_MAX_STACKTRACE_FRAMES):
@@ -452,74 +472,115 @@ class Frame(Interface):
             'colno': self.colno
         })
 
-    def get_hash(self, platform=None, variant='system'):
-        """
-        The hash of the frame varies depending on the data available.
-
-        Our ideal scenario is the module name in addition to the line of
-        context. However, in several scenarios we opt for other approaches due
-        to platform constraints.
-
-        This is one of the few areas in Sentry that isn't platform-agnostic.
-        """
+    def get_grouping_component(self, platform=None, variant='system'):
         if variant not in ('app', 'system'):
-            return []
+            return None
 
         platform = self.platform or platform
-        output = []
+
+        # In certain situations we want to disregard the entire frame.
+        skip_all = False
+        skip_all_hint = None
+
         # Safari throws [native code] frames in for calls like ``forEach``
         # whereas Chrome ignores these. Let's remove it from the hashing algo
         # so that they're more likely to group together
+        filename_component = GroupingComponent(id='filename')
         if self.filename == '<anonymous>':
-            hashable_filename = None
+            filename_component.update(hint='anonymous filename discarded')
+        elif self.filename == '[native code]':
+            skip_all = True
+            skip_all_hint = 'native code indicated by filename'
         elif self.filename:
-            hashable_filename = remove_filename_outliers(self.filename, platform)
-        else:
-            hashable_filename = None
+            if self.is_url():
+                filename_component.update(hint='ignored because filename is a URL')
+            elif self.is_caused_by():
+                filename_component.update(hint='ignored because invalid')
+            else:
+                hashable_filename, hashable_filename_hint = \
+                    remove_filename_outliers(self.filename, platform)
+                filename_component.update(
+                    values=[hashable_filename],
+                    hint=hashable_filename_hint
+                )
 
-        if self.filename == '[native code]':
-            return output
-
+        # if we have a module we use that for grouping.  This will always
+        # take precedence over the filename, even if the module is
+        # considered unhashable.
+        module_component = GroupingComponent(id='module')
         if self.module:
             if self.is_unhashable_module(platform):
-                output.append('<module>')
+                module_component.update(
+                    values=[GroupingComponent(id='!salt', values=['<module>'])],
+                    hint='ignored module',
+                )
             else:
-                output.append(remove_module_outliers(self.module, platform))
-        elif hashable_filename and not self.is_url() and not self.is_caused_by():
-            output.append(hashable_filename)
+                module_name, module_hint = \
+                    remove_module_outliers(self.module, platform)
+                module_component.update(
+                    values=[module_name],
+                    hint=module_hint
+                )
+            filename_component.update(
+                contributes=False,
+                hint='module takes precedence'
+            )
 
-        if self.context_line is None:
-            can_use_context = False
-        elif len(self.context_line) > 120:
-            can_use_context = False
-        elif self.is_url() and not self.function:
-            # the context is too risky to use here as it could be something
-            # coming from an HTML page or it could be minified/unparseable
-            # code, so lets defer to other lesser heuristics (like lineno)
-            can_use_context = False
-        elif self.function and self.is_unhashable_function():
-            can_use_context = True
-        else:
-            can_use_context = True
-
-        # XXX: hack around what appear to be non-useful lines of context
-        if can_use_context:
-            output.append(self.context_line)
-        elif not output:
-            # If we were unable to achieve any context at this point
-            # (likely due to a bad JavaScript error) we should just
-            # bail on recording this frame
-            return output
-        elif self.symbol:
-            output.append(self.symbol)
-        elif self.function:
-            if self.is_unhashable_function():
-                output.append('<function>')
+        # Context line when available is the primary contributor
+        context_line_component = GroupingComponent(id='context-line')
+        if self.context_line is not None:
+            if len(self.context_line) > 120:
+                context_line_component.update(hint='discarded because line too long')
+            elif self.is_url() and not self.function:
+                context_line_component.update(hint='discarded because from URL origin')
             else:
-                output.append(remove_function_outliers(self.function))
-        elif self.lineno is not None:
-            output.append(self.lineno)
-        return output
+                context_line_component.update(values=[self.context_line])
+
+        symbol_component = GroupingComponent(id='symbol')
+        function_component = GroupingComponent(id='function')
+        lineno_component = GroupingComponent(id='lineno')
+
+        # The context line grouping information is the most reliable one.
+        # If we did not manage to find some information there, we want to
+        # see if we can come up with some extra information.  We only want
+        # to do that if we managed to get a module of filename.
+        if not context_line_component.contributes and \
+           (module_component.contributes or filename_component.contributes):
+            if self.symbol:
+                symbol_component.update(values=[self.symbol])
+                function_component.update(hint='symbol takes precedence')
+                lineno_component.update(hint='symbol takes precedence')
+            elif self.function:
+                if self.is_unhashable_function():
+                    function_component.update(values=[
+                        GroupingComponent(
+                            id='!salt',
+                            values=['<function>']
+                        )
+                    ])
+                else:
+                    function, function_hint = remove_function_outliers(self.function)
+                    function_component.update(
+                        values=[function],
+                        hint=function_hint
+                    )
+                lineno_component.update(hint='function takes precedence')
+            elif self.lineno:
+                lineno_component.update(values=[self.lineno])
+
+        return GroupingComponent(
+            id='frame',
+            values=[
+                module_component,
+                filename_component,
+                context_line_component,
+                symbol_component,
+                function_component,
+                lineno_component,
+            ],
+            contributes=not skip_all,
+            hint=skip_all_hint
+        )
 
     def get_api_context(self, is_public=False, pad_addr=None):
         data = {
