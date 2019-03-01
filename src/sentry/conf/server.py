@@ -1565,6 +1565,7 @@ KAFKA_CLUSTERS = {
 KAFKA_PREPROCESS = 'events-preprocess'
 KAFKA_PROCESS = 'events-process'
 KAFKA_SAVE = 'events-save'
+KAFKA_EVENTS = 'events'
 
 KAFKA_TOPICS = {
     KAFKA_PREPROCESS: {
@@ -1578,5 +1579,9 @@ KAFKA_TOPICS = {
     KAFKA_SAVE: {
         'cluster': 'default',
         'topic': KAFKA_SAVE,
+    },
+    KAFKA_EVENTS: {
+        'cluster': 'default',
+        'topic': KAFKA_EVENTS,
     },
 }
