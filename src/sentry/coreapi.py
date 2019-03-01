@@ -42,6 +42,8 @@ from sentry.utils.canonical import CANONICAL_TYPES
 _dist_re = re.compile(r'^[a-zA-Z0-9_.-]+$')
 logger = logging.getLogger("sentry.api")
 
+CACHE_TTL = 3600
+
 
 class APIError(Exception):
     http_status = 400
@@ -172,27 +174,26 @@ class ClientApiHelper(object):
         if isinstance(data, CANONICAL_TYPES):
             data = dict(data.items())
 
-        cache_timeout = 3600
         cache_key = cache_key_for_event(data)
 
         # Attachments will be empty or None if the "event-attachments" feature
         # is turned off. For native crash reports it will still contain the
         # crash dump (e.g. minidump) so we can load it during processing.
         if attachments is not None:
-            attachment_cache.set(cache_key, attachments, cache_timeout)
+            attachment_cache.set(cache_key, attachments, CACHE_TTL)
 
         if features.has('projects:kafka-preprocess', project=project):
             kafka.produce_sync(
                 settings.KAFKA_PREPROCESS,
                 value=json.dumps({
-                    'attachments_cache_key': cache_key,
+                    'cache_key': cache_key,
                     'start_time': start_time,
                     'from_reprocessing': from_reprocessing,
                     'data': data,
                 }),
             )
         else:
-            default_cache.set(cache_key, data, cache_timeout)
+            default_cache.set(cache_key, data, CACHE_TTL)
 
             task = from_reprocessing and \
                 preprocess_event_from_reprocessing or preprocess_event

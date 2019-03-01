@@ -5,6 +5,8 @@ from batching_kafka_consumer import AbstractBatchWorker
 from django.conf import settings
 
 import sentry.tasks.store as store_tasks
+from sentry.cache import default_cache
+from sentry.coreapi import cache_key_for_event, CACHE_TTL
 from sentry.utils import json
 
 
@@ -22,7 +24,7 @@ class ConsumerWorker(AbstractBatchWorker):
     def handle_preprocess(self, message):
         data = message['data']
         event_id = data['event_id']
-        cache_key = message['attachments_cache_key']
+        cache_key = message['cache_key']
         start_time = message['start_time']
         process_task = (
             store_tasks.process_event_from_reprocessing
@@ -35,20 +37,22 @@ class ConsumerWorker(AbstractBatchWorker):
     def handle_process(self, message):
         data = message['data']
         event_id = data['event_id']
-        cache_key = message['attachments_cache_key']
+        cache_key = message['cache_key']
         start_time = message['start_time']
-        process_task = (
-            store_tasks.process_event_from_reprocessing
-            if message['from_reprocessing']
-            else store_tasks.process_event
-        )
 
-        store_tasks._do_process_event(cache_key, start_time, event_id, process_task, data=data)
+        if message['from_reprocessing']:
+            task = store_tasks.process_event_from_reprocessing
+        else:
+            task = store_tasks.process_event
+
+        cache_key = cache_key_for_event(data)
+        default_cache.set(cache_key, data, CACHE_TTL)
+        task.delay(cache_key=cache_key, start_time=start_time, event_id=event_id)
 
     def handle_save(self, message):
         data = message['data']
         event_id = data['event_id']
-        cache_key = message['attachments_cache_key']
+        cache_key = message['cache_key']
         start_time = message['start_time']
         project_id = data['project']
 
