@@ -3,7 +3,6 @@ import {flatten, memoize} from 'lodash';
 import PropTypes from 'prop-types';
 import React from 'react';
 
-import {COLUMNS} from 'app/views/organizationDiscover/data';
 import {NEGATION_OPERATOR, SEARCH_WILDCARD} from 'app/constants';
 import {addErrorMessage} from 'app/actionCreators/indicator';
 import {defined} from 'app/utils';
@@ -21,8 +20,6 @@ const tagToObjectReducer = (acc, name) => {
   };
   return acc;
 };
-
-const TAGS = COLUMNS.map(({name}) => name);
 
 const SEARCH_SPECIAL_CHARS_REGEXP = new RegExp(
   `^${NEGATION_OPERATOR}|\\${SEARCH_WILDCARD}`,
@@ -70,10 +67,7 @@ class SearchBar extends React.PureComponent {
     );
   }, ({key}, query) => `${key}-${query}`);
 
-  getAllTags = (orgTags = []) =>
-    TAGS.concat(orgTags)
-      .sort()
-      .reduce(tagToObjectReducer, {});
+  getAllTags = (orgTags = []) => orgTags.sort().reduce(tagToObjectReducer, {});
 
   /**
    * Prepare query string (e.g. strip special characters like negation operator)
