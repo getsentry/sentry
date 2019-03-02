@@ -178,7 +178,7 @@ class Hpkp(SecurityReport):
         return GroupingComponent(
             id='hpkp',
             values=[
-                GroupingComponent(id='!salt', values=['hpkp']),
+                GroupingComponent(id='salt', values=['hpkp']),
                 GroupingComponent(id='hostname', values=[self.hostname]),
             ]
         )
@@ -250,7 +250,7 @@ class ExpectStaple(SecurityReport):
         return GroupingComponent(
             id='expect-staple',
             values=[
-                GroupingComponent(id='!salt', values=['expect-staple']),
+                GroupingComponent(id='salt', values=['expect-staple']),
                 GroupingComponent(id='hostname', values=[self.hostname]),
             ]
         )
@@ -320,7 +320,7 @@ class ExpectCT(SecurityReport):
         return GroupingComponent(
             id='expect-ct',
             values=[
-                GroupingComponent(id='!salt', values=['expect-ct']),
+                GroupingComponent(id='salt', values=['expect-ct']),
                 GroupingComponent(id='hostname', values=[self.hostname]),
             ]
         )
@@ -406,7 +406,7 @@ class Csp(SecurityReport):
         return GroupingComponent(
             id='csp',
             values=[
-                GroupingComponent(id='!salt', values=[self.effective_directive]),
+                GroupingComponent(id='salt', values=[self.effective_directive]),
                 violation_component,
                 uri_component,
             ],

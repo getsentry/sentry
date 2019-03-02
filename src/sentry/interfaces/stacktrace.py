@@ -511,7 +511,7 @@ class Frame(Interface):
         if self.module:
             if self.is_unhashable_module(platform):
                 module_component.update(
-                    values=[GroupingComponent(id='!salt', values=['<module>'])],
+                    values=[GroupingComponent(id='salt', values=['<module>'])],
                     hint='ignored module',
                 )
             else:
@@ -554,7 +554,7 @@ class Frame(Interface):
                 if self.is_unhashable_function():
                     function_component.update(values=[
                         GroupingComponent(
-                            id='!salt',
+                            id='salt',
                             values=['<function>']
                         )
                     ])

@@ -12,7 +12,7 @@ DEFAULT_FINGERPRINT_VALUES = frozenset(['{{ default }}', '{{default}}'])
 
 
 DEFAULT_HINTS = {
-    '!salt': 'a static salt',
+    'salt': 'a static salt',
 }
 
 
