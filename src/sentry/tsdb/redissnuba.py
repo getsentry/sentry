@@ -37,14 +37,14 @@ method_specifications = {
     'get_frequency_series': (READ, single_model_argument),
     'get_frequency_totals': (READ, single_model_argument),
     'incr': (WRITE, single_model_argument),
-    'incr_multi': (WRITE, lambda callargs: set(model for model, key in callargs['items'])),
+    'incr_multi': (WRITE, lambda callargs: {model for model, key in callargs['items']}),
     'merge': (WRITE, single_model_argument),
     'delete': (WRITE, multiple_model_argument),
     'record': (WRITE, single_model_argument),
-    'record_multi': (WRITE, lambda callargs: set(model for model, key, values in callargs['items'])),
+    'record_multi': (WRITE, lambda callargs: {model for model, key, values in callargs['items']}),
     'merge_distinct_counts': (WRITE, single_model_argument),
     'delete_distinct_counts': (WRITE, multiple_model_argument),
-    'record_frequency_multi': (WRITE, lambda callargs: set(model for model, data in callargs['requests'])),
+    'record_frequency_multi': (WRITE, lambda callargs: {model for model, data in callargs['requests']}),
     'merge_frequencies': (WRITE, single_model_argument),
     'delete_frequencies': (WRITE, multiple_model_argument),
     'flush': (WRITE, dont_do_this),
@@ -62,23 +62,27 @@ model_backends = {
 def selector_func(method, callargs):
     spec = method_specifications.get(method)
     if spec is None:
-        return ['redis']  # default backend (possibly invoke base directly instead?)
+        return 'redis'  # default backend (possibly invoke base directly instead?)
 
     operation_type, model_extractor = spec
-    backends = set([model_backends[model][operation_type] for model in model_extractor(callargs)])
+    backends = {model_backends[model][operation_type] for model in model_extractor(callargs)}
 
     assert len(backends) == 1, 'request was not directed to a single backend'
-    return list(backends)
+    return backends.pop()
 
 
 def make_method(key):
     def method(self, *a, **kw):
         callargs = inspect.getcallargs(getattr(BaseTSDB, key), self, *a, **kw)
-        backend = selector_func(key, callargs)[0]
-        return getattr(getattr(self, backend), key)(*a, **kw)
+        backend = selector_func(key, callargs)
+        return getattr(self.backends[backend], key)(*a, **kw)
     return method
 
 
+# We have to apply these methods into RedisSnubaTSDB through
+# a metaclass since we can't simply overload `__getattr__` due to
+# the fact that the subclass BaseTSDB already defines all the methods.
+# So we need to actually apply methods on top to override them.
 class RedisSnubaTSDBMeta(type):
     def __new__(cls, name, bases, attrs):
         for key in method_specifications.keys():
@@ -89,7 +93,9 @@ class RedisSnubaTSDBMeta(type):
 @six.add_metaclass(RedisSnubaTSDBMeta)
 class RedisSnubaTSDB(BaseTSDB):
     def __init__(self, **options):
-        self.dummy = DummyTSDB()
-        self.redis = RedisTSDB(**options.pop('redis', {}))
-        self.snuba = SnubaTSDB(**options.pop('snuba', {}))
+        self.backends = {
+            'dummy': DummyTSDB(),
+            'redis': RedisTSDB(**options.pop('redis', {})),
+            'snuba': SnubaTSDB(**options.pop('snuba', {})),
+        }
         super(RedisSnubaTSDB, self).__init__(**options)
