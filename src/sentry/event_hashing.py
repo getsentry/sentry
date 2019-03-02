@@ -75,7 +75,7 @@ class GroupingComponent(object):
         if self.contributes:
             return hash_from_values(self.flatten_values())
 
-    def as_dict(self, skip_empty=False):
+    def as_dict(self):
         """Converts the component tree into a dictionary."""
         rv = {
             'id': self.id,
@@ -85,9 +85,7 @@ class GroupingComponent(object):
         }
         for value in self.values:
             if isinstance(value, GroupingComponent):
-                if skip_empty and not value.values:
-                    continue
-                rv['values'].append(value.as_dict(skip_empty=skip_empty))
+                rv['values'].append(value.as_dict())
             else:
                 # this basically assumes that a value is only a primitive
                 # and never an object or list.  This should be okay
@@ -104,11 +102,193 @@ class GroupingComponent(object):
         )
 
 
-def hash_from_values(hash_bits):
+class BaseVariant(object):
+    type = None
+
+    def get_hash(self):
+        return None
+
+    def _get_metadata_as_dict(self):
+        return {}
+
+    def as_dict(self):
+        rv = {
+            'type': self.type,
+            'hash': self.get_hash(),
+        }
+        rv.update(self._get_metadata_as_dict())
+        return rv
+
+    def __repr__(self):
+        return '<%s %r (%s)>' % (
+            self.__class__.__name__,
+            self.get_hash(),
+            self.type,
+        )
+
+
+class ChecksumVariant(BaseVariant):
+    """A checksum variant returns a single hardcoded hash."""
+    type = 'checksum'
+
+    def __init__(self, hash):
+        self.hash = hash
+
+    def get_hash(self):
+        return self.hash
+
+
+class ComponentVariant(BaseVariant):
+    """A component variant is a variant that produces a hash from the
+    `GroupComponent` it encloses.
+    """
+    type = 'component'
+
+    def __init__(self, component):
+        self.component = component
+
+    def get_hash(self):
+        return self.component.get_hash()
+
+    def _get_metadata_as_dict(self):
+        return {
+            'component': self.component.as_dict(),
+        }
+
+
+class CustomFingerprintVariant(BaseVariant):
+    """A completely custom fingerprint."""
+    type = 'custom-fingerprint'
+
+    def __init__(self, values):
+        self.values = values
+
+    def get_hash(self):
+        return hash_from_values(self.values)
+
+    def _get_metadata_as_dict(self):
+        return {
+            'values': self.values,
+        }
+
+
+class SaltedComponentVariant(BaseVariant):
+    """A salted version of a component."""
+    type = 'salted-component'
+
+    def __init__(self, values, component):
+        self.values = values
+        self.component = component
+
+    def get_hash(self):
+        if not self.component.contributes:
+            return None
+        final_values = []
+        for value in self.values:
+            if value in DEFAULT_FINGERPRINT_VALUES:
+                final_values.extend(self.component.flatten_values())
+            else:
+                final_values.append(value)
+        return hash_from_values(final_values)
+
+    def _get_metadata_as_dict(self):
+        return {
+            'values': self.values,
+            'component': self.component,
+        }
+
+
+def hash_from_values(values):
     result = md5()
-    for bit in hash_bits:
-        result.update(force_bytes(bit, errors='replace'))
+    for value in values:
+        result.update(force_bytes(value, errors='replace'))
     return result.hexdigest()
+
+
+def get_calculated_grouping_variants_for_event(event):
+    """Given an event this returns a dictionary of the matching grouping
+    variants.  Checksum and fingerprinting logic are not handled by this
+    function.  Note that this will completely skip over strategies that
+    were not attempted which is suboptimal from the user experience.
+    """
+    interfaces = event.get_interfaces()
+
+    winning_strategy = None
+    per_variant_components = {}
+
+    for (strategy_name, interface) in six.iteritems(interfaces):
+        rv = interface.get_grouping_component_variants(event.platform)
+        for (variant, component) in six.iteritems(rv):
+            per_variant_components.setdefault(variant, []).append(component)
+
+            if winning_strategy is None:
+                if component.contributes:
+                    winning_strategy = strategy_name
+            elif component.contributes and winning_strategy != strategy_name:
+                component.update(
+                    contributes=False,
+                    hint='%s strategy takes precedence' % winning_strategy,
+                )
+
+    rv = {}
+    for (variant, components) in six.iteritems(per_variant_components):
+        rv[variant] = GroupingComponent(
+            id=variant,
+            values=components,
+        )
+
+    return rv
+
+
+def get_grouping_variants_for_event(event):
+    # If a checksum is set the only variant that comes back from this
+    # event is the checksum variant.
+    checksum = event.data.get('checksum')
+    if checksum:
+        if HASH_RE.match(checksum):
+            return {
+                'checksum': ChecksumVariant(checksum),
+            }
+        return {
+            'checksum': ChecksumVariant(checksum),
+            'hashed-checksum': ChecksumVariant(hash_from_values(checksum)),
+        }
+
+    # Otherwise we go to the various forms of fingerprint handling.
+    fingerprint = event.data.get('fingerprint') or ['{{ default }}']
+    defaults_referenced = sum(1 if d in DEFAULT_FINGERPRINT_VALUES else 0 for d in fingerprint)
+
+    # If no defaults are referenced we produce a single completely custom
+    # fingerprint.
+    if defaults_referenced == 0:
+        return {
+            'custom-fingerprint': CustomFingerprintVariant(fingerprint),
+        }
+
+    # At this point we need to calculate the default event values.  If the
+    # fingerprint is salted we will wrap it.
+    components = get_calculated_grouping_variants_for_event(event)
+    rv = {}
+
+    # If the fingerprints are unsalted, we can return them right away.
+    if defaults_referenced == 1:
+        for (key, component) in six.iteritems(components):
+            rv[key] = ComponentVariant(component)
+
+    # Otherwise we need to salt each of the components.
+    else:
+        for (key, component) in six.iteritems(components):
+            rv[key] = SaltedComponentVariant(fingerprint, component)
+
+    return rv
+
+
+# legacy functionality follows:
+#
+# This is at present still the main grouping code in the event processing
+# but it should be possible to replace all of these with
+# `get_grouping_variants_for_event` once we feel more confident that no
+# regression ocurred.
 
 
 def get_hashes_for_event(event):

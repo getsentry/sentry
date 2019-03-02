@@ -199,26 +199,47 @@ class Interface(object):
         return prune_empty_keys(self._data)
 
     def get_grouping_component(self, platform=None, variant='system'):
+        """Based on the variant passed this must return either `None` if the
+        variant is not supported or a `sentry.event_hashing.GroupingComponent`.
+        """
         return None
 
-    def get_grouping_variants(self, platform=None):
+    def get_grouping_component_variants(self, platform=None):
+        """This returns a dictionary of all variants this interface has
+        grouping components for.  Note that this can also produce components
+        that are not contributing.
+        """
+        # If we don't produce a system component from this at all, we're
+        # done.
         system_component = self.get_grouping_component(platform, variant='system')
-        if not system_component or not system_component.contributes:
+        if not system_component:
             return {}
 
         components = {'system': system_component}
 
-        app_component = self.get_grouping_component(platform, variant='app')
-        if app_component is not None and app_component.contributes \
-           and system_component.get_hash() != app_component.get_hash():
-            components['app'] = app_component
+        # If the system component does not contribute, we will not attempt
+        # to make an app component either.
+        if system_component.contributes:
+            # Otherwise we contribute an app component to the result if the
+            # app component can be produced, contributes and has a different
+            # hash than the system component.  This cuts down on
+            # unnecessary duplicate hashes and group reports.
+            app_component = self.get_grouping_component(platform, variant='app')
+            if app_component is not None and app_component.contributes \
+               and system_component.get_hash() != app_component.get_hash():
+                components['app'] = app_component
 
         return components
 
     def compute_hashes(self, platform=None):
         # legacy function, really only used for tests these days
-        variant_components = self.get_grouping_variants(platform)
-        return [x.flatten_values() for x in six.itervalues(variant_components)]
+        # XXX: remove/rename, this does not return hashes but returns
+        # components that contribute into a hash
+        variant_components = self.get_grouping_component_variants(platform)
+        return [
+            x.flatten_values() for x in six.itervalues(variant_components)
+            if x.contributes
+        ]
 
     def get_title(self):
         return _(type(self).__name__)
