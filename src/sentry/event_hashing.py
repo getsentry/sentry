@@ -12,7 +12,21 @@ DEFAULT_FINGERPRINT_VALUES = frozenset(['{{ default }}', '{{default}}'])
 
 
 DEFAULT_HINTS = {
-    '!salt': 'a static salt',
+    'salt': 'a static salt',
+}
+
+# When a component ID appears here it has a human readable name which also
+# makes it a major component.  A major component is described as such for
+# the UI.
+KNOWN_MAJOR_COMPONENT_NAMES = {
+    'app': 'in-app',
+    'exception': 'exception',
+    'stacktrace': 'stacktrace',
+    'threads': 'thread',
+    'hostname': 'hostname',
+    'violation': 'violation',
+    'uri': 'URL',
+    'message': 'message',
 }
 
 
@@ -39,6 +53,38 @@ class GroupingComponent(object):
         if values is None:
             values = []
         self.values = values
+
+    @property
+    def name(self):
+        return KNOWN_MAJOR_COMPONENT_NAMES.get(self.id)
+
+    def iter_contributing_components(self, recursive=True):
+        for value in self.values:
+            if isinstance(value, GroupingComponent) and value.contributes:
+                yield value.id
+                if recursive:
+                    for child in value.iter_contributing_components():
+                        yield value.id + '.' + child
+
+    @property
+    def description(self):
+        items = []
+
+        def _walk_components(c, stack):
+            stack.append(c.name)
+            for value in c.values:
+                if isinstance(value, GroupingComponent) and value.contributes:
+                    _walk_components(value, stack)
+            parts = filter(None, stack)
+            items.append(parts)
+            stack.pop()
+
+        _walk_components(self, [])
+        items.sort(key=lambda x: (len(x), x))
+
+        if items and items[-1]:
+            return ' '.join(items[-1])
+        return self.name or self.id
 
     def get_subcomponent(self, id):
         """Looks up a subcomponent by the id and returns the first or `None`."""
@@ -79,6 +125,7 @@ class GroupingComponent(object):
         """Converts the component tree into a dictionary."""
         rv = {
             'id': self.id,
+            'name': self.name,
             'contributes': self.contributes,
             'hint': self.hint,
             'values': []
@@ -108,12 +155,17 @@ class BaseVariant(object):
     def get_hash(self):
         return None
 
+    @property
+    def description(self):
+        return self.type
+
     def _get_metadata_as_dict(self):
         return {}
 
     def as_dict(self):
         rv = {
             'type': self.type,
+            'description': self.description,
             'hash': self.get_hash(),
         }
         rv.update(self._get_metadata_as_dict())
@@ -147,6 +199,10 @@ class ComponentVariant(BaseVariant):
     def __init__(self, component):
         self.component = component
 
+    @property
+    def description(self):
+        return self.component.description
+
     def get_hash(self):
         return self.component.get_hash()
 
@@ -162,6 +218,10 @@ class CustomFingerprintVariant(BaseVariant):
 
     def __init__(self, values):
         self.values = values
+
+    @property
+    def description(self):
+        return 'custom fingerprint'
 
     def get_hash(self):
         return hash_from_values(self.values)
@@ -180,6 +240,10 @@ class SaltedComponentVariant(BaseVariant):
         self.values = values
         self.component = component
 
+    @property
+    def description(self):
+        return 'modified ' + self.component.description
+
     def get_hash(self):
         if not self.component.contributes:
             return None
@@ -194,7 +258,7 @@ class SaltedComponentVariant(BaseVariant):
     def _get_metadata_as_dict(self):
         return {
             'values': self.values,
-            'component': self.component,
+            'component': self.component.as_dict(),
         }
 
 
@@ -271,7 +335,7 @@ def get_grouping_variants_for_event(event):
     rv = {}
 
     # If the fingerprints are unsalted, we can return them right away.
-    if defaults_referenced == 1:
+    if defaults_referenced == 1 and len(fingerprint) == 1:
         for (key, component) in six.iteritems(components):
             rv[key] = ComponentVariant(component)
 
