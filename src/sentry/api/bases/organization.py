@@ -54,6 +54,15 @@ class OrganizationPermission(SentryPermission):
         return any(request.access.has_scope(s) for s in allowed_scopes)
 
 
+class OrganizationEventPermission(OrganizationPermission):
+    scope_map = {
+        'GET': ['event:read', 'event:write', 'event:admin'],
+        'POST': ['event:write', 'event:admin'],
+        'PUT': ['event:write', 'event:admin'],
+        'DELETE': ['event:admin'],
+    }
+
+
 # These are based on ProjectReleasePermission
 # additional checks to limit actions to releases
 # associated with projects people have access to

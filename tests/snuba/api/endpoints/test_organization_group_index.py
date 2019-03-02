@@ -253,7 +253,11 @@ class GroupListTest(APITestCase, SnubaTestCase):
 
         self.login_as(user=user)
 
-        response = self.get_valid_response(organization.slug, project=project.id, query=short_id, shortIdLookup=1)
+        response = self.get_valid_response(
+            organization.slug,
+            project=project.id,
+            query=short_id,
+            shortIdLookup=1)
         assert len(response.data) == 1
 
     def test_lookup_by_short_id_no_perms(self):
@@ -364,7 +368,7 @@ class GroupListTest(APITestCase, SnubaTestCase):
         assert len(response.data) == 0
 
     def test_token_auth(self):
-        token = ApiToken.objects.create(user=self.user, scope_list=['org:read'])
+        token = ApiToken.objects.create(user=self.user, scope_list=['event:read'])
         response = self.client.get(
             reverse('sentry-api-0-organization-group-index', args=[self.project.organization.slug]),
             format='json',
@@ -488,6 +492,26 @@ class GroupUpdateTest(APITestCase, SnubaTestCase):
             user=self.user,
             group=new_group4,
         )
+
+    def test_resolve_member(self):
+        group = self.create_group(checksum='a' * 32, status=GroupStatus.UNRESOLVED)
+        member = self.create_user()
+        self.create_member(
+            organization=self.organization,
+            teams=group.project.teams.all(),
+            user=member,
+        )
+
+        self.login_as(user=member)
+        response = self.get_valid_response(
+            qs_params={'status': 'unresolved', 'project': self.project.id},
+            status='resolved',
+        )
+        assert response.data == {
+            'status': 'resolved',
+            'statusDetails': {},
+        }
+        assert response.status_code == 200
 
     def test_bulk_resolve(self):
         self.login_as(user=self.user)
