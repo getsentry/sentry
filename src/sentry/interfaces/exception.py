@@ -20,6 +20,7 @@ from sentry.interfaces.schemas import validate_and_default_interface
 from sentry.interfaces.stacktrace import Stacktrace, slim_frame_data
 from sentry.utils import json
 from sentry.utils.safe import get_path, trim
+from sentry.event_hashing import GroupingComponent
 
 _type_value_re = re.compile('^(\w+):(.*)$')
 
@@ -939,17 +940,45 @@ class SingleException(Interface):
             'stacktrace': stacktrace_meta,
         }
 
-    def get_hash(self, platform=None, variant='system'):
+    def get_grouping_component(self, platform=None, variant='system'):
         if variant not in ('app', 'system'):
-            return []
-        output = None
-        if self.stacktrace:
-            output = self.stacktrace.get_hash(platform=platform, variant=variant)
-            if output and self.type:
-                output.append(self.type)
-        if not output:
-            output = [s for s in [self.type, self.value] if s]
-        return output
+            return None
+
+        type_component = GroupingComponent(
+            id='type',
+            values=[self.type] if self.type else [],
+            contributes=False
+        )
+        value_component = GroupingComponent(
+            id='value',
+            values=[self.value] if self.value else [],
+            contributes=False
+        )
+
+        if self.stacktrace is not None:
+            stacktrace_component = self.stacktrace.get_grouping_component(
+                platform, variant)
+            if stacktrace_component.contributes and self.type:
+                type_component.update(contributes=True)
+                value_component.update(hint='stacktrace and type take precedence')
+            else:
+                type_component.update(hint='stacktrace takes precedence')
+                value_component.update(hint='stacktrace takes precedence')
+        else:
+            stacktrace_component = GroupingComponent(id='stacktrace')
+            if self.type:
+                type_component.update(contributes=True)
+            if self.value:
+                value_component.update(contributes=True)
+
+        return GroupingComponent(
+            id='exception',
+            values=[
+                stacktrace_component,
+                type_component,
+                value_component,
+            ]
+        )
 
 
 class Exception(Interface):
@@ -1036,30 +1065,46 @@ class Exception(Interface):
             'exc_omitted': self.exc_omitted,
         })
 
-    def get_hash(self, platform=None, variant='system'):
+    def get_grouping_component(self, platform=None, variant='system'):
         if variant not in ('app', 'system'):
-            return []
-        # optimize around the fact that some exceptions might have stacktraces
-        # while others may not and we ALWAYS want stacktraces over values
-        output = []
-        for value in self._values():
-            if not value or not value.stacktrace:
-                continue
-            stack_hash = value.stacktrace.get_hash(
-                platform=platform,
-                variant=variant,
-            )
-            if stack_hash:
-                output.extend(stack_hash)
-                output.append(value.type)
+            return None
 
-        if not output:
-            for value in self._values():
-                if value:
-                    output.extend(value.get_hash(platform=platform,
-                                                 variant=variant))
+        # Case 1: we have a single exception, use the single exception
+        # component directly
+        exceptions = self._values()
+        if len(exceptions) == 1:
+            return exceptions[0].get_grouping_component(platform, variant)
 
-        return output
+        # Case 2: try to build a new component out of the individual
+        # errors however with a trick.  In case any exeption has a
+        # stacktrace we want to ignore all other exceptions.
+        any_stacktraces = False
+        values = []
+        for exception in exceptions:
+            exception_component = exception.get_grouping_component(platform, variant)
+            stacktrace_component = exception_component.get_subcomponent('stacktrace')
+            if stacktrace_component is not None and \
+               stacktrace_component.contributes:
+                any_stacktraces = True
+            values.append(exception_component)
+
+        if any_stacktraces:
+            for value in values:
+                stacktrace_component = exception_component.get_subcomponent('stacktrace')
+                if stacktrace_component is None or \
+                   not stacktrace_component.contributes:
+                    value.update(
+                        contributes=False,
+                        hint='exception has no stacktrace',
+                    )
+
+        values = [exception.get_grouping_component(platform, variant)
+                  for exception in exceptions]
+
+        return GroupingComponent(
+            id='exception',
+            values=values,
+        )
 
     def get_api_context(self, is_public=False):
         return {

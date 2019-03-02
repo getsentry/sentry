@@ -15,7 +15,7 @@ from time import time
 from sentry.app import tsdb
 from sentry.constants import VERSION_LENGTH
 from sentry.event_manager import HashDiscarded, EventManager, EventUser
-from sentry.event_hashing import md5_from_hash
+from sentry.event_hashing import hash_from_values
 from sentry.models import (
     Activity, Environment, Event, ExternalIssue, Group, GroupEnvironment,
     GroupHash, GroupLink, GroupRelease, GroupResolution, GroupStatus,
@@ -1263,7 +1263,7 @@ class EventManagerTest(TransactionTestCase):
         event = manager.save(self.project.id)
 
         hashes = [gh.hash for gh in GroupHash.objects.filter(group=event.group)]
-        assert hashes == [md5_from_hash(checksum), checksum]
+        assert hashes == [hash_from_values(checksum), checksum]
 
     @mock.patch('sentry.event_manager.is_valid_error_message')
     def test_should_filter_message(self, mock_is_valid_error_message):
