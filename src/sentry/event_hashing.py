@@ -183,8 +183,15 @@ class ChecksumVariant(BaseVariant):
     """A checksum variant returns a single hardcoded hash."""
     type = 'checksum'
 
-    def __init__(self, hash):
+    def __init__(self, hash, hashed=False):
         self.hash = hash
+        self.hashed = hashed
+
+    @property
+    def description(self):
+        if self.hashed:
+            return 'hashed legacy checksum'
+        return 'legacy checksum'
 
     def get_hash(self):
         return self.hash
@@ -315,7 +322,7 @@ def get_grouping_variants_for_event(event):
             }
         return {
             'checksum': ChecksumVariant(checksum),
-            'hashed-checksum': ChecksumVariant(hash_from_values(checksum)),
+            'hashed-checksum': ChecksumVariant(hash_from_values(checksum), hashed=True),
         }
 
     # Otherwise we go to the various forms of fingerprint handling.

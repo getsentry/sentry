@@ -94,7 +94,7 @@ class GroupVariant extends React.Component {
     const {variant} = this.props;
     switch (variant.type) {
       case 'checksum':
-        return <KeyValueList data={{checksum: variant.hash}} />;
+        return <KeyValueList data={{hash: variant.hash}} />;
       case 'component':
         return <GroupingComponent component={variant.component} />;
       case 'custom-fingerprint':
