@@ -28,6 +28,12 @@ class EventDeletionTask(ModelDeletionTask):
         return relations
 
     def get_child_relations_bulk(self, instance_list):
-        node_ids = [i.data.id for i in instance_list]
+        node_ids = []
+        for i in instance_list:
+            node_ids.append(i.data.id)
+            # Unbind the NodeField so it doesn't attempt to get
+            # get deleted a second time after NodeDeletionTask
+            # runs, when the Event itself is deleted.
+            i.data = None
 
         return [BaseRelation({'nodes': node_ids}, NodeDeletionTask)]
