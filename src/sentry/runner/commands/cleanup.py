@@ -7,6 +7,7 @@ sentry.runner.commands.cleanup
 """
 from __future__ import absolute_import, print_function
 
+import os
 from datetime import timedelta
 from uuid import uuid4
 
@@ -139,6 +140,8 @@ def cleanup(days, project, concurrency, silent, model, router, timed):
     if concurrency < 1:
         click.echo('Error: Minimum concurrency is 1', err=True)
         raise click.Abort()
+
+    os.environ['_SENTRY_CLEANUP'] = '1'
 
     # Make sure we fork off multiprocessing pool
     # before we import or configure the app
