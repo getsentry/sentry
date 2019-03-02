@@ -271,7 +271,7 @@ def get_grouping_variants_for_event(event):
     rv = {}
 
     # If the fingerprints are unsalted, we can return them right away.
-    if defaults_referenced == 1:
+    if defaults_referenced == 1 and len(fingerprint) == 1:
         for (key, component) in six.iteritems(components):
             rv[key] = ComponentVariant(component)
 
