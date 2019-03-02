@@ -172,12 +172,6 @@ class StacktraceTest(TestCase):
             ['foo.py', 1],
         ])
 
-        result = interface.get_hashes()
-        assert result == {
-            'system': ['foo.py', 1, 'bar.py', 1],
-            'app': ['foo.py', 1],
-        }
-
     def test_compute_hashes(self):
         interface = Stacktrace.to_python(
             dict(
@@ -197,12 +191,6 @@ class StacktraceTest(TestCase):
 
         result = interface.compute_hashes('python')
         assert sorted(result) == sorted([['a/foo.py', 1, 'a/bar.py', 1], ['a/foo.py', 1]])
-
-        result = interface.get_hashes('python')
-        assert result == {
-            'system': ['a/foo.py', 1, 'a/bar.py', 1],
-            'app': ['a/foo.py', 1],
-        }
 
     def test_compute_hashes_cocoa(self):
         interface = Stacktrace.to_python(

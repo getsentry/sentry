@@ -157,13 +157,6 @@ class Event(Model):
             return hashes
         return calculate_event_hashes(self)
 
-    def get_grouping_components(self):
-        """This returns all known grouping components for this event
-        calculated on the file.
-        """
-        from sentry.event_hashing import get_grouping_components
-        return get_grouping_components(self)
-
     def get_primary_hash(self):
         # TODO: This *might* need to be protected from an IndexError?
         return self.get_hashes()[0]

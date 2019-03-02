@@ -201,27 +201,24 @@ class Interface(object):
     def get_grouping_component(self, platform=None, variant='system'):
         return None
 
-    def get_hash(self, platform=None, variant='system'):
-        component = self.get_grouping_component(platform, variant)
-        if component is not None:
-            return component.flatten_values()
-        return []
-
-    def get_hashes(self, platform=None):
-        system_hash = self.get_hash(platform, variant='system')
-        if not system_hash:
+    def get_grouping_variants(self, platform=None):
+        system_component = self.get_grouping_component(platform, variant='system')
+        if not system_component or not system_component.contributes:
             return {}
 
-        hashes = {'system': system_hash}
+        components = {'system': system_component}
 
-        app_hash = self.get_hash(platform, variant='app')
-        if system_hash != app_hash and app_hash:
-            hashes['app'] = app_hash
+        app_component = self.get_grouping_component(platform, variant='app')
+        if app_component is not None and app_component.contributes \
+           and system_component.get_hash() != app_component.get_hash():
+            components['app'] = app_component
 
-        return hashes
+        return components
 
     def compute_hashes(self, platform=None):
-        return self.get_hashes(platform).values()
+        # legacy function, really only used for tests these days
+        variant_components = self.get_grouping_variants(platform)
+        return [x.flatten_values() for x in six.itervalues(variant_components)]
 
     def get_title(self):
         return _(type(self).__name__)

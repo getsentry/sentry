@@ -479,8 +479,8 @@ class Frame(Interface):
         platform = self.platform or platform
 
         # In certain situations we want to disregard the entire frame.
-        skip_all = False
-        skip_all_hint = None
+        contributes = None
+        hint = None
 
         # Safari throws [native code] frames in for calls like ``forEach``
         # whereas Chrome ignores these. Let's remove it from the hashing algo
@@ -489,8 +489,8 @@ class Frame(Interface):
         if self.filename == '<anonymous>':
             filename_component.update(hint='anonymous filename discarded')
         elif self.filename == '[native code]':
-            skip_all = True
-            skip_all_hint = 'native code indicated by filename'
+            contributes = False
+            hint = 'native code indicated by filename'
         elif self.filename:
             if self.is_url():
                 filename_component.update(hint='ignored because filename is a URL')
@@ -578,8 +578,8 @@ class Frame(Interface):
                 function_component,
                 lineno_component,
             ],
-            contributes=not skip_all,
-            hint=skip_all_hint
+            contributes=contributes,
+            hint=hint,
         )
 
     def get_api_context(self, is_public=False, pad_addr=None):
@@ -903,7 +903,7 @@ class Stacktrace(Interface):
             return None
 
         frames = self.frames
-        contributes = True
+        contributes = None
         hint = None
 
         # TODO(dcramer): this should apply only to platform=javascript

@@ -16,6 +16,13 @@ DEFAULT_HINTS = {
 }
 
 
+def _calculate_contributes(values):
+    for value in values or ():
+        if not isinstance(value, GroupingComponent) or value.contributes:
+            return True
+    return False
+
+
 class GroupingComponent(object):
     """A grouping component is a recursive structure that is flattened
     into components to make a hash for grouping purposes.
@@ -27,7 +34,7 @@ class GroupingComponent(object):
             hint = DEFAULT_HINTS.get(id)
         self.hint = hint
         if contributes is None:
-            contributes = bool(values)
+            contributes = _calculate_contributes(values)
         self.contributes = contributes
         if values is None:
             values = []
@@ -45,7 +52,7 @@ class GroupingComponent(object):
             self.hint = hint
         if values is not None:
             if contributes is None:
-                contributes = bool(values)
+                contributes = _calculate_contributes(values)
             self.values = values
         if contributes is not None:
             self.contributes = contributes
@@ -62,6 +69,11 @@ class GroupingComponent(object):
                 else:
                     rv.append(value)
         return rv
+
+    def get_hash(self):
+        """Returns the hash of the values if it contributes."""
+        if self.contributes:
+            return hash_from_values(self.flatten_values())
 
     def as_dict(self, skip_empty=False):
         """Converts the component tree into a dictionary."""
@@ -92,7 +104,7 @@ class GroupingComponent(object):
         )
 
 
-def md5_from_hash(hash_bits):
+def hash_from_values(hash_bits):
     result = md5()
     for bit in hash_bits:
         result.update(force_bytes(bit, errors='replace'))
@@ -134,8 +146,8 @@ def calculate_event_hashes(event):
     if checksum:
         if HASH_RE.match(checksum):
             return [checksum]
-        return [md5_from_hash([checksum]), checksum]
+        return [hash_from_values([checksum]), checksum]
 
     # Otherwise go with the new style fingerprint code
     fingerprint = event.data.get('fingerprint') or ['{{ default }}']
-    return [md5_from_hash(h) for h in get_hashes_from_fingerprint(event, fingerprint)]
+    return [hash_from_values(h) for h in get_hashes_from_fingerprint(event, fingerprint)]
