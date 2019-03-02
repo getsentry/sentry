@@ -4,13 +4,11 @@ import styled from 'react-emotion';
 import _ from 'lodash';
 
 import EventDataSection from 'app/components/events/eventDataSection';
-import EventErrorItem from 'app/components/events/errorItem';
 import SentryTypes from 'app/sentryTypes';
 import LoadingIndicator from 'app/components/loadingIndicator';
 import LoadingError from 'app/components/loadingError';
-import {t, tn} from 'app/locale';
+import {t} from 'app/locale';
 import KeyValueList from 'app/components/events/interfaces/keyValueList';
-import space from 'app/styles/space';
 
 import withApi from 'app/utils/withApi';
 
@@ -23,7 +21,7 @@ const StyledGroupVariantList = styled('ul')`
 `;
 
 const StyledGroupVariantListItem = styled('li')`
-  padding: 0 0 13px 0;
+  padding: 0 0 20px 0;
   margin: 0;
 `;
 
@@ -35,19 +33,19 @@ const StyledGroupingComponentList = styled('ul')`
 
 const StyledGroupingComponentListItem = styled('li')`
   padding: 0;
-  margin: 1px 0 1px 13px;
+  margin: 2px 0 1px 13px;
 `;
 
 const StyledGroupingComponent = styled(({contributes, ...props}) => <div {...props} />)`
   color: ${p => (p.contributes ? p.theme.darkWhite : p.theme.gray6)};
 `;
 
-const StyledGroupingValue = styled(({contributes, ...props}) => <code {...props} />)`
+const StyledGroupingValue = styled('code')`
   display: inline-block;
   margin: 1px 0 1px 10px;
   font-size: 12px;
   padding: 1px 2px;
-  color: ${p => (p.contributes ? p.theme.darkWhite : p.theme.gray6)};
+  color: inherit;
 `;
 
 class GroupingComponent extends React.Component {
@@ -67,17 +65,22 @@ class GroupingComponent extends React.Component {
         }
         rv = <GroupingComponent component={value} />;
       } else {
-        rv = <StyledGroupingValue contributes={component.contributes}>{JSON.stringify(value, null, 2)}</StyledGroupingValue>;
+        rv = <StyledGroupingValue>{JSON.stringify(value, null, 2)}</StyledGroupingValue>;
       }
-      return <StyledGroupingComponentListItem key={idx}>{rv}</StyledGroupingComponentListItem>;
+      return (
+        <StyledGroupingComponentListItem key={idx}>{rv}</StyledGroupingComponentListItem>
+      );
     });
 
-    return <StyledGroupingComponent contributes={component.contributes}>
-      <span>{component.name || component.id}{component.hint && <small>{` (${component.hint})`}</small>}</span>
-      <StyledGroupingComponentList>
-        {children}
-      </StyledGroupingComponentList>
-    </StyledGroupingComponent>;
+    return (
+      <StyledGroupingComponent contributes={component.contributes}>
+        <span>
+          {component.name || component.id}
+          {component.hint && <small>{` (${component.hint})`}</small>}
+        </span>
+        <StyledGroupingComponentList>{children}</StyledGroupingComponentList>
+      </StyledGroupingComponent>
+    );
   }
 }
 
@@ -114,14 +117,15 @@ class GroupVariant extends React.Component {
       <StyledGroupVariantListItem>
         <h5>
           {`#${index + 1} by ${variant.description}`}
-          {variant.hash && <small>{` (hash: ${variant.hash}; type: ${variant.type})`}</small>}
+          {variant.hash && (
+            <small>{` (hash: ${variant.hash}; type: ${variant.type})`}</small>
+          )}
         </h5>
         {this.renderVariantDetails()}
       </StyledGroupVariantListItem>
     );
   }
 }
-
 
 class EventGroupingInfo extends React.Component {
   static propTypes = {
@@ -143,19 +147,21 @@ class EventGroupingInfo extends React.Component {
     this.fetchData();
   }
 
-  componentDidUpdate(prevProps) {
-    if (this.props.eventId !== prevProps.eventId) {
-      this.fetchData();
-    }
-  }
-
   shouldComponentUpdate(nextProps, nextState) {
-    if (this.state.isOpen != nextState.isOpen ||
-        this.state.groupInfo !== nextState.groupInfo ||
-        this.state.loading !== nextState.loading) {
+    if (
+      this.state.isOpen != nextState.isOpen ||
+      this.state.groupInfo !== nextState.groupInfo ||
+      this.state.loading !== nextState.loading
+    ) {
       return true;
     }
     return this.props.event.id !== nextProps.event.id;
+  }
+
+  componentDidUpdate(prevProps) {
+    if (this.props.event.id !== prevProps.event.id) {
+      this.fetchData();
+    }
   }
 
   toggle = () => {
@@ -168,7 +174,7 @@ class EventGroupingInfo extends React.Component {
 
   fetchData() {
     this.setState({
-      loading: true
+      loading: true,
     });
     this.props.api.request(this.getEndpoint(), {
       method: 'GET',
@@ -177,14 +183,14 @@ class EventGroupingInfo extends React.Component {
           error: false,
           loading: false,
           groupInfo: data,
-        })
+        });
       },
       error: () => {
         this.setState({
           error: true,
-          loading: false
+          loading: false,
         });
-      }
+      },
     });
   }
 
@@ -204,26 +210,22 @@ class EventGroupingInfo extends React.Component {
     return (
       <React.Fragment>
         {' '}
-        <small>
-          {`(grouped by ${variants.join(', ')})`}
-        </small>
+        <small>{`(grouped by ${variants.join(', ')})`}</small>
       </React.Fragment>
     );
   }
 
   renderGroupInfo() {
     const variants = Object.values(this.state.groupInfo);
-    variants.sort((a, b) => (a.name || a.key).toLowerCase().localeCompare((a.name || a.key).toLowerCase()));
-
-    console.log(variants);
+    variants.sort((a, b) =>
+      (a.name || a.key).toLowerCase().localeCompare((a.name || a.key).toLowerCase())
+    );
 
     return (
       <StyledGroupVariantList>
-        {variants.map((variant, index) => <GroupVariant
-          variant={variant}
-          index={index}
-          key={variant.key}
-        />)}
+        {variants.map((variant, index) => (
+          <GroupVariant variant={variant} index={index} key={variant.key} />
+        ))}
       </StyledGroupVariantList>
     );
   }
