@@ -108,6 +108,18 @@ class GroupingComponent extends React.Component {
   }
 }
 
+function hasNonContributingComponent(component) {
+  if (!component.contributes) {
+    return true;
+  }
+  for (const value of component.values) {
+    if (_.isObject(value) && hasNonContributingComponent(value)) {
+      return true;
+    }
+  }
+  return false;
+}
+
 class GroupVariant extends React.Component {
   static propTypes = {
     variant: PropTypes.object,
@@ -155,11 +167,13 @@ class GroupVariant extends React.Component {
         <KeyValueList data={data} isContextData isSorted />
         {component && (
           <StyledGroupingComponentWrapper>
-            <a className="pull-right" onClick={() => this.toggleNonContributing()}>
-              {this.state.showNonContributing
-                ? t('hide non contributing values')
-                : t('show non contributing values')}
-            </a>
+            {hasNonContributingComponent(component) && (
+              <a className="pull-right" onClick={() => this.toggleNonContributing()}>
+                {this.state.showNonContributing
+                  ? t('hide non contributing values')
+                  : t('show non contributing values')}
+              </a>
+            )}
             <GroupingComponent
               component={component}
               showNonContributing={this.state.showNonContributing}
@@ -260,6 +274,7 @@ class EventGroupingInfo extends React.Component {
         variants.push(variant.description);
       }
     }
+    variants.sort((a, b) => a.toLowerCase().localeCompare(b.toLowerCase()));
 
     return (
       <React.Fragment>
@@ -271,9 +286,12 @@ class EventGroupingInfo extends React.Component {
 
   renderGroupInfo() {
     const variants = Object.values(this.state.groupInfo);
-    variants.sort((a, b) =>
-      (a.name || a.key).toLowerCase().localeCompare((a.name || a.key).toLowerCase())
-    );
+    variants.sort((a, b) => {
+      if (a.hash && !b.hash) {
+        return -1;
+      }
+      return a.description.toLowerCase().localeCompare(b.description.toLowerCase());
+    });
 
     return (
       <StyledGroupVariantList>
