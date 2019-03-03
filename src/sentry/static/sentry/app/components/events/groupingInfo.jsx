@@ -21,8 +21,22 @@ const StyledGroupVariantList = styled('ul')`
 `;
 
 const StyledGroupVariantListItem = styled('li')`
-  padding: 0 0 20px 0;
-  margin: 0;
+  padding: 15px 0 20px 0;
+  margin-top: 15px;
+  border-top: 1px solid ${p => p.theme.borderLighter};
+`;
+
+const StyledGroupVariantTitle = styled('h5')`
+  margin: 0 0 10px 0;
+  color: ${p => p.theme.gray5};
+  text-transform: uppercase;
+  font-size: 14px;
+`;
+
+const StyledGroupingComponentWrapper = styled('div')`
+  border-top: 1px solid ${p => p.theme.borderLighter};
+  padding: 10px 0 0 0;
+  margin-top: -10px;
 `;
 
 const StyledGroupingComponentList = styled('ul')`
@@ -37,12 +51,12 @@ const StyledGroupingComponentListItem = styled('li')`
 `;
 
 const StyledGroupingComponent = styled(({contributes, ...props}) => <div {...props} />)`
-  color: ${p => (p.contributes ? p.theme.darkWhite : p.theme.gray6)};
+  ${p => (p.contributes ? '' : 'color:' + p.theme.gray6)};
 `;
 
 const StyledGroupingValue = styled('code')`
   display: inline-block;
-  margin: 1px 0 1px 10px;
+  margin: 1px 4px 1px 0;
   font-size: 12px;
   padding: 1px 2px;
   color: inherit;
@@ -51,6 +65,7 @@ const StyledGroupingValue = styled('code')`
 class GroupingComponent extends React.Component {
   static propTypes = {
     component: PropTypes.object,
+    showNonContributing: PropTypes.bool,
   };
 
   render() {
@@ -59,11 +74,20 @@ class GroupingComponent extends React.Component {
     const children = component.values.map((value, idx) => {
       let rv;
       if (_.isObject(value)) {
-        // no point rendering such nodes
+        // no point rendering such nodes at all, we never show them
         if (!value.contributes && !value.hint && value.values.length === 0) {
           return null;
         }
-        rv = <GroupingComponent component={value} />;
+        // non contributing values are otherwise optional
+        if (!this.props.showNonContributing && !value.contributes) {
+          return null;
+        }
+        rv = (
+          <GroupingComponent
+            component={value}
+            showNonContributing={this.props.showNonContributing}
+          />
+        );
       } else {
         rv = <StyledGroupingValue>{JSON.stringify(value, null, 2)}</StyledGroupingValue>;
       }
@@ -86,41 +110,71 @@ class GroupingComponent extends React.Component {
 
 class GroupVariant extends React.Component {
   static propTypes = {
-    index: PropTypes.number,
     variant: PropTypes.object,
   };
 
+  constructor(...args) {
+    super(...args);
+    this.state = {
+      showNonContributing: false,
+    };
+  }
+
+  toggleNonContributing() {
+    this.setState({
+      showNonContributing: !this.state.showNonContributing,
+    });
+  }
+
   renderVariantDetails() {
     const {variant} = this.props;
-    switch (variant.type) {
-      case 'checksum':
-        return <KeyValueList data={{hash: variant.hash}} />;
-      case 'component':
-        return <GroupingComponent component={variant.component} />;
-      case 'custom-fingerprint':
-        return <KeyValueList data={{values: variant.values}} isContextData />;
-      case 'salted-component':
-        return (
-          <React.Fragment>
-            <KeyValueList data={{values: variant.values}} isContextData />
-            <GroupingComponent component={variant.component} />
-          </React.Fragment>
-        );
-      default:
-        return null;
+    const data = [['Algorithm', variant.type], ['Hash', variant.hash]];
+    let component = null;
+
+    if (variant.hashMismatch) {
+      data.push(['Hash mismatch', 'hashing algorithm changed after event generation']);
     }
+
+    switch (variant.type) {
+      case 'component':
+        component = variant.component;
+        break;
+      case 'custom-fingerprint':
+        data.push(['Fingerprint values', variant.values]);
+        break;
+      case 'salted-component':
+        data.push(['Fingerprint values', variant.values]);
+        component = variant.component;
+        break;
+      default:
+        break;
+    }
+
+    return (
+      <div>
+        <KeyValueList data={data} isContextData isSorted />
+        {component && (
+          <StyledGroupingComponentWrapper>
+            <a className="pull-right" onClick={() => this.toggleNonContributing()}>
+              {this.state.showNonContributing
+                ? t('hide non contributing values')
+                : t('show non contributing values')}
+            </a>
+            <GroupingComponent
+              component={component}
+              showNonContributing={this.state.showNonContributing}
+            />
+          </StyledGroupingComponentWrapper>
+        )}
+      </div>
+    );
   }
 
   render() {
-    const {index, variant} = this.props;
+    const {variant} = this.props;
     return (
       <StyledGroupVariantListItem>
-        <h5>
-          {`#${index + 1} by ${variant.description}`}
-          {variant.hash && (
-            <small>{` (hash: ${variant.hash}; type: ${variant.type})`}</small>
-          )}
-        </h5>
+        <StyledGroupVariantTitle>{`by ${variant.description}`}</StyledGroupVariantTitle>
         {this.renderVariantDetails()}
       </StyledGroupVariantListItem>
     );
@@ -223,9 +277,7 @@ class EventGroupingInfo extends React.Component {
 
     return (
       <StyledGroupVariantList>
-        {variants.map((variant, index) => (
-          <GroupVariant variant={variant} index={index} key={variant.key} />
-        ))}
+        {variants.map(variant => <GroupVariant variant={variant} key={variant.key} />)}
       </StyledGroupVariantList>
     );
   }
@@ -237,14 +289,15 @@ class EventGroupingInfo extends React.Component {
         group={this.props.group}
         event={this.props.event}
         type="grouping-info"
+        className="grouping-info"
       >
         <div className="box-header">
-          <a className="pull-right errors-toggle" onClick={this.toggle}>
-            {isOpen ? t('Hide') : t('Show')}
+          <a className="pull-right grouping-info-toggle" onClick={this.toggle}>
+            {isOpen ? t('Hide Details') : t('Show Details')}
           </a>
           <h3>
-            {t('Grouping Information')}
-            {this.renderGroupInfoSummary()}
+            {t('Event Grouping Information')}
+            {!isOpen && this.renderGroupInfoSummary()}
           </h3>
         </div>
         <div style={{display: isOpen ? 'block' : 'none'}}>
