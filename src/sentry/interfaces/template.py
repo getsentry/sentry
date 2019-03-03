@@ -59,10 +59,7 @@ class Template(Interface):
         }
         return cls(**kwargs)
 
-    def get_grouping_component(self, platform=None, variant='system'):
-        if variant not in ('app', 'system'):
-            return None
-
+    def get_grouping_component(self, platform=None, variant=None):
         filename_component = GroupingComponent(id='filename')
         if self.filename is not None:
             filename_component.update(values=[self.filename])

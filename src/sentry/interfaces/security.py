@@ -172,9 +172,7 @@ class Hpkp(SecurityReport):
     def get_culprit(self):
         return None
 
-    def get_grouping_component(self, platform=None, variant='system'):
-        if variant != 'system':
-            return None
+    def get_grouping_component(self, platform=None, variant=None):
         return GroupingComponent(
             id='hpkp',
             values=[
@@ -244,9 +242,7 @@ class ExpectStaple(SecurityReport):
     def get_culprit(self):
         return self.hostname
 
-    def get_grouping_component(self, platform=None, variant='system'):
-        if variant != 'system':
-            return None
+    def get_grouping_component(self, platform=None, variant=None):
         return GroupingComponent(
             id='expect-staple',
             values=[
@@ -314,9 +310,7 @@ class ExpectCT(SecurityReport):
     def get_culprit(self):
         return self.hostname
 
-    def get_grouping_component(self, platform=None, variant='system'):
-        if variant != 'system':
-            return None
+    def get_grouping_component(self, platform=None, variant=None):
         return GroupingComponent(
             id='expect-ct',
             values=[
@@ -378,10 +372,7 @@ class Csp(SecurityReport):
 
         return cls.to_python(kwargs)
 
-    def get_grouping_component(self, platform=None, variant='system'):
-        if variant != 'system':
-            return None
-
+    def get_grouping_component(self, platform=None, variant=None):
         violation_component = GroupingComponent(id='violation')
         uri_component = GroupingComponent(id='uri')
 

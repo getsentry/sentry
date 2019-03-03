@@ -90,9 +90,7 @@ class Message(Interface):
             'params': self.params or None
         })
 
-    def get_grouping_component(self, platform=None, variant='system'):
-        if variant not in ('app', 'system'):
-            return None
+    def get_grouping_component(self, platform=None, variant=None):
         return GroupingComponent(
             id='message',
             values=[self.message or self.formatted],

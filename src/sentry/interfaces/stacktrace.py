@@ -334,6 +334,7 @@ def is_recursion(frame1, frame2):
 
 
 class Frame(Interface):
+    grouping_variants = ['system', 'app']
 
     @classmethod
     def to_python(cls, data, raw=False):
@@ -472,10 +473,7 @@ class Frame(Interface):
             'colno': self.colno
         })
 
-    def get_grouping_component(self, platform=None, variant='system'):
-        if variant not in ('app', 'system'):
-            return None
-
+    def get_grouping_component(self, platform=None, variant=None):
         platform = self.platform or platform
 
         # In certain situations we want to disregard the entire frame.
@@ -548,8 +546,18 @@ class Frame(Interface):
            (module_component.contributes or filename_component.contributes):
             if self.symbol:
                 symbol_component.update(values=[self.symbol])
-                function_component.update(hint='symbol takes precedence')
-                lineno_component.update(hint='symbol takes precedence')
+                if self.function:
+                    function_component.update(
+                        contributes=False,
+                        values=[self.function],
+                        hint='symbol takes precedence'
+                    )
+                if self.lineno:
+                    lineno_component.update(
+                        contributes=False,
+                        values=[self.lineno],
+                        hint='symbol takes precedence'
+                    )
             elif self.function:
                 if self.is_unhashable_function():
                     function_component.update(values=[
@@ -564,7 +572,12 @@ class Frame(Interface):
                         values=[function],
                         hint=function_hint
                     )
-                lineno_component.update(hint='function takes precedence')
+                if self.lineno:
+                    lineno_component.update(
+                        contributes=False,
+                        values=[self.lineno],
+                        hint='function takes precedence'
+                    )
             elif self.lineno:
                 lineno_component.update(values=[self.lineno])
         else:
@@ -824,6 +837,7 @@ class Stacktrace(Interface):
               to the full interface path.
     """
     score = 1950
+    grouping_variants = ['system', 'app']
 
     def __iter__(self):
         return iter(self.frames)
@@ -917,10 +931,7 @@ class Stacktrace(Interface):
             'registers': self.registers,
         })
 
-    def get_grouping_component(self, platform=None, variant='system'):
-        if variant not in ('app', 'system'):
-            return None
-
+    def get_grouping_component(self, platform=None, variant=None):
         frames = self.frames
         contributes = None
         hint = None
@@ -940,7 +951,7 @@ class Stacktrace(Interface):
 
             # if app frames make up less than 10% of the stacktrace discard
             # the hash as invalid
-            if in_app_count / float(total_frames) < 0.10:
+            if total_frames > 0 and in_app_count / float(total_frames) < 0.10:
                 contributes = False
                 hint = 'less than 10% of frames are in-app'
 

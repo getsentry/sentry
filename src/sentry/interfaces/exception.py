@@ -817,6 +817,7 @@ class SingleException(Interface):
     """
     score = 2000
     path = 'exception'
+    grouping_variants = ['system', 'app']
 
     @classmethod
     def to_python(cls, data, slim_frames=True):
@@ -940,10 +941,7 @@ class SingleException(Interface):
             'stacktrace': stacktrace_meta,
         }
 
-    def get_grouping_component(self, platform=None, variant='system'):
-        if variant not in ('app', 'system'):
-            return None
-
+    def get_grouping_component(self, platform=None, variant=None):
         type_component = GroupingComponent(
             id='type',
             values=[self.type] if self.type else [],
@@ -1017,6 +1015,7 @@ class Exception(Interface):
     """
 
     score = 2000
+    grouping_variants = ['system', 'app']
 
     def _values(self):
         return get_path(self.values, filter=True)
@@ -1067,10 +1066,7 @@ class Exception(Interface):
             'exc_omitted': self.exc_omitted,
         })
 
-    def get_grouping_component(self, platform=None, variant='system'):
-        if variant not in ('app', 'system'):
-            return None
-
+    def get_grouping_component(self, platform=None, variant=None):
         # Case 1: we have a single exception, use the single exception
         # component directly
         exceptions = self._values()
