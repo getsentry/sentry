@@ -210,7 +210,7 @@ class EventGroupingInfo extends React.Component {
     return (
       <React.Fragment>
         {' '}
-        <small>{`(grouped by ${variants.join(', ')})`}</small>
+        <small>{`(grouped by ${variants.join(', ') || 'nothing'})`}</small>
       </React.Fragment>
     );
   }
