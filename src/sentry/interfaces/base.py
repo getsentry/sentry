@@ -88,6 +88,7 @@ class Interface(object):
     score = 0
     display_score = None
     ephemeral = False
+    grouping_variants = ['default']
 
     def __init__(self, **data):
         self._data = data or {}
@@ -198,7 +199,7 @@ class Interface(object):
     def to_json(self):
         return prune_empty_keys(self._data)
 
-    def get_grouping_component(self, platform=None, variant='system'):
+    def get_grouping_component(self, platform=None, variant=None):
         """Based on the variant passed this must return either `None` if the
         variant is not supported or a `sentry.event_hashing.GroupingComponent`.
         """
@@ -208,28 +209,69 @@ class Interface(object):
         """This returns a dictionary of all variants this interface has
         grouping components for.  Note that this can also produce components
         that are not contributing.
+
+        This will use all the variants mentioned in `grouping_variants` on the
+        class.  This might recursively invoke nested interface in which case
+        extra care needs to be taken that variants are passed appropriately.
+        Special handling is applied to the `system` variant.  If the system
+        variant is defined it will be probed first.  If there is no match on
+        `system` then all other variants are skipped as well.
         """
-        # If we don't produce a system component from this at all, we're
-        # done.
+        rv = {}
+
+        # In case the system variant (which is special) is not being
+        # produced by this interface we can make a simplified logic here
+        # where all variants contribute equially and without special
+        # handling
+        if 'system' not in self.grouping_variants:
+            for variant in self.grouping_variants:
+                component = self.get_grouping_component(platform, variant)
+                if component is not None:
+                    rv[variant] = component
+            return rv
+
+        # The system handling is special because we first need to match
+        # the system variant, and in case this contributes we want to
+        # let all other variants also contribute (for as long as the hash
+        # is different).  In case however the system component does not
+        # exist or does not contribute, we want to also have all other
+        # variants not contribute either.
         system_component = self.get_grouping_component(platform, variant='system')
-        if not system_component:
-            return {}
 
-        components = {'system': system_component}
+        prevent_contribution = True
+        if system_component is not None:
+            rv['system'] = system_component
+            prevent_contribution = not system_component.contributes
 
-        # If the system component does not contribute, we will not attempt
-        # to make an app component either.
-        if system_component.contributes:
-            # Otherwise we contribute an app component to the result if the
-            # app component can be produced, contributes and has a different
-            # hash than the system component.  This cuts down on
-            # unnecessary duplicate hashes and group reports.
-            app_component = self.get_grouping_component(platform, variant='app')
-            if app_component is not None and app_component.contributes \
-               and system_component.get_hash() != app_component.get_hash():
-                components['app'] = app_component
+        for variant in self.grouping_variants:
+            if variant == 'system':
+                continue
 
-        return components
+            # We also only want to create another variant if it
+            # produces different results than the system component
+            component = self.get_grouping_component(platform, variant=variant)
+            if component is None:
+                continue
+
+            # In case this variant contributes we need to check two things
+            # here: if we did not have a system match we need to prevent
+            # it from contributing.  Additionally if it matches the system
+            # component we also do not want the variant to contribute but
+            # with a different message.
+            if component.contributes:
+                if prevent_contribution:
+                    component.update(
+                        contributes=False,
+                        hint='ignored because system variant does not match'
+                    )
+                elif system_component.get_hash() == component.get_hash():
+                    component.update(
+                        contributes=False,
+                        hint='ignored because hash matches system variant'
+                    )
+            rv[variant] = component
+
+        return rv
 
     def compute_hashes(self, platform=None):
         # legacy function, really only used for tests these days

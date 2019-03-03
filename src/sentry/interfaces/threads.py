@@ -18,6 +18,7 @@ def get_stacktrace(value, raw=False):
 
 class Threads(Interface):
     score = 1900
+    grouping_variants = ['system', 'app']
 
     @classmethod
     def to_python(cls, data):
@@ -87,10 +88,7 @@ class Threads(Interface):
         else:
             return meta
 
-    def get_grouping_component(self, platform=None, variant='system'):
-        if variant not in ('app', 'system'):
-            return None
-
+    def get_grouping_component(self, platform=None, variant=None):
         if len(self.values) != 1:
             return GroupingComponent(
                 id='threads',

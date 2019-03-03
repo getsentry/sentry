@@ -334,6 +334,7 @@ def is_recursion(frame1, frame2):
 
 
 class Frame(Interface):
+    grouping_variants = ['system', 'app']
 
     @classmethod
     def to_python(cls, data, raw=False):
@@ -472,10 +473,7 @@ class Frame(Interface):
             'colno': self.colno
         })
 
-    def get_grouping_component(self, platform=None, variant='system'):
-        if variant not in ('app', 'system'):
-            return None
-
+    def get_grouping_component(self, platform=None, variant=None):
         platform = self.platform or platform
 
         # In certain situations we want to disregard the entire frame.
@@ -824,6 +822,7 @@ class Stacktrace(Interface):
               to the full interface path.
     """
     score = 1950
+    grouping_variants = ['system', 'app']
 
     def __iter__(self):
         return iter(self.frames)
@@ -917,10 +916,7 @@ class Stacktrace(Interface):
             'registers': self.registers,
         })
 
-    def get_grouping_component(self, platform=None, variant='system'):
-        if variant not in ('app', 'system'):
-            return None
-
+    def get_grouping_component(self, platform=None, variant=None):
         frames = self.frames
         contributes = None
         hint = None
