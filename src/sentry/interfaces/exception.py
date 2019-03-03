@@ -960,9 +960,9 @@ class SingleException(Interface):
             if stacktrace_component.contributes:
                 if self.type:
                     type_component.update(contributes=True)
-                    value_component.update(hint='stacktrace and type take precedence')
-                else:
-                    type_component.update(hint='stacktrace takes precedence')
+                    if self.value:
+                        value_component.update(hint='stacktrace and type take precedence')
+                elif self.value:
                     value_component.update(hint='stacktrace takes precedence')
 
         if not stacktrace_component.contributes:

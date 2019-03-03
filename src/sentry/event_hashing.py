@@ -232,10 +232,16 @@ def get_calculated_grouping_variants_for_event(event):
 
     rv = {}
     for (variant, components) in six.iteritems(per_variant_components):
-        rv[variant] = GroupingComponent(
+        component = GroupingComponent(
             id=variant,
             values=components,
         )
+        if not component.contributes:
+            if winning_strategy:
+                component.update(hint='%s strategy takes precedence' % winning_strategy)
+            else:
+                component.update(hint='nothing matched')
+        rv[variant] = component
 
     return rv
 
