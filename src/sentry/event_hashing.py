@@ -58,14 +58,6 @@ class GroupingComponent(object):
     def name(self):
         return KNOWN_MAJOR_COMPONENT_NAMES.get(self.id)
 
-    def iter_contributing_components(self, recursive=True):
-        for value in self.values:
-            if isinstance(value, GroupingComponent) and value.contributes:
-                yield value.id
-                if recursive:
-                    for child in value.iter_contributing_components():
-                        yield value.id + '.' + child
-
     @property
     def description(self):
         items = []

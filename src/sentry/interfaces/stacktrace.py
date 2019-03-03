@@ -567,6 +567,25 @@ class Frame(Interface):
                 lineno_component.update(hint='function takes precedence')
             elif self.lineno:
                 lineno_component.update(values=[self.lineno])
+        else:
+            if self.symbol:
+                symbol_component.update(
+                    contributes=False,
+                    values=[self.symbol],
+                    hint='symbol is used only if module or filename are available'
+                )
+            if self.function:
+                function_component.update(
+                    contributes=False,
+                    values=[self.function],
+                    hint='function name is used only if module or filename are available'
+                )
+            if self.lineno:
+                function_component.update(
+                    contributes=False,
+                    values=[self.lineno],
+                    hint='line number is used only if module or filename are available'
+                )
 
         return GroupingComponent(
             id='frame',

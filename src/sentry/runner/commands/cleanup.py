@@ -7,6 +7,7 @@ sentry.runner.commands.cleanup
 """
 from __future__ import absolute_import, print_function
 
+import os
 from datetime import timedelta
 from uuid import uuid4
 
@@ -140,6 +141,8 @@ def cleanup(days, project, concurrency, silent, model, router, timed):
         click.echo('Error: Minimum concurrency is 1', err=True)
         raise click.Abort()
 
+    os.environ['_SENTRY_CLEANUP'] = '1'
+
     # Make sure we fork off multiprocessing pool
     # before we import or configure the app
     from multiprocessing import Process, JoinableQueue as Queue
@@ -192,8 +195,6 @@ def cleanup(days, project, concurrency, silent, model, router, timed):
         (models.Group, 'last_seen', 'last_seen'),
     )
 
-    skip_nodestore = False
-
     if not silent:
         click.echo('Removing expired values for LostPasswordHash')
 
@@ -237,7 +238,6 @@ def cleanup(days, project, concurrency, silent, model, router, timed):
         cutoff = timezone.now() - timedelta(days=days)
         try:
             nodestore.cleanup(cutoff)
-            skip_nodestore = True
         except NotImplementedError:
             click.echo(
                 "NodeStore backend does not support cleanup operation", err=True)
@@ -267,7 +267,6 @@ def cleanup(days, project, concurrency, silent, model, router, timed):
                 days=days,
                 project_id=project_id,
                 order_by=order_by,
-                skip_nodestore=skip_nodestore,
             ).execute(chunk_size=chunk_size)
 
     for model, dtfield, order_by in DELETES:
