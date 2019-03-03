@@ -546,8 +546,18 @@ class Frame(Interface):
            (module_component.contributes or filename_component.contributes):
             if self.symbol:
                 symbol_component.update(values=[self.symbol])
-                function_component.update(hint='symbol takes precedence')
-                lineno_component.update(hint='symbol takes precedence')
+                if self.function:
+                    function_component.update(
+                        contributes=False,
+                        values=[self.function],
+                        hint='symbol takes precedence'
+                    )
+                if self.lineno:
+                    lineno_component.update(
+                        contributes=False,
+                        values=[self.lineno],
+                        hint='symbol takes precedence'
+                    )
             elif self.function:
                 if self.is_unhashable_function():
                     function_component.update(values=[
@@ -562,7 +572,12 @@ class Frame(Interface):
                         values=[function],
                         hint=function_hint
                     )
-                lineno_component.update(hint='function takes precedence')
+                if self.lineno:
+                    lineno_component.update(
+                        contributes=False,
+                        values=[self.lineno],
+                        hint='function takes precedence'
+                    )
             elif self.lineno:
                 lineno_component.update(values=[self.lineno])
         else:
