@@ -951,7 +951,7 @@ class Stacktrace(Interface):
 
             # if app frames make up less than 10% of the stacktrace discard
             # the hash as invalid
-            if in_app_count / float(total_frames) < 0.10:
+            if total_frames > 0 and in_app_count / float(total_frames) < 0.10:
                 contributes = False
                 hint = 'less than 10% of frames are in-app'
 
