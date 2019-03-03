@@ -20,15 +20,16 @@ const StyledGroupVariantList = styled('ul')`
   line-height: 18px;
 `;
 
-const StyledGroupVariantListItem = styled('li')`
+const StyledGroupVariantListItem = styled(({contributes, ...props}) => <li {...props} />)`
   padding: 15px 0 20px 0;
   margin-top: 15px;
   border-top: 1px solid ${p => p.theme.borderLighter};
+  ${p => (p.contributes ? '' : 'color:' + p.theme.gray6)};
 `;
 
 const StyledGroupVariantTitle = styled('h5')`
   margin: 0 0 10px 0;
-  color: ${p => p.theme.gray5};
+  color: inherit !important;
   text-transform: uppercase;
   font-size: 14px;
 `;
@@ -140,9 +141,12 @@ class GroupVariant extends React.Component {
 
   renderVariantDetails() {
     const {variant} = this.props;
-    const data = [['Algorithm', variant.type], ['Hash', variant.hash]];
+    const data = [['Algorithm', variant.type]];
     let component = null;
 
+    if (variant.hash !== null) {
+      data.push(['Hash', variant.hash]);
+    }
     if (variant.hashMismatch) {
       data.push(['Hash mismatch', 'hashing algorithm changed after event generation']);
     }
@@ -164,7 +168,7 @@ class GroupVariant extends React.Component {
 
     return (
       <div>
-        <KeyValueList data={data} isContextData isSorted />
+        <KeyValueList data={data} isContextData />
         {component && (
           <StyledGroupingComponentWrapper>
             {hasNonContributingComponent(component) && (
@@ -187,7 +191,7 @@ class GroupVariant extends React.Component {
   render() {
     const {variant} = this.props;
     return (
-      <StyledGroupVariantListItem>
+      <StyledGroupVariantListItem contributes={variant.hash !== null}>
         <StyledGroupVariantTitle>{`by ${variant.description}`}</StyledGroupVariantTitle>
         {this.renderVariantDetails()}
       </StyledGroupVariantListItem>

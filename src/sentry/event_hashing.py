@@ -76,7 +76,7 @@ class GroupingComponent(object):
 
         if items and items[-1]:
             return ' '.join(items[-1])
-        return self.name or self.id
+        return self.name or 'others'
 
     def get_subcomponent(self, id):
         """Looks up a subcomponent by the id and returns the first or `None`."""
@@ -295,10 +295,16 @@ def get_calculated_grouping_variants_for_event(event):
 
     rv = {}
     for (variant, components) in six.iteritems(per_variant_components):
-        rv[variant] = GroupingComponent(
+        component = GroupingComponent(
             id=variant,
             values=components,
         )
+        if not component.contributes:
+            if winning_strategy:
+                component.update(hint='%s strategy takes precedence' % winning_strategy)
+            else:
+                component.update(hint='nothing matched')
+        rv[variant] = component
 
     return rv
 
