@@ -954,18 +954,20 @@ class SingleException(Interface):
             values=[self.value] if self.value else [],
             contributes=False
         )
+        stacktrace_component = GroupingComponent(id='stacktrace')
 
         if self.stacktrace is not None:
             stacktrace_component = self.stacktrace.get_grouping_component(
                 platform, variant)
-            if stacktrace_component.contributes and self.type:
-                type_component.update(contributes=True)
-                value_component.update(hint='stacktrace and type take precedence')
-            else:
-                type_component.update(hint='stacktrace takes precedence')
-                value_component.update(hint='stacktrace takes precedence')
-        else:
-            stacktrace_component = GroupingComponent(id='stacktrace')
+            if stacktrace_component.contributes:
+                if self.type:
+                    type_component.update(contributes=True)
+                    value_component.update(hint='stacktrace and type take precedence')
+                else:
+                    type_component.update(hint='stacktrace takes precedence')
+                    value_component.update(hint='stacktrace takes precedence')
+
+        if not stacktrace_component.contributes:
             if self.type:
                 type_component.update(contributes=True)
             if self.value:
