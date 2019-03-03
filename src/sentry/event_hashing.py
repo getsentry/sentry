@@ -277,6 +277,7 @@ def get_calculated_grouping_variants_for_event(event):
     interfaces = event.get_interfaces()
 
     winning_strategy = None
+    winning_strategy_hint = None
     per_variant_components = {}
 
     for (strategy_name, interface) in six.iteritems(interfaces):
@@ -287,10 +288,11 @@ def get_calculated_grouping_variants_for_event(event):
             if winning_strategy is None:
                 if component.contributes:
                     winning_strategy = strategy_name
+                    winning_strategy_hint = component.description
             elif component.contributes and winning_strategy != strategy_name:
                 component.update(
                     contributes=False,
-                    hint='%s strategy takes precedence' % winning_strategy,
+                    hint='ignored because %s strategy takes precedence' % winning_strategy_hint,
                 )
 
     rv = {}
@@ -300,10 +302,12 @@ def get_calculated_grouping_variants_for_event(event):
             values=components,
         )
         if not component.contributes:
-            if winning_strategy:
-                component.update(hint='%s strategy takes precedence' % winning_strategy)
+            if winning_strategy_hint:
+                component.update(
+                    hint='ignored because %s strategy takes precedence' %
+                    winning_strategy_hint)
             else:
-                component.update(hint='nothing matched')
+                component.update(hint='ignored because nothing matched')
         rv[variant] = component
 
     return rv
