@@ -152,7 +152,6 @@ class EventEntries extends React.Component {
         {!utils.objectIsEmpty(event.errors) && (
           <EventErrors group={group} event={event} />
         )}{' '}
-        {!isShare && <EventGroupingInfo group={group} event={event} />}
         {!isShare &&
           features.has('suggested-commits') && (
             <EventCause event={event} orgId={orgId} projectId={project.slug} />
@@ -204,6 +203,7 @@ class EventEntries extends React.Component {
               )}
             </div>
           )}{' '}
+        {!isShare && <EventGroupingInfo group={group} event={event} />}
       </div>
     );
   }
