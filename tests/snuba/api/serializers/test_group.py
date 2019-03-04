@@ -357,7 +357,7 @@ class GroupSerializerSnubaTest(APITestCase, SnubaTestCase):
             end=self.week_ago + timedelta(hours=1),
         ))
         assert result['userCount'] == 1
-        print result['lastSeen'] == self.week_ago - \
+        assert result['lastSeen'] == self.week_ago - \
             timedelta(microseconds=self.week_ago.microsecond)
         assert result['firstSeen'] == group_env.first_seen
         assert result['count'] == '1'
