@@ -187,7 +187,7 @@ const GroupHeader = createReactClass({
                           ? {
                               pathname: `/organizations/${orgId}/issues/`,
                               query: {
-                                ...qs.parse(window.location.search),
+                                ...qs.parse(location.search),
                                 project: project.id,
                               },
                             }
