@@ -62,7 +62,7 @@ describe('Stream', function() {
       body: [savedSearch],
     });
     MockApiClient.addMockResponse({
-      url: '/projects/org-slug/project-slug/processingissues/',
+      url: '/organizations/org-slug/processingissues/',
       method: 'GET',
     });
     sandbox.stub(browserHistory, 'push');
