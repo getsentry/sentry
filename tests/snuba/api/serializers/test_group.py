@@ -349,13 +349,18 @@ class GroupSerializerSnubaTest(APITestCase, SnubaTestCase):
         assert group_env2.first_seen > group_env.first_seen
         assert result['userCount'] == 3
 
-        # test userCount filtering correctly by time
+        # test userCount, count, lastSeen filtering correctly by time
+        # firstSeen should still be from GroupEnvironment
         result = serialize(group, serializer=GroupSerializerSnuba(
             environment_ids=[environment.id, environment2.id],
             start=self.week_ago - timedelta(hours=1),
             end=self.week_ago + timedelta(hours=1),
         ))
         assert result['userCount'] == 1
+        assert result['lastSeen'] == self.week_ago - \
+            timedelta(microseconds=self.week_ago.microsecond)
+        assert result['firstSeen'] == group_env.first_seen
+        assert result['count'] == '1'
 
 
 class StreamGroupSerializerTestCase(APITestCase, SnubaTestCase):

@@ -575,6 +575,8 @@ class GroupSerializerSnuba(GroupSerializerBase):
                 project_ids,
                 group_ids,
                 self.environment_ids,
+                start=self.start,
+                end=self.end,
             )
 
             first_seen_data = {

@@ -312,13 +312,11 @@ class SnubaTagStorage(TagStorage):
             ) for issue, data in six.iteritems(result)
         }
 
-    def get_group_seen_values_for_environments(self, project_ids, group_id_list, environment_ids):
+    def get_group_seen_values_for_environments(self, project_ids, group_id_list, environment_ids,
+                                               start=None, end=None):
         # Get the total times seen, first seen, and last seen across multiple environments
-
-        # TODO(jess): this is mostly copy paste from above
-        # also, this is temporary and will probably need to be updated to
-        # filter correctly based on date filters -- waiting on some product decisions
-        start, end = self.get_time_range()
+        if start is None or end is None:
+            start, end = self.get_time_range()
         filters = {
             'project_id': project_ids,
             'issue': group_id_list,
