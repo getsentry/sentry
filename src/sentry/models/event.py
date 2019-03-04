@@ -36,6 +36,7 @@ from sentry.utils.strings import truncatechars
 
 class EventDict(CanonicalKeyDict):
     def __init__(self, data, **kwargs):
+        from sentry.event_manager import EventManager
         mgr = EventManager(data=data, is_renormalize=True)
         mgr.normalize()
         data = mgr.get_data()
