@@ -61,7 +61,7 @@ def should_process(data):
 
 
 def submit_process(project, from_reprocessing, cache_key, event_id, start_time, data):
-    if features.has('projects:kafka-process', project=project):
+    if features.has('projects:kafka-ingest', project=project):
         kafka.produce_sync(
             settings.KAFKA_PROCESS,
             value=json.dumps({
@@ -77,7 +77,7 @@ def submit_process(project, from_reprocessing, cache_key, event_id, start_time, 
 
 
 def submit_save_event(project, cache_key, event_id, start_time, data):
-    if features.has('projects:kafka-save', project=project):
+    if features.has('projects:kafka-ingest', project=project):
         kafka.produce_sync(
             settings.KAFKA_SAVE,
             value=json.dumps({

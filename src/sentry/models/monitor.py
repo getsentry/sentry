@@ -169,7 +169,6 @@ class Monitor(Model):
         if not affected:
             return False
 
-        project = Project.objects.get_from_cache(id=self.project_id)
         event_manager = EventManager(
             {
                 'logentry': {
@@ -181,11 +180,11 @@ class Monitor(Model):
                     },
                 },
             },
-            project=project,
+            project=Project(id=self.project_id),
         )
         event_manager.normalize()
         data = event_manager.get_data()
         helper = ClientApiHelper(project_id=self.project_id)
-        helper.insert_data_to_database(project, data)
+        helper.insert_data_to_database(data)
         monitor_failed.send(monitor=self, sender=type(self))
         return True

@@ -165,12 +165,12 @@ class ClientApiHelper(object):
         if sdk:
             sdk.pop('client_ip', None)
 
-    def insert_data_to_database(self, project, data, start_time=None,
+    def insert_data_to_database(self, data, start_time=None,
                                 from_reprocessing=False, attachments=None):
         if start_time is None:
             start_time = time()
 
-        # we might be passed some sublcasses of dict that fail dumping
+        # we might be passed some subclasses of dict that fail dumping
         if isinstance(data, CANONICAL_TYPES):
             data = dict(data.items())
 
@@ -182,7 +182,11 @@ class ClientApiHelper(object):
         if attachments is not None:
             attachment_cache.set(cache_key, attachments, CACHE_TTL)
 
-        if features.has('projects:kafka-preprocess', project=project):
+        # NOTE: Project is bound to the context in most cases in production, which
+        # is enough for us to do `projects:kafka-ingest` testing.
+        project = self.context.project
+
+        if project and features.has('projects:kafka-ingest', project=project):
             kafka.produce_sync(
                 settings.KAFKA_PREPROCESS,
                 value=json.dumps({

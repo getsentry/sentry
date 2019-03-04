@@ -231,7 +231,7 @@ def process_event(event_manager, project, key, remote_addr, helper, attachments)
         helper.ensure_does_not_have_ip(data)
 
     # mutates data (strips a lot of context if not queued)
-    helper.insert_data_to_database(project, data, start_time=start_time, attachments=attachments)
+    helper.insert_data_to_database(data, start_time=start_time, attachments=attachments)
 
     cache.set(cache_key, '', 60 * 5)
 

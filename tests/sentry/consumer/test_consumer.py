@@ -49,16 +49,12 @@ class TestConsumer(PluginTestCase):
     @patch('sentry.tasks.store.preprocess_event')
     @patch('sentry.utils.kafka.produce_sync')
     def test_process_path(self, mock_produce, mock_preprocess_event, mock_save_event):
-        with self.feature([
-            'projects:kafka-preprocess',
-            'projects:kafka-process',
-            'projects:kafka-save'
-        ]):
+        with self.feature('projects:kafka-ingest'):
             project = self.create_project()
             data = self._create_event_with_platform(project, 'needs_process')
 
             helper = ClientApiHelper(project_id=self.project.id)
-            helper.insert_data_to_database(project, data)
+            helper.insert_data_to_database(data)
 
             # preprocess
             self._call_consumer(mock_produce)
@@ -82,16 +78,12 @@ class TestConsumer(PluginTestCase):
     @patch('sentry.utils.kafka.produce_sync')
     def test_save_path(self, mock_produce, mock_preprocess_event,
                        mock_process_event, mock_save_event):
-        with self.feature([
-            'projects:kafka-preprocess',
-            'projects:kafka-process',
-            'projects:kafka-save'
-        ]):
+        with self.feature('projects:kafka-ingest'):
             project = self.create_project()
             data = self._create_event_with_platform(project, 'doesnt_need_process')
 
             helper = ClientApiHelper(project_id=self.project.id)
-            helper.insert_data_to_database(project, data)
+            helper.insert_data_to_database(data)
 
             # preprocess
             self._call_consumer(mock_produce)

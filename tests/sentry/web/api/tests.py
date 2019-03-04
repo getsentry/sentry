@@ -416,7 +416,7 @@ class StoreViewTest(TestCase):
         resp = self._postWithHeader(body)
         assert resp.status_code == 200, (resp.status_code, resp.content)
 
-        call_data = mock_insert_data_to_database.call_args[0][1]
+        call_data = mock_insert_data_to_database.call_args[0][0]
         assert not call_data['user'].get('ip_address')
         assert not call_data['request']['env'].get('REMOTE_ADDR')
         assert not call_data['sdk'].get('client_ip')
@@ -441,7 +441,7 @@ class StoreViewTest(TestCase):
         resp = self._postWithHeader(body)
         assert resp.status_code == 200, (resp.status_code, resp.content)
 
-        call_data = mock_insert_data_to_database.call_args[0][1]
+        call_data = mock_insert_data_to_database.call_args[0][0]
         assert not call_data['user'].get('ip_address')
         assert not call_data['request']['env'].get('REMOTE_ADDR')
 
@@ -463,7 +463,7 @@ class StoreViewTest(TestCase):
         resp = self._postWithHeader(body)
         assert resp.status_code == 200, (resp.status_code, resp.content)
 
-        call_data = mock_insert_data_to_database.call_args[0][1]
+        call_data = mock_insert_data_to_database.call_args[0][0]
         assert call_data['request']['data'] == {
             'password': 'lol',
             'foo': '1',
@@ -489,7 +489,7 @@ class StoreViewTest(TestCase):
         resp = self._postWithHeader(body)
         assert resp.status_code == 200, (resp.status_code, resp.content)
 
-        call_data = mock_insert_data_to_database.call_args[0][1]
+        call_data = mock_insert_data_to_database.call_args[0][0]
         assert call_data['request']['data'] == {
             'password': 'lol',
             'foo': '1',
@@ -515,7 +515,7 @@ class StoreViewTest(TestCase):
         resp = self._postWithHeader(body)
         assert resp.status_code == 200, (resp.status_code, resp.content)
 
-        call_data = mock_insert_data_to_database.call_args[0][1]
+        call_data = mock_insert_data_to_database.call_args[0][0]
         assert call_data['request']['data'] == {
             'password': '[Filtered]',
             'foo': '1',
@@ -542,7 +542,7 @@ class StoreViewTest(TestCase):
         resp = self._postWithHeader(body)
         assert resp.status_code == 200, (resp.status_code, resp.content)
 
-        call_data = mock_insert_data_to_database.call_args[0][1]
+        call_data = mock_insert_data_to_database.call_args[0][0]
         assert call_data['request']['data'] == {
             'password': '[Filtered]',
             'foo': '[Filtered]',
@@ -570,7 +570,7 @@ class StoreViewTest(TestCase):
         resp = self._postWithHeader(body)
         assert resp.status_code == 200, (resp.status_code, resp.content)
 
-        call_data = mock_insert_data_to_database.call_args[0][1]
+        call_data = mock_insert_data_to_database.call_args[0][0]
         assert call_data['request']['data'] == {
             'password': '[Filtered]',
             'foo': '1',
@@ -598,7 +598,7 @@ class StoreViewTest(TestCase):
         resp = self._postWithHeader(body)
         assert resp.status_code == 200, (resp.status_code, resp.content)
 
-        call_data = mock_insert_data_to_database.call_args[0][1]
+        call_data = mock_insert_data_to_database.call_args[0][0]
         assert call_data['request']['data'] == {
             'password': '[Filtered]',
             'foo': '[Filtered]',
@@ -614,7 +614,7 @@ class StoreViewTest(TestCase):
         resp = self._postWithHeader(body)
         assert resp.status_code == 200, (resp.status_code, resp.content)
 
-        call_data = mock_insert_data_to_database.call_args[0][1]
+        call_data = mock_insert_data_to_database.call_args[0][0]
         assert call_data['sdk'] == {
             'name': '_postWithHeader',
             'version': '0.0.0',
