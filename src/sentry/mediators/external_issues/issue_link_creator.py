@@ -1,0 +1,55 @@
+from __future__ import absolute_import
+
+import six
+
+from sentry.coreapi import APIUnauthorized
+from sentry.mediators import Mediator, Param, external_requests, external_issues
+from sentry.models import PlatformExternalIssue
+from sentry.utils.cache import memoize
+
+
+class IssueLinkCreator(Mediator):
+    install = Param('sentry.models.SentryAppInstallation')
+    group = Param('sentry.models.Group')
+    action = Param(six.string_types)
+    fields = Param(object)
+    uri = Param(six.string_types)
+
+    def call(self):
+        self._verify_action()
+        self._make_external_request()
+        self._create_external_issue()
+        return self.external_issue
+
+    def _verify_action():
+        if self.action not in ['link', 'create']:
+            return APIUnauthorized()
+
+    def _make_external_request(self):
+        self.response = external_requests.issue_link_requester.run(
+            install=self.install,
+            uri=self.uri,
+            group=self.group,
+            fields=self.fields,
+        )
+
+    def _format_response_data(self):
+        web_url = self.response['webUrl']
+        display_name = u'{}#{}'.format(
+            self.response['project'],
+            self.response['identifier'],
+        )
+        return [web_url, display_name]
+
+    def _create_external_issue(self):
+        web_url, display_name = self._format_response_data()
+        self.external_issue = external_issues.creator.run(
+            group=self.group,
+            service_type=self.sentry_app.slug,
+            display_name=display_name,
+            web_url=web_url,
+        )
+
+    @memoize
+    def sentry_app(self):
+        return self.install.sentry_app
