@@ -1051,7 +1051,7 @@ function routes() {
         <Route path=":projectId/" component={errorHandler(ProjectDetails)}>
           <IndexRoute
             componentPromise={() =>
-              import(/*webpackChunkName: "Stream"*/ './views/stream')}
+              import(/* webpackChunkName: "Stream" */ './views/stream')}
             component={errorHandler(LazyLoad)}
           />
           <Route
