@@ -54,6 +54,7 @@ class TestConsumer(PluginTestCase):
             data = self._create_event_with_platform(project, 'needs_process')
 
             helper = ClientApiHelper(project_id=self.project.id)
+            helper.context.bind_project(project)
             helper.insert_data_to_database(data)
 
             # preprocess
@@ -83,6 +84,7 @@ class TestConsumer(PluginTestCase):
             data = self._create_event_with_platform(project, 'doesnt_need_process')
 
             helper = ClientApiHelper(project_id=self.project.id)
+            helper.context.bind_project(project)
             helper.insert_data_to_database(data)
 
             # preprocess
