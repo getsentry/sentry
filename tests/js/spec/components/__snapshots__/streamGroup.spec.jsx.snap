@@ -155,7 +155,7 @@ exports[`StreamGroup renders with anchors 1`] = `
         40,
         50,
         60,
-        70,
+        50,
       ]
     }
   >
@@ -173,7 +173,7 @@ exports[`StreamGroup renders with anchors 1`] = `
         40,
         50,
         60,
-        70,
+        50,
       ]
     }
   >
@@ -192,7 +192,7 @@ exports[`StreamGroup renders with anchors 1`] = `
         40,
         50,
         60,
-        70,
+        50,
       ]
     }
   >
