@@ -17,6 +17,8 @@ from django.utils import timezone
 from django.utils.translation import ugettext_lazy as _
 from hashlib import md5
 
+from semaphore.processing import StoreNormalizer
+
 from sentry import eventtypes
 from sentry.constants import EVENT_ORDERING_KEY
 from sentry.db.models import (
@@ -36,10 +38,8 @@ from sentry.utils.strings import truncatechars
 
 class EventDict(CanonicalKeyDict):
     def __init__(self, data, **kwargs):
-        from sentry.event_manager import EventManager
-        mgr = EventManager(data=data, is_renormalize=True)
-        mgr.normalize()
-        data = mgr.get_data()
+        normalizer = StoreNormalizer()
+        data = normalizer.normalize_event(dict(data))
         CanonicalKeyDict.__init__(self, data, **kwargs)
 
 
