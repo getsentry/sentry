@@ -22,8 +22,26 @@ class FromUserTest(TestCase):
         assert not result.has_team_access(team)
         assert not result.has_team_scope(team, 'project:read')
         assert not result.has_project_access(project)
+        assert not result.has_projects_access([project])
         assert not result.has_project_scope(project, 'project:read')
         assert not result.has_project_membership(project)
+
+    def test_mixed_access(self):
+        user = self.create_user()
+        organization = self.create_organization(flags=0)  # disable default allow_joinleave
+        team = self.create_team(organization=organization)
+        team_no_access = self.create_team(organization=organization)
+        project = self.create_project(organization=organization, teams=[team])
+        project_no_access = self.create_project(organization=organization, teams=[team_no_access])
+        self.create_member(
+            organization=organization,
+            user=user,
+            teams=[team],
+        )
+        result = access.from_user(user, organization)
+        assert result.has_project_access(project)
+        assert not result.has_project_access(project_no_access)
+        assert not result.has_projects_access([project, project_no_access])
 
     def test_owner_all_teams(self):
         user = self.create_user()
@@ -43,6 +61,7 @@ class FromUserTest(TestCase):
         assert result.has_team_access(team)
         assert result.has_team_scope(team, 'project:read')
         assert result.has_project_access(project)
+        assert result.has_projects_access([project])
         assert result.has_project_scope(project, 'project:read')
         assert result.has_project_membership(project)
 
@@ -67,6 +86,7 @@ class FromUserTest(TestCase):
         assert not result.has_team_access(team)
         assert not result.has_team_scope(team, 'project:read')
         assert not result.has_project_access(project)
+        assert not result.has_projects_access([project])
         assert not result.has_project_scope(project, 'project:read')
         assert not result.has_project_membership(project)
 
@@ -92,6 +112,7 @@ class FromUserTest(TestCase):
         assert result.has_team_access(team)
         assert result.has_team_scope(team, 'project:read')
         assert result.has_project_access(project)
+        assert result.has_projects_access([project])
         assert result.has_project_scope(project, 'project:read')
         assert not result.has_project_membership(project)
 
@@ -113,6 +134,7 @@ class FromUserTest(TestCase):
         assert result.has_team_access(team)
         assert result.has_team_scope(team, 'project:read')
         assert result.has_project_access(project)
+        assert result.has_projects_access([project])
         assert result.has_project_scope(project, 'project:read')
         assert result.has_project_membership(project)
 
@@ -221,5 +243,6 @@ class DefaultAccessTest(TestCase):
         assert not result.has_team_access(Mock())
         assert not result.has_team_scope(Mock(), 'project:read')
         assert not result.has_project_access(Mock())
+        assert not result.has_projects_access([Mock()])
         assert not result.has_project_scope(Mock(), 'project:read')
         assert not result.has_project_membership(Mock())
