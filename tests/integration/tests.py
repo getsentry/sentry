@@ -565,5 +565,4 @@ class CspReportTest(TestCase):
         self.assertReportCreated(*get_fixtures('chrome_blocked_asset'))
 
     def test_firefox_missing_effective_uri(self):
-        input, _ = get_fixtures('firefox_blocked_asset')
-        self.assertReportRejected(input)
+        self.assertReportCreated(*get_fixtures('firefox_blocked_asset'))
