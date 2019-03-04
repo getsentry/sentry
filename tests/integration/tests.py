@@ -490,7 +490,7 @@ class SentryRemoteTest(TestCase):
         assert instance.message == 'hello'
 
 
-class DepdendencyTest(TestCase):
+class DependencyTest(TestCase):
     def raise_import_error(self, package):
         def callable(package_name):
             if package_name != package:
