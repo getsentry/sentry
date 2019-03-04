@@ -1,6 +1,7 @@
 from __future__ import absolute_import
 
 import datetime
+import mock
 import responses
 import pytest
 
@@ -74,8 +75,9 @@ class GitHubAppsProviderTest(PluginTestCase):
             'url': 'https://github.com/getsentry/example-repo',
         }
 
+    @mock.patch('sentry.integrations.github.client.get_jwt', return_value='jwt_token_1')
     @responses.activate
-    def test_compare_commits_no_start(self):
+    def test_compare_commits_no_start(self, get_jwt):
         stub_installation_token()
         responses.add(
             responses.GET,
@@ -102,8 +104,9 @@ class GitHubAppsProviderTest(PluginTestCase):
         with pytest.raises(IntegrationError):
             self.provider.compare_commits(self.repository, None, 'abcdef')
 
+    @mock.patch('sentry.integrations.github.client.get_jwt', return_value='jwt_token_1')
     @responses.activate
-    def test_compare_commits(self):
+    def test_compare_commits(self, get_jwt):
         stub_installation_token()
         responses.add(
             responses.GET,
@@ -119,8 +122,9 @@ class GitHubAppsProviderTest(PluginTestCase):
         for commit in result:
             assert_commit_shape(commit)
 
+    @mock.patch('sentry.integrations.github.client.get_jwt', return_value='jwt_token_1')
     @responses.activate
-    def test_compare_commits_patchset_handling(self):
+    def test_compare_commits_patchset_handling(self, get_jwt):
         stub_installation_token()
         responses.add(
             responses.GET,
