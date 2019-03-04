@@ -302,12 +302,7 @@ def get_calculated_grouping_variants_for_event(event):
             values=components,
         )
         if not component.contributes:
-            if winning_strategy_hint:
-                component.update(
-                    hint='ignored because %s strategy takes precedence' %
-                    winning_strategy_hint)
-            else:
-                component.update(hint='ignored because nothing matched')
+            component.update(hint='ignored because nothing matched')
         rv[variant] = component
 
     return rv
