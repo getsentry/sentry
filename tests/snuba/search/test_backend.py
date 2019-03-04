@@ -19,7 +19,10 @@ from sentry.models import (
 )
 from sentry.search.base import ANY
 from sentry.search.snuba.backend import SnubaSearchBackend
-from sentry.testutils import SnubaTestCase
+from sentry.testutils import (
+    SnubaTestCase,
+    xfail_if_not_postgres,
+)
 
 
 def date_to_query_format(date):
@@ -27,8 +30,6 @@ def date_to_query_format(date):
 
 
 class SnubaSearchTest(SnubaTestCase):
-    use_new_filters = False
-
     def setUp(self):
         super(SnubaSearchTest, self).setUp()
         self.backend = SnubaSearchBackend()
@@ -182,7 +183,6 @@ class SnubaSearchTest(SnubaTestCase):
             )
         return self.backend.query(
             projects,
-            use_new_filters=self.use_new_filters,
             search_filters=search_filters,
             environments=environments,
             **kwargs
@@ -559,7 +559,7 @@ class SnubaSearchTest(SnubaTestCase):
             count_hits=True,
         )
         assert list(results) == [self.group1]
-        assert results.hits == 1  # TODO this is actually wrong because of the cursor
+        assert results.hits == 2
 
         results = self.backend.query(
             [self.project],
@@ -570,7 +570,7 @@ class SnubaSearchTest(SnubaTestCase):
             count_hits=True,
         )
         assert list(results) == []
-        assert results.hits == 1  # TODO this is actually wrong because of the cursor
+        assert results.hits == 2
 
     def test_active_at_filter(self):
         results = self.make_query(
@@ -1006,7 +1006,7 @@ class SnubaSearchTest(SnubaTestCase):
             },
             'referrer': 'search',
             'groupby': ['issue'],
-            'conditions': [],
+            'conditions': [[['positionCaseInsensitive', ['message', "'foo'"]], '!=', 0]],
             'selected_columns': [],
             'limit': limit,
             'offset': 0,
@@ -1019,7 +1019,7 @@ class SnubaSearchTest(SnubaTestCase):
         assert not query_mock.called
 
         self.make_query(
-            search_filter_query='last_seen:>%s foo' % date_to_query_format(timezone.now()),
+            search_filter_query='last_seen:>=%s foo' % date_to_query_format(timezone.now()),
             query='foo',
             last_seen_from=timezone.now(),
             sort_by='date',
@@ -1030,7 +1030,7 @@ class SnubaSearchTest(SnubaTestCase):
                 ['uniq', 'issue', 'total'],
                 ['toUInt64(max(timestamp)) * 1000', '', 'last_seen']
             ],
-            having=[('last_seen', '>=', Any(int))],
+            having=[['last_seen', '>=', Any(int)]],
             **common_args
         )
 
@@ -1063,12 +1063,12 @@ class SnubaSearchTest(SnubaTestCase):
                 ['count()', '', 'times_seen'],
                 ['uniq', 'issue', 'total'],
             ],
-            having=[('times_seen', '=', 5)],
+            having=[['times_seen', '=', 5]],
             **common_args
         )
 
         self.make_query(
-            search_filter_query='age:>%s foo' % date_to_query_format(timezone.now()),
+            search_filter_query='age:>=%s foo' % date_to_query_format(timezone.now()),
             query='foo',
             age_from=timezone.now(),
             sort_by='new',
@@ -1079,7 +1079,7 @@ class SnubaSearchTest(SnubaTestCase):
                 ['toUInt64(min(timestamp)) * 1000', '', 'first_seen'],
                 ['uniq', 'issue', 'total'],
             ],
-            having=[('first_seen', '>=', Any(int))],
+            having=[['first_seen', '>=', Any(int)]],
             **common_args
         )
 
@@ -1256,110 +1256,64 @@ class SnubaSearchTest(SnubaTestCase):
         )
         assert set(results) == set([self.group1])
 
+    def test_query_enclosed_in_quotes(self):
+        results = self.make_query(search_filter_query='"foo"', query='"foo"')
+        assert set(results) == set([self.group1])
 
-class SnubaSearchBackendWithSearchFiltersTest(SnubaSearchTest):
-    use_new_filters = True
+        results = self.make_query(search_filter_query='"bar"', query='"bar"')
+        assert set(results) == set([self.group2])
 
-    @mock.patch('sentry.utils.snuba.raw_query')
-    def test_optimized_aggregates(self, query_mock):
-        # TODO this test is annoyingly fragile and breaks in hard-to-see ways
-        # any time anything about the snuba query changes
-        # XXX: Copy/pasting this because the query changes differently depending
-        # on whether we're using the new search filters or not.
-        query_mock.return_value = {'data': [], 'totals': {'total': 0}}
-
-        def Any(cls):
-            class Any(object):
-                def __eq__(self, other):
-                    return isinstance(other, cls)
-            return Any()
-
-        DEFAULT_LIMIT = 100
-        chunk_growth = options.get('snuba.search.chunk-growth-rate')
-        limit = int(DEFAULT_LIMIT * chunk_growth)
-
-        common_args = {
-            'start': Any(datetime),
-            'end': Any(datetime),
-            'filter_keys': {
-                'project_id': [self.project.id],
-                'issue': [self.group1.id]
+    @xfail_if_not_postgres('Wildcard searching only supported in Postgres')
+    def test_wildcard(self):
+        escaped_event = self.store_event(
+            data={
+                'fingerprint': ['hello-there'],
+                'event_id': 'f' * 32,
+                'message': 'somet[hing]',
+                'environment': 'production',
+                'tags': {
+                    'server': 'example.com',
+                },
+                'timestamp': self.base_datetime.isoformat()[:19],
+                'stacktrace': {
+                    'frames': [{
+                        'module': 'group1'
+                    }]
+                },
             },
-            'referrer': 'search',
-            'groupby': ['issue'],
-            'conditions': [[['positionCaseInsensitive', ['message', "'foo'"]], '!=', 0]],
-            'selected_columns': [],
-            'limit': limit,
-            'offset': 0,
-            'totals': True,
-            'turbo': False,
-            'sample': 1,
-        }
-
-        self.make_query(query='foo', search_filter_query='foo')
-        assert not query_mock.called
-
-        self.make_query(
-            search_filter_query='last_seen:>=%s foo' % date_to_query_format(timezone.now()),
-            query='foo',
-            last_seen_from=timezone.now(),
-            sort_by='date',
+            project_id=self.project.id,
         )
-        assert query_mock.call_args == mock.call(
-            orderby=['-last_seen', 'issue'],
-            aggregations=[
-                ['uniq', 'issue', 'total'],
-                ['toUInt64(max(timestamp)) * 1000', '', 'last_seen']
-            ],
-            having=[['last_seen', '>=', Any(int)]],
-            **common_args
+        # Note: Adding in `environment:production` so that we make sure we query
+        # in both snuba and postgres
+        results = self.make_query(
+            search_filter_query='environment:production so*t',
         )
-
-        self.make_query(
-            search_filter_query='foo',
-            query='foo',
-            sort_by='priority',
+        assert set(results) == set([escaped_event.group])
+        # Make sure it's case insensitive
+        results = self.make_query(
+            search_filter_query='environment:production SO*t',
         )
-        assert query_mock.call_args == mock.call(
-            orderby=['-priority', 'issue'],
-            aggregations=[
-                ['(toUInt64(log(times_seen) * 600)) + last_seen', '', 'priority'],
-                ['count()', '', 'times_seen'],
-                ['uniq', 'issue', 'total'],
-                ['toUInt64(max(timestamp)) * 1000', '', 'last_seen']
-            ],
-            having=[],
-            **common_args
+        assert set(results) == set([escaped_event.group])
+        results = self.make_query(
+            search_filter_query='environment:production so*zz',
         )
-
-        self.make_query(
-            search_filter_query='times_seen:5 foo',
-            query='foo',
-            times_seen=5,
-            sort_by='freq',
+        assert set(results) == set()
+        results = self.make_query(
+            search_filter_query='environment:production [hing]',
         )
-        assert query_mock.call_args == mock.call(
-            orderby=['-times_seen', 'issue'],
-            aggregations=[
-                ['count()', '', 'times_seen'],
-                ['uniq', 'issue', 'total'],
-            ],
-            having=[['times_seen', '=', 5]],
-            **common_args
+        assert set(results) == set([escaped_event.group])
+        results = self.make_query(
+            search_filter_query='environment:production s*]',
         )
-
-        self.make_query(
-            search_filter_query='age:>=%s foo' % date_to_query_format(timezone.now()),
-            query='foo',
-            age_from=timezone.now(),
-            sort_by='new',
-        )
-        assert query_mock.call_args == mock.call(
-            orderby=['-first_seen', 'issue'],
-            aggregations=[
-                ['toUInt64(min(timestamp)) * 1000', '', 'first_seen'],
-                ['uniq', 'issue', 'total'],
-            ],
-            having=[['first_seen', '>=', Any(int)]],
-            **common_args
-        )
+        assert set(results) == set([escaped_event.group])
+        # TODO: Disabling tests that use [] syntax for the moment. Re-enable
+        # these if we decide to add back in, or remove if this comment has been
+        # here a while.
+        # results = self.make_query(
+        #     search_filter_query='environment:production [s][of][mz]',
+        # )
+        # assert set(results) == set([escaped_event.group])
+        # results = self.make_query(
+        #     search_filter_query='environment:production [z][of][mz]',
+        # )
+        # assert set(results) == set()

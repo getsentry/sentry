@@ -24,7 +24,7 @@ from sentry.search.django.constants import (
     SQLITE_SORT_CLAUSES
 )
 from sentry.utils.dates import to_timestamp
-from sentry.utils.db import get_db_engine
+from sentry.utils.db import get_db_engine, is_postgres
 
 
 class QuerySetBuilder(object):
@@ -105,18 +105,10 @@ class CallbackCondition(Condition):
 
 
 class QCallbackCondition(Condition):
-    def __init__(self, callback, skip_if_falsey=False):
-        """
-        :param skip_if_falsey: Skip the condition entirely if the provided
-        value evaluates to False
-        """
+    def __init__(self, callback):
         self.callback = callback
-        self.skip_if_falsey = skip_if_falsey
 
     def apply(self, queryset, value, search_filter=None):
-        if self.skip_if_falsey and not value:
-            return queryset
-
         q = self.callback(value)
         # TODO: Once we're entirely using search filters we can just pass them
         # in and not have this check. This is to support the old style search
@@ -304,10 +296,23 @@ def unassigned_filter(unassigned, projects):
     return query
 
 
+def message_regex_filter(queryset, message):
+    operator = ('!' if message.operator == '!=' else '') + '~*'
+
+    # XXX: We translate these to a regex like '^<pattern>$'. Since we want to
+    # search anywhere in the string, drop those characters.
+    message_value = message.value.value[1:-1]
+
+    return queryset.extra(
+        where=['message {0} %s OR view {0} %s'.format(operator)],
+        params=[message_value, message_value],
+    )
+
+
 class DjangoSearchBackend(SearchBackend):
     def query(self, projects, tags=None, environments=None, sort_by='date', limit=100,
               cursor=None, count_hits=False, paginator_options=None, search_filters=None,
-              use_new_filters=False, **parameters):
+              **parameters):
 
         from sentry.models import Group, GroupStatus, GroupSubscription
 
@@ -329,27 +334,7 @@ class DjangoSearchBackend(SearchBackend):
             GroupStatus.PENDING_MERGE,
         ])
 
-        if use_new_filters:
-            query_set_builder_class = SearchFilterQuerySetBuilder
-            query_set_builder_params = search_filters
-        else:
-            query_set_builder_class = NewQuerySetBuilder
-            query_set_builder_params = parameters
-
-        group_queryset = query_set_builder_class({
-            'message': QCallbackCondition(
-                lambda query: Q(
-                    Q(message__icontains=query) | Q(culprit__icontains=query),
-                ),
-                skip_if_falsey=True,
-            ),
-            # TODO: Remove this once we've stopped using old params
-            'query': QCallbackCondition(
-                lambda query: Q(
-                    Q(message__icontains=query) | Q(culprit__icontains=query),
-                ),
-                skip_if_falsey=True,
-            ),
+        qs_builder_conditions = {
             'status': QCallbackCondition(
                 lambda status: Q(status=status),
             ),
@@ -375,13 +360,29 @@ class DjangoSearchBackend(SearchBackend):
                 ),
             ),
             'active_at': SearchFilterScalarCondition('active_at'),
-            # TODO: These are legacy params. Once we've moved to SearchFilter
-            # entirely then they can be removed, since the `'active_at'`
-            # condition will handle both
-            'active_at_from': ScalarCondition('active_at', 'gt'),
-            'active_at_to': ScalarCondition('active_at', 'lt'),
-        }).build(group_queryset, query_set_builder_params)
+        }
 
+        message = [
+            search_filter for search_filter in search_filters
+            if search_filter.key.name == 'message'
+        ]
+        if message and message[0].value.raw_value:
+            message = message[0]
+            # We only support full wildcard matching in postgres
+            if is_postgres() and message.value.is_wildcard():
+                group_queryset = message_regex_filter(group_queryset, message)
+            else:
+                # Otherwise, use the standard LIKE query
+                qs_builder_conditions['message'] = QCallbackCondition(
+                    lambda message: Q(
+                        Q(message__icontains=message) | Q(culprit__icontains=message),
+                    ),
+                )
+
+        group_queryset = SearchFilterQuerySetBuilder(qs_builder_conditions).build(
+            group_queryset,
+            search_filters,
+        )
         # filter out groups which are beyond the retention period
         retention = quotas.get_event_retention(organization=projects[0].organization)
         if retention:
@@ -400,12 +401,11 @@ class DjangoSearchBackend(SearchBackend):
         # actual backend.
         return self._query(projects, retention_window_start, group_queryset, tags,
                            environments, sort_by, limit, cursor, count_hits,
-                           paginator_options, search_filters, use_new_filters,
-                           **parameters)
+                           paginator_options, search_filters, **parameters)
 
     def _query(self, projects, retention_window_start, group_queryset, tags, environments,
                sort_by, limit, cursor, count_hits, paginator_options, search_filters,
-               use_new_filters, **parameters):
+               **parameters):
 
         from sentry.models import (Group, Event, GroupEnvironment, Release)
 

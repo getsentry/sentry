@@ -45,34 +45,6 @@ describe('ProcessingIssueList', function() {
     });
   });
 
-  describe('componentDidMount project prop', function() {
-    let instance, fetchRequest, project;
-
-    beforeEach(async function() {
-      fetchRequest = MockApiClient.addMockResponse({
-        url: '/projects/org-slug/project-slug/processingissues/',
-        method: 'GET',
-        body: {
-          numIssues: 1,
-          hasIssues: true,
-          lastSeen: '2019-01-16T15:39:11.081Z',
-        },
-      });
-      project = TestStubs.Project();
-      wrapper = shallow(
-        <ProcessingIssueList organization={organization} project={project} />
-      );
-      instance = wrapper.instance();
-      await instance.componentDidMount();
-    });
-
-    it('fetches issues', function() {
-      expect(instance.state.issues).toBeTruthy();
-      expect(instance.state.issues[0].project).toEqual(project.slug);
-      expect(fetchRequest).toHaveBeenCalled();
-    });
-  });
-
   describe('render', function() {
     beforeEach(async function() {
       wrapper = shallow(

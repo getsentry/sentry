@@ -10,6 +10,7 @@ import {getStateFromQuery} from 'app/components/organizations/globalSelectionHea
 import {DEFAULT_STATS_PERIOD} from 'app/constants';
 import {isEqualWithDates} from 'app/utils/isEqualWithDates';
 import ConfigStore from 'app/stores/configStore';
+import OrganizationsStore from 'app/stores/organizationsStore';
 import GlobalSelectionActions from 'app/actions/globalSelectionActions';
 import localStorage from 'app/utils/localStorage';
 
@@ -139,10 +140,14 @@ const GlobalSelectionStore = Reflux.createStore({
   },
 
   updateLocalStorage() {
+    // Do nothing if no org is loaded or user is not an org member. Only
+    // organizations that a user has membership in will be available via the
+    // organizations store
+    if (!this.organization || !OrganizationsStore.get(this.organization.slug)) {
+      return;
+    }
+
     try {
-      if (!this.organization) {
-        throw new Error('No organization loaded');
-      }
       const localStorageKey = `${LOCAL_STORAGE_KEY}:${this.organization.slug}`;
       localStorage.setItem(localStorageKey, JSON.stringify(this.selection));
     } catch (ex) {

@@ -18,8 +18,7 @@ from django.utils.encoding import force_text
 
 from sentry import buffer, eventtypes, eventstream, features, tagstore, tsdb, filters
 from sentry.constants import (
-    LOG_LEVELS, LOG_LEVELS_MAP, MAX_CULPRIT_LENGTH, VALID_PLATFORMS,
-    MAX_TAG_VALUE_LENGTH,
+    LOG_LEVELS, LOG_LEVELS_MAP, VALID_PLATFORMS, MAX_TAG_VALUE_LENGTH,
 )
 from sentry.coreapi import (
     APIError,
@@ -52,11 +51,11 @@ from sentry.utils.data_filters import (
 from sentry.utils.dates import to_timestamp
 from sentry.utils.db import is_postgres, is_mysql
 from sentry.utils.safe import safe_execute, trim, get_path, setdefault_path
-from sentry.utils.strings import truncatechars
 from sentry.utils.geo import rust_geoip
 from sentry.utils.validators import is_float
 from sentry.utils.contexts_normalization import normalize_user_agent
 from sentry.stacktraces import normalize_in_app
+from sentry.culprit import generate_culprit
 
 
 logger = logging.getLogger("sentry.events")
@@ -86,18 +85,6 @@ def get_tag(data, key):
     for k, v in get_path(data, 'tags', filter=True):
         if k == key:
             return v
-
-
-def get_event_metadata_compat(data, fallback_message):
-    """This is a fallback path to getting the event metadata.  This is used
-    by some code paths that could potentially deal with old sentry events that
-    do not have metadata yet.  This does not happen in practice any more but
-    the testsuite was never adapted so the tests hit this code path constantly.
-    """
-    etype = data.get('type') or 'default'
-    if 'metadata' not in data:
-        return eventtypes.get(etype)(data).get_metadata()
-    return data['metadata']
 
 
 def count_limit(count):
@@ -145,31 +132,6 @@ else:
             return False
 
         return True
-
-
-def generate_culprit(data, platform=None):
-    exceptions = get_path(data, 'exception', 'values')
-    if exceptions:
-        stacktraces = [e['stacktrace'] for e in exceptions if get_path(e, 'stacktrace', 'frames')]
-    else:
-        stacktrace = data.get('stacktrace')
-        if stacktrace and stacktrace.get('frames'):
-            stacktraces = [stacktrace]
-        else:
-            stacktraces = None
-
-    culprit = None
-
-    if not culprit and stacktraces:
-        from sentry.interfaces.stacktrace import Stacktrace
-        culprit = Stacktrace.to_python(stacktraces[-1]).get_culprit_string(
-            platform=platform,
-        )
-
-    if not culprit and data.get('request'):
-        culprit = get_path(data, 'request', 'url')
-
-    return truncatechars(culprit or '', MAX_CULPRIT_LENGTH)
 
 
 def plugin_is_regression(group, event):
@@ -557,13 +519,28 @@ class EventManager(object):
         return force_text(
             self._data.get('culprit') or
             self._data.get('transaction') or
-            generate_culprit(self._data, platform=self._data['platform']) or
+            generate_culprit(self._data) or
             ''
         )
 
     def get_event_type(self):
         """Returns the event type."""
-        return eventtypes.get(self._data.get('type', 'default'))(self._data)
+        return eventtypes.get(self._data.get('type', 'default'))()
+
+    def materialize_metadata(self):
+        """Returns the materialized metadata to be merged with group or
+        event data.  This currently produces the keys `type`, `metadata`,
+        `title` and `location`.  This should most likely also produce
+        `culprit` here.
+        """
+        event_type = self.get_event_type()
+        event_metadata = event_type.get_metadata(self._data)
+        return {
+            'type': event_type.key,
+            'metadata': event_metadata,
+            'title': event_type.get_title(event_metadata),
+            'location': event_type.get_location(event_metadata),
+        }
 
     def get_search_message(self, event_metadata=None, culprit=None):
         """This generates the internal event.message attribute which is used
@@ -571,7 +548,7 @@ class EventManager(object):
         the culprit.
         """
         if event_metadata is None:
-            event_metadata = self.get_event_type().get_metadata()
+            event_metadata = self.get_event_type().get_metadata(self._data)
         if culprit is None:
             culprit = self.get_culprit()
 
@@ -728,10 +705,6 @@ class EventManager(object):
         data['fingerprint'] = fingerprint
 
         hashes = event.get_hashes()
-
-        event_type = self.get_event_type()
-        event_metadata = event_type.get_metadata()
-
         data['hashes'] = hashes
 
         # we want to freeze not just the metadata and type in but also the
@@ -740,17 +713,21 @@ class EventManager(object):
         # picks up the data right from the snuba topic.  For most usage
         # however the data is dynamically overriden by Event.title and
         # Event.location (See Event.as_dict)
-        data['type'] = event_type.key
-        data['metadata'] = event_metadata
+        materialized_metadata = self.materialize_metadata()
+        event_metadata = materialized_metadata['metadata']
+        data.update(materialized_metadata)
         data['culprit'] = culprit
-        data['title'] = event_type.to_string(event_metadata)
-        data['location'] = event_type.get_location(event_metadata)
 
         # index components into ``Event.message``
         # See GH-3248
         event.message = self.get_search_message(event_metadata, culprit)
         received_timestamp = event.data.get('received') or float(event.datetime.strftime('%s'))
 
+        # The group gets the same metadata as the event when it's flushed but
+        # additionally the `last_received` key is set.  This key is used by
+        # _save_aggregate.
+        group_metadata = dict(materialized_metadata)
+        group_metadata['last_received'] = received_timestamp
         kwargs = {
             'platform': platform,
             'message': event.message,
@@ -760,13 +737,7 @@ class EventManager(object):
             'last_seen': date,
             'first_seen': date,
             'active_at': date,
-            'data': {
-                'last_received': received_timestamp,
-                'type': event_type.key,
-                # we cache the events metadata on the group to ensure its
-                # accessible in the stream
-                'metadata': event_metadata,
-            },
+            'data': group_metadata,
         }
 
         if release:

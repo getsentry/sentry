@@ -19,12 +19,11 @@ from sentry.search.utils import (
 from sentry.utils.dates import to_timestamp
 from sentry.utils.snuba import SENTRY_SNUBA_MAP
 
-WILDCARD_CHARS = re.compile(r'[\*\[\]\?]')
+WILDCARD_CHARS = re.compile(r'[\*]')
 
 
 def translate(pat):
     """Translate a shell PATTERN to a regular expression.
-    There is no way to quote meta-characters.
     modified from: https://github.com/python/cpython/blob/2.7/Lib/fnmatch.py#L85
     """
 
@@ -33,28 +32,37 @@ def translate(pat):
     while i < n:
         c = pat[i]
         i = i + 1
-        if c == '*':
+        # fnmatch.translate has no way to handle escaping metacharacters.
+        # Applied this basic patch to handle it:
+        # https://bugs.python.org/file27570/issue8402.1.patch
+        if c == '\\':
+            res += re.escape(pat[i])
+            i += 1
+        elif c == '*':
             res = res + '.*'
-        elif c == '?':
-            res = res + '.'
-        elif c == '[':
-            j = i
-            if j < n and pat[j] == '!':
-                j = j + 1
-            if j < n and pat[j] == ']':
-                j = j + 1
-            while j < n and pat[j] != ']':
-                j = j + 1
-            if j >= n:
-                res = res + '\\['
-            else:
-                stuff = pat[i:j].replace('\\', '\\\\')
-                i = j + 1
-                if stuff[0] == '!':
-                    stuff = '^' + stuff[1:]
-                elif stuff[0] == '^':
-                    stuff = '\\' + stuff
-                res = '%s[%s]' % (res, stuff)
+        # TODO: We're disabling everything except for wildcard matching for the
+        # moment. Just commenting this code out for the moment, since there's a
+        # reasonable chance we'll add this back in in the future.
+        # elif c == '?':
+        #     res = res + '.'
+        # elif c == '[':
+        #     j = i
+        #     if j < n and pat[j] == '!':
+        #         j = j + 1
+        #     if j < n and pat[j] == ']':
+        #         j = j + 1
+        #     while j < n and pat[j] != ']':
+        #         j = j + 1
+        #     if j >= n:
+        #         res = res + '\\['
+        #     else:
+        #         stuff = pat[i:j].replace('\\', '\\\\')
+        #         i = j + 1
+        #         if stuff[0] == '!':
+        #             stuff = '^' + stuff[1:]
+        #         elif stuff[0] == '^':
+        #             stuff = '\\' + stuff
+        #         res = '%s[%s]' % (res, stuff)
         else:
             res = res + re.escape(c)
     return '^' + res + '$'
@@ -142,6 +150,16 @@ class SearchFilter(namedtuple('SearchFilter', 'key operator value')):
             map(six.text_type, (self.key.name, self.operator, self.value.raw_value)),
         )
 
+    @cached_property
+    def is_negation(self):
+        # Negations are mostly just using != operators. But we also have
+        # negations on has: filters, which translate to = '', so handle that
+        # case as well.
+        return (
+            self.operator == '!=' and self.value.raw_value != ''
+            or self.operator == '=' and self.value.raw_value == ''
+        )
+
 
 class SearchKey(namedtuple('SearchKey', 'name')):
 
@@ -212,53 +230,47 @@ class SearchVisitor(NodeVisitor):
         return search_term[0]
 
     def visit_raw_search(self, node, children):
+        value = node.text
+
+        while value.startswith('"') and value.endswith('"') and value != '"':
+            value = value[1:-1]
+
+        if not value:
+            return None
+
         return SearchFilter(
             SearchKey('message'),
             "=",
-            SearchValue(node.text),
+            SearchValue(value),
         )
 
-    def visit_numeric_filter(self, node, children):
-        search_key, _, operator, search_value = children
+    def visit_numeric_filter(self, node, (search_key, _, operator, search_value)):
         operator = operator[0] if not isinstance(operator, Node) else '='
 
         if search_key.name in self.numeric_keys:
             try:
-                search_value = int(search_value.text)
+                search_value = SearchValue(int(search_value.text))
             except ValueError:
                 raise InvalidSearchQuery('Invalid numeric query: %s' % (search_key,))
+            return SearchFilter(search_key, operator, search_value)
         else:
-            search_value = operator + search_value.text if operator != '=' else search_value.text
-            operator = '='
+            search_value = SearchValue(
+                operator + search_value.text if operator != '=' else search_value.text,
+            )
+            return self._handle_basic_filter(search_key, '=', search_value)
 
-        return SearchFilter(
-            search_key,
-            operator,
-            SearchValue(search_value),
-        )
-
-    def visit_time_filter(self, node, children):
-        search_key, _, operator, search_value = children
+    def visit_time_filter(self, node, (search_key, _, operator, search_value)):
         if search_key.name in self.date_keys:
             try:
                 search_value = parse_datetime_string(search_value)
             except InvalidQuery as exc:
                 raise InvalidSearchQuery(exc.message)
+            return SearchFilter(search_key, operator, SearchValue(search_value))
         else:
             search_value = operator + search_value if operator != '=' else search_value
-            operator = '='
+            return self._handle_basic_filter(search_key, '=', SearchValue(search_value))
 
-        try:
-            return SearchFilter(
-                search_key,
-                operator,
-                SearchValue(search_value),
-            )
-        except KeyError:
-            raise InvalidSearchQuery('Unsupported search term: %s' % (search_key,))
-
-    def visit_rel_time_filter(self, node, children):
-        search_key, _, value = children
+    def visit_rel_time_filter(self, node, (search_key, _, value)):
         if search_key.name in self.date_keys:
             try:
                 from_val, to_val = parse_datetime_range(value.text)
@@ -272,28 +284,16 @@ class SearchVisitor(NodeVisitor):
             else:
                 operator = '<='
                 search_value = to_val[0]
+            return SearchFilter(search_key, operator, SearchValue(search_value))
         else:
-            operator = '='
-            search_value = value.text
+            return self._handle_basic_filter(search_key, '=', SearchValue(value.text))
 
-        return SearchFilter(
-            search_key,
-            operator,
-            SearchValue(search_value),
-        )
-
-    def visit_specific_time_filter(self, node, children):
-        # Note that this is a behaviour implemented for dates in our current
-        # searches. If we specify a specific date, it means any event on that
-        # day, and if we specify a specific datetime then it means a few minutes
-        # interval on either side of that datetime
-        search_key, _, date_value = children
+    def visit_specific_time_filter(self, node, (search_key, _, date_value)):
+        # If we specify a specific date, it means any event on that day, and if
+        # we specify a specific datetime then it means a few minutes interval
+        # on either side of that datetime
         if search_key.name not in self.date_keys:
-            return SearchFilter(
-                search_key,
-                '=',
-                SearchValue(date_value),
-            )
+            return self._handle_basic_filter(search_key, '=', SearchValue(date_value))
 
         try:
             from_val, to_val = parse_datetime_value(date_value)
@@ -331,9 +331,17 @@ class SearchVisitor(NodeVisitor):
 
         return node.text == '!'
 
-    def visit_basic_filter(self, node, children):
-        negation, search_key, _, search_value = children
+    def visit_basic_filter(self, node, (negation, search_key, _, search_value)):
         operator = '!=' if self.is_negated(negation) else '='
+        return self._handle_basic_filter(search_key, operator, search_value)
+
+    def _handle_basic_filter(self, search_key, operator, search_value):
+        # If a date or numeric key gets down to the basic filter, then it means
+        # that the value wasn't in a valid format, so raise here.
+        if search_key.name in self.date_keys:
+            raise InvalidSearchQuery('Invalid format for date search')
+        if search_key.name in self.numeric_keys:
+            raise InvalidSearchQuery('Invalid format for numeric search')
 
         return SearchFilter(search_key, operator, search_value)
 
@@ -417,12 +425,19 @@ def convert_search_filter_to_snuba_query(search_filter):
         return env_conditions
 
     elif snuba_name == 'message':
-        # https://clickhouse.yandex/docs/en/query_language/functions/string_search_functions/#position-haystack-needle
-        # positionCaseInsensitive returns 0 if not found and an index of 1 or more if found
-        # so we should flip the operator here
-        operator = '=' if search_filter.operator == '!=' else '!='
-        # make message search case insensitive
-        return [['positionCaseInsensitive', ['message', "'%s'" % (value,)]], operator, 0]
+        if search_filter.value.is_wildcard():
+            # XXX: We don't want the '^$' values at the beginning and end of
+            # the regex since we want to find the pattern anywhere in the
+            # message. Strip off here
+            value = search_filter.value.value[1:-1]
+            return [['match', ['message', "'(?i)%s'" % (value,)]], search_filter.operator, 1]
+        else:
+            # https://clickhouse.yandex/docs/en/query_language/functions/string_search_functions/#position-haystack-needle
+            # positionCaseInsensitive returns 0 if not found and an index of 1 or more if found
+            # so we should flip the operator here
+            operator = '=' if search_filter.operator == '!=' else '!='
+            # make message search case insensitive
+            return [['positionCaseInsensitive', ['message', "'%s'" % (value,)]], operator, 0]
 
     else:
         value = int(to_timestamp(value)) * 1000 if isinstance(value,
@@ -439,7 +454,7 @@ def convert_search_filter_to_snuba_query(search_filter):
             snuba_name = ['ifNull', [snuba_name, "''"]]
 
         if search_filter.value.is_wildcard():
-            return [['match', [snuba_name, "'%s'" % (value,)]], search_filter.operator, 1]
+            return [['match', [snuba_name, "'(?i)%s'" % (value,)]], search_filter.operator, 1]
         else:
             return [snuba_name, search_filter.operator, value]
 

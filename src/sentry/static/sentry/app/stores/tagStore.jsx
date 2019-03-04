@@ -90,6 +90,7 @@ const TagStore = Reflux.createStore({
         predefined: true,
       },
     };
+
     this.trigger(this.tags);
   },
 

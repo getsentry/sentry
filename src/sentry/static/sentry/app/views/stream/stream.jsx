@@ -676,6 +676,13 @@ const Stream = createReactClass({
     const projectFeatures = this.getProjectFeatures();
     const project = this.getProject();
 
+    // for compatibility with new filters/stream component
+    const selection = {
+      projects: [project.id],
+      environments: this.state.environment ? [this.state.environment.name] : [],
+      datetime: {start: null, end: null, period: null, utc: null},
+    };
+
     return (
       <div className={classNames(classes)}>
         <div className="stream-content">
@@ -701,6 +708,7 @@ const Stream = createReactClass({
             <StreamActions
               orgId={params.orgId}
               projectId={params.projectId}
+              selection={selection}
               hasReleases={projectFeatures.has('releases')}
               latestRelease={this.context.project.latestRelease}
               environment={this.state.environment}
@@ -714,7 +722,10 @@ const Stream = createReactClass({
               allResultsVisible={this.allResultsVisible()}
             />
             <PanelBody>
-              <ProcessingIssueList organization={organization} project={project} />
+              <ProcessingIssueList
+                organization={organization}
+                projectIds={selection.projects}
+              />
               {this.renderStreamBody()}
             </PanelBody>
           </Panel>

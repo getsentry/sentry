@@ -9,7 +9,10 @@ from django.conf import settings
 from django.template.loader import render_to_string
 from exam import fixture
 
-from sentry.interfaces.stacktrace import (Frame, Stacktrace, get_context, is_url, slim_frame_data)
+from sentry.interfaces.stacktrace import (
+    Frame, Stacktrace, get_context, is_url, slim_frame_data,
+    trim_function_name
+)
 from sentry.models import Event
 from sentry.testutils import TestCase
 
@@ -23,6 +26,16 @@ def test_is_url():
     assert is_url('webpack:///./app/index.jsx') is False  # webpack bundle
     assert is_url('data:,') is False
     assert is_url('blob:\x00') is False
+
+
+def test_trim_function_name():
+    assert trim_function_name('+[foo:(bar)]', 'objc') == '+[foo:(bar)]'
+    assert trim_function_name('[foo:(bar)]', 'objc') == '[foo:(bar)]'
+    assert trim_function_name('-[foo:(bar)]', 'objc') == '-[foo:(bar)]'
+    assert trim_function_name(
+        '(anonymous namespace)::foo(int)',
+        'native') == '(anonymous namespace)::foo'
+    assert trim_function_name('foo::bar::foo(int)', 'native') == 'foo::bar::foo'
 
 
 class GetContextTest(TestCase):
@@ -154,10 +167,16 @@ class StacktraceTest(TestCase):
         )
 
         result = interface.compute_hashes()
-        assert result == [
+        assert sorted(result) == sorted([
             ['foo.py', 1, 'bar.py', 1],
             ['foo.py', 1],
-        ]
+        ])
+
+        result = interface.get_hashes()
+        assert result == {
+            'system': ['foo.py', 1, 'bar.py', 1],
+            'app': ['foo.py', 1],
+        }
 
     def test_compute_hashes(self):
         interface = Stacktrace.to_python(
@@ -175,8 +194,15 @@ class StacktraceTest(TestCase):
                 ]
             )
         )
+
         result = interface.compute_hashes('python')
-        assert result == [['a/foo.py', 1, 'a/bar.py', 1], ['a/foo.py', 1]]
+        assert sorted(result) == sorted([['a/foo.py', 1, 'a/bar.py', 1], ['a/foo.py', 1]])
+
+        result = interface.get_hashes('python')
+        assert result == {
+            'system': ['a/foo.py', 1, 'a/bar.py', 1],
+            'app': ['a/foo.py', 1],
+        }
 
     def test_compute_hashes_cocoa(self):
         interface = Stacktrace.to_python(
@@ -195,7 +221,7 @@ class StacktraceTest(TestCase):
             )
         )
         result = interface.compute_hashes('cocoa')
-        assert result == [['bar.m', 1, 'baz.m', 1], ['bar.m', 1]]
+        assert sorted(result) == sorted([['bar.m', 1, 'baz.m', 1], ['bar.m', 1]])
 
     def test_compute_hashes_with_minimal_app_frames(self):
         frames = [{
@@ -720,64 +746,6 @@ class StacktraceTest(TestCase):
         )
         result = interface.compute_hashes()
         self.assertEquals(result, [])
-
-    def test_cocoa_culprit(self):
-        stacktrace = Stacktrace.to_python(
-            dict(
-                frames=[
-                    {
-                        'filename': 'foo/baz.c',
-                        'package': '/foo/bar/baz.dylib',
-                        'lineno': 1,
-                        'in_app': True,
-                        'function': '-[CRLCrashAsyncSafeThread crash]',
-                    }
-                ]
-            )
-        )
-        assert stacktrace.get_culprit_string(platform='cocoa') == '-[CRLCrashAsyncSafeThread crash]'
-
-    def test_emoji_culprit(self):
-        stacktrace = Stacktrace.to_python(
-            dict(
-                frames=[
-                    {
-                        'filename': 'foo/baz.c',
-                        'package': '/foo/bar/baz.dylib',
-                        'module': u'\U0001f62d',
-                        'lineno': 1,
-                        'in_app': True,
-                        'function': u'\U0001f60d',
-                    }
-                ]
-            )
-        )
-        assert stacktrace.get_culprit_string(platform='javascript') == u'\U0001f60d(\U0001f62d)'
-
-    def test_cocoa_strict_stacktrace(self):
-        stacktrace = Stacktrace.to_python(
-            dict(
-                frames=[
-                    {
-                        'filename': 'foo/baz.c',
-                        'package': '/foo/bar/libswiftCore.dylib',
-                        'lineno': 1,
-                        'in_app': False,
-                        'function': 'fooBar',
-                    }, {
-                        'package': '/foo/bar/MyApp',
-                        'in_app': True,
-                        'function': 'fooBar2',
-                    }, {
-                        'filename': 'Mycontroller.swift',
-                        'package': '/foo/bar/MyApp',
-                        'in_app': True,
-                        'function': '-[CRLCrashAsyncSafeThread crash]',
-                    }
-                ]
-            )
-        )
-        assert stacktrace.get_culprit_string(platform='cocoa') == '-[CRLCrashAsyncSafeThread crash]'
 
     def test_compute_hashes_does_not_group_different_js_errors(self):
         interface = Stacktrace.to_python(

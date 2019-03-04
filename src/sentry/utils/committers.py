@@ -198,8 +198,14 @@ def get_event_file_committers(project, event, frame_limit=25):
     # file paths.
     if event.platform == 'java':
         for frame in frames:
+            if frame.get('filename') is None:
+                continue
             if '/' not in frame.get('filename') and frame.get('module'):
-                frame['filename'] = frame['module'].replace('.', '/') + '/' + frame['filename']
+                # Replace the last module segment with the filename, as the
+                # terminal element in a module path is the class
+                module = frame['module'].split('.')
+                module[-1] = frame['filename']
+                frame['filename'] = '/'.join(module)
 
     # TODO(maxbittker) return this set instead of annotated frames
     # XXX(dcramer): frames may not define a filepath. For example, in Java its common

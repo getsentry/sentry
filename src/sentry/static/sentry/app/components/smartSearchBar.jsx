@@ -301,7 +301,8 @@ class SmartSearchBar extends React.Component {
 
     if (index === -1) {
       // No colon present; must still be deciding key
-      matchValue = last;
+      matchValue = last.replace(new RegExp(`^${NEGATION_OPERATOR}`), '');
+
       autoCompleteItems = this.getTagKeys(matchValue);
 
       this.setState({searchTerm: matchValue});

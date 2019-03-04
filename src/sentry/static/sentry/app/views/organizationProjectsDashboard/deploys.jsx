@@ -1,5 +1,4 @@
 import React from 'react';
-import PropTypes from 'prop-types';
 import styled from 'react-emotion';
 import {Flex, Box} from 'grid-emotion';
 import moment from 'moment-timezone';
@@ -16,14 +15,12 @@ const DEPLOY_COUNT = 2;
 
 export default class Deploys extends React.Component {
   static propTypes = {
-    project: SentryTypes.Project,
-    orgId: PropTypes.string,
+    project: SentryTypes.Project.isRequired,
+    organization: SentryTypes.Organization.isRequired,
   };
 
   render() {
-    const {project, orgId} = this.props;
-
-    const projectId = project.slug;
+    const {project, organization} = this.props;
 
     const flattenedDeploys = Object.entries(
       project.latestDeploys || {}
@@ -42,8 +39,8 @@ export default class Deploys extends React.Component {
             <Deploy
               key={deploy.version}
               deploy={deploy}
-              projectId={projectId}
-              orgId={orgId}
+              project={project}
+              organization={organization}
             />
           ))}
         </DeployBox>
@@ -57,17 +54,26 @@ export default class Deploys extends React.Component {
 class Deploy extends React.Component {
   static propTypes = {
     deploy: SentryTypes.Deploy.isRequired,
-    projectId: PropTypes.string.isRequired,
-    orgId: PropTypes.string.isRequired,
+    project: SentryTypes.Project.isRequired,
+    organization: SentryTypes.Organization.isRequired,
   };
 
   render() {
-    const {deploy, orgId, projectId} = this.props;
+    const {deploy, organization, project} = this.props;
+
+    const hasSentry10 = new Set(organization.features).has('sentry10');
+
     return (
       <DeployRow justify="space-between">
         <Environment>{deploy.environment}</Environment>
         <Version>
-          <StyledLink to={`/${orgId}/${projectId}/releases/${deploy.version}/`}>
+          <StyledLink
+            to={
+              hasSentry10
+                ? `/organizations/${organization.slug}/releases/${deploy.version}/?project=${project.id}`
+                : `/${organization.slug}/${project.slug}/releases/${deploy.version}/`
+            }
+          >
             {getShortVersion(deploy.version)}
           </StyledLink>
         </Version>

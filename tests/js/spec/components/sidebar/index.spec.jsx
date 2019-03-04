@@ -293,7 +293,7 @@ describe('Sidebar', function() {
       wrapper.setProps({organization: sentry10Org});
       wrapper.update();
       const labels = wrapper.find('SidebarItemLabel').map(node => node.text());
-      expect(labels).toHaveLength(9);
+      expect(labels).toHaveLength(10);
       expect(labels).not.toContain('Assigned to me');
       expect(labels).not.toContain('Bookmarked issues');
       expect(labels).not.toContain('Recently viewed');

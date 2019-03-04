@@ -23,7 +23,7 @@ from sentry import buffer, roles, tsdb
 from sentry.event_manager import HashDiscarded
 from sentry.models import (
     Activity, Broadcast, Commit, CommitAuthor, CommitFileChange, Deploy, EventAttachment, Event,
-    Environment, File, Group, GroupMeta, GroupRelease, GroupTombstone, Organization,
+    Environment, File, Group, GroupRelease, GroupTombstone, Organization,
     OrganizationAccessRequest, OrganizationMember, Project, Release,
     ReleaseCommit, ReleaseEnvironment, ReleaseProjectEnvironment, ReleaseFile, Repository,
     Team, TOMBSTONE_FIELDS_FROM_GROUP, User, UserReport, Monitor, MonitorStatus, MonitorType, MonitorCheckIn, CheckInStatus
@@ -246,11 +246,6 @@ def create_sample_time_series(event, release=None):
         ), now, int(count * 0.1))
 
         frequencies = [
-            (tsdb.models.frequent_projects_by_organization, {
-                project.organization_id: {
-                    project.id: count,
-                },
-            }),
             (tsdb.models.frequent_issues_by_project, {
                 project.id: {
                     group.id: count,
@@ -293,11 +288,6 @@ def create_sample_time_series(event, release=None):
         ), now, int(count * 0.1))
 
         frequencies = [
-            (tsdb.models.frequent_projects_by_organization, {
-                project.organization_id: {
-                    project.id: count,
-                },
-            }),
             (tsdb.models.frequent_issues_by_project, {
                 project.id: {
                     group.id: count,
@@ -449,15 +439,28 @@ def main(num_events=1, extra_events=False):
 
             raw_commits = generate_commits(user)
 
-            repo = Repository.objects.get_or_create(
-                organization_id=org.id,
-                provider='integrations:github',
-                external_id='example/example',
-                defaults={
-                    'name': 'Example Repo',
-                    'url': 'https://github.com/example/example',
-                }
-            )
+            try:
+                with transaction.atomic():
+                    repo, _ = Repository.objects.get_or_create(
+                        organization_id=org.id,
+                        provider='integrations:github',
+                        external_id='example/example',
+                        defaults={
+                            'name': 'Example Repo',
+                            'url': 'https://github.com/example/example',
+                        }
+                    )
+            except IntegrityError:
+                # for users with legacy github plugin
+                # upgrade to the new integration
+                repo = Repository.objects.get(
+                    organization_id=org.id,
+                    provider='github',
+                    external_id='example/example',
+                    name='Example Repo',
+                )
+                repo.provider = 'integrations:github'
+                repo.save()
 
             authors = set()
 
@@ -469,7 +472,7 @@ def main(num_events=1, extra_events=False):
                 )[0]
                 commit = Commit.objects.get_or_create(
                     organization_id=org.id,
-                    repository_id=repo[0].id,
+                    repository_id=repo.id,
                     key=raw_commit['key'],
                     defaults={
                         'author': author,
@@ -509,7 +512,7 @@ def main(num_events=1, extra_events=False):
             # create an unreleased commit
             Commit.objects.get_or_create(
                 organization_id=org.id,
-                repository_id=repo[0].id,
+                repository_id=repo.id,
                 key=sha1(uuid4().hex).hexdigest(),
                 defaults={
                     'author': CommitAuthor.objects.get_or_create(
@@ -663,7 +666,7 @@ def main(num_events=1, extra_events=False):
             if event5:
                 Commit.objects.get_or_create(
                     organization_id=org.id,
-                    repository_id=repo[0].id,
+                    repository_id=repo.id,
                     key=sha1(uuid4().hex).hexdigest(),
                     defaults={
                         'author': CommitAuthor.objects.get_or_create(
@@ -681,16 +684,6 @@ def main(num_events=1, extra_events=False):
                 platform='csp',
             )
 
-            with transaction.atomic():
-                if event1:
-                    try:
-                        GroupMeta.objects.create(
-                            group=event1.group,
-                            key='github:tid',
-                            value='134',
-                        )
-                    except IntegrityError:
-                        pass
             if event3:
                 UserReport.objects.create(
                     project=project,

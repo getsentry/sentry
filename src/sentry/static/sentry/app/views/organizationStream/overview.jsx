@@ -17,7 +17,7 @@ import {extractSelectionParameters} from 'app/components/organizations/globalSel
 import Pagination from 'app/components/pagination';
 import {Panel, PanelBody} from 'app/components/panels';
 import StreamGroup from 'app/components/stream/group';
-import {fetchTags, fetchTagValues} from 'app/actionCreators/tags';
+import {fetchOrganizationTags, fetchTagValues} from 'app/actionCreators/tags';
 import {fetchOrgMembers, indexMembersByProject} from 'app/actionCreators/members';
 import {fetchSavedSearches} from 'app/actionCreators/savedSearches';
 import ConfigStore from 'app/stores/configStore';
@@ -168,7 +168,8 @@ const OrganizationStream = createReactClass({
     if (this.state.savedSearch) {
       return this.state.savedSearch.query;
     }
-    return this.props.location.query.query || DEFAULT_QUERY;
+    const {query} = this.props.location.query;
+    return typeof query === 'undefined' ? DEFAULT_QUERY : query;
   },
 
   getSort() {
@@ -239,7 +240,7 @@ const OrganizationStream = createReactClass({
 
   fetchTags() {
     const {organization, selection} = this.props;
-    fetchTags(this.api, organization.slug, selection.projects);
+    fetchOrganizationTags(this.api, organization.slug, selection.projects);
   },
 
   fetchData() {
@@ -675,6 +676,7 @@ const OrganizationStream = createReactClass({
             <StreamActions
               orgId={params.orgId}
               projectId={projectId}
+              selection={this.props.selection}
               hasReleases={hasReleases}
               latestRelease={latestRelease}
               query={query}

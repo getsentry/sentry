@@ -11,8 +11,10 @@ import IdBadge from 'app/components/idBadge';
 import NoProjectMessage from 'app/components/noProjectMessage';
 import OrganizationState from 'app/mixins/organizationState';
 import ProjectsStatsStore from 'app/stores/projectsStatsStore';
+import ConfigStore from 'app/stores/configStore';
 import getProjectsByTeams from 'app/utils/getProjectsByTeams';
 import {sortProjects} from 'app/utils';
+import getRouteStringFromRoutes from 'app/utils/getRouteStringFromRoutes';
 import withTeams from 'app/utils/withTeams';
 import withProjects from 'app/utils/withProjects';
 import {t} from 'app/locale';
@@ -23,6 +25,7 @@ import Resources from './resources';
 
 class Dashboard extends React.Component {
   static propTypes = {
+    routes: PropTypes.array,
     teams: PropTypes.array,
     projects: PropTypes.array,
     organization: SentryTypes.Organization,
@@ -31,10 +34,11 @@ class Dashboard extends React.Component {
   componentDidMount() {
     document.body.classList.add('org-dashboard');
 
-    const {organization} = this.props;
+    const {organization, routes} = this.props;
     const hasSentry10 = new Set(organization.features).has('sentry10');
+    const isOldRoute = getRouteStringFromRoutes(routes) === '/:orgId/';
 
-    if (hasSentry10) {
+    if (hasSentry10 && isOldRoute) {
       browserHistory.replace(`/organizations/${organization.slug}/`);
     }
   }
@@ -46,11 +50,16 @@ class Dashboard extends React.Component {
   render() {
     const {teams, projects, params, organization} = this.props;
     const sortedProjects = sortProjects(projects);
-    const {projectsByTeam} = getProjectsByTeams(teams, sortedProjects);
+
+    const {isSuperuser} = ConfigStore.get('user');
+
+    const {projectsByTeam} = getProjectsByTeams(teams, sortedProjects, isSuperuser);
     const teamSlugs = Object.keys(projectsByTeam).sort();
     const favorites = projects.filter(project => project.isBookmarked);
     const access = new Set(organization.access);
     const teamsMap = new Map(teams.map(teamObj => [teamObj.slug, teamObj]));
+
+    const hasSentry10 = new Set(organization.features).has('sentry10');
 
     const hasTeamAdminAccess = access.has('team:admin');
 
@@ -60,17 +69,18 @@ class Dashboard extends React.Component {
 
     return (
       <React.Fragment>
-        {favorites.length > 0 && (
-          <TeamSection
-            data-test-id="favorites"
-            orgId={params.orgId}
-            showBorder
-            team={null}
-            title={t('Bookmarked projects')}
-            projects={favorites}
-            access={access}
-          />
-        )}
+        {!hasSentry10 &&
+          favorites.length > 0 && (
+            <TeamSection
+              data-test-id="favorites"
+              orgId={params.orgId}
+              showBorder
+              team={null}
+              title={t('Bookmarked projects')}
+              projects={favorites}
+              access={access}
+            />
+          )}
 
         {teamSlugs.map((slug, index) => {
           const showBorder = index !== teamSlugs.length - 1;
@@ -97,7 +107,9 @@ class Dashboard extends React.Component {
           );
         })}
         {teamSlugs.length === 0 &&
-          favorites.length === 0 && <NoProjectMessage organization={organization} />}
+          favorites.length === 0 && (
+            <NoProjectMessage organization={organization}>{null}</NoProjectMessage>
+          )}
       </React.Fragment>
     );
   }
@@ -110,7 +122,7 @@ const OrganizationDashboard = createReactClass({
   render() {
     return (
       <Flex flex="1" direction="column">
-        <ProjectNav />
+        {!this.getFeatures().has('sentry10') && <ProjectNav />}
         <Dashboard organization={this.context.organization} {...this.props} />
       </Flex>
     );

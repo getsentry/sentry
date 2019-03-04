@@ -301,17 +301,18 @@ class GroupSerializerSnubaTest(APITestCase, SnubaTestCase):
 
         events = []
 
-        for event_id, env in [
-            ('a' * 32, environment),
-            ('b' * 32, environment),
-            ('c' * 32, environment2),
+        for event_id, env, user_id, timestamp in [
+            ('a' * 32, environment, 1, self.min_ago.isoformat()[:19]),
+            ('b' * 32, environment, 2, self.min_ago.isoformat()[:19]),
+            ('c' * 32, environment2, 3, self.week_ago.isoformat()[:19]),
         ]:
             events.append(self.store_event(
                 data={
                     'event_id': event_id,
                     'fingerprint': ['put-me-in-group1'],
-                    'timestamp': self.min_ago.isoformat()[:19],
-                    'environment': env.name
+                    'timestamp': timestamp,
+                    'environment': env.name,
+                    'user': {'id': user_id},
                 },
                 project_id=self.project.id
             ))
@@ -346,6 +347,15 @@ class GroupSerializerSnubaTest(APITestCase, SnubaTestCase):
         assert result['lastSeen'] == self.min_ago - timedelta(microseconds=self.min_ago.microsecond)
         assert result['firstSeen'] == group_env.first_seen
         assert group_env2.first_seen > group_env.first_seen
+        assert result['userCount'] == 3
+
+        # test userCount filtering correctly by time
+        result = serialize(group, serializer=GroupSerializerSnuba(
+            environment_ids=[environment.id, environment2.id],
+            start=self.week_ago - timedelta(hours=1),
+            end=self.week_ago + timedelta(hours=1),
+        ))
+        assert result['userCount'] == 1
 
 
 class StreamGroupSerializerTestCase(APITestCase, SnubaTestCase):

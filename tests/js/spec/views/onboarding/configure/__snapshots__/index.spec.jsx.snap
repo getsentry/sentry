@@ -13,7 +13,7 @@ exports[`Configure should render correctly render() should redirect to if no mat
       }
     >
       Configure your application
-      <createSampleEvent
+      <withApi(CreateSampleEvent)
         params={
           Object {
             "orgId": "testOrg",
@@ -82,7 +82,7 @@ exports[`Configure should render correctly render() should render platform docs 
         }
       >
         Configure your application
-        <createSampleEvent
+        <withApi(CreateSampleEvent)
           params={
             Object {
               "orgId": "testOrg",
@@ -92,36 +92,39 @@ exports[`Configure should render correctly render() should render platform docs 
           }
           source="header"
         >
-          <div
-            className="pull-right"
+          <CreateSampleEvent
+            api={Client {}}
+            params={
+              Object {
+                "orgId": "testOrg",
+                "platform": "node",
+                "projectId": "project-slug",
+              }
+            }
+            source="header"
           >
-            <StyledButton
-              onClick={[Function]}
-              priority="primary"
+            <div
+              className="pull-right"
             >
-              <Button
-                className="css-1lewl16-StyledButton eadl9o50"
-                disabled={false}
+              <StyledButton
                 onClick={[Function]}
                 priority="primary"
               >
-                <StyledButton
-                  aria-label="Or See Sample Event"
+                <Button
                   className="css-1lewl16-StyledButton eadl9o50"
                   disabled={false}
                   onClick={[Function]}
                   priority="primary"
-                  role="button"
                 >
-                  <Component
+                  <StyledButton
                     aria-label="Or See Sample Event"
-                    className="eadl9o50 css-w2sk1s-StyledButton-getColors-StyledButton eqrebog0"
+                    className="css-1lewl16-StyledButton eadl9o50"
                     disabled={false}
                     onClick={[Function]}
                     priority="primary"
                     role="button"
                   >
-                    <button
+                    <Component
                       aria-label="Or See Sample Event"
                       className="eadl9o50 css-w2sk1s-StyledButton-getColors-StyledButton eqrebog0"
                       disabled={false}
@@ -129,27 +132,36 @@ exports[`Configure should render correctly render() should render platform docs 
                       priority="primary"
                       role="button"
                     >
-                      <ButtonLabel
+                      <button
+                        aria-label="Or See Sample Event"
+                        className="eadl9o50 css-w2sk1s-StyledButton-getColors-StyledButton eqrebog0"
+                        disabled={false}
+                        onClick={[Function]}
                         priority="primary"
+                        role="button"
                       >
-                        <Component
-                          className="css-ga4b18-ButtonLabel eqrebog1"
+                        <ButtonLabel
                           priority="primary"
                         >
-                          <span
+                          <Component
                             className="css-ga4b18-ButtonLabel eqrebog1"
+                            priority="primary"
                           >
-                            Or See Sample Event
-                          </span>
-                        </Component>
-                      </ButtonLabel>
-                    </button>
-                  </Component>
-                </StyledButton>
-              </Button>
-            </StyledButton>
-          </div>
-        </createSampleEvent>
+                            <span
+                              className="css-ga4b18-ButtonLabel eqrebog1"
+                            >
+                              Or See Sample Event
+                            </span>
+                          </Component>
+                        </ButtonLabel>
+                      </button>
+                    </Component>
+                  </StyledButton>
+                </Button>
+              </StyledButton>
+            </div>
+          </CreateSampleEvent>
+        </withApi(CreateSampleEvent)>
       </h2>
       <withProjects(withRouter(ProjectContext))
         orgId="testOrg"
@@ -273,6 +285,18 @@ exports[`Configure should render correctly render() should render platform docs 
                         ],
                       }
                     }
+                    project={
+                      Object {
+                        "environments": Array [],
+                        "hasAccess": true,
+                        "id": "2",
+                        "isBookmarked": false,
+                        "isMember": true,
+                        "name": "Project Name",
+                        "slug": "project-slug",
+                        "teams": Array [],
+                      }
+                    }
                   >
                     <ProjectInstallPlatform
                       linkPath={[Function]}
@@ -338,6 +362,18 @@ exports[`Configure should render correctly render() should render platform docs 
                               "name": "js",
                             },
                           ],
+                        }
+                      }
+                      project={
+                        Object {
+                          "environments": Array [],
+                          "hasAccess": true,
+                          "id": "2",
+                          "isBookmarked": false,
+                          "isMember": true,
+                          "name": "Project Name",
+                          "slug": "project-slug",
+                          "teams": Array [],
                         }
                       }
                     >
@@ -727,7 +763,7 @@ exports[`Configure should render correctly render() shouldn't redirect for a fou
       }
     >
       Configure your application
-      <createSampleEvent
+      <withApi(CreateSampleEvent)
         params={
           Object {
             "orgId": "testOrg",

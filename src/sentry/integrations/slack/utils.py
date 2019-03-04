@@ -64,12 +64,18 @@ def get_assignee(group):
 
 
 def build_attachment_title(group, event=None):
+    # XXX(mitsuhiko): This is all super event specific and ideally could just use a
+    # combination of `group.title` and `group.title + group.culprit`.
     ev_metadata = group.get_event_metadata()
     ev_type = group.get_event_type()
     if ev_type == 'error':
+        if 'type' in ev_metadata:
+            if group.culprit:
+                return u'{} - {}'.format(ev_metadata['type'][:40], group.culprit)
+            return ev_metadata['type']
         if group.culprit:
-            return u'{} - {}'.format(ev_metadata['type'][:40], group.culprit)
-        return ev_metadata['type']
+            return u'{} - {}'.format(group.title, group.culprit)
+        return group.title
     elif ev_type == 'csp':
         return u'{} - {}'.format(ev_metadata['directive'], ev_metadata['uri'])
     else:
@@ -82,7 +88,7 @@ def build_attachment_text(group, event=None):
     ev_metadata = group.get_event_metadata()
     ev_type = group.get_event_type()
     if ev_type == 'error':
-        return ev_metadata['value']
+        return ev_metadata.get('value') or ev_metadata.get('function')
     else:
         return None
 

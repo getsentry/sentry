@@ -7,7 +7,7 @@ from django.conf import settings
 
 from rest_framework.response import Response
 
-from sentry.api.bases import OrganizationEventsEndpointBase
+from sentry.api.bases import OrganizationEventsEndpointBase, OrganizationEventPermission
 from sentry.api.helpers.group_index import (
     build_query_params_from_request, delete_groups, get_by_short_id, update_groups, ValidationError
 )
@@ -25,9 +25,12 @@ search = SnubaSearchBackend(**settings.SENTRY_SEARCH_OPTIONS)
 
 
 class OrganizationGroupIndexEndpoint(OrganizationEventsEndpointBase):
+    permission_classes = (OrganizationEventPermission, )
 
     def _search(self, request, organization, projects, environments, extra_query_kwargs=None):
-        query_kwargs = build_query_params_from_request(request, projects, environments)
+        query_kwargs = build_query_params_from_request(
+            request, organization, projects, environments,
+        )
         if extra_query_kwargs is not None:
             assert 'environment' not in extra_query_kwargs
             query_kwargs.update(extra_query_kwargs)
@@ -125,8 +128,8 @@ class OrganizationGroupIndexEndpoint(OrganizationEventsEndpointBase):
 
             group = get_by_short_id(organization.id, request.GET.get('shortIdLookup'), query)
             if group is not None:
-                # check to make sure user has access to project
-                if group.project_id in project_ids:
+                # check all projects user has access to
+                if request.access.has_project_access(group.project):
                     response = Response(
                         serialize(
                             [group], request.user, serializer()

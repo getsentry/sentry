@@ -6,8 +6,8 @@ import {uniq, intersection} from 'lodash';
 import {analytics} from 'app/utils/analytics';
 import getRouteStringFromRoutes from 'app/utils/getRouteStringFromRoutes';
 import {t} from 'app/locale';
-import CheckboxFancy from 'app/components/checkboxFancy';
 import DropdownAutoComplete from 'app/components/dropdownAutoComplete';
+import GlobalSelectionHeaderRow from 'app/components/globalSelectionHeaderRow';
 import HeaderItem from 'app/components/organizations/headerItem';
 import Highlight from 'app/components/highlight';
 import InlineSvg from 'app/components/inlineSvg';
@@ -79,7 +79,6 @@ class MultipleEnvironmentSelector extends React.PureComponent {
   replaceSelected(newSelection) {
     this.setState({selectedEnvs: new Set(newSelection)});
     this.props.onChange(newSelection);
-    this.props.onUpdate();
   }
 
   /**
@@ -230,7 +229,7 @@ class MultipleEnvironmentSelector extends React.PureComponent {
         inputProps={{style: {padding: 8, paddingLeft: 14}}}
         emptyMessage={t('You have no environments')}
         noResultsMessage={t('No environments found')}
-        virtualizedHeight={40}
+        virtualizedHeight={theme.headerSelectorRowHeight}
         emptyHidesInput
         menuProps={{style: {position: 'relative'}}}
         items={environments.map(env => ({
@@ -311,38 +310,9 @@ class EnvironmentSelectorItem extends React.PureComponent {
   render() {
     const {environment, inputValue, isChecked} = this.props;
     return (
-      <EnvironmentRow>
-        <div>
-          <Highlight text={inputValue}>{environment}</Highlight>
-        </div>
-
-        <MultiSelectWrapper onClick={this.handleClick}>
-          <MultiSelect checked={isChecked} />
-        </MultiSelectWrapper>
-      </EnvironmentRow>
+      <GlobalSelectionHeaderRow checked={isChecked} onCheckClick={this.handleClick}>
+        <Highlight text={inputValue}>{environment}</Highlight>
+      </GlobalSelectionHeaderRow>
     );
   }
 }
-const FlexY = styled('div')`
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-`;
-
-const EnvironmentRow = styled(FlexY)`
-  font-size: 14px;
-  font-weight: 400;
-
-  /* thanks bootstrap? */
-  input[type='checkbox'] {
-    margin: 0;
-  }
-`;
-const MultiSelectWrapper = styled('div')`
-  margin: -8px;
-  padding: 8px;
-`;
-
-const MultiSelect = styled(CheckboxFancy)`
-  flex-shrink: 0;
-`;

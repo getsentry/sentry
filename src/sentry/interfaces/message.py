@@ -89,7 +89,9 @@ class Message(Interface):
             'params': self.params or None
         })
 
-    def get_hash(self, platform=None):
+    def get_hash(self, platform=None, variant='system'):
+        if variant not in ('app', 'system'):
+            return []
         return [self.message or self.formatted]
 
     def to_string(self, event, is_public=False, **kwargs):

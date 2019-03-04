@@ -161,14 +161,24 @@ class Interface(object):
     def to_json(self):
         return prune_empty_keys(self._data)
 
-    def get_hash(self, platform=None):
+    def get_hash(self, platform=None, variant='system'):
         return []
 
+    def get_hashes(self, platform=None):
+        system_hash = self.get_hash(platform, variant='system')
+        if not system_hash:
+            return {}
+
+        hashes = {'system': system_hash}
+
+        app_hash = self.get_hash(platform, variant='app')
+        if system_hash != app_hash and app_hash:
+            hashes['app'] = app_hash
+
+        return hashes
+
     def compute_hashes(self, platform=None):
-        result = self.get_hash(platform)
-        if not result:
-            return []
-        return [result]
+        return self.get_hashes(platform).values()
 
     def get_title(self):
         return _(type(self).__name__)

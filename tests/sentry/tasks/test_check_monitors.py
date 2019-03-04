@@ -153,3 +153,41 @@ class CheckMonitorsTest(TestCase):
             id=monitor.id,
             status=MonitorStatus.OK,
         ).exists()
+
+    def test_timeout_with_via_configuration(self):
+        org = self.create_organization()
+        project = self.create_project(organization=org)
+
+        current_datetime = timezone.now() - timedelta(hours=24)
+
+        monitor = Monitor.objects.create(
+            organization_id=org.id,
+            project_id=project.id,
+            next_checkin=current_datetime + timedelta(hours=1, minutes=1),
+            last_checkin=current_datetime + timedelta(hours=1),
+            type=MonitorType.CRON_JOB,
+            config={'schedule': '0 0 * * *', 'max_runtime': 60},
+            status=MonitorStatus.OK,
+            date_added=current_datetime,
+        )
+        checkin = MonitorCheckIn.objects.create(
+            monitor=monitor,
+            project_id=project.id,
+            status=CheckInStatus.IN_PROGRESS,
+            date_added=current_datetime,
+            date_updated=current_datetime,
+        )
+
+        assert checkin.date_added == checkin.date_updated == current_datetime
+
+        check_monitors(current_datetime=current_datetime + timedelta(hours=1, minutes=1))
+
+        assert MonitorCheckIn.objects.filter(
+            id=checkin.id,
+            status=CheckInStatus.ERROR,
+        ).exists()
+
+        assert Monitor.objects.filter(
+            id=monitor.id,
+            status=MonitorStatus.ERROR,
+        ).exists()

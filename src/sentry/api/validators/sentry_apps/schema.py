@@ -244,6 +244,20 @@ SCHEMA = {
             },
             'required': ['type', 'title', 'elements'],
         },
+
+        'stacktrace-link': {
+            'type': 'object',
+            'properties': {
+                'type': {
+                    'type': 'string',
+                    'enum': ['stacktrace-link'],
+                },
+                'uri': {
+                    '$ref': '#/definitions/uri',
+                },
+            },
+            'required': ['type', 'uri']
+        },
     },
 
     'properties': {
@@ -255,6 +269,7 @@ SCHEMA = {
                     {'$ref': '#/definitions/issue-link'},
                     {'$ref': '#/definitions/alert-rule-action'},
                     {'$ref': '#/definitions/issue-media'},
+                    {'$ref': '#/definitions/stacktrace-link'},
                 ],
             },
         },

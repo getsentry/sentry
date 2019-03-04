@@ -645,16 +645,16 @@ exports[`Sentry Application Details edit existing application renders() it shows
                         title="Application Details"
                       >
                         <Panel
-                          id="Application Details"
+                          id="Application-Details"
                           key="Application Details"
                         >
                           <Component
                             className="css-yahxlu-Panel e1laxa7d0"
-                            id="Application Details"
+                            id="Application-Details"
                           >
                             <div
                               className="css-yahxlu-Panel e1laxa7d0"
-                              id="Application Details"
+                              id="Application-Details"
                             >
                               <PanelHeader>
                                 <Component
@@ -19473,16 +19473,16 @@ exports[`Sentry Application Details new sentry application renders() it shows em
                         title="Application Details"
                       >
                         <Panel
-                          id="Application Details"
+                          id="Application-Details"
                           key="Application Details"
                         >
                           <Component
                             className="css-yahxlu-Panel e1laxa7d0"
-                            id="Application Details"
+                            id="Application-Details"
                           >
                             <div
                               className="css-yahxlu-Panel e1laxa7d0"
-                              id="Application Details"
+                              id="Application-Details"
                             >
                               <PanelHeader>
                                 <Component

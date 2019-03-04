@@ -36,7 +36,7 @@ exports[`ProjectCspReports renders 1`] = `
       submitLabel="Save Changes"
       submitPriority="primary"
     >
-      <AccessContainer
+      <withConfig(AccessContainer)
         access={
           Array [
             "project:write",
@@ -44,7 +44,7 @@ exports[`ProjectCspReports renders 1`] = `
         }
       >
         <Component />
-      </AccessContainer>
+      </withConfig(AccessContainer)>
     </Form>
     <Panel>
       <PanelHeader>

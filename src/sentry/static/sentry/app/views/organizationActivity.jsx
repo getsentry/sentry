@@ -1,7 +1,7 @@
 import React from 'react';
 import PropTypes from 'prop-types';
+import DocumentTitle from 'react-document-title';
 
-import AsyncView from 'app/views/asyncView';
 import ActivityFeed from 'app/components/activity/feed';
 import OrganizationHomeContainer from 'app/components/organizations/homeContainer';
 import PageHeading from 'app/components/pageHeading';
@@ -42,12 +42,13 @@ class OrganizationActivityContainer extends React.Component {
   }
 }
 
-class OrganizationActivity extends AsyncView {
+class OrganizationActivity extends React.Component {
   static propTypes = {
     organization: SentryTypes.Organization,
     params: PropTypes.object,
     location: PropTypes.object,
   };
+
   getEndpoint() {
     return `/organizations/${this.props.params.orgId}/activity/`;
   }
@@ -56,20 +57,22 @@ class OrganizationActivity extends AsyncView {
     return `Activity - ${this.props.params.orgId}`;
   }
 
-  renderBody() {
+  render() {
     return (
-      <React.Fragment>
-        <PageHeading withMargins>{t('Activity')}</PageHeading>
-        <ActivityFeed
-          organization={this.props.organization}
-          endpoint={this.getEndpoint()}
-          query={{
-            per_page: 100,
-          }}
-          pagination={true}
-          location={this.props.location}
-        />
-      </React.Fragment>
+      <DocumentTitle title={this.getTitle()}>
+        <React.Fragment>
+          <PageHeading withMargins>{t('Activity')}</PageHeading>
+          <ActivityFeed
+            organization={this.props.organization}
+            endpoint={this.getEndpoint()}
+            query={{
+              per_page: 100,
+            }}
+            pagination={true}
+            location={this.props.location}
+          />
+        </React.Fragment>
+      </DocumentTitle>
     );
   }
 }

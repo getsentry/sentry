@@ -499,7 +499,7 @@ class LegacyTagStorage(TagStorage):
 
         return {'id__in': set(matches)}
 
-    def get_groups_user_counts(self, project_ids, group_ids, environment_ids):
+    def get_groups_user_counts(self, project_ids, group_ids, environment_ids, start=None, end=None):
         # only the snuba backend supports multi project
         if len(project_ids) > 1:
             raise NotImplementedError

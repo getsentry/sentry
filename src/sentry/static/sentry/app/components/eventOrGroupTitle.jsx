@@ -26,8 +26,12 @@ class EventOrGroupTitle extends React.Component {
     let subtitle = null;
 
     if (type == 'error') {
-      title = metadata.type;
       subtitle = culprit;
+      if (metadata.type) {
+        title = metadata.type;
+      } else {
+        title = metadata.function || '<unknown>';
+      }
     } else if (type == 'csp') {
       title = metadata.directive;
       subtitle = metadata.uri;

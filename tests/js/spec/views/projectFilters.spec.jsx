@@ -197,7 +197,7 @@ describe('ProjectFilters', function() {
     });
 
     wrapper
-      .find('TextArea[id="filters:blacklisted_ips"]')
+      .find('TextArea[name="filters:blacklisted_ips"]')
       .simulate('change', {target: {value: 'test\ntest2'}})
       .simulate('blur');
     expect(mock.mock.calls[0][0]).toBe(PROJECT_URL);
@@ -207,10 +207,10 @@ describe('ProjectFilters', function() {
   });
 
   it('filter by release/error message are not enabled', function() {
-    expect(wrapper.find('TextArea[id="filters:releases"][disabled]')).toHaveLength(1);
-    expect(wrapper.find('TextArea[id="filters:error_messages"][disabled]')).toHaveLength(
-      1
-    );
+    expect(wrapper.find('TextArea[name="filters:releases"][disabled]')).toHaveLength(1);
+    expect(
+      wrapper.find('TextArea[name="filters:error_messages"][disabled]')
+    ).toHaveLength(1);
   });
 
   it('has custom inbound filters with flag + can change', function() {
@@ -233,8 +233,8 @@ describe('ProjectFilters', function() {
       );
     });
 
-    expect(wrapper.find('TextArea[id="filters:releases"]')).toHaveLength(1);
-    expect(wrapper.find('TextArea[id="filters:error_messages"]')).toHaveLength(1);
+    expect(wrapper.find('TextArea[name="filters:releases"]')).toHaveLength(1);
+    expect(wrapper.find('TextArea[name="filters:error_messages"]')).toHaveLength(1);
 
     const mock = MockApiClient.addMockResponse({
       url: PROJECT_URL,
@@ -242,7 +242,7 @@ describe('ProjectFilters', function() {
     });
 
     wrapper
-      .find('TextArea[id="filters:releases"]')
+      .find('TextArea[name="filters:releases"]')
       .simulate('change', {target: {value: 'release\nrelease2'}})
       .simulate('blur');
     expect(mock.mock.calls[0][0]).toBe(PROJECT_URL);
@@ -251,7 +251,7 @@ describe('ProjectFilters', function() {
     );
 
     wrapper
-      .find('TextArea[id="filters:error_messages"]')
+      .find('TextArea[name="filters:error_messages"]')
       .simulate('change', {target: {value: 'error\nerror2'}})
       .simulate('blur');
     expect(mock.mock.calls[1][1].data.options['filters:error_messages']).toBe(

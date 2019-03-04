@@ -12,8 +12,7 @@ from sentry.api.utils import (
 )
 from sentry.auth.superuser import is_active_superuser
 from sentry.models import (
-    ApiKey, Authenticator, Organization, OrganizationMemberTeam, Project,
-    ProjectStatus, ReleaseProject,
+    ApiKey, Authenticator, Organization, Project, ProjectStatus, ReleaseProject,
 )
 from sentry.utils import auth
 from sentry.utils.sdk import configure_scope
@@ -53,6 +52,15 @@ class OrganizationPermission(SentryPermission):
         self.determine_access(request, organization)
         allowed_scopes = set(self.scope_map.get(request.method, []))
         return any(request.access.has_scope(s) for s in allowed_scopes)
+
+
+class OrganizationEventPermission(OrganizationPermission):
+    scope_map = {
+        'GET': ['event:read', 'event:write', 'event:admin'],
+        'POST': ['event:write', 'event:admin'],
+        'PUT': ['event:write', 'event:admin'],
+        'DELETE': ['event:admin'],
+    }
 
 
 # These are based on ProjectReleasePermission
@@ -118,7 +126,7 @@ class OrganizationEndpoint(Endpoint):
         request,
         organization,
         force_global_perms=False,
-        include_allow_joinleave=False,
+        include_all_accessible=False,
     ):
         """
         Determines which project ids to filter the endpoint by. If a list of
@@ -135,7 +143,7 @@ class OrganizationEndpoint(Endpoint):
         `request.auth.has_scope` way of checking permissions, don't use it
         for anything else, we plan to remove this once we remove uses of
         `auth.has_scope`.
-        :param include_allow_joinleave: Whether to factor the organization
+        :param include_all_accessible: Whether to factor the organization
         allow_joinleave flag into permission checks. We should ideally
         standardize how this is used and remove this parameter.
         :return: A list of project ids, or raises PermissionDenied.
@@ -146,29 +154,27 @@ class OrganizationEndpoint(Endpoint):
 
         user = getattr(request, 'user', None)
 
-        if (
-            user and is_active_superuser(request)
-            or include_allow_joinleave and organization.flags.allow_joinleave
-            or force_global_perms
-        ):
-            qs = Project.objects.filter(
-                organization=organization,
-                status=ProjectStatus.VISIBLE,
-            )
-        else:
-            qs = Project.objects.filter(
-                organization=organization,
-                teams__in=OrganizationMemberTeam.objects.filter(
-                    organizationmember__user=user,
-                    organizationmember__organization=organization,
-                ).values_list('team'),
-                status=ProjectStatus.VISIBLE,
-            )
+        qs = Project.objects.filter(
+            organization=organization,
+            status=ProjectStatus.VISIBLE,
+        )
 
         if project_ids:
             qs = qs.filter(id__in=project_ids)
 
-        projects = list(qs)
+        if force_global_perms:
+            projects = list(qs)
+        else:
+            if (
+                user and is_active_superuser(request) or
+                requested_projects or
+                include_all_accessible
+            ):
+                func = request.access.has_project_access
+            else:
+                func = request.access.has_project_membership
+            projects = [p for p in qs if func(p)]
+
         project_ids = set(p.id for p in projects)
 
         if requested_projects and project_ids != requested_projects:
@@ -241,7 +247,9 @@ class OrganizationEndpoint(Endpoint):
 
         # Track the 'active' organization when the request came from
         # a cookie based agent (react app)
-        if request.auth is None and request.user:
+        # Never track any org (regardless of whether the user does or doesn't have
+        # membership in that org) when the user is in active superuser mode
+        if request.auth is None and request.user and not is_active_superuser(request):
             request.session['activeorg'] = organization.slug
 
         kwargs['organization'] = organization
@@ -269,7 +277,7 @@ class OrganizationReleasesBaseEndpoint(OrganizationEndpoint):
             request,
             organization,
             force_global_perms=has_valid_api_key,
-            include_allow_joinleave=True,
+            include_all_accessible=True,
         )
 
     def has_release_permission(self, request, organization, release):

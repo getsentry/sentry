@@ -710,6 +710,7 @@ class Mechanism(Interface):
     >>>         "relevant_address": "0x1"
     >>>     },
     >>>     "handled": false,
+    >>>     "synthetic": false,
     >>>     "help_link": "https://developer.apple.com/library/content/qa/qa1367/_index.html",
     >>>     "meta": {
     >>>         "mach_exception": {
@@ -762,6 +763,7 @@ class Mechanism(Interface):
 
         kwargs = {
             'type': trim(data['type'], 128),
+            'synthetic': data.get('synthetic'),
             'description': trim(data.get('description'), 1024),
             'help_link': trim(data.get('help_link'), 1024),
             'handled': data.get('handled'),
@@ -778,6 +780,7 @@ class Mechanism(Interface):
     def to_json(self):
         return prune_empty_keys({
             'type': self.type,
+            'synthetic': self.synthetic,
             'description': self.description,
             'help_link': self.help_link,
             'handled': self.handled,
@@ -936,10 +939,12 @@ class SingleException(Interface):
             'stacktrace': stacktrace_meta,
         }
 
-    def get_hash(self, platform=None):
+    def get_hash(self, platform=None, variant='system'):
+        if variant not in ('app', 'system'):
+            return []
         output = None
         if self.stacktrace:
-            output = self.stacktrace.get_hash(platform=platform)
+            output = self.stacktrace.get_hash(platform=platform, variant=variant)
             if output and self.type:
                 output.append(self.type)
         if not output:
@@ -1031,18 +1036,9 @@ class Exception(Interface):
             'exc_omitted': self.exc_omitted,
         })
 
-    def compute_hashes(self, platform=None):
-        system_hash = self.get_hash(platform, system_frames=True)
-        if not system_hash:
+    def get_hash(self, platform=None, variant='system'):
+        if variant not in ('app', 'system'):
             return []
-
-        app_hash = self.get_hash(platform, system_frames=False)
-        if system_hash == app_hash or not app_hash:
-            return [system_hash]
-
-        return [system_hash, app_hash]
-
-    def get_hash(self, platform=None, system_frames=True):
         # optimize around the fact that some exceptions might have stacktraces
         # while others may not and we ALWAYS want stacktraces over values
         output = []
@@ -1051,7 +1047,7 @@ class Exception(Interface):
                 continue
             stack_hash = value.stacktrace.get_hash(
                 platform=platform,
-                system_frames=system_frames,
+                variant=variant,
             )
             if stack_hash:
                 output.extend(stack_hash)
@@ -1060,7 +1056,8 @@ class Exception(Interface):
         if not output:
             for value in self._values():
                 if value:
-                    output.extend(value.get_hash(platform=platform))
+                    output.extend(value.get_hash(platform=platform,
+                                                 variant=variant))
 
         return output
 

@@ -11,10 +11,10 @@ from pkg_resources import parse_version
 from sentry import features, options
 from sentry.api.serializers.base import serialize
 from sentry.api.serializers.models.user import DetailedUserSerializer
+from sentry.auth.superuser import is_active_superuser
 from sentry.utils import auth, json
 from sentry.utils.email import is_smtp_enabled
 from sentry.utils.assets import get_asset_url
-from sentry.utils.functional import extract_lazy_object
 from sentry.utils.support import get_support_mail
 from sentry.templatetags.sentry_dsn import get_public_dsn
 
@@ -70,21 +70,15 @@ def _get_statuspage():
 @register.simple_tag(takes_context=True)
 def get_react_config(context):
     if 'request' in context:
-        user = getattr(context['request'], 'user', None) or AnonymousUser()
-        messages = get_messages(context['request'])
-        session = getattr(context['request'], 'session', None)
-        try:
-            is_superuser = context['request'].is_superuser()
-        except AttributeError:
-            is_superuser = False
+        request = context['request']
+        user = getattr(request, 'user', None) or AnonymousUser()
+        messages = get_messages(request)
+        session = getattr(request, 'session', None)
+        is_superuser = is_active_superuser(request)
     else:
         user = None
         messages = []
         is_superuser = False
-
-    if user:
-        user = extract_lazy_object(user)
-        is_superuser = user.is_superuser
 
     enabled_features = []
     if features.has('organizations:create', actor=user):

@@ -4,6 +4,7 @@ import datetime
 import jwt
 import re
 import json
+import logging
 from hashlib import md5 as _md5
 from six.moves.urllib.parse import parse_qs, urlparse, urlsplit
 
@@ -15,6 +16,7 @@ from sentry.integrations.exceptions import ApiError
 from sentry.integrations.client import ApiClient
 from sentry.utils.http import absolute_uri
 
+logger = logging.getLogger('sentry.integrations.jira')
 
 JIRA_KEY = '%s.jira' % (urlparse(absolute_uri()).hostname, )
 ISSUE_KEY_RE = re.compile(r'^[A-Za-z][A-Za-z0-9]*-\d+$')
@@ -155,15 +157,23 @@ class JiraApiClient(ApiClient):
         )
         # We saw an empty JSON response come back from the API :(
         if not metas:
+            logger.info('jira.get-create-meta.empty-response', extra={
+                'base_url': self.base_url,
+                'project': project,
+            })
             return None
 
         # XXX(dcramer): document how this is possible, if it even is
         if len(metas['projects']) > 1:
-            raise ApiError('More than one project found.')
+            raise ApiError(u'More than one project found matching {}.'.format(project))
 
         try:
             return metas['projects'][0]
         except IndexError:
+            logger.info('jira.get-create-meta.key-error', extra={
+                'base_url': self.base_url,
+                'project': project,
+            })
             return None
 
     def get_versions(self, project):

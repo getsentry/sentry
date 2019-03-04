@@ -22,6 +22,7 @@ from django.db.models.signals import (post_save, post_delete, post_init, class_p
 from django.utils.encoding import smart_text
 
 from sentry import nodestore
+from sentry.db.models.fields import BoundedBigIntegerField
 from sentry.utils.cache import cache
 from sentry.utils.hashlib import md5_text
 from sentry.utils.validators import is_event_id
@@ -350,7 +351,7 @@ class EventManager(BaseManager):
         # TODO (alexh) deprecate lookup by id so we can move to snuba.
 
         event = None
-        if id_or_event_id.isdigit():
+        if id_or_event_id.isdigit() and int(id_or_event_id) <= BoundedBigIntegerField.MAX_VALUE:
             # If its a numeric string, check if it's an event Primary Key first
             try:
                 if project_id is None:

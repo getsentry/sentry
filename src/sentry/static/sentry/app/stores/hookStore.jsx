@@ -8,6 +8,7 @@ const validHookNames = new Set([
   'routes:admin',
   'routes:organization',
   'routes:onboarding-survey',
+  'routes:organization-root',
 
   // Analytics and tracking hooks
   'amplitude:event',
@@ -32,6 +33,8 @@ const validHookNames = new Set([
   'organization:header',
   'sidebar:help-menu',
   'sidebar:organization-dropdown-menu',
+  'sidebar:bottom-items',
+  'sidebar:item-label',
 
   // Used to provide a component for integration features.
   'integrations:feature-gates',

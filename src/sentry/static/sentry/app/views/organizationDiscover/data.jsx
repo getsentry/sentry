@@ -41,6 +41,8 @@ export const COLUMNS = [
   {name: 'project.name', type: TYPES.STRING},
   {name: 'platform', type: TYPES.STRING},
   {name: 'message', type: TYPES.STRING},
+  {name: 'title', type: TYPES.STRING},
+  {name: 'location', type: TYPES.STRING},
   {name: 'timestamp', type: TYPES.DATETIME},
   {name: 'release', type: TYPES.STRING},
 
@@ -83,8 +85,8 @@ export const COLUMNS = [
   {name: 'stack.module', type: TYPES.STRING},
   {name: 'stack.function', type: TYPES.STRING},
   {name: 'stack.in_app', type: TYPES.BOOLEAN},
-  {name: 'stack.colno', type: TYPES.STRING},
-  {name: 'stack.lineno', type: TYPES.STRING},
+  {name: 'stack.colno', type: TYPES.NUMBER},
+  {name: 'stack.lineno', type: TYPES.NUMBER},
   {name: 'stack.stack_level', type: TYPES.STRING},
 ];
 

@@ -11,17 +11,20 @@ PIP = LDFLAGS="$(LDFLAGS)" pip
 WEBPACK = NODE_ENV=production ./node_modules/.bin/webpack
 YARN_VERSION = 1.13.0
 
-develop: setup-git develop-only
+develop: setup-git ensure-venv develop-only
 develop-only: update-submodules install-system-pkgs install-yarn-pkgs install-sentry-dev
 test: develop lint test-js test-python test-cli
+
+ensure-venv:
+	@./scripts/ensure-venv.sh
 
 build: locale
 
 reset-db:
 	@echo "--> Dropping existing 'sentry' database"
-	dropdb sentry || true
+	dropdb -h 127.0.0.1 -U postgres sentry || true
 	@echo "--> Creating 'sentry' database"
-	createdb -E utf-8 sentry
+	createdb -h 127.0.0.1 -U postgres -E utf-8 sentry
 	@echo "--> Applying migrations"
 	sentry upgrade
 
@@ -58,7 +61,7 @@ install-system-pkgs: node-version-check
 	@echo "--> Installing system packages (from Brewfile)"
 	@command -v brew 2>&1 > /dev/null && brew bundle || (echo 'WARNING: homebrew not found or brew bundle failed - skipping system dependencies.')
 	@echo "--> Installing yarn $(YARN_VERSION) (via npm)"
-	@npm install -g "yarn@$(YARN_VERSION)"
+	@notion --version 2>&1 > /dev/null || npm install -g "yarn@$(YARN_VERSION)"
 
 install-yarn-pkgs:
 	@echo "--> Installing Yarn packages (for development)"

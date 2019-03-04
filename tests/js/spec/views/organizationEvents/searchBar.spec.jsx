@@ -56,7 +56,8 @@ describe('SearchBar', function() {
   });
 
   it('fetches organization tags on mount', async function() {
-    const wrapper = await mount(<SearchBar {...props} />, options);
+    const wrapper = mount(<SearchBar {...props} />, options);
+    await tick();
     expect(tagKeysMock).toHaveBeenCalledTimes(1);
     wrapper.update();
     expect(wrapper.find('SmartSearchBar').prop('supportedTags')).toEqual(
@@ -68,12 +69,13 @@ describe('SearchBar', function() {
   });
 
   it('searches and selects an event field value', async function() {
-    const wrapper = await mount(<SearchBar {...props} />, options);
+    const wrapper = mount(<SearchBar {...props} />, options);
+    await tick();
     setQuery(wrapper, 'gpu:');
 
     expect(tagValuesMock).toHaveBeenCalledWith(
       '/organizations/org-slug/tags/gpu/values/',
-      expect.objectContaining({data: {query: ''}})
+      expect.objectContaining({query: {}})
     );
 
     await tick();
@@ -92,7 +94,8 @@ describe('SearchBar', function() {
   });
 
   it('does not requery for event field values if query does not change', async function() {
-    const wrapper = await mount(<SearchBar {...props} />, options);
+    const wrapper = mount(<SearchBar {...props} />, options);
+    await tick();
     setQuery(wrapper, 'gpu:');
 
     expect(tagValuesMock).toHaveBeenCalledTimes(1);
@@ -106,7 +109,8 @@ describe('SearchBar', function() {
   });
 
   it('removes highlight when query is empty', async function() {
-    const wrapper = await mount(<SearchBar {...props} />, options);
+    const wrapper = mount(<SearchBar {...props} />, options);
+    await tick();
     setQuery(wrapper, 'gpu');
 
     await tick();
@@ -120,7 +124,8 @@ describe('SearchBar', function() {
   });
 
   it('ignores negation ("!") at the beginning of search term', async function() {
-    const wrapper = await mount(<SearchBar {...props} />, options);
+    const wrapper = mount(<SearchBar {...props} />, options);
+    await tick();
 
     setQuery(wrapper, '!gp');
     await tick();
@@ -131,7 +136,8 @@ describe('SearchBar', function() {
   });
 
   it('ignores wildcard ("*") at the beginning of tag value query', async function() {
-    const wrapper = await mount(<SearchBar {...props} />, options);
+    const wrapper = mount(<SearchBar {...props} />, options);
+    await tick();
 
     setQuery(wrapper, '!gpu:*');
     await tick();
@@ -139,7 +145,7 @@ describe('SearchBar', function() {
 
     expect(tagValuesMock).toHaveBeenCalledWith(
       '/organizations/org-slug/tags/gpu/values/',
-      expect.objectContaining({data: {query: ''}})
+      expect.objectContaining({query: {}})
     );
     selectFirstAutocompleteItem(wrapper);
     expect(wrapper.find('input').prop('value')).toBe('!gpu:*"Nvidia 1080ti" ');

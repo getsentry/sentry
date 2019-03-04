@@ -64,11 +64,14 @@ export default class PercentageAreaChart extends React.Component {
           // Make sure tooltip is inside of chart (because of overflow: hidden)
           confine: true,
           formatter: seriesParams => {
+            // `seriesParams` can be an array or an object :/
+            const series = Array.isArray(seriesParams) ? seriesParams : [seriesParams];
+
             // Filter series that have 0 counts
             const date =
-              `${seriesParams.length &&
-                moment(seriesParams[0].axisValue).format('MMM D, YYYY')}<br />` || '';
-            return `${date} ${seriesParams
+              `${series.length &&
+                moment(series[0].axisValue).format('MMM D, YYYY')}<br />` || '';
+            return `${date} ${series
               .filter(
                 ({seriesName, data}) => data[1] > 0.001 && seriesName !== FILLER_NAME
               )

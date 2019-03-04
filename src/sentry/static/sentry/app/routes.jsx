@@ -81,6 +81,11 @@ function routes() {
     hooksOrgRoutes.push(cb());
   });
 
+  const hooksRootOrgRoutes = [];
+  HookStore.get('routes:organization-root').forEach(cb => {
+    hooksRootOrgRoutes.push(cb());
+  });
+
   const hooksSurveyRoute = [];
   HookStore.get('routes:onboarding-survey').forEach(cb => {
     hooksSurveyRoute.push(cb());
@@ -765,6 +770,11 @@ function routes() {
       <Route path="/:orgId/" component={errorHandler(OrganizationDetails)}>
         <Route component={errorHandler(OrganizationRoot)}>
           <IndexRoute component={errorHandler(OrganizationDashboard)} />
+          {hooksRootOrgRoutes}
+          <Route
+            path="/organizations/:orgId/projects/"
+            component={errorHandler(OrganizationDashboard)}
+          />
           <Route
             path="/organizations/:orgId/stats/"
             component={errorHandler(OrganizationStats)}

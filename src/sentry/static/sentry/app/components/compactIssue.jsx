@@ -21,6 +21,7 @@ class CompactIssueHeader extends React.Component {
   static propTypes = {
     organization: SentryTypes.Organization.isRequired,
     projectId: PropTypes.string,
+    eventId: PropTypes.string,
     data: PropTypes.object.isRequired,
   };
 
@@ -65,7 +66,7 @@ class CompactIssueHeader extends React.Component {
   };
 
   render() {
-    const {data, organization, projectId} = this.props;
+    const {data, organization, projectId, eventId} = this.props;
 
     const hasNewRoutes = new Set(organization.features).has('sentry10');
 
@@ -74,6 +75,10 @@ class CompactIssueHeader extends React.Component {
     const basePath = hasNewRoutes
       ? `/organizations/${organization.slug}/issues/`
       : `/${organization.slug}/${projectId}/issues/`;
+
+    const issueLink = eventId
+      ? `/organizations/${organization.slug}/projects/${projectId}/events/${eventId}/`
+      : `${basePath}${data.id}/`;
 
     if (data.subscriptionDetails && data.subscriptionDetails.reason === 'mentioned') {
       styles = {color: '#57be8c'};
@@ -86,11 +91,11 @@ class CompactIssueHeader extends React.Component {
             <span className="error-level truncate" title={data.level} />
           </Box>
           <h3 className="truncate">
-            <ProjectLink to={`${basePath}${data.id}/`}>
+            <Link to={issueLink}>
               <span className="icon icon-soundoff" />
               <span className="icon icon-star-solid" />
               {this.getTitle()}
-            </ProjectLink>
+            </Link>
           </h3>
         </Flex>
         <div className="event-extra">
@@ -124,6 +129,7 @@ const CompactIssue = createReactClass({
   propTypes: {
     data: PropTypes.object,
     id: PropTypes.string,
+    eventId: PropTypes.string,
     statsPeriod: PropTypes.string,
     showActions: PropTypes.bool,
     organization: SentryTypes.Organization.isRequired,
@@ -222,6 +228,7 @@ const CompactIssue = createReactClass({
           data={issue}
           organization={organization}
           projectId={issue.project.slug}
+          eventId={this.props.eventId}
         />
         {this.props.statsPeriod && (
           <div className="event-graph">

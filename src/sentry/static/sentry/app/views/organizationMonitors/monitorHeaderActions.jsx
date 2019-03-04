@@ -16,17 +16,18 @@ import withApi from 'app/utils/withApi';
 
 class MonitorHeaderActions extends React.Component {
   static propTypes = {
+    api: PropTypes.object.isRequired,
     monitor: SentryTypes.Monitor.isRequired,
     orgId: PropTypes.string.isRequired,
     onUpdate: PropTypes.func,
   };
 
   handleDelete = () => {
-    const {orgId, monitor} = this.props;
+    const {api, orgId, monitor} = this.props;
     const redirectPath = `/organizations/${orgId}/monitors/`;
     addLoadingMessage(t('Deleting Monitor...'));
 
-    this.api
+    api
       .requestPromise(`/monitors/${monitor.id}/`, {
         method: 'DELETE',
       })
@@ -40,9 +41,9 @@ class MonitorHeaderActions extends React.Component {
   };
 
   updateMonitor = data => {
-    const {monitor} = this.props;
+    const {api, monitor} = this.props;
     addLoadingMessage();
-    this.api
+    api
       .requestPromise(`/monitors/${monitor.id}/`, {
         method: 'PUT',
         data,

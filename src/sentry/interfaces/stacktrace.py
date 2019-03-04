@@ -36,6 +36,10 @@ _filename_version_re = re.compile(
 )/""", re.X | re.I
 )
 
+# Native function trim re.  For now this is a simple hack until we have the
+# language hints in which will let us trim this down better.
+_native_function_trim_re = re.compile(r'^(.[^(]*)\(')
+
 # OpenJDK auto-generated classes for reflection access:
 #   sun.reflect.GeneratedSerializationConstructorAccessor123
 #   sun.reflect.GeneratedConstructorAccessor456
@@ -95,6 +99,20 @@ def trim_package(pkg):
     if pkg.endswith(('.dylib', '.so', '.a')):
         pkg = pkg.rsplit('.', 1)[0]
     return pkg
+
+
+def trim_function_name(func, platform):
+    # TODO(mitsuhiko): we actually want to use the language information here
+    # but we don't have that yet.
+    if platform in ('objc', 'cocoa', 'native'):
+        # objc function
+        if func.startswith(('[', '+[', '-[')):
+            return func
+        # c/c++ function hopefully
+        match = _native_function_trim_re.match(func.strip())
+        if match is not None:
+            return match.group(1).strip()
+    return func
 
 
 def to_hex_addr(addr):
@@ -434,7 +452,7 @@ class Frame(Interface):
             'colno': self.colno
         })
 
-    def get_hash(self, platform=None):
+    def get_hash(self, platform=None, variant='system'):
         """
         The hash of the frame varies depending on the data available.
 
@@ -444,6 +462,9 @@ class Frame(Interface):
 
         This is one of the few areas in Sentry that isn't platform-agnostic.
         """
+        if variant not in ('app', 'system'):
+            return []
+
         platform = self.platform or platform
         output = []
         # Safari throws [native code] frames in for calls like ``forEach``
@@ -621,23 +642,6 @@ class Frame(Interface):
                 'context_line': self.context_line,
             }
         ).strip('\n')
-
-    def get_culprit_string(self, platform=None):
-        # If this frame has a platform, we use it instead of the one that
-        # was passed in (as that one comes from the exception which might
-        # not necessarily be the same platform).
-        if self.platform is not None:
-            platform = self.platform
-        if platform in ('objc', 'cocoa', 'native'):
-            return self.function or '?'
-        fileloc = self.module or self.filename
-        if not fileloc:
-            return ''
-        elif platform in ('javascript', 'node'):
-            # function and fileloc might be unicode here, so let it coerce
-            # to a unicode string if needed.
-            return '%s(%s)' % (self.function or '?', fileloc)
-        return '%s in %s' % (fileloc, self.function or '?', )
 
 
 class Stacktrace(Interface):
@@ -833,18 +837,10 @@ class Stacktrace(Interface):
             'registers': self.registers,
         })
 
-    def compute_hashes(self, platform=None):
-        system_hash = self.get_hash(platform, system_frames=True)
-        if not system_hash:
+    def get_hash(self, platform=None, variant='system'):
+        if variant not in ('app', 'system'):
             return []
 
-        app_hash = self.get_hash(platform, system_frames=False)
-        if system_hash == app_hash or not app_hash:
-            return [system_hash]
-
-        return [system_hash, app_hash]
-
-    def get_hash(self, platform=None, system_frames=True):
         frames = self.frames
 
         # TODO(dcramer): this should apply only to platform=javascript
@@ -858,6 +854,7 @@ class Stacktrace(Interface):
         if stack_invalid:
             return []
 
+        system_frames = variant == 'system'
         if not system_frames:
             total_frames = len(frames)
             frames = [f for f in frames if f.in_app] or frames
@@ -875,11 +872,11 @@ class Stacktrace(Interface):
         # stacktraces that only differ by the number of recursive calls should
         # hash the same, so we squash recursive calls by comparing each frame
         # to the previous frame
-        output.extend(frames[0].get_hash(platform))
+        output.extend(frames[0].get_hash(platform, variant=variant))
         prev_frame = frames[0]
         for frame in frames[1:]:
             if not is_recursion(frame, prev_frame):
-                output.extend(frame.get_hash(platform))
+                output.extend(frame.get_hash(platform, variant=variant))
             prev_frame = frame
         return output
 
@@ -944,14 +941,3 @@ class Stacktrace(Interface):
             )
 
         return '\n'.join(result)
-
-    def get_culprit_string(self, platform=None):
-        default = None
-        for frame in reversed(self.frames):
-            if frame.in_app:
-                culprit = frame.get_culprit_string(platform=platform)
-                if culprit:
-                    return culprit
-            elif default is None:
-                default = frame.get_culprit_string(platform=platform)
-        return default

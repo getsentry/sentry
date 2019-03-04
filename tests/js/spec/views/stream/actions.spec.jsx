@@ -29,6 +29,11 @@ describe('StreamActions', function() {
             queryCount={1500}
             orgId="1337"
             projectId="1"
+            selection={{
+              projects: [1],
+              environments: [],
+              datetime: {start: null, end: null, period: null, utc: true},
+            }}
             groupIds={[1, 2, 3]}
             onRealtimeChange={function() {}}
             onSelectStatsPeriod={function() {}}
@@ -52,7 +57,7 @@ describe('StreamActions', function() {
 
       it('bulk resolves', async function() {
         const apiMock = MockApiClient.addMockResponse({
-          url: '/projects/1337/1/issues/',
+          url: '/organizations/1337/issues/',
           method: 'PUT',
         });
         wrapper
@@ -85,6 +90,11 @@ describe('StreamActions', function() {
             queryCount={600}
             orgId="1337"
             projectId="1"
+            selection={{
+              projects: [1],
+              environments: [],
+              datetime: {start: null, end: null, period: null, utc: true},
+            }}
             groupIds={[1, 2, 3]}
             onRealtimeChange={function() {}}
             onSelectStatsPeriod={function() {}}
@@ -108,7 +118,7 @@ describe('StreamActions', function() {
 
       it('bulk resolves', async function() {
         const apiMock = MockApiClient.addMockResponse({
-          url: '/projects/1337/1/issues/',
+          url: '/organizations/1337/issues/',
           method: 'PUT',
         });
         wrapper
@@ -138,6 +148,11 @@ describe('StreamActions', function() {
           query=""
           orgId="1337"
           projectId="1"
+          selection={{
+            projects: [1],
+            environments: [],
+            datetime: {start: null, end: null, period: null, utc: true},
+          }}
           groupIds={[1, 2, 3]}
           onRealtimeChange={function() {}}
           onSelectStatsPeriod={function() {}}
@@ -186,6 +201,11 @@ describe('StreamActions', function() {
           query=""
           orgId="1337"
           groupIds={[1, 2, 3]}
+          selection={{
+            projects: [],
+            environments: [],
+            datetime: {start: null, end: null, period: null, utc: true},
+          }}
           onRealtimeChange={function() {}}
           onSelectStatsPeriod={function() {}}
           realtimeActive={false}

@@ -71,11 +71,12 @@ class TestCreator(TestCase):
         assert not ServiceHookProject.objects.all()
 
     @responses.activate
-    @patch('sentry.tasks.sentry_apps.installation_webhook.delay')
-    def test_notifies_service(self, installation_webhook):
-        responses.add(responses.POST, 'https://example.com/webhook')
-        install = self.creator.call()
-        installation_webhook.assert_called_once_with(install.id, self.user.id)
+    @patch('sentry.mediators.sentry_app_installations.InstallationNotifier.run')
+    def test_notifies_service(self, run):
+        with self.tasks():
+            responses.add(responses.POST, 'https://example.com/webhook')
+            install = self.creator.call()
+            run.assert_called_once_with(install=install, user=self.user, action='created')
 
     @responses.activate
     def test_associations(self):

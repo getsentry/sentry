@@ -253,7 +253,7 @@ def cron(**options):
         ).run()
 
 
-@run.command()
+@run.command('post-process-forwarder')
 @click.option('--consumer-group', default='snuba-post-processor',
               help='Consumer group used to track event offsets that have been enqueued for post-processing.')
 @click.option('--commit-log-topic', default='snuba-commit-log',
@@ -266,19 +266,19 @@ def cron(**options):
               help='Position in the commit log topic to begin reading from when no prior offset has been recorded.')
 @log_options()
 @configuration
-def relay(**options):
+def post_process_forwarder(**options):
     from sentry import eventstream
-    from sentry.eventstream.base import RelayNotRequired
+    from sentry.eventstream.base import ForwarderNotRequired
     try:
-        eventstream.relay(
+        eventstream.run_post_process_forwarder(
             consumer_group=options['consumer_group'],
             commit_log_topic=options['commit_log_topic'],
             synchronize_commit_group=options['synchronize_commit_group'],
             commit_batch_size=options['commit_batch_size'],
             initial_offset_reset=options['initial_offset_reset'],
         )
-    except RelayNotRequired:
+    except ForwarderNotRequired:
         sys.stdout.write(
-            'The configured event stream backend does not need a relay '
-            'process to enqueue post-processing tasks. Exiting...\n')
+            'The configured event stream backend does not need a forwarder '
+            'process to enqueue post-process tasks. Exiting...\n')
         return

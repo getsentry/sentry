@@ -1,3 +1,4 @@
+import {canIncludePreviousPeriod} from 'app/views/organizationEvents/utils/canIncludePreviousPeriod';
 import {getPeriod} from 'app/utils/getPeriod';
 
 const BASE_URL = org => `/organizations/${org.slug}/events-stats/`;
@@ -31,7 +32,7 @@ export const doEventsRequest = (
     query,
   }
 ) => {
-  const shouldDoublePeriod = includePrevious;
+  const shouldDoublePeriod = canIncludePreviousPeriod(includePrevious, period);
   const urlQuery = {
     interval,
     project,
@@ -51,16 +52,3 @@ export const doEventsRequest = (
     },
   });
 };
-
-/**
- * Get all available values for a given event field name
- * This includes tags as well.
- */
-export function fetchEventFieldValues(api, orgId, tag, query) {
-  return api.requestPromise(`/organizations/${orgId}/tags/${tag}/values/`, {
-    data: {
-      query,
-    },
-    method: 'GET',
-  });
-}

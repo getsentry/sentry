@@ -43,7 +43,7 @@ describe('Stream', function() {
       id: '2448',
     });
     project = TestStubs.ProjectDetails({
-      id: '3559',
+      id: 3559,
       name: 'Foo Project',
       slug: 'project-slug',
       firstEvent: true,
@@ -62,7 +62,7 @@ describe('Stream', function() {
       body: [savedSearch],
     });
     MockApiClient.addMockResponse({
-      url: '/projects/org-slug/project-slug/processingissues/',
+      url: '/organizations/org-slug/processingissues/',
       method: 'GET',
     });
     sandbox.stub(browserHistory, 'push');

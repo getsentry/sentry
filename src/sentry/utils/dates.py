@@ -123,7 +123,7 @@ def parse_stats_period(period):
     Convert a value such as 1h into a
     proper timedelta.
     """
-    m = re.match('^(\d+)([hdms]?)$', period)
+    m = re.match('^(\d+)([hdmsw]?)$', period)
     if not m:
         return None
     value, unit = m.groups()
@@ -131,5 +131,5 @@ def parse_stats_period(period):
     if not unit:
         unit = 's'
     return timedelta(**{
-        {'h': 'hours', 'd': 'days', 'm': 'minutes', 's': 'seconds'}[unit]: value,
+        {'h': 'hours', 'd': 'days', 'm': 'minutes', 's': 'seconds', 'w': 'weeks'}[unit]: value,
     })

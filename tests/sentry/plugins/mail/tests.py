@@ -124,6 +124,8 @@ class MailPluginTest(TestCase):
         event_manager.normalize()
         event_data = event_manager.get_data()
         event_type = event_manager.get_event_type()
+        event_data['type'] = event_type.key
+        event_data['metadata'] = event_type.get_metadata(event_data)
 
         group = Group(
             id=2,
@@ -135,7 +137,7 @@ class MailPluginTest(TestCase):
             short_id=2,
             data={
                 'type': event_type.key,
-                'metadata': event_type.get_metadata(),
+                'metadata': event_type.get_metadata(event_data),
             }
         )
 
@@ -167,6 +169,8 @@ class MailPluginTest(TestCase):
         event_manager.normalize()
         event_data = event_manager.get_data()
         event_type = event_manager.get_event_type()
+        event_data['type'] = event_type.key
+        event_data['metadata'] = event_type.get_metadata(event_data)
 
         group = Group(
             id=2,
@@ -178,7 +182,7 @@ class MailPluginTest(TestCase):
             short_id=2,
             data={
                 'type': event_type.key,
-                'metadata': event_type.get_metadata(),
+                'metadata': event_type.get_metadata(event_data),
             }
         )
 
@@ -552,7 +556,7 @@ class MailPluginOwnersTest(TestCase):
         )
 
     def make_event_data(self, filename, url='http://example.com'):
-        data = {
+        mgr = EventManager({
             'tags': [('level', 'error')],
             'stacktrace': {
                 'frames': [
@@ -565,7 +569,13 @@ class MailPluginOwnersTest(TestCase):
             'request': {
                 'url': url
             },
-        }
+        })
+        mgr.normalize()
+        data = mgr.get_data()
+        event_type = mgr.get_event_type()
+        data['type'] = event_type.key
+        data['metadata'] = event_type.get_metadata(data)
+
         return data
 
     def assert_notify(self, event, emails_sent_to):

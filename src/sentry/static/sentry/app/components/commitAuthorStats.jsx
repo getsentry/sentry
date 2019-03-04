@@ -1,14 +1,13 @@
 import PropTypes from 'prop-types';
 import React from 'react';
 import {Flex} from 'grid-emotion';
-import createReactClass from 'create-react-class';
 
 import LoadingIndicator from 'app/components/loadingIndicator';
 import LoadingError from 'app/components/loadingError';
 import Avatar from 'app/components/avatar';
 import Tooltip from 'app/components/tooltip';
 
-import ApiMixin from 'app/mixins/apiMixin';
+import withApi from 'app/utils/withApi';
 
 import {t} from 'app/locale';
 import {Panel, PanelItem, PanelBody} from 'app/components/panels';
@@ -27,27 +26,25 @@ class CommitBar extends React.Component {
   }
 }
 
-const CommitAuthorStats = createReactClass({
-  displayName: 'CommitAuthorStats',
-
-  propTypes: {
+class CommitAuthorStats extends React.Component {
+  static propTypes = {
+    api: PropTypes.object,
     orgId: PropTypes.string.isRequired,
     // Provided in project release views, not in org release views
     projectId: PropTypes.string,
     version: PropTypes.string.isRequired,
-  },
+  };
 
-  mixins: [ApiMixin],
-
-  getInitialState() {
-    return {
+  constructor(props) {
+    super(props);
+    this.state = {
       loading: true,
       error: false,
     };
-  },
+  }
 
   componentDidMount() {
-    this.api.request(this.getPath(), {
+    this.props.api.request(this.getPath(), {
       method: 'GET',
       success: (data, _, jqXHR) => {
         this.setState({
@@ -64,7 +61,7 @@ const CommitAuthorStats = createReactClass({
         });
       },
     });
-  },
+  }
 
   getPath() {
     const {orgId, projectId, version} = this.props;
@@ -73,11 +70,11 @@ const CommitAuthorStats = createReactClass({
     return this.props.projectId
       ? `/projects/${orgId}/${projectId}/releases/${encodedVersion}/commits/`
       : `/organizations/${orgId}/releases/${encodedVersion}/commits/`;
-  },
+  }
 
   renderEmpty() {
     return <div className="box empty">{t('No authors in this release')}</div>;
-  },
+  }
 
   render() {
     if (this.state.loading) return <LoadingIndicator />;
@@ -136,7 +133,7 @@ const CommitAuthorStats = createReactClass({
         </Panel>
       </div>
     );
-  },
-});
+  }
+}
 
-export default CommitAuthorStats;
+export default withApi(CommitAuthorStats);

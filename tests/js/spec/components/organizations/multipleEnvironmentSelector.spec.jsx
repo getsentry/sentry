@@ -52,7 +52,7 @@ describe('MultipleEnvironmentSelector', function() {
       wrapper
         .find('EnvironmentSelectorItem')
         .at(i)
-        .find('MultiSelect')
+        .find('CheckboxWrapper')
         .simulate('click', {});
     });
     expect(onChange).toHaveBeenCalledTimes(3);
@@ -72,7 +72,7 @@ describe('MultipleEnvironmentSelector', function() {
 
     // Select 'production'
     await wrapper
-      .find('MultipleEnvironmentSelector AutoCompleteItem MultiSelectWrapper')
+      .find('MultipleEnvironmentSelector AutoCompleteItem CheckboxWrapper')
       .at(0)
       .simulate('click');
     await wrapper.update();
@@ -82,7 +82,6 @@ describe('MultipleEnvironmentSelector', function() {
     await wrapper.update();
 
     expect(onChange).toHaveBeenCalled();
-    expect(onUpdate).toHaveBeenCalled();
     const selector = wrapper.find('MultipleEnvironmentSelector').instance();
     expect(selector.state.selectedEnvs).toEqual(new Set([]));
   });
@@ -91,14 +90,14 @@ describe('MultipleEnvironmentSelector', function() {
     await wrapper.find('MultipleEnvironmentSelector HeaderItem').simulate('click');
 
     await wrapper
-      .find('MultipleEnvironmentSelector AutoCompleteItem MultiSelectWrapper')
+      .find('MultipleEnvironmentSelector AutoCompleteItem CheckboxWrapper')
       .at(0)
       .simulate('click');
 
     expect(onChange).toHaveBeenLastCalledWith(['production'], expect.anything());
 
     wrapper
-      .find('MultipleEnvironmentSelector AutoCompleteItem MultiSelectWrapper')
+      .find('MultipleEnvironmentSelector AutoCompleteItem CheckboxWrapper')
       .at(1)
       .simulate('click');
     expect(onChange).toHaveBeenLastCalledWith(
@@ -122,7 +121,7 @@ describe('MultipleEnvironmentSelector', function() {
     wrapper.update();
 
     await wrapper.find('MultipleEnvironmentSelector HeaderItem').simulate('click');
-    const items = wrapper.find('MultipleEnvironmentSelector EnvironmentRow');
+    const items = wrapper.find('MultipleEnvironmentSelector GlobalSelectionHeaderRow');
     expect(items.length).toEqual(1);
     expect(items.at(0).text()).toBe('dev');
   });
@@ -132,7 +131,7 @@ describe('MultipleEnvironmentSelector', function() {
     wrapper.update();
 
     await wrapper.find('MultipleEnvironmentSelector HeaderItem').simulate('click');
-    const items = wrapper.find('MultipleEnvironmentSelector EnvironmentRow');
+    const items = wrapper.find('MultipleEnvironmentSelector GlobalSelectionHeaderRow');
 
     expect(items.length).toEqual(3);
     expect(items.at(0).text()).toBe('production');
@@ -143,7 +142,7 @@ describe('MultipleEnvironmentSelector', function() {
   it('shows the distinct union of environments across all projects', async function() {
     wrapper.setProps({selectedProjects: [1, 2]});
     await wrapper.find('MultipleEnvironmentSelector HeaderItem').simulate('click');
-    const items = wrapper.find('MultipleEnvironmentSelector EnvironmentRow');
+    const items = wrapper.find('MultipleEnvironmentSelector GlobalSelectionHeaderRow');
 
     expect(items.length).toEqual(3);
     expect(items.at(0).text()).toBe('production');
