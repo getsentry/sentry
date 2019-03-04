@@ -38,7 +38,7 @@ from sentry.utils.strings import truncatechars
 
 class EventDict(CanonicalKeyDict):
     def __init__(self, data, **kwargs):
-        normalizer = StoreNormalizer()
+        normalizer = StoreNormalizer(is_renormalize=True)
         data = normalizer.normalize_event(dict(data))
         CanonicalKeyDict.__init__(self, data, **kwargs)
 
