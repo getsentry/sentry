@@ -42,6 +42,9 @@ from .manager import *  # NOQA
 #
 #   NOTE: The actor kwarg should be passed when it's expected that the handler
 #         needs context of the user.
+#
+#   NOTE: Features that require Snuba to function, add to the
+#         `requires_snuba` tuple.
 
 default_manager = FeatureManager()  # NOQA
 
@@ -95,6 +98,16 @@ default_manager.add('projects:kafka-save', ProjectFeature)  # NOQA
 
 # Project plugin features
 default_manager.add('projects:plugins', ProjectPluginFeature)  # NOQA
+
+# This is a gross hardcoded list, but there's no
+# other sensible way to manage this right now without augmenting
+# features themselves in the manager with detections like this.
+requires_snuba = (
+    'organizations:discover',
+    'organizations:events',
+    'organizations:global-views',
+    'organizations:sentry10',
+)
 
 # NOTE: Don't add features down here! Add them to their specific group and sort
 #       them alphabetically! The order features are registered is not important.
