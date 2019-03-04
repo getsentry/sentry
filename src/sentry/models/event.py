@@ -34,6 +34,14 @@ from sentry.utils.safe import get_path
 from sentry.utils.strings import truncatechars
 
 
+class EventDict(CanonicalKeyDict):
+    def __init__(self, data, **kwargs):
+        mgr = EventManager(data=data, is_renormalize=True)
+        mgr.normalize()
+        data = mgr.get_data()
+        CanonicalKeyDict.__init__(self, data, **kwargs)
+
+
 class Event(Model):
     """
     An individual event.
@@ -52,7 +60,7 @@ class Event(Model):
         null=True,
         ref_func=lambda x: x.project_id or x.project.id,
         ref_version=2,
-        wrapper=CanonicalKeyDict,
+        wrapper=EventDict,
     )
 
     objects = EventManager()
