@@ -1064,7 +1064,7 @@ function routes() {
           <Route
             path="searches/:searchId/"
             componentPromise={() =>
-              import(/*webpackChunkName: "Stream"*/ './views/stream')}
+              import(/* webpackChunkName: "Stream" */ './views/stream')}
             component={errorHandler(LazyLoad)}
           />
           <Route
