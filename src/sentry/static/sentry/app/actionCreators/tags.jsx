@@ -118,19 +118,3 @@ export function fetchTagValues(api, orgId, tagKey, search = null, projectIds = n
     query,
   });
 }
-
-/**
- * Fetch tag values for a single project
- */
-export function fetchProjectTagValues(api, orgId, projectId, tagKey, query = null) {
-  const url = `/projects/${orgId}/${projectId}/tags/${tagKey}/values/`;
-
-  if (query) {
-    query = {query};
-  }
-
-  return api.requestPromise(url, {
-    method: 'GET',
-    query,
-  });
-}

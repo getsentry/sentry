@@ -16,16 +16,6 @@ export function fetchOrgMembers(api, orgId, projectIds = null) {
   });
 }
 
-export function fetchProjectMembers(api, orgId, projectId) {
-  const url = `/projects/${orgId}/${projectId}/members/`;
-  return api.requestPromise(url, {method: 'GET'}).then(members => {
-    members = members.filter(m => m.user).map(m => m.user);
-    MemberListStore.loadInitialData(members);
-
-    return members;
-  });
-}
-
 /**
  * Convert a list of members with user & project data
  * into a object that maps project slugs : users in that project.

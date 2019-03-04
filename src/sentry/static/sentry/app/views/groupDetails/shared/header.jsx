@@ -3,7 +3,7 @@ import React from 'react';
 import createReactClass from 'create-react-class';
 import {Link} from 'react-router';
 import ApiMixin from 'app/mixins/apiMixin';
-import {fetchProjectMembers} from 'app/actionCreators/members';
+import {fetchOrgMembers} from 'app/actionCreators/members';
 import AssigneeSelector from 'app/components/assigneeSelector';
 import Count from 'app/components/count';
 import IndicatorStore from 'app/stores/indicatorStore';
@@ -42,12 +42,11 @@ const GroupHeader = createReactClass({
 
   componentDidMount() {
     const {organization} = this.context;
-    const {group} = this.props;
-    fetchProjectMembers(
-      this.api,
-      organization.slug,
-      group.project.slug
-    ).then(memberList => this.setState({memberList}));
+    const {project} = this.props.group;
+
+    fetchOrgMembers(this.api, organization.slug, project.id).then(memberList =>
+      this.setState({memberList})
+    );
   },
 
   onToggleMute() {

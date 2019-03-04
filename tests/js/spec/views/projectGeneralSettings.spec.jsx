@@ -41,7 +41,7 @@ describe('projectGeneralSettings', function() {
       body: [],
     });
     MockApiClient.addMockResponse({
-      url: `/projects/${org.slug}/${project.slug}/members/`,
+      url: `/organizations/${org.slug}/users/`,
       method: 'GET',
       body: [],
     });
@@ -288,7 +288,7 @@ describe('projectGeneralSettings', function() {
       body: [],
     });
     const newProjectMembers = MockApiClient.addMockResponse({
-      url: `/projects/${org.slug}/new-project/members/`,
+      url: `/organizations/${org.slug}/users/`,
       method: 'GET',
       body: [],
     });

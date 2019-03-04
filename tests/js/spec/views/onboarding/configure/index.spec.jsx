@@ -18,7 +18,7 @@ describe('Configure should render correctly', function() {
       body: {},
     });
     MockApiClient.addMockResponse({
-      url: '/projects/testOrg/project-slug/members/',
+      url: '/organizations/testOrg/users/',
       body: [],
     });
     MockApiClient.addMockResponse({

@@ -97,6 +97,15 @@ const AssigneeSelectorComponent = createReactClass({
       return true;
     }
 
+    // If the memberList in props has changed, re-render as
+    // props have updated, and we won't use internal state anyways.
+    if (
+      nextProps.memberList &&
+      !valueIsEqual(this.props.memberList, nextProps.memberList)
+    ) {
+      return true;
+    }
+
     const currentMembers = this.memberList();
     // XXX(billyvg): this means that once `memberList` is not-null, this component will never update due to `memberList` changes
     // Note: this allows us to show a "loading" state for memberList, but only before `MemberListStore.loadInitialData`
