@@ -71,3 +71,21 @@ class TestSelectRequester(TestCase):
                 uri='/get-issues',
                 fields={},
             )
+
+    @responses.activate
+    def test_500_response(self):
+        responses.add(
+            method=responses.GET,
+            url='https://example.com/get-issues?projectSlug=boop&installationId=f3d37e3a-9a87-4651-8463-d375118f4996',
+            body='Something failed',
+            status=500,
+        )
+
+        with self.assertRaises(APIError):
+            SelectRequester.run(
+                install=self.install,
+                project=self.project,
+                group=self.group,
+                uri='/get-issues',
+                fields={},
+            )

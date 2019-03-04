@@ -1,7 +1,7 @@
 from __future__ import absolute_import
 
 import six
-from sentry.utils import json
+import logging
 from uuid import uuid4
 
 from six.moves.urllib.parse import urlparse, urlencode
@@ -9,7 +9,10 @@ from sentry.http import safe_urlopen, safe_urlread
 from sentry.coreapi import APIError
 from sentry.mediators import Mediator, Param
 from sentry.mediators.external_requests.util import validate
+from sentry.utils import json
 from sentry.utils.cache import memoize
+
+logger = logging.getLogger('sentry.mediators.external-requests')
 
 
 class SelectRequester(Mediator):
@@ -45,8 +48,20 @@ class SelectRequester(Mediator):
             headers=self._build_headers(),
         )
 
-        body = safe_urlread(req)
-        response = json.loads(body)
+        try:
+            body = safe_urlread(req)
+            response = json.loads(body)
+        except Exception:
+            logger.info(
+                'select-requester.error',
+                extra={
+                    'sentry_app': self.sentry_app.slug,
+                    'install': self.install.uuid,
+                    'project': self.project.slug,
+                    'uri': self.uri,
+                }
+            )
+            response = {}
 
         is_valid = self._validate_response(response)
         if not is_valid:

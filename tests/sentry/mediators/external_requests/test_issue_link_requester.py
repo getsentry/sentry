@@ -98,3 +98,21 @@ class TestIssueLinkRequester(TestCase):
                 uri='/link-issue',
                 fields={},
             )
+
+    @responses.activate
+    def test_500_response(self):
+        responses.add(
+            method=responses.POST,
+            url='https://example.com/link-issue',
+            body='Something failed',
+            status=500,
+        )
+
+        with self.assertRaises(APIError):
+            IssueLinkRequester.run(
+                install=self.install,
+                project=self.project,
+                group=self.group,
+                uri='/link-issue',
+                fields={},
+            )
