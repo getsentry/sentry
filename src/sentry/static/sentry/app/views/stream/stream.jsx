@@ -722,7 +722,10 @@ const Stream = createReactClass({
               allResultsVisible={this.allResultsVisible()}
             />
             <PanelBody>
-              <ProcessingIssueList organization={organization} project={project} />
+              <ProcessingIssueList
+                organization={organization}
+                projectIds={selection.projects}
+              />
               {this.renderStreamBody()}
             </PanelBody>
           </Panel>
