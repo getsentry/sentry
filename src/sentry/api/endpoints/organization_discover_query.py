@@ -142,6 +142,12 @@ class DiscoverQuerySerializer(serializers.Serializer):
         if isinstance(condition[2], bool):
             condition[2] = int(condition[2])
 
+        # Strip double quotes on strings
+        if isinstance(condition[2], six.string_types):
+            match = re.search(r'^"(.*)"$', condition[2])
+            if match:
+                condition[2] = match.group(1)
+
         # Apply has function to any array field if it's = / != and not part of arrayjoin
         if array_field and has_equality_operator and (array_field.group(1) != self.arrayjoin):
             value = condition[2]
