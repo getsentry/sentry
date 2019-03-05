@@ -2,7 +2,6 @@ import PropTypes from 'prop-types';
 import React from 'react';
 import createReactClass from 'create-react-class';
 import {Link} from 'react-router';
-import styled from 'react-emotion';
 import ApiMixin from 'app/mixins/apiMixin';
 import {fetchOrgMembers} from 'app/actionCreators/members';
 import AssigneeSelector from 'app/components/assigneeSelector';
@@ -15,7 +14,6 @@ import EventOrGroupTitle from 'app/components/eventOrGroupTitle';
 import GuideAnchor from 'app/components/assistant/guideAnchor';
 import OrganizationState from 'app/mixins/organizationState';
 import ProjectBadge from 'app/components/idBadge/projectBadge';
-import qs from 'query-string';
 import Tooltip from 'app/components/tooltip';
 import {t} from 'app/locale';
 import SentryTypes from 'app/sentryTypes';
@@ -114,8 +112,6 @@ const GroupHeader = createReactClass({
     const message = this.getMessage();
 
     const hasSimilarView = projectFeatures.has('similarity-view');
-    const hasSentry10 = new Set(organization.features).has('sentry10');
-    const hasProjectAccess = new Set(organization.access).has('project:read');
 
     const baseUrl = params.projectId
       ? `/${orgId}/${params.projectId}/issues/`
@@ -174,33 +170,14 @@ const GroupHeader = createReactClass({
                       </a>
                     </Tooltip>
                   </h6>
-                  <ShortId shortId={group.shortId} />
+                  <ShortId
+                    shortId={group.shortId}
+                    avatar={
+                      <ProjectBadge project={project} avatarSize={22} hideName={true} />
+                    }
+                  />
                 </div>
               )}
-              <div className="count align-right m-l-1">
-                <h6 className="nav-header">{t('Project')}</h6>
-                <Tooltip title={project.name} tooltipOptions={{placement: 'bottom'}}>
-                  {hasProjectAccess ? (
-                    <StyledLink
-                      to={
-                        hasSentry10
-                          ? {
-                              pathname: `/organizations/${orgId}/issues/`,
-                              query: {
-                                ...qs.parse(location.search),
-                                project: project.id,
-                              },
-                            }
-                          : `/${orgId}/${project.slug}/`
-                      }
-                    >
-                      <ProjectBadge project={project} avatarSize={22} hideName={true} />
-                    </StyledLink>
-                  ) : (
-                    <ProjectBadge project={project} avatarSize={22} hideName={true} />
-                  )}
-                </Tooltip>
-              </div>
               <div className="count align-right m-l-1">
                 <h6 className="nav-header">{t('Events')}</h6>
                 <Link to={`${baseUrl}${groupId}/events/`}>
@@ -259,9 +236,5 @@ const GroupHeader = createReactClass({
     );
   },
 });
-
-const StyledLink = styled(Link)`
-  display: inline-flex;
-`;
 
 export default GroupHeader;

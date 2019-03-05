@@ -1226,19 +1226,27 @@ exports[`Issues Similar View renders with mocked data 1`] = `
                                           shortId="INTERNAL-4G"
                                         >
                                           <div
-                                            className="eec9orn4 css-77itmv-StyledShortId-GroupShortId ebuncw00"
+                                            className="eec9orn4 css-zds1k7-StyledShortId-GroupShortId ebuncw00"
                                             onClick={[Function]}
                                           >
-                                            <AutoSelectText>
-                                              <div
-                                                className="auto-select-text"
-                                                onClick={[Function]}
+                                            <StyledAutoSelectText
+                                              avatar={false}
+                                            >
+                                              <AutoSelectText
+                                                avatar={false}
+                                                className="css-3ywrfs-StyledAutoSelectText ebuncw01"
                                               >
-                                                <span>
-                                                  INTERNAL-4G
-                                                </span>
-                                              </div>
-                                            </AutoSelectText>
+                                                <div
+                                                  avatar={false}
+                                                  className="auto-select-text css-3ywrfs-StyledAutoSelectText ebuncw01"
+                                                  onClick={[Function]}
+                                                >
+                                                  <span>
+                                                    INTERNAL-4G
+                                                  </span>
+                                                </div>
+                                              </AutoSelectText>
+                                            </StyledAutoSelectText>
                                           </div>
                                         </StyledShortId>
                                       </ShortId>
