@@ -158,6 +158,7 @@ class ErrorPageEmbedView(View):
             try:
                 event = Event.objects.filter(project_id=report.project.id,
                                              event_id=report.event_id)[0]
+                Event.objects.bind_nodes([event])
             except IndexError:
                 try:
                     report.group = Group.objects.from_event_id(report.project, report.event_id)
