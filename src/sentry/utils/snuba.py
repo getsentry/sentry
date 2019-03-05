@@ -76,7 +76,7 @@ SENTRY_SNUBA_MAP = {
     'device.arch': 'device_arch',
     'device.battery_level': 'device_battery_level',
     'device.orientation': 'device_orientation',
-    'device.simulator': 'device_orientation',
+    'device.simulator': 'device_simulator',
     'device.online': 'device_online',
     'device.charging': 'device_charging',
     # geo

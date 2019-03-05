@@ -579,7 +579,10 @@ class GetSnubaQueryArgsTest(TestCase):
     def test_negation(self):
         assert get_snuba_query_args('!user.email:foo@example.com') == {
             'conditions': [
-                [['ifNull', ['email', "''"]], '!=', 'foo@example.com'],
+                [
+                    [['isNull', ['email']], '=', 1],
+                    ['email', '!=', 'foo@example.com']
+                ]
             ],
             'filter_keys': {},
         }
@@ -608,9 +611,11 @@ class GetSnubaQueryArgsTest(TestCase):
     def test_negated_wildcard(self):
         assert get_snuba_query_args('!release:3.1.* user.email:*@example.com') == {
             'conditions': [
-                [['match', [['ifNull', ['tags[sentry:release]', "''"]],
-                            "'(?i)^3\\.1\\..*$'"]], '!=', 1],
-                [['match', ['email', "'(?i)^.*\\@example\\.com$'"]], '=', 1],
+                [
+                    [['isNull', ['tags[sentry:release]']], '=', 1],
+                    [['match', ['tags[sentry:release]', "'(?i)^3\\.1\\..*$'"]], '!=', 1]
+                ],
+                [['match', ['email', "'(?i)^.*\\@example\\.com$'"]], '=', 1]
             ],
             'filter_keys': {},
         }
@@ -639,13 +644,13 @@ class GetSnubaQueryArgsTest(TestCase):
     def test_has(self):
         assert get_snuba_query_args('has:release') == {
             'filter_keys': {},
-            'conditions': [[['ifNull', ['tags[sentry:release]', "''"]], '!=', '']]
+            'conditions': [[['isNull', ['tags[sentry:release]']], '!=', 1]]
         }
 
     def test_not_has(self):
         assert get_snuba_query_args('!has:release') == {
             'filter_keys': {},
-            'conditions': [[['ifNull', ['tags[sentry:release]', "''"]], '=', '']]
+            'conditions': [[['isNull', ['tags[sentry:release]']], '=', 1]]
         }
 
     def test_message_negative(self):

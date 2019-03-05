@@ -194,8 +194,15 @@ class SearchVisitor(NodeVisitor):
     # A list of mappers that map source keys to a target name. Format is
     # <target_name>: [<list of source names>],
     key_mappings = {}
-    numeric_keys = set()
-    date_keys = set(['start', 'end', 'first_seen', 'last_seen', 'timestamp'])
+    numeric_keys = set([
+        'device.battery_level', 'device.charging', 'device.online',
+        'device.simulator', 'error.handled', 'issue.id', 'stack.colno',
+        'stack.in_app', 'stack.lineno', 'stack.stack_level',
+
+    ])
+    date_keys = set([
+        'start', 'end', 'first_seen', 'last_seen', 'time', 'timestamp',
+    ])
 
     unwrapped_exceptions = (InvalidSearchQuery,)
 
@@ -443,20 +450,38 @@ def convert_search_filter_to_snuba_query(search_filter):
         value = int(to_timestamp(value)) * 1000 if isinstance(value,
                                                               datetime) and snuba_name != 'timestamp' else value
 
-        if search_filter.operator == '!=' or search_filter.operator == '=' and search_filter.value.value == '':
-            # Handle null columns on (in)equality comparisons. Any comparison between a value
-            # and a null will result to null. There are two cases we handle here:
-            # - A column doesn't equal a value. In this case, we need to convert the column to
-            # an empty string so that we don't exclude rows that have it set to null
-            # - Checking that a value isn't present. In some cases the column will be null,
-            # and in other cases an empty string. To generalize this we convert values in the
-            # column to an empty string and just check for that.
-            snuba_name = ['ifNull', [snuba_name, "''"]]
+        # Handle checks for existence
+        if search_filter.operator in ('=', '!=') and search_filter.value.value == '':
+            # Tags are never null, so we need to check for empty values
+            if search_filter.key.is_tag:
+                return [snuba_name, search_filter.operator, value]
+            else:
+                # Otherwise, check that the column is null.
+                return [['isNull', [snuba_name]], search_filter.operator, 1]
+
+        is_null_condition = None
+        if search_filter.operator == '!=' and not search_filter.key.is_tag:
+            # Handle null columns on inequality comparisons. Any comparison
+            # between a value and a null will result to null, so we need to
+            # explicitly check for whether the condition is null, and OR it
+            # together with the inequality check.
+            # We don't need to apply this for tags, since if they don't exist
+            # they'll always be an empty string.
+            is_null_condition = [['isNull', [snuba_name]], '=', 1]
 
         if search_filter.value.is_wildcard():
-            return [['match', [snuba_name, "'(?i)%s'" % (value,)]], search_filter.operator, 1]
+            condition = [['match', [snuba_name, "'(?i)%s'" % (value,)]], search_filter.operator, 1]
         else:
-            return [snuba_name, search_filter.operator, value]
+            condition = [snuba_name, search_filter.operator, value]
+
+        # We only want to return as a list if we have the check for null
+        # present. Returning as a list causes these conditions to be ORed
+        # together. Otherwise just return the raw condition, so that it can be
+        # used correctly in aggregates.
+        if is_null_condition:
+            return [is_null_condition, condition]
+        else:
+            return condition
 
 
 def get_snuba_query_args(query=None, params=None):
