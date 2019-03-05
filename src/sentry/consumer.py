@@ -5,8 +5,6 @@ from batching_kafka_consumer import AbstractBatchWorker
 from django.conf import settings
 
 import sentry.tasks.store as store_tasks
-from sentry.cache import default_cache
-from sentry.coreapi import cache_key_for_event, CACHE_TTL
 from sentry.utils import json
 
 
@@ -45,8 +43,6 @@ class ConsumerWorker(AbstractBatchWorker):
         else:
             task = store_tasks.process_event
 
-        cache_key = cache_key_for_event(data)
-        default_cache.set(cache_key, data, CACHE_TTL)
         task.delay(cache_key=cache_key, start_time=start_time, event_id=event_id)
 
     def handle_save(self, message):
