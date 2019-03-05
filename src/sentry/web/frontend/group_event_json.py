@@ -5,19 +5,18 @@ from django.shortcuts import get_object_or_404
 
 from sentry.models import Event, Group, GroupMeta, get_group_with_redirect
 from sentry.utils import json
-from sentry.web.frontend.base import ProjectView
+from sentry.web.frontend.base import OrganizationView
 
 
-class GroupEventJsonView(ProjectView):
+class GroupEventJsonView(OrganizationView):
     required_scope = 'event:read'
 
-    def get(self, request, organization, project, group_id, event_id_or_latest):
+    def get(self, request, organization, group_id, event_id_or_latest):
         try:
             # TODO(tkaemming): This should *actually* redirect, see similar
             # comment in ``GroupEndpoint.convert_args``.
             group, _ = get_group_with_redirect(
                 group_id,
-                queryset=Group.objects.filter(project=project),
             )
         except Group.DoesNotExist:
             raise Http404

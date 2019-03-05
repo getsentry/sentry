@@ -150,7 +150,7 @@ const GroupEventToolbar = createReactClass({
 
     // TODO: possible to define this as a route in react-router, but without a corresponding
     //       React component?
-    const jsonUrl = `/${orgId}/${projectId}/issues/${groupId}/events/${evt.id}/json/`;
+    const jsonUrl = `/organizations/${orgId}/issues/${groupId}/events/${evt.id}/json/`;
     const style = {
       borderBottom: '1px dotted #dfe3ea',
     };

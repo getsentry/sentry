@@ -425,6 +425,12 @@ urlpatterns += patterns(
         name='sentry-organization-event-detail'
     ),
     url(
+        r'^organizations/(?P<organization_slug>[\w_-]+)/issues/(?P<group_id>\d+)/events/(?P<event_id_or_latest>(\d+|latest))/json/$',
+        GroupEventJsonView.as_view(),
+        name='sentry-group-event-json'
+    ),
+
+    url(
         r'^organizations/(?P<organization_slug>[\w_-]+)/projects/(?P<project_slug>[\w_-]+)/events/(?P<client_event_id>[\w_-]+)/$',
         ProjectEventRedirect.as_view(),
         name='sentry-project-event-redirect'
@@ -592,11 +598,6 @@ urlpatterns += patterns(
         r'^(?P<organization_slug>[\w_-]+)/(?P<project_id>[\w_-]+)/$',
         react_page_view,
         name='sentry-stream'
-    ),
-    url(
-        r'^(?P<organization_slug>[\w_-]+)/(?P<project_slug>[\w_-]+)/(?:group|issues)/(?P<group_id>\d+)/events/(?P<event_id_or_latest>(\d+|latest))/json/$',
-        GroupEventJsonView.as_view(),
-        name='sentry-group-event-json'
     ),
     url(
         r'^(?P<organization_slug>[\w_-]+)/(?P<project_slug>[\w_-]+)/issues/(?P<group_id>\d+)/tags/(?P<key>[^\/]+)/export/$',
