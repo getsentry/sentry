@@ -1,14 +1,12 @@
 from __future__ import absolute_import
 
 from collections import OrderedDict
-import random
 import logging
 import six
 
 from django.conf import settings
 from django.utils.translation import ugettext as _
 
-from sentry import options
 from sentry.utils.canonical import get_canonical_name
 from sentry.utils.html import escape
 from sentry.utils.imports import import_string
@@ -18,11 +16,6 @@ from sentry.utils.decorators import classproperty
 
 logger = logging.getLogger("sentry.events")
 interface_logger = logging.getLogger("sentry.interfaces")
-
-
-def _should_skip_to_python():
-    sample_rate = options.get('store.empty-interface-sample-rate')
-    return sample_rate > 0.0 and random.random() <= sample_rate
 
 
 def get_interface(name):
@@ -40,7 +33,7 @@ def get_interface(name):
     return interface
 
 
-def get_interfaces(data):
+def get_interfaces(data, rust_renormalized=False):
     result = []
     for key, data in six.iteritems(data):
         # Skip invalid interfaces that were nulled out during normalization
@@ -52,7 +45,9 @@ def get_interfaces(data):
         except ValueError:
             continue
 
-        value = safe_execute(cls.to_python, data, _with_transaction=False)
+        value = safe_execute(cls.to_python, data,
+                             rust_renormalized=rust_renormalized,
+                             _with_transaction=False)
         if not value:
             continue
 
@@ -133,24 +128,14 @@ class Interface(object):
             self._data[name] = value
 
     @classmethod
-    def to_python(cls, data, **kw):
+    def to_python(cls, data, rust_renormalized=False):
         """Creates a python interface object from the given raw data.
 
         This function can assume fully normalized and valid data. It can create
         defaults where data is missing but does not need to handle interface
         validation.
         """
-        if data is None:
-            return None
-
-        if _should_skip_to_python():
-            return cls(**data)
-
-        return cls._to_python(data, **kw)
-
-    @classmethod
-    def _to_python(cls, data):
-        return cls(**data)
+        return cls(**data) if data is not None else None
 
     def get_api_context(self, is_public=False):
         return self.to_json()

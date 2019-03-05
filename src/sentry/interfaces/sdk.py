@@ -50,7 +50,10 @@ class Sdk(Interface):
     """
 
     @classmethod
-    def _to_python(cls, data):
+    def to_python(cls, data, rust_renormalized=False):
+        if rust_renormalized:
+            return cls(**data)
+
         name = data.get('name')
         version = data.get('version')
 

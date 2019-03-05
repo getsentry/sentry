@@ -263,4 +263,4 @@ def pytest_runtest_teardown(item):
 
 @pytest.fixture(autouse=True)
 def _never_skip_to_python(monkeypatch):
-    monkeypatch.setattr('sentry.interfaces.base._should_skip_to_python', lambda: False)
+    monkeypatch.setattr('sentry.models.event._should_skip_to_python', lambda _: False)
