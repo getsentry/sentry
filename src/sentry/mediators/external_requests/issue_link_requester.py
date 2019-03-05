@@ -51,8 +51,7 @@ class IssueLinkRequester(Mediator):
     fields = Param(object)
 
     def call(self):
-        self._make_request()
-        return self.response
+        return self._make_request()
 
     def _build_url(self):
         domain = urlparse(self.sentry_app.webhook_url).netloc
@@ -83,11 +82,10 @@ class IssueLinkRequester(Mediator):
             )
             response = {}
 
-        is_valid = self._validate_response(response)
-        if not is_valid:
+        if not self._validate_response(response):
             raise APIError()
 
-        self.response = response
+        return response
 
     def _validate_response(self, resp):
         return validate(instance=resp, schema_type='issue_link')
@@ -101,7 +99,7 @@ class IssueLinkRequester(Mediator):
             'Sentry-App-Signature': self.sentry_app.build_signature(self.body)
         }
 
-    @property
+    @memoize
     def body(self):
         body = {}
         for name, value in six.iteritems(self.fields):

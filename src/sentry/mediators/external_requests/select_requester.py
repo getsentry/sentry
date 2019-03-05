@@ -30,8 +30,7 @@ class SelectRequester(Mediator):
     uri = Param(six.string_types)
 
     def call(self):
-        self._make_request()
-        return self.response
+        return self._make_request()
 
     def _build_url(self):
         domain = urlparse(self.sentry_app.webhook_url).netloc
@@ -63,11 +62,10 @@ class SelectRequester(Mediator):
             )
             response = {}
 
-        is_valid = self._validate_response(response)
-        if not is_valid:
+        if not self._validate_response(response):
             raise APIError()
 
-        self.response = response
+        return response
 
     def _validate_response(self, resp):
         return validate(instance=resp, schema_type='select')
