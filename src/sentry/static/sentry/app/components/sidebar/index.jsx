@@ -201,10 +201,12 @@ class Sidebar extends React.Component {
 
   documentClickHandler = evt => {
     // If click occurs outside of sidebar, close any active panel
-    if (this.sidebar && !this.sidebar.contains(evt.target)) {
+    if (this.sidebarRef.current && !this.sidebarRef.current.contains(evt.target)) {
       this.hidePanel();
     }
   };
+
+  sidebarRef = React.createRef();
 
   render() {
     const {organization, collapsed} = this.props;
@@ -223,7 +225,7 @@ class Sidebar extends React.Component {
     const hasSentry10 = hasOrganization && new Set(organization.features).has('sentry10');
 
     return (
-      <StyledSidebar innerRef={ref => (this.sidebar = ref)} collapsed={collapsed}>
+      <StyledSidebar innerRef={this.sidebarRef} collapsed={collapsed}>
         <SidebarSectionGroup>
           <SidebarSection>
             <SidebarDropdown
