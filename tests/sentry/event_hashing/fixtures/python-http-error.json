@@ -1,0 +1,173 @@
+{
+  "culprit": "sentry.tasks.post_process.post_process_group",
+  "event_id": "5ec2c82c95d14a638d79a68099c14a32",
+  "environment": "prod",
+  "platform": "python",
+  "logger": "sentry.safe.function",
+  "exception": {
+    "values": [
+      {
+        "stacktrace": {
+          "frames": [
+            {
+              "function": "safe_execute",
+              "abs_path": "/usr/src/getsentry/src/sentry/src/sentry/utils/safe.py",
+              "pre_context": [
+                "    # side if we execute a query)",
+                "    _with_transaction = kwargs.pop('_with_transaction', True)",
+                "    try:",
+                "        if _with_transaction:",
+                "            with transaction.atomic():"
+              ],
+              "vars": {
+                "_with_transaction": "True",
+                "e": "HTTPError(u'429 Client Error: Too Many Requests for url: https://slack.com/api/chat.postMessage',)",
+                "cls_name": "'function'",
+                "func_name": "'send_notification'",
+                "args": [
+                  "<Event at 0x7f16a464b2d0: id=None, project_id=1272080L, group_id=919358151L>",
+                  [
+                    [
+                      "<Rule at 0x7f16a459cc90: id=512234L, project_id=1272080L, label=u'tx-email errors'>",
+                      {}
+                    ]
+                  ]
+                ],
+                "func": "<function send_notification at 0x7f16a4712ed8>",
+                "kwargs": {},
+                "logger": "<celery.utils.log.ProcessAwareLogger object at 0x7f16a45878d0>",
+                "cls": "<type 'function'>"
+              },
+              "module": "sentry.utils.safe",
+              "filename": "sentry/utils/safe.py",
+              "post_context": [
+                "        else:",
+                "            result = func(*args, **kwargs)",
+                "    except Exception as e:",
+                "        if hasattr(func, 'im_class'):",
+                "            cls = func.im_class"
+              ],
+              "in_app": true,
+              "context_line": "                result = func(*args, **kwargs)",
+              "lineno": 29
+            },
+            {
+              "function": "send_notification",
+              "abs_path": "/usr/src/getsentry/src/sentry/src/sentry/integrations/slack/notify_action.py",
+              "pre_context": [
+                "                'attachments': json.dumps([attachment]),",
+                "            }",
+                "",
+                "            session = http.build_session()",
+                "            resp = session.post('https://slack.com/api/chat.postMessage', data=payload)"
+              ],
+              "vars": {
+                "payload": {
+                  "attachments": "'[{\"color\":\"#E03E2F\",\"text\":\"\",\"actions\":[{\"text\":\"Resolve...\",\"type\":\"button\",\"name\":\"resolve_dialog\",\"value\":\"resolve_dialog\"},{\"text\":\"Ignore\",\"type\":\"button\",\"name\":\"status\",\"value\":\"ignored\"},{\"option_groups\":[{\"text\":\"Teams\",\"options\":[{\"text\":\"#targetx-llc\",\"value\":\"team:218063\"}]},{\"text\":\"People\",\"options\":[{\"text\":\"Bryan\",\"value\":\"user:29705\"},{\"text\":\"Jimmy Xie\",\"value\":\"user:316248\"},{\"text\":\"Kenneth Dumigan\",\"value\":\"user:335210\"},{\"text\":\"Manny Karyampudi\",\"value\":\"user:306752\"},{\"text\":\"..."
+                },
+                "f": [
+                  "<Rule at 0x7f16a459cc90: id=512234L, project_id=1272080L, label=u'tx-email errors'>",
+                  {}
+                ],
+                "rules": [
+                  "<Rule at 0x7f16a459cc90: id=512234L, project_id=1272080L, label=u'tx-email errors'>"
+                ],
+                "resp": "<Response [429]>",
+                "futures": [
+                  [
+                    "<Rule at 0x7f16a459cc90: id=512234L, project_id=1272080L, label=u'tx-email errors'>",
+                    {}
+                  ]
+                ],
+                "integration": "<Integration at 0x7f16a4543550: id=5249L>",
+                "self": "<sentry.integrations.slack.notify_action.SlackNotifyServiceAction object at 0x7f16a459c6d0>",
+                "session": "<sentry.net.http.SafeSession object at 0x7f16a46d6dd0>",
+                "attachment": {
+                  "actions": [
+                    {
+                      "text": "'Resolve...'",
+                      "type": "'button'",
+                      "name": "'resolve_dialog'",
+                      "value": "'resolve_dialog'"
+                    },
+                    {
+                      "text": "'Ignore'",
+                      "type": "'button'",
+                      "name": "'status'",
+                      "value": "'ignored'"
+                    },
+                    {
+                      "option_groups": [
+                        "{'text': 'Teams', 'options': [{'text': u'#targetx-llc', 'value': u'team:218063'}]}",
+                        "{'text': 'People', 'options': [{'text': u'Bryan', 'value': u'user:29705'}, {'text': u'Jimmy Xie', 'value': u'user:316248'}, {'text': u'Kenneth Dumigan', 'value': u'user:335210'}, {'text': u'Manny Karyampudi', 'value': u'user:30..."
+                      ],
+                      "name": "'assign'"
+                    }
+                  ]
+                },
+                "tags": "set([u'tx-email'])",
+                "event": "<Event at 0x7f16a464b2d0: id=None, project_id=1272080L, group_id=919358151L>",
+                "channel": "u'CD22HGZFH'"
+              },
+              "module": "sentry.integrations.slack.notify_action",
+              "filename": "sentry/integrations/slack/notify_action.py",
+              "post_context": [
+                "            resp = resp.json()",
+                "            if not resp.get('ok'):",
+                "                self.logger.info('rule.fail.slack_post', extra={'error': resp.get('error')})",
+                "",
+                "        key = u'slack:{}:{}'.format(integration_id, channel)"
+              ],
+              "in_app": true,
+              "context_line": "            resp.raise_for_status()",
+              "lineno": 119
+            },
+            {
+              "function": "raise_for_status",
+              "abs_path": "/usr/local/lib/python2.7/site-packages/requests/models.py",
+              "pre_context": [
+                "",
+                "        elif 500 <= self.status_code < 600:",
+                "            http_error_msg = u'%s Server Error: %s for url: %s' % (self.status_code, reason, self.url)",
+                "",
+                "        if http_error_msg:"
+              ],
+              "vars": {
+                "reason": "u'Too Many Requests'",
+                "http_error_msg": "u'429 Client Error: Too Many Requests for url: https://slack.com/api/chat.postMessage'",
+                "self": "<Response [429]>"
+              },
+              "module": "requests.models",
+              "filename": "requests/models.py",
+              "post_context": [
+                "",
+                "    def close(self):",
+                "        \"\"\"Releases the connection back to the pool. Once this method has been",
+                "        called the underlying ``raw`` object must not be accessed again.",
+                ""
+              ],
+              "in_app": false,
+              "context_line": "            raise HTTPError(http_error_msg, response=self)",
+              "lineno": 940
+            }
+          ]
+        },
+        "type": "HTTPError",
+        "value": "429 Client Error: Too Many Requests for url: https://slack.com/api/chat.postMessage",
+        "module": "requests.exceptions",
+        "mechanism": {
+          "type": "logging",
+          "handled": true
+        }
+      }
+    ]
+  },
+  "logentry": {
+    "message": "%s.process_error",
+    "params": [
+      "send_notification"
+    ],
+    "formatted": "send_notification.process_error"
+  },
+  "release": "d0d3f1ea630178c8f2836c2d2382dd534e9b47ac"
+}
