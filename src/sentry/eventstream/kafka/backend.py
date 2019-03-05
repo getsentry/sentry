@@ -3,26 +3,29 @@ from __future__ import absolute_import
 import logging
 import six
 
-from confluent_kafka import OFFSET_INVALID, TopicPartition
-from django.conf import settings
+from confluent_kafka import OFFSET_INVALID, Producer, TopicPartition
 from django.utils.functional import cached_property
 
 from sentry.eventstream.kafka.consumer import SynchronizedConsumer
 from sentry.eventstream.kafka.protocol import get_task_kwargs_for_message
 from sentry.eventstream.snuba import SnubaProtocolEventStream
-from sentry.utils import json, kafka
+from sentry.utils import json
 
 
 logger = logging.getLogger(__name__)
 
 
 class KafkaEventStream(SnubaProtocolEventStream):
-    def __init__(self, **options):
-        self.topic = settings.KAFKA_TOPICS[settings.KAFKA_EVENTS]['topic']
+    def __init__(self, publish_topic='events', producer_configuration=None, **options):
+        if producer_configuration is None:
+            producer_configuration = {}
+
+        self.publish_topic = publish_topic
+        self.producer_configuration = producer_configuration
 
     @cached_property
     def producer(self):
-        return kafka.producers.get(settings.KAFKA_EVENTS)
+        return Producer(self.producer_configuration)
 
     def delivery_callback(self, error, message):
         if error is not None:
@@ -46,7 +49,7 @@ class KafkaEventStream(SnubaProtocolEventStream):
 
         try:
             self.producer.produce(
-                topic=self.topic,
+                topic=self.publish_topic,
                 key=key.encode('utf-8'),
                 value=json.dumps(
                     (self.EVENT_PROTOCOL_VERSION, _type) + extra_data
