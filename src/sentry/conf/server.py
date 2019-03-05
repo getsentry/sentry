@@ -867,6 +867,8 @@ SENTRY_FEATURES = {
     'projects:sample-events': True,
     # Enable functionality to trigger service hooks upon event ingestion.
     'projects:servicehooks': False,
+    # Use Kafka (instead of Celery) for ingestion pipeline.
+    'projects:kafka-ingest': False,
 
     # Don't add feature defaults down here! Please add them in their associated
     # group sorted alphabetically.
@@ -1548,3 +1550,34 @@ INVALID_EMAIL_ADDRESS_PATTERN = re.compile(r'\@qq\.com$', re.I)
 SENTRY_USER_PERMISSIONS = (
     'broadcasts.admin',
 )
+
+KAFKA_CLUSTERS = {
+    'default': {
+        'bootstrap.servers': 'localhost:9092',
+        'message.max.bytes': 50000000,  # 50MB, default is 1MB
+    }
+}
+
+KAFKA_PREPROCESS = 'events-preprocess'
+KAFKA_PROCESS = 'events-process'
+KAFKA_SAVE = 'events-save'
+KAFKA_EVENTS = 'events'
+
+KAFKA_TOPICS = {
+    KAFKA_PREPROCESS: {
+        'cluster': 'default',
+        'topic': KAFKA_PREPROCESS,
+    },
+    KAFKA_PROCESS: {
+        'cluster': 'default',
+        'topic': KAFKA_PROCESS,
+    },
+    KAFKA_SAVE: {
+        'cluster': 'default',
+        'topic': KAFKA_SAVE,
+    },
+    KAFKA_EVENTS: {
+        'cluster': 'default',
+        'topic': KAFKA_EVENTS,
+    },
+}
