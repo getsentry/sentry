@@ -178,8 +178,14 @@ class SlackNotifyServiceAction(EventAction):
 
         # Look for channel ID
         channels_payload = dict(token_payload, **{
-            'exclude_archived': False,
+            'exclude_archived': True,
             'exclude_members': True,
+            # XXX: This endpoint started timing out for certain organizations
+            # that have many channels. Setting any limit causes the endpoint to
+            # not time out, even if that limit is higher than the number of
+            # returned results. Setting to 1500 since this is the most results
+            # that the endpoint will return (as per documentation).
+            'limit': 1500,
         })
 
         resp = session.get('https://slack.com/api/channels.list', params=channels_payload)
