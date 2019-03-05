@@ -44,9 +44,10 @@ const GroupHeader = createReactClass({
     const {organization} = this.context;
     const {project} = this.props.group;
 
-    fetchOrgMembers(this.api, organization.slug, project.id).then(memberList =>
-      this.setState({memberList})
-    );
+    fetchOrgMembers(this.api, organization.slug, project.id).then(memberList => {
+      const users = memberList.map(member => member.user);
+      this.setState({memberList: users});
+    });
   },
 
   onToggleMute() {
