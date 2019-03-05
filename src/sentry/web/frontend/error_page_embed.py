@@ -158,13 +158,13 @@ class ErrorPageEmbedView(View):
             try:
                 event = Event.objects.filter(project_id=report.project.id,
                                              event_id=report.event_id)[0]
-                Event.objects.bind_nodes([event])
             except IndexError:
                 try:
                     report.group = Group.objects.from_event_id(report.project, report.event_id)
                 except Group.DoesNotExist:
                     pass
             else:
+                Event.objects.bind_nodes([event])
                 report.environment = event.get_environment()
                 report.group = event.group
 
