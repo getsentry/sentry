@@ -145,10 +145,7 @@ class ProjectUserReportsEndpoint(ProjectEndpoint, EnvironmentMixin):
         if euser:
             report.event_user_id = euser.id
 
-        event = Event.objects.filter(
-            project_id=project.id,
-            event_id=report.event_id,
-        ).first()
+        event = Event.objects.from_event_id(report.event_id, project.id)
         if not event:
             try:
                 report.group = Group.objects.from_event_id(project, report.event_id)
