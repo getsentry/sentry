@@ -238,7 +238,7 @@ class Event(Model):
 
     def get_interfaces(self):
         return CanonicalKeyView(get_interfaces(
-            self.data, rust_renormalized=self.data._rust_renormalized))
+            self.data, rust_renormalized=self.data.data._rust_renormalized))
 
     @memoize
     def interfaces(self):
