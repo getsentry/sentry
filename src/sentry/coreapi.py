@@ -184,7 +184,7 @@ class ClientApiHelper(object):
 
         # NOTE: Project is bound to the context in most cases in production, which
         # is enough for us to do `projects:kafka-ingest` testing.
-        project = self.context.project
+        project = self.context and self.context.project
 
         if project and features.has('projects:kafka-ingest', project=project):
             kafka.produce_sync(
