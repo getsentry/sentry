@@ -12,7 +12,6 @@ import ListLink from 'app/components/listLink';
 import LoadingError from 'app/components/loadingError';
 import LoadingIndicator from 'app/components/loadingIndicator';
 import NavTabs from 'app/components/navTabs';
-import OrganizationState from 'app/mixins/organizationState';
 import TeamStore from 'app/stores/teamStore';
 import recreateRoute from 'app/utils/recreateRoute';
 
@@ -23,7 +22,7 @@ const TeamDetails = createReactClass({
     routes: PropTypes.array,
   },
 
-  mixins: [ApiMixin, OrganizationState, Reflux.listenTo(TeamStore, 'onTeamStoreUpdate')],
+  mixins: [ApiMixin, Reflux.listenTo(TeamStore, 'onTeamStoreUpdate')],
 
   getInitialState() {
     const team = TeamStore.getBySlug(this.props.params.teamId);

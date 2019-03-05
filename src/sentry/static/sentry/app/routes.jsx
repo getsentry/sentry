@@ -28,6 +28,8 @@ import OrganizationHomeContainer from 'app/components/organizations/homeContaine
 import OrganizationMembers from 'app/views/settings/organizationMembers';
 import OrganizationRoot from 'app/views/organizationRoot';
 import OrganizationStats from 'app/views/organizationStats';
+import OrganizationStreamContainer from 'app/views/organizationStream/container';
+import OrganizationStreamOverview from 'app/views/organizationStream/overview';
 import ProjectEnvironments from 'app/views/projectEnvironments';
 import ProjectEventRedirect from 'app/views/projectEventRedirect';
 import ProjectTags from 'app/views/projectTags';
@@ -46,7 +48,6 @@ import ProjectPluginDetails from 'app/views/projectPluginDetails';
 import RouteNotFound from 'app/views/routeNotFound';
 import SettingsProjectProvider from 'app/views/settings/components/settingsProjectProvider';
 import SettingsWrapper from 'app/views/settings/components/settingsWrapper';
-import Stream from 'app/views/stream';
 import errorHandler from 'app/utils/errorHandler';
 
 function appendTrailingSlash(nextState, replace) {
@@ -861,21 +862,13 @@ function routes() {
 
           <Route
             path="/organizations/:orgId/issues/"
-            componentPromise={() =>
-              import(/* webpackChunkName: "OrganizationStreamContainer" */ './views/organizationStream/container')}
-            component={errorHandler(LazyLoad)}
+            component={errorHandler(OrganizationStreamContainer)}
           >
             <Redirect from="/organizations/:orgId/" to="/organizations/:orgId/issues/" />
-            <IndexRoute
-              componentPromise={() =>
-                import(/* webpackChunkName: "OrganizationStreamOverview" */ './views/organizationStream/overview')}
-              component={errorHandler(LazyLoad)}
-            />
+            <IndexRoute component={errorHandler(OrganizationStreamOverview)} />
             <Route
               path="searches/:searchId/"
-              componentPromise={() =>
-                import(/* webpackChunkName: "OrganizationStreamOverview" */ './views/organizationStream/overview')}
-              component={errorHandler(LazyLoad)}
+              component={errorHandler(OrganizationStreamOverview)}
             />
           </Route>
           {/* Once org issues is complete, these routes can be nested under
@@ -1056,10 +1049,24 @@ function routes() {
         </Route>
 
         <Route path=":projectId/" component={errorHandler(ProjectDetails)}>
-          <IndexRoute component={errorHandler(Stream)} />
-          <Route path="issues/" component={errorHandler(Stream)} />
+          <IndexRoute
+            componentPromise={() =>
+              import(/* webpackChunkName: "Stream" */ './views/stream')}
+            component={errorHandler(LazyLoad)}
+          />
+          <Route
+            path="issues/"
+            componentPromise={() =>
+              import(/* webpackChunkName: "Stream" */ './views/stream')}
+            component={errorHandler(LazyLoad)}
+          />
 
-          <Route path="searches/:searchId/" component={errorHandler(Stream)} />
+          <Route
+            path="searches/:searchId/"
+            componentPromise={() =>
+              import(/* webpackChunkName: "Stream" */ './views/stream')}
+            component={errorHandler(LazyLoad)}
+          />
           <Route
             path="dashboard/"
             componentPromise={() =>
