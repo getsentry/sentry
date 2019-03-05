@@ -70,8 +70,8 @@ describe('Sudo Modal', function() {
     expect(wrapper.find('ModalDialog input')).toHaveLength(1);
 
     // Original callbacks should not have been called
-    expect(successCb).not.toBeCalled();
-    expect(errorCb).not.toBeCalled();
+    expect(successCb).not.toHaveBeenCalled();
+    expect(errorCb).not.toHaveBeenCalled();
 
     // Clear mocks and allow DELETE
     Client.clearMockResponses();

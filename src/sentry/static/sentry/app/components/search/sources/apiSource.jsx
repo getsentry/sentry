@@ -8,6 +8,7 @@ import {Client} from 'app/api';
 import {createFuzzySearch} from 'app/utils/createFuzzySearch';
 import {singleLineRenderer as markedSingleLine} from 'app/utils/marked';
 import {t} from 'app/locale';
+import SentryTypes from 'app/sentryTypes';
 import withLatestContext from 'app/utils/withLatestContext';
 
 // event ids must have string length of 32
@@ -162,6 +163,9 @@ class ApiSource extends React.Component {
 
     // fuse.js options
     searchOptions: PropTypes.object,
+
+    // Organization used for search context
+    organization: SentryTypes.Organization,
 
     /**
      * Render function that passes:

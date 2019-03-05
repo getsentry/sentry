@@ -28,6 +28,7 @@ class WidgetChart extends React.Component {
     widget: SentryTypes.Widget,
     organization: SentryTypes.Organization,
     selection: SentryTypes.GlobalSelection,
+    reloading: PropTypes.bool,
   };
 
   shouldComponentUpdate(nextProps) {

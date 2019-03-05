@@ -5259,32 +5259,32 @@ eslint-config-prettier@3.3.0:
   dependencies:
     get-stdin "^6.0.0"
 
-eslint-config-sentry-app@1.6.1:
-  version "1.6.1"
-  resolved "https://registry.yarnpkg.com/eslint-config-sentry-app/-/eslint-config-sentry-app-1.6.1.tgz#ee1607d58c0d8967994641a9be62ac4f3cedde9d"
-  integrity sha512-CsuW4xP1BGYFDrctOJX4GScRUsBGR1VX0YfrfEpkLqTDe4i+xh+mLi3zGd0v6hVPMfIeREyYANe+3W8Kcq98XQ==
+eslint-config-sentry-app@1.7.0:
+  version "1.7.0"
+  resolved "https://registry.yarnpkg.com/eslint-config-sentry-app/-/eslint-config-sentry-app-1.7.0.tgz#c58aa315787fc0e93f4d8e2c9d0de7ea6aafc6cc"
+  integrity sha512-9eGKkafSo1ddCtemVNv6FAHgatDwnyNHVUI2TuuQyyYqirBZBjlrErq63pmeq5Avt64PyER4tQj7JTyumN6e1g==
   dependencies:
     eslint-config-prettier "3.3.0"
-    eslint-config-sentry "^1.6.1"
-    eslint-config-sentry-react "^1.6.1"
+    eslint-config-sentry "^1.7.0"
+    eslint-config-sentry-react "^1.7.0"
     eslint-import-resolver-webpack "0.10.1"
     eslint-plugin-getsentry "2.0.0"
     eslint-plugin-import "2.14.0"
-    eslint-plugin-jest "22.0.0"
+    eslint-plugin-jest "22.3.0"
     eslint-plugin-prettier "2.7.0"
-    eslint-plugin-react "7.4.0"
+    eslint-plugin-react "7.12.4"
 
-eslint-config-sentry-react@^1.6.1:
-  version "1.6.1"
-  resolved "https://registry.yarnpkg.com/eslint-config-sentry-react/-/eslint-config-sentry-react-1.6.1.tgz#4b31fd80ecfb0d0c0c9c2dee8edd769922eecae6"
-  integrity sha512-npPNVbMXJ8NQE6ekeqDlNPoHK5XMeVbxHQyOBt8l7EbqOew/LNcI72/3bH71FImIcj+ntsc0Rla4odGU51HKhA==
+eslint-config-sentry-react@^1.7.0:
+  version "1.7.0"
+  resolved "https://registry.yarnpkg.com/eslint-config-sentry-react/-/eslint-config-sentry-react-1.7.0.tgz#cde0dca00f03462cf7ce257675aadb7ffa583896"
+  integrity sha512-GeUFHTLBC1qv8LqDk7ko1Dt0NspbMW6oXBe3ulVU0rldqoSowupbQLY+DBi09rnB3R6s4hAkVMJOX4TMwC+Oiw==
   dependencies:
-    eslint-config-sentry "^1.6.1"
+    eslint-config-sentry "^1.7.0"
 
-eslint-config-sentry@^1.6.1:
-  version "1.6.1"
-  resolved "https://registry.yarnpkg.com/eslint-config-sentry/-/eslint-config-sentry-1.6.1.tgz#5228b0a5f0b2a84cc008de72152b778d93d7a711"
-  integrity sha512-Ld179t/4oZUdMSUmzYP3DnQdpLjgEEsuJY2KWJfRtnN2KWmh7Vjii5/KkzI7S5wCLQye3ii3m5ZFC4GL93AsmA==
+eslint-config-sentry@^1.7.0:
+  version "1.7.0"
+  resolved "https://registry.yarnpkg.com/eslint-config-sentry/-/eslint-config-sentry-1.7.0.tgz#517b18d7f0d3a0669c66d2e2a71c9c9295bd6919"
+  integrity sha512-CBJ5ovEj5dJlh/K2BySYu50+Z7ppXKC8ju0FxN7gIxso4CO7JM1fLUcHnGWISm9t3KFCIO+uZzFDLfu9ctlKPw==
 
 eslint-import-resolver-node@^0.3.1:
   version "0.3.2"
@@ -5339,10 +5339,10 @@ eslint-plugin-import@2.14.0:
     read-pkg-up "^2.0.0"
     resolve "^1.6.0"
 
-eslint-plugin-jest@22.0.0:
-  version "22.0.0"
-  resolved "https://registry.yarnpkg.com/eslint-plugin-jest/-/eslint-plugin-jest-22.0.0.tgz#87dc52bbdd47f37f23bf2b10bb8469458bb3ed68"
-  integrity sha512-YOj8cYI5ZXEZUrX2kUBLachR1ffjQiicIMBoivN7bXXHnxi8RcwNvmVzwlu3nTmjlvk5AP3kIpC5i8HcinmhPA==
+eslint-plugin-jest@22.3.0:
+  version "22.3.0"
+  resolved "https://registry.yarnpkg.com/eslint-plugin-jest/-/eslint-plugin-jest-22.3.0.tgz#a10f10dedfc92def774ec9bb5bfbd2fb8e1c96d2"
+  integrity sha512-P1mYVRNlOEoO5T9yTqOfucjOYf1ktmJ26NjwjH8sxpCFQa6IhBGr5TpKl3hcAAT29hOsRJVuMWmTsHoUVo9FoA==
 
 eslint-plugin-prettier@2.7.0:
   version "2.7.0"
@@ -5352,15 +5352,18 @@ eslint-plugin-prettier@2.7.0:
     fast-diff "^1.1.1"
     jest-docblock "^21.0.0"
 
-eslint-plugin-react@7.4.0:
-  version "7.4.0"
-  resolved "https://registry.yarnpkg.com/eslint-plugin-react/-/eslint-plugin-react-7.4.0.tgz#300a95861b9729c087d362dd64abcc351a74364a"
-  integrity sha512-tvjU9u3VqmW2vVuYnE8Qptq+6ji4JltjOjJ9u7VAOxVYkUkyBZWRvNYKbDv5fN+L6wiA+4we9+qQahZ0m63XEA==
+eslint-plugin-react@7.12.4:
+  version "7.12.4"
+  resolved "https://registry.yarnpkg.com/eslint-plugin-react/-/eslint-plugin-react-7.12.4.tgz#b1ecf26479d61aee650da612e425c53a99f48c8c"
+  integrity sha512-1puHJkXJY+oS1t467MjbqjvX53uQ05HXwjqDgdbGBqf5j9eeydI54G3KwiJmWciQ0HTBacIKw2jgwSBSH3yfgQ==
   dependencies:
-    doctrine "^2.0.0"
-    has "^1.0.1"
-    jsx-ast-utils "^2.0.0"
-    prop-types "^15.5.10"
+    array-includes "^3.0.3"
+    doctrine "^2.1.0"
+    has "^1.0.3"
+    jsx-ast-utils "^2.0.1"
+    object.fromentries "^2.0.0"
+    prop-types "^15.6.2"
+    resolve "^1.9.0"
 
 eslint-scope@3.7.1:
   version "3.7.1"
@@ -8245,7 +8248,7 @@ jsprim@^1.2.2:
     json-schema "0.2.3"
     verror "1.10.0"
 
-jsx-ast-utils@^2.0.0:
+jsx-ast-utils@^2.0.1:
   version "2.0.1"
   resolved "https://registry.yarnpkg.com/jsx-ast-utils/-/jsx-ast-utils-2.0.1.tgz#e801b1b39985e20fffc87b40e3748080e2dcac7f"
   integrity sha1-6AGxs5mF4g//yHtA43SAgOLcrH8=
@@ -9596,6 +9599,16 @@ object.fromentries@^1.0.0:
   version "1.0.0"
   resolved "https://registry.yarnpkg.com/object.fromentries/-/object.fromentries-1.0.0.tgz#e90ec27445ec6e37f48be9af9077d9aa8bef0d40"
   integrity sha512-F7XUm84lg0uNXNzrRAC5q8KJe0yYaxgLU9hTSqWYM6Rfnh0YjP24EG3xq7ncj2Wu1AdfueNHKCOlamIonG4UHQ==
+  dependencies:
+    define-properties "^1.1.2"
+    es-abstract "^1.11.0"
+    function-bind "^1.1.1"
+    has "^1.0.1"
+
+object.fromentries@^2.0.0:
+  version "2.0.0"
+  resolved "https://registry.yarnpkg.com/object.fromentries/-/object.fromentries-2.0.0.tgz#49a543d92151f8277b3ac9600f1e930b189d30ab"
+  integrity sha512-9iLiI6H083uiqUuvzyY6qrlmc/Gz8hLQFOcb/Ri/0xXFkSNS3ctV+CbE6yM2+AnkYfOB3dGjdzC0wrMLIhQICA==
   dependencies:
     define-properties "^1.1.2"
     es-abstract "^1.11.0"
@@ -12045,6 +12058,13 @@ resolve@^1.4.0, resolve@^1.5.0, resolve@^1.6.0:
   integrity sha512-AicPrAC7Qu1JxPCZ9ZgCZlY35QgFnNqc+0LtbRNxnVw4TXvjQ72wnuL9JQcEBgXkI9JM8MsT9kaQoHcpCRJOYA==
   dependencies:
     path-parse "^1.0.5"
+
+resolve@^1.9.0:
+  version "1.10.0"
+  resolved "https://registry.yarnpkg.com/resolve/-/resolve-1.10.0.tgz#3bdaaeaf45cc07f375656dfd2e54ed0810b101ba"
+  integrity sha512-3sUr9aq5OfSg2S9pNtPA9hL1FVEAjvfOC4leW0SNf/mpnaakz2a9femSd6LqAww2RaFctwyf1lCqnTHuF1rxDg==
+  dependencies:
+    path-parse "^1.0.6"
 
 restore-cursor@^2.0.0:
   version "2.0.0"
