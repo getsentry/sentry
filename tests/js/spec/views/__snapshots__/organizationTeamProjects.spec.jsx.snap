@@ -2,6 +2,11 @@
 
 exports[`OrganizationTeamProjects Should render 1`] = `
 <TeamProjects
+  location={
+    Object {
+      "query": Object {},
+    }
+  }
   params={
     Object {
       "orgId": "org-slug",
@@ -54,6 +59,13 @@ exports[`OrganizationTeamProjects Should render 1`] = `
                         Array [
                           Object {
                             "label": <ProjectListElement>
+                              project-slug
+                            </ProjectListElement>,
+                            "searchKey": "project-slug",
+                            "value": "2",
+                          },
+                          Object {
+                            "label": <ProjectListElement>
                               project-slug-2
                             </ProjectListElement>,
                             "searchKey": "project-slug-2",
@@ -61,6 +73,7 @@ exports[`OrganizationTeamProjects Should render 1`] = `
                           },
                         ]
                       }
+                      onChange={[Function]}
                       onSelect={[Function]}
                     >
                       <DropdownAutoCompleteMenu
@@ -71,6 +84,13 @@ exports[`OrganizationTeamProjects Should render 1`] = `
                           Array [
                             Object {
                               "label": <ProjectListElement>
+                                project-slug
+                              </ProjectListElement>,
+                              "searchKey": "project-slug",
+                              "value": "2",
+                            },
+                            Object {
+                              "label": <ProjectListElement>
                                 project-slug-2
                               </ProjectListElement>,
                               "searchKey": "project-slug-2",
@@ -79,6 +99,7 @@ exports[`OrganizationTeamProjects Should render 1`] = `
                           ]
                         }
                         maxHeight={300}
+                        onChange={[Function]}
                         onSelect={[Function]}
                         searchPlaceholder="Filter search"
                       >
@@ -478,10 +499,233 @@ exports[`OrganizationTeamProjects Should render 1`] = `
                 </div>
               </Base>
             </StyledPanelItem>
+            <StyledPanelItem
+              key="3"
+            >
+              <Base
+                className="css-15fe8h6-PanelItem-StyledPanelItem eqsa6vb1"
+              >
+                <div
+                  className="css-15fe8h6-PanelItem-StyledPanelItem eqsa6vb1"
+                  is={null}
+                >
+                  <ProjectItem
+                    organization={
+                      Object {
+                        "access": Array [
+                          "org:read",
+                          "org:write",
+                          "org:admin",
+                          "project:read",
+                          "project:write",
+                          "project:admin",
+                          "team:read",
+                          "team:write",
+                          "team:admin",
+                        ],
+                        "features": Array [],
+                        "id": "3",
+                        "name": "Organization Name",
+                        "onboardingTasks": Array [],
+                        "projects": Array [],
+                        "scrapeJavaScript": true,
+                        "slug": "org-slug",
+                        "status": Object {
+                          "id": "active",
+                          "name": "active",
+                        },
+                        "teams": Array [],
+                      }
+                    }
+                    project={
+                      Object {
+                        "environments": Array [],
+                        "hasAccess": true,
+                        "id": "3",
+                        "isBookmarked": false,
+                        "isMember": true,
+                        "name": "Project Name 2",
+                        "slug": "project-slug-2",
+                        "teams": Array [],
+                      }
+                    }
+                  >
+                    <div
+                      className={null}
+                      key="3"
+                    >
+                      <Tooltip
+                        title="Add to bookmarks"
+                      >
+                        <InlineButton
+                          className="tip"
+                          onClick={[Function]}
+                          title="Add to bookmarks"
+                        >
+                          <button
+                            className="tip css-1ybrnfd-InlineButton enngb6z0"
+                            onClick={[Function]}
+                            title="Add to bookmarks"
+                          >
+                            <span
+                              className="icon-star-outline bookmark"
+                            />
+                          </button>
+                        </InlineButton>
+                      </Tooltip>
+                      <Link
+                        to="/org-slug/project-slug-2/"
+                      >
+                        <Link
+                          onlyActiveOnIndex={false}
+                          style={Object {}}
+                          to="/org-slug/project-slug-2/"
+                        >
+                          <a
+                            onClick={[Function]}
+                            style={Object {}}
+                          >
+                            <ProjectLabel
+                              project={
+                                Object {
+                                  "environments": Array [],
+                                  "hasAccess": true,
+                                  "id": "3",
+                                  "isBookmarked": false,
+                                  "isMember": true,
+                                  "name": "Project Name 2",
+                                  "slug": "project-slug-2",
+                                  "teams": Array [],
+                                }
+                              }
+                            >
+                              <span
+                                className="project-label"
+                                project={
+                                  Object {
+                                    "environments": Array [],
+                                    "hasAccess": true,
+                                    "id": "3",
+                                    "isBookmarked": false,
+                                    "isMember": true,
+                                    "name": "Project Name 2",
+                                    "slug": "project-slug-2",
+                                    "teams": Array [],
+                                  }
+                                }
+                              >
+                                <span
+                                  className="project-name"
+                                >
+                                  project-slug-2
+                                </span>
+                              </span>
+                            </ProjectLabel>
+                          </a>
+                        </Link>
+                      </Link>
+                    </div>
+                  </ProjectItem>
+                  <Tooltip
+                    disabled={true}
+                    title="You do not have enough permission to change project association."
+                  >
+                    <Button
+                      disabled={false}
+                      onClick={[Function]}
+                      size="small"
+                    >
+                      <StyledButton
+                        disabled={false}
+                        onClick={[Function]}
+                        role="button"
+                        size="small"
+                      >
+                        <Component
+                          className="css-dkprmi-StyledButton-getColors eqrebog0"
+                          disabled={false}
+                          onClick={[Function]}
+                          role="button"
+                          size="small"
+                        >
+                          <button
+                            className="css-dkprmi-StyledButton-getColors eqrebog0"
+                            disabled={false}
+                            onClick={[Function]}
+                            role="button"
+                            size="small"
+                          >
+                            <ButtonLabel
+                              size="small"
+                            >
+                              <Component
+                                className="css-7ui8bl-ButtonLabel eqrebog1"
+                                size="small"
+                              >
+                                <span
+                                  className="css-7ui8bl-ButtonLabel eqrebog1"
+                                >
+                                  <RemoveIcon>
+                                    <Component
+                                      className="css-1e2j5j0-RemoveIcon eqsa6vb0"
+                                    >
+                                      <InlineSvg
+                                        className="css-1e2j5j0-RemoveIcon eqsa6vb0"
+                                        src="icon-circle-subtract"
+                                      >
+                                        <StyledSvg
+                                          className="css-1e2j5j0-RemoveIcon eqsa6vb0"
+                                          height="1em"
+                                          viewBox={Object {}}
+                                          width="1em"
+                                        >
+                                          <svg
+                                            className="eqsa6vb0 css-10g0ex9-StyledSvg-RemoveIcon e2idor0"
+                                            height="1em"
+                                            viewBox={Object {}}
+                                            width="1em"
+                                          >
+                                            <use
+                                              href="#test"
+                                              xlinkHref="#test"
+                                            />
+                                          </svg>
+                                        </StyledSvg>
+                                      </InlineSvg>
+                                    </Component>
+                                  </RemoveIcon>
+                                   
+                                  Remove
+                                </span>
+                              </Component>
+                            </ButtonLabel>
+                          </button>
+                        </Component>
+                      </StyledButton>
+                    </Button>
+                  </Tooltip>
+                </div>
+              </Base>
+            </StyledPanelItem>
           </div>
         </PanelBody>
       </div>
     </Component>
   </Panel>
+  <Pagination
+    className="stream-pagination"
+    location={
+      Object {
+        "query": Object {},
+      }
+    }
+    onCursor={[Function]}
+    params={
+      Object {
+        "orgId": "org-slug",
+        "teamId": "team-slug",
+      }
+    }
+  />
 </TeamProjects>
 `;
