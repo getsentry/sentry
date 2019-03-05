@@ -13,7 +13,7 @@ class PlatformExternalIssue(Model):
     # external service that's linked to the sentry issue
     service_type = models.TextField()
     display_name = models.TextField()
-    web_url = models.URlField()
+    web_url = models.URLField()
     date_added = models.DateTimeField(default=timezone.now)
 
     class Meta:
