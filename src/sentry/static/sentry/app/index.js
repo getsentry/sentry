@@ -197,8 +197,6 @@ const globals = {
     OrganizationAuth: require('app/views/settings/organizationAuth').default,
     OrganizationHomeContainer: require('app/components/organizations/homeContainer')
       .default,
-    OrganizationsLoader: require('app/components/organizations/organizationsLoader')
-      .default,
     OrganizationMembersView: require('app/views/settings/organizationMembers').default,
     Panel: require('app/components/panels/panel').default,
     PanelHeader: require('app/components/panels/panelHeader').default,
