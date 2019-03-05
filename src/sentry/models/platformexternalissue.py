@@ -11,7 +11,7 @@ class PlatformExternalIssue(Model):
 
     group_id = BoundedBigIntegerField()
     # external service that's linked to the sentry issue
-    service_type = models.TextField()
+    service_type = models.CharField(max_length=64)
     display_name = models.TextField()
     web_url = models.URLField()
     date_added = models.DateTimeField(default=timezone.now)
