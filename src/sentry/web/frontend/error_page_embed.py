@@ -164,6 +164,7 @@ class ErrorPageEmbedView(View):
                 except Group.DoesNotExist:
                     pass
             else:
+                Event.objects.bind_nodes([event])
                 report.environment = event.get_environment()
                 report.group = event.group
 
