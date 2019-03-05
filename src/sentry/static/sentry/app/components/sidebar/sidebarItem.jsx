@@ -9,6 +9,13 @@ import Link from '../link';
 import TextOverflow from '../textOverflow';
 import Tooltip from '../tooltip';
 
+const LabelHook = HookOrDefault({
+  hookName: 'sidebar:item-label',
+  defaultComponent: ({children}) => {
+    return <React.Fragment>{children}</React.Fragment>;
+  },
+});
+
 class SidebarItem extends React.Component {
   static propTypes = {
     ...Link.propTypes,
@@ -71,12 +78,6 @@ class SidebarItem extends React.Component {
 
     const isTop = orientation === 'top';
     const placement = isTop ? 'bottom' : 'right';
-    const LabelHook = HookOrDefault({
-      hookName: 'sidebar:item-label',
-      defaultComponent: ({children}) => {
-        return <React.Fragment>{children}</React.Fragment>;
-      },
-    });
 
     return (
       <Tooltip
