@@ -22,7 +22,15 @@ class PendingDeletionMixin(object):
     def build_pending_deletion_key(self):
         return 'pending-delete:%s:%s' % (self.__class__.__name__, self.id)
 
-    def rename_on_pending_deletion(self, fields=None):
+    def rename_on_pending_deletion(self, fields=None, extra_fields_to_save=None):
+        """
+        `fields` represents the fields that should be renamed when pending deletion occurs.
+
+        For special situations, `extra_fields_to_save`, adds additional fields that do not
+        require a new name, but do need to be saved on pending deletion.
+
+        See the Repository Model for an example.
+        """
         fields = fields or self._rename_fields_on_pending_delete
         original_data = {}
         original_data['id'] = self.id
@@ -31,6 +39,9 @@ class PendingDeletionMixin(object):
         for field in fields:
             original_data[field] = getattr(self, field)
             setattr(self, field, uuid4().hex)
+
+        if extra_fields_to_save:
+            fields = list(fields) + extra_fields_to_save
 
         with transaction.atomic():
             self.save(update_fields=fields)
@@ -55,7 +66,13 @@ class PendingDeletionMixin(object):
             key=self.build_pending_deletion_key(),
         )
 
-    def reset_pending_deletion_field_names(self):
+    def reset_pending_deletion_field_names(self, extra_fields_to_save=None):
+        """
+        For special situations, `extra_fields_to_save`, adds additional fields that
+        do need to be saved when resetting pending deletion.
+
+        See the Repository Model for an example.
+        """
         try:
             option = self.get_pending_deletion_option()
         except OrganizationOption.DoesNotExist:
@@ -76,6 +93,9 @@ class PendingDeletionMixin(object):
                 continue
             fields_to_save.append(field_name)
             setattr(self, field_name, field_value)
+
+        if extra_fields_to_save:
+            fields_to_save += extra_fields_to_save
 
         with transaction.atomic():
             self.save(update_fields=fields_to_save)
