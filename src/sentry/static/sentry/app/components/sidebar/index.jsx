@@ -541,10 +541,21 @@ const StyledSidebar = styled('div')`
   bottom: 0;
   justify-content: space-between;
   z-index: ${p => p.theme.zIndex.sidebar};
-  ${responsiveFlex};
   ${p => p.collapsed && `width: ${p.theme.sidebar.collapsedWidth};`};
+  overflow-y: scroll;
+
+  /* hide scrollbars in major browsers */
+  ::-webkit-scrollbar {
+    display: none;
+  }
+  @-moz-document url-prefix() {
+    overflow: hidden;
+  }
+  -ms-overflow-style: -ms-autohiding-scrollbar;
 
   @media (max-width: ${p => p.theme.breakpoints[0]}) {
+    ${responsiveFlex};
+    overflow-y: visible;
     top: 0;
     left: 0;
     right: 0;
