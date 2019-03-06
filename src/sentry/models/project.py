@@ -408,7 +408,7 @@ class Project(Model):
     def get_lock_key(self):
         return 'project_token:%s' % self.id
 
-    def copy_settings_from(self, project):
+    def copy_settings_from(self, project_id):
         """
         Copies project level settings of the inputted project
         - General Settings
@@ -424,8 +424,9 @@ class Project(Model):
         from sentry.models import (
             EnvironmentProject, ProjectOption, ProjectOwnership, Rule
         )
-        model_list = [EnvironmentProject, ProjectOption, ProjectOwnership, ProjectTeam, Rule]
+        model_list = [EnvironmentProject, ProjectOwnership, ProjectTeam, Rule]
 
+        project = Project.objects.get(id=project_id)
         try:
             with transaction.atomic():
                 for model in model_list:
@@ -436,11 +437,16 @@ class Project(Model):
 
                     # add settings from other project to self
                     for setting in model.objects.filter(
-                        project_id=project.id
+                        project_id=project_id
                     ):
                         setting.pk = None
                         setting.project_id = self.id
                         setting.save()
+
+                options = ProjectOption.objects.get_all_values(project=project)
+                for key, value in six.iteritems(options):
+                    self.update_option(key, value)
+
         except IntegrityError:
             return False
         return True
