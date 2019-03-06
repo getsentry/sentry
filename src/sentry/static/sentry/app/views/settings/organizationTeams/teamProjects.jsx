@@ -70,8 +70,12 @@ const TeamProjects = createReactClass({
         includeAllArgs: true,
       })
       .then(([linkedProjects, _, jqXHR]) => {
-        this.setState({linkedProjects, pageLinks: jqXHR.getResponseHeader('Link')});
-        this.setState({loading: false});
+        this.setState({
+          loading: false,
+          error: false,
+          linkedProjects,
+          pageLinks: jqXHR.getResponseHeader('Link'),
+        });
       })
       .catch(() => {
         this.setState({loading: false, error: true});
