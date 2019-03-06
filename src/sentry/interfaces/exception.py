@@ -825,7 +825,7 @@ def uncontribute_non_stacktrace_variants(variants):
             # this branch is basically dead because we only have two
             # variants right now, but this is so this does not break in
             # the future.
-            hint_suffix = 'othes do'
+            hint_suffix = 'others do'
         for variant in non_contributing_variants:
             variant.update(
                 contributes=False,
