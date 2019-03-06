@@ -66,12 +66,11 @@ class BaseAccess(object):
     teams = ()
     # projects with membership
     projects = ()
-    # if open access policy is specified, then any project
-    # matching organization_id is valid
-    open_access_policy = False
-    # Owners, managers, superusers should be able to access all
-    # projects in org, even if they aren't members
-    role_is_global = False
+    # if has_global_access is True, then any project
+    # matching organization_id is valid. This is used for
+    # both `organization.allow_joinleave` and to indicate
+    # that the role is global / a user is an active superuser
+    has_global_access = False
     scopes = frozenset()
     permissions = frozenset()
 
@@ -107,8 +106,7 @@ class BaseAccess(object):
         """
         if not self.is_active:
             return False
-        if (self.open_access_policy or self.role_is_global) and \
-                self.organization_id == team.organization_id:
+        if self.has_global_access and self.organization_id == team.organization_id:
             return True
         return team in self.teams
 
@@ -129,8 +127,7 @@ class BaseAccess(object):
         """
         if not self.is_active:
             return False
-        if (self.open_access_policy or self.role_is_global) and \
-                self.organization_id == project.organization_id:
+        if self.has_global_access and self.organization_id == project.organization_id:
             return True
         return project in self.projects
 
@@ -167,13 +164,12 @@ class Access(BaseAccess):
     # TODO(dcramer): this is still a little gross, and ideally backend access
     # would be based on the same scopes as API access so theres clarity in
     # what things mean
-    def __init__(self, scopes, is_active, organization_id, teams, projects, open_access_policy,
-                 role_is_global, sso_is_valid, requires_sso, permissions=None):
+    def __init__(self, scopes, is_active, organization_id, teams, projects, has_global_access,
+                 sso_is_valid, requires_sso, permissions=None):
         self.organization_id = organization_id
         self.teams = teams
         self.projects = projects
-        self.open_access_policy = open_access_policy
-        self.role_is_global = role_is_global
+        self.has_global_access = has_global_access
         self.scopes = scopes
         if permissions is not None:
             self.permissions = permissions
@@ -187,8 +183,7 @@ class OrganizationGlobalAccess(BaseAccess):
     requires_sso = False
     sso_is_valid = True
     is_active = True
-    open_access_policy = True
-    role_is_global = True
+    has_global_access = True
     teams = ()
     projects = ()
     permissions = frozenset()
@@ -225,8 +220,7 @@ class NoAccess(BaseAccess):
     sso_is_valid = True
     is_active = False
     organization_id = None
-    open_access_policy = False
-    role_is_global = False
+    has_global_access = False
     teams = ()
     projects = ()
     memberships = ()
@@ -267,8 +261,7 @@ def from_request(request, organization=None, scopes=None):
             projects=project_list,
             sso_is_valid=sso_is_valid,
             requires_sso=requires_sso,
-            open_access_policy=bool(organization.flags.allow_joinleave),
-            role_is_global=True,
+            has_global_access=True,
             permissions=UserPermission.for_user(request.user.id),
         )
 
@@ -299,8 +292,7 @@ def from_sentry_app(user, organization=None):
         teams=team_list,
         projects=project_list,
         permissions=(),
-        open_access_policy=False,
-        role_is_global=False,
+        has_global_access=False,
         sso_is_valid=True,
         requires_sso=False,
     )
@@ -352,8 +344,8 @@ def from_member(member, scopes=None):
         organization_id=member.organization_id,
         teams=team_list,
         projects=project_list,
-        open_access_policy=bool(member.organization.flags.allow_joinleave),
-        role_is_global=roles.get(member.role).is_global,
+        has_global_access=bool(member.organization.flags.allow_joinleave) or
+        roles.get(member.role).is_global,
         permissions=UserPermission.for_user(member.user_id),
     )
 
