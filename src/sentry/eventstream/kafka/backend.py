@@ -68,8 +68,11 @@ class KafkaEventStream(SnubaProtocolEventStream):
                                    synchronize_commit_group, commit_batch_size=100, initial_offset_reset='latest'):
         logger.debug('Starting post-process forwarder...')
 
+        cluster_name = settings.KAFKA_TOPICS[settings.KAFKA_EVENTS]['cluster']
+        bootstrap_servers = settings.KAFKA_CLUSTERS[cluster_name]['bootstrap.servers']
+
         consumer = SynchronizedConsumer(
-            bootstrap_servers=self.producer_configuration['bootstrap.servers'],
+            bootstrap_servers=bootstrap_servers,
             consumer_group=consumer_group,
             commit_log_topic=commit_log_topic,
             synchronize_commit_group=synchronize_commit_group,
@@ -144,7 +147,7 @@ class KafkaEventStream(SnubaProtocolEventStream):
                 commit(offsets_to_commit)
 
         consumer.subscribe(
-            [self.publish_topic],
+            [self.topic],
             on_assign=on_assign,
             on_revoke=on_revoke,
         )
