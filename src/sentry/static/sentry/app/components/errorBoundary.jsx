@@ -37,18 +37,18 @@ class ErrorBoundary extends React.Component {
     );
   }
 
-  componentWillUnmount() {
-    if (this.unlistenBrowserHistory) {
-      this.unlistenBrowserHistory();
-    }
-  }
-
   componentDidCatch(error, errorInfo) {
     this.setState({error});
     Sentry.withScope(scope => {
       scope.setExtra('errorInfo', errorInfo);
       Sentry.captureException(error);
     });
+  }
+
+  componentWillUnmount() {
+    if (this.unlistenBrowserHistory) {
+      this.unlistenBrowserHistory();
+    }
   }
 
   render() {

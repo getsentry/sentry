@@ -20,6 +20,10 @@ TextAreaControl.propTypes = {
    * Enable autosizing of the textarea.
    */
   autosize: PropTypes.bool,
+  /**
+   * Number of rows to default to.
+   */
+  rows: PropTypes.number,
 };
 
 const propFilter = p => ['autosize', 'rows', 'maxRows'].includes(p) || isPropValid(p);

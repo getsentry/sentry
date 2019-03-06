@@ -22,8 +22,6 @@ class SettingsPluginsNavigation extends React.Component {
     ...SentryTypes.NavigationGroup,
     organization: SentryTypes.Organization,
     project: SentryTypes.Project,
-    access: PropTypes.object,
-    features: PropTypes.object,
   };
 
   static contextTypes = {
