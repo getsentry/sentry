@@ -20,15 +20,14 @@ class Geo(Interface):
     """
 
     @classmethod
-    def to_python(cls, data, rust_renormalized=False):
-        if not rust_renormalized:
-            data = {
-                'country_code': data.get('country_code'),
-                'city': data.get('city'),
-                'region': data.get('region'),
-            }
+    def to_python(cls, data):
+        kwargs = {
+            'country_code': data.get('country_code'),
+            'city': data.get('city'),
+            'region': data.get('region'),
+        }
 
-        return cls(**data)
+        return cls(**kwargs)
 
     @classmethod
     def from_ip_address(cls, ip_address):

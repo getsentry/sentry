@@ -1,6 +1,5 @@
 from __future__ import absolute_import
 
-import pytest
 import mock
 import os
 
@@ -259,8 +258,3 @@ def pytest_runtest_teardown(item):
     from sentry.models import OrganizationOption, ProjectOption, UserOption
     for model in (OrganizationOption, ProjectOption, UserOption):
         model.objects.clear_local_cache()
-
-
-@pytest.fixture(autouse=True)
-def _never_skip_to_python(monkeypatch):
-    monkeypatch.setattr('sentry.models.event._should_skip_to_python', lambda _: False)
