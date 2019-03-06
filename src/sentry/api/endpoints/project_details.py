@@ -172,15 +172,11 @@ class ProjectAdminSerializer(ProjectMemberSerializer):
         try:
             other_project = Project.objects.filter(
                 id=other_project_id,
+                organization_id=self.context['project'].organization_id,
             ).prefetch_related('teams')[0]
         except IndexError:
             raise serializers.ValidationError(
                 'Project to copy settings from not found.'
-            )
-
-        if other_project.organization_id != self.context['project'].organization_id:
-            raise serializers.ValidationError(
-                'Project settings cannot be copied from a project of a different organization.'
             )
 
         request = self.context['request']

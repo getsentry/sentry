@@ -759,8 +759,7 @@ class CopyProjectSettingsTest(APITestCase):
             'copy_from_project': other_project.id
         })
         assert resp.status_code == 400
-        assert resp.data == {'copy_from_project': [
-            'Project settings cannot be copied from a project of a different organization.']}
+        assert resp.data == {'copy_from_project': ['Project to copy settings from not found.']}
         self.assert_settings_not_copied(project)
         self.assert_settings_not_copied(other_project)
 
