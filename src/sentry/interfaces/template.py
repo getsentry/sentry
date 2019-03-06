@@ -42,10 +42,7 @@ class Template(Interface):
     score = 1100
 
     @classmethod
-    def to_python(cls, data, rust_renormalized=False):
-        if rust_renormalized:
-            return cls(**data)
-
+    def to_python(cls, data):
         is_valid, errors = validate_and_default_interface(data, cls.path)
         if not is_valid:
             raise InterfaceValidationError("Invalid template")
