@@ -2,13 +2,14 @@
 
 from __future__ import absolute_import, print_function
 
+import unittest
+
 from collections import OrderedDict
 
-from sentry.testutils import TestCase
 from sentry.utils.canonical import CanonicalKeyView, CanonicalKeyDict
 
 
-class CanonicalKeyViewTests(TestCase):
+class CanonicalKeyViewTests(unittest.TestCase):
     canonical_data = OrderedDict([
         ('release', 'asdf'),
         ('exception', {'type': 'DemoException'}),
@@ -58,7 +59,7 @@ class CanonicalKeyViewTests(TestCase):
         assert CanonicalKeyView(self.mixed_data)['sentry.interfaces.User'] == {'id': 'DemoUser'}
 
 
-class CanonicalKeyDictTests(TestCase):
+class CanonicalKeyDictTests(unittest.TestCase):
     canonical_data = {
         'release': 'asdf',
         'exception': {'type': 'DemoException'},
@@ -123,7 +124,7 @@ class CanonicalKeyDictTests(TestCase):
         })) == 3
 
 
-class LegacyCanonicalKeyDictTests(TestCase):
+class LegacyCanonicalKeyDictTests(unittest.TestCase):
     canonical_data = {
         'release': 'asdf',
         'sentry.interfaces.Exception': {'type': 'DemoException'},
@@ -165,7 +166,7 @@ class LegacyCanonicalKeyDictTests(TestCase):
         assert d['sentry.interfaces.User'] == {'id': 'other'}
 
 
-class DoubleAliasingTests(TestCase):
+class DoubleAliasingTests(unittest.TestCase):
     def test_canonical(self):
         view = CanonicalKeyView({'logentry': 'foo'})
         assert len(view) == 1
