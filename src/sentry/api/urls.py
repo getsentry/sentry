@@ -112,6 +112,7 @@ from .endpoints.organization_user_reports import OrganizationUserReportsEndpoint
 from .endpoints.organization_users import OrganizationUsersEndpoint
 from .endpoints.sentry_app_installations import SentryAppInstallationsEndpoint
 from .endpoints.sentry_app_installation_details import SentryAppInstallationDetailsEndpoint
+from .endpoints.sentry_app_installation_external_requests import SentryAppInstallationExternalRequestsEndpoint
 from .endpoints.organization_stats import OrganizationStatsEndpoint
 from .endpoints.organization_teams import OrganizationTeamsEndpoint
 from .endpoints.organization_user_issues import OrganizationUserIssuesEndpoint
@@ -715,6 +716,11 @@ urlpatterns = patterns(
         r'^sentry-app-installations/(?P<uuid>[^\/]+)/$',
         SentryAppInstallationDetailsEndpoint.as_view(),
         name='sentry-api-0-sentry-app-installation-details'
+    ),
+    url(
+        r'^sentry-app-installations/(?P<uuid>[^\/]+)/external-requests/$',
+        SentryAppInstallationExternalRequestsEndpoint.as_view(),
+        name='sentry-api-0-sentry-app-installation-external-requests'
     ),
     url(
         r'^organizations/(?P<organization_slug>[^\/]+)/sentry-apps/$',
