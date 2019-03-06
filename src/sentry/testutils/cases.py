@@ -27,8 +27,6 @@ import types
 import logging
 import mock
 
-from sentry_sdk import Hub
-
 from click.testing import CliRunner
 from datetime import datetime
 from django.conf import settings
@@ -42,8 +40,7 @@ from django.http import HttpRequest
 from django.test import TestCase, TransactionTestCase
 from django.test.utils import CaptureQueriesContext
 from django.utils import timezone
-from django.utils.importlib import import_module
-from exam import before, after, fixture, Exam
+from exam import before, fixture, Exam
 from mock import patch
 from pkg_resources import iter_entry_points
 from rest_framework.test import APITestCase as BaseAPITestCase
@@ -84,23 +81,10 @@ class BaseTestCase(Fixtures, Exam):
         assert resp.status_code == 302
         assert resp['Location'].startswith('http://testserver' + reverse('sentry-login'))
 
-    @after
-    def teardown_internal_sdk(self):
-        Hub.main.bind_client(None)
-
     @before
     def setup_dummy_auth_provider(self):
         auth.register('dummy', DummyProvider)
         self.addCleanup(auth.unregister, 'dummy', DummyProvider)
-
-    @before
-    def setup_session(self):
-        engine = import_module(settings.SESSION_ENGINE)
-
-        session = engine.SessionStore()
-        session.save()
-
-        self.session = session
 
     def tasks(self):
         return TaskRunner()

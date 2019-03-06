@@ -4,6 +4,8 @@ import mock
 import os
 
 from django.conf import settings
+from sentry_sdk import Hub
+
 
 TEST_ROOT = os.path.normpath(
     os.path.join(
@@ -258,3 +260,5 @@ def pytest_runtest_teardown(item):
     from sentry.models import OrganizationOption, ProjectOption, UserOption
     for model in (OrganizationOption, ProjectOption, UserOption):
         model.objects.clear_local_cache()
+
+    Hub.main.bind_client(None)
