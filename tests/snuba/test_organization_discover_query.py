@@ -169,6 +169,21 @@ class OrganizationDiscoverQueryTest(APITestCase, SnubaTestCase):
         assert response.data['data'][0]['message'] == 'message!'
         assert response.data['data'][0]['platform.name'] == 'python'
 
+    def test_strip_double_quotes_in_condition_strings(self):
+        with self.feature('organizations:discover'):
+            url = reverse('sentry-api-0-organization-discover-query', args=[self.org.slug])
+            response = self.client.post(url, {
+                'projects': [self.project.id],
+                'fields': ['message'],
+                'conditions': [['message', '=', '"message!"']],
+                'range': '14d',
+                'orderby': '-timestamp',
+            })
+
+        assert response.status_code == 200, response.content
+        assert len(response.data['data']) == 1
+        assert response.data['data'][0]['message'] == 'message!'
+
     def test_array_join(self):
         with self.feature('organizations:discover'):
             url = reverse('sentry-api-0-organization-discover-query', args=[self.org.slug])

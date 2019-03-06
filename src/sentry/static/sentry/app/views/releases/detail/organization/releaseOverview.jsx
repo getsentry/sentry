@@ -76,7 +76,7 @@ export default class OrganizationReleaseOverview extends AsyncComponent {
                     : release.projects.map(project => {
                         return (
                           <ReleaseProjectStatSparkline
-                            key={project.id}
+                            key={project.slug}
                             orgId={orgId}
                             project={project}
                             version={version}

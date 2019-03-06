@@ -80,9 +80,17 @@ class GroupingComponent(object):
 
     def get_subcomponent(self, id):
         """Looks up a subcomponent by the id and returns the first or `None`."""
+        return next(self.iter_subcomponents(id), None)
+
+    def iter_subcomponents(self, id, recursive=False):
+        """Finds all subcomponents matching an id, optionally recursively."""
         for value in self.values:
-            if isinstance(value, GroupingComponent) and value.id == id:
-                return value
+            if isinstance(value, GroupingComponent):
+                if value.id == id:
+                    yield value
+                if recursive:
+                    for subcomponent in value.iter_subcomponents(id, recursive=True):
+                        yield subcomponent
 
     def update(self, hint=None, contributes=None, values=None):
         """Updates an already existing component with new values."""
@@ -271,13 +279,14 @@ def hash_from_values(values):
 def get_calculated_grouping_variants_for_event(event):
     """Given an event this returns a dictionary of the matching grouping
     variants.  Checksum and fingerprinting logic are not handled by this
-    function.  Note that this will completely skip over strategies that
-    were not attempted which is suboptimal from the user experience.
+    function which is handled by `get_grouping_variants_for_event`.
     """
+    # This sorts the interfaces by the interface score which gives it the
+    # priority which we depend on.
     interfaces = event.get_interfaces()
 
     winning_strategy = None
-    winning_strategy_hint = None
+    precedence_hint = None
     per_variant_components = {}
 
     for (strategy_name, interface) in six.iteritems(interfaces):
@@ -288,11 +297,15 @@ def get_calculated_grouping_variants_for_event(event):
             if winning_strategy is None:
                 if component.contributes:
                     winning_strategy = strategy_name
-                    winning_strategy_hint = component.description
+                    precedence_hint = '%s takes precedence' % (
+                        '%s of %s' % (strategy_name, variant) if
+                        variant != 'default' else
+                        strategy_name
+                    )
             elif component.contributes and winning_strategy != strategy_name:
                 component.update(
                     contributes=False,
-                    hint='ignored because %s strategy takes precedence' % winning_strategy_hint,
+                    hint=precedence_hint
                 )
 
     rv = {}
@@ -301,8 +314,8 @@ def get_calculated_grouping_variants_for_event(event):
             id=variant,
             values=components,
         )
-        if not component.contributes:
-            component.update(hint='ignored because nothing matched')
+        if not component.contributes and precedence_hint:
+            component.update(hint=precedence_hint)
         rv[variant] = component
 
     return rv

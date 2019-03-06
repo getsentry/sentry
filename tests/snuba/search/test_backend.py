@@ -11,6 +11,7 @@ from hashlib import md5
 from sentry import options
 from sentry.api.issue_search import (
     convert_query_values,
+    IssueSearchVisitor,
     parse_search_query,
 )
 from sentry.models import (
@@ -22,6 +23,10 @@ from sentry.search.snuba.backend import SnubaSearchBackend
 from sentry.testutils import (
     SnubaTestCase,
     xfail_if_not_postgres,
+)
+from sentry.utils.snuba import (
+    SENTRY_SNUBA_MAP,
+    SnubaError,
 )
 
 
@@ -1272,7 +1277,7 @@ class SnubaSearchTest(SnubaTestCase):
                 'message': 'somet[hing]',
                 'environment': 'production',
                 'tags': {
-                    'server': 'example.com',
+                    'server': 'example.net',
                 },
                 'timestamp': self.base_datetime.isoformat()[:19],
                 'stacktrace': {
@@ -1306,6 +1311,14 @@ class SnubaSearchTest(SnubaTestCase):
             search_filter_query='environment:production s*]',
         )
         assert set(results) == set([escaped_event.group])
+        results = self.make_query(
+            search_filter_query='environment:production server:example.*',
+        )
+        assert set(results) == set([self.group1, escaped_event.group])
+        results = self.make_query(
+            search_filter_query='environment:production !server:*net',
+        )
+        assert set(results) == set([self.group1])
         # TODO: Disabling tests that use [] syntax for the moment. Re-enable
         # these if we decide to add back in, or remove if this comment has been
         # here a while.
@@ -1317,3 +1330,87 @@ class SnubaSearchTest(SnubaTestCase):
         #     search_filter_query='environment:production [z][of][mz]',
         # )
         # assert set(results) == set()
+
+    def test_null_tags(self):
+        tag_event = self.store_event(
+            data={
+                'fingerprint': ['hello-there'],
+                'event_id': 'f' * 32,
+                'message': 'something',
+                'environment': 'production',
+                'tags': {
+                    'server': 'example.net',
+                },
+                'timestamp': self.base_datetime.isoformat()[:19],
+                'stacktrace': {
+                    'frames': [{
+                        'module': 'group1'
+                    }]
+                },
+            },
+            project_id=self.project.id,
+        )
+        no_tag_event = self.store_event(
+            data={
+                'fingerprint': ['hello-there-2'],
+                'event_id': '5' * 32,
+                'message': 'something',
+                'environment': 'production',
+                'timestamp': self.base_datetime.isoformat()[:19],
+                'stacktrace': {
+                    'frames': [{
+                        'module': 'group2'
+                    }]
+                },
+            },
+            project_id=self.project.id,
+        )
+        results = self.make_query(
+            search_filter_query='environment:production !server:*net',
+        )
+        assert set(results) == set([self.group1, no_tag_event.group])
+        results = self.make_query(
+            search_filter_query='environment:production server:*net',
+        )
+        assert set(results) == set([tag_event.group])
+        results = self.make_query(
+            search_filter_query='environment:production !server:example.net',
+        )
+        assert set(results) == set([self.group1, no_tag_event.group])
+        results = self.make_query(
+            search_filter_query='environment:production server:example.net',
+        )
+        assert set(results) == set([tag_event.group])
+        results = self.make_query(
+            search_filter_query='environment:production has:server',
+        )
+        assert set(results) == set([self.group1, tag_event.group])
+        results = self.make_query(
+            search_filter_query='environment:production !has:server',
+        )
+        assert set(results) == set([no_tag_event.group])
+
+    def test_all_fields_do_not_error(self):
+        # Just a sanity check to make sure that all fields can be succesfully
+        # searched on without returning type errors and other schema related
+        # issues.
+        def test_query(query):
+            try:
+                self.make_query(search_filter_query=query)
+            except SnubaError as e:
+                self.fail('Query %s errored. Error info: %s' % (query, e))
+
+        for key in SENTRY_SNUBA_MAP:
+            if key == 'project.id':
+                continue
+            test_query('has:%s' % key)
+            test_query('!has:%s' % key)
+            if key in IssueSearchVisitor.numeric_keys:
+                val = '123'
+            elif key in IssueSearchVisitor.date_keys:
+                val = '2019-01-01'
+            else:
+                val = 'hello'
+                test_query('!%s:%s' % (key, val))
+
+            test_query('%s:%s' % (key, val))

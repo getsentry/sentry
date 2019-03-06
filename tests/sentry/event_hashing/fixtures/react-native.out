@@ -1,0 +1,405 @@
+app:
+  hash: None
+  component:
+    app (exception of system takes precedence)
+      exception (ignored because this variant does not contain a stacktrace, but but the system variant does)
+        stacktrace (less than 10% of frames are in-app)
+          frame (non app frame)
+            module*
+              u'react-native/Libraries/BatchedBridge/MessageQueue'
+            filename (module takes precedence)
+              u'node_modules/react-native/Libraries/BatchedBridge/MessageQueue.js'
+            context-line*
+              u'    return this.flushedQueue();'
+            function (line number is used only if module or filename are available)
+              119
+          frame (non app frame)
+            module*
+              u'react-native/Libraries/BatchedBridge/MessageQueue'
+            filename (module takes precedence)
+              u'node_modules/react-native/Libraries/BatchedBridge/MessageQueue.js'
+            context-line*
+              u'      this._inCall--;'
+            function (line number is used only if module or filename are available)
+              318
+          frame (non app frame)
+            module*
+              u'react-native/Libraries/BatchedBridge/MessageQueue'
+            filename (module takes precedence)
+              u'node_modules/react-native/Libraries/BatchedBridge/MessageQueue.js'
+            context-line*
+              u'    return this.flushedQueue();'
+            function (line number is used only if module or filename are available)
+              119
+          frame (non app frame)
+            module*
+              u'react-native/Libraries/BatchedBridge/MessageQueue'
+            filename (module takes precedence)
+              u'node_modules/react-native/Libraries/BatchedBridge/MessageQueue.js'
+            context-line*
+              u'    this._lastFlush = new Date().getTime();'
+            function (line number is used only if module or filename are available)
+              357
+          frame (non app frame)
+            module*
+              u'react-native/Libraries/Renderer/ReactNativeRenderer-prod'
+            filename (module takes precedence)
+              u'node_modules/react-native/Libraries/Renderer/ReactNativeRenderer-prod.js'
+            context-line*
+              u'      _receiveRootNodeIDEvent(index, eventTopLevelType, i);'
+            function (line number is used only if module or filename are available)
+              1160
+          frame (non app frame)
+            module*
+              u'react-native/Libraries/Renderer/ReactNativeRenderer-prod'
+            filename (module takes precedence)
+              u'node_modules/react-native/Libraries/Renderer/ReactNativeRenderer-prod.js'
+            context-line*
+              u'  batchedUpdates(function() {'
+            function (line number is used only if module or filename are available)
+              1095
+          frame (non app frame)
+            module*
+              u'react-native/Libraries/Renderer/ReactNativeRenderer-prod'
+            filename (module takes precedence)
+              u'node_modules/react-native/Libraries/Renderer/ReactNativeRenderer-prod.js'
+            context-line*
+              u'    return _batchedUpdates(fn, bookkeeping);'
+            function (line number is used only if module or filename are available)
+              1054
+          frame (non app frame)
+            module*
+              u'react-native/Libraries/Renderer/ReactNativeRenderer-prod'
+            filename (module takes precedence)
+              u'node_modules/react-native/Libraries/Renderer/ReactNativeRenderer-prod.js'
+            context-line*
+              u'        return fn(a);'
+            function (line number is used only if module or filename are available)
+              5928
+          frame (non app frame)
+            module*
+              u'react-native/Libraries/Renderer/ReactNativeRenderer-prod'
+            filename (module takes precedence)
+              u'node_modules/react-native/Libraries/Renderer/ReactNativeRenderer-prod.js'
+            context-line*
+              u'      (forEachAccumulated(events, executeDispatchesAndReleaseTopLevel),'
+            function (line number is used only if module or filename are available)
+              1113
+          frame (non app frame)
+            module*
+              u'react-native/Libraries/Renderer/ReactNativeRenderer-prod'
+            filename (module takes precedence)
+              u'node_modules/react-native/Libraries/Renderer/ReactNativeRenderer-prod.js'
+            context-line*
+              u'  Array.isArray(arr) ? arr.forEach(cb, scope) : arr && cb.call(scope, arr);'
+            function (line number is used only if module or filename are available)
+              219
+          frame (non app frame)
+            function (function name is used only if module or filename are available)
+              u'[native code] forEach'
+          frame (non app frame)
+            module*
+              u'react-native/Libraries/Renderer/ReactNativeRenderer-prod'
+            filename (module takes precedence)
+              u'node_modules/react-native/Libraries/Renderer/ReactNativeRenderer-prod.js'
+            context-line*
+              u'        executeDispatch(e, !1, dispatchListeners, dispatchInstances);'
+            function (line number is used only if module or filename are available)
+              235
+          frame (non app frame)
+            module*
+              u'react-native/Libraries/Renderer/ReactNativeRenderer-prod'
+            filename (module takes precedence)
+              u'node_modules/react-native/Libraries/Renderer/ReactNativeRenderer-prod.js'
+            context-line*
+              u'  ReactErrorUtils.invokeGuardedCallbackAndCatchFirstError('
+            function (line number is used only if module or filename are available)
+              181
+          frame (non app frame)
+            module*
+              u'react-native/Libraries/Renderer/ReactNativeRenderer-prod'
+            filename (module takes precedence)
+              u'node_modules/react-native/Libraries/Renderer/ReactNativeRenderer-prod.js'
+            context-line*
+              u'    ReactErrorUtils.invokeGuardedCallback.apply(this, arguments);'
+            function (line number is used only if module or filename are available)
+              54
+          frame (non app frame)
+            module*
+              u'react-native/Libraries/Renderer/ReactNativeRenderer-prod'
+            filename (module takes precedence)
+              u'node_modules/react-native/Libraries/Renderer/ReactNativeRenderer-prod.js'
+            context-line*
+              u'    invokeGuardedCallback.apply(ReactErrorUtils, arguments);'
+            function (line number is used only if module or filename are available)
+              41
+          frame (non app frame)
+            module*
+              u'react-native/Libraries/Renderer/ReactNativeRenderer-prod'
+            filename (module takes precedence)
+              u'node_modules/react-native/Libraries/Renderer/ReactNativeRenderer-prod.js'
+            context-line*
+              u'  var funcArgs = Array.prototype.slice.call(arguments, 3);'
+            function (line number is used only if module or filename are available)
+              28
+          frame (non app frame)
+            module*
+              u'react-native/Libraries/Components/Touchable/Touchable'
+            filename (module takes precedence)
+              u'node_modules/react-native/Libraries/Components/Touchable/Touchable.js'
+            context-line*
+              u'  touchableHandleResponderRelease: function(e) {'
+            function (line number is used only if module or filename are available)
+              430
+          frame (non app frame)
+            module*
+              u'react-native/Libraries/Components/Touchable/Touchable'
+            filename (module takes precedence)
+              u'node_modules/react-native/Libraries/Components/Touchable/Touchable.js'
+            context-line*
+              u'      this._performSideEffectsForTransition(curState, nextState, signal, e);'
+            function (line number is used only if module or filename are available)
+              662
+          frame (non app frame)
+            module*
+              u'react-native/Libraries/Components/Touchable/Touchable'
+            filename (module takes precedence)
+              u'node_modules/react-native/Libraries/Components/Touchable/Touchable.js'
+            context-line*
+              u'        this.touchableHandlePress(e);'
+            function (line number is used only if module or filename are available)
+              744
+          frame (non app frame)
+            module*
+              u'react-native/Libraries/Components/Touchable/TouchableNativeFeedback.android'
+            filename (module takes precedence)
+              u'node_modules/react-native/Libraries/Components/Touchable/TouchableNativeFeedback.android.js'
+            context-line*
+              u'    this.props.onPress && this.props.onPress(e);'
+            function (line number is used only if module or filename are available)
+              175
+          frame*
+            module*
+              u'App'
+            filename (module takes precedence)
+              u'App.js'
+            context-line*
+              u'        <Button'
+            function (line number is used only if module or filename are available)
+              143
+          frame*
+            module*
+              u'App'
+            filename (module takes precedence)
+              u'App.js'
+            context-line*
+              u'        <Button'
+            function (line number is used only if module or filename are available)
+              115
+        type*
+          u'TypeError'
+        value*
+          u"undefined is not a function (evaluating '({}).invalidFunction()')"
+--------------------------------------------------------------------------
+system:
+  hash: 'f8f4d8cbe0c85758ed193d0f5d9955b3'
+  component:
+    system*
+      exception*
+        stacktrace*
+          frame*
+            module*
+              u'react-native/Libraries/BatchedBridge/MessageQueue'
+            filename (module takes precedence)
+              u'node_modules/react-native/Libraries/BatchedBridge/MessageQueue.js'
+            context-line*
+              u'    return this.flushedQueue();'
+            function (line number is used only if module or filename are available)
+              119
+          frame*
+            module*
+              u'react-native/Libraries/BatchedBridge/MessageQueue'
+            filename (module takes precedence)
+              u'node_modules/react-native/Libraries/BatchedBridge/MessageQueue.js'
+            context-line*
+              u'      this._inCall--;'
+            function (line number is used only if module or filename are available)
+              318
+          frame*
+            module*
+              u'react-native/Libraries/BatchedBridge/MessageQueue'
+            filename (module takes precedence)
+              u'node_modules/react-native/Libraries/BatchedBridge/MessageQueue.js'
+            context-line*
+              u'    return this.flushedQueue();'
+            function (line number is used only if module or filename are available)
+              119
+          frame*
+            module*
+              u'react-native/Libraries/BatchedBridge/MessageQueue'
+            filename (module takes precedence)
+              u'node_modules/react-native/Libraries/BatchedBridge/MessageQueue.js'
+            context-line*
+              u'    this._lastFlush = new Date().getTime();'
+            function (line number is used only if module or filename are available)
+              357
+          frame*
+            module*
+              u'react-native/Libraries/Renderer/ReactNativeRenderer-prod'
+            filename (module takes precedence)
+              u'node_modules/react-native/Libraries/Renderer/ReactNativeRenderer-prod.js'
+            context-line*
+              u'      _receiveRootNodeIDEvent(index, eventTopLevelType, i);'
+            function (line number is used only if module or filename are available)
+              1160
+          frame*
+            module*
+              u'react-native/Libraries/Renderer/ReactNativeRenderer-prod'
+            filename (module takes precedence)
+              u'node_modules/react-native/Libraries/Renderer/ReactNativeRenderer-prod.js'
+            context-line*
+              u'  batchedUpdates(function() {'
+            function (line number is used only if module or filename are available)
+              1095
+          frame*
+            module*
+              u'react-native/Libraries/Renderer/ReactNativeRenderer-prod'
+            filename (module takes precedence)
+              u'node_modules/react-native/Libraries/Renderer/ReactNativeRenderer-prod.js'
+            context-line*
+              u'    return _batchedUpdates(fn, bookkeeping);'
+            function (line number is used only if module or filename are available)
+              1054
+          frame*
+            module*
+              u'react-native/Libraries/Renderer/ReactNativeRenderer-prod'
+            filename (module takes precedence)
+              u'node_modules/react-native/Libraries/Renderer/ReactNativeRenderer-prod.js'
+            context-line*
+              u'        return fn(a);'
+            function (line number is used only if module or filename are available)
+              5928
+          frame*
+            module*
+              u'react-native/Libraries/Renderer/ReactNativeRenderer-prod'
+            filename (module takes precedence)
+              u'node_modules/react-native/Libraries/Renderer/ReactNativeRenderer-prod.js'
+            context-line*
+              u'      (forEachAccumulated(events, executeDispatchesAndReleaseTopLevel),'
+            function (line number is used only if module or filename are available)
+              1113
+          frame*
+            module*
+              u'react-native/Libraries/Renderer/ReactNativeRenderer-prod'
+            filename (module takes precedence)
+              u'node_modules/react-native/Libraries/Renderer/ReactNativeRenderer-prod.js'
+            context-line*
+              u'  Array.isArray(arr) ? arr.forEach(cb, scope) : arr && cb.call(scope, arr);'
+            function (line number is used only if module or filename are available)
+              219
+          frame
+            function (function name is used only if module or filename are available)
+              u'[native code] forEach'
+          frame*
+            module*
+              u'react-native/Libraries/Renderer/ReactNativeRenderer-prod'
+            filename (module takes precedence)
+              u'node_modules/react-native/Libraries/Renderer/ReactNativeRenderer-prod.js'
+            context-line*
+              u'        executeDispatch(e, !1, dispatchListeners, dispatchInstances);'
+            function (line number is used only if module or filename are available)
+              235
+          frame*
+            module*
+              u'react-native/Libraries/Renderer/ReactNativeRenderer-prod'
+            filename (module takes precedence)
+              u'node_modules/react-native/Libraries/Renderer/ReactNativeRenderer-prod.js'
+            context-line*
+              u'  ReactErrorUtils.invokeGuardedCallbackAndCatchFirstError('
+            function (line number is used only if module or filename are available)
+              181
+          frame*
+            module*
+              u'react-native/Libraries/Renderer/ReactNativeRenderer-prod'
+            filename (module takes precedence)
+              u'node_modules/react-native/Libraries/Renderer/ReactNativeRenderer-prod.js'
+            context-line*
+              u'    ReactErrorUtils.invokeGuardedCallback.apply(this, arguments);'
+            function (line number is used only if module or filename are available)
+              54
+          frame*
+            module*
+              u'react-native/Libraries/Renderer/ReactNativeRenderer-prod'
+            filename (module takes precedence)
+              u'node_modules/react-native/Libraries/Renderer/ReactNativeRenderer-prod.js'
+            context-line*
+              u'    invokeGuardedCallback.apply(ReactErrorUtils, arguments);'
+            function (line number is used only if module or filename are available)
+              41
+          frame*
+            module*
+              u'react-native/Libraries/Renderer/ReactNativeRenderer-prod'
+            filename (module takes precedence)
+              u'node_modules/react-native/Libraries/Renderer/ReactNativeRenderer-prod.js'
+            context-line*
+              u'  var funcArgs = Array.prototype.slice.call(arguments, 3);'
+            function (line number is used only if module or filename are available)
+              28
+          frame*
+            module*
+              u'react-native/Libraries/Components/Touchable/Touchable'
+            filename (module takes precedence)
+              u'node_modules/react-native/Libraries/Components/Touchable/Touchable.js'
+            context-line*
+              u'  touchableHandleResponderRelease: function(e) {'
+            function (line number is used only if module or filename are available)
+              430
+          frame*
+            module*
+              u'react-native/Libraries/Components/Touchable/Touchable'
+            filename (module takes precedence)
+              u'node_modules/react-native/Libraries/Components/Touchable/Touchable.js'
+            context-line*
+              u'      this._performSideEffectsForTransition(curState, nextState, signal, e);'
+            function (line number is used only if module or filename are available)
+              662
+          frame*
+            module*
+              u'react-native/Libraries/Components/Touchable/Touchable'
+            filename (module takes precedence)
+              u'node_modules/react-native/Libraries/Components/Touchable/Touchable.js'
+            context-line*
+              u'        this.touchableHandlePress(e);'
+            function (line number is used only if module or filename are available)
+              744
+          frame*
+            module*
+              u'react-native/Libraries/Components/Touchable/TouchableNativeFeedback.android'
+            filename (module takes precedence)
+              u'node_modules/react-native/Libraries/Components/Touchable/TouchableNativeFeedback.android.js'
+            context-line*
+              u'    this.props.onPress && this.props.onPress(e);'
+            function (line number is used only if module or filename are available)
+              175
+          frame*
+            module*
+              u'App'
+            filename (module takes precedence)
+              u'App.js'
+            context-line*
+              u'        <Button'
+            function (line number is used only if module or filename are available)
+              143
+          frame*
+            module*
+              u'App'
+            filename (module takes precedence)
+              u'App.js'
+            context-line*
+              u'        <Button'
+            function (line number is used only if module or filename are available)
+              115
+        type*
+          u'TypeError'
+        value (stacktrace and type take precedence)
+          u"undefined is not a function (evaluating '({}).invalidFunction()')"

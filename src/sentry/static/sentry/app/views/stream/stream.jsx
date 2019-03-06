@@ -21,7 +21,7 @@ import ConfigStore from 'app/stores/configStore';
 import EnvironmentStore from 'app/stores/environmentStore';
 import ErrorRobot from 'app/components/errorRobot';
 import {fetchSavedSearches} from 'app/actionCreators/savedSearches';
-import {fetchProjectTagValues} from 'app/actionCreators/tags';
+import {fetchTagValues} from 'app/actionCreators/tags';
 import GroupStore from 'app/stores/groupStore';
 import LoadingError from 'app/components/loadingError';
 import LoadingIndicator from 'app/components/loadingIndicator';
@@ -656,8 +656,9 @@ const Stream = createReactClass({
   },
 
   tagValueLoader(key, search) {
-    const {orgId, projectId} = this.props.params;
-    return fetchProjectTagValues(this.api, orgId, projectId, key, search);
+    const {orgId} = this.props.params;
+    const project = this.getProject();
+    return fetchTagValues(this.api, orgId, key, search, project.id);
   },
 
   render() {
@@ -722,7 +723,10 @@ const Stream = createReactClass({
               allResultsVisible={this.allResultsVisible()}
             />
             <PanelBody>
-              <ProcessingIssueList organization={organization} project={project} />
+              <ProcessingIssueList
+                organization={organization}
+                projectIds={selection.projects}
+              />
               {this.renderStreamBody()}
             </PanelBody>
           </Panel>

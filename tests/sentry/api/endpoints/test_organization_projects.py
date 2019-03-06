@@ -109,6 +109,21 @@ class OrganizationProjectsTest(APITestCase):
         response = self.client.get(self.path)
         self.check_valid_response(response, [project for project in projects])
 
+    def test_team_filter(self):
+        self.login_as(user=self.user)
+        other_team = self.create_team(organization=self.org)
+
+        project_bar = self.create_project(teams=[self.team], name='bar', slug='bar')
+        project_foo = self.create_project(teams=[other_team], name='foo', slug='foo')
+        project_baz = self.create_project(teams=[other_team], name='baz', slug='baz')
+        path = u'{}?query=team:{}'.format(self.path, self.team.slug)
+        response = self.client.get(path)
+        self.check_valid_response(response, [project_bar])
+
+        path = u'{}?query=!team:{}'.format(self.path, self.team.slug)
+        response = self.client.get(path)
+        self.check_valid_response(response, [project_baz, project_foo])
+
     def test_api_key(self):
         key = ApiKey.objects.create(
             organization=self.org,

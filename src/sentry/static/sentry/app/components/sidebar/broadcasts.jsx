@@ -1,47 +1,41 @@
 import PropTypes from 'prop-types';
 import React from 'react';
-import createReactClass from 'create-react-class';
 
+import {getAllBroadcasts, markBroadcastsAsSeen} from 'app/actionCreators/broadcasts';
 import {t} from 'app/locale';
-import ApiMixin from 'app/mixins/apiMixin';
 import InlineSvg from 'app/components/inlineSvg';
 import LoadingIndicator from 'app/components/loadingIndicator';
 import SidebarItem from 'app/components/sidebar/sidebarItem';
 import SidebarPanel from 'app/components/sidebar/sidebarPanel';
 import SidebarPanelEmpty from 'app/components/sidebar/sidebarPanelEmpty';
 import SidebarPanelItem from 'app/components/sidebar/sidebarPanelItem';
-import {getAllBroadcasts, markBroadcastsAsSeen} from 'app/actionCreators/broadcasts';
+import withApi from 'app/utils/withApi';
 
 const MARK_SEEN_DELAY = 1000;
 const POLLER_DELAY = 600000; // 10 minute poll (60 * 10 * 1000)
 
-const Broadcasts = createReactClass({
-  displayName: 'Broadcasts',
-
-  propTypes: {
+class Broadcasts extends React.Component {
+  static propTypes = {
     orientation: PropTypes.oneOf(['top', 'left']),
     collapsed: PropTypes.bool,
     showPanel: PropTypes.bool,
     currentPanel: PropTypes.string,
     hidePanel: PropTypes.func,
     onShowPanel: PropTypes.func.isRequired,
-  },
+    api: PropTypes.object.isRequired,
+  };
 
-  mixins: [ApiMixin],
-
-  getInitialState() {
-    return {
-      broadcasts: [],
-      loading: true,
-      error: false,
-    };
-  },
+  state = {
+    broadcasts: [],
+    loading: true,
+    error: false,
+  };
 
   componentDidMount() {
     this.fetchData();
 
     document.addEventListener('visibilitychange', this.handleVisibilityChange);
-  },
+  }
 
   componentWillUnmount() {
     if (this.timer) {
@@ -53,18 +47,27 @@ const Broadcasts = createReactClass({
       this.stopPoll();
     }
     document.removeEventListener('visibilitychange', this.handleVisibilityChange);
-  },
+  }
 
   remountComponent() {
     this.setState(this.getInitialState(), this.fetchData);
-  },
+  }
 
-  fetchData() {
+  startPoll() {
+    this.poller = window.setTimeout(this.fetchData, POLLER_DELAY);
+  }
+
+  stopPoll() {
+    window.clearTimeout(this.poller);
+    this.poller = null;
+  }
+
+  fetchData = () => {
     if (this.poller) {
       this.stopPoll();
     }
 
-    return getAllBroadcasts(this.api)
+    return getAllBroadcasts(this.props.api)
       .then(data => {
         this.setState({
           broadcasts: data || [],
@@ -79,51 +82,30 @@ const Broadcasts = createReactClass({
         });
         this.startPoll();
       });
-  },
-
-  startPoll() {
-    this.poller = window.setTimeout(this.fetchData, POLLER_DELAY);
-  },
-
-  stopPoll() {
-    window.clearTimeout(this.poller);
-    this.poller = null;
-  },
+  };
 
   /**
    * If tab/window loses visiblity (note: this is different than focus), stop polling for broadcasts data, otherwise,
    * if it gains visibility, start polling again.
    */
-  handleVisibilityChange() {
+  handleVisibilityChange = () => {
     if (document.hidden) {
       this.stopPoll();
     } else {
       this.startPoll();
     }
-  },
+  };
 
-  handleShowPanel() {
+  handleShowPanel = () => {
     this.timer = window.setTimeout(this.markSeen, MARK_SEEN_DELAY);
     this.props.onShowPanel();
-  },
+  };
 
-  getUnseenIds() {
-    if (!this.state.broadcasts) return [];
-
-    return this.state.broadcasts
-      .filter(item => {
-        return !item.hasSeen;
-      })
-      .map(item => {
-        return item.id;
-      });
-  },
-
-  markSeen() {
-    const unseenBroadcastIds = this.getUnseenIds();
+  markSeen = () => {
+    const unseenBroadcastIds = this.unseenIds;
     if (unseenBroadcastIds.length === 0) return;
 
-    markBroadcastsAsSeen(this.api, unseenBroadcastIds).then(data => {
+    markBroadcastsAsSeen(this.props.api, unseenBroadcastIds).then(data => {
       this.setState(state => ({
         broadcasts: state.broadcasts.map(item => {
           item.hasSeen = true;
@@ -131,13 +113,19 @@ const Broadcasts = createReactClass({
         }),
       }));
     });
-  },
+  };
+
+  get unseenIds() {
+    return this.state.broadcasts
+      ? this.state.broadcasts.filter(item => !item.hasSeen).map(item => item.id)
+      : [];
+  }
 
   render() {
     const {orientation, collapsed, currentPanel, showPanel, hidePanel} = this.props;
     const {broadcasts, loading} = this.state;
 
-    const unseenPosts = this.getUnseenIds();
+    const unseenPosts = this.unseenIds;
 
     return (
       <React.Fragment>
@@ -185,7 +173,7 @@ const Broadcasts = createReactClass({
           )}
       </React.Fragment>
     );
-  },
-});
+  }
+}
 
-export default Broadcasts;
+export default withApi(Broadcasts);

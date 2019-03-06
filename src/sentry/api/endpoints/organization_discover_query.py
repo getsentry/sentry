@@ -7,18 +7,15 @@ from copy import deepcopy
 
 from rest_framework import serializers
 from rest_framework.response import Response
-from rest_framework.exceptions import PermissionDenied
 
 from sentry.api.serializers.rest_framework import ListField
 from sentry.api.bases.organization import OrganizationPermission
 from sentry.api.bases import OrganizationEndpoint
 from sentry.api.paginator import GenericOffsetPaginator
 from sentry.api.utils import get_date_range_from_params, InvalidParams
-from sentry.models import Project, ProjectStatus, OrganizationMember, OrganizationMemberTeam
+from sentry.models import Project, ProjectStatus
 from sentry.utils import snuba
-from sentry import roles
 from sentry import features
-from sentry.auth.superuser import is_active_superuser
 
 
 class OrganizationDiscoverQueryPermission(OrganizationPermission):
@@ -113,15 +110,6 @@ class DiscoverQuerySerializer(serializers.Serializer):
 
         return data
 
-    def validate_projects(self, attrs, source):
-        projects = attrs[source]
-        org_projects = set(project[0] for project in self.context['projects'])
-
-        if not set(projects).issubset(org_projects):
-            raise PermissionDenied
-
-        return attrs
-
     def validate_conditions(self, attrs, source):
         # Handle error (exception_stacks), stack(exception_frames)
         if attrs.get(source):
@@ -153,6 +141,12 @@ class DiscoverQuerySerializer(serializers.Serializer):
         # Cast boolean values to 1 / 0
         if isinstance(condition[2], bool):
             condition[2] = int(condition[2])
+
+        # Strip double quotes on strings
+        if isinstance(condition[2], six.string_types):
+            match = re.search(r'^"(.*)"$', condition[2])
+            if match:
+                condition[2] = match.group(1)
 
         # Apply has function to any array field if it's = / != and not part of arrayjoin
         if array_field and has_equality_operator and (array_field.group(1) != self.arrayjoin):
@@ -282,24 +276,6 @@ class OrganizationDiscoverQueryEndpoint(OrganizationEndpoint):
                 projects,
             ), status=200)
 
-    def has_projects_access(self, user, organization, requested_projects):
-        member = OrganizationMember.objects.get(
-            user=user, organization=organization)
-
-        has_global_access = roles.get(member.role).is_global
-
-        if has_global_access:
-            return True
-
-        member_project_list = Project.objects.filter(
-            organization=organization,
-            teams__in=OrganizationMemberTeam.objects.filter(
-                organizationmember=member,
-            ).values('team'),
-        ).values_list('id', flat=True)
-
-        return set(requested_projects).issubset(set(member_project_list))
-
     def post(self, request, organization):
 
         if not features.has('organizations:discover', organization, actor=request.user):
@@ -307,17 +283,18 @@ class OrganizationDiscoverQueryEndpoint(OrganizationEndpoint):
 
         requested_projects = request.DATA['projects']
 
-        if not is_active_superuser(request) and not self.has_projects_access(
-            request.user, organization, requested_projects
-        ):
-            return Response("Invalid projects", status=400)
-
-        projects = Project.objects.filter(
+        projects = list(Project.objects.filter(
+            id__in=requested_projects,
             organization=organization,
             status=ProjectStatus.VISIBLE,
-        ).values_list('id', 'slug')
+        ))
 
-        serializer = DiscoverQuerySerializer(data=request.DATA, context={'projects': projects})
+        has_invalid_projects = len(projects) < len(requested_projects)
+
+        if has_invalid_projects or not request.access.has_projects_access(projects):
+            return Response("Invalid projects", status=403)
+
+        serializer = DiscoverQuerySerializer(data=request.DATA)
 
         if not serializer.is_valid():
             return Response(serializer.errors, status=400)
@@ -330,7 +307,7 @@ class OrganizationDiscoverQueryEndpoint(OrganizationEndpoint):
 
         projects_map = {}
         for project in projects:
-            projects_map[project[0]] = project[1]
+            projects_map[project.id] = project.slug
 
         # Make sure that all selected fields are in the group by clause if there
         # are aggregations

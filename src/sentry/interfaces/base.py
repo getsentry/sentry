@@ -262,7 +262,7 @@ class Interface(object):
                 if prevent_contribution:
                     component.update(
                         contributes=False,
-                        hint='ignored because system variant does not match'
+                        hint='ignored because system variant is not used'
                     )
                 elif system_component.get_hash() == component.get_hash():
                     component.update(

@@ -518,3 +518,10 @@ class TagStorageTest(SnubaTestCase):
             'last_seen': self.now - timedelta(seconds=1),
             'times_seen': 2,
         }}
+
+        # test where there should be no results because of time filters
+        assert self.ts.get_group_seen_values_for_environments(
+            [self.proj1.id], [self.proj1group1.id], [self.proj1env1.id],
+            start=self.now - timedelta(hours=5),
+            end=self.now - timedelta(hours=4),
+        ) == {}

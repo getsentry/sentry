@@ -4,7 +4,7 @@ const pathPrefix = '/settings/:orgId';
 
 const organizationNavigation = [
   {
-    name: 'Organization',
+    name: t('Organization'),
     items: [
       {
         path: `${pathPrefix}/`,
@@ -43,7 +43,7 @@ const organizationNavigation = [
         path: `${pathPrefix}/auth/`,
         title: t('Auth'),
         description: t('Configure single sign-on'),
-        id: 'sso-saml2',
+        id: 'sso',
       },
       {
         path: `${pathPrefix}/api-keys/`,

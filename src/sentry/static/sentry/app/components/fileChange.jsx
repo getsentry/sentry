@@ -23,7 +23,7 @@ class FileChange extends React.PureComponent {
       <li className="list-group-item list-group-item-sm release-file-change">
         <div className="row row-flex row-center-vertically">
           <div className="col-sm-10 truncate file-name">
-            <InlineSvg src="icon-file" className="icon-file-generic" size={15} />
+            <InlineSvg src="icon-file" className="icon-file-generic" size="15" />
             {filename}
           </div>
           <div className="col-sm-2 avatar-grid align-right">
