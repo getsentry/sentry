@@ -153,9 +153,9 @@ exports[`StreamGroup renders with anchors 1`] = `
     w={
       Array [
         40,
-        50,
-        50,
-        40,
+        60,
+        80,
+        80,
       ]
     }
   >
@@ -171,9 +171,9 @@ exports[`StreamGroup renders with anchors 1`] = `
     w={
       Array [
         40,
-        50,
-        50,
-        40,
+        60,
+        80,
+        80,
       ]
     }
   >
