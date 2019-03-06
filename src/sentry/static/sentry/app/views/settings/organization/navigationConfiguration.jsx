@@ -4,7 +4,7 @@ const pathPrefix = '/settings/:orgId';
 
 const organizationNavigation = [
   {
-    name: 'Organization',
+    name: t('Organization'),
     items: [
       {
         path: `${pathPrefix}/`,

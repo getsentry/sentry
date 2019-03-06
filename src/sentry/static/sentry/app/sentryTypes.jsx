@@ -16,7 +16,6 @@ const Avatar = PropTypes.shape({
 
 /**
  * A User is someone that has registered on Sentry
- *
  */
 export const User = PropTypes.shape({
   avatar: Avatar,
