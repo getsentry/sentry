@@ -173,8 +173,8 @@ class GetProjectIdsTest(BaseOrganizationEndpointTest):
         # Should get everything if super user
         self.run_test([self.project_1, self.project_2], user=self.user, active_superuser=True)
 
-        # owner does not projects they aren't members of if not included in query params
-        self.run_test([], user=self.owner,)
+        # owner does not see projects they aren't members of if not included in query params
+        self.run_test([], user=self.owner)
 
         # owner sees projects they have access to if they're included as query params
         self.run_test(
