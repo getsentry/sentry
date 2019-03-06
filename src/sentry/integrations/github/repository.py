@@ -82,6 +82,7 @@ class GitHubRepositoryProvider(providers.IntegrationRepositoryProvider):
                     return eval_commits(client)
                 except Exception as e:
                     installation.raise_error(e)
+            installation.raise_error(e)
         except Exception as e:
             installation.raise_error(e)
 
