@@ -62,7 +62,11 @@ class EventOrGroupExtraDetails extends React.Component {
         {shortId && (
           <GroupShortId
             shortId={shortId}
-            avatar={<ProjectBadge project={project} avatarSize={14} hideName={true} />}
+            avatar={
+              project && (
+                <ProjectBadge project={project} avatarSize={14} hideName={true} />
+              )
+            }
           />
         )}
         <Times>
