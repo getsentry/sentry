@@ -3,6 +3,7 @@
 from __future__ import absolute_import, print_function
 
 import os
+import sys
 import json
 import pytest
 
@@ -11,7 +12,8 @@ from sentry.event_manager import EventManager
 from sentry.event_hashing import GroupingComponent
 
 
-log = print
+def log(x):
+    return sys.stdout.write(x + '\n')
 
 
 def dump_variant(variant, lines=None, indent=0):
@@ -66,6 +68,8 @@ def test_event_hash_variant(infile):
         rv.append('%s:' % key)
         dump_variant(value, rv, 1)
     output = '\n'.join(rv)
-    log(output)
+    if not refval:
+        log(output)
+    log(repr(evt.get_hashes()))
 
     assert output == refval
