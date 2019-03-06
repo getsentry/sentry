@@ -22,8 +22,8 @@ class GroupEventsTest(APITestCase):
         self.login_as(user=self.user)
 
         group = self.create_group()
-        event_1 = self.create_event('a' * 32, group=group)
-        event_2 = self.create_event('b' * 32, group=group)
+        event_1 = self.create_event(event_id='a' * 32, group=group)
+        event_2 = self.create_event(event_id='b' * 32, group=group)
 
         url = u'/api/0/issues/{}/events/'.format(group.id)
         response = self.client.get(url, format='json')
@@ -41,8 +41,8 @@ class GroupEventsTest(APITestCase):
         self.login_as(user=self.user)
 
         group = self.create_group()
-        event_1 = self.create_event('a' * 32, group=group)
-        event_2 = self.create_event('b' * 32, group=group)
+        event_1 = self.create_event(event_id='a' * 32, group=group)
+        event_2 = self.create_event(event_id='b' * 32, group=group)
 
         tagkey_1 = tagstore.create_tag_key(
             project_id=group.project_id,
@@ -136,8 +136,8 @@ class GroupEventsTest(APITestCase):
         self.login_as(user=self.user)
 
         group = self.create_group()
-        event_1 = self.create_event('a' * 32, group=group)
-        self.create_event('b' * 32, group=group)
+        event_1 = self.create_event(event_id='a' * 32, group=group)
+        self.create_event(event_id='b' * 32, group=group)
         query = event_1.event_id
 
         url = u'/api/0/issues/{}/events/?query={}'.format(group.id, query)
@@ -245,11 +245,11 @@ class GroupEventsTest(APITestCase):
         project = self.create_project()
         group = self.create_group(project=project)
         self.create_event(
-            'a' * 32,
+            event_id='a' * 32,
             group=group,
             datetime=timezone.now() - timedelta(days=2),
         )
-        event_2 = self.create_event('b' * 32, group=group)
+        event_2 = self.create_event(event_id='b' * 32, group=group)
 
         with self.options({'system.event-retention-days': 1}):
             response = self.client.get(u'/api/0/issues/{}/events/'.format(group.id))
@@ -269,11 +269,11 @@ class GroupEventsTest(APITestCase):
         project = self.create_project()
         group = self.create_group(project=project)
         event_1 = self.create_event(
-            'a' * 32,
+            event_id='a' * 32,
             group=group,
             datetime=timezone.now() - timedelta(days=2),
         )
-        event_2 = self.create_event('b' * 32, group=group)
+        event_2 = self.create_event(event_id='b' * 32, group=group)
 
         response = self.client.get(
             u'/api/0/issues/{}/events/'.format(group.id),

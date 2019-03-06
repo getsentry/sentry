@@ -47,7 +47,13 @@ class ActivityFeed extends React.Component {
       location.pathname != nextLocation.pathname ||
       location.search != nextLocation.search
     ) {
-      this.remountComponent();
+      this.setState({
+        itemList: [],
+        loading: true,
+        error: false,
+        pageLinks: null,
+      });
+      this.fetchData();
     }
   }
 

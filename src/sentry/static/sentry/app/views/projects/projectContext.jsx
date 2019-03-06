@@ -6,7 +6,7 @@ import Reflux from 'reflux';
 import createReactClass from 'create-react-class';
 
 import {loadEnvironments} from 'app/actionCreators/environments';
-import {fetchProjectMembers} from 'app/actionCreators/members';
+import {fetchOrgMembers} from 'app/actionCreators/members';
 import {setActiveProject} from 'app/actionCreators/projects';
 import {t} from 'app/locale';
 import ApiMixin from 'app/mixins/apiMixin';
@@ -183,7 +183,7 @@ const ProjectContext = createReactClass({
         }
       );
 
-      fetchProjectMembers(this.api, orgId, projectId);
+      fetchOrgMembers(this.api, orgId, activeProject.id);
     } else if (activeProject && !activeProject.isMember) {
       this.setState({
         loading: false,

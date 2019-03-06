@@ -1,35 +1,29 @@
 import PropTypes from 'prop-types';
 import React from 'react';
-import createReactClass from 'create-react-class';
 import {Link} from 'react-router';
 
 import SentryTypes from 'app/sentryTypes';
 import LoadingIndicator from 'app/components/loadingIndicator';
 import LoadingError from 'app/components/loadingError';
-import ApiMixin from 'app/mixins/apiMixin';
 import {t, tn} from 'app/locale';
 import withOrganization from 'app/utils/withOrganization';
+import withApi from 'app/utils/withApi';
 
-const ReleaseProjectStatSparkline = createReactClass({
-  displayName: 'ReleaseProjectStatSparkline',
-
-  propTypes: {
+class ReleaseProjectStatSparkline extends React.Component {
+  static propTypes = {
+    api: PropTypes.object.isRequired,
     organization: SentryTypes.Organization,
     orgId: PropTypes.string,
     project: PropTypes.object,
     version: PropTypes.string,
-  },
+  };
 
-  mixins: [ApiMixin],
-
-  getInitialState() {
-    return {
-      loading: true,
-      error: false,
-      stats: [],
-      newIssueCount: null,
-    };
-  },
+  state = {
+    loading: true,
+    error: false,
+    stats: [],
+    newIssueCount: null,
+  };
 
   componentDidMount() {
     Promise.all([
@@ -51,13 +45,13 @@ const ReleaseProjectStatSparkline = createReactClass({
         this.setState({error: true});
       }
     );
-  },
+  }
 
   getStatReceived() {
-    const {orgId} = this.props;
+    const {api, orgId} = this.props;
     const projectId = this.props.project.slug;
     const path = `/projects/${orgId}/${projectId}/stats/`;
-    return this.api.requestPromise(path, {
+    return api.requestPromise(path, {
       method: 'GET',
       data: 'stat=received',
       success: (data, _, jqXHR) => {
@@ -72,15 +66,15 @@ const ReleaseProjectStatSparkline = createReactClass({
         });
       },
     });
-  },
+  }
 
   getNewIssuesCount() {
-    const {orgId, version} = this.props;
+    const {api, orgId, version} = this.props;
     const projectId = this.props.project.slug;
     const issuesPath = `/projects/${orgId}/${projectId}/releases/${encodeURIComponent(
       version
     )}/`;
-    return this.api.requestPromise(issuesPath, {
+    return api.requestPromise(issuesPath, {
       method: 'GET',
       success: (data, _, jqXHR) => {
         this.setState({
@@ -94,7 +88,7 @@ const ReleaseProjectStatSparkline = createReactClass({
         });
       },
     });
-  },
+  }
 
   renderProjectSummary() {
     const {project} = this.props;
@@ -112,7 +106,7 @@ const ReleaseProjectStatSparkline = createReactClass({
         </p>
       </React.Fragment>
     );
-  },
+  }
 
   render() {
     const {organization, orgId, project, version} = this.props;
@@ -141,7 +135,7 @@ const ReleaseProjectStatSparkline = createReactClass({
         )}
       </li>
     );
-  },
-});
+  }
+}
 
-export default withOrganization(ReleaseProjectStatSparkline);
+export default withOrganization(withApi(ReleaseProjectStatSparkline));
