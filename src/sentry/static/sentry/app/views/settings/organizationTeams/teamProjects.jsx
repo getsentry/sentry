@@ -1,6 +1,5 @@
 import React from 'react';
 import createReactClass from 'create-react-class';
-import Reflux from 'reflux';
 import styled from 'react-emotion';
 
 import Tooltip from 'app/components/tooltip';
@@ -11,58 +10,98 @@ import Button from 'app/components/button';
 import DropdownAutoComplete from 'app/components/dropdownAutoComplete';
 import DropdownButton from 'app/components/dropdownButton';
 import EmptyMessage from 'app/views/settings/components/emptyMessage';
-import ProjectsStore from 'app/stores/projectsStore';
+import LoadingIndicator from 'app/components/loadingIndicator';
 import LoadingError from 'app/components/loadingError';
 import OrganizationState from 'app/mixins/organizationState';
 import ProjectListItem from 'app/views/settings/components/settingsProjectItem';
 import {Panel, PanelHeader, PanelBody, PanelItem} from 'app/components/panels';
 import InlineSvg from 'app/components/inlineSvg';
+import Pagination from 'app/components/pagination';
 import {sortProjects} from 'app/utils';
 import {t} from 'app/locale';
 
 const TeamProjects = createReactClass({
   displayName: 'TeamProjects',
-  mixins: [
-    ApiMixin,
-    OrganizationState,
-    Reflux.listenTo(ProjectsStore, 'onProjectUpdate'),
-  ],
+  mixins: [ApiMixin, OrganizationState],
 
   getInitialState() {
-    const {teamId} = this.props.params;
-    const projectList = ProjectsStore.getAll();
     return {
-      allProjects: projectList,
       error: false,
-      projectListLinked: projectList.filter(p => p.teams.find(t1 => teamId === t1.slug)),
+      loading: true,
+      pageLinks: null,
+      unlinkedProjects: [],
+      linkedProjects: [],
     };
   },
 
-  componentWillReceiveProps(nextProps) {
-    const params = this.props.params;
+  componentDidMount() {
+    this.fetchAll();
+  },
+
+  componentDidUpdate(prevProps) {
     if (
-      nextProps.params.teamId !== params.teamId ||
-      nextProps.params.orgId !== params.orgId
+      prevProps.params.orgId !== this.props.params.orgId ||
+      prevProps.params.teamId !== this.props.params.teamId
     ) {
-      this.setState(this.getInitialState());
+      this.fetchAll();
+    }
+
+    if (prevProps.location !== this.props.location) {
+      this.fetchTeamProjects();
     }
   },
 
-  onProjectUpdate() {
-    const {teamId} = this.props.params;
-    const projectList = ProjectsStore.getAll();
-    this.setState({
-      allProjects: projectList,
-      projectListLinked: projectList.filter(p => p.teams.find(t1 => teamId === t1.slug)),
-    });
+  fetchAll() {
+    this.fetchTeamProjects();
+    this.fetchUnlinkedProjects();
+  },
+
+  fetchTeamProjects() {
+    const {location, params: {orgId, teamId}} = this.props;
+
+    this.setState({loading: true});
+
+    this.api
+      .requestPromise(`/organizations/${orgId}/projects/`, {
+        query: {
+          query: `team:${teamId}`,
+          cursor: location.query.cursor || '',
+        },
+        includeAllArgs: true,
+      })
+      .then(([linkedProjects, _, jqXHR]) => {
+        this.setState({
+          loading: false,
+          error: false,
+          linkedProjects,
+          pageLinks: jqXHR.getResponseHeader('Link'),
+        });
+      })
+      .catch(() => {
+        this.setState({loading: false, error: true});
+      });
+  },
+
+  fetchUnlinkedProjects(query) {
+    const {params: {orgId, teamId}} = this.props;
+
+    this.api
+      .requestPromise(`/organizations/${orgId}/projects/`, {
+        query: {
+          query: query ? `!team:${teamId} ${query}` : `!team:${teamId}`,
+        },
+      })
+      .then(unlinkedProjects => {
+        this.setState({unlinkedProjects});
+      });
   },
 
   handleLinkProject(project, action) {
     const {orgId, teamId} = this.props.params;
     this.api.request(`/projects/${orgId}/${project.slug}/teams/${teamId}/`, {
       method: action === 'add' ? 'POST' : 'DELETE',
-      success: data => {
-        ProjectsStore.onUpdateSuccess(data);
+      success: () => {
+        this.fetchAll();
         addSuccessMessage(
           action === 'add'
             ? t('Successfully added project to team.')
@@ -76,14 +115,18 @@ const TeamProjects = createReactClass({
   },
 
   handleProjectSelected(selection) {
-    const project = this.state.allProjects.find(p => {
+    const project = this.state.unlinkedProjects.find(p => {
       return p.id === selection.value;
     });
 
     this.handleLinkProject(project, 'add');
   },
 
-  projectPanelcontents(projects) {
+  handleQueryUpdate(evt) {
+    this.fetchUnlinkedProjects(evt.target.value);
+  },
+
+  projectPanelContents(projects) {
     const access = this.getAccess();
     const canWrite = access.has('org:write');
 
@@ -115,55 +158,60 @@ const TeamProjects = createReactClass({
   },
 
   render() {
-    if (this.state.error) return <LoadingError onRetry={this.fetchData} />;
+    const {linkedProjects, unlinkedProjects, error, loading} = this.state;
 
-    const {projectListLinked, allProjects} = this.state;
+    if (error) {
+      return <LoadingError onRetry={() => this.fetchAll()} />;
+    }
+
+    if (loading) {
+      return <LoadingIndicator />;
+    }
+
     const access = this.getAccess();
 
-    const linkedProjectIds = new Set(projectListLinked.map(p => p.id));
-    const linkedProjects = allProjects.filter(p => linkedProjectIds.has(p.id));
-    const otherProjects = allProjects
-      .filter(p => {
-        return !linkedProjectIds.has(p.id);
-      })
-      .map(p => {
-        return {
-          value: p.id,
-          searchKey: p.slug,
-          label: <ProjectListElement>{p.slug}</ProjectListElement>,
-        };
-      });
+    const otherProjects = unlinkedProjects.map(p => {
+      return {
+        value: p.id,
+        searchKey: p.slug,
+        label: <ProjectListElement>{p.slug}</ProjectListElement>,
+      };
+    });
 
     return (
-      <Panel>
-        <PanelHeader hasButtons={true}>
-          <div>{t('Projects')}</div>
-          <div style={{textTransform: 'none'}}>
-            {!access.has('org:write') ? (
-              <DropdownButton
-                disabled
-                title={t('You do not have enough permission to associate a project.')}
-                size="xsmall"
-              >
-                {t('Add Project')}
-              </DropdownButton>
-            ) : (
-              <DropdownAutoComplete
-                items={otherProjects}
-                onSelect={this.handleProjectSelected}
-                emptyMessage={t('No projects')}
-              >
-                {({isOpen, selectedItem}) => (
-                  <DropdownButton isOpen={isOpen} size="xsmall">
-                    {t('Add Project')}
-                  </DropdownButton>
-                )}
-              </DropdownAutoComplete>
-            )}
-          </div>
-        </PanelHeader>
-        <PanelBody>{this.projectPanelcontents(linkedProjects)}</PanelBody>
-      </Panel>
+      <React.Fragment>
+        <Panel>
+          <PanelHeader hasButtons={true}>
+            <div>{t('Projects')}</div>
+            <div style={{textTransform: 'none'}}>
+              {!access.has('org:write') ? (
+                <DropdownButton
+                  disabled
+                  title={t('You do not have enough permission to associate a project.')}
+                  size="xsmall"
+                >
+                  {t('Add Project')}
+                </DropdownButton>
+              ) : (
+                <DropdownAutoComplete
+                  items={otherProjects}
+                  onChange={this.handleQueryUpdate}
+                  onSelect={this.handleProjectSelected}
+                  emptyMessage={t('No projects')}
+                >
+                  {({isOpen, selectedItem}) => (
+                    <DropdownButton isOpen={isOpen} size="xsmall">
+                      {t('Add Project')}
+                    </DropdownButton>
+                  )}
+                </DropdownAutoComplete>
+              )}
+            </div>
+          </PanelHeader>
+          <PanelBody>{this.projectPanelContents(linkedProjects)}</PanelBody>
+        </Panel>
+        <Pagination pageLinks={this.state.pageLinks} {...this.props} />
+      </React.Fragment>
     );
   },
 });
