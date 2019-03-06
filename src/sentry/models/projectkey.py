@@ -242,6 +242,7 @@ class ProjectKey(Model):
             'status': self.status,
             'rate_limit_count': self.rate_limit_count,
             'rate_limit_window': self.rate_limit_window,
+            'project_id': self.project_id,
         }
 
     def get_scopes(self):

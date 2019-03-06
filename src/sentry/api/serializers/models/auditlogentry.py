@@ -39,7 +39,7 @@ class AuditLogEntrySerializer(Serializer):
                 'actor': users[six.text_type(item.actor_id)] if item.actor_id else {
                     'name': item.get_actor_name(),
                 },
-                'targetUser': users.get(six.text_type(item.target_user_id)) or item.target_user_id
+                'targetUser': users.get(six.text_type(item.target_user_id)) or item.target_user_id,
             } for item in item_list
         }
 

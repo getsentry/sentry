@@ -16,6 +16,9 @@ from sentry.db.models import (
 )
 from sentry.utils.strings import truncatechars
 
+TIME_TO_MINUTES = {0: "None", 60: "1 Minute", 300: '5 minutes', 900: "15 Minutes", 3600: "1 hour",
+                   7200: "2 hours", 14400: "4 hours", 21600: "6 hours", 43200: "12 hours", 86400: "24 hours"}
+
 
 class AuditLogEntryEvent(object):
     MEMBER_INVITE = 1
@@ -51,6 +54,7 @@ class AuditLogEntryEvent(object):
     PROJECTKEY_REMOVE = 52
     PROJECTKEY_ENABLE = 53
     PROJECTKEY_DISABLE = 53
+    PROJECTKEY_EDIT_RATE_LIMIT = 54
 
     SSO_ENABLE = 60
     SSO_DISABLE = 61
@@ -129,6 +133,7 @@ class AuditLogEntry(Model):
             (AuditLogEntryEvent.PROJECTKEY_REMOVE, 'projectkey.remove'),
             (AuditLogEntryEvent.PROJECTKEY_ENABLE, 'projectkey.enable'),
             (AuditLogEntryEvent.PROJECTKEY_DISABLE, 'projectkey.disable'),
+            (AuditLogEntryEvent.PROJECTKEY_EDIT_RATE_LIMIT, 'projectkey.edit-ratelimit'),
             (AuditLogEntryEvent.SSO_ENABLE, 'sso.enable'),
             (AuditLogEntryEvent.SSO_DISABLE, 'sso.disable'),
             (AuditLogEntryEvent.SSO_EDIT, 'sso.edit'),
@@ -179,6 +184,12 @@ class AuditLogEntry(Model):
         elif self.actor_key:
             return self.actor_key.key + ' (api key)'
         return self.actor_label
+
+    def get_project_name(self):
+        from sentry.models import Project
+        project_id = self.data.get('project_id')
+        if project_id is not None:
+            return Project.objects.get(id=project_id).name
 
     def get_note(self):
         if self.event == AuditLogEntryEvent.MEMBER_INVITE:
@@ -262,6 +273,9 @@ class AuditLogEntry(Model):
             return 'enabled project key %s' % (self.data['public_key'], )
         elif self.event == AuditLogEntryEvent.PROJECTKEY_DISABLE:
             return 'disabled project key %s' % (self.data['public_key'], )
+        elif self.event == AuditLogEntryEvent.PROJECTKEY_EDIT_RATE_LIMIT:
+            return 'edited project %s rate-limit to %s events every %s' % (self.get_project_name(
+            ), self.data['rate_limit_count'], TIME_TO_MINUTES[self.data['rate_limit_window']])
 
         elif self.event == AuditLogEntryEvent.SSO_ENABLE:
             return 'enabled sso (%s)' % (self.data['provider'], )

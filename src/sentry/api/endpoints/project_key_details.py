@@ -123,7 +123,7 @@ class ProjectKeyDetailsEndpoint(ProjectEndpoint):
                 request=request,
                 organization=project.organization,
                 target_object=key.id,
-                event=AuditLogEntryEvent.PROJECTKEY_EDIT,
+                event=AuditLogEntryEvent.PROJECTKEY_EDIT_RATE_LIMIT,
                 data=key.get_audit_log_data(),
             )
 
