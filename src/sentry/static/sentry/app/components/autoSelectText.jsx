@@ -1,6 +1,6 @@
 import React from 'react';
 import PropTypes from 'prop-types';
-import cx from 'classnames';
+import classNames from 'classnames';
 
 import {selectText} from 'app/utils/selectText';
 
@@ -45,7 +45,7 @@ class AutoSelectText extends React.Component {
       <div
         {...props}
         onClick={this.selectText}
-        className={cx('auto-select-text', className)}
+        className={classNames('auto-select-text', className)}
       >
         <span ref={this.handleMount}>{children}</span>
       </div>
