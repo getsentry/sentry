@@ -1,5 +1,7 @@
 from __future__ import absolute_import
 
+import logging
+
 from six.moves.urllib.parse import urlparse
 from django.utils.translation import ugettext_lazy as _
 from django import forms
@@ -67,6 +69,8 @@ metadata = IntegrationMetadata(
     source_url='https://github.com/getsentry/sentry/tree/master/src/sentry/integrations/gitlab',
     aspects={},
 )
+
+logger = logging.getLogger('sentry.integrations.gitlab')
 
 
 class GitlabIntegration(IntegrationInstallation, GitlabIssueBasic, RepositoryMixin):
@@ -170,7 +174,14 @@ class InstallationConfigView(PipelineView):
                     "client_secret": form_data.get('client_secret'),
                     "verify_ssl": form_data.get('verify_ssl')
                 })
-
+                logger.info(
+                    'gitlab.setup.installation-config-view.success',
+                    extra={
+                        'base_url': form_data.get('url'),
+                        'client_id': form_data.get('client_id'),
+                        'verify_ssl': form_data.get('verify_ssl'),
+                    }
+                )
                 return pipeline.next_step()
         else:
             form = InstallationForm()
@@ -233,6 +244,9 @@ class GitlabIntegrationProvider(IntegrationProvider):
             **self.pipeline.fetch_state('oauth_config_information')
         )
 
+        logger.info(
+            'gitlab.setup._make_identity_pipeline_view'
+        )
         return NestedPipelineView(
             bind_key='identity',
             provider_key='gitlab',
@@ -250,6 +264,14 @@ class GitlabIntegrationProvider(IntegrationProvider):
             resp = client.get_group(installation_data['group'])
             return resp.json
         except ApiError:
+            logger.info(
+                'gitlab.installation.get-group-info-failure',
+                extra={
+                    'base_url': installation_data['url'],
+                    'verify_ssl': installation_data['verify_ssl'],
+                    'group': installation_data['group'],
+                }
+            )
             raise IntegrationError('The requested GitLab group could not be found.')
 
     def get_pipeline_views(self):
@@ -298,6 +320,16 @@ class GitlabIntegrationProvider(IntegrationProvider):
             },
         }
 
+        # TODO(lb): do I need success to be logged?
+        logger.info(
+            'gitlab.installation.build-integration-success',
+            extra={
+                'hostname': hostname,
+                'verify_ssl': verify_ssl,
+                'group': group['id'],
+                'user_id': user['id']
+            }
+        )
         return integration
 
     def setup(self):
