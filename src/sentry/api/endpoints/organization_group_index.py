@@ -106,7 +106,7 @@ class OrganizationGroupIndexEndpoint(OrganizationEventsEndpointBase):
             return Response([])
 
         if len(projects) > 1 and not features.has(
-                'organizations:sentry10', organization, actor=request.user):
+                'organizations:global-views', organization, actor=request.user):
             return Response({
                 'detail': 'You do not have the multi project stream feature enabled'
             }, status=400)
@@ -237,7 +237,7 @@ class OrganizationGroupIndexEndpoint(OrganizationEventsEndpointBase):
 
         projects = self.get_projects(request, organization)
         if len(projects) > 1 and not features.has(
-                'organizations:sentry10', organization, actor=request.user):
+                'organizations:global-views', organization, actor=request.user):
             return Response({
                 'detail': 'You do not have the multi project stream feature enabled'
             }, status=400)
@@ -275,7 +275,7 @@ class OrganizationGroupIndexEndpoint(OrganizationEventsEndpointBase):
         """
         projects = self.get_projects(request, organization)
         if len(projects) > 1 and not features.has(
-                'organizations:sentry10', organization, actor=request.user):
+                'organizations:global-views', organization, actor=request.user):
             return Response({
                 'detail': 'You do not have the multi project stream feature enabled'
             }, status=400)
