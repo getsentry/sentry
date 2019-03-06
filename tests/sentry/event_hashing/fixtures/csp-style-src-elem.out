@@ -8,5 +8,5 @@ default:
         violation (not a local script violation)
         uri*
           u'use.fontawesome.com'
-      message (csp strategy takes precedence)
+      message (csp takes precedence)
         u"Blocked 'style' from 'use.fontawesome.com'"

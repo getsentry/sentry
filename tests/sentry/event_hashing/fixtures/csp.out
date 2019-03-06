@@ -8,5 +8,5 @@ default:
         violation (not a local script violation)
         uri*
           u'YYY'
-      message (csp strategy takes precedence)
+      message (csp takes precedence)
         u"Blocked 'script' from 'YYY'"

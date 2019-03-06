@@ -1,7 +1,7 @@
 app:
   hash: None
   component:
-    app (exception strategy takes precedence)
+    app (exception of system takes precedence)
       chained-exception (ignored because hash matches system variant)
         exception*
           stacktrace*

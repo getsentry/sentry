@@ -111,8 +111,8 @@ app:
 default:
   hash: None
   component:
-    default (exception strategy takes precedence)
-      message (exception strategy takes precedence)
+    default (exception of app takes precedence)
+      message (exception of app takes precedence)
         u'%s.process_error'
 --------------------------------------------------------------------------
 system:

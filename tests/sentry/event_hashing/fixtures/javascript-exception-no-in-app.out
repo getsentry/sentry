@@ -1,7 +1,7 @@
 app:
   hash: None
   component:
-    app (exception strategy takes precedence)
+    app (exception of system takes precedence)
       exception (ignored because hash matches system variant)
         stacktrace*
           frame* (frame considered in-app because no frame is in-app)

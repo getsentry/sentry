@@ -1,7 +1,7 @@
 app:
   hash: None
   component:
-    app (exception strategy takes precedence)
+    app (exception of system takes precedence)
       exception (ignored because hash matches system variant)
         stacktrace*
           frame* (frame considered in-app because no frame is in-app)
@@ -505,8 +505,8 @@ app:
 default:
   hash: None
   component:
-    default (exception strategy takes precedence)
-      message (exception strategy takes precedence)
+    default (exception of system takes precedence)
+      message (exception of system takes precedence)
         u'Servlet.service() for servlet [dispatcherServlet] in context with path [] threw exception [Request processing failed; nested exception is java.lang.ArithmeticException: / by zero] with root cause'
 --------------------------------------------------------------------------
 system:

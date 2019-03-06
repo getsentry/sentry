@@ -829,8 +829,8 @@ def uncontribute_non_stacktrace_variants(variants):
         for variant in non_contributing_variants:
             variant.update(
                 contributes=False,
-                hint='Ignored because this variant does not contain a '
-                'stacktrace, but %s.' % hint_suffix
+                hint='ignored because this variant does not contain a '
+                'stacktrace, but %s' % hint_suffix
             )
 
     return variants
