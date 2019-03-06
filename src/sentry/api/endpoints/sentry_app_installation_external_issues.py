@@ -5,6 +5,8 @@ from rest_framework.response import Response
 from sentry import features
 from sentry.api.bases import SentryAppInstallationBaseEndpoint
 from sentry.api.serializers import serialize
+from sentry.mediators.external_issues import IssueLinkCreator
+from sentry.models import Group
 
 
 class SentryAppInstallationExternalIssuesEndpoint(SentryAppInstallationBaseEndpoint):
