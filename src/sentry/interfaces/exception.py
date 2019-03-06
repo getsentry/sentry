@@ -1096,7 +1096,7 @@ class Exception(Interface):
                     )
 
         return GroupingComponent(
-            id='exception',
+            id='chained-exception',
             values=values,
         )
 

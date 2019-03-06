@@ -2,7 +2,7 @@ app:
   hash: None
   component:
     app (exception strategy takes precedence)
-      exception (ignored because hash matches system variant)
+      chained-exception (ignored because hash matches system variant)
         exception*
           stacktrace*
             frame*
@@ -30,7 +30,7 @@ system:
   hash: '9aef9026a457d312531c07644b271314'
   component:
     system*
-      exception*
+      chained-exception*
         exception*
           stacktrace*
             frame*
