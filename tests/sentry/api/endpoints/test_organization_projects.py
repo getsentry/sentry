@@ -120,7 +120,7 @@ class OrganizationProjectsTest(APITestCase):
         response = self.client.get(path)
         self.check_valid_response(response, [project_bar])
 
-        path = u'{}?query=-team:{}'.format(self.path, self.team.slug)
+        path = u'{}?query=!team:{}'.format(self.path, self.team.slug)
         response = self.client.get(path)
         self.check_valid_response(response, [project_baz, project_foo])
 

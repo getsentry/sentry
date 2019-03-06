@@ -65,7 +65,7 @@ describe('OrganizationTeamProjects', function() {
     expect(getMock).toHaveBeenCalledTimes(2);
 
     expect(getMock.mock.calls[0][1].query.query).toBe('team:team-slug');
-    expect(getMock.mock.calls[1][1].query.query).toBe('-team:team-slug');
+    expect(getMock.mock.calls[1][1].query.query).toBe('!team:team-slug');
   });
 
   it('Should render', async function() {
@@ -170,7 +170,7 @@ describe('OrganizationTeamProjects', function() {
       '/organizations/org-slug/projects/',
       expect.objectContaining({
         query: expect.objectContaining({
-          query: '-team:team-slug a',
+          query: '!team:team-slug a',
         }),
       })
     );

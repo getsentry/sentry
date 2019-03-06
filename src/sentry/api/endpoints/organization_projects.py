@@ -109,7 +109,7 @@ class OrganizationProjectsEndpoint(OrganizationEndpoint, EnvironmentMixin):
                 elif key == "team":
                     team_list = list(Team.objects.filter(slug__in=value))
                     queryset = queryset.filter(teams__in=team_list)
-                elif key == "-team":
+                elif key == "!team":
                     team_list = list(Team.objects.filter(slug__in=value))
                     queryset = queryset.exclude(teams__in=team_list)
                 else:

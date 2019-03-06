@@ -88,7 +88,7 @@ const TeamProjects = createReactClass({
     this.api
       .requestPromise(`/organizations/${orgId}/projects/`, {
         query: {
-          query: query ? `-team:${teamId} ${query}` : `-team:${teamId}`,
+          query: query ? `!team:${teamId} ${query}` : `!team:${teamId}`,
         },
       })
       .then(unlinkedProjects => {
