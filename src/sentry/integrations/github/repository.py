@@ -76,7 +76,7 @@ class GitHubRepositoryProvider(providers.IntegrationRepositoryProvider):
         try:
             return eval_commits(client)
         except ApiError as e:
-            if '404' in e.message:
+            if e.code == 404:
                 try:
                     client.get_token(force_refresh=True)
                     return eval_commits(client)
