@@ -1,0 +1,293 @@
+{
+  "event_id": "50cd6e1cc518425b8ac140b6c92a7f1c",
+  "project": 1,
+  "release": "03c6b061237d939a87c32ae832097e99b29f02f8",
+  "dist": null,
+  "platform": "python",
+  "time_spent": null,
+  "culprit": "/api/{project_id}/store/",
+  "environment": "prod",
+  "exception": {
+    "values": [
+      {
+        "stacktrace": {
+          "frames": [
+            {
+              "function": "safe_execute",
+              "abs_path": "/usr/src/getsentry/src/sentry/src/sentry/utils/safe.py",
+              "pre_context": [
+                "    try:",
+                "        if _with_transaction:",
+                "            with transaction.atomic():",
+                "                result = func(*args, **kwargs)",
+                "        else:"
+              ],
+              "module": "sentry.utils.safe",
+              "filename": "sentry/utils/safe.py",
+              "post_context": [
+                "    except Exception as e:",
+                "        if hasattr(func, 'im_class'):",
+                "            cls = func.im_class",
+                "        else:",
+                "            cls = func.__class__"
+              ],
+              "in_app": true,
+              "context_line": "            result = func(*args, **kwargs)",
+              "lineno": 31
+            },
+            {
+              "function": "<lambda>",
+              "abs_path": "/usr/src/getsentry/src/sentry/src/sentry/utils/services.py",
+              "pre_context": [
+                "",
+                "    def expose(self, context):",
+                "        base = self._base",
+                "        for key in itertools.chain(base.__all__, ('validate', 'setup')):",
+                "            if inspect.ismethod(getattr(base, key)):"
+              ],
+              "module": "sentry.utils.services",
+              "filename": "sentry/utils/services.py",
+              "post_context": [
+                "            else:",
+                "                context[key] = getattr(base, key)",
+                "",
+                "",
+                "def resolve_callable(value):"
+              ],
+              "in_app": true,
+              "context_line": "                context[key] = (lambda f: lambda *a, **k: getattr(self, f)(*a, **k))(key)",
+              "lineno": 91
+            },
+            {
+              "function": "is_rate_limited",
+              "abs_path": "/usr/src/getsentry/getsentry/quotas.py",
+              "pre_context": [
+                "            return RateLimited(retry_after=None, reason_code='suspended')",
+                "        if not sub.is_active():",
+                "            return RateLimited(retry_after=None, reason_code='inactive_account')",
+                "        if sub.is_free_plan() and sub.flags.usage_exceeded:",
+                "            return RateLimited(retry_after=None, reason_code='usage_exceeded')"
+              ],
+              "module": "getsentry.quotas",
+              "filename": "getsentry/quotas.py",
+              "post_context": [
+                "",
+                "    def get_quotas(self, project, *args, **kwargs):",
+                "        quotas = super(SubscriptionQuota, self).get_quotas(project, *args, **kwargs)",
+                "        organization = project.organization",
+                "        sub = self._get_subscription(organization)"
+              ],
+              "in_app": true,
+              "context_line": "        return super(SubscriptionQuota, self).is_rate_limited(project, key=key)",
+              "lineno": 136
+            },
+            {
+              "function": "is_rate_limited",
+              "abs_path": "/usr/src/getsentry/src/sentry/src/sentry/quotas/redis.py",
+              "pre_context": [
+                "            keys.extend((key, return_key))",
+                "            expiry = self.get_next_period_start(quota.window, shift, timestamp) + self.grace",
+                "            args.extend((quota.limit, int(expiry)))",
+                "",
+                "        client = self.cluster.get_local_client_for_key(six.text_type(project.organization_id))"
+              ],
+              "module": "sentry.quotas.redis",
+              "filename": "sentry/quotas/redis.py",
+              "post_context": [
+                "        if any(rejections):",
+                "            enforce = False",
+                "            worst_case = (0, None)",
+                "            for quota, rejected in zip(quotas, rejections):",
+                "                if not rejected:"
+              ],
+              "in_app": true,
+              "context_line": "        rejections = is_rate_limited(client, keys, args)",
+              "lineno": 189
+            },
+            {
+              "function": "call_script",
+              "abs_path": "/usr/src/getsentry/src/sentry/src/sentry/utils/redis.py",
+              "pre_context": [
+                "",
+                "        Takes the client to execute the script on as the first argument,",
+                "        followed by the values that will be provided as ``KEYS`` and ``ARGV``",
+                "        to the script as two sequence arguments.",
+                "        \"\"\".format(path)"
+              ],
+              "module": "sentry.utils.redis",
+              "filename": "sentry/utils/redis.py",
+              "post_context": [
+                "",
+                "    return call_script"
+              ],
+              "in_app": true,
+              "context_line": "        return script(keys, args, client)",
+              "lineno": 239
+            },
+            {
+              "function": "__call__",
+              "abs_path": "/usr/local/lib/python2.7/site-packages/redis/client.py",
+              "pre_context": [
+                "        # make sure the Redis server knows about the script",
+                "        if isinstance(client, BasePipeline):",
+                "            # make sure this script is good to go on pipeline",
+                "            client.script_load_for_pipeline(self)",
+                "        try:"
+              ],
+              "module": "redis.client",
+              "filename": "redis/client.py",
+              "post_context": [
+                "        except NoScriptError:",
+                "            # Maybe the client is pointed to a differnet server than the client",
+                "            # that created this instance?",
+                "            self.sha = client.script_load(self.script)",
+                "            return client.evalsha(self.sha, len(keys), *args)"
+              ],
+              "in_app": false,
+              "context_line": "            return client.evalsha(self.sha, len(keys), *args)",
+              "lineno": 2694
+            },
+            {
+              "function": "evalsha",
+              "abs_path": "/usr/local/lib/python2.7/site-packages/redis/client.py",
+              "pre_context": [
+                "        of the script.",
+                "",
+                "        In practice, use the object returned by ``register_script``. This",
+                "        function exists purely for Redis API completion.",
+                "        \"\"\""
+              ],
+              "module": "redis.client",
+              "filename": "redis/client.py",
+              "post_context": [
+                "",
+                "    def script_exists(self, *args):",
+                "        \"\"\"",
+                "        Check if a script exists in the script cache by specifying the SHAs of",
+                "        each script as ``args``. Returns a list of boolean values indicating if"
+              ],
+              "in_app": false,
+              "context_line": "        return self.execute_command('EVALSHA', sha, numkeys, *keys_and_args)",
+              "lineno": 1944
+            },
+            {
+              "function": "execute_command",
+              "abs_path": "/usr/local/lib/python2.7/site-packages/redis/client.py",
+              "pre_context": [
+                "        except (ConnectionError, TimeoutError) as e:",
+                "            connection.disconnect()",
+                "            if not connection.retry_on_timeout and isinstance(e, TimeoutError):",
+                "                raise",
+                "            connection.send_command(*args)"
+              ],
+              "module": "redis.client",
+              "filename": "redis/client.py",
+              "post_context": [
+                "        finally:",
+                "            pool.release(connection)",
+                "",
+                "    def parse_response(self, connection, command_name, **options):",
+                "        \"Parses a response from the Redis server\""
+              ],
+              "in_app": false,
+              "context_line": "            return self.parse_response(connection, command_name, **options)",
+              "lineno": 579
+            },
+            {
+              "function": "parse_response",
+              "abs_path": "/usr/local/lib/python2.7/site-packages/redis/client.py",
+              "pre_context": [
+                "        finally:",
+                "            pool.release(connection)",
+                "",
+                "    def parse_response(self, connection, command_name, **options):",
+                "        \"Parses a response from the Redis server\""
+              ],
+              "module": "redis.client",
+              "filename": "redis/client.py",
+              "post_context": [
+                "        if command_name in self.response_callbacks:",
+                "            return self.response_callbacks[command_name](response, **options)",
+                "        return response",
+                "",
+                "    # SERVER INFORMATION"
+              ],
+              "in_app": false,
+              "context_line": "        response = connection.read_response()",
+              "lineno": 585
+            },
+            {
+              "function": "read_response",
+              "abs_path": "/usr/local/lib/python2.7/site-packages/redis/connection.py",
+              "pre_context": [
+                "            bool(select([sock], [], [], timeout)[0])",
+                "",
+                "    def read_response(self):",
+                "        \"Read the response from a previously sent command\"",
+                "        try:"
+              ],
+              "module": "redis.connection",
+              "filename": "redis/connection.py",
+              "post_context": [
+                "        except:",
+                "            self.disconnect()",
+                "            raise",
+                "        if isinstance(response, ResponseError):",
+                "            raise response"
+              ],
+              "in_app": false,
+              "context_line": "            response = self._parser.read_response()",
+              "lineno": 577
+            },
+            {
+              "function": "read_response",
+              "abs_path": "/usr/local/lib/python2.7/site-packages/redis/connection.py",
+              "pre_context": [
+                "            except socket.timeout:",
+                "                raise TimeoutError(\"Timeout reading from socket\")",
+                "            except socket.error:",
+                "                e = sys.exc_info()[1]",
+                "                raise ConnectionError(\"Error while reading from socket: %s\" %"
+              ],
+              "module": "redis.connection",
+              "filename": "redis/connection.py",
+              "post_context": [
+                "            if HIREDIS_USE_BYTE_BUFFER:",
+                "                self._reader.feed(self._buffer, 0, bufflen)",
+                "            else:",
+                "                self._reader.feed(buffer)",
+                "            response = self._reader.gets()"
+              ],
+              "in_app": false,
+              "context_line": "                                      (e.args,))",
+              "lineno": 357
+            }
+          ]
+        },
+        "type": "ConnectionError",
+        "module": "redis.exceptions",
+        "value": "Error while reading from socket: ('Connection closed by server.',)",
+        "mechanism": {
+          "type": "logging",
+          "handled": true
+        }
+      }
+    ]
+  },
+  "hashes": [
+    "8abb6be15864dac05d46e61bfe1dd6d3",
+    "6391c18be56c7e7c95e58be4b3eaf0bd"
+  ],
+  "key_id": "96623",
+  "level": "error",
+  "location": "sentry/utils/redis.py",
+  "logentry": {
+    "message": "%s.process_error",
+    "params": [
+      "<lambda>"
+    ],
+    "formatted": "<lambda>.process_error"
+  },
+  "logger": "sentry.safe.function",
+  "version": "7"
+}

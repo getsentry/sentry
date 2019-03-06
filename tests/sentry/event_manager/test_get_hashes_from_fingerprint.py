@@ -5,7 +5,7 @@ from __future__ import absolute_import, print_function
 import mock
 
 from sentry.models import Event
-from sentry.event_hashing import md5_from_hash
+from sentry.event_hashing import hash_from_values
 
 
 @mock.patch('sentry.interfaces.stacktrace.Stacktrace.compute_hashes')
@@ -34,4 +34,4 @@ def test_stacktrace_wins_over_http(http_comp_hash, stack_comp_hash):
     hash_one = hashes[0]
     stack_comp_hash.assert_called_once_with('python')
     assert not http_comp_hash.called
-    assert hash_one == md5_from_hash(['foo', 'bar'])
+    assert hash_one == hash_from_values(['foo', 'bar'])
