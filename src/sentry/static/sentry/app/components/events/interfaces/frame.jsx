@@ -9,6 +9,7 @@ import {defined, objectIsEmpty, isUrl} from 'app/utils';
 import {t} from 'app/locale';
 import ClippedBox from 'app/components/clippedBox';
 import ContextLine from 'app/components/events/interfaces/contextLine';
+import ExternalLink from 'app/components/externalLink';
 import FrameRegisters from 'app/components/events/interfaces/frameRegisters';
 import FrameVariables from 'app/components/events/interfaces/frameVariables';
 import StrictClick from 'app/components/strictClick';
@@ -154,11 +155,10 @@ const Frame = createReactClass({
 
       if (isUrl(data.absPath)) {
         title.push(
-          <a
+          <ExternalLink
             href={data.absPath}
             className="icon-open"
             key="share"
-            target="_blank"
             onClick={this.preventCollapse}
           />
         );

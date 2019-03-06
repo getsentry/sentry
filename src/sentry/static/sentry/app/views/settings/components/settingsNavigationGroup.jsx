@@ -23,9 +23,11 @@ export default class NavigationGroup extends React.Component {
     ...SentryTypes.NavigationGroup,
     organization: SentryTypes.Organization,
     project: SentryTypes.Project,
-    access: PropTypes.object,
-    features: PropTypes.object,
-    id: PropTypes.string,
+
+    // Used in the `show` and `badge` function
+    access: PropTypes.object, // eslint-disable-line react/no-unused-prop-types
+    features: PropTypes.object, // eslint-disable-line react/no-unused-prop-types
+    id: PropTypes.string, // eslint-disable-line react/no-unused-prop-types
   };
 
   static contextTypes = {

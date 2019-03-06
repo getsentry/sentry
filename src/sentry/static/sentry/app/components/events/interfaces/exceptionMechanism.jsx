@@ -27,7 +27,7 @@ class ExceptionMechanism extends React.Component {
         }),
         signal: PropTypes.shape({
           number: PropTypes.number.isRequired,
-          code: PropTypes.nubmer,
+          code: PropTypes.number,
           name: PropTypes.string,
           code_name: PropTypes.string,
         }),

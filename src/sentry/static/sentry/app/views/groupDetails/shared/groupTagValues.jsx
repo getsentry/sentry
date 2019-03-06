@@ -1,19 +1,20 @@
-import React from 'react';
-import createReactClass from 'create-react-class';
 import {Link} from 'react-router';
 import {sortBy, property, isEqual} from 'lodash';
 import PropTypes from 'prop-types';
+import React from 'react';
+import createReactClass from 'create-react-class';
 
-import SentryTypes from 'app/sentryTypes';
+import {isUrl, percent} from 'app/utils';
+import {t} from 'app/locale';
 import ApiMixin from 'app/mixins/apiMixin';
 import Avatar from 'app/components/avatar';
+import DeviceName from 'app/components/deviceName';
+import ExternalLink from 'app/components/externalLink';
 import LoadingError from 'app/components/loadingError';
 import LoadingIndicator from 'app/components/loadingIndicator';
 import Pagination from 'app/components/pagination';
+import SentryTypes from 'app/sentryTypes';
 import TimeSince from 'app/components/timeSince';
-import DeviceName from 'app/components/deviceName';
-import {isUrl, percent} from 'app/utils';
-import {t} from 'app/locale';
 import withOrganization from 'app/utils/withOrganization';
 
 const GroupTagValues = createReactClass({
@@ -139,13 +140,9 @@ const GroupTagValues = createReactClass({
               )}
             </Link>
             {tagValue.email && (
-              <a
-                href={`mailto:${tagValue.email}`}
-                target="_blank"
-                className="external-icon"
-              >
+              <ExternalLink href={`mailto:${tagValue.email}`} className="external-icon">
                 <em className="icon-envelope" />
-              </a>
+              </ExternalLink>
             )}
             {isUrl(tagValue.value) && (
               <a href={tagValue.value} className="external-icon">

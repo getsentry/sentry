@@ -31,7 +31,7 @@ export default class FormField extends React.PureComponent {
 
     // the following should only be used without form context
     onChange: PropTypes.func,
-    error: PropTypes.string,
+    error: PropTypes.string, // eslint-disable-line react/no-unused-prop-types
     value: PropTypes.any,
   };
 

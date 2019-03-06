@@ -1,17 +1,17 @@
 import {Link} from 'react-router';
-import moment from 'moment-timezone';
 import PropTypes from 'prop-types';
 import React from 'react';
-
 import createReactClass from 'create-react-class';
+import moment from 'moment-timezone';
 
-import ConfigStore from 'app/stores/configStore';
-import SentryTypes from 'app/sentryTypes';
-import getDynamicText from 'app/utils/getDynamicText';
-import DateTime from 'app/components/dateTime';
-import FileSize from 'app/components/fileSize';
-import Tooltip from 'app/components/tooltip';
 import {t} from 'app/locale';
+import ConfigStore from 'app/stores/configStore';
+import DateTime from 'app/components/dateTime';
+import ExternalLink from 'app/components/externalLink';
+import FileSize from 'app/components/fileSize';
+import SentryTypes from 'app/sentryTypes';
+import Tooltip from 'app/components/tooltip';
+import getDynamicText from 'app/utils/getDynamicText';
 
 const formatDateDelta = (reference, observed) => {
   const duration = moment.duration(Math.abs(+observed - +reference));
@@ -184,9 +184,9 @@ const GroupEventToolbar = createReactClass({
               {isOverLatencyThreshold && <span className="icon-alert" />}
             </span>
           </Tooltip>
-          <a href={jsonUrl} target="_blank" className="json-link">
+          <ExternalLink href={jsonUrl} className="json-link">
             {'JSON'} (<FileSize bytes={evt.size} />)
-          </a>
+          </ExternalLink>
         </span>
       </div>
     );
