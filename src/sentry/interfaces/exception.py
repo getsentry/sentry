@@ -796,6 +796,46 @@ class Mechanism(Interface):
             yield ('handled', self.handled and 'yes' or 'no')
 
 
+def uncontribute_non_stacktrace_variants(variants):
+    """If we have multiple variants and at least one has a stacktrace, we
+    want to mark all non stacktrace variants non contributing.  The reason
+    for this is that otherwise we end up in very generic grouping which has
+    some negative consequences for the quality of the groups.
+    """
+    if len(variants) <= 1:
+        return variants
+    any_stacktrace_contributes = False
+    non_contributing_variants = []
+    stacktrace_variants = set()
+
+    # In case any of the variants has a contributing stacktrace, we want
+    # to make all other variants non contributing.  Thr e
+    for (key, component) in six.iteritems(variants):
+        if any(s.contributes for s in component.iter_subcomponents(
+                id='stacktrace', recursive=True)):
+            any_stacktrace_contributes = True
+            stacktrace_variants.add(key)
+        else:
+            non_contributing_variants.append(component)
+
+    if any_stacktrace_contributes:
+        if len(stacktrace_variants) == 1:
+            hint_suffix = 'but the %s variant does' % next(iter(stacktrace_variants))
+        else:
+            # this branch is basically dead because we only have two
+            # variants right now, but this is so this does not break in
+            # the future.
+            hint_suffix = 'othes do'
+        for variant in non_contributing_variants:
+            variant.update(
+                contributes=False,
+                hint='Ignored because this variant does not contain a '
+                'stacktrace, but %s.' % hint_suffix
+            )
+
+    return variants
+
+
 class SingleException(Interface):
     """
     A standard exception with a ``type`` and value argument, and an optional
@@ -980,6 +1020,10 @@ class SingleException(Interface):
             ]
         )
 
+    def get_grouping_component_variants(self, platform=None):
+        return uncontribute_non_stacktrace_variants(
+            Interface.get_grouping_component_variants(self, platform))
+
 
 class Exception(Interface):
     """
@@ -1099,6 +1143,10 @@ class Exception(Interface):
             id='chained-exception',
             values=values,
         )
+
+    def get_grouping_component_variants(self, platform=None):
+        return uncontribute_non_stacktrace_variants(
+            Interface.get_grouping_component_variants(self, platform))
 
     def get_api_context(self, is_public=False):
         return {

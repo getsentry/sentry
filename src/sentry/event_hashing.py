@@ -42,9 +42,17 @@ class GroupingComponent(object):
 
     def get_subcomponent(self, id):
         """Looks up a subcomponent by the id and returns the first or `None`."""
+        return next(self.iter_subcomponents(id), None)
+
+    def iter_subcomponents(self, id, recursive=False):
+        """Finds all subcomponents matching an id, optionally recursively."""
         for value in self.values:
-            if isinstance(value, GroupingComponent) and value.id == id:
-                return value
+            if isinstance(value, GroupingComponent):
+                if value.id == id:
+                    yield value
+                if recursive:
+                    for subcomponent in value.iter_subcomponents(id, recursive=True):
+                        yield subcomponent
 
     def update(self, hint=None, contributes=None, values=None):
         """Updates an already existing component with new values."""

@@ -1,8 +1,8 @@
 app:
-  hash: 'f6c45c277164542f5797a9c6da9455d3'
+  hash: None
   component:
-    app*
-      exception*
+    app (exception strategy takes precedence)
+      exception (Ignored because this variant does not contain a stacktrace, but but the system variant does.)
         stacktrace (less than 10% of frames are in-app)
           frame*
             filename*
