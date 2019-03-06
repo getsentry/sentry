@@ -17,7 +17,9 @@ from django.utils import timezone
 from django.utils.translation import ugettext_lazy as _
 from hashlib import md5
 
-from sentry import eventtypes
+from semaphore.processing import StoreNormalizer
+
+from sentry import eventtypes, options
 from sentry.constants import EVENT_ORDERING_KEY
 from sentry.db.models import (
     BoundedBigIntegerField,
@@ -28,10 +30,32 @@ from sentry.db.models import (
 )
 from sentry.db.models.manager import EventManager
 from sentry.interfaces.base import get_interfaces
+from sentry.utils import metrics
 from sentry.utils.cache import memoize
 from sentry.utils.canonical import CanonicalKeyDict, CanonicalKeyView
 from sentry.utils.safe import get_path
 from sentry.utils.strings import truncatechars
+
+
+def _should_skip_to_python(node_id):
+    if not node_id:
+        return False
+
+    sample_rate = options.get('store.empty-interface-sample-rate')
+    return int(md5(node_id).hexdigest(), 16) % (10 ** 8) <= (sample_rate * (10 ** 8))
+
+
+class EventDict(CanonicalKeyDict):
+    def __init__(self, data, **kwargs):
+        rust_renormalized = _should_skip_to_python(kwargs.pop('node_id', None))
+        if rust_renormalized:
+            normalizer = StoreNormalizer(is_renormalize=True)
+            data = normalizer.normalize_event(dict(data))
+
+        metrics.incr('rust.renormalized',
+                     tags={'value': rust_renormalized})
+        self._rust_renormalized = rust_renormalized
+        CanonicalKeyDict.__init__(self, data, **kwargs)
 
 
 class Event(Model):
@@ -52,7 +76,8 @@ class Event(Model):
         null=True,
         ref_func=lambda x: x.project_id or x.project.id,
         ref_version=2,
-        wrapper=CanonicalKeyDict,
+        wrapper=EventDict,
+        pass_node_id_to_wrapper=True
     )
 
     objects = EventManager()
@@ -212,7 +237,8 @@ class Event(Model):
         return None
 
     def get_interfaces(self):
-        return CanonicalKeyView(get_interfaces(self.data))
+        return CanonicalKeyView(get_interfaces(
+            self.data, rust_renormalized=self.data.data._rust_renormalized))
 
     @memoize
     def interfaces(self):

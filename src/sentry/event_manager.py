@@ -343,7 +343,7 @@ class EventManager(object):
         auth=None,
         key=None,
         content_encoding=None,
-        for_store=True,
+        is_renormalize=False,
     ):
         self._data = _decode_event(data, content_encoding=content_encoding)
         self.version = version
@@ -352,7 +352,7 @@ class EventManager(object):
         self._user_agent = user_agent
         self._auth = auth
         self._key = key
-        self._for_store = for_store
+        self._is_renormalize = is_renormalize
         self._normalized = False
 
     def process_csp_report(self):
@@ -442,6 +442,7 @@ class EventManager(object):
             max_secs_in_future=MAX_SECS_IN_FUTURE,
             max_secs_in_past=MAX_SECS_IN_PAST,
             enable_trimming=True,
+            is_renormalize=self._is_renormalize
         )
 
         self._data = CanonicalKeyDict(
