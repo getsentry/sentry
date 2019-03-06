@@ -292,7 +292,8 @@ def get_grouping_variants_for_event(event):
 # This is at present still the main grouping code in the event processing
 # but it should be possible to replace all of these with
 # `get_grouping_variants_for_event` once we feel more confident that no
-# regression ocurred.
+# regression ocurred.  This is tested by
+# `test_variants.test_event_hash_variant` at the moment.
 
 
 def get_hashes_for_event(event):
