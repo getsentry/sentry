@@ -805,7 +805,7 @@ def uncontribute_non_stacktrace_variants(variants):
     if len(variants) <= 1:
         return variants
     any_stacktrace_contributes = False
-    non_contributing_variants = []
+    non_contributing_components = []
     stacktrace_variants = set()
 
     # In case any of the variants has a contributing stacktrace, we want
@@ -816,7 +816,7 @@ def uncontribute_non_stacktrace_variants(variants):
             any_stacktrace_contributes = True
             stacktrace_variants.add(key)
         else:
-            non_contributing_variants.append(component)
+            non_contributing_components.append(component)
 
     if any_stacktrace_contributes:
         if len(stacktrace_variants) == 1:
@@ -826,8 +826,8 @@ def uncontribute_non_stacktrace_variants(variants):
             # variants right now, but this is so this does not break in
             # the future.
             hint_suffix = 'others do'
-        for variant in non_contributing_variants:
-            variant.update(
+        for component in non_contributing_components:
+            component.update(
                 contributes=False,
                 hint='ignored because this variant does not contain a '
                 'stacktrace, but %s' % hint_suffix
