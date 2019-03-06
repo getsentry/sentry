@@ -105,6 +105,30 @@ describe('OrganizationMemberDetail', function() {
       );
     });
 
+    it('leaves a team', async function() {
+      wrapper = mount(
+        <OrganizationMemberDetail params={{memberId: member.id}} />,
+        routerContext
+      );
+
+      // Remove our one team
+      const button = wrapper.find('TeamSelect TeamRow Button');
+      expect(button).toHaveLength(1);
+      button.simulate('click');
+
+      // Save Member
+      wrapper.find('Button[priority="primary"]').simulate('click');
+
+      expect(updateMember).toHaveBeenCalledWith(
+        expect.anything(),
+        expect.objectContaining({
+          data: expect.objectContaining({
+            teams: [],
+          }),
+        })
+      );
+    });
+
     it('joins a team', async function() {
       wrapper = mount(
         <OrganizationMemberDetail params={{memberId: member.id}} />,
