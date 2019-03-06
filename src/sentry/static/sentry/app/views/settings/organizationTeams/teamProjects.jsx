@@ -161,7 +161,7 @@ const TeamProjects = createReactClass({
     const {linkedProjects, unlinkedProjects, error, loading} = this.state;
 
     if (error) {
-      return <LoadingError onRetry={this.fetchData} />;
+      return <LoadingError onRetry={() => this.fetchAll()} />;
     }
 
     if (loading) {
