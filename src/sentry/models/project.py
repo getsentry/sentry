@@ -447,6 +447,14 @@ class Project(Model):
                 for key, value in six.iteritems(options):
                     self.update_option(key, value)
 
-        except IntegrityError:
+        except IntegrityError as e:
+            logging.info(
+                'Error occurred during copy project settings.',
+                extra={
+                    'error': e.message,
+                    'project_to': self.id,
+                    'project_from': project_id,
+                }
+            )
             return False
         return True
