@@ -49,9 +49,6 @@ const validHookNames = new Set([
   'feature-disabled:sso-basic',
   'feature-disabled:sso-rippling',
   'feature-disabled:sso-saml2',
-
-  // TODO(epurkhiser): These are not used anymore and should be removed
-  'organization:sidebar',
 ]);
 
 /**
