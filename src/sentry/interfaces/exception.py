@@ -1088,16 +1088,12 @@ class Exception(Interface):
 
         if any_stacktraces:
             for value in values:
-                stacktrace_component = exception_component.get_subcomponent('stacktrace')
-                if stacktrace_component is None or \
-                   not stacktrace_component.contributes:
+                stacktrace_component = value.get_subcomponent('stacktrace')
+                if stacktrace_component is None or not stacktrace_component.contributes:
                     value.update(
                         contributes=False,
                         hint='exception has no stacktrace',
                     )
-
-        values = [exception.get_grouping_component(platform, variant)
-                  for exception in exceptions]
 
         return GroupingComponent(
             id='exception',
