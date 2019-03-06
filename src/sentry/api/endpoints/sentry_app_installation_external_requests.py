@@ -27,10 +27,10 @@ class SentryAppInstallationExternalRequestsEndpoint(SentryAppInstallationBaseEnd
         except Project.DoesNotExist:
             return Response(status=404)
 
-        options = external_requests.SelectRequester.run(
+        choices = external_requests.SelectRequester.run(
             install=installation,
             project=project,
             uri=request.GET.get('uri'),
         )
 
-        return Response({'options': options})
+        return Response(choices)

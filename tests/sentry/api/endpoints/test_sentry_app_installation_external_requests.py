@@ -52,5 +52,5 @@ class SentryAppInstallationExternalRequestsEndpointTest(APITestCase):
         response = self.client.get(url, format='json')
         assert response.status_code == 200
         assert response.data == {
-            'options': options
+            'choices': [['Project Name', '1234']]
         }

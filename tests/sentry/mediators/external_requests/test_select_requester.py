@@ -44,7 +44,7 @@ class TestSelectRequester(TestCase):
             project=self.project,
             uri='/get-issues',
         )
-        assert result == [{'value': '12345', 'label': 'An Issue'}]
+        assert result == {'choices': [['An Issue', '12345']]}
 
         request = responses.calls[0].request
         assert request.headers['Sentry-App-Signature']
