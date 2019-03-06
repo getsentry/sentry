@@ -37,19 +37,18 @@ class Breadcrumbs(Interface):
     score = 800
 
     @classmethod
-    def to_python(cls, data, rust_renormalized=False):
+    def to_python(cls, data):
         values = []
         for index, crumb in enumerate(get_path(data, 'values', filter=True, default=())):
             # TODO(ja): Handle already invalid and None breadcrumbs
 
             try:
-                values.append(cls.normalize_crumb(crumb, rust_renormalized=rust_renormalized))
+                values.append(cls.normalize_crumb(crumb))
             except Exception:
                 # TODO(dcramer): we dont want to discard the entirety of data
                 # when one breadcrumb errors, but it'd be nice if we could still
                 # record an error
-                if rust_renormalized:
-                    raise
+                pass
 
         return cls(values=values)
 
@@ -69,16 +68,7 @@ class Breadcrumbs(Interface):
         })
 
     @classmethod
-    def normalize_crumb(cls, crumb, rust_renormalized):
-        if rust_renormalized:
-            crumb = dict(crumb)
-            ts = parse_timestamp(crumb.get('timestamp'))
-            if ts:
-                crumb['timestamp'] = to_timestamp(ts)
-            else:
-                crumb['timestamp'] = None
-            return crumb
-
+    def normalize_crumb(cls, crumb):
         ty = crumb.get('type') or 'default'
         level = crumb.get('level')
         if not isinstance(level, six.string_types) or \

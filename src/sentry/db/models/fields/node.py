@@ -49,7 +49,6 @@ class NodeData(collections.MutableMapping):
         data=None means, this is a node that needs to be fetched from nodestore.
         data={...} means, this is an object that should be saved to nodestore.
     """
-
     def __init__(self, field, id, data=None):
         self.field = field
         self.id = id
@@ -177,7 +176,6 @@ class NodeField(GzippedDictField):
         self.ref_func = kwargs.pop('ref_func', None)
         self.ref_version = kwargs.pop('ref_version', None)
         self.wrapper = kwargs.pop('wrapper', None)
-        self.pass_node_id_to_wrapper = kwargs.pop('pass_node_id_to_wrapper', False)
         self.id_func = kwargs.pop('id_func', lambda: b64encode(uuid4().bytes))
         super(NodeField, self).__init__(*args, **kwargs)
 
@@ -226,10 +224,7 @@ class NodeField(GzippedDictField):
             value = None
 
         if value is not None and self.wrapper is not None:
-            kwargs = {}
-            if self.pass_node_id_to_wrapper:
-                kwargs['node_id'] = node_id
-            value = self.wrapper(value, **kwargs)
+            value = self.wrapper(value)
 
         return NodeData(self, node_id, value)
 

@@ -41,9 +41,7 @@ class User(Interface):
     display_score = 2020
 
     @classmethod
-    def to_python(cls, data, rust_renormalized=False):
-        if rust_renormalized:
-            return cls(**data)
+    def to_python(cls, data):
         data = data.copy()
 
         ident = data.pop('id', None)

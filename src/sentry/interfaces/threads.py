@@ -7,7 +7,7 @@ from sentry.utils.safe import trim
 __all__ = ('Threads', )
 
 
-def get_stacktrace(value, raw=False, rust_renormalized=False):
+def get_stacktrace(value, raw=False):
     # Special case: if the thread has no frames we set the
     # stacktrace to none.  Otherwise this will fail really
     # badly.
@@ -19,18 +19,16 @@ class Threads(Interface):
     score = 1900
 
     @classmethod
-    def to_python(cls, data, rust_renormalized=False):
+    def to_python(cls, data):
         threads = []
 
         for thread in data.get('values') or ():
             if thread is None:
-                # XXX(markus): We should handle this in the UI and other
-                # consumers of this interface
                 continue
             threads.append(
                 {
-                    'stacktrace': get_stacktrace(thread.get('stacktrace'), rust_renormalized=rust_renormalized),
-                    'raw_stacktrace': get_stacktrace(thread.get('raw_stacktrace'), raw=True, rust_renormalized=rust_renormalized),
+                    'stacktrace': get_stacktrace(thread.get('stacktrace')),
+                    'raw_stacktrace': get_stacktrace(thread.get('raw_stacktrace'), raw=True),
                     'id': trim(thread.get('id'), 40),
                     'crashed': bool(thread.get('crashed')),
                     'current': bool(thread.get('current')),
