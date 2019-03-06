@@ -935,7 +935,7 @@ class Stacktrace(Interface):
         frames = self.frames
         contributes = None
         hint = None
-        all_frames_are_in_app = False
+        all_frames_considered_in_app = False
 
         # TODO(dcramer): this should apply only to platform=javascript
         # Browser JS will often throw errors (from inlined code in an HTML page)
@@ -951,7 +951,7 @@ class Stacktrace(Interface):
             in_app_count = sum(1 if f.in_app else 0 for f in frames)
             if in_app_count == 0:
                 in_app_count = total_frames
-                all_frames_are_in_app = True
+                all_frames_considered_in_app = True
 
             # if app frames make up less than 10% of the stacktrace discard
             # the hash as invalid
@@ -963,7 +963,7 @@ class Stacktrace(Interface):
         prev_frame = None
         for frame in frames:
             frame_component = frame.get_grouping_component(platform, variant)
-            if variant == 'app' and not frame.in_app and not all_frames_are_in_app:
+            if variant == 'app' and not frame.in_app and not all_frames_considered_in_app:
                 frame_component.update(
                     contributes=False,
                     hint='non app frame',
@@ -973,7 +973,7 @@ class Stacktrace(Interface):
                     contributes=False,
                     hint='ignored due to recursion',
                 )
-            elif variant == 'app' and not frame.in_app and all_frames_are_in_app:
+            elif variant == 'app' and not frame.in_app and all_frames_considered_in_app:
                 frame_component.update(
                     hint='frame considered in-app because no frame is in-app'
                 )

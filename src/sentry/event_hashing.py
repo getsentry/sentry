@@ -208,9 +208,10 @@ def hash_from_values(values):
 def get_calculated_grouping_variants_for_event(event):
     """Given an event this returns a dictionary of the matching grouping
     variants.  Checksum and fingerprinting logic are not handled by this
-    function.  Note that this will completely skip over strategies that
-    were not attempted which is suboptimal from the user experience.
+    function which is handled by `get_grouping_variants_for_event`.
     """
+    # This sorts the interfaces by the interface score which gives it the
+    # priority which we depend on.
     interfaces = event.get_interfaces()
 
     winning_strategy = None
@@ -236,11 +237,8 @@ def get_calculated_grouping_variants_for_event(event):
             id=variant,
             values=components,
         )
-        if not component.contributes:
-            if winning_strategy:
-                component.update(hint='%s strategy takes precedence' % winning_strategy)
-            else:
-                component.update(hint='nothing matched')
+        if not component.contributes and winning_strategy:
+            component.update(hint='%s strategy takes precedence' % winning_strategy)
         rv[variant] = component
 
     return rv
