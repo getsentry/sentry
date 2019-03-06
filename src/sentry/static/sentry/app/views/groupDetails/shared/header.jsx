@@ -173,7 +173,7 @@ const GroupHeader = createReactClass({
                   <ShortId
                     shortId={group.shortId}
                     avatar={
-                      <ProjectBadge project={project} avatarSize={22} hideName={true} />
+                      <ProjectBadge project={project} avatarSize={20} hideName={true} />
                     }
                   />
                 </div>
