@@ -202,4 +202,8 @@ def create_sample_event(project, platform=None, default=None,
 
     manager = EventManager(data)
     manager.normalize()
-    return manager.save(project.id, raw=raw)
+    event = manager.save(project.id, raw=raw)
+    # Prevent Percy screenshot from constantly changing
+    event.datetime = datetime(2017, 9, 6, 0, 0)
+    event.save()
+    return event

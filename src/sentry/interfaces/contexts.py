@@ -176,11 +176,16 @@ class Contexts(Interface):
     score = 800
 
     @classmethod
-    def to_python(cls, data):
+    def to_python(cls, data, rust_renormalized=False):
         rv = {}
         for alias, value in six.iteritems(data):
+            # XXX(markus): The `None`-case should be handled in the UI and
+            # other consumers of this interface
             if value is not None:
-                rv[alias] = cls.normalize_context(alias, value)
+                if rust_renormalized:
+                    rv[alias] = value
+                else:
+                    rv[alias] = cls.normalize_context(alias, value)
         return cls(**rv)
 
     @classmethod
