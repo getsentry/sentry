@@ -203,7 +203,10 @@ class EventEntries extends React.Component {
               )}
             </div>
           )}{' '}
-        {!isShare && <EventGroupingInfo group={group} event={event} />}
+        {!isShare &&
+          features.has('grouping-info') && (
+            <EventGroupingInfo group={group} event={event} />
+          )}
       </div>
     );
   }
