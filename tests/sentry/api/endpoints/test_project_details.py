@@ -671,7 +671,7 @@ class CopyProjectSettingsTest(APITestCase):
             label='rule3',
         )
         # there is a default rule added to project
-        self.rules = Rule.objects.filter(project_id=self.other_project.id)
+        self.rules = Rule.objects.filter(project_id=self.other_project.id).order_by('label')
 
     def path(self, project):
         return reverse('sentry-api-0-project-details', kwargs={
