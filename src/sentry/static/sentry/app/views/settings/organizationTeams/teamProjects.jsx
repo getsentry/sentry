@@ -34,12 +34,21 @@ const TeamProjects = createReactClass({
     };
   },
 
-  componentWillMount() {
+  componentDidMount() {
     this.fetchAll();
   },
 
-  componentWillReceiveProps() {
-    this.fetchAll();
+  componentDidUpdate(prevProps) {
+    if (
+      prevProps.params.orgId !== this.props.params.orgId ||
+      prevProps.params.teamId !== this.props.params.teamId
+    ) {
+      this.fetchAll();
+    }
+
+    if (prevProps.location !== this.props.location) {
+      this.fetchTeamProjects();
+    }
   },
 
   fetchAll() {
