@@ -13,6 +13,7 @@ from sentry.interfaces.base import Interface, InterfaceValidationError
 from sentry.interfaces.schemas import validate_and_default_interface
 from sentry.interfaces.stacktrace import get_context
 from sentry.utils.safe import trim
+from sentry.event_hashing import GroupingComponent
 
 
 class Template(Interface):
@@ -58,10 +59,22 @@ class Template(Interface):
         }
         return cls(**kwargs)
 
-    def get_hash(self, platform=None, variant='system'):
-        if variant not in ('app', 'system'):
-            return []
-        return [self.filename, self.context_line]
+    def get_grouping_component(self, platform=None, variant=None):
+        filename_component = GroupingComponent(id='filename')
+        if self.filename is not None:
+            filename_component.update(values=[self.filename])
+
+        context_line_component = GroupingComponent(id='context-line')
+        if self.context_line is not None:
+            context_line_component.update(values=[self.context_line])
+
+        return GroupingComponent(
+            id='template',
+            values=[
+                filename_component,
+                context_line_component,
+            ]
+        )
 
     def to_string(self, event, is_public=False, **kwargs):
         context = get_context(
