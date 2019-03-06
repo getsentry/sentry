@@ -4,7 +4,6 @@ import styled from 'react-emotion';
 import isPropValid from '@emotion/is-prop-valid';
 
 import AutoSelectText from 'app/components/autoSelectText';
-import space from 'app/styles/space';
 
 export default class ShortId extends React.Component {
   static propTypes = {
@@ -25,7 +24,7 @@ export default class ShortId extends React.Component {
     }
 
     return (
-      <StyledShortId onClick={this.preventPropagation}>
+      <StyledShortId onClick={this.preventPropagation} {...this.props}>
         {avatar}
         <StyledAutoSelectText avatar={!!avatar}>{shortId}</StyledAutoSelectText>
       </StyledShortId>
@@ -40,5 +39,5 @@ const StyledShortId = styled.div`
 `;
 
 const StyledAutoSelectText = styled(AutoSelectText, {shouldForwardProp: isPropValid})`
-  margin-left: ${p => p.avatar && space(1)};
+  margin-left: ${p => p.avatar && '0.5em'};
 `;
