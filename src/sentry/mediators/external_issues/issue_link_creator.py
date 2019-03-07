@@ -4,7 +4,7 @@ import six
 
 from sentry.coreapi import APIUnauthorized
 from sentry.mediators import Mediator, Param, external_requests
-from sentry.mediators.external_issues import Creator
+from sentry.models import PlatformExternalIssue
 from sentry.utils.cache import memoize
 
 
@@ -43,9 +43,8 @@ class IssueLinkCreator(Mediator):
 
     def _create_external_issue(self):
         web_url, display_name = self._format_response_data()
-        self.external_issue = Creator.run(
-            group=self.group,
-            install=self.install,
+        self.external_issue = PlatformExternalIssue.objects.create(
+            group_id=self.group.id,
             service_type=self.sentry_app.slug,
             display_name=display_name,
             web_url=web_url,

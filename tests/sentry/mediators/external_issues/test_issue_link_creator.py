@@ -2,7 +2,7 @@ from __future__ import absolute_import
 
 import responses
 
-from sentry.coreapi import APIUnauthorized
+from sentry.coreapi import APIError
 from sentry.mediators.external_issues import IssueLinkCreator
 from sentry.models import PlatformExternalIssue
 from sentry.testutils import TestCase
@@ -65,7 +65,7 @@ class TestIssueLinkCreator(TestCase):
         assert external_issue.display_name == 'ProjectName#issue-1'
 
     def test_invalid_action(self):
-        with self.assertRaises(APIUnauthorized):
+        with self.assertRaises(APIError):
             IssueLinkCreator.run(
                 install=self.install,
                 group=self.group,
