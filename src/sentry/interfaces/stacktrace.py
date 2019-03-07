@@ -594,7 +594,7 @@ class Frame(Interface):
                     hint='function name is used only if module or filename are available'
                 )
             if self.lineno:
-                function_component.update(
+                lineno_component.update(
                     contributes=False,
                     values=[self.lineno],
                     hint='line number is used only if module or filename are available'
