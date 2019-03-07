@@ -45,8 +45,7 @@ class IntegrationPipeline(Pipeline):
                 extra={
                     'error_message': e.message,
                     'error_status': e.code,
-                    # TODO(lb): this looks like too much info... not sure how to limit it
-                    'data': self.state.data,
+                    'provider_key': self.provider.key,
                 }
             )
             return self.error(e.message)
