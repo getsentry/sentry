@@ -4,7 +4,10 @@ from rest_framework.response import Response
 
 from sentry import features
 from sentry.api.base import DocSection
-from sentry.api.bases.organization import OrganizationEndpoint
+from sentry.api.bases.organization import (
+    OrganizationEndpoint,
+    OrganizationRepositoryPermission
+)
 from sentry.api.paginator import OffsetPaginator
 from sentry.api.serializers import serialize
 from sentry.constants import ObjectStatus
@@ -15,6 +18,7 @@ from sentry.utils.sdk import capture_exception
 
 class OrganizationRepositoriesEndpoint(OrganizationEndpoint):
     doc_section = DocSection.ORGANIZATIONS
+    permission_classes = (OrganizationRepositoryPermission,)
 
     def has_feature(self, request, organization):
         return features.has(
