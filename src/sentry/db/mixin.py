@@ -97,8 +97,7 @@ class PendingDeletionMixin(object):
         if extra_fields_to_save:
             fields_to_save += extra_fields_to_save
 
-        with transaction.atomic():
-            self.save(update_fields=fields_to_save)
+        self.save(update_fields=fields_to_save)
 
         logger.info(
             'reset-on-pending-deletion.success',
