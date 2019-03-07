@@ -26,7 +26,7 @@ class SelectRequester(Mediator):
     """
 
     install = Param('sentry.models.SentryAppInstallation')
-    project = Param('sentry.models.Project')
+    project = Param('sentry.models.Project', required=False)
     uri = Param(six.string_types)
 
     def call(self):
@@ -35,10 +35,10 @@ class SelectRequester(Mediator):
     def _build_url(self):
         domain = urlparse(self.sentry_app.webhook_url).netloc
         url = u'https://{}{}'.format(domain, self.uri)
-        url += '?' + urlencode({
-            'installationId': self.install.uuid,
-            'projectSlug': self.project.slug,
-        })
+        params = {'installationId': self.install.uuid}
+        if self.project:
+            params['projectSlug'] = self.project.slug
+        url += '?' + urlencode(params)
         return url
 
     def _make_request(self):
@@ -65,10 +65,25 @@ class SelectRequester(Mediator):
         if not self._validate_response(response):
             raise APIError()
 
-        return response
+        return self._format_response(response)
 
     def _validate_response(self, resp):
         return validate(instance=resp, schema_type='select')
+
+    def _format_response(self, resp):
+        # the UI expects the following form:
+        # choices: [[label, value]]
+        # default: [label, value]
+        response = {}
+        choices = []
+
+        for option in resp:
+            choices.append([option['label'], option['value']])
+            if option.get('default'):
+                response['default'] = [option['label'], option['value']]
+
+        response['choices'] = choices
+        return response
 
     def _build_headers(self):
         request_uuid = uuid4().hex
