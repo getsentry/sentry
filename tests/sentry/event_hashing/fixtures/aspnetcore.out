@@ -250,7 +250,9 @@ app:
               u'C:\\Users\\dvora\\source\\repos\\SentryTest2\\SentryTest2\\Controllers\\ValuesController.cs'
             context-line*
               u'Microsoft.AspNetCore.Mvc.ActionResult`1[System.String] Get(Int32)'
-            function (line number is used only if module or filename are available)
+            function (function name is used only if module or filename are available)
+              u'Get'
+            lineno (line number is used only if module or filename are available)
               27
         type*
           u'System.Exception'
@@ -516,7 +518,9 @@ system:
               u'C:\\Users\\dvora\\source\\repos\\SentryTest2\\SentryTest2\\Controllers\\ValuesController.cs'
             context-line*
               u'Microsoft.AspNetCore.Mvc.ActionResult`1[System.String] Get(Int32)'
-            function (line number is used only if module or filename are available)
+            function (function name is used only if module or filename are available)
+              u'Get'
+            lineno (line number is used only if module or filename are available)
               27
         type*
           u'System.Exception'

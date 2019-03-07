@@ -75,4 +75,4 @@ def test_event_hash_variant(infile):
     assert sorted(evt.get_hashes()) == sorted(
         filter(None, [x.get_hash() for x in evt.get_grouping_variants().values()]))
 
-    assert output == refval
+    assert refval == output
