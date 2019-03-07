@@ -226,3 +226,8 @@ class OrganizationIndex2faTest(TwoFactorAPITestCase):
 
         Authenticator.objects.get(user=self.no_2fa_user).delete()
         self.assert_redirected_to_2fa()
+
+    def test_superuser_can_access_org_home(self):
+        user = self.create_user(is_superuser=True)
+        self.login_as(user, superuser=True)
+        self.assert_can_access_org_home()
