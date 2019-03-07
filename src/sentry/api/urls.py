@@ -38,6 +38,7 @@ from .endpoints.group_integrations import GroupIntegrationsEndpoint
 from .endpoints.group_notes import GroupNotesEndpoint
 from .endpoints.group_notes_details import GroupNotesDetailsEndpoint
 from .endpoints.group_participants import GroupParticipantsEndpoint
+from .endpoints.group_external_issues import GroupExternalIssuesEndpoint
 from .endpoints.group_similar_issues import GroupSimilarIssuesEndpoint
 from .endpoints.group_stats import GroupStatsEndpoint
 from .endpoints.group_tags import GroupTagsEndpoint
@@ -1166,6 +1167,11 @@ urlpatterns = patterns(
         r'^(?:issues|groups)/(?P<issue_id>\d+)/similar/$',
         GroupSimilarIssuesEndpoint.as_view(),
         name='sentry-api-0-group-similar-issues'
+    ),
+    url(
+        r'^(?:issues|groups)/(?P<issue_id>\d+)/external-issues/$',
+        GroupExternalIssuesEndpoint.as_view(),
+        name='sentry-api-0-group-external-issues'
     ),
     url(
         r'^(?:issues|groups)/(?P<issue_id>\d+)/integrations/$',
