@@ -541,7 +541,12 @@ class ProjectDetailsEndpoint(ProjectEndpoint):
                         }, status=400
                     )
             if 'copy_from_project' in result:
-                project.copy_settings_from(result['copy_from_project'])
+                if not project.copy_settings_from(result['copy_from_project']):
+                    return Response(
+                        {
+                            'detail': ['Copy project settings failed.']
+                        }, status=409
+                    )
 
             self.create_audit_entry(
                 request=request,

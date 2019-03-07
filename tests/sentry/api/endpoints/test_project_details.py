@@ -821,6 +821,18 @@ class CopyProjectSettingsTest(APITestCase):
         self.assert_other_project_settings_not_changed()
         self.assert_settings_not_copied(project, teams=[team])
 
+    @mock.patch('sentry.models.project.Project.copy_settings_from')
+    def test_copy_project_settings_fails(self, mock_copy_settings_from):
+        mock_copy_settings_from.return_value = False
+        project = self.create_project()
+        resp = self.client.put(self.path(project), data={
+            'copy_from_project': self.other_project.id
+        })
+        assert resp.status_code == 409
+        assert resp.data == {'detail': ['Copy project settings failed.']}
+        self.assert_settings_not_copied(project)
+        self.assert_other_project_settings_not_changed()
+
 
 class ProjectDeleteTest(APITestCase):
     @mock.patch('sentry.api.endpoints.project_details.uuid4')
