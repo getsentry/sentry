@@ -1,16 +1,16 @@
 import React from 'react';
+import PropTypes from 'prop-types';
 
-import createReactClass from 'create-react-class';
-
-import ApiMixin from 'app/mixins/apiMixin';
 import OrganizationsStore from 'app/stores/organizationsStore';
+import withApi from 'app/utils/withApi';
 
-const OrganizationsLoader = createReactClass({
-  displayName: 'OrganizationsLoader',
-  mixins: [ApiMixin],
+class OrganizationsLoader extends React.Component {
+  static propTypes = {
+    api: PropTypes.object.isRequired,
+  };
 
-  componentWillMount() {
-    this.api.request('/organizations/', {
+  componentDidMount() {
+    this.props.api.request('/organizations/', {
       query: {
         member: '1',
       },
@@ -27,15 +27,15 @@ const OrganizationsLoader = createReactClass({
         });
       },
     });
-  },
+  }
 
   componentWillUnmount() {
     OrganizationsStore.load([]);
-  },
+  }
 
   render() {
-    return <div>{this.props.children}</div>;
-  },
-});
+    return this.props.children;
+  }
+}
 
-export default OrganizationsLoader;
+export default withApi(OrganizationsLoader);
