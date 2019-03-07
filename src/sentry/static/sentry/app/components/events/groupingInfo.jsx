@@ -2,11 +2,10 @@ import React from 'react';
 import PropTypes from 'prop-types';
 import styled from 'react-emotion';
 import {isObject} from 'lodash';
+import AsyncComponent from 'app/components/asyncComponent';
 
 import EventDataSection from 'app/components/events/eventDataSection';
 import SentryTypes from 'app/sentryTypes';
-import LoadingIndicator from 'app/components/loadingIndicator';
-import LoadingError from 'app/components/loadingError';
 import {t} from 'app/locale';
 import KeyValueList from 'app/components/events/interfaces/keyValueList';
 
@@ -131,11 +130,11 @@ class GroupVariant extends React.Component {
     };
   }
 
-  toggleNonContributing() {
+  toggleNonContributing = () => {
     this.setState({
       showNonContributing: !this.state.showNonContributing,
     });
-  }
+  };
 
   renderVariantDetails() {
     const {variant} = this.props;
@@ -170,7 +169,7 @@ class GroupVariant extends React.Component {
         {component && (
           <GroupingComponentBox>
             {hasNonContributingComponent(component) && (
-              <a className="pull-right" onClick={() => this.toggleNonContributing()}>
+              <a className="pull-right" onClick={this.toggleNonContributing}>
                 {this.state.showNonContributing
                   ? t('hide non contributing values')
                   : t('show non contributing values')}
@@ -197,41 +196,22 @@ class GroupVariant extends React.Component {
   }
 }
 
-class EventGroupingInfo extends React.Component {
+class EventGroupingInfo extends AsyncComponent {
   static propTypes = {
     api: PropTypes.object,
     group: SentryTypes.Group.isRequired,
     event: SentryTypes.Event.isRequired,
   };
 
-  constructor(...args) {
-    super(...args);
-    this.state = {
+  getEndpoints() {
+    return [['groupInfo', `/events/${this.props.event.id}/grouping-info/`]];
+  }
+
+  getInitialState() {
+    return {
       isOpen: false,
-      loading: false,
-      groupInfo: null,
+      ...super.getInitialState(),
     };
-  }
-
-  componentDidMount() {
-    this.fetchData();
-  }
-
-  shouldComponentUpdate(nextProps, nextState) {
-    if (
-      this.state.isOpen != nextState.isOpen ||
-      this.state.groupInfo !== nextState.groupInfo ||
-      this.state.loading !== nextState.loading
-    ) {
-      return true;
-    }
-    return this.props.event.id !== nextProps.event.id;
-  }
-
-  componentDidUpdate(prevProps) {
-    if (this.props.event.id !== prevProps.event.id) {
-      this.fetchData();
-    }
   }
 
   toggle = () => {
@@ -240,28 +220,6 @@ class EventGroupingInfo extends React.Component {
 
   getEndpoint() {
     return `/events/${this.props.event.id}/grouping-info/`;
-  }
-
-  fetchData() {
-    this.setState({
-      loading: true,
-    });
-    this.props.api.request(this.getEndpoint(), {
-      method: 'GET',
-      success: data => {
-        this.setState({
-          error: false,
-          loading: false,
-          groupInfo: data,
-        });
-      },
-      error: () => {
-        this.setState({
-          error: true,
-          loading: false,
-        });
-      },
-    });
   }
 
   renderGroupInfoSummary() {
@@ -302,7 +260,7 @@ class EventGroupingInfo extends React.Component {
     );
   }
 
-  render() {
+  renderBody() {
     const isOpen = this.state.isOpen;
     return (
       <EventDataSection
@@ -321,8 +279,6 @@ class EventGroupingInfo extends React.Component {
           </h3>
         </div>
         <div style={{display: isOpen ? 'block' : 'none'}}>
-          {this.state.loading && <LoadingIndicator />}
-          {this.state.error && <LoadingError onRetry={this.fetchData} />}
           {this.state.groupInfo !== null && isOpen && this.renderGroupInfo()}
         </div>
       </EventDataSection>
