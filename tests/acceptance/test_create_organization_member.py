@@ -33,7 +33,13 @@ class CreateOrganizationMemberTest(AcceptanceTestCase):
         self.browser.get(
             u'/organizations/{}/members/new/'.format(self.org.slug))
         self.browser.wait_until_not('.loading')
-        self.browser.element('.checkbox').click()
+
+        # Open the autocomplete
+        self.browser.element('.new-invite-team button[role="button"]').click()
+
+        # Click first team
+        self.browser.wait_until('[class*="TeamDropdownElement"]')
+        self.browser.element('[class*="TeamDropdownElement"]').click()
 
         self.browser.element(
             'input#id-email').send_keys('test@gmail.com, invalidemail')

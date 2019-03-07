@@ -147,13 +147,13 @@ exports[`CreateProject should render roles when available and allowed, and handl
         setRole={[Function]}
       >
         <Panel
-          className="new-invite-team"
+          className="new-invite-role"
         >
           <Component
-            className="new-invite-team css-yahxlu-Panel e1laxa7d0"
+            className="new-invite-role css-yahxlu-Panel e1laxa7d0"
           >
             <div
-              className="new-invite-team css-yahxlu-Panel e1laxa7d0"
+              className="new-invite-role css-yahxlu-Panel e1laxa7d0"
             >
               <PanelHeader>
                 <Component

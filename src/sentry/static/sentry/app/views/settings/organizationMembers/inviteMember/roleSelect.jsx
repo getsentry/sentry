@@ -31,7 +31,7 @@ class RoleSelect extends React.Component {
     const {disabled, enforceAllowed, roleList, selectedRole} = this.props;
 
     return (
-      <Panel className="new-invite-team">
+      <Panel className="new-invite-role">
         <PanelHeader>{t('Role')}</PanelHeader>
 
         <PanelBody>
