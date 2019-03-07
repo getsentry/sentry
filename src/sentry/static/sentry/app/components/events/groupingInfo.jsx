@@ -1,7 +1,7 @@
 import React from 'react';
 import PropTypes from 'prop-types';
 import styled from 'react-emotion';
-import _ from 'lodash';
+import {isObject} from 'lodash';
 
 import EventDataSection from 'app/components/events/eventDataSection';
 import SentryTypes from 'app/sentryTypes';
@@ -74,7 +74,7 @@ class GroupingComponent extends React.Component {
 
     const children = component.values.map((value, idx) => {
       let rv;
-      if (_.isObject(value)) {
+      if (isObject(value)) {
         // no point rendering such nodes at all, we never show them
         if (!value.contributes && !value.hint && value.values.length === 0) {
           return null;
@@ -114,7 +114,7 @@ function hasNonContributingComponent(component) {
     return true;
   }
   for (const value of component.values) {
-    if (_.isObject(value) && hasNonContributingComponent(value)) {
+    if (isObject(value) && hasNonContributingComponent(value)) {
       return true;
     }
   }
