@@ -2,7 +2,7 @@ from __future__ import absolute_import
 
 from django.core.urlresolvers import reverse
 
-from sentry.models import ProjectKey
+from sentry.models import ProjectKey, AuditLogEntry, AuditLogEntryEvent
 from sentry.testutils import APITestCase
 
 
@@ -45,6 +45,10 @@ class UpdateProjectKeyTest(APITestCase):
         key = ProjectKey.objects.get(id=key.id)
         assert key.rate_limit_count is None
         assert key.rate_limit_window is None
+        assert AuditLogEntry.objects.filter(
+            organization=project.organization,
+            event=AuditLogEntryEvent.PROJECTKEY_EDIT_RATE_LIMIT,
+        ).exists()
 
     def test_unset_rate_limit(self):
         project = self.create_project()
@@ -67,6 +71,10 @@ class UpdateProjectKeyTest(APITestCase):
         key = ProjectKey.objects.get(id=key.id)
         assert key.rate_limit_count == 1
         assert key.rate_limit_window == 60
+        assert AuditLogEntry.objects.filter(
+            organization=project.organization,
+            event=AuditLogEntryEvent.PROJECTKEY_EDIT_RATE_LIMIT,
+        ).exists()
 
     def test_simple_rate_limit(self):
         project = self.create_project()
@@ -89,6 +97,10 @@ class UpdateProjectKeyTest(APITestCase):
         key = ProjectKey.objects.get(id=key.id)
         assert key.rate_limit_count == 1
         assert key.rate_limit_window == 60
+        assert AuditLogEntry.objects.filter(
+            organization=project.organization,
+            event=AuditLogEntryEvent.PROJECTKEY_EDIT_RATE_LIMIT,
+        ).exists()
 
 
 class DeleteProjectKeyTest(APITestCase):
