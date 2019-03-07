@@ -9,6 +9,8 @@ import ShortId from 'app/components/shortId';
 import overflowEllipsis from 'app/styles/overflowEllipsis';
 import {t, tct} from 'app/locale';
 import InlineSvg from 'app/components/inlineSvg';
+import ProjectBadge from 'app/components/idBadge/projectBadge';
+import SentryTypes from 'app/sentryTypes';
 import space from 'app/styles/space';
 
 class EventOrGroupExtraDetails extends React.Component {
@@ -27,6 +29,7 @@ class EventOrGroupExtraDetails extends React.Component {
     }),
     showAssignee: PropTypes.bool,
     shortId: PropTypes.string,
+    project: SentryTypes.Project,
   };
 
   getIssuesPath() {
@@ -49,13 +52,23 @@ class EventOrGroupExtraDetails extends React.Component {
       annotations,
       showAssignee,
       shortId,
+      project,
     } = this.props;
 
     const issuesPath = this.getIssuesPath();
 
     return (
       <GroupExtra align="center">
-        {shortId && <GroupShortId shortId={shortId} />}
+        {shortId && (
+          <GroupShortId
+            shortId={shortId}
+            avatar={
+              project && (
+                <ProjectBadge project={project} avatarSize={14} hideName={true} />
+              )
+            }
+          />
+        )}
         <Times>
           <div css={overflowEllipsis}>
             {lastSeen && (

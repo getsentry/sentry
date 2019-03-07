@@ -73,6 +73,7 @@ class BaseBadge extends React.PureComponent {
           <StyledAvatar
             css={avatarClassName}
             size={avatarSize}
+            hideName={hideName}
             {...avatarProps || {}}
             {...data}
           />
@@ -92,7 +93,7 @@ class BaseBadge extends React.PureComponent {
 export default BaseBadge;
 
 const StyledAvatar = styled(Avatar)`
-  margin-right: ${space(1)};
+  margin-right: ${p => (p.hideName ? 0 : space(1))};
   flex-shrink: 0;
 `;
 

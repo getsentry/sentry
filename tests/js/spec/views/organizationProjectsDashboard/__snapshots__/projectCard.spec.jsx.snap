@@ -341,13 +341,14 @@ exports[`ProjectCard renders 1`] = `
                                           size={24}
                                         >
                                           <PlatformIcons
+                                            className="css-robds0-StyledAvatar e165dl3i0"
                                             consistentWidth={false}
                                             direction="right"
                                             max={1}
                                             size={24}
                                           >
                                             <div
-                                              className="css-12u7e6y-PlatformIcons ezvce7z0"
+                                              className="e165dl3i0 css-1cou1l3-PlatformIcons-StyledAvatar ezvce7z0"
                                               direction="right"
                                               max={1}
                                               size={24}
