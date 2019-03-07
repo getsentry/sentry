@@ -23,7 +23,7 @@ export default [
     level: 'error',
     isSubscribed: true,
     isBookmarked: false,
-    project: {name: 'Internal', slug: 'project-slug'},
+    project: {name: 'Internal', slug: 'project-slug', id: '123'},
     statusDetails: {},
   },
   {
@@ -50,7 +50,7 @@ export default [
     level: 'error',
     isSubscribed: true,
     isBookmarked: false,
-    project: {name: 'Internal', slug: 'project-slug'},
+    project: {name: 'Internal', slug: 'project-slug', id: '123'},
     statusDetails: {},
   },
   {
@@ -80,7 +80,7 @@ export default [
     level: 'error',
     isSubscribed: true,
     isBookmarked: false,
-    project: {name: 'Internal', slug: 'project-slug'},
+    project: {name: 'Internal', slug: 'project-slug', id: '123'},
     statusDetails: {},
   },
   {
@@ -123,7 +123,7 @@ export default [
     level: 'error',
     isSubscribed: true,
     isBookmarked: false,
-    project: {name: 'Internal', slug: 'project-slug'},
+    project: {name: 'Internal', slug: 'project-slug', id: '123'},
     statusDetails: {},
   },
 ];
