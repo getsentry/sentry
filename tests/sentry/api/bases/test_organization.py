@@ -2,6 +2,7 @@ from __future__ import absolute_import
 
 from datetime import timedelta
 
+from django.db.models import F
 from django.test import RequestFactory
 from django.utils import timezone
 from exam import fixture
@@ -13,10 +14,10 @@ from sentry.api.bases.organization import (
     OrganizationEndpoint,
     OrganizationPermission,
 )
-from sentry.api.exceptions import ResourceDoesNotExist
+from sentry.api.exceptions import ResourceDoesNotExist, TwoFactorRequired
 from sentry.api.utils import MAX_STATS_PERIOD
 from sentry.auth.access import from_request, NoAccess
-from sentry.models import ApiKey
+from sentry.models import ApiKey, Organization, TotpInterface
 from sentry.testutils import TestCase
 
 
@@ -42,6 +43,10 @@ class OrganizationPermissionBase(TestCase):
 
 
 class OrganizationPermissionTest(OrganizationPermissionBase):
+    def org_require_2fa(self):
+        self.org.update(flags=F('flags').bitor(Organization.flags.require_2fa))
+        assert self.org.flags.require_2fa.is_set is True
+
     def test_regular_user(self):
         user = self.create_user()
         assert not self.has_object_perm('GET', self.org, user=user)
@@ -93,6 +98,35 @@ class OrganizationPermissionTest(OrganizationPermissionBase):
             scope_list=['org:read'],
         )
         assert not self.has_object_perm('PUT', self.org, auth=key)
+
+    def test_org_requires_2fa_with_superuser(self):
+        self.org_require_2fa()
+        user = self.create_user(is_superuser=True)
+        assert self.has_object_perm('GET', self.org, user=user, is_superuser=True)
+
+    def test_org_requires_2fa_with_enrolled_user(self):
+        self.org_require_2fa()
+        user = self.create_user()
+        self.create_member(
+            user=user,
+            organization=self.org,
+            role='member',
+        )
+
+        TotpInterface().enroll(user)
+        assert self.has_object_perm('GET', self.org, user=user)
+
+    def test_org_requires_2fa_with_unenrolled_user(self):
+        self.org_require_2fa()
+        user = self.create_user()
+        self.create_member(
+            user=user,
+            organization=self.org,
+            role='member',
+        )
+
+        with self.assertRaises(TwoFactorRequired):
+            self.has_object_perm('GET', self.org, user=user)
 
 
 class BaseOrganizationEndpointTest(TestCase):

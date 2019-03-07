@@ -61,7 +61,7 @@ class SuperuserPermission(permissions.BasePermission):
 
 
 class SentryPermission(ScopedPermission):
-    def is_not_2fa_compliant(self, user, organization):
+    def is_not_2fa_compliant(self, request, organization):
         return False
 
     def needs_sso(self, request, organization):
@@ -111,7 +111,7 @@ class SentryPermission(ScopedPermission):
                     raise SsoRequired(organization)
 
                 if self.is_not_2fa_compliant(
-                        request.user, organization):
+                        request, organization):
                     logger.info(
                         'access.not-2fa-compliant',
                         extra={
