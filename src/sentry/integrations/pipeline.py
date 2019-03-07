@@ -40,6 +40,15 @@ class IntegrationPipeline(Pipeline):
         try:
             data = self.provider.build_integration(self.state.data)
         except IntegrationError as e:
+            self.get_logger().info(
+                'build-integration.failure',
+                extra={
+                    'error_message': e.message,
+                    'error_status': e.code,
+                    # TODO(lb): this looks like too much info... not sure how to limit it
+                    'data': self.state.data,
+                }
+            )
             return self.error(e.message)
 
         response = self._finish_pipeline(data)
