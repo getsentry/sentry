@@ -44,14 +44,15 @@ def get_user_info(access_token, installation_data):
         verify=installation_data['verify_ssl']
     )
     try:
-        # HELP(LB): is this reasonable?!?!?
         resp.raise_for_status()
     except Exception as e:
         logger.info('gitlab.identity.get-user-info-failure',
                     extra={
                         'url': installation_data['url'],
                         'verify_ssl': installation_data['verify_ssl'],
-                        'client_id': installation_data['client_id']
+                        'client_id': installation_data['client_id'],
+                        'error_status': e.code,
+                        'error_message': e.message,
                     }
                     )
         raise e
@@ -102,7 +103,15 @@ class GitlabIdentityProvider(OAuth2Provider):
         try:
             body = safe_urlread(req)
             payload = json.loads(body)
-        except Exception:
+        except Exception as e:
+            self.logger(
+                'gitlab.refresh-identity-failure',
+                extra={
+                    'identity_id': identity.id,
+                    'error_status': e.code,
+                    'error_message': e.message,
+                }
+            )
             payload = {}
 
         self.handle_refresh_error(req, payload)
