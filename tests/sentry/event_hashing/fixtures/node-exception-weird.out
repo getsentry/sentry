@@ -11,7 +11,9 @@ app:
               u'/home/travis/build/getsentry/sentry-javascript/packages/hub/dist/hub.js'
             context-line*
               u'     */'
-            function (line number is used only if module or filename are available)
+            function (function name is used only if module or filename are available)
+              u'Hub.Object.<anonymous>.Hub.withScope'
+            lineno (line number is used only if module or filename are available)
               171
           frame*
             module*
@@ -29,7 +31,9 @@ app:
               u'/home/travis/build/getsentry/sentry-javascript/node_modules/jest-mock/build/index.js'
             context-line*
               u'        return fn.apply(this, arguments);'
-            function (line number is used only if module or filename are available)
+            function (function name is used only if module or filename are available)
+              u'Hub.mockConstructor [as captureException]'
+            lineno (line number is used only if module or filename are available)
               150
           frame (non app frame)
             module*
@@ -38,7 +42,9 @@ app:
               u'/home/travis/build/getsentry/sentry-javascript/node_modules/jest-mock/build/index.js'
             context-line*
               u'          })();'
-            function (line number is used only if module or filename are available)
+            function (function name is used only if module or filename are available)
+              u'Hub.<anonymous>'
+            lineno (line number is used only if module or filename are available)
               446
           frame (non app frame)
             module*
@@ -47,7 +53,9 @@ app:
               u'/home/travis/build/getsentry/sentry-javascript/node_modules/jest-mock/build/index.js'
             context-line*
               u'                return specificMockImpl.apply(this, arguments);'
-            function (line number is used only if module or filename are available)
+            function (function name is used only if module or filename are available)
+              u'finalReturnValue'
+            lineno (line number is used only if module or filename are available)
               437
           frame (non app frame)
             module*
@@ -56,7 +64,9 @@ app:
               u'/home/travis/build/getsentry/sentry-javascript/node_modules/jest-mock/build/index.js'
             context-line*
               u'        return original.apply(this, arguments);'
-            function (line number is used only if module or filename are available)
+            function (function name is used only if module or filename are available)
+              u'Hub.<anonymous>'
+            lineno (line number is used only if module or filename are available)
               806
           frame*
             module*
@@ -65,7 +75,9 @@ app:
               u'/home/travis/build/getsentry/sentry-javascript/packages/hub/src/hub.ts'
             context-line*
               u'    if (maxBreadcrumbs <= 0) {'
-            function (line number is used only if module or filename are available)
+            function (function name is used only if module or filename are available)
+              u'Hub.Object.<anonymous>.Hub.captureException'
+            lineno (line number is used only if module or filename are available)
               255
           frame*
             module*
@@ -74,7 +86,9 @@ app:
               u'/home/travis/build/getsentry/sentry-javascript/packages/hub/dist/hub.js'
             context-line*
               u'     * @returns Scope, the new cloned scope'
-            function (line number is used only if module or filename are available)
+            function (function name is used only if module or filename are available)
+              u'Hub.Object.<anonymous>.Hub.invokeClient'
+            lineno (line number is used only if module or filename are available)
               91
           frame*
             module*
@@ -83,7 +97,9 @@ app:
               u'/home/travis/build/getsentry/sentry-javascript/packages/core/src/baseclient.ts'
             context-line*
               u'    promisedEvent'
-            function (line number is used only if module or filename are available)
+            function (function name is used only if module or filename are available)
+              u'NodeClient.Object.<anonymous>.BaseClient.captureException'
+            lineno (line number is used only if module or filename are available)
               110
           frame*
             module*
@@ -112,7 +128,9 @@ system:
               u'/home/travis/build/getsentry/sentry-javascript/packages/hub/dist/hub.js'
             context-line*
               u'     */'
-            function (line number is used only if module or filename are available)
+            function (function name is used only if module or filename are available)
+              u'Hub.Object.<anonymous>.Hub.withScope'
+            lineno (line number is used only if module or filename are available)
               171
           frame*
             module*
@@ -130,7 +148,9 @@ system:
               u'/home/travis/build/getsentry/sentry-javascript/node_modules/jest-mock/build/index.js'
             context-line*
               u'        return fn.apply(this, arguments);'
-            function (line number is used only if module or filename are available)
+            function (function name is used only if module or filename are available)
+              u'Hub.mockConstructor [as captureException]'
+            lineno (line number is used only if module or filename are available)
               150
           frame*
             module*
@@ -139,7 +159,9 @@ system:
               u'/home/travis/build/getsentry/sentry-javascript/node_modules/jest-mock/build/index.js'
             context-line*
               u'          })();'
-            function (line number is used only if module or filename are available)
+            function (function name is used only if module or filename are available)
+              u'Hub.<anonymous>'
+            lineno (line number is used only if module or filename are available)
               446
           frame*
             module*
@@ -148,7 +170,9 @@ system:
               u'/home/travis/build/getsentry/sentry-javascript/node_modules/jest-mock/build/index.js'
             context-line*
               u'                return specificMockImpl.apply(this, arguments);'
-            function (line number is used only if module or filename are available)
+            function (function name is used only if module or filename are available)
+              u'finalReturnValue'
+            lineno (line number is used only if module or filename are available)
               437
           frame*
             module*
@@ -157,7 +181,9 @@ system:
               u'/home/travis/build/getsentry/sentry-javascript/node_modules/jest-mock/build/index.js'
             context-line*
               u'        return original.apply(this, arguments);'
-            function (line number is used only if module or filename are available)
+            function (function name is used only if module or filename are available)
+              u'Hub.<anonymous>'
+            lineno (line number is used only if module or filename are available)
               806
           frame*
             module*
@@ -166,7 +192,9 @@ system:
               u'/home/travis/build/getsentry/sentry-javascript/packages/hub/src/hub.ts'
             context-line*
               u'    if (maxBreadcrumbs <= 0) {'
-            function (line number is used only if module or filename are available)
+            function (function name is used only if module or filename are available)
+              u'Hub.Object.<anonymous>.Hub.captureException'
+            lineno (line number is used only if module or filename are available)
               255
           frame*
             module*
@@ -175,7 +203,9 @@ system:
               u'/home/travis/build/getsentry/sentry-javascript/packages/hub/dist/hub.js'
             context-line*
               u'     * @returns Scope, the new cloned scope'
-            function (line number is used only if module or filename are available)
+            function (function name is used only if module or filename are available)
+              u'Hub.Object.<anonymous>.Hub.invokeClient'
+            lineno (line number is used only if module or filename are available)
               91
           frame*
             module*
@@ -184,7 +214,9 @@ system:
               u'/home/travis/build/getsentry/sentry-javascript/packages/core/src/baseclient.ts'
             context-line*
               u'    promisedEvent'
-            function (line number is used only if module or filename are available)
+            function (function name is used only if module or filename are available)
+              u'NodeClient.Object.<anonymous>.BaseClient.captureException'
+            lineno (line number is used only if module or filename are available)
               110
           frame*
             module*
