@@ -101,7 +101,6 @@ class OrganizationRepositoryDetailsEndpoint(OrganizationEndpoint):
             id=repo.id,
             status__in=[ObjectStatus.VISIBLE, ObjectStatus.DISABLED],
         ).update(status=ObjectStatus.PENDING_DELETION)
-
         if updated:
             repo.status = ObjectStatus.PENDING_DELETION
 
