@@ -54,3 +54,20 @@ class SentryAppInstallationExternalRequestsEndpointTest(APITestCase):
         assert response.data == {
             'choices': [['Project Name', '1234']]
         }
+
+    @responses.activate
+    @with_feature('organizations:sentry-apps')
+    def test_external_request_fails(self):
+        self.login_as(user=self.user)
+        responses.add(
+            method=responses.GET,
+            url=u'https://example.com/get-projects?installationId={}'.format(
+                self.project.slug,
+                self.install.uuid,
+            ),
+            status=500,
+            content_type='application/json',
+        )
+        url = self.url + u'?uri={}'.format(self.project.id, '/get-projects')
+        response = self.client.get(url, format='json')
+        assert response.status_code == 400

@@ -26,7 +26,7 @@ class SelectRequester(Mediator):
     """
 
     install = Param('sentry.models.SentryAppInstallation')
-    project = Param('sentry.models.Project')
+    project = Param('sentry.models.Project', required=False)
     uri = Param(six.string_types)
 
     def call(self):
@@ -35,10 +35,10 @@ class SelectRequester(Mediator):
     def _build_url(self):
         domain = urlparse(self.sentry_app.webhook_url).netloc
         url = u'https://{}{}'.format(domain, self.uri)
-        url += '?' + urlencode({
-            'installationId': self.install.uuid,
-            'projectSlug': self.project.slug,
-        })
+        params = {'installationId': self.install.uuid}
+        if self.project:
+            params['projectSlug'] = self.project.slug
+        url += '?' + urlencode(params)
         return url
 
     def _make_request(self):

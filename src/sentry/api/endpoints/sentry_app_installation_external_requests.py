@@ -15,22 +15,24 @@ class SentryAppInstallationExternalRequestsEndpoint(SentryAppInstallationBaseEnd
                             actor=request.user):
             return Response(status=404)
 
-        project_id = request.GET.get('projectId')
-        if not project_id:
-            return Response({'detail': 'projectId is required.'})
-
         try:
             project = Project.objects.get(
-                id=project_id,
+                id=request.GET.get('projectId'),
                 organization_id=installation.organization_id,
             )
         except Project.DoesNotExist:
-            return Response(status=404)
+            project = None
 
-        choices = external_requests.SelectRequester.run(
-            install=installation,
-            project=project,
-            uri=request.GET.get('uri'),
-        )
+        kwargs = {
+            'install': installation,
+            'uri': request.GET.get('uri'),
+        }
+        if project:
+            kwargs.update({'project': project})
+
+        try:
+            choices = external_requests.SelectRequester.run(**kwargs)
+        except Exception:
+            return Response({'error': 'Error communicating with Sentry App service'}, status=400)
 
         return Response(choices)
