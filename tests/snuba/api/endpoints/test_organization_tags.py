@@ -45,9 +45,11 @@ class OrganizationTagsTest(APITestCase, SnubaTestCase):
 
         response = self.client.get(url, format='json')
         assert response.status_code == 200, response.content
-        assert response.data == [
-            {'uniqueValues': 2, 'name': 'Fruit', 'key': 'fruit', 'totalValues': 3},
-            {'uniqueValues': 1, 'name': 'Some Tag', 'key': 'some_tag', 'totalValues': 1},
+        data = response.data
+        data.sort(key=lambda val: val['totalValues'], reverse=True)
+        assert data == [
+            {'name': 'Fruit', 'key': 'fruit', 'totalValues': 3},
+            {'name': 'Some Tag', 'key': 'some_tag', 'totalValues': 1},
         ]
 
     def test_no_projects(self):

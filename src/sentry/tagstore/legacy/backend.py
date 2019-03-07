@@ -299,7 +299,10 @@ class LegacyTagStorage(TagStorage):
 
         return transformers[models.TagKey](instance)
 
-    def get_tag_keys(self, project_id, environment_id, status=TagKeyStatus.VISIBLE):
+    def get_tag_keys(
+        self, project_id, environment_id, status=TagKeyStatus.VISIBLE,
+        include_values_seen=False,
+    ):
         qs = models.TagKey.objects.filter(project_id=project_id)
 
         if status is not None:
