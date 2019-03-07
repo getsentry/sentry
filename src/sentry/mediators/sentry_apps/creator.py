@@ -14,10 +14,10 @@ class Creator(Mediator):
     organization = Param('sentry.models.Organization')
     scopes = Param(Iterable)
     events = Param(Iterable, default=lambda self: [])
-    schema = Param(six.string_types, default=lambda self: '{}')
     webhook_url = Param(six.string_types)
     redirect_url = Param(six.string_types, required=False)
     is_alertable = Param(bool, default=False)
+    schema = Param(dict, default=lambda self: {})
     overview = Param(six.string_types, required=False)
 
     def call(self):
@@ -48,7 +48,7 @@ class Creator(Mediator):
             proxy_user_id=self.proxy.id,
             scope_list=self.scopes,
             events=expand_events(self.events),
-            schema=self.schema or '{}',
+            schema=self.schema or {},
             webhook_url=self.webhook_url,
             redirect_url=self.redirect_url,
             is_alertable=self.is_alertable,
@@ -56,7 +56,7 @@ class Creator(Mediator):
         )
 
     def _create_ui_components(self):
-        schema = json.loads(self.schema or '{}')
+        schema = self.schema or {}
 
         for element in schema.get('elements', []):
             SentryAppComponent.objects.create(

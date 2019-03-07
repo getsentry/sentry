@@ -14,6 +14,7 @@ class SentryAppSerializer(Serializer):
             'scopes': obj.get_scopes(),
             'events': consolidate_events(obj.events),
             'status': obj.get_status_display(),
+            'schema': obj.schema,
             'uuid': obj.uuid,
             'webhookUrl': obj.webhook_url,
             'redirectUrl': obj.redirect_url,

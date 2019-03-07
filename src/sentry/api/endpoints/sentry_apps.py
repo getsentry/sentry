@@ -37,6 +37,7 @@ class SentryAppsEndpoint(SentryAppsBaseEndpoint):
                 webhook_url=result.get('webhookUrl'),
                 redirect_url=result.get('redirectUrl'),
                 is_alertable=result.get('isAlertable'),
+                schema=result.get('schema'),
                 overview=result.get('overview'),
             )
 

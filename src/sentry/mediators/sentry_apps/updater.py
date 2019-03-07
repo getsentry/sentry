@@ -8,6 +8,7 @@ from sentry.coreapi import APIError
 from sentry.constants import SentryAppStatus
 from sentry.mediators import Mediator, Param
 from sentry.mediators.param import if_param
+from sentry.models import SentryAppComponent
 from sentry.models.sentryapp import REQUIRED_EVENT_PERMISSIONS
 
 
@@ -19,6 +20,7 @@ class Updater(Mediator):
     webhook_url = Param(six.string_types, required=False)
     redirect_url = Param(six.string_types, required=False)
     is_alertable = Param(bool, required=False)
+    schema = Param(dict, required=False)
     overview = Param(six.string_types, required=False)
 
     def call(self):
@@ -69,3 +71,22 @@ class Updater(Mediator):
     @if_param('overview')
     def _update_overview(self):
         self.sentry_app.overview = self.overview
+
+    @if_param('schema')
+    def _update_schema(self):
+        self.sentry_app.schema = self.schema
+        self._delete_old_ui_components()
+        self._create_ui_components()
+
+    def _delete_old_ui_components(self):
+        SentryAppComponent.objects.filter(
+            sentry_app_id=self.app.id,
+        ).delete()
+
+    def _create_ui_components(self):
+        for element in self.schema.get('elements', []):
+            SentryAppComponent.objects.create(
+                type=element['type'],
+                sentry_app_id=self.app.id,
+                schema=element,
+            )
