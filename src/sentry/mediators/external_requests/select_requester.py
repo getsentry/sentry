@@ -80,7 +80,7 @@ class SelectRequester(Mediator):
         for option in resp:
             choices.append([option['label'], option['value']])
             if option.get('default'):
-                response['default'] = option['default']
+                response['default'] = [option['label'], option['value']]
 
         response['choices'] = choices
         return response

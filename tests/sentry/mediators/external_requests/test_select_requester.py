@@ -30,11 +30,22 @@ class TestSelectRequester(TestCase):
 
     @responses.activate
     def test_makes_request(self):
+        options = [
+            {
+                'label': 'An Issue',
+                'value': '123',
+                'default': True,
+            },
+            {
+                'label': 'Another Issue',
+                'value': '456',
+            },
 
+        ]
         responses.add(
             method=responses.GET,
             url='https://example.com/get-issues?projectSlug=boop&installationId=f3d37e3a-9a87-4651-8463-d375118f4996',
-            body='[{"label": "An Issue", "value": "12345"}]',
+            json=options,
             status=200,
             content_type='application/json',
         )
@@ -44,7 +55,13 @@ class TestSelectRequester(TestCase):
             project=self.project,
             uri='/get-issues',
         )
-        assert result == {'choices': [['An Issue', '12345']]}
+        assert result == {
+            'choices': [
+                ['An Issue', '123'],
+                ['Another Issue', '456']
+            ],
+            'default': ['An Issue', '123'],
+        }
 
         request = responses.calls[0].request
         assert request.headers['Sentry-App-Signature']
