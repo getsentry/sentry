@@ -2,9 +2,11 @@
 
 from __future__ import absolute_import
 
+import six
+
 from sentry.models import (
     Environment, OrganizationMember, OrganizationMemberTeam,
-    Project, EnvironmentProject, ProjectOption, ProjectOwnership, ProjectTeam,
+    Project, EnvironmentProject, ProjectOwnership, ProjectTeam,
     Release, ReleaseProject, ReleaseProjectEnvironment, Rule
 )
 from sentry.testutils import TestCase
@@ -224,138 +226,126 @@ class ProjectTest(TestCase):
         ).exists()
 
 
-class ProjectCopyTest(TestCase):
+class CopyProjectSettingsTest(TestCase):
     def setUp(self):
-        self.project = Project.objects.create(
-            slug='project',
-            organization_id=self.organization,
-        )
-        self.team = self.create_team()
-        self.add_project_environment(self.project, 'environment-1', True)
-        self.add_project_environment(self.project, 'environment-2')
+        super(CopyProjectSettingsTest, self).setUp()
+        self.login_as(user=self.user)
 
-        self.add_project_option(self.project, 'project-option-1', {'stuff': 'stuff'})
-        self.add_project_option(self.project, 'project-option-2', {})
+        self.options_dict = {
+            'sentry:resolve_age': 1,
+            'sentry:scrub_data': False,
+            'sentry:scrub_defaults': False,
+        }
+        self.other_project = self.create_project()
+        for key, value in six.iteritems(self.options_dict):
+            self.other_project.update_option(
+                key=key,
+                value=value,
+            )
 
-        ProjectTeam.objects.create(
-            project_id=self.project.id,
-            team_id=self.team,
-        )
-        ProjectOwnership.objects.create(
-            project_id=self.project.id,
-            raw='some text',
-            schema={'json': 'json'},
-            fallthrough=True,
-            is_active=True,
-        )
+        self.teams = [self.create_team(), self.create_team(), self.create_team()]
 
-        self.add_project_rule(self.project, 'rule-1')
-        self.add_project_rule(self.project, 'rule-2')
+        for team in self.teams:
+            ProjectTeam.objects.create(
+                team=team,
+                project=self.other_project,
+            )
 
-    def add_project_option(self, project, key, value=None):
-        ProjectOption.objects.create(
-            project_id=project.id,
-            key=key,
-            value=value
-        )
+        self.environments = [
+            self.create_environment(project=self.other_project),
+            self.create_environment(project=self.other_project)
+        ]
 
-    def add_project_environment(self, project, env_name, is_hidden=False):
-        EnvironmentProject.objects.create(
-            project_id=project.id,
-            environment=Environment.objects.create(
-                organization_id=project.organization_id,
-                name=env_name,
-            ),
-            is_hidden=is_hidden,
+        self.ownership = ProjectOwnership.objects.create(
+            project=self.other_project,
+            raw='{"hello":"hello"}',
+            schema={'hello': 'hello'},
         )
 
-    def add_project_rule(self, project, label, env=None, data=None, status=0):
         Rule.objects.create(
-            project_id=project,
-            environment=env,
-            label=label,
-            data=data,
-            status=status,
+            project=self.other_project,
+            label='rule1',
         )
-
-    def assert_project_environments(self, project, expected):
-        # expected = [(environement_name, is_hidden)]
-        project_envs = EnvironmentProject.objects.filter(
-            project_id=project.id
-        ).select_related('environment')
-        assert len(project_envs) == len(expected)
-        for project_env, (name, is_hidden) in zip(project_envs, expected):
-            assert project_env.environment.name == name
-            assert project_env.environment.is_hidden == is_hidden
-
-    def assert_project_options(self, project, expected):
-        # expected = [(key, value)]
-        project_options = ProjectOption.objects.filter(
-            project_id=project.id
+        Rule.objects.create(
+            project=self.other_project,
+            label='rule2',
         )
-        assert len(project_options) == len(expected)
-        for project_option, (key, value) in zip(project_options, expected):
-            assert project_option.key == key
-            assert project_option.value == value
+        Rule.objects.create(
+            project=self.other_project,
+            label='rule3',
+        )
+        # there is a default rule added to project
+        self.rules = Rule.objects.filter(project_id=self.other_project.id).order_by('label')
 
-    def assert_project_teams(self, project, expected):
+    def assert_other_project_settings_not_changed(self):
+        # other_project should not have changed. This should check that.
+        self.assert_settings_copied(self.other_project)
+
+    def assert_settings_copied(self, project):
+        for key, value in six.iteritems(self.options_dict):
+            assert project.get_option(key) == value
+
         project_teams = ProjectTeam.objects.filter(
             project_id=project.id,
-            team_id__in=expected,
+            team__in=self.teams
         )
-        assert len(project_teams) == len(expected)
+        assert len(project_teams) == len(self.teams)
 
-    def assert_project_ownership(self, project, expected):
-        ownership = ProjectOwnership.objects.get(
+        project_env = EnvironmentProject.objects.filter(
+            project_id=project.id,
+            environment__in=self.environments,
+        )
+        assert len(project_env) == len(self.environments)
+
+        ownership = ProjectOwnership.objects.get(project_id=project.id)
+        assert ownership.raw == self.ownership.raw
+        assert ownership.schema == self.ownership.schema
+
+        rules = Rule.objects.filter(
             project_id=project.id
-        )
-        assert ownership.raw == expected['raw']
-        assert ownership.schema == expected['schema']
-        assert ownership.fallthrough == expected['fallthrough']
-        assert ownership.is_active == expected['is_active']
+        ).order_by('label')
+        for rule, other_rule in zip(rules, self.rules):
+            assert rule.label == other_rule.label
 
-    def assert_project_rule(self, project, expected):
-        project_rules = Rule.objects.filter(
-            project_id=project.id
-        )
-        for rule, label in zip(project_rules, expected):
-            assert rule.label == label
+    def assert_settings_not_copied(self, project, teams=[]):
+        for key in six.iterkeys(self.options_dict):
+            assert project.get_option(key) is None
 
-    def copy_project_settings(self):
+        project_teams = ProjectTeam.objects.filter(
+            project_id=project.id,
+            team__in=teams,
+        )
+        assert len(project_teams) == len(teams)
+
+        project_envs = EnvironmentProject.objects.filter(
+            project_id=project.id,
+        )
+        assert len(project_envs) == 0
+
+        assert not ProjectOwnership.objects.filter(project_id=project.id).exists()
+
+        # default rule
+        rules = Rule.objects.filter(project_id=project.id)
+        assert len(rules) == 1
+        assert rules[0].label == 'Send a notification for new issues'
+
+    def test_simple(self):
         project = self.create_project()
 
-        assert project.copy_settings_from(self.project)
+        assert project.copy_settings_from(self.other_project.id)
+        self.assert_settings_copied(project)
+        self.assert_other_project_settings_not_changed()
 
-        # assert the settings were copied
-        project = Project.objects.get(project_id=project.id)
-        expected_env = [('environment-1', True), ('environment-2', False)]
-        self.assert_project_environments(project, expected_env)
-        expected_option = [('project-option-1', {'stuff': 'stuff'}), ('project-option-2', {})]
-        self.assert_project_options(project, expected_option)
-        self.assert_project_teams(project, [self.team.id])
-        self.assert_project_ownership(project, {
-            'raw': 'some text', 'schema': {'json': 'json'},
-            'fallthrough': True, 'is_active': True
-        })
-        self.assert_project_rules(project, ['rule-1', 'rule-2'])
-
-        # assert the settings of the copied from were not changed
-        project = Project.objects.get(project_id=self.project.id)
-        self.assert_project_environments(
-            project,
-            [
-                ('environment-1', True),
-                ('environment-2', False)
-            ]
+    def test_copy_with_previous_settings(self):
+        project = self.create_project()
+        project.update_option('sentry:resolve_age', 200)
+        ProjectTeam.objects.create(
+            team=self.create_team(),
+            project=project,
         )
-        expected_option = [('project-option-1', {'stuff': 'stuff'}), ('project-option-2', {})]
-        self.assert_project_options(project, expected_option)
-        self.assert_project_teams(project, [self.team.id])
-        self.assert_project_ownership(project, {
-            'raw': 'some text', 'schema': {'json': 'json'},
-            'fallthrough': True, 'is_active': True
-        })
-        self.assert_project_rules(project, ['rule-1', 'rule-2'])
+        self.create_environment(project=project)
+        Rule.objects.filter(project_id=project.id)[0]
 
-    def copy_with_previous_settings(self):
-        pass
+        assert project.copy_settings_from(self.other_project.id)
+        self.assert_settings_copied(project)
+        self.assert_other_project_settings_not_changed()

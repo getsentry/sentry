@@ -738,6 +738,7 @@ class CopyProjectSettingsTest(APITestCase):
         })
         assert resp.status_code == 200
         self.assert_settings_copied(project)
+        self.assert_other_project_settings_not_changed()
 
     def test_additional_params_in_payload(self):
         # Right now these are overwritten with the copied project's settings
