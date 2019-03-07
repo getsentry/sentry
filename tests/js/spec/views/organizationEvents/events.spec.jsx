@@ -1,4 +1,4 @@
-import {withRouter} from 'react-router';
+import {withRouter, browserHistory} from 'react-router';
 import React from 'react';
 
 import OrganizationEvents, {parseRowFromLinks} from 'app/views/organizationEvents/events';
@@ -394,6 +394,29 @@ describe('OrganizationEventsContainer', function() {
       expect.objectContaining({
         query: {project: [2], statsPeriod: '14d'},
       })
+    );
+  });
+
+  it('handles direct event hit', async function() {
+    const eventId = 'a'.repeat(32);
+
+    browserHistory.replace = jest.fn();
+    eventsMock = MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/events/',
+      body: (url, opts) => [
+        TestStubs.OrganizationEvent({...opts.query, eventID: eventId}),
+      ],
+      headers: {'X-Sentry-Direct-Hit': '1'},
+    });
+
+    wrapper = mount(
+      <OrganizationEvents organization={organization} location={{query: eventId}} />,
+      routerContext
+    );
+
+    expect(eventsMock).toHaveBeenCalled();
+    expect(browserHistory.replace).toHaveBeenCalledWith(
+      `/organizations/org-slug/projects/project-slug/events/${eventId}/`
     );
   });
 });
