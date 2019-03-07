@@ -2,7 +2,6 @@ from __future__ import absolute_import
 
 import logging
 
-from django.db import transaction
 from rest_framework import serializers
 from rest_framework.response import Response
 from uuid import uuid4
@@ -98,7 +97,12 @@ class OrganizationRepositoryDetailsEndpoint(OrganizationEndpoint):
         except Repository.DoesNotExist:
             raise ResourceDoesNotExist
 
-        if repo.status in [ObjectStatus.VISIBLE, ObjectStatus.DISABLED]:
+        updated = Repository.objects.filter(
+            id=repo.id,
+            status__in=[ObjectStatus.VISIBLE, ObjectStatus.DISABLED],
+        ).update(status=ObjectStatus.PENDING_DELETION)
+
+        if updated:
             repo.status = ObjectStatus.PENDING_DELETION
 
             transaction_id = get_transaction_id()
@@ -110,9 +114,7 @@ class OrganizationRepositoryDetailsEndpoint(OrganizationEndpoint):
 
             countdown = 3600 if has_commits else 0
 
-            with transaction.atomic():
-                #  rename_on_pending_deletion saves the model.
-                repo.rename_on_pending_deletion()
+            repo.rename_on_pending_deletion()
 
             delete_repository.apply_async(
                 kwargs={

@@ -592,8 +592,11 @@ class ProjectDetailsEndpoint(ProjectEndpoint):
                 status=status.HTTP_403_FORBIDDEN
             )
 
-        if project.status == ProjectStatus.VISIBLE:
-            project.status = ProjectStatus.PENDING_DELETION
+        updated = Project.objects.filter(
+            id=project.id,
+            status=ProjectStatus.VISIBLE,
+        ).update(status=ProjectStatus.PENDING_DELETION)
+        if updated:
             transaction_id = uuid4().hex
 
             delete_project.apply_async(
@@ -621,8 +624,7 @@ class ProjectDetailsEndpoint(ProjectEndpoint):
                     'model': type(project).__name__,
                 }
             )
-            with transaction.atomic:
-                #  rename_on_pending_deletion saves the model.
-                project.rename_on_pending_deletion()
+
+            project.rename_on_pending_deletion()
 
         return Response(status=204)
