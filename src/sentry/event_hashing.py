@@ -322,6 +322,7 @@ def get_calculated_grouping_variants_for_event(event):
 
 
 def get_grouping_variants_for_event(event):
+    """Returns a dict of all grouping variants for this event."""
     # If a checksum is set the only variant that comes back from this
     # event is the checksum variant.
     checksum = event.data.get('checksum')
@@ -362,53 +363,3 @@ def get_grouping_variants_for_event(event):
             rv[key] = SaltedComponentVariant(fingerprint, component)
 
     return rv
-
-
-# legacy functionality follows:
-#
-# This is at present still the main grouping code in the event processing
-# but it should be possible to replace all of these with
-# `get_grouping_variants_for_event` once we feel more confident that no
-# regression ocurred.
-
-
-def get_hashes_for_event(event):
-    interfaces = event.get_interfaces()
-    for interface in six.itervalues(interfaces):
-        result = interface.compute_hashes(event.platform)
-        if not result:
-            continue
-        return result
-    return ['']
-
-
-def get_hashes_from_fingerprint(event, fingerprint):
-    if any(d in fingerprint for d in DEFAULT_FINGERPRINT_VALUES):
-        default_hashes = get_hashes_for_event(event)
-        hash_count = len(default_hashes)
-    else:
-        hash_count = 1
-
-    hashes = []
-    for idx in range(hash_count):
-        result = []
-        for bit in fingerprint:
-            if bit in DEFAULT_FINGERPRINT_VALUES:
-                result.extend(default_hashes[idx])
-            else:
-                result.append(bit)
-        hashes.append(result)
-    return hashes
-
-
-def calculate_event_hashes(event):
-    # If a checksum is set, use that one.
-    checksum = event.data.get('checksum')
-    if checksum:
-        if HASH_RE.match(checksum):
-            return [checksum]
-        return [hash_from_values([checksum]), checksum]
-
-    # Otherwise go with the new style fingerprint code
-    fingerprint = event.data.get('fingerprint') or ['{{ default }}']
-    return [hash_from_values(h) for h in get_hashes_from_fingerprint(event, fingerprint)]
