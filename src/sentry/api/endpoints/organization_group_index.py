@@ -7,6 +7,7 @@ from django.conf import settings
 
 from rest_framework.response import Response
 
+from sentry import features
 from sentry.api.bases import OrganizationEventsEndpointBase, OrganizationEventPermission
 from sentry.api.helpers.group_index import (
     build_query_params_from_request, delete_groups, get_by_short_id, update_groups, ValidationError
@@ -103,6 +104,12 @@ class OrganizationGroupIndexEndpoint(OrganizationEventsEndpointBase):
 
         if not projects:
             return Response([])
+
+        if len(projects) > 1 and not features.has(
+                'organizations:global-views', organization, actor=request.user):
+            return Response({
+                'detail': 'You do not have the multi project stream feature enabled'
+            }, status=400)
 
         # we ignore date range for both short id and event ids
         query = request.GET.get('query', '').strip()
@@ -229,6 +236,11 @@ class OrganizationGroupIndexEndpoint(OrganizationEventsEndpointBase):
         """
 
         projects = self.get_projects(request, organization)
+        if len(projects) > 1 and not features.has(
+                'organizations:global-views', organization, actor=request.user):
+            return Response({
+                'detail': 'You do not have the multi project stream feature enabled'
+            }, status=400)
 
         search_fn = functools.partial(
             self._search, request, organization, projects,
@@ -262,6 +274,11 @@ class OrganizationGroupIndexEndpoint(OrganizationEventsEndpointBase):
         :auth: required
         """
         projects = self.get_projects(request, organization)
+        if len(projects) > 1 and not features.has(
+                'organizations:global-views', organization, actor=request.user):
+            return Response({
+                'detail': 'You do not have the multi project stream feature enabled'
+            }, status=400)
 
         search_fn = functools.partial(
             self._search, request, organization, projects,

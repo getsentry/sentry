@@ -58,6 +58,19 @@ class GroupListTest(APITestCase, SnubaTestCase):
         assert len(response.data) == 1
         assert response.data[0]['id'] == six.text_type(group1.id)
 
+    def test_feature_gate(self):
+        # ensure there are two or more projects
+        self.create_project(organization=self.project.organization)
+        self.login_as(user=self.user)
+
+        response = self.get_response()
+        assert response.status_code == 400
+        assert response.data['detail'] == 'You do not have the multi project stream feature enabled'
+
+        with self.feature('organizations:global-views'):
+            response = self.get_response()
+            assert response.status_code == 200
+
     def test_invalid_query(self):
         now = timezone.now()
         self.create_group(
@@ -292,7 +305,8 @@ class GroupListTest(APITestCase, SnubaTestCase):
             group=group2,
             datetime=now - timedelta(seconds=1),
         )
-        response = self.get_valid_response(**{'first-release': '"%s"' % release.version})
+        with self.feature('organizations:global-views'):
+            response = self.get_valid_response(**{'first-release': '"%s"' % release.version})
         issues = json.loads(response.content)
         assert len(issues) == 2
         assert int(issues[0]['id']) == group2.id
@@ -771,10 +785,11 @@ class GroupUpdateTest(APITestCase, SnubaTestCase):
         )
 
         self.login_as(user=self.user)
-        response = self.get_valid_response(
-            qs_params={'id': [group1.id, group2.id], 'group4': group4.id},
-            status='resolved',
-        )
+        with self.feature('organizations:global-views'):
+            response = self.get_valid_response(
+                qs_params={'id': [group1.id, group2.id], 'group4': group4.id},
+                status='resolved',
+            )
         assert response.data == {
             'status': 'resolved',
             'statusDetails': {},
@@ -1281,10 +1296,11 @@ class GroupUpdateTest(APITestCase, SnubaTestCase):
         )
 
         self.login_as(user=self.user)
-        response = self.get_valid_response(
-            qs_params={'id': [group1.id, group2.id], 'group4': group4.id},
-            isBookmarked='true',
-        )
+        with self.feature('organizations:global-views'):
+            response = self.get_valid_response(
+                qs_params={'id': [group1.id, group2.id], 'group4': group4.id},
+                isBookmarked='true',
+            )
         assert response.data == {
             'isBookmarked': True,
         }
@@ -1320,10 +1336,11 @@ class GroupUpdateTest(APITestCase, SnubaTestCase):
         group4 = self.create_group(project=self.create_project(slug='foo'), checksum='b' * 32)
 
         self.login_as(user=self.user)
-        response = self.get_valid_response(
-            qs_params={'id': [group1.id, group2.id], 'group4': group4.id},
-            isSubscribed='true',
-        )
+        with self.feature('organizations:global-views'):
+            response = self.get_valid_response(
+                qs_params={'id': [group1.id, group2.id], 'group4': group4.id},
+                isSubscribed='true',
+            )
         assert response.data == {
             'isSubscribed': True,
             'subscriptionDetails': {
@@ -1409,10 +1426,11 @@ class GroupUpdateTest(APITestCase, SnubaTestCase):
         )
 
         self.login_as(user=self.user)
-        response = self.get_valid_response(
-            qs_params={'id': [group1.id, group2.id], 'group4': group4.id},
-            hasSeen='true',
-        )
+        with self.feature('organizations:global-views'):
+            response = self.get_valid_response(
+                qs_params={'id': [group1.id, group2.id], 'group4': group4.id},
+                hasSeen='true',
+            )
         assert response.data == {
             'hasSeen': True,
         }
@@ -1627,9 +1645,10 @@ class GroupDeleteTest(APITestCase, SnubaTestCase):
             )
 
         self.login_as(user=self.user)
-        response = self.get_response(
-            qs_params={'id': [group1.id, group2.id], 'group4': group4.id},
-        )
+        with self.feature('organizations:global-views'):
+            response = self.get_response(
+                qs_params={'id': [group1.id, group2.id], 'group4': group4.id},
+            )
 
         mock_eventstream_api.start_delete_groups.assert_called_once_with(
             group1.project_id, [group1.id, group2.id])
@@ -1651,9 +1670,10 @@ class GroupDeleteTest(APITestCase, SnubaTestCase):
         Group.objects.filter(id__in=(group1.id, group2.id)).update(status=GroupStatus.UNRESOLVED)
 
         with self.tasks():
-            response = self.get_response(
-                qs_params={'id': [group1.id, group2.id], 'group4': group4.id},
-            )
+            with self.feature('organizations:global-views'):
+                response = self.get_response(
+                    qs_params={'id': [group1.id, group2.id], 'group4': group4.id},
+                )
 
         mock_eventstream_task.end_delete_groups.assert_called_once_with(eventstream_state)
 
