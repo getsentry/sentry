@@ -63,7 +63,8 @@ class FromUserTest(TestCase):
         assert result.has_project_access(project)
         assert result.has_projects_access([project])
         assert result.has_project_scope(project, 'project:read')
-        assert result.has_project_membership(project)
+        # owners should have access but not membership
+        assert result.has_project_membership(project) is False
 
     def test_member_no_teams_closed_membership(self):
         user = self.create_user()

@@ -206,8 +206,16 @@ class GetProjectIdsTest(BaseOrganizationEndpointTest):
         self.run_test([])
         # Should get everything if super user
         self.run_test([self.project_1, self.project_2], user=self.user, active_superuser=True)
+
+        # owner does not see projects they aren't members of if not included in query params
+        self.run_test([], user=self.owner)
+
         # owner sees projects they have access to if they're included as query params
-        self.run_test([self.project_1, self.project_2], user=self.owner)
+        self.run_test(
+            [self.project_1, self.project_2],
+            user=self.owner,
+            project_ids=[self.project_1.id, self.project_2.id],
+        )
         # Should get everything if org is public and ids are specified
         self.org.flags.allow_joinleave = True
         self.org.save()
