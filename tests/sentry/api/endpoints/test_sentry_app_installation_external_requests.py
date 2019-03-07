@@ -52,7 +52,7 @@ class SentryAppInstallationExternalRequestsEndpointTest(APITestCase):
         response = self.client.get(url, format='json')
         assert response.status_code == 200
         assert response.data == {
-            'choices': [['Project Name', '1234']]
+            'choices': [['1234', 'Project Name']]
         }
 
     @responses.activate
