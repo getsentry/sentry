@@ -146,14 +146,12 @@ exports[`CreateProject should render roles when available and allowed, and handl
         selectedRole="member"
         setRole={[Function]}
       >
-        <Panel
-          className="new-invite-role"
-        >
+        <Panel>
           <Component
-            className="new-invite-role css-yahxlu-Panel e1laxa7d0"
+            className="css-yahxlu-Panel e1laxa7d0"
           >
             <div
-              className="new-invite-role css-yahxlu-Panel e1laxa7d0"
+              className="css-yahxlu-Panel e1laxa7d0"
             >
               <PanelHeader>
                 <Component
@@ -398,14 +396,12 @@ exports[`CreateProject should render roles when available and allowed, and handl
           }
           selectedTeams={Array []}
         >
-          <Panel
-            className="new-invite-team"
-          >
+          <Panel>
             <Component
-              className="new-invite-team css-yahxlu-Panel e1laxa7d0"
+              className="css-yahxlu-Panel e1laxa7d0"
             >
               <div
-                className="new-invite-team css-yahxlu-Panel e1laxa7d0"
+                className="css-yahxlu-Panel e1laxa7d0"
               >
                 <PanelHeader
                   hasButtons={true}

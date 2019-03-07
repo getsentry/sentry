@@ -112,7 +112,7 @@ class TeamSelect extends React.Component {
 
   render() {
     return (
-      <Panel className="new-invite-team">
+      <Panel>
         <PanelHeader hasButtons={true}>
           {t('Team')}
           {this.renderTeamAddDropDown()}
