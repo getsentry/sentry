@@ -41,6 +41,7 @@ class MessageTest(TestCase):
         assert self.interface.get_grouping_component().as_dict() == {
             'hint': None,
             'id': 'message',
+            'name': 'message',
             'contributes': True,
             'values': ['Hello there %s!'],
         }
@@ -54,6 +55,7 @@ class MessageTest(TestCase):
         assert interface.get_grouping_component().as_dict() == {
             'hint': None,
             'id': 'message',
+            'name': 'message',
             'contributes': True,
             'values': ['Hello there world!'],
         }

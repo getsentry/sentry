@@ -819,7 +819,8 @@ SENTRY_FEATURES = {
     'organizations:sentry-apps': False,
     # Enable inviting members to organizations.
     'organizations:invite-members': True,
-
+    # Turns on grouping info.
+    'organizations:grouping-info': False,
 
     # DEPRECATED: pending removal.
     'organizations:js-loader': False,

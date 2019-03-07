@@ -9,6 +9,7 @@ import EventContexts from 'app/components/events/contexts';
 import EventContextSummary from 'app/components/events/contextSummary';
 import EventDataSection from 'app/components/events/eventDataSection';
 import EventErrors from 'app/components/events/errors';
+import EventGroupingInfo from 'app/components/events/groupingInfo';
 import EventExtraData from 'app/components/events/extraData';
 import EventPackageData from 'app/components/events/packageData';
 import EventTags from 'app/components/events/eventTags';
@@ -202,6 +203,10 @@ class EventEntries extends React.Component {
               )}
             </div>
           )}{' '}
+        {!isShare &&
+          features.has('grouping-info') && (
+            <EventGroupingInfo group={group} event={event} />
+          )}
       </div>
     );
   }

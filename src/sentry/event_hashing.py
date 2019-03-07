@@ -15,6 +15,20 @@ DEFAULT_HINTS = {
     'salt': 'a static salt',
 }
 
+# When a component ID appears here it has a human readable name which also
+# makes it a major component.  A major component is described as such for
+# the UI.
+KNOWN_MAJOR_COMPONENT_NAMES = {
+    'app': 'in-app',
+    'exception': 'exception',
+    'stacktrace': 'stacktrace',
+    'threads': 'thread',
+    'hostname': 'hostname',
+    'violation': 'violation',
+    'uri': 'URL',
+    'message': 'message',
+}
+
 
 def _calculate_contributes(values):
     for value in values or ():
@@ -39,6 +53,30 @@ class GroupingComponent(object):
         if values is None:
             values = []
         self.values = values
+
+    @property
+    def name(self):
+        return KNOWN_MAJOR_COMPONENT_NAMES.get(self.id)
+
+    @property
+    def description(self):
+        items = []
+
+        def _walk_components(c, stack):
+            stack.append(c.name)
+            for value in c.values:
+                if isinstance(value, GroupingComponent) and value.contributes:
+                    _walk_components(value, stack)
+            parts = filter(None, stack)
+            items.append(parts)
+            stack.pop()
+
+        _walk_components(self, [])
+        items.sort(key=lambda x: (len(x), x))
+
+        if items and items[-1]:
+            return ' '.join(items[-1])
+        return self.name or 'others'
 
     def get_subcomponent(self, id):
         """Looks up a subcomponent by the id and returns the first or `None`."""
@@ -87,6 +125,7 @@ class GroupingComponent(object):
         """Converts the component tree into a dictionary."""
         rv = {
             'id': self.id,
+            'name': self.name,
             'contributes': self.contributes,
             'hint': self.hint,
             'values': []
@@ -116,12 +155,17 @@ class BaseVariant(object):
     def get_hash(self):
         return None
 
+    @property
+    def description(self):
+        return self.type
+
     def _get_metadata_as_dict(self):
         return {}
 
     def as_dict(self):
         rv = {
             'type': self.type,
+            'description': self.description,
             'hash': self.get_hash(),
         }
         rv.update(self._get_metadata_as_dict())
@@ -139,8 +183,15 @@ class ChecksumVariant(BaseVariant):
     """A checksum variant returns a single hardcoded hash."""
     type = 'checksum'
 
-    def __init__(self, hash):
+    def __init__(self, hash, hashed=False):
         self.hash = hash
+        self.hashed = hashed
+
+    @property
+    def description(self):
+        if self.hashed:
+            return 'hashed legacy checksum'
+        return 'legacy checksum'
 
     def get_hash(self):
         return self.hash
@@ -154,6 +205,10 @@ class ComponentVariant(BaseVariant):
 
     def __init__(self, component):
         self.component = component
+
+    @property
+    def description(self):
+        return self.component.description
 
     def get_hash(self):
         return self.component.get_hash()
@@ -170,6 +225,10 @@ class CustomFingerprintVariant(BaseVariant):
 
     def __init__(self, values):
         self.values = values
+
+    @property
+    def description(self):
+        return 'custom fingerprint'
 
     def get_hash(self):
         return hash_from_values(self.values)
@@ -188,6 +247,10 @@ class SaltedComponentVariant(BaseVariant):
         self.values = values
         self.component = component
 
+    @property
+    def description(self):
+        return 'modified ' + self.component.description
+
     def get_hash(self):
         if not self.component.contributes:
             return None
@@ -202,7 +265,7 @@ class SaltedComponentVariant(BaseVariant):
     def _get_metadata_as_dict(self):
         return {
             'values': self.values,
-            'component': self.component,
+            'component': self.component.as_dict(),
         }
 
 
@@ -269,7 +332,7 @@ def get_grouping_variants_for_event(event):
             }
         return {
             'checksum': ChecksumVariant(checksum),
-            'hashed-checksum': ChecksumVariant(hash_from_values(checksum)),
+            'hashed-checksum': ChecksumVariant(hash_from_values(checksum), hashed=True),
         }
 
     # Otherwise we go to the various forms of fingerprint handling.
@@ -306,8 +369,7 @@ def get_grouping_variants_for_event(event):
 # This is at present still the main grouping code in the event processing
 # but it should be possible to replace all of these with
 # `get_grouping_variants_for_event` once we feel more confident that no
-# regression ocurred.  This is tested by
-# `test_variants.test_event_hash_variant` at the moment.
+# regression ocurred.
 
 
 def get_hashes_for_event(event):
