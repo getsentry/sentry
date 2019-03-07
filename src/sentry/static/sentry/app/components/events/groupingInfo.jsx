@@ -12,7 +12,7 @@ import KeyValueList from 'app/components/events/interfaces/keyValueList';
 
 import withApi from 'app/utils/withApi';
 
-const StyledGroupVariantList = styled('ul')`
+const GroupVariantList = styled('ul')`
   padding: 0;
   margin: 0;
   list-style: none;
@@ -20,42 +20,42 @@ const StyledGroupVariantList = styled('ul')`
   line-height: 18px;
 `;
 
-const StyledGroupVariantListItem = styled(({contributes, ...props}) => <li {...props} />)`
+const GroupVariantListItem = styled(({contributes, ...props}) => <li {...props} />)`
   padding: 15px 0 20px 0;
   margin-top: 15px;
   border-top: 1px solid ${p => p.theme.borderLighter};
   ${p => (p.contributes ? '' : 'color:' + p.theme.gray6)};
 `;
 
-const StyledGroupVariantTitle = styled('h5')`
+const GroupVariantTitle = styled('h5')`
   margin: 0 0 10px 0;
   color: inherit !important;
   text-transform: uppercase;
   font-size: 14px;
 `;
 
-const StyledGroupingComponentWrapper = styled('div')`
+const GroupingComponentBox = styled('div')`
   border-top: 1px solid ${p => p.theme.borderLighter};
   padding: 10px 0 0 0;
   margin-top: -10px;
 `;
 
-const StyledGroupingComponentList = styled('ul')`
+const GroupingComponentList = styled('ul')`
   padding: 0;
   margin: 0;
   list-style: none;
 `;
 
-const StyledGroupingComponentListItem = styled('li')`
+const GroupingComponentListItem = styled('li')`
   padding: 0;
   margin: 2px 0 1px 13px;
 `;
 
-const StyledGroupingComponent = styled(({contributes, ...props}) => <div {...props} />)`
+const GroupingComponentWrapper = styled(({contributes, ...props}) => <div {...props} />)`
   ${p => (p.contributes ? '' : 'color:' + p.theme.gray6)};
 `;
 
-const StyledGroupingValue = styled('code')`
+const GroupingValue = styled('code')`
   display: inline-block;
   margin: 1px 4px 1px 0;
   font-size: 12px;
@@ -90,21 +90,19 @@ class GroupingComponent extends React.Component {
           />
         );
       } else {
-        rv = <StyledGroupingValue>{JSON.stringify(value, null, 2)}</StyledGroupingValue>;
+        rv = <GroupingValue>{JSON.stringify(value, null, 2)}</GroupingValue>;
       }
-      return (
-        <StyledGroupingComponentListItem key={idx}>{rv}</StyledGroupingComponentListItem>
-      );
+      return <GroupingComponentListItem key={idx}>{rv}</GroupingComponentListItem>;
     });
 
     return (
-      <StyledGroupingComponent contributes={component.contributes}>
+      <GroupingComponentWrapper contributes={component.contributes}>
         <span>
           {component.name || component.id}
           {component.hint && <small>{` (${component.hint})`}</small>}
         </span>
-        <StyledGroupingComponentList>{children}</StyledGroupingComponentList>
-      </StyledGroupingComponent>
+        <GroupingComponentList>{children}</GroupingComponentList>
+      </GroupingComponentWrapper>
     );
   }
 }
@@ -170,7 +168,7 @@ class GroupVariant extends React.Component {
       <div>
         <KeyValueList data={data} isContextData />
         {component && (
-          <StyledGroupingComponentWrapper>
+          <GroupingComponentBox>
             {hasNonContributingComponent(component) && (
               <a className="pull-right" onClick={() => this.toggleNonContributing()}>
                 {this.state.showNonContributing
@@ -182,7 +180,7 @@ class GroupVariant extends React.Component {
               component={component}
               showNonContributing={this.state.showNonContributing}
             />
-          </StyledGroupingComponentWrapper>
+          </GroupingComponentBox>
         )}
       </div>
     );
@@ -191,10 +189,10 @@ class GroupVariant extends React.Component {
   render() {
     const {variant} = this.props;
     return (
-      <StyledGroupVariantListItem contributes={variant.hash !== null}>
-        <StyledGroupVariantTitle>{`by ${variant.description}`}</StyledGroupVariantTitle>
+      <GroupVariantListItem contributes={variant.hash !== null}>
+        <GroupVariantTitle>{`by ${variant.description}`}</GroupVariantTitle>
         {this.renderVariantDetails()}
-      </StyledGroupVariantListItem>
+      </GroupVariantListItem>
     );
   }
 }
@@ -298,9 +296,9 @@ class EventGroupingInfo extends React.Component {
     });
 
     return (
-      <StyledGroupVariantList>
+      <GroupVariantList>
         {variants.map(variant => <GroupVariant variant={variant} key={variant.key} />)}
-      </StyledGroupVariantList>
+      </GroupVariantList>
     );
   }
 
