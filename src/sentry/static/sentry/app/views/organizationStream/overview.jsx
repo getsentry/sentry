@@ -396,8 +396,9 @@ const OrganizationStream = createReactClass({
 
   onTagsChange(tags) {
     // Exclude the environment tag as it lives in global search.
+    // Exclude the timestamp tag since we use event.timestamp instead here
     this.setState({
-      tags: omit(tags, 'environment'),
+      tags: omit(tags, ['environment', 'timestamp']),
       tagsLoading: false,
     });
   },
@@ -670,6 +671,7 @@ const OrganizationStream = createReactClass({
             isSearchDisabled={this.state.isSidebarVisible}
             savedSearchList={this.state.savedSearchList}
             tagValueLoader={this.tagValueLoader}
+            tags={this.state.tags}
           />
 
           <Panel>

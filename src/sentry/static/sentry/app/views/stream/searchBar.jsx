@@ -54,6 +54,7 @@ class SearchBar extends React.Component {
     api: PropTypes.object,
     orgId: PropTypes.string.isRequired,
     tagValueLoader: PropTypes.func.isRequired,
+    supportedTags: PropTypes.object,
   };
 
   /**
@@ -74,11 +75,11 @@ class SearchBar extends React.Component {
   render() {
     return (
       <SmartSearchBar
-        {...this.props}
         onGetTagValues={this.getTagValues}
         supportedTags={TagStore.getAllTags()}
         defaultSearchItems={SEARCH_ITEMS}
         maxSearchItems={5}
+        {...this.props}
       />
     );
   }
