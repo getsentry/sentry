@@ -27,6 +27,7 @@ class IssueDetailsTest(AcceptanceTestCase):
             name='Bengal',
         )
         self.login_as(self.user)
+        self.dismiss_assistant()
 
     def create_sample_event(self, platform, default=None, sample_name=None):
         event = create_sample_event(
@@ -47,7 +48,6 @@ class IssueDetailsTest(AcceptanceTestCase):
             platform='python',
         )
 
-        self.dismiss_assistant()
         self.browser.get(
             u'/{}/{}/issues/{}/'.format(self.org.slug, self.project.slug, event.group.id)
         )
@@ -59,7 +59,6 @@ class IssueDetailsTest(AcceptanceTestCase):
             platform='cocoa',
         )
 
-        self.dismiss_assistant()
         self.browser.get(
             u'/{}/{}/issues/{}/'.format(self.org.slug, self.project.slug, event.group.id)
         )
@@ -72,7 +71,6 @@ class IssueDetailsTest(AcceptanceTestCase):
             platform='csharp'
         )
 
-        self.dismiss_assistant()
         self.browser.get(
             u'/{}/{}/issues/{}/'.format(self.org.slug, self.project.slug, event.group.id)
         )
@@ -85,7 +83,6 @@ class IssueDetailsTest(AcceptanceTestCase):
             platform='csharp'
         )
 
-        self.dismiss_assistant()
         self.browser.get(
             u'/{}/{}/issues/{}/'.format(self.org.slug, self.project.slug, event.group.id)
         )
@@ -115,7 +112,6 @@ class IssueDetailsTest(AcceptanceTestCase):
             sample_name='Rust',
         )
 
-        self.dismiss_assistant()
         self.browser.get(
             u'/{}/{}/issues/{}/'.format(self.org.slug, self.project.slug, event.group.id)
         )
@@ -138,8 +134,6 @@ class IssueDetailsTest(AcceptanceTestCase):
         event = self.create_sample_event(
             platform='pii'
         )
-
-        self.dismiss_assistant()
         self.browser.get(
             u'/{}/{}/issues/{}/'.format(self.org.slug, self.project.slug, event.group.id)
         )
@@ -151,7 +145,6 @@ class IssueDetailsTest(AcceptanceTestCase):
             platform='empty-exception'
         )
 
-        self.dismiss_assistant()
         self.browser.get(
             u'/{}/{}/issues/{}/'.format(self.org.slug, self.project.slug, event.group.id)
         )
@@ -163,7 +156,6 @@ class IssueDetailsTest(AcceptanceTestCase):
             platform='empty-stacktrace'
         )
 
-        self.dismiss_assistant()
         self.browser.get(
             u'/{}/{}/issues/{}/'.format(self.org.slug, self.project.slug, event.group.id)
         )
@@ -175,7 +167,6 @@ class IssueDetailsTest(AcceptanceTestCase):
             platform='invalid-interfaces'
         )
 
-        self.dismiss_assistant()
         self.browser.get(
             u'/{}/{}/issues/{}/'.format(self.org.slug, self.project.slug, event.group.id)
         )
@@ -189,7 +180,6 @@ class IssueDetailsTest(AcceptanceTestCase):
             platform='python',
         )
 
-        self.dismiss_assistant()
         self.browser.get(
             u'/{}/{}/issues/{}/activity/'.format(
                 self.org.slug, self.project.slug, event.group.id)
