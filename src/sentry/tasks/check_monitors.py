@@ -24,7 +24,10 @@ def check_monitors(current_datetime=None):
         type__in=[MonitorType.HEARTBEAT, MonitorType.CRON_JOB],
         next_checkin__lt=current_datetime,
     ).exclude(
-        status=MonitorStatus.DISABLED,
+        status__in=[
+            MonitorStatus.DISABLED,
+            MonitorStatus.PENDING_DELETION,
+            MonitorStatus.DELETION_IN_PROGRESS],
     )[:10000]
     for monitor in qs:
         logger.info('monitor.missed-checkin', extra={
