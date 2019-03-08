@@ -1,0 +1,6 @@
+{
+  "frame": {
+    "function": "main",
+    "module": "libfoo"
+  }
+}

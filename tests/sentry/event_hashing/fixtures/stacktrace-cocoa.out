@@ -1,0 +1,31 @@
+app:
+  hash: 'ce5019f4c12cad61eab861bd28799f52'
+  component:
+    app*
+      stacktrace*
+        frame*
+          filename*
+            u'/foo/bar/bar.m'
+          lineno*
+            1
+        frame (non app frame)
+          filename*
+            u'/foo/bar/baz.m'
+          lineno*
+            1
+--------------------------------------------------------------------------
+system:
+  hash: '9dd0730451d23eee1dc32b583ab66224'
+  component:
+    system*
+      stacktrace*
+        frame*
+          filename*
+            u'/foo/bar/bar.m'
+          lineno*
+            1
+        frame*
+          filename*
+            u'/foo/bar/baz.m'
+          lineno*
+            1

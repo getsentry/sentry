@@ -1,0 +1,6 @@
+{
+  "frame": {
+    "function": "lambda$work$1",
+    "module": "foo.bar.Baz"
+  }
+}
