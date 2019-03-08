@@ -31,6 +31,7 @@ class Updater(Mediator):
         self._update_redirect_url()
         self._update_is_alertable()
         self._update_overview()
+        self._update_schema()
         self.sentry_app.save()
         return self.sentry_app
 
@@ -80,13 +81,13 @@ class Updater(Mediator):
 
     def _delete_old_ui_components(self):
         SentryAppComponent.objects.filter(
-            sentry_app_id=self.app.id,
+            sentry_app_id=self.sentry_app.id,
         ).delete()
 
     def _create_ui_components(self):
         for element in self.schema.get('elements', []):
             SentryAppComponent.objects.create(
                 type=element['type'],
-                sentry_app_id=self.app.id,
+                sentry_app_id=self.sentry_app.id,
                 schema=element,
             )
