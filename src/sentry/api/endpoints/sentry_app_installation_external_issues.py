@@ -25,12 +25,15 @@ class SentryAppInstallationExternalIssuesEndpoint(SentryAppInstallationBaseEndpo
         except Group.DoesNotExist:
             return Response(status=404)
 
-        external_issue = IssueLinkCreator.run(
-            install=installation,
-            group=group,
-            action=request.DATA.get('action'),
-            fields=request.DATA.get('fields'),
-            uri=request.DATA.get('uri'),
-        )
+        try:
+            external_issue = IssueLinkCreator.run(
+                install=installation,
+                group=group,
+                action=request.DATA.get('action'),
+                fields=request.DATA.get('fields'),
+                uri=request.DATA.get('uri'),
+            )
+        except Exception:
+            return Response({'error': 'Error communicating with Sentry App service'}, status=400)
 
         return Response(serialize(external_issue))

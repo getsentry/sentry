@@ -34,8 +34,6 @@ class SentryAppInstallationExternalIssuesEndpointTest(APITestCase):
             args=[self.install.uuid],
         )
 
-
-class CreateExternalIssueTest(SentryAppInstallationExternalIssuesEndpointTest):
     @responses.activate
     @with_feature('organizations:sentry-apps')
     def test_creates_external_issue(self):
@@ -69,3 +67,24 @@ class CreateExternalIssueTest(SentryAppInstallationExternalIssuesEndpointTest):
             'displayName': 'ProjectName#issue-1',
             'webUrl': 'https://example.com/project/issue-id',
         }
+
+    @responses.activate
+    @with_feature('organizations:sentry-apps')
+    def test_external_issue_doesnt_get_created(self):
+        self.login_as(user=self.superuser, superuser=True)
+        data = {
+            'groupId': self.group.id,
+            'action': 'create',
+            'fields': {'title': 'Hello'},
+            'uri': '/create-issues',
+        }
+        responses.add(
+            method=responses.POST,
+            url='https://example.com/create-issues',
+            status=500,
+            content_type='application/json',
+        )
+
+        response = self.client.post(self.url, data=data, format='json')
+        assert response.status_code == 400
+        assert not PlatformExternalIssue.objects.all()
