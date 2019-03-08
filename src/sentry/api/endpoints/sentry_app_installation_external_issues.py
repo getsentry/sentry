@@ -6,7 +6,7 @@ from sentry import features
 from sentry.api.bases import SentryAppInstallationBaseEndpoint
 from sentry.api.serializers import serialize
 from sentry.mediators.external_issues import IssueLinkCreator
-from sentry.models import Group
+from sentry.models import Group, Project
 
 
 class SentryAppInstallationExternalIssuesEndpoint(SentryAppInstallationBaseEndpoint):
@@ -21,7 +21,12 @@ class SentryAppInstallationExternalIssuesEndpoint(SentryAppInstallationBaseEndpo
             Response({'detail': 'groupId is required'})
 
         try:
-            group = Group.objects.get(id=group_id)
+            group = Group.objects.get(
+                id=group_id,
+                project_id__in=Project.objects.filter(
+                    organization_id=installation.organization_id,
+                )
+            )
         except Group.DoesNotExist:
             return Response(status=404)
 
