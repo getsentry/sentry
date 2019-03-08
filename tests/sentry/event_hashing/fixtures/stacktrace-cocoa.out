@@ -1,31 +1,31 @@
 app:
-  hash: 'ce5019f4c12cad61eab861bd28799f52'
+  hash: '84ed5488c9c498282e0f1691b658f17f'
   component:
     app*
       stacktrace*
         frame*
-          filename*
-            u'/foo/bar/bar.m'
+          filename* (stripped to basename)
+            u'bar.m'
           lineno*
             1
         frame (non app frame)
-          filename*
-            u'/foo/bar/baz.m'
+          filename* (stripped to basename)
+            u'baz.m'
           lineno*
             1
 --------------------------------------------------------------------------
 system:
-  hash: '9dd0730451d23eee1dc32b583ab66224'
+  hash: '41156b93307634d3815da88429911825'
   component:
     system*
       stacktrace*
         frame*
-          filename*
-            u'/foo/bar/bar.m'
+          filename* (stripped to basename)
+            u'bar.m'
           lineno*
             1
         frame*
-          filename*
-            u'/foo/bar/baz.m'
+          filename* (stripped to basename)
+            u'baz.m'
           lineno*
             1

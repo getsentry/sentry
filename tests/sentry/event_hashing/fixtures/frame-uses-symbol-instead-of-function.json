@@ -1,7 +1,11 @@
 {
-  "frame": {
-    "function": "int main()",
-    "symbol": "_main",
-    "module": "libfoo"
+  "stacktrace": {
+    "frames": [
+      {
+        "function": "int main()",
+        "symbol": "_main",
+        "module": "libfoo"
+      }
+    ]
   }
 }

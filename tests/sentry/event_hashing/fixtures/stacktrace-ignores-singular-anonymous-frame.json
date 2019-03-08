@@ -23,5 +23,6 @@
         "in_app": false
       }
     ]
-  }
+  },
+  "platform": "javascript"
 }

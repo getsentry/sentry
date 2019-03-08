@@ -1,6 +1,10 @@
 {
-  "frame": {
-    "function": "main",
-    "module": "libfoo"
+  "stacktrace": {
+    "frames": [
+      {
+        "function": "main",
+        "module": "libfoo"
+      }
+    ]
   }
 }

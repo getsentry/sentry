@@ -521,7 +521,11 @@ class Frame(Interface):
         if self.module:
             if self.is_unhashable_module(platform):
                 module_component.update(
-                    values=[GroupingComponent(id='salt', values=['<module>'])],
+                    values=[GroupingComponent(
+                        id='salt',
+                        values=['<module>'],
+                        hint='normalized generated module name'
+                    )],
                     hint='ignored module',
                 )
             else:
@@ -577,7 +581,8 @@ class Frame(Interface):
                     function_component.update(values=[
                         GroupingComponent(
                             id='salt',
-                            values=['<function>']
+                            values=['<function>'],
+                            hint='normalized lambda function name'
                         )
                     ])
                 else:

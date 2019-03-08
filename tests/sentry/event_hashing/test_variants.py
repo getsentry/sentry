@@ -62,7 +62,8 @@ def test_event_hash_variant(infile):
 
     mgr = EventManager(data=input)
     mgr.normalize()
-    evt = Event(data=mgr.get_data())
+    data = mgr.get_data()
+    evt = Event(data=data, platform=data['platform'])
 
     rv = []
     for (key, value) in sorted(evt.get_grouping_variants().items()):

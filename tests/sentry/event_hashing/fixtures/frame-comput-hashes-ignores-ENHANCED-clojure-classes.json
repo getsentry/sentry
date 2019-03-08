@@ -1,6 +1,11 @@
 {
-  "frame": {
-    "function": "invoke",
-    "module": "sentry_clojure_example.core$_main$fn__1539"
-  }
+  "stacktrace": {
+    "frames": [
+      {
+        "function": "invoke",
+        "module": "sentry_clojure_example.core$_main$fn__1539"
+      }
+    ]
+  },
+  "platform": "java"
 }

@@ -1,7 +1,11 @@
 {
-  "frame": {
-    "function": "block in _conditional_callback_around_233",
-    "abs_path": "foo.py",
-    "filename": "foo.py"
+  "stacktrace": {
+    "frames": [
+      {
+        "function": "block in _conditional_callback_around_233",
+        "abs_path": "foo.py",
+        "filename": "foo.py"
+      }
+    ]
   }
 }

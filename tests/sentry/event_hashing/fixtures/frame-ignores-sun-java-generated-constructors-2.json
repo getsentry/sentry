@@ -1,6 +1,11 @@
 {
-  "frame": {
-    "function": "invoke",
-    "module": "sun.reflect.GeneratedConstructorAccessor2"
-  }
+  "stacktrace": {
+    "frames": [
+      {
+        "function": "invoke",
+        "module": "sun.reflect.GeneratedConstructorAccessor2"
+      }
+    ]
+  },
+  "platform": "java"
 }

@@ -13,5 +13,6 @@
         "filename": "a/bar.py"
       }
     ]
-  }
+  },
+  "platform": "python"
 }

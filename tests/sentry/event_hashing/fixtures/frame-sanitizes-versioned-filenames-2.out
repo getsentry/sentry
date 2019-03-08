@@ -1,2 +1,21 @@
-fallback:
-  hash: 'd41d8cd98f00b204e9800998ecf8427e'
+app:
+  hash: None
+  component:
+    app (stacktrace of system takes precedence)
+      stacktrace (ignored because hash matches system variant)
+        frame* (frame considered in-app because no frame is in-app)
+          filename* (removed version)
+            u'<version>/app/views/foo.html.erb'
+          context-line*
+            u'<% if @hotels.size > 0 %>'
+--------------------------------------------------------------------------
+system:
+  hash: 'babff59ccf75f6cade7c5805f6d9aa59'
+  component:
+    system*
+      stacktrace*
+        frame*
+          filename* (removed version)
+            u'<version>/app/views/foo.html.erb'
+          context-line*
+            u'<% if @hotels.size > 0 %>'
