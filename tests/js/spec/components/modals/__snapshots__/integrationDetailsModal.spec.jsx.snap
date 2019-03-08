@@ -10,6 +10,7 @@ exports[`IntegrationDetailsModal renders simple integration 1`] = `
         "org:read",
         "org:write",
         "org:admin",
+        "org:integrations",
         "project:read",
         "project:write",
         "project:admin",
@@ -188,6 +189,7 @@ exports[`IntegrationDetailsModal renders simple integration 1`] = `
           "org:read",
           "org:write",
           "org:admin",
+          "org:integrations",
           "project:read",
           "project:write",
           "project:admin",
@@ -376,6 +378,7 @@ exports[`IntegrationDetailsModal renders simple integration 1`] = `
           "org:read",
           "org:write",
           "org:admin",
+          "org:integrations",
           "project:read",
           "project:write",
           "project:admin",
@@ -459,6 +462,7 @@ exports[`IntegrationDetailsModal renders simple integration 1`] = `
               "org:read",
               "org:write",
               "org:admin",
+              "org:integrations",
               "project:read",
               "project:write",
               "project:admin",
@@ -514,6 +518,7 @@ exports[`IntegrationDetailsModal renders simple integration 1`] = `
                 "org:read",
                 "org:write",
                 "org:admin",
+                "org:integrations",
                 "project:read",
                 "project:write",
                 "project:admin",
@@ -586,6 +591,7 @@ exports[`IntegrationDetailsModal renders simple integration 1`] = `
                   "org:read",
                   "org:write",
                   "org:admin",
+                  "org:integrations",
                   "project:read",
                   "project:write",
                   "project:admin",
@@ -611,18 +617,15 @@ exports[`IntegrationDetailsModal renders simple integration 1`] = `
             requireAll={true}
           >
             <Tooltip
-              disabled={false}
-              title="You must be an Owner or Manager to install this."
+              disabled={true}
+              title="You must be an Owner, Manager or Admin to install this."
             >
-              <span
-                className="tip"
-                title="You must be an Owner or Manager to install this."
-              >
+              <span>
                 <AddButton
-                  disabled={true}
+                  disabled={false}
                 >
                   <AddIntegrationButton
-                    disabled={true}
+                    disabled={false}
                     onAddIntegration={[Function]}
                     priority="primary"
                     provider={
@@ -711,7 +714,7 @@ exports[`IntegrationDetailsModal renders simple integration 1`] = `
                           }
                         >
                           <Button
-                            disabled={true}
+                            disabled={false}
                             onClick={[Function]}
                             priority="primary"
                             size="small"
@@ -723,8 +726,7 @@ exports[`IntegrationDetailsModal renders simple integration 1`] = `
                           >
                             <StyledButton
                               aria-label="Add Installation"
-                              disabled={true}
-                              href={null}
+                              disabled={false}
                               onClick={[Function]}
                               priority="primary"
                               role="button"
@@ -734,13 +736,11 @@ exports[`IntegrationDetailsModal renders simple integration 1`] = `
                                   "marginLeft": "8px",
                                 }
                               }
-                              to={null}
                             >
                               <Component
                                 aria-label="Add Installation"
-                                className="css-1ujzp8g-StyledButton-getColors eqrebog0"
-                                disabled={true}
-                                href={null}
+                                className="css-zvpqlo-StyledButton-getColors eqrebog0"
+                                disabled={false}
                                 onClick={[Function]}
                                 priority="primary"
                                 role="button"
@@ -750,13 +750,11 @@ exports[`IntegrationDetailsModal renders simple integration 1`] = `
                                     "marginLeft": "8px",
                                   }
                                 }
-                                to={null}
                               >
                                 <button
                                   aria-label="Add Installation"
-                                  className="css-1ujzp8g-StyledButton-getColors eqrebog0"
-                                  disabled={true}
-                                  href={null}
+                                  className="css-zvpqlo-StyledButton-getColors eqrebog0"
+                                  disabled={false}
                                   onClick={[Function]}
                                   priority="primary"
                                   role="button"
@@ -766,7 +764,6 @@ exports[`IntegrationDetailsModal renders simple integration 1`] = `
                                       "marginLeft": "8px",
                                     }
                                   }
-                                  to={null}
                                 >
                                   <ButtonLabel
                                     priority="primary"
