@@ -417,12 +417,13 @@ class SnubaEvent(EventCommon):
         directly from Snuba data.
         """
         if name in ['user']:
-            return {
+            from sentry.interfaces.user import User
+            return User.to_python({
                 'id': self.user_id,
                 'email': self.email,
                 'username': self.username,
-                'ipAddress': self.ip_address,
-            }
+                'ip_address': self.ip_address,
+            })
         else:
             return self.interfaces.get(name)
 

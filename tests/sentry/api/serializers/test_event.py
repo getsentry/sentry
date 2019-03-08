@@ -228,10 +228,10 @@ class SnubaEventSerializerTest(TestCase):
         assert result['location'] == event.location
         assert result['culprit'] == event.culprit
         assert result['dateCreated'] == event.datetime
-        assert result['user']['id'] == event.user_id
+        assert result['user']['id'] == six.text_type(event.user_id)
         assert result['user']['email'] == event.email
         assert result['user']['username'] == event.username
-        assert result['user']['ipAddress'] == event.ip_address
+        assert result['user']['ip_address'] == event.ip_address
         assert result['tags'] == [{
             'key': 'user',
             'value': 'email:test@test.com',

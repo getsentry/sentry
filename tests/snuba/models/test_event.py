@@ -62,7 +62,6 @@ class SnubaEventTest(SnubaTestCase):
             )
             nodestore_data = nodestore.get(SnubaEvent.generate_node_id(self.proj1.id, self.event_id))
             assert data['event_id'] == nodestore_data['event_id']
-            assert set(data['tags'].items()) == set(nodestore_data['tags'])
         else:
             node_id = SnubaEvent.generate_node_id(self.proj1.id, self.event_id)
             nodestore.set(node_id, data)

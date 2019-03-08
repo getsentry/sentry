@@ -337,7 +337,7 @@ class SimpleEventSerializer(EventSerializer):
             'title': obj.title,
             'location': obj.location,
             'culprit': obj.culprit,
-            'user': obj.get_interface('user'),
+            'user': obj.get_interface('user').get_api_context(),
             'tags': tags,
             'platform': obj.platform,
             'dateCreated': obj.datetime,
