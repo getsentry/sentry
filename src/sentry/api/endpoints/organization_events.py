@@ -13,7 +13,8 @@ from sentry.api.serializers.models.event import SnubaEvent
 from sentry.api.serializers.snuba import SnubaTSResultSerializer
 from sentry.utils.dates import parse_stats_period
 from sentry.utils.snuba import raw_query
-
+from sentry.utils.validators import is_event_id
+from sentry.api.event_search import get_snuba_query_args
 
 SnubaTSResult = namedtuple('SnubaTSResult', ('data', 'start', 'end', 'rollup'))
 
@@ -21,6 +22,29 @@ SnubaTSResult = namedtuple('SnubaTSResult', ('data', 'start', 'end', 'rollup'))
 class OrganizationEventsEndpoint(OrganizationEventsEndpointBase):
 
     def get(self, request, organization):
+        # Check for a direct hit on event ID
+        query = request.GET.get('query', '').strip()
+        if is_event_id(query):
+            try:
+                snuba_args = get_snuba_query_args(
+                    query=u'id:{}'.format(query),
+                    params=self.get_filter_params(request, organization))
+
+                results = raw_query(
+                    selected_columns=SnubaEvent.selected_columns,
+                    referrer='api.organization-events',
+                    **snuba_args
+                )['data']
+
+                if len(results) == 1:
+                    response = Response(
+                        serialize([SnubaEvent(row) for row in results], request.user)
+                    )
+                    response['X-Sentry-Direct-Hit'] = '1'
+                    return response
+            except (OrganizationEventsError, NoProjects):
+                pass
+
         try:
             snuba_args = self.get_snuba_query_args(request, organization)
         except OrganizationEventsError as exc:

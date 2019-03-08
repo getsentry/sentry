@@ -513,6 +513,53 @@ class OrganizationEventsEndpointTest(OrganizationEventsTestBase):
         assert response.status_code == 200, response.content
         assert len(response.data) == 0
 
+    def test_event_id_direct_hit(self):
+        user = self.create_user()
+        org = self.create_organization()
+        team = self.create_team(organization=org)
+        self.create_member(organization=org, user=user, teams=[team])
+
+        self.login_as(user=user)
+
+        project = self.create_project(organization=org, teams=[team])
+        group = self.create_group(project=project)
+        self.create_event('a' * 32, group=group, message="best event", datetime=self.min_ago)
+
+        url = reverse(
+            'sentry-api-0-organization-events',
+            kwargs={
+                'organization_slug': org.slug,
+            }
+        )
+
+        response = self.client.get(url, {'query': 'a' * 32}, format='json')
+
+        assert response.status_code == 200, response.content
+        assert len(response.data) == 1
+        assert response['X-Sentry-Direct-Hit'] == '1'
+
+    def test_event_id_direct_hit_miss(self):
+        user = self.create_user()
+        org = self.create_organization()
+        team = self.create_team(organization=org)
+        self.create_member(organization=org, user=user, teams=[team])
+
+        self.login_as(user=user)
+
+        self.create_project(organization=org, teams=[team])
+
+        url = reverse(
+            'sentry-api-0-organization-events',
+            kwargs={
+                'organization_slug': org.slug,
+            }
+        )
+
+        response = self.client.get(url, {'query': 'a' * 32}, format='json')
+
+        assert response.status_code == 200, response.content
+        assert len(response.data) == 0
+
 
 class OrganizationEventsStatsEndpointTest(OrganizationEventsTestBase):
     def test_simple(self):
