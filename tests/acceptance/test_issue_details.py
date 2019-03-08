@@ -47,6 +47,7 @@ class IssueDetailsTest(AcceptanceTestCase):
             platform='python',
         )
 
+        self.dismiss_assistant()
         self.browser.get(
             u'/{}/{}/issues/{}/'.format(self.org.slug, self.project.slug, event.group.id)
         )
@@ -58,6 +59,7 @@ class IssueDetailsTest(AcceptanceTestCase):
             platform='cocoa',
         )
 
+        self.dismiss_assistant()
         self.browser.get(
             u'/{}/{}/issues/{}/'.format(self.org.slug, self.project.slug, event.group.id)
         )
@@ -70,6 +72,7 @@ class IssueDetailsTest(AcceptanceTestCase):
             platform='csharp'
         )
 
+        self.dismiss_assistant()
         self.browser.get(
             u'/{}/{}/issues/{}/'.format(self.org.slug, self.project.slug, event.group.id)
         )
@@ -82,6 +85,7 @@ class IssueDetailsTest(AcceptanceTestCase):
             platform='csharp'
         )
 
+        self.dismiss_assistant()
         self.browser.get(
             u'/{}/{}/issues/{}/'.format(self.org.slug, self.project.slug, event.group.id)
         )
@@ -93,6 +97,7 @@ class IssueDetailsTest(AcceptanceTestCase):
             platform='javascript'
         )
 
+        self.dismiss_assistant()
         self.browser.get(
             u'/{}/{}/issues/{}/events/{}/'.format(self.org.slug,
                                                   self.project.slug, event.group.id, event.id)
@@ -110,6 +115,7 @@ class IssueDetailsTest(AcceptanceTestCase):
             sample_name='Rust',
         )
 
+        self.dismiss_assistant()
         self.browser.get(
             u'/{}/{}/issues/{}/'.format(self.org.slug, self.project.slug, event.group.id)
         )
@@ -121,6 +127,7 @@ class IssueDetailsTest(AcceptanceTestCase):
             platform='cordova'
         )
 
+        self.dismiss_assistant()
         self.browser.get(
             u'/{}/{}/issues/{}/'.format(self.org.slug, self.project.slug, event.group.id)
         )
@@ -132,6 +139,7 @@ class IssueDetailsTest(AcceptanceTestCase):
             platform='pii'
         )
 
+        self.dismiss_assistant()
         self.browser.get(
             u'/{}/{}/issues/{}/'.format(self.org.slug, self.project.slug, event.group.id)
         )
@@ -143,6 +151,7 @@ class IssueDetailsTest(AcceptanceTestCase):
             platform='empty-exception'
         )
 
+        self.dismiss_assistant()
         self.browser.get(
             u'/{}/{}/issues/{}/'.format(self.org.slug, self.project.slug, event.group.id)
         )
@@ -154,6 +163,7 @@ class IssueDetailsTest(AcceptanceTestCase):
             platform='empty-stacktrace'
         )
 
+        self.dismiss_assistant()
         self.browser.get(
             u'/{}/{}/issues/{}/'.format(self.org.slug, self.project.slug, event.group.id)
         )
@@ -165,6 +175,7 @@ class IssueDetailsTest(AcceptanceTestCase):
             platform='invalid-interfaces'
         )
 
+        self.dismiss_assistant()
         self.browser.get(
             u'/{}/{}/issues/{}/'.format(self.org.slug, self.project.slug, event.group.id)
         )
@@ -178,6 +189,7 @@ class IssueDetailsTest(AcceptanceTestCase):
             platform='python',
         )
 
+        self.dismiss_assistant()
         self.browser.get(
             u'/{}/{}/issues/{}/activity/'.format(
                 self.org.slug, self.project.slug, event.group.id)
@@ -190,3 +202,6 @@ class IssueDetailsTest(AcceptanceTestCase):
         self.browser.wait_until('.entries')
         self.browser.wait_until('[data-test-id="linked-issues"]')
         self.browser.wait_until('[data-test-id="loaded-device-name"]')
+
+    def dismiss_assistant(self):
+        self.client.put('/assistant/', data={'guide_id': 1, 'status': 'viewed', 'useful': True})
