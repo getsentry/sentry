@@ -37,11 +37,9 @@ class OrganizationMemberDetail extends AsyncView {
 
   constructor(...args) {
     super(...args);
-    const {teams} = this.getOrganization();
 
     this.state = {
       ...this.state,
-      selectedTeams: new Set(teams.map(({slug}) => slug)),
       roleList: [],
       selectedRole: '',
       member: null,
@@ -115,44 +113,23 @@ class OrganizationMemberDetail extends AsyncView {
       });
   };
 
-  handleToggleTeam = slug => {
+  handleAddTeam = slug => {
     const {member} = this.state;
-    const selectedTeams = new Set(member.teams);
-    if (selectedTeams.has(slug)) {
-      selectedTeams.delete(slug);
-    } else {
-      selectedTeams.add(slug);
+    if (!member.teams.includes(slug)) {
+      member.teams.push(slug);
     }
+    this.setState({member});
+  };
+
+  handleRemoveTeam = slug => {
+    const {member} = this.state;
+    const teams = new Set(member.teams);
+    teams.delete(slug);
 
     this.setState({
       member: {
         ...member,
-        teams: Array.from(selectedTeams.values()),
-      },
-    });
-  };
-
-  allSelected = () => {
-    const {member} = this.state;
-    const {teams} = this.getOrganization();
-    return teams.length === member.teams.length;
-  };
-
-  handleSelectAll = () => {
-    let {selectedTeams} = this.state;
-    const {member} = this.state;
-    const {teams} = this.getOrganization();
-
-    if (this.allSelected()) {
-      selectedTeams.clear();
-    } else {
-      selectedTeams = new Set(teams.map(({slug}) => slug));
-    }
-
-    this.setState({
-      member: {
-        ...member,
-        teams: Array.from(selectedTeams.values()),
+        teams: Array.from(teams.values()),
       },
     });
   };
@@ -203,7 +180,8 @@ class OrganizationMemberDetail extends AsyncView {
 
   renderBody() {
     const {error, member} = this.state;
-    const {teams, access} = this.getOrganization();
+    const organization = this.getOrganization();
+    const access = organization.access;
 
     if (!member) return <NotFound />;
 
@@ -354,12 +332,11 @@ class OrganizationMemberDetail extends AsyncView {
         />
 
         <TeamSelect
-          teams={teams}
-          selectedTeams={new Set(member.teams)}
-          toggleTeam={this.handleToggleTeam}
+          organization={organization}
+          selectedTeams={member.teams}
           disabled={!canEdit}
-          onSelectAll={this.handleSelectAll}
-          allSelected={this.allSelected}
+          onAddTeam={this.handleAddTeam}
+          onRemoveTeam={this.handleRemoveTeam}
         />
 
         <Button

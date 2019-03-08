@@ -83,6 +83,11 @@ describe('OrganizationMembers', function() {
         require_link: true,
       },
     });
+    Client.addMockResponse({
+      url: '/organizations/org-id/teams/',
+      method: 'GET',
+      body: TestStubs.Team(),
+    });
     browserHistory.push.mockReset();
     OrganizationsStore.load([organization]);
   });
