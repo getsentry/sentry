@@ -232,14 +232,16 @@ exports[`ProjectCard renders 1`] = `
                               }
                             }
                           >
-                            <Container
+                            <Flex
+                              align="center"
                               className="css-1gy4gs4-StyledIdBadge ei886av6"
                             >
                               <Base
-                                className="ei886av6 css-1f3su1u-Container-StyledIdBadge e165dl3i0"
+                                align="center"
+                                className="ei886av6 css-v2wlq8-StyledIdBadge"
                               >
                                 <div
-                                  className="ei886av6 css-1f3su1u-Container-StyledIdBadge e165dl3i0"
+                                  className="ei886av6 css-v2wlq8-StyledIdBadge"
                                   is={null}
                                 >
                                   <StyledAvatar
@@ -270,7 +272,7 @@ exports[`ProjectCard renders 1`] = `
                                     size={24}
                                   >
                                     <Avatar
-                                      className="css-robds0-StyledAvatar e165dl3i1"
+                                      className="css-robds0-StyledAvatar e165dl3i0"
                                       hasTooltip={false}
                                       project={
                                         Object {
@@ -298,7 +300,7 @@ exports[`ProjectCard renders 1`] = `
                                       size={24}
                                     >
                                       <ProjectAvatar
-                                        className="css-robds0-StyledAvatar e165dl3i1"
+                                        className="css-robds0-StyledAvatar e165dl3i0"
                                         hasTooltip={false}
                                         project={
                                           Object {
@@ -326,7 +328,7 @@ exports[`ProjectCard renders 1`] = `
                                         size={24}
                                       >
                                         <PlatformList
-                                          className="css-robds0-StyledAvatar e165dl3i1"
+                                          className="css-robds0-StyledAvatar e165dl3i0"
                                           consistentWidth={false}
                                           direction="right"
                                           hasTooltip={false}
@@ -339,14 +341,14 @@ exports[`ProjectCard renders 1`] = `
                                           size={24}
                                         >
                                           <PlatformIcons
-                                            className="css-robds0-StyledAvatar e165dl3i1"
+                                            className="css-robds0-StyledAvatar e165dl3i0"
                                             consistentWidth={false}
                                             direction="right"
                                             max={1}
                                             size={24}
                                           >
                                             <div
-                                              className="e165dl3i1 css-1cou1l3-PlatformIcons-StyledAvatar ezvce7z0"
+                                              className="e165dl3i0 css-1cou1l3-PlatformIcons-StyledAvatar ezvce7z0"
                                               direction="right"
                                               max={1}
                                               size={24}
@@ -390,17 +392,17 @@ exports[`ProjectCard renders 1`] = `
                                   </StyledAvatar>
                                   <DisplayNameAndDescription>
                                     <Base
-                                      className="css-1h9j57p-DisplayNameAndDescription e165dl3i2"
+                                      className="css-1h9j57p-DisplayNameAndDescription e165dl3i1"
                                     >
                                       <div
-                                        className="css-1h9j57p-DisplayNameAndDescription e165dl3i2"
+                                        className="css-1h9j57p-DisplayNameAndDescription e165dl3i1"
                                         is={null}
                                       >
                                         <DisplayName
                                           data-test-id="badge-display-name"
                                         >
                                           <span
-                                            className="css-d0rtl9-DisplayName e165dl3i3"
+                                            className="css-d0rtl9-DisplayName e165dl3i2"
                                             data-test-id="badge-display-name"
                                           >
                                             <span>
@@ -413,7 +415,7 @@ exports[`ProjectCard renders 1`] = `
                                   </DisplayNameAndDescription>
                                 </div>
                               </Base>
-                            </Container>
+                            </Flex>
                           </BaseBadge>
                         </ProjectBadge>
                       </ErrorBoundary>

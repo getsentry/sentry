@@ -1,5 +1,6 @@
 import PropTypes from 'prop-types';
 import React from 'react';
+import styled from 'react-emotion';
 import createReactClass from 'create-react-class';
 import {Link} from 'react-router';
 import ApiMixin from 'app/mixins/apiMixin';
@@ -174,7 +175,11 @@ const GroupHeader = createReactClass({
                   <ShortId
                     shortId={group.shortId}
                     avatar={
-                      <ProjectBadge project={project} avatarSize={20} hideName={true} />
+                      <StyledProjectBadge
+                        project={project}
+                        avatarSize={20}
+                        hideName={true}
+                      />
                     }
                   />
                 </div>
@@ -237,5 +242,9 @@ const GroupHeader = createReactClass({
     );
   },
 });
+
+const StyledProjectBadge = styled(ProjectBadge)`
+  flex-shrink: 0;
+`;
 
 export default GroupHeader;
