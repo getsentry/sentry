@@ -1,6 +1,7 @@
 import {browserHistory} from 'react-router';
 import React from 'react';
 import createReactClass from 'create-react-class';
+import {pickBy} from 'lodash';
 
 import SentryTypes from 'app/sentryTypes';
 import {Panel, PanelBody} from 'app/components/panels';
@@ -72,7 +73,11 @@ const GroupEvents = createReactClass({
       error: false,
     });
 
-    const query = {...this.props.location.query, limit: 50, query: this.state.query};
+    const query = {
+      ...pickBy(this.props.location.query, ['cursor', 'environment']),
+      limit: 50,
+      query: this.state.query,
+    };
 
     this.api.request(`/issues/${this.props.params.groupId}/events/`, {
       query,

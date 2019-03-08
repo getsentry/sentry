@@ -252,6 +252,7 @@ const GroupDetails = createReactClass({
                 <GlobalSelectionHeader
                   organization={organization}
                   forceProject={project}
+                  showDateSelector={false}
                 />
               )}
               {isLoading ? (
