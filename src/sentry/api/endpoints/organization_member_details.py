@@ -119,7 +119,7 @@ class OrganizationMemberDetailsEndpoint(OrganizationEndpoint):
 
         try:
             member = self._get_member(request, organization, member_id)
-        except OrganizationMember.DoesNotExist:
+        except (ValueError, OrganizationMember.DoesNotExist):
             raise ResourceDoesNotExist
 
         _, allowed_roles = get_allowed_roles(request, organization, member)
@@ -131,7 +131,7 @@ class OrganizationMemberDetailsEndpoint(OrganizationEndpoint):
     def put(self, request, organization, member_id):
         try:
             om = self._get_member(request, organization, member_id)
-        except OrganizationMember.DoesNotExist:
+        except (ValueError, OrganizationMember.DoesNotExist):
             raise ResourceDoesNotExist
 
         serializer = OrganizationMemberSerializer(
@@ -228,7 +228,7 @@ class OrganizationMemberDetailsEndpoint(OrganizationEndpoint):
     def delete(self, request, organization, member_id):
         try:
             om = self._get_member(request, organization, member_id)
-        except OrganizationMember.DoesNotExist:
+        except (ValueError, OrganizationMember.DoesNotExist):
             raise ResourceDoesNotExist
 
         if request.user.is_authenticated() and not is_active_superuser(request):
