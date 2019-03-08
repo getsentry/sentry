@@ -268,7 +268,7 @@ class SaltedComponentVariant(BaseVariant):
         final_values = []
         for value in self.values:
             if value in DEFAULT_FINGERPRINT_VALUES:
-                final_values.extend(self.component.flatten_values())
+                final_values.extend(self.component.iter_values())
             else:
                 final_values.append(value)
         return hash_from_values(final_values)
