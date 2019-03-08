@@ -334,7 +334,7 @@ exports[`IntegrationDetailsModal renders simple integration 1`] = `
       type="warning"
     >
       <div
-        className="ref-warning css-3oyttp-AlertWrapper e1xb5l7j1"
+        className="ref-warning css-18igac0-AlertWrapper e1xb5l7j1"
         type="warning"
       >
         <StyledTextBlock>

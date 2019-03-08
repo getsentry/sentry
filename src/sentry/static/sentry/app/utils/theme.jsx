@@ -18,10 +18,12 @@ const theme = {
 
   blue: '#3B6ECC',
   blueLight: '#628BD6',
+  blueLightest: '#F5FAFE',
   blueDark: '#2F58A3',
 
   green: '#57be8c',
   greenLight: '#71D8A6',
+  greenLightest: '#f8fcf7',
   greenDark: '#3EA573',
   greenTransparent: 'rgba(87, 190, 140, 0.5)',
 
@@ -29,6 +31,7 @@ const theme = {
   yellowLightest: '#FFFDF7',
   yellowLight: '#FFF15E',
   yellowDark: '#e6bc23',
+  yellowDarkest: '#ecbb08',
 
   yellowOrange: '#f9a66d',
   yellowOrangeLight: '#FFC087',
@@ -40,6 +43,7 @@ const theme = {
 
   red: '#e03e2f',
   redLight: '#FA5849',
+  redLightest: '#FDF6F5',
   redDark: '#C72516',
 
   pink: '#F868BC',
@@ -89,39 +93,6 @@ const theme = {
     toast: 10001,
   },
 
-  alert: {
-    default: {
-      backgroundLight: '#FAF9FB',
-      background: '#BDB4C7',
-      border: '#E2DBE8',
-    },
-    info: {
-      backgroundLight: '#F5FAFE',
-      border: '#B5D6ED',
-    },
-    attention: {
-      backgroundLight: '#ECBFA6',
-      background: '#F09E71',
-      border: '#D0816D',
-    },
-    warning: {
-      backgroundLight: '#FFFDF7',
-      background: '#f9a66d',
-      border: '#E1D697',
-    },
-    success: {
-      backgroundLight: '#F8FCF7',
-      background: '#57be8c',
-      border: '#BBD6B3',
-    },
-    error: {
-      backgroundLight: '#FDF6F5',
-      border: '#E7C0BC',
-      textLight: '#92635f',
-    },
-    beta: {},
-  },
-
   grid: 8,
   fontSizeSmall: '12px',
   fontSizeMedium: '14px',
@@ -169,19 +140,41 @@ theme.success = theme.green;
 theme.error = theme.red;
 theme.disabled = theme.gray1;
 
-theme.alert.info.iconColor = theme.blue;
-theme.alert.info.background = theme.blue;
-
-theme.alert.warning.iconColor = theme.yellowDark;
-theme.alert.warning.background = theme.yellow;
-
-theme.alert.success.iconColor = theme.greenDark;
-theme.alert.success.background = theme.green;
-
-theme.alert.error.iconColor = theme.redDark;
-theme.alert.error.background = theme.red;
-
-theme.alert.beta.background = `linear-gradient(90deg, ${theme.pink}, ${theme.purple})`;
+theme.alert = {
+  default: {
+    backgroundLight: theme.offWhite,
+    background: theme.gray1,
+    border: theme.borderLight,
+  },
+  info: {
+    backgroundLight: theme.blueLightest,
+    border: theme.blueLight,
+    iconColor: theme.blue,
+    background: theme.blue,
+  },
+  warning: {
+    backgroundLight: theme.yellowLightest,
+    background: theme.yellowDarkest,
+    border: theme.yellowDark,
+    iconColor: theme.yellowDark,
+  },
+  success: {
+    backgroundLight: theme.greenLightest,
+    border: theme.green,
+    iconColor: theme.greenDark,
+    background: theme.green,
+  },
+  error: {
+    backgroundLight: theme.redLightest,
+    border: theme.redLight,
+    textLight: theme.redLight,
+    iconColor: theme.red,
+    background: theme.red,
+  },
+  beta: {
+    background: `linear-gradient(90deg, ${theme.pink}, ${theme.purple})`,
+  },
+};
 
 //alias warn to warning
 theme.alert.warn = theme.alert.warning;

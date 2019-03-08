@@ -39,7 +39,7 @@ exports[`ConfirmDelete renders 1`] = `
               type="error"
             >
               <div
-                className="ref-error css-1uh40hh-AlertWrapper e1xb5l7j1"
+                className="ref-error css-lpkrs2-AlertWrapper e1xb5l7j1"
                 type="error"
               >
                 <StyledTextBlock>
