@@ -1,6 +1,7 @@
 import PropTypes from 'prop-types';
 import React from 'react';
 import styled from 'react-emotion';
+import {debounce} from 'lodash';
 
 import {Box} from 'grid-emotion';
 import {t} from 'app/locale';
@@ -32,14 +33,14 @@ class TeamSelect extends React.Component {
     this.fetchTeams();
   }
 
-  fetchTeams(query) {
+  fetchTeams = debounce(query => {
     const {organization} = this.props;
     this.props.api
       .requestPromise(`/organizations/${organization.slug}/teams/`, {
-        query,
+        query: {query},
       })
       .then(teams => this.setState({teams}));
-  }
+  }, 100);
 
   handleQueryUpdate = event => {
     this.fetchTeams(event.target.value);
