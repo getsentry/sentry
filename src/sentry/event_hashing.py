@@ -103,23 +103,22 @@ class GroupingComponent(object):
         if contributes is not None:
             self.contributes = contributes
 
-    def flatten_values(self):
+    def iter_values(self):
         """Recursively walks the component and flattens it into a list of
         values.
         """
-        rv = []
         if self.contributes:
             for value in self.values:
                 if isinstance(value, GroupingComponent):
-                    rv.extend(value.flatten_values())
+                    for x in value.iter_values():
+                        yield x
                 else:
-                    rv.append(value)
-        return rv
+                    yield value
 
     def get_hash(self):
         """Returns the hash of the values if it contributes."""
         if self.contributes:
-            return hash_from_values(self.flatten_values())
+            return hash_from_values(self.iter_values())
 
     def as_dict(self):
         """Converts the component tree into a dictionary."""
@@ -150,7 +149,11 @@ class GroupingComponent(object):
 
 
 class BaseVariant(object):
+    # The type of the variant that is reported to the UI.
     type = None
+
+    # This is true if `get_hash` does not return `None`.
+    contributes = True
 
     def get_hash(self):
         return None
@@ -210,6 +213,10 @@ class ComponentVariant(BaseVariant):
     def description(self):
         return self.component.description
 
+    @property
+    def contributes(self):
+        return self.component.contributes
+
     def get_hash(self):
         return self.component.get_hash()
 
@@ -250,6 +257,10 @@ class SaltedComponentVariant(BaseVariant):
     @property
     def description(self):
         return 'modified ' + self.component.description
+
+    @property
+    def contributes(self):
+        return self.component.contributes
 
     def get_hash(self):
         if not self.component.contributes:
@@ -361,5 +372,12 @@ def get_grouping_variants_for_event(event):
     else:
         for (key, component) in six.iteritems(components):
             rv[key] = SaltedComponentVariant(fingerprint, component)
+
+    # Ensure we have a fallback hash if nothing else works out
+    if not any(x.contributes for x in six.itervalues(rv)):
+        rv['fallback'] = GroupingComponent(
+            id='fallback',
+            values=[''],
+        )
 
     return rv
