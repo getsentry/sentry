@@ -380,7 +380,7 @@ class SnubaEvent(EventCommon):
                 'project_id': [project_id],
             },
         )
-        if not 'error' in result and len(result['data']) == 1:
+        if 'error' not in result and len(result['data']) == 1:
             return SnubaEvent(result['data'][0])
         return None
 
