@@ -102,7 +102,7 @@ class GroupEventsEndpoint(GroupEndpoint, EnvironmentMixin):
                 'project_id': [group.project_id],
                 'issue': [group.id]
             },
-            selected_columns=SnubaEvent.selected_columns + ['tags.key', 'tags.value'],
+            selected_columns=SnubaEvent.selected_columns,
             orderby='-timestamp',
             referrer='api.group-events',
         )

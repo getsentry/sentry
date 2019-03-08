@@ -78,7 +78,7 @@ class EventSerializer(Serializer):
         )
 
     def _get_interface_with_meta(self, event, name, is_public=False):
-        interface = event.interfaces.get(name)
+        interface = event.get_interface(name)
         if not interface:
             return (None, None)
 
@@ -100,12 +100,13 @@ class EventSerializer(Serializer):
         tags = sorted(
             [
                 {
-                    'key': kv[0].split('sentry:', 1)[-1],
-                    'value': kv[1],
-                    '_meta': meta.get(kv[0]) or get_path(meta, six.text_type(i), '1') or None,
+                    'key': key.split('sentry:', 1)[-1],
+                    'value': value,
+                    '_meta': meta.get(key) or get_path(meta, six.text_type(i), '1') or None,
                 }
-                for i, kv in enumerate(event.data.get('tags') or ()) # TODO this should use event.tags() getter
-                if kv is not None and kv[0] is not None and kv[1] is not None],
+                # TODO this should be using the Event.tags getter
+                for i, (key, value) in enumerate(event.data.get('tags') or ())
+                if key is not None and value is not None],
             key=lambda x: x['key']
         )
 
@@ -236,6 +237,7 @@ class EventSerializer(Serializer):
             'id': six.text_type(obj.id),
             'groupID': six.text_type(obj.group_id),
             'eventID': six.text_type(obj.event_id),
+            'projectID': six.text_type(obj.project_id),
             'size': obj.size,
             'entries': attrs['entries'],
             'dist': obj.dist,
@@ -300,3 +302,43 @@ class SharedEventSerializer(EventSerializer):
         result['entries'] = [e for e in result['entries']
                              if e['type'] != 'breadcrumbs']
         return result
+
+
+class SimpleEventSerializer(EventSerializer):
+    """
+    Simple event serializer that renders a basic outline of an event without
+    most interfaces/breadcrumbs. This can be used for basic event list queries
+    where we don't need the full detail. The side effect is that, if the
+    serialized events are actually SnubaEvents, we can render them without
+    needing to fetch the event bodies from nodestore.
+    """
+
+    def get_attrs(self, item_list, user):
+        return {}
+
+    def serialize(self, obj, attrs, user):
+        tags = [{
+            'key': key.split('sentry:', 1)[-1],
+            'value': value,
+        } for key, value in obj.tags]
+        for tag in tags:
+            query = convert_user_tag_to_query(tag['key'], tag['value'])
+            if query:
+                tag['query'] = query
+
+        return {
+            'id': six.text_type(obj.id),
+            'groupID': six.text_type(obj.group_id),
+            'eventID': six.text_type(obj.event_id),
+            'projectID': six.text_type(obj.project_id),
+            # XXX for 'message' this doesn't do the proper resolution of logentry
+            # etc. that _get_legacy_message_with_meta does.
+            'message': obj.message,
+            'title': obj.title,
+            'location': obj.location,
+            'culprit': obj.culprit,
+            'user': obj.get_interface('user'),
+            'tags': tags,
+            'platform': obj.platform,
+            'dateCreated': obj.datetime,
+        }

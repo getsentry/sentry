@@ -80,6 +80,9 @@ class EventCommon(object):
     def interfaces(self):
         return CanonicalKeyView(get_interfaces(self.data))
 
+    def get_interface(self, name):
+        return self.interfaces.get(name)
+
     def get_legacy_message(self):
         # TODO(mitsuhiko): remove this code once it's unused.  It's still
         # being used by plugin code and once the message rename is through
@@ -278,10 +281,10 @@ class EventCommon(object):
 
         return data
 
-
     # ============================================
     # DEPRECATED
     # ============================================
+
     @property
     def level(self):
         # we might want to move to this:
@@ -345,15 +348,22 @@ class SnubaEvent(EventCommon):
         'event_id',
         'project_id',
         'message',
+        'title',
+        'location',
+        'culprit',
+        'timestamp',
+        'group_id',
+        'platform',
+
+        # Required to provide snuba-only tags
+        'tags.key',
+        'tags.value',
+
+        # Required to provide snuba-only 'user' interface
         'user_id',
         'username',
         'ip_address',
         'email',
-        'timestamp',
-        'group_id',
-        'platform',
-        'tags.key',
-        'tags.value',
     ]
 
     __repr__ = sane_repr('project_id', 'group_id')
@@ -376,13 +386,18 @@ class SnubaEvent(EventCommon):
 
     def __init__(self, snuba_values):
         assert set(snuba_values.keys()) == set(self.selected_columns)
+
         self.__dict__ = snuba_values
 
-        # TODO we could do this lazily when self.data is accessed
-        # or make Event.objects.bind_nodes work with SnubaEvent.
+        # This should be lazy loaded and will only be accessed if we access any
+        # properties on self.data
         node_id = SnubaEvent.generate_node_id(self.project_id, self.event_id)
         self.data = NodeData(None, node_id, data=None)
 
+    # ============================================
+    # Snuba-only implementations of properties that
+    # would otherwise require nodestore data.
+    # ============================================
     @property
     def tags(self):
         """
@@ -396,16 +411,23 @@ class SnubaEvent(EventCommon):
             return sorted(zip(keys, values))
         return []
 
-    @property
-    def next_event(self):
-        return None
-
-    @property
-    def prev_event(self):
-        return None
+    def get_interface(self, name):
+        """
+        Override of interface getter that lets us return some interfaces
+        directly from Snuba data.
+        """
+        if name in ['user']:
+            return {
+                'id': self.user_id,
+                'email': self.email,
+                'username': self.username,
+                'ipAddress': self.ip_address,
+            }
+        else:
+            return self.interfaces.get(name)
 
     # ============================================
-    # Replication of django stuff
+    # Snuba implementations of django Fields
     # ============================================
     @property
     def datetime(self):
@@ -427,6 +449,14 @@ class SnubaEvent(EventCommon):
         # the hex event_id here. We should be moving to a world where we never
         # have to reference the row id anyway.
         return self.event_id
+
+    @property
+    def next_event(self):
+        return None
+
+    @property
+    def prev_event(self):
+        return None
 
     def save(self):
         raise NotImplementedError
@@ -492,8 +522,8 @@ class Event(Model, EventCommon):
             group_id=self.group_id,
         ).exclude(id=self.id).order_by('datetime')[0:5]
 
-        events = [e for e in events if e.datetime == self.datetime and e.id > self.id
-                  or e.datetime > self.datetime]
+        events = [e for e in events if e.datetime == self.datetime and e.id > self.id or
+                  e.datetime > self.datetime]
         events.sort(key=EVENT_ORDERING_KEY)
         return events[0] if events else None
 
@@ -504,8 +534,8 @@ class Event(Model, EventCommon):
             group_id=self.group_id,
         ).exclude(id=self.id).order_by('-datetime')[0:5]
 
-        events = [e for e in events if e.datetime == self.datetime and e.id < self.id
-                  or e.datetime < self.datetime]
+        events = [e for e in events if e.datetime == self.datetime and e.id < self.id or
+                  e.datetime < self.datetime]
         events.sort(key=EVENT_ORDERING_KEY, reverse=True)
         return events[0] if events else None
 

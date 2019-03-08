@@ -6,7 +6,7 @@ from datetime import datetime
 
 import six
 
-from sentry.api.serializers import serialize
+from sentry.api.serializers import serialize, SimpleEventSerializer
 from sentry.api.serializers.models.event import (
     SharedEventSerializer,
     SnubaEvent,
@@ -203,6 +203,7 @@ class SharedEventSerializerTest(TestCase):
 
 class SnubaEventSerializerTest(TestCase):
     def test_user(self):
+        group = self.create_group()
         event = SnubaEvent({
             'event_id': 'a',
             'project_id': 1,
@@ -210,22 +211,25 @@ class SnubaEventSerializerTest(TestCase):
             'title': 'hi',
             'location': 'somewhere',
             'culprit': 'foo',
-            'timestamp': datetime.now(),
+            'timestamp': '2011-01-01T00:00:00Z',
             'user_id': 123,
             'email': 'test@test.com',
             'username': 'test',
             'ip_address': '192.168.0.1',
+            'platform': 'asdf',
+            'group_id': group.id,
             'tags.key': ['sentry:user'],
             'tags.value': ['email:test@test.com'],
         })
-        result = serialize(event)
+        result = serialize(event, None, SimpleEventSerializer())
         assert result['eventID'] == event.event_id
         assert result['projectID'] == six.text_type(event.project_id)
+        assert result['groupID'] == six.text_type(group.id)
         assert result['message'] == event.message
         assert result['title'] == event.title
         assert result['location'] == event.location
         assert result['culprit'] == event.culprit
-        assert result['dateCreated'] == event.timestamp
+        assert result['dateCreated'] == event.datetime
         assert result['user']['id'] == event.user_id
         assert result['user']['email'] == event.email
         assert result['user']['username'] == event.username
