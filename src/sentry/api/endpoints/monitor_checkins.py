@@ -56,6 +56,9 @@ class MonitorCheckInsEndpoint(MonitorEndpoint):
         :pparam string monitor_id: the id of the monitor.
         :auth: required
         """
+        if monitor.status in [MonitorStatus.PENDING_DELETION, MonitorStatus.DELETION_IN_PROGRESS]:
+            return self.respond(status=404)
+
         serializer = CheckInSerializer(
             data=request.DATA,
             context={
@@ -75,7 +78,7 @@ class MonitorCheckInsEndpoint(MonitorEndpoint):
                 duration=result.get('duration'),
                 status=getattr(CheckInStatus, result['status'].upper()),
             )
-            if checkin.status == CheckInStatus.ERROR:
+            if checkin.status == CheckInStatus.ERROR and monitor.status != MonitorStatus.DISABLED:
                 if not monitor.mark_failed(last_checkin=checkin.date_added):
                     return self.respond(serialize(checkin, request.user), status=200)
             else:
@@ -83,7 +86,7 @@ class MonitorCheckInsEndpoint(MonitorEndpoint):
                     'last_checkin': checkin.date_added,
                     'next_checkin': monitor.get_next_scheduled_checkin(checkin.date_added),
                 }
-                if checkin.status == CheckInStatus.OK:
+                if checkin.status == CheckInStatus.OK and monitor.status != MonitorStatus.DISABLED:
                     monitor_params['status'] = MonitorStatus.OK
                 Monitor.objects.filter(
                     id=monitor.id,
