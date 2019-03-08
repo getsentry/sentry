@@ -297,9 +297,6 @@ class OrganizationMember(Model):
     def get_teams(self):
         from sentry.models import Team
 
-        if roles.get(self.role).is_global:
-            return self.organization.team_set.all()
-
         return Team.objects.filter(
             id__in=OrganizationMemberTeam.objects.filter(
                 organizationmember=self,

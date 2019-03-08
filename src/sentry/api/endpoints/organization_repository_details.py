@@ -7,7 +7,10 @@ from rest_framework.response import Response
 from uuid import uuid4
 
 from sentry.api.base import DocSection
-from sentry.api.bases.organization import OrganizationEndpoint
+from sentry.api.bases.organization import (
+    OrganizationEndpoint,
+    OrganizationRepositoryPermission
+)
 from sentry.api.exceptions import ResourceDoesNotExist
 from sentry.api.serializers import serialize
 from sentry.constants import ObjectStatus
@@ -32,6 +35,7 @@ class RepositorySerializer(serializers.Serializer):
 
 class OrganizationRepositoryDetailsEndpoint(OrganizationEndpoint):
     doc_section = DocSection.ORGANIZATIONS
+    permission_classes = (OrganizationRepositoryPermission,)
 
     def put(self, request, organization, repo_id):
         if not request.user.is_authenticated():

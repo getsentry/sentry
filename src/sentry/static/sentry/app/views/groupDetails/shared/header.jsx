@@ -13,6 +13,7 @@ import ShortId from 'app/components/shortId';
 import EventOrGroupTitle from 'app/components/eventOrGroupTitle';
 import GuideAnchor from 'app/components/assistant/guideAnchor';
 import OrganizationState from 'app/mixins/organizationState';
+import ProjectBadge from 'app/components/idBadge/projectBadge';
 import Tooltip from 'app/components/tooltip';
 import {t} from 'app/locale';
 import SentryTypes from 'app/sentryTypes';
@@ -106,8 +107,9 @@ const GroupHeader = createReactClass({
     }
 
     const {memberList} = this.state;
+    const {organization, location} = this.context;
     const groupId = group.id;
-    const orgId = this.context.organization.slug;
+    const orgId = organization.slug;
     const message = this.getMessage();
 
     const hasSimilarView = projectFeatures.has('similarity-view');
@@ -169,7 +171,12 @@ const GroupHeader = createReactClass({
                       </a>
                     </Tooltip>
                   </h6>
-                  <ShortId shortId={group.shortId} />
+                  <ShortId
+                    shortId={group.shortId}
+                    avatar={
+                      <ProjectBadge project={project} avatarSize={20} hideName={true} />
+                    }
+                  />
                 </div>
               )}
               <div className="count align-right m-l-1">
@@ -202,7 +209,7 @@ const GroupHeader = createReactClass({
             to={`${baseUrl}${groupId}/`}
             isActive={() => {
               const rootGroupPath = `${baseUrl}${groupId}/`;
-              const pathname = this.context.location.pathname;
+              const pathname = location.pathname;
 
               // Because react-router 1.0 removes router.isActive(route)
               return pathname === rootGroupPath || /events\/\w+\/$/.test(pathname);

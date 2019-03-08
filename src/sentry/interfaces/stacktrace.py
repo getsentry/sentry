@@ -485,15 +485,27 @@ class Frame(Interface):
         # so that they're more likely to group together
         filename_component = GroupingComponent(id='filename')
         if self.filename == '<anonymous>':
-            filename_component.update(hint='anonymous filename discarded')
+            filename_component.update(
+                contributes=False,
+                values=[self.filename],
+                hint='anonymous filename discarded'
+            )
         elif self.filename == '[native code]':
             contributes = False
             hint = 'native code indicated by filename'
         elif self.filename:
             if self.is_url():
-                filename_component.update(hint='ignored because filename is a URL')
+                filename_component.update(
+                    contributes=False,
+                    values=[self.filename],
+                    hint='ignored because filename is a URL',
+                )
             elif self.is_caused_by():
-                filename_component.update(hint='ignored because invalid')
+                filename_component.update(
+                    values=[self.filename],
+                    contributes=False,
+                    hint='ignored because invalid'
+                )
             else:
                 hashable_filename, hashable_filename_hint = \
                     remove_filename_outliers(self.filename, platform)
@@ -519,10 +531,12 @@ class Frame(Interface):
                     values=[module_name],
                     hint=module_hint
                 )
-            filename_component.update(
-                contributes=False,
-                hint='module takes precedence'
-            )
+            if self.filename:
+                filename_component.update(
+                    values=[self.filename],
+                    contributes=False,
+                    hint='module takes precedence'
+                )
 
         # Context line when available is the primary contributor
         context_line_component = GroupingComponent(id='context-line')
@@ -594,7 +608,7 @@ class Frame(Interface):
                     hint='function name is used only if module or filename are available'
                 )
             if self.lineno:
-                function_component.update(
+                lineno_component.update(
                     contributes=False,
                     values=[self.lineno],
                     hint='line number is used only if module or filename are available'

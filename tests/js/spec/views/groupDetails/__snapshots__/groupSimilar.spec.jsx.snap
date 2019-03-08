@@ -83,6 +83,7 @@ exports[`Issues Similar View renders with mocked data 1`] = `
               "numComments": 0,
               "permalink": "http://localhost:8000/sentry/project-slug/issues/274/",
               "project": Object {
+                "id": "123",
                 "name": "Internal",
                 "slug": "project-slug",
               },
@@ -133,6 +134,7 @@ exports[`Issues Similar View renders with mocked data 1`] = `
               "numComments": 0,
               "permalink": "http://localhost:8000/sentry/project-slug/issues/275/",
               "project": Object {
+                "id": "123",
                 "name": "Internal",
                 "slug": "project-slug",
               },
@@ -207,6 +209,7 @@ exports[`Issues Similar View renders with mocked data 1`] = `
               "numComments": 0,
               "permalink": "http://localhost:8000/sentry/project-slug/issues/216/",
               "project": Object {
+                "id": "123",
                 "name": "Internal",
                 "slug": "project-slug",
               },
@@ -269,6 +272,7 @@ exports[`Issues Similar View renders with mocked data 1`] = `
               "numComments": 0,
               "permalink": "http://localhost:8000/sentry/project-slug/issues/271/",
               "project": Object {
+                "id": "123",
                 "name": "Internal",
                 "slug": "project-slug",
               },
@@ -586,6 +590,7 @@ exports[`Issues Similar View renders with mocked data 1`] = `
                 "numComments": 0,
                 "permalink": "http://localhost:8000/sentry/project-slug/issues/271/",
                 "project": Object {
+                  "id": "123",
                   "name": "Internal",
                   "slug": "project-slug",
                 },
@@ -690,6 +695,7 @@ exports[`Issues Similar View renders with mocked data 1`] = `
                                 "numComments": 0,
                                 "permalink": "http://localhost:8000/sentry/project-slug/issues/271/",
                                 "project": Object {
+                                  "id": "123",
                                   "name": "Internal",
                                   "slug": "project-slug",
                                 },
@@ -727,6 +733,7 @@ exports[`Issues Similar View renders with mocked data 1`] = `
                                   "numComments": 0,
                                   "permalink": "http://localhost:8000/sentry/project-slug/issues/271/",
                                   "project": Object {
+                                    "id": "123",
                                     "name": "Internal",
                                     "slug": "project-slug",
                                   },
@@ -903,6 +910,7 @@ exports[`Issues Similar View renders with mocked data 1`] = `
                                                 "numComments": 0,
                                                 "permalink": "http://localhost:8000/sentry/project-slug/issues/271/",
                                                 "project": Object {
+                                                  "id": "123",
                                                   "name": "Internal",
                                                   "slug": "project-slug",
                                                 },
@@ -1068,6 +1076,7 @@ exports[`Issues Similar View renders with mocked data 1`] = `
                             permalink="http://localhost:8000/sentry/project-slug/issues/271/"
                             project={
                               Object {
+                                "id": "123",
                                 "name": "Internal",
                                 "slug": "project-slug",
                               }
@@ -1118,6 +1127,7 @@ exports[`Issues Similar View renders with mocked data 1`] = `
                               permalink="http://localhost:8000/sentry/project-slug/issues/271/"
                               project={
                                 Object {
+                                  "id": "123",
                                   "name": "Internal",
                                   "slug": "project-slug",
                                 }
@@ -1214,31 +1224,238 @@ exports[`Issues Similar View renders with mocked data 1`] = `
                                     is={null}
                                   >
                                     <GroupShortId
+                                      avatar={
+                                        <ProjectBadge
+                                          avatarSize={14}
+                                          hideAvatar={false}
+                                          hideName={true}
+                                          hideOverflow={true}
+                                          project={
+                                            Object {
+                                              "id": "123",
+                                              "name": "Internal",
+                                              "slug": "project-slug",
+                                            }
+                                          }
+                                        />
+                                      }
                                       shortId="INTERNAL-4G"
                                     >
                                       <ShortId
+                                        avatar={
+                                          <ProjectBadge
+                                            avatarSize={14}
+                                            hideAvatar={false}
+                                            hideName={true}
+                                            hideOverflow={true}
+                                            project={
+                                              Object {
+                                                "id": "123",
+                                                "name": "Internal",
+                                                "slug": "project-slug",
+                                              }
+                                            }
+                                          />
+                                        }
                                         className="css-yd3bt1-GroupShortId eec9orn4"
                                         shortId="INTERNAL-4G"
                                       >
                                         <StyledShortId
+                                          avatar={
+                                            <ProjectBadge
+                                              avatarSize={14}
+                                              hideAvatar={false}
+                                              hideName={true}
+                                              hideOverflow={true}
+                                              project={
+                                                Object {
+                                                  "id": "123",
+                                                  "name": "Internal",
+                                                  "slug": "project-slug",
+                                                }
+                                              }
+                                            />
+                                          }
                                           className="css-yd3bt1-GroupShortId eec9orn4"
                                           onClick={[Function]}
                                           shortId="INTERNAL-4G"
                                         >
                                           <div
-                                            className="eec9orn4 css-77itmv-StyledShortId-GroupShortId ebuncw00"
+                                            className="eec9orn4 css-zds1k7-StyledShortId-GroupShortId ebuncw00"
                                             onClick={[Function]}
                                           >
-                                            <AutoSelectText>
-                                              <div
-                                                className="auto-select-text"
-                                                onClick={[Function]}
+                                            <ProjectBadge
+                                              avatarSize={14}
+                                              hideAvatar={false}
+                                              hideName={true}
+                                              hideOverflow={true}
+                                              project={
+                                                Object {
+                                                  "id": "123",
+                                                  "name": "Internal",
+                                                  "slug": "project-slug",
+                                                }
+                                              }
+                                            >
+                                              <BaseBadge
+                                                avatarProps={Object {}}
+                                                avatarSize={14}
+                                                displayName={
+                                                  <BadgeDisplayName
+                                                    hideOverflow={true}
+                                                  >
+                                                    project-slug
+                                                  </BadgeDisplayName>
+                                                }
+                                                hideAvatar={false}
+                                                hideName={true}
+                                                project={
+                                                  Object {
+                                                    "id": "123",
+                                                    "name": "Internal",
+                                                    "slug": "project-slug",
+                                                  }
+                                                }
                                               >
-                                                <span>
-                                                  INTERNAL-4G
-                                                </span>
-                                              </div>
-                                            </AutoSelectText>
+                                                <Flex
+                                                  align="center"
+                                                >
+                                                  <Base
+                                                    align="center"
+                                                    className="css-5ipae5"
+                                                  >
+                                                    <div
+                                                      className="css-5ipae5"
+                                                      is={null}
+                                                    >
+                                                      <StyledAvatar
+                                                        className="css-0"
+                                                        hideName={true}
+                                                        project={
+                                                          Object {
+                                                            "id": "123",
+                                                            "name": "Internal",
+                                                            "slug": "project-slug",
+                                                          }
+                                                        }
+                                                        size={14}
+                                                      >
+                                                        <Avatar
+                                                          className="css-f5iyic-StyledAvatar e165dl3i0"
+                                                          hasTooltip={false}
+                                                          hideName={true}
+                                                          project={
+                                                            Object {
+                                                              "id": "123",
+                                                              "name": "Internal",
+                                                              "slug": "project-slug",
+                                                            }
+                                                          }
+                                                          size={14}
+                                                        >
+                                                          <ProjectAvatar
+                                                            className="css-f5iyic-StyledAvatar e165dl3i0"
+                                                            hasTooltip={false}
+                                                            hideName={true}
+                                                            project={
+                                                              Object {
+                                                                "id": "123",
+                                                                "name": "Internal",
+                                                                "slug": "project-slug",
+                                                              }
+                                                            }
+                                                            size={14}
+                                                          >
+                                                            <PlatformList
+                                                              className="css-f5iyic-StyledAvatar e165dl3i0"
+                                                              consistentWidth={false}
+                                                              direction="right"
+                                                              hasTooltip={false}
+                                                              hideName={true}
+                                                              max={1}
+                                                              platforms={Array []}
+                                                              size={14}
+                                                            >
+                                                              <PlatformIcons
+                                                                className="css-f5iyic-StyledAvatar e165dl3i0"
+                                                                consistentWidth={false}
+                                                                direction="right"
+                                                                max={1}
+                                                                size={14}
+                                                              >
+                                                                <div
+                                                                  className="e165dl3i0 css-7hp7lr-PlatformIcons-StyledAvatar ezvce7z0"
+                                                                  direction="right"
+                                                                  max={1}
+                                                                  size={14}
+                                                                >
+                                                                  <StyledPlatformIcon
+                                                                    platform="default"
+                                                                    size={14}
+                                                                  >
+                                                                    <Component
+                                                                      className="css-15yyc0n-StyledPlatformIcon ezvce7z1"
+                                                                      platform="default"
+                                                                      size={14}
+                                                                    >
+                                                                      <Platformicon
+                                                                        className="css-15yyc0n-StyledPlatformIcon ezvce7z1"
+                                                                        platform="default"
+                                                                        size="14px"
+                                                                      >
+                                                                        <img
+                                                                          className="css-15yyc0n-StyledPlatformIcon ezvce7z1"
+                                                                          height="14px"
+                                                                          src={
+                                                                            Object {
+                                                                              "default": Object {
+                                                                                "id": "test",
+                                                                                "viewBox": Object {},
+                                                                              },
+                                                                            }
+                                                                          }
+                                                                          width="14px"
+                                                                        />
+                                                                      </Platformicon>
+                                                                    </Component>
+                                                                  </StyledPlatformIcon>
+                                                                </div>
+                                                              </PlatformIcons>
+                                                            </PlatformList>
+                                                          </ProjectAvatar>
+                                                        </Avatar>
+                                                      </StyledAvatar>
+                                                      <DisplayNameAndDescription>
+                                                        <Base
+                                                          className="css-1h9j57p-DisplayNameAndDescription e165dl3i1"
+                                                        >
+                                                          <div
+                                                            className="css-1h9j57p-DisplayNameAndDescription e165dl3i1"
+                                                            is={null}
+                                                          />
+                                                        </Base>
+                                                      </DisplayNameAndDescription>
+                                                    </div>
+                                                  </Base>
+                                                </Flex>
+                                              </BaseBadge>
+                                            </ProjectBadge>
+                                            <StyledAutoSelectText
+                                              avatar={true}
+                                            >
+                                              <AutoSelectText
+                                                className="css-1iocdui-StyledAutoSelectText ebuncw01"
+                                              >
+                                                <div
+                                                  className="auto-select-text css-1iocdui-StyledAutoSelectText ebuncw01"
+                                                  onClick={[Function]}
+                                                >
+                                                  <span>
+                                                    INTERNAL-4G
+                                                  </span>
+                                                </div>
+                                              </AutoSelectText>
+                                            </StyledAutoSelectText>
                                           </div>
                                         </StyledShortId>
                                       </ShortId>

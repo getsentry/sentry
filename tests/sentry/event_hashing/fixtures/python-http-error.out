@@ -11,7 +11,9 @@ app:
               u'sentry/utils/safe.py'
             context-line*
               u'                result = func(*args, **kwargs)'
-            function (line number is used only if module or filename are available)
+            function (function name is used only if module or filename are available)
+              u'safe_execute'
+            lineno (line number is used only if module or filename are available)
               29
           frame*
             module*
@@ -20,7 +22,9 @@ app:
               u'sentry/integrations/slack/notify_action.py'
             context-line*
               u'            resp.raise_for_status()'
-            function (line number is used only if module or filename are available)
+            function (function name is used only if module or filename are available)
+              u'send_notification'
+            lineno (line number is used only if module or filename are available)
               119
           frame (non app frame)
             module*
@@ -29,7 +33,9 @@ app:
               u'requests/models.py'
             context-line*
               u'            raise HTTPError(http_error_msg, response=self)'
-            function (line number is used only if module or filename are available)
+            function (function name is used only if module or filename are available)
+              u'raise_for_status'
+            lineno (line number is used only if module or filename are available)
               940
         type*
           u'HTTPError'
@@ -56,7 +62,9 @@ system:
               u'sentry/utils/safe.py'
             context-line*
               u'                result = func(*args, **kwargs)'
-            function (line number is used only if module or filename are available)
+            function (function name is used only if module or filename are available)
+              u'safe_execute'
+            lineno (line number is used only if module or filename are available)
               29
           frame*
             module*
@@ -65,7 +73,9 @@ system:
               u'sentry/integrations/slack/notify_action.py'
             context-line*
               u'            resp.raise_for_status()'
-            function (line number is used only if module or filename are available)
+            function (function name is used only if module or filename are available)
+              u'send_notification'
+            lineno (line number is used only if module or filename are available)
               119
           frame*
             module*
@@ -74,7 +84,9 @@ system:
               u'requests/models.py'
             context-line*
               u'            raise HTTPError(http_error_msg, response=self)'
-            function (line number is used only if module or filename are available)
+            function (function name is used only if module or filename are available)
+              u'raise_for_status'
+            lineno (line number is used only if module or filename are available)
               940
         type*
           u'HTTPError'

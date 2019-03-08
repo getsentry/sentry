@@ -737,3 +737,8 @@ class OrganizationSettings2FATest(TwoFactorAPITestCase):
 
         Authenticator.objects.get(user=self.no_2fa_user).delete()
         self.assert_cannot_access_org_details(self.path)
+
+    def test_superuser_can_access_org_details(self):
+        user = self.create_user(is_superuser=True)
+        self.login_as(user, superuser=True)
+        self.assert_can_access_org_details(self.path)

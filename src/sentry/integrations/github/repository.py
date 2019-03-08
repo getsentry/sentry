@@ -56,6 +56,16 @@ class GitHubRepositoryProvider(providers.IntegrationRepositoryProvider):
         }
 
     def compare_commits(self, repo, start_sha, end_sha):
+        def eval_commits(client):
+            # use config name because that is kept in sync via webhooks
+            name = repo.config['name']
+            if start_sha is None:
+                res = client.get_last_commits(name, end_sha)
+                return self._format_commits(client, name, res[:20])
+            else:
+                res = client.compare_commits(name, start_sha, end_sha)
+                return self._format_commits(client, name, res['commits'])
+
         integration_id = repo.integration_id
         if integration_id is None:
             raise NotImplementedError('GitHub apps requires an integration id to fetch commits')
@@ -63,15 +73,16 @@ class GitHubRepositoryProvider(providers.IntegrationRepositoryProvider):
         installation = integration.get_installation(repo.organization_id)
         client = installation.get_client()
 
-        # use config name because that is kept in sync via webhooks
-        name = repo.config['name']
         try:
-            if start_sha is None:
-                res = client.get_last_commits(name, end_sha)
-                return self._format_commits(client, name, res[:20])
-            else:
-                res = client.compare_commits(name, start_sha, end_sha)
-                return self._format_commits(client, name, res['commits'])
+            return eval_commits(client)
+        except ApiError as e:
+            if e.code == 404:
+                try:
+                    client.get_token(force_refresh=True)
+                    return eval_commits(client)
+                except Exception as e:
+                    installation.raise_error(e)
+            installation.raise_error(e)
         except Exception as e:
             installation.raise_error(e)
 
