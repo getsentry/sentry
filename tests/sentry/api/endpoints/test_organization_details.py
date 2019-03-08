@@ -27,13 +27,10 @@ from sentry.testutils import APITestCase, TwoFactorAPITestCase
 
 class OrganizationDetailsTest(APITestCase):
     def test_simple(self):
-        org = self.create_organization(owner=self.user)
-        self.create_team(
-            name='appy',
-            organization=org,
-            members=[self.user])
+        user = self.create_user('owner@example.org')
+        org = self.create_organization(owner=user)
 
-        self.login_as(user=self.user)
+        self.login_as(user=user)
         url = reverse(
             'sentry-api-0-organization-details', kwargs={
                 'organization_slug': org.slug,
@@ -43,23 +40,53 @@ class OrganizationDetailsTest(APITestCase):
         assert response.data['onboardingTasks'] == []
         assert response.status_code == 200, response.content
         assert response.data['id'] == six.text_type(org.id)
-        assert len(response.data['teams']) == 1
+        assert len(response.data['teams']) == 0
+        assert len(response.data['projects']) == 0
+
+    def test_with_projects(self):
+        user = self.create_user('owner@example.org')
+        org = self.create_organization(owner=user)
+        team = self.create_team(
+            name='appy',
+            organization=org,
+            members=[user])
 
         for i in range(5):
-            self.create_project(organization=org)
+            self.create_project(organization=org, teams=[team])
 
         url = reverse(
             'sentry-api-0-organization-details', kwargs={
                 'organization_slug': org.slug,
             }
         )
+        self.login_as(user=user)
+
         # TODO(dcramer): we need to pare this down -- lots of duplicate queries
         # for membership data
-        with self.assertNumQueries(35, using='default'):
+        with self.assertNumQueries(33, using='default'):
             from django.db import connections
             response = self.client.get(url, format='json')
             pprint(connections['default'].queries)
         assert len(response.data['projects']) == 5
+        assert len(response.data['teams']) == 1
+
+    def test_as_superuser(self):
+        self.user = self.create_user('super@example.org', is_superuser=True)
+        org = self.create_organization(owner=self.user)
+        team = self.create_team(name='appy', organization=org)
+
+        self.login_as(user=self.user)
+        for i in range(5):
+            self.create_project(organization=org, teams=[team])
+
+        url = reverse(
+            'sentry-api-0-organization-details', kwargs={
+                'organization_slug': org.slug,
+            }
+        )
+        response = self.client.get(url, format='json')
+        assert len(response.data['projects']) == 5
+        assert len(response.data['teams']) == 1
 
     def test_onboarding_tasks(self):
         org = self.create_organization(owner=self.user)
