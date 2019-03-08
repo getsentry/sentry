@@ -15,7 +15,7 @@ import six
 from django.conf import settings
 
 from sentry.interfaces.base import Interface, InterfaceValidationError, prune_empty_keys
-from sentry.event_hashing import GroupingComponent
+from sentry.grouping.component import GroupingComponent
 from sentry.utils import json
 from sentry.utils.safe import trim
 

@@ -201,7 +201,7 @@ class Interface(object):
 
     def get_grouping_component(self, platform=None, variant=None):
         """Based on the variant passed this must return either `None` if the
-        variant is not supported or a `sentry.event_hashing.GroupingComponent`.
+        variant is not supported or a `sentry.grouping.component.GroupingComponent`.
         """
         return None
 

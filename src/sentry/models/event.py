@@ -162,7 +162,7 @@ class Event(Model):
         This is similar to `get_hashes` but will instead return the
         grouping components for each variant in a dictionary.
         """
-        from sentry.event_hashing import get_grouping_variants_for_event
+        from sentry.grouping.api import get_grouping_variants_for_event
         return get_grouping_variants_for_event(self)
 
     def get_primary_hash(self):

@@ -22,7 +22,7 @@ from sentry.utils.cache import memoize
 from sentry.utils.http import is_valid_origin
 from sentry.utils.safe import trim
 from sentry.web.helpers import render_to_string
-from sentry.event_hashing import GroupingComponent
+from sentry.grouping.component import GroupingComponent
 
 # Default block list sourced from personal experience as well as
 # reputable blogs from Twitter and Dropbox

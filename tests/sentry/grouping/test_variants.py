@@ -9,7 +9,7 @@ import pytest
 
 from sentry.models import Event
 from sentry.event_manager import EventManager
-from sentry.event_hashing import GroupingComponent
+from sentry.grouping.component import GroupingComponent
 
 
 def log(x):

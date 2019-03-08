@@ -13,7 +13,7 @@ from sentry.interfaces.base import Interface, InterfaceValidationError
 from sentry.interfaces.schemas import validate_and_default_interface
 from sentry.interfaces.stacktrace import get_context
 from sentry.utils.safe import trim
-from sentry.event_hashing import GroupingComponent
+from sentry.grouping.component import GroupingComponent
 
 
 class Template(Interface):

@@ -3,7 +3,7 @@ from __future__ import absolute_import
 from sentry.interfaces.base import Interface, prune_empty_keys
 from sentry.interfaces.stacktrace import Stacktrace
 from sentry.utils.safe import trim
-from sentry.event_hashing import GroupingComponent
+from sentry.grouping.component import GroupingComponent
 
 __all__ = ('Threads', )
 

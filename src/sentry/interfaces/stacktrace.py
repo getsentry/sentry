@@ -25,7 +25,7 @@ from sentry.interfaces.schemas import validate_and_default_interface
 from sentry.models import UserOption
 from sentry.utils.safe import trim, trim_dict
 from sentry.web.helpers import render_to_string
-from sentry.event_hashing import GroupingComponent
+from sentry.grouping.component import GroupingComponent
 
 _ruby_anon_func = re.compile(r'_\d{2,}')
 _filename_version_re = re.compile(
