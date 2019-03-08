@@ -16,6 +16,11 @@ describe('CreateProject', function() {
     location: {query: {}},
   };
 
+  const teams = [
+    {slug: 'bar', id: '1', name: 'bar', hasAccess: true},
+    {slug: 'foo', id: '2', name: 'foo', hasAccess: false},
+  ];
+
   const baseContext = TestStubs.routerContext([
     {
       organization: {
@@ -34,6 +39,11 @@ describe('CreateProject', function() {
     sandbox = sinon.sandbox.create();
     sandbox.stub(ConfigStore, 'getConfig').returns({id: 1, invitesEnabled: true});
     MockApiClient.clearMockResponses();
+
+    MockApiClient.addMockResponse({
+      url: '/organizations/testOrg/teams/',
+      body: teams,
+    });
   });
 
   afterEach(function() {
@@ -69,58 +79,6 @@ describe('CreateProject', function() {
 
     expect(wrapper.state('selectedTeams').size).toBe(1);
     expect(wrapper.state('selectedTeams').has(team[0].slug)).toBe(true);
-  });
-
-  it('can select and deselect all teams', function() {
-    MockApiClient.addMockResponse({
-      url: '/organizations/testOrg/members/me/',
-      body: {
-        roles: [
-          {
-            id: '1',
-            name: 'member',
-            desc: 'a normal member',
-            allowed: true,
-          },
-        ],
-      },
-    });
-
-    const wrapper = mount(<InviteMember {...baseProps} />, baseContext);
-
-    const first = 'TeamSelect Checkbox[id="bar"]';
-    const last = 'TeamSelect Checkbox[id="foo"]';
-    const selectAllButton = wrapper.find('Button[data-test-id="select-all"]');
-
-    expect(wrapper.state('selectedTeams').size).toBe(0);
-    expect(selectAllButton).toHaveLength(1);
-
-    // select and deselect all
-    selectAllButton.simulate('click');
-    expect(wrapper.state('selectedTeams').size).toBe(2);
-    expect(wrapper.find(first).prop('checked')).toBe(true);
-    expect(wrapper.find(last).prop('checked')).toBe(true);
-
-    selectAllButton.simulate('click');
-    expect(wrapper.state('selectedTeams').size).toBe(0);
-    expect(wrapper.find(first).prop('checked')).toBe(false);
-    expect(wrapper.find(last).prop('checked')).toBe(false);
-
-    // select one, then select all
-    wrapper.find(first).simulate('change');
-    expect(wrapper.state('selectedTeams').size).toBe(1);
-    selectAllButton.simulate('click');
-    expect(wrapper.state('selectedTeams').size).toBe(2);
-    selectAllButton.simulate('click');
-    expect(wrapper.state('selectedTeams').size).toBe(0);
-
-    // select both, then deselect all
-    wrapper.find(first).simulate('change');
-    expect(wrapper.state('selectedTeams').size).toBe(1);
-    wrapper.find(last).simulate('change');
-    expect(wrapper.state('selectedTeams').size).toBe(2);
-    selectAllButton.simulate('click');
-    expect(wrapper.state('selectedTeams').size).toBe(0);
   });
 
   it('should use invite/add language based on config', function() {
@@ -211,9 +169,6 @@ describe('CreateProject', function() {
     let node = wrapper.find('RoleSelect PanelItem').first();
     node.props().onClick();
 
-    node = wrapper.find('.team-choices input').first();
-    node.props().onChange({preventDefault: () => {}});
-
     expect(wrapper).toMatchSnapshot();
 
     node = wrapper.find('.invite-member-submit').first();
@@ -254,9 +209,6 @@ describe('CreateProject', function() {
 
     let node = wrapper.find('RoleSelect PanelItem').first();
     node.props().onClick();
-
-    node = wrapper.find('.team-choices input').first();
-    node.props().onChange({preventDefault: () => {}});
 
     node = wrapper.find('.invite-member-submit').first();
     node.props().onClick({preventDefault: () => {}});

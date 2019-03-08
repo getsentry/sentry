@@ -33,7 +33,6 @@ class CreateOrganizationMemberTest(AcceptanceTestCase):
         self.browser.get(
             u'/organizations/{}/members/new/'.format(self.org.slug))
         self.browser.wait_until_not('.loading')
-        self.browser.element('.checkbox').click()
 
         self.browser.element(
             'input#id-email').send_keys('test@gmail.com, invalidemail')
