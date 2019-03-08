@@ -200,6 +200,14 @@ class ChecksumVariant(BaseVariant):
         return self.hash
 
 
+class FallbackVariant(BaseVariant):
+    id = 'fallback'
+    contributes = True
+
+    def get_hash(self):
+        return hash_from_values([])
+
+
 class ComponentVariant(BaseVariant):
     """A component variant is a variant that produces a hash from the
     `GroupComponent` it encloses.
@@ -375,9 +383,6 @@ def get_grouping_variants_for_event(event):
 
     # Ensure we have a fallback hash if nothing else works out
     if not any(x.contributes for x in six.itervalues(rv)):
-        rv['fallback'] = GroupingComponent(
-            id='fallback',
-            values=[''],
-        )
+        rv['fallback'] = FallbackVariant()
 
     return rv
