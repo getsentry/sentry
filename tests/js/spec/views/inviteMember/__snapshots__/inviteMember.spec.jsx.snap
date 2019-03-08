@@ -578,30 +578,27 @@ exports[`CreateProject should render roles when available and allowed, and handl
                                             }
                                           }
                                         >
-                                          <Flex
-                                            align="center"
-                                          >
+                                          <Container>
                                             <Base
-                                              align="center"
-                                              className="css-5ipae5"
+                                              className="css-1he7udh-Container e165dl3i0"
                                             >
                                               <div
-                                                className="css-5ipae5"
+                                                className="css-1he7udh-Container e165dl3i0"
                                                 is={null}
                                               >
                                                 <DisplayNameAndDescription>
                                                   <Base
-                                                    className="css-1h9j57p-DisplayNameAndDescription e165dl3i1"
+                                                    className="css-1h9j57p-DisplayNameAndDescription e165dl3i2"
                                                   >
                                                     <div
-                                                      className="css-1h9j57p-DisplayNameAndDescription e165dl3i1"
+                                                      className="css-1h9j57p-DisplayNameAndDescription e165dl3i2"
                                                       is={null}
                                                     >
                                                       <DisplayName
                                                         data-test-id="badge-display-name"
                                                       >
                                                         <span
-                                                          className="css-d0rtl9-DisplayName e165dl3i2"
+                                                          className="css-d0rtl9-DisplayName e165dl3i3"
                                                           data-test-id="badge-display-name"
                                                         >
                                                           <BadgeDisplayName
@@ -626,7 +623,7 @@ exports[`CreateProject should render roles when available and allowed, and handl
                                                 </DisplayNameAndDescription>
                                               </div>
                                             </Base>
-                                          </Flex>
+                                          </Container>
                                         </BaseBadge>
                                       </TeamBadge>
                                     </TeamBadgeContainer>
@@ -731,30 +728,27 @@ exports[`CreateProject should render roles when available and allowed, and handl
                                             }
                                           }
                                         >
-                                          <Flex
-                                            align="center"
-                                          >
+                                          <Container>
                                             <Base
-                                              align="center"
-                                              className="css-5ipae5"
+                                              className="css-1he7udh-Container e165dl3i0"
                                             >
                                               <div
-                                                className="css-5ipae5"
+                                                className="css-1he7udh-Container e165dl3i0"
                                                 is={null}
                                               >
                                                 <DisplayNameAndDescription>
                                                   <Base
-                                                    className="css-1h9j57p-DisplayNameAndDescription e165dl3i1"
+                                                    className="css-1h9j57p-DisplayNameAndDescription e165dl3i2"
                                                   >
                                                     <div
-                                                      className="css-1h9j57p-DisplayNameAndDescription e165dl3i1"
+                                                      className="css-1h9j57p-DisplayNameAndDescription e165dl3i2"
                                                       is={null}
                                                     >
                                                       <DisplayName
                                                         data-test-id="badge-display-name"
                                                       >
                                                         <span
-                                                          className="css-d0rtl9-DisplayName e165dl3i2"
+                                                          className="css-d0rtl9-DisplayName e165dl3i3"
                                                           data-test-id="badge-display-name"
                                                         >
                                                           <BadgeDisplayName
@@ -779,7 +773,7 @@ exports[`CreateProject should render roles when available and allowed, and handl
                                                 </DisplayNameAndDescription>
                                               </div>
                                             </Base>
-                                          </Flex>
+                                          </Container>
                                         </BaseBadge>
                                       </TeamBadge>
                                     </TeamBadgeContainer>

@@ -68,7 +68,7 @@ class BaseBadge extends React.PureComponent {
     };
 
     return (
-      <Flex align="center" className={className}>
+      <Container className={className}>
         {!hideAvatar && (
           <StyledAvatar
             css={avatarClassName}
@@ -85,12 +85,17 @@ class BaseBadge extends React.PureComponent {
           )}
           {!!description && <Description>{description}</Description>}
         </DisplayNameAndDescription>
-      </Flex>
+      </Container>
     );
   }
 }
 
 export default BaseBadge;
+
+const Container = styled(Flex)`
+  align-items: center;
+  flex-shrink: 0;
+`;
 
 const StyledAvatar = styled(Avatar)`
   margin-right: ${p => (p.hideName ? 0 : space(1))};

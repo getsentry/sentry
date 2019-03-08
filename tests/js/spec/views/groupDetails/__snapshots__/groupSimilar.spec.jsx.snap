@@ -1317,15 +1317,12 @@ exports[`Issues Similar View renders with mocked data 1`] = `
                                                   }
                                                 }
                                               >
-                                                <Flex
-                                                  align="center"
-                                                >
+                                                <Container>
                                                   <Base
-                                                    align="center"
-                                                    className="css-5ipae5"
+                                                    className="css-1he7udh-Container e165dl3i0"
                                                   >
                                                     <div
-                                                      className="css-5ipae5"
+                                                      className="css-1he7udh-Container e165dl3i0"
                                                       is={null}
                                                     >
                                                       <StyledAvatar
@@ -1341,7 +1338,7 @@ exports[`Issues Similar View renders with mocked data 1`] = `
                                                         size={14}
                                                       >
                                                         <Avatar
-                                                          className="css-f5iyic-StyledAvatar e165dl3i0"
+                                                          className="css-f5iyic-StyledAvatar e165dl3i1"
                                                           hasTooltip={false}
                                                           hideName={true}
                                                           project={
@@ -1354,7 +1351,7 @@ exports[`Issues Similar View renders with mocked data 1`] = `
                                                           size={14}
                                                         >
                                                           <ProjectAvatar
-                                                            className="css-f5iyic-StyledAvatar e165dl3i0"
+                                                            className="css-f5iyic-StyledAvatar e165dl3i1"
                                                             hasTooltip={false}
                                                             hideName={true}
                                                             project={
@@ -1367,7 +1364,7 @@ exports[`Issues Similar View renders with mocked data 1`] = `
                                                             size={14}
                                                           >
                                                             <PlatformList
-                                                              className="css-f5iyic-StyledAvatar e165dl3i0"
+                                                              className="css-f5iyic-StyledAvatar e165dl3i1"
                                                               consistentWidth={false}
                                                               direction="right"
                                                               hasTooltip={false}
@@ -1377,14 +1374,14 @@ exports[`Issues Similar View renders with mocked data 1`] = `
                                                               size={14}
                                                             >
                                                               <PlatformIcons
-                                                                className="css-f5iyic-StyledAvatar e165dl3i0"
+                                                                className="css-f5iyic-StyledAvatar e165dl3i1"
                                                                 consistentWidth={false}
                                                                 direction="right"
                                                                 max={1}
                                                                 size={14}
                                                               >
                                                                 <div
-                                                                  className="e165dl3i0 css-7hp7lr-PlatformIcons-StyledAvatar ezvce7z0"
+                                                                  className="e165dl3i1 css-7hp7lr-PlatformIcons-StyledAvatar ezvce7z0"
                                                                   direction="right"
                                                                   max={1}
                                                                   size={14}
@@ -1427,17 +1424,17 @@ exports[`Issues Similar View renders with mocked data 1`] = `
                                                       </StyledAvatar>
                                                       <DisplayNameAndDescription>
                                                         <Base
-                                                          className="css-1h9j57p-DisplayNameAndDescription e165dl3i1"
+                                                          className="css-1h9j57p-DisplayNameAndDescription e165dl3i2"
                                                         >
                                                           <div
-                                                            className="css-1h9j57p-DisplayNameAndDescription e165dl3i1"
+                                                            className="css-1h9j57p-DisplayNameAndDescription e165dl3i2"
                                                             is={null}
                                                           />
                                                         </Base>
                                                       </DisplayNameAndDescription>
                                                     </div>
                                                   </Base>
-                                                </Flex>
+                                                </Container>
                                               </BaseBadge>
                                             </ProjectBadge>
                                             <StyledAutoSelectText
