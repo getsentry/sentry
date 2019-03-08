@@ -2,8 +2,14 @@ from __future__ import absolute_import
 
 from django.core.files.uploadedfile import InMemoryUploadedFile, TemporaryUploadedFile
 from symbolic import arch_from_breakpad, ProcessState, id_from_breakpad
+from sentry.utils.dates import parse_timestamp
 
 from sentry.utils.safe import get_path
+import logging
+import msgpack
+from msgpack import UnpackException
+
+minidumps_logger = logging.getLogger('sentry.minidumps')
 
 # Attachment type used for minidump files
 MINIDUMP_ATTACHMENT_TYPE = 'event.minidump'
@@ -94,6 +100,60 @@ def merge_process_state_event(data, state, cfi=None):
         'name': module.name,
     } for module in state.modules() if is_valid_module_id(module.id)]
     data.setdefault('debug_meta', {})['images'] = images
+
+
+def merge_attached_event(mpack_event, data):
+    # Merge msgpack serialized event
+    try:
+        event = msgpack.unpack(mpack_event)
+    except UnpackException as e:
+        minidumps_logger.exception(e)
+        return
+
+    for key in event:
+        value = event.get(key)
+        if value is not None:
+            data[key] = value
+
+
+def merge_attached_breadcrumbs(mpack_breadcrumbs, data):
+    try:
+        unpacker = msgpack.Unpacker(mpack_breadcrumbs)
+    except UnpackException as e:
+        minidumps_logger.exception(e)
+        return
+
+    levels = {-1: 'debug', 0: 'info', 1: 'warning', 2: 'error', 3: 'critical'}
+    breadcrumbs = []
+    for crumb in unpacker:
+        breadcrumbs.insert(0, {
+            'timestamp': crumb.get('timestamp'),
+            'category': crumb.get('category'),
+            'type': crumb.get('type'),
+            'level': levels.get(crumb.get('level', 0), 'info'),
+            'message': crumb.get('message'),
+        })
+
+    if not breadcrumbs:
+        return
+
+    breadcrumbs.reverse()
+
+    current_crumbs = data.get('breadcrumbs')
+    if current_crumbs is None:
+        data['breadcrumbs'] = breadcrumbs
+        return
+
+    current_crumb = next((c for c in reversed(current_crumbs)
+                          if c.get('timestamp') is not None), None)
+    new_crumb = next((c for c in reversed(breadcrumbs) if c.get('timestamp') is not None), None)
+    if current_crumb is not None and new_crumb is not None:
+        if parse_timestamp(current_crumb['timestamp']) > parse_timestamp(new_crumb['timestamp']):
+            data['breadcrumbs'] = breadcrumbs + current_crumbs
+        else:
+            data['breadcrumbs'] = current_crumbs + breadcrumbs
+    else:
+        data['breadcrumbs'] = current_crumbs + breadcrumbs
 
 
 def is_valid_module_id(id):
