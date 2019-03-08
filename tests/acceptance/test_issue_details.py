@@ -205,3 +205,4 @@ class IssueDetailsTest(AcceptanceTestCase):
 
     def dismiss_assistant(self):
         self.client.put('/assistant/', data={'guide_id': 1, 'status': 'viewed', 'useful': True})
+        self.client.put('/assistant/', data={'guide_id': 3, 'status': 'viewed', 'useful': True})
