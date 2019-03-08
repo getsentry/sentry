@@ -278,7 +278,7 @@ class Interface(object):
         # should be removed when the tests move
         variant_components = self.get_grouping_component_variants(platform)
         return [
-            x.iter_values() for x in six.itervalues(variant_components)
+            list(x.iter_values()) for x in six.itervalues(variant_components)
             if x.contributes
         ]
 
