@@ -29,13 +29,20 @@ def get_sentry_bin(name):
     return os.path.join(get_project_root(), 'bin', name)
 
 
+def get_node_modules():
+    return os.path.join(get_project_root(), 'node_modules')
+
+
 def get_node_modules_bin(name):
-    return os.path.join(
-        get_project_root(), 'node_modules', '.bin', name)
+    return os.path.join(get_node_modules(), '.bin', name)
 
 
 def get_prettier_path():
     return get_node_modules_bin('prettier')
+
+
+def get_strict_eslint_config():
+    return os.path.join(get_node_modules(), 'eslint-config-sentry-app-strict', 'index.js')
 
 
 def get_files(path):
@@ -97,7 +104,7 @@ def get_python_files(file_list=None):
     ]
 
 
-def js_lint(file_list=None, parseable=False, format=False):
+def js_lint(file_list=None, parseable=False, format=False, relax=False):
 
     # We require eslint in path but we actually call an eslint wrapper
     eslint_path = get_node_modules_bin('eslint')
@@ -120,6 +127,11 @@ def js_lint(file_list=None, parseable=False, format=False):
             cmd.append('--fix')
         if parseable:
             cmd.append('--format=checkstyle')
+
+        if not relax:
+            cmd.append('--config')
+            cmd.append(get_strict_eslint_config())
+
         status = Popen(cmd + js_file_list).wait()
         has_errors = status != 0
 
@@ -202,7 +214,7 @@ def is_prettier_valid(project_root, prettier_path):
     return True
 
 
-def js_lint_format(file_list=None):
+def js_lint_format(file_list=None, relax=False):
     """
     We only format JavaScript code as part of this pre-commit hook. It is not part
     of the lint engine. This uses eslint's `--fix` formatting feature.
@@ -222,6 +234,11 @@ def js_lint_format(file_list=None):
 
     # manually exclude some bad files
     js_file_list = [x for x in js_file_list if '/javascript/example-project/' not in x]
+    cmd = [eslint_path, '--fix', ]
+
+    if not relax:
+        cmd.append('--config')
+        cmd.append(get_strict_eslint_config())
 
     has_package_json_errors = False if 'package.json' not in file_list else run_formatter(
         [
@@ -230,7 +247,7 @@ def js_lint_format(file_list=None):
         ], ['package.json']
     )
 
-    has_errors = run_formatter([eslint_path, '--fix', ], js_file_list)
+    has_errors = run_formatter(cmd, js_file_list)
 
     return has_errors or has_package_json_errors
 
@@ -326,7 +343,7 @@ def run_formatter(cmd, file_list, prompt_on_changes=True):
 
 
 def run(file_list=None, format=True, lint=True, js=True, py=True,
-        less=True, yarn=True, test=False, parseable=False):
+        less=True, yarn=True, test=False, parseable=False, relax=False):
     # pep8.py uses sys.argv to find setup.cfg
     old_sysargv = sys.argv
 
@@ -350,7 +367,7 @@ def run(file_list=None, format=True, lint=True, js=True, py=True,
                 results.append(py_format(file_list))
             if js:
                 # run eslint with --fix and skip these linters down below
-                results.append(js_lint_format(file_list))
+                results.append(js_lint_format(file_list, relax=relax))
             if less:
                 results.append(less_format(file_list))
 
@@ -367,7 +384,7 @@ def run(file_list=None, format=True, lint=True, js=True, py=True,
 
                 if not format:
                     # these tasks are called when we need to format, so skip it here
-                    results.append(js_lint(file_list, parseable=parseable, format=format))
+                    results.append(js_lint(file_list, parseable=parseable, format=format, relax=relax))
 
         if test:
             if js:

@@ -203,7 +203,7 @@ reject-python-snapshots:
 
 lint-js:
 	@echo "--> Linting javascript"
-	bin/lint --js --parseable
+	bin/lint --js --parseable --relax
 	@echo ""
 
 publish:
