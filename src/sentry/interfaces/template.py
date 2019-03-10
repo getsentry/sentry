@@ -13,7 +13,6 @@ from sentry.interfaces.base import Interface, InterfaceValidationError
 from sentry.interfaces.schemas import validate_and_default_interface
 from sentry.interfaces.stacktrace import get_context
 from sentry.utils.safe import trim
-from sentry.grouping.component import GroupingComponent
 
 
 class Template(Interface):
@@ -58,23 +57,6 @@ class Template(Interface):
             'post_context': data.get('post_context'),
         }
         return cls(**kwargs)
-
-    def get_grouping_component(self, platform=None, variant=None):
-        filename_component = GroupingComponent(id='filename')
-        if self.filename is not None:
-            filename_component.update(values=[self.filename])
-
-        context_line_component = GroupingComponent(id='context-line')
-        if self.context_line is not None:
-            context_line_component.update(values=[self.context_line])
-
-        return GroupingComponent(
-            id='template',
-            values=[
-                filename_component,
-                context_line_component,
-            ]
-        )
 
     def to_string(self, event, is_public=False, **kwargs):
         context = get_context(

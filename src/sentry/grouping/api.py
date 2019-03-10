@@ -3,6 +3,7 @@ from __future__ import absolute_import
 import re
 import six
 
+from sentry.grouping.strategies.base import CONFIGURATIONS
 from sentry.grouping.component import GroupingComponent
 from sentry.grouping.variants import ChecksumVariant, FallbackVariant, \
     ComponentVariant, CustomFingerprintVariant, SaltedComponentVariant
@@ -12,33 +13,31 @@ from sentry.grouping.utils import DEFAULT_FINGERPRINT_VALUES, hash_from_values
 HASH_RE = re.compile(r'^[0-9a-f]{32}$')
 
 
-def get_calculated_grouping_variants_for_event(event):
+def get_calculated_grouping_variants_for_event(event, config_name=None):
     """Given an event this returns a dictionary of the matching grouping
     variants.  Checksum and fingerprinting logic are not handled by this
     function which is handled by `get_grouping_variants_for_event`.
     """
-    # This sorts the interfaces by the interface score which gives it the
-    # priority which we depend on.
-    interfaces = event.get_interfaces()
-
     winning_strategy = None
     precedence_hint = None
     per_variant_components = {}
 
-    for (strategy_name, interface) in six.iteritems(interfaces):
-        rv = interface.get_grouping_component_variants(event.platform)
+    config = CONFIGURATIONS[config_name or 'legacy']
+
+    for strategy in config.iter_strategies():
+        rv = strategy.get_grouping_component_variants(event, config=config)
         for (variant, component) in six.iteritems(rv):
             per_variant_components.setdefault(variant, []).append(component)
 
             if winning_strategy is None:
                 if component.contributes:
-                    winning_strategy = strategy_name
+                    winning_strategy = strategy.name
                     precedence_hint = '%s takes precedence' % (
-                        '%s of %s' % (strategy_name, variant) if
+                        '%s of %s' % (strategy.name, variant) if
                         variant != 'default' else
-                        strategy_name
+                        strategy.name
                     )
-            elif component.contributes and winning_strategy != strategy_name:
+            elif component.contributes and winning_strategy != strategy.name:
                 component.update(
                     contributes=False,
                     hint=precedence_hint
