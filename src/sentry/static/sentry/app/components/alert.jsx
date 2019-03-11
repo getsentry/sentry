@@ -50,8 +50,8 @@ const AlertWrapper = styled('div', {shouldForwardProp: isPropValid})`
     border-bottom: 1px dotted ${p => p.theme.textColor};
   }
 
-  ${p => getAlertColorStyles(p.theme.alert[p.type])} ${p =>
-      p.system && getSystemAlertColorStyles(p.theme.alert[p.type])};
+  ${p => getAlertColorStyles(p.theme.alert[p.type])};
+  ${p => p.system && getSystemAlertColorStyles(p.theme.alert[p.type])};
 `;
 
 const StyledTextBlock = styled(TextBlock)`
