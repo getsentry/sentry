@@ -206,7 +206,7 @@ const GroupHeader = createReactClass({
         <GroupActions group={group} project={project} />
         <NavTabs>
           <ListLink
-            to={`${baseUrl}${groupId}/`}
+            to={`${baseUrl}${groupId}/${this.context.location.search}`}
             isActive={() => {
               const rootGroupPath = `${baseUrl}${groupId}/`;
               const pathname = location.pathname;
@@ -217,18 +217,24 @@ const GroupHeader = createReactClass({
           >
             {t('Details')}
           </ListLink>
-          <ListLink to={`${baseUrl}${groupId}/activity/`}>
+          <ListLink to={`${baseUrl}${groupId}/activity/${this.context.location.search}`}>
             {t('Comments')} <span className="badge animated">{group.numComments}</span>
           </ListLink>
-          <ListLink to={`${baseUrl}${groupId}/feedback/`}>
-            {t('User Feedback')}{' '}
+          <ListLink to={`${baseUrl}${groupId}/feedback/${this.context.location.search}`}>
+            {t('User Feedback')}
             <span className="badge animated">{group.userReportCount}</span>
           </ListLink>
-          <ListLink to={`${baseUrl}${groupId}/tags/`}>{t('Tags')}</ListLink>
-          <ListLink to={`${baseUrl}${groupId}/events/`}>{t('Events')}</ListLink>
-          <ListLink to={`${baseUrl}${groupId}/merged/`}>{t('Merged')}</ListLink>
+          <ListLink to={`${baseUrl}${groupId}/tags/${this.context.location.search}`}>
+            {t('Tags')}
+          </ListLink>
+          <ListLink to={`${baseUrl}${groupId}/events/${this.context.location.search}`}>
+            {t('Events')}
+          </ListLink>
+          <ListLink to={`${baseUrl}${groupId}/merged/${this.context.location.search}`}>
+            {t('Merged')}
+          </ListLink>
           {hasSimilarView && (
-            <ListLink to={`${baseUrl}${groupId}/similar/`}>
+            <ListLink to={`${baseUrl}${groupId}/similar/${this.context.location.search}`}>
               {t('Similar Issues')}
             </ListLink>
           )}

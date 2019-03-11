@@ -195,45 +195,24 @@ const InviteMember = createReactClass({
       });
   },
 
-  toggleTeam(slug) {
-    this.setState(state => {
-      const {selectedTeams} = state;
-      if (selectedTeams.has(slug)) {
-        selectedTeams.delete(slug);
-      } else {
-        selectedTeams.add(slug);
-      }
-      return {
-        selectedTeams,
-      };
-    });
-  },
-
-  allSelected() {
-    const {teams} = this.getOrganization();
+  handleAddTeam(slug) {
     const {selectedTeams} = this.state;
-    return teams.length === selectedTeams.size;
+    if (!selectedTeams.has(slug)) {
+      selectedTeams.add(slug);
+    }
+    this.setState({selectedTeams});
   },
 
-  handleSelectAll() {
-    const {teams} = this.getOrganization();
+  handleRemoveTeam(slug) {
+    const {selectedTeams} = this.state;
+    selectedTeams.delete(slug);
 
-    this.setState(state => {
-      let {selectedTeams} = state;
-      if (this.allSelected()) {
-        selectedTeams.clear();
-      } else {
-        selectedTeams = new Set(teams.map(({slug}) => slug));
-      }
-      return {
-        selectedTeams,
-      };
-    });
+    this.setState({selectedTeams});
   },
 
   render() {
     const {error, loading, roleList, selectedRole, selectedTeams} = this.state;
-    const {teams} = this.getOrganization();
+    const organization = this.getOrganization();
     const {invitesEnabled} = ConfigStore.getConfig();
     const {isSuperuser} = ConfigStore.get('user');
 
@@ -271,11 +250,10 @@ const InviteMember = createReactClass({
               setRole={slug => this.setState({selectedRole: slug})}
             />
             <TeamSelect
-              teams={teams}
-              selectedTeams={selectedTeams}
-              toggleTeam={this.toggleTeam}
-              onSelectAll={this.handleSelectAll}
-              allSelected={this.allSelected}
+              organization={organization}
+              selectedTeams={Array.from(selectedTeams.values())}
+              onAddTeam={this.handleAddTeam}
+              onRemoveTeam={this.handleRemoveTeam}
             />
             <Button
               priority="primary"

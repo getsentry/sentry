@@ -396,7 +396,7 @@ class Sidebar extends React.Component {
                 <SidebarItem
                   {...sidebarItemProps}
                   onClick={this.hidePanel}
-                  icon={<InlineSvg src="icon-activity" />}
+                  icon={<InlineSvg src="icon-activity" size="22px" />}
                   label={t('Activity')}
                   to={`/organizations/${organization.slug}/activity/`}
                   id="activity"
