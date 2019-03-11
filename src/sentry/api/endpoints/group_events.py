@@ -14,11 +14,10 @@ from sentry.api.base import DocSection, EnvironmentMixin
 from sentry.api.bases import GroupEndpoint
 from sentry.api.exceptions import ResourceDoesNotExist
 from sentry.api.helpers.environments import get_environments
-from sentry.api.serializers.models.event import SnubaEvent
 from sentry.api.serializers import serialize
 from sentry.api.paginator import DateTimePaginator, GenericOffsetPaginator
 from sentry.api.utils import get_date_range_from_params
-from sentry.models import Event, Group
+from sentry.models import Event, Group, SnubaEvent
 from sentry.search.utils import (
     InvalidQuery,
     parse_query,
