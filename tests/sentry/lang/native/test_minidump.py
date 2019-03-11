@@ -1,7 +1,8 @@
 from __future__ import absolute_import
 import os
-
-from sentry.lang.native.minidump import process_minidump, merge_process_state_event, is_minidump_event
+import io
+import msgpack
+from sentry.lang.native.minidump import process_minidump, merge_process_state_event, is_minidump_event, merge_attached_event
 
 
 def test_is_minidump():
@@ -1052,3 +1053,17 @@ def test_minidump_windows():
         ],
         'timestamp': 1521713273.0
     }
+
+
+def test_merge_attached_event_empty():
+    mpack_event = msgpack.packb({})
+    event = {}
+    merge_attached_event(io.BytesIO(mpack_event), event)
+    assert not event
+
+
+def test_merge_attached_event_arbitrary_key():
+    mpack_event = msgpack.packb({'key': 'value'})
+    event = {}
+    merge_attached_event(io.BytesIO(mpack_event), event)
+    assert event['key'] == 'value'

@@ -103,7 +103,7 @@ def merge_process_state_event(data, state, cfi=None):
 
 
 def merge_attached_event(mpack_event, data):
-    # Merge msgpack serialized event
+    # Merge msgpack serialized event.
     try:
         event = msgpack.unpack(mpack_event)
     except UnpackException as e:
@@ -117,6 +117,7 @@ def merge_attached_event(mpack_event, data):
 
 
 def merge_attached_breadcrumbs(mpack_breadcrumbs, data):
+    # Merge msgpack breadcrumb file.
     try:
         unpacker = msgpack.Unpacker(mpack_breadcrumbs)
     except UnpackException as e:
