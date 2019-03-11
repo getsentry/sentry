@@ -18,7 +18,7 @@ class SentryAppInstallationExternalIssuesEndpoint(SentryAppInstallationBaseEndpo
 
         group_id = request.DATA.get('groupId')
         if not group_id:
-            Response({'detail': 'groupId is required'})
+            return Response({'detail': 'groupId is required'}, status=400)
 
         try:
             group = Group.objects.get(
