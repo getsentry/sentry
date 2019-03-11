@@ -80,6 +80,7 @@ exports[`ProjectTeamsSettings render() renders 1`] = `
                 "org:read",
                 "org:write",
                 "org:admin",
+                "org:integrations",
                 "project:read",
                 "project:write",
                 "project:admin",
