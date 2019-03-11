@@ -103,6 +103,7 @@ exports[`OrganizationApiKeysList renders 1`] = `
                       size="small"
                     >
                       <StyledButton
+                        aria-disabled={false}
                         aria-label="New API Key"
                         disabled={false}
                         onClick={[Function]}
@@ -111,20 +112,18 @@ exports[`OrganizationApiKeysList renders 1`] = `
                         size="small"
                       >
                         <Component
+                          aria-disabled={false}
                           aria-label="New API Key"
                           className="css-zvpqlo-StyledButton-getColors eqrebog0"
-                          disabled={false}
                           onClick={[Function]}
-                          priority="primary"
                           role="button"
                           size="small"
                         >
                           <button
+                            aria-disabled={false}
                             aria-label="New API Key"
                             className="css-zvpqlo-StyledButton-getColors eqrebog0"
-                            disabled={false}
                             onClick={[Function]}
-                            priority="primary"
                             role="button"
                             size="small"
                           >

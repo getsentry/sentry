@@ -410,6 +410,7 @@ exports[`IntegrationDetailsModal renders simple integration 1`] = `
         size="small"
       >
         <StyledButton
+          aria-disabled={false}
           aria-label="Cancel"
           disabled={false}
           onClick={[Function]}
@@ -417,17 +418,17 @@ exports[`IntegrationDetailsModal renders simple integration 1`] = `
           size="small"
         >
           <Component
+            aria-disabled={false}
             aria-label="Cancel"
             className="css-dkprmi-StyledButton-getColors eqrebog0"
-            disabled={false}
             onClick={[Function]}
             role="button"
             size="small"
           >
             <button
+              aria-disabled={false}
               aria-label="Cancel"
               className="css-dkprmi-StyledButton-getColors eqrebog0"
-              disabled={false}
               onClick={[Function]}
               role="button"
               size="small"
@@ -725,6 +726,7 @@ exports[`IntegrationDetailsModal renders simple integration 1`] = `
                             }
                           >
                             <StyledButton
+                              aria-disabled={false}
                               aria-label="Add Installation"
                               disabled={false}
                               onClick={[Function]}
@@ -738,11 +740,10 @@ exports[`IntegrationDetailsModal renders simple integration 1`] = `
                               }
                             >
                               <Component
+                                aria-disabled={false}
                                 aria-label="Add Installation"
                                 className="css-zvpqlo-StyledButton-getColors eqrebog0"
-                                disabled={false}
                                 onClick={[Function]}
-                                priority="primary"
                                 role="button"
                                 size="small"
                                 style={
@@ -752,11 +753,10 @@ exports[`IntegrationDetailsModal renders simple integration 1`] = `
                                 }
                               >
                                 <button
+                                  aria-disabled={false}
                                   aria-label="Add Installation"
                                   className="css-zvpqlo-StyledButton-getColors eqrebog0"
-                                  disabled={false}
                                   onClick={[Function]}
-                                  priority="primary"
                                   role="button"
                                   size="small"
                                   style={

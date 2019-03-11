@@ -479,6 +479,7 @@ exports[`ProjectTags renders 1`] = `
                                               size="xsmall"
                                             >
                                               <StyledButton
+                                                aria-disabled={false}
                                                 data-test-id="delete"
                                                 disabled={false}
                                                 onClick={[Function]}
@@ -486,17 +487,17 @@ exports[`ProjectTags renders 1`] = `
                                                 size="xsmall"
                                               >
                                                 <Component
+                                                  aria-disabled={false}
                                                   className="css-dkprmi-StyledButton-getColors eqrebog0"
                                                   data-test-id="delete"
-                                                  disabled={false}
                                                   onClick={[Function]}
                                                   role="button"
                                                   size="xsmall"
                                                 >
                                                   <button
+                                                    aria-disabled={false}
                                                     className="css-dkprmi-StyledButton-getColors eqrebog0"
                                                     data-test-id="delete"
-                                                    disabled={false}
                                                     onClick={[Function]}
                                                     role="button"
                                                     size="xsmall"
@@ -708,6 +709,7 @@ exports[`ProjectTags renders 1`] = `
                                               size="xsmall"
                                             >
                                               <StyledButton
+                                                aria-disabled={false}
                                                 data-test-id="delete"
                                                 disabled={false}
                                                 onClick={[Function]}
@@ -715,17 +717,17 @@ exports[`ProjectTags renders 1`] = `
                                                 size="xsmall"
                                               >
                                                 <Component
+                                                  aria-disabled={false}
                                                   className="css-dkprmi-StyledButton-getColors eqrebog0"
                                                   data-test-id="delete"
-                                                  disabled={false}
                                                   onClick={[Function]}
                                                   role="button"
                                                   size="xsmall"
                                                 >
                                                   <button
+                                                    aria-disabled={false}
                                                     className="css-dkprmi-StyledButton-getColors eqrebog0"
                                                     data-test-id="delete"
-                                                    disabled={false}
                                                     onClick={[Function]}
                                                     role="button"
                                                     size="xsmall"
@@ -937,6 +939,7 @@ exports[`ProjectTags renders 1`] = `
                                               size="xsmall"
                                             >
                                               <StyledButton
+                                                aria-disabled={false}
                                                 data-test-id="delete"
                                                 disabled={false}
                                                 onClick={[Function]}
@@ -944,17 +947,17 @@ exports[`ProjectTags renders 1`] = `
                                                 size="xsmall"
                                               >
                                                 <Component
+                                                  aria-disabled={false}
                                                   className="css-dkprmi-StyledButton-getColors eqrebog0"
                                                   data-test-id="delete"
-                                                  disabled={false}
                                                   onClick={[Function]}
                                                   role="button"
                                                   size="xsmall"
                                                 >
                                                   <button
+                                                    aria-disabled={false}
                                                     className="css-dkprmi-StyledButton-getColors eqrebog0"
                                                     data-test-id="delete"
-                                                    disabled={false}
                                                     onClick={[Function]}
                                                     role="button"
                                                     size="xsmall"
@@ -1169,6 +1172,7 @@ exports[`ProjectTags renders 1`] = `
                                               size="xsmall"
                                             >
                                               <StyledButton
+                                                aria-disabled={true}
                                                 data-test-id="delete"
                                                 disabled={true}
                                                 href={null}
@@ -1178,9 +1182,9 @@ exports[`ProjectTags renders 1`] = `
                                                 to={null}
                                               >
                                                 <Component
+                                                  aria-disabled={true}
                                                   className="css-1ujzp8g-StyledButton-getColors eqrebog0"
                                                   data-test-id="delete"
-                                                  disabled={true}
                                                   href={null}
                                                   onClick={[Function]}
                                                   role="button"
@@ -1188,9 +1192,9 @@ exports[`ProjectTags renders 1`] = `
                                                   to={null}
                                                 >
                                                   <button
+                                                    aria-disabled={true}
                                                     className="css-1ujzp8g-StyledButton-getColors eqrebog0"
                                                     data-test-id="delete"
-                                                    disabled={true}
                                                     href={null}
                                                     onClick={[Function]}
                                                     role="button"
