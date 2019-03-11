@@ -2,7 +2,7 @@ from __future__ import absolute_import
 import os
 import io
 import msgpack
-from sentry.lang.native.minidump import process_minidump, merge_process_state_event, is_minidump_event, merge_attached_event
+from sentry.lang.native.minidump import process_minidump, merge_process_state_event, merge_attached_breadcrumbs, is_minidump_event, merge_attached_event
 
 
 def test_is_minidump():
@@ -1067,3 +1067,70 @@ def test_merge_attached_event_arbitrary_key():
     event = {}
     merge_attached_event(io.BytesIO(mpack_event), event)
     assert event['key'] == 'value'
+
+
+def test_merge_attached_breadcrumbs_empty_creates_crumb():
+    mpack_crumb = msgpack.packb({})
+    event = {}
+    merge_attached_breadcrumbs(io.BytesIO(mpack_crumb), event)
+    assert event
+
+
+# See:
+# https://github.com/getsentry/sentrypad/blob/e1d4feb65c3e9db829cc4ca9d4003ff3c818d95a/src/sentry.cpp#L337-L366
+def test_merge_attached_breadcrumbs_single_crumb():
+    mpack_crumb = msgpack.packb({
+        'timestamp': '0000-00-00T00:00:00Z',
+        'category': 'c',
+        'type': 't',
+        'level': -1,
+        'message': 'm',
+    })
+    event = {}
+    merge_attached_breadcrumbs(io.BytesIO(mpack_crumb), event)
+    assert event['breadcrumbs'][0]['timestamp'] == '0000-00-00T00:00:00Z'
+    assert event['breadcrumbs'][0]['category'] == 'c'
+    assert event['breadcrumbs'][0]['type'] == 't'
+    assert event['breadcrumbs'][0]['level'] == 'debug'
+    assert event['breadcrumbs'][0]['message'] == 'm'
+
+
+def test_merge_attached_breadcrumbs_invalid_level():
+    mpack_crumb = msgpack.packb({
+        'level': 'invalid',
+    })
+    event = {}
+    merge_attached_breadcrumbs(io.BytesIO(mpack_crumb), event)
+    assert event['breadcrumbs'][0]['level'] == 'info'  # fallsback to info
+
+
+def test_merge_attached_breadcrumbs_missing_level():
+    mpack_crumb = msgpack.packb({})
+    event = {}
+    merge_attached_breadcrumbs(io.BytesIO(mpack_crumb), event)
+    assert event['breadcrumbs'][0]['level'] == 'info'  # fallsback to info
+
+
+def test_merge_attached_breadcrumbs_timestamp_ordered():
+    event = {}
+    mpack_crumb1 = msgpack.packb({'timestamp': '0001-01-01T01:00:02Z'})
+    merge_attached_breadcrumbs(io.BytesIO(mpack_crumb1), event)
+    assert event['breadcrumbs'][0]['timestamp'] == '0001-01-01T01:00:02Z'
+
+    mpack_crumb2 = msgpack.packb({'timestamp': '0001-01-01T01:00:01Z'})
+    merge_attached_breadcrumbs(io.BytesIO(mpack_crumb2), event)
+    assert event['breadcrumbs'][0]['timestamp'] == '0001-01-01T01:00:01Z'
+    assert event['breadcrumbs'][1]['timestamp'] == '0001-01-01T01:00:02Z'
+
+    mpack_crumb3 = msgpack.packb({'timestamp': '0001-01-01T01:00:03Z'})
+    merge_attached_breadcrumbs(io.BytesIO(mpack_crumb3), event)
+    assert event['breadcrumbs'][0]['timestamp'] == '0001-01-01T01:00:01Z'
+    assert event['breadcrumbs'][1]['timestamp'] == '0001-01-01T01:00:02Z'
+    assert event['breadcrumbs'][2]['timestamp'] == '0001-01-01T01:00:03Z'
+
+    mpack_crumb4 = msgpack.packb({'timestamp': '0001-01-01T01:00:00Z'})
+    merge_attached_breadcrumbs(io.BytesIO(mpack_crumb4), event)
+    assert event['breadcrumbs'][0]['timestamp'] == '0001-01-01T01:00:00Z'
+    assert event['breadcrumbs'][1]['timestamp'] == '0001-01-01T01:00:01Z'
+    assert event['breadcrumbs'][2]['timestamp'] == '0001-01-01T01:00:02Z'
+    assert event['breadcrumbs'][3]['timestamp'] == '0001-01-01T01:00:03Z'

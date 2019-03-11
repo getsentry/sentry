@@ -2,8 +2,7 @@ from __future__ import absolute_import
 
 from django.core.files.uploadedfile import InMemoryUploadedFile, TemporaryUploadedFile
 from symbolic import arch_from_breakpad, ProcessState, id_from_breakpad
-from sentry.utils.dates import parse_timestamp
-
+import dateutil.parser as dp
 from sentry.utils.safe import get_path
 import logging
 import msgpack
@@ -147,7 +146,7 @@ def merge_attached_breadcrumbs(mpack_breadcrumbs, data):
                           if c.get('timestamp') is not None), None)
     new_crumb = next((c for c in reversed(breadcrumbs) if c.get('timestamp') is not None), None)
     if current_crumb is not None and new_crumb is not None:
-        if parse_timestamp(current_crumb['timestamp']) > parse_timestamp(new_crumb['timestamp']):
+        if dp.parse(current_crumb['timestamp']) > dp.parse(new_crumb['timestamp']):
             data['breadcrumbs'] = breadcrumbs + current_crumbs
         else:
             data['breadcrumbs'] = current_crumbs + breadcrumbs
