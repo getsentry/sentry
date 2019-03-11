@@ -32,6 +32,10 @@ class IssueDetailsTest(AcceptanceTestCase):
         self.login_as(self.user)
         self.dismiss_assistant()
 
+    def tearDown(self):
+        for log in self.browser.driver.get_log("browser"):
+            assert log['source'] == 'network', log
+
     def create_sample_event(self, platform, default=None, sample_name=None):
         event = create_sample_event(
             project=self.project,
@@ -55,6 +59,8 @@ class IssueDetailsTest(AcceptanceTestCase):
             u'/{}/{}/issues/{}/'.format(self.org.slug, self.project.slug, event.group.id)
         )
         self.wait_until_loaded()
+        assert self.browser.find_element_by_css_selector(
+            ".event-toolbar time").text == 'Sep 6, 2017 12:00:00 AM UTC'
         self.browser.snapshot('issue details python')
 
     def test_cocoa_event(self):
