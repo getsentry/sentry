@@ -3,7 +3,7 @@ import PropTypes from 'prop-types';
 import {cx} from 'emotion';
 import styled from 'react-emotion';
 import isPropValid from '@emotion/is-prop-valid';
-import Color from 'color';
+import color from 'color';
 
 import TextBlock from 'app/views/settings/components/text/textBlock';
 import InlineSvg from 'app/components/inlineSvg';
@@ -25,7 +25,7 @@ const getAlertColorStyles = ({backgroundLight, border, iconColor}) => `
 const getSystemAlertColorStyles = ({backgroundLight, border, iconColor}) => `
   border: 0;
   border-radius: 0;
-  border-bottom: 1px solid ${Color(border)
+  border-bottom: 1px solid ${color(border)
     .alpha(0.5)
     .string()};
 
