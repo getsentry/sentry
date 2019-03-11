@@ -59,8 +59,6 @@ class IssueDetailsTest(AcceptanceTestCase):
             u'/{}/{}/issues/{}/'.format(self.org.slug, self.project.slug, event.group.id)
         )
         self.wait_until_loaded()
-        assert self.browser.find_element_by_css_selector(
-            ".event-toolbar time").text == 'Sep 6, 2017 12:00:00 AM UTC'
         self.browser.snapshot('issue details python')
 
     def test_cocoa_event(self):
