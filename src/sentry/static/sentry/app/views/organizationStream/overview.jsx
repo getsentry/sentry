@@ -462,16 +462,19 @@ const OrganizationStream = createReactClass({
       if (savedSearch.projectId) {
         query.project = [savedSearch.projectId];
       }
+
+      // If the saved search is project-less and the user doesn't have
+      // globao-views we retain their current project filter
+      // so that the backend doesn't reject their request.
+      const hasMultipleProjectSelection = organization.features.includes('global-views');
+      if (!savedSearch.projectId && !hasMultipleProjectSelection) {
+        query.project = this.props.selection.projects;
+      }
     } else {
       path = `/organizations/${organization.slug}/issues/`;
     }
 
     if (path !== this.props.location.path && !isEqual(query, this.props.location.query)) {
-      // TODO: Delete/revert this after testing production counts cc/ @wedamija
-      if (this.props.location.query[NEW_FILTERS_TEST]) {
-        query[NEW_FILTERS_TEST] = 1;
-      }
-
       browserHistory.push({
         pathname: path,
         query,
