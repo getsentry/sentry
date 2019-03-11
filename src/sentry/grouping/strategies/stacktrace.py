@@ -55,8 +55,6 @@ RECURSION_COMPARISON_FIELDS = [
 
 
 def is_url_v1(filename):
-    # XXX(mitsuhiko): this is a duplicate from
-    # sentry.interfaces.stacktrace
     return filename.startswith(('file:', 'http:', 'https:', 'applewebdata:'))
 
 

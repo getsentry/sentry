@@ -85,7 +85,7 @@ def to_hex_addr(addr):
     return rv
 
 
-def get_context(lineno, context_line, pre_context=None, post_context=None, filename=None):
+def get_context(lineno, context_line, pre_context=None, post_context=None):
     if lineno is None:
         return []
 
@@ -116,10 +116,6 @@ def get_context(lineno, context_line, pre_context=None, post_context=None, filen
             context.append((at_lineno, line))
             at_lineno += 1
 
-    # HACK:
-    if filename and is_url(filename) and '.' not in filename.rsplit('/', 1)[-1]:
-        filename = 'index.html'
-
     return context
 
 
@@ -141,8 +137,6 @@ def is_newest_frame_first(event):
 
 
 def is_url(filename):
-    # XXX(mitsuhiko): this is a duplicate from
-    # sentry.grouping.strategies.stacktrace
     return filename.startswith(('file:', 'http:', 'https:', 'applewebdata:'))
 
 
@@ -372,7 +366,6 @@ class Frame(Interface):
                 context_line=self.context_line,
                 pre_context=self.pre_context,
                 post_context=self.post_context,
-                filename=self.filename or self.module,
             ),
             'lineNo': self.lineno,
             'colNo': self.colno,
@@ -418,7 +411,6 @@ class Frame(Interface):
                 context_line=meta.get('context_line'),
                 pre_context=meta.get('pre_context'),
                 post_context=meta.get('post_context'),
-                filename=meta.get('filename') if self.filename else meta.get('module'),
             ),
             'lineNo': meta.get('lineno'),
             'colNo': meta.get('colno'),
