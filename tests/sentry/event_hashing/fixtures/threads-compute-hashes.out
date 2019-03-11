@@ -1,0 +1,27 @@
+app:
+  hash: None
+  component:
+    app (threads of system takes precedence)
+      threads (ignored because hash matches system variant)
+        stacktrace*
+          frame*
+            filename*
+              u'foo/baz.c'
+            function*
+              u'main'
+            lineno (function takes precedence)
+              1
+--------------------------------------------------------------------------
+system:
+  hash: '39db5b4edf187e89cec12245e5c9fb3c'
+  component:
+    system*
+      threads*
+        stacktrace*
+          frame*
+            filename*
+              u'foo/baz.c'
+            function*
+              u'main'
+            lineno (function takes precedence)
+              1

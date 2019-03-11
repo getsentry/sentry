@@ -26,17 +26,6 @@ class MessageTest(TestCase):
             'formatted': 'Hello there world!'
         }
 
-    def test_compute_hashes_prefers_message(self):
-        assert self.interface.compute_hashes() == [[self.interface.message]]
-
-    def test_compute_hashes_uses_formatted(self):
-        interface = Message.to_python(dict(
-            message=None,
-            params=(),
-            formatted='Hello there world!'
-        ))
-        assert interface.compute_hashes() == [[interface.formatted]]
-
     def test_grouping_components_prefers_message(self):
         assert self.interface.get_grouping_component().as_dict() == {
             'hint': None,

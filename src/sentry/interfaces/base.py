@@ -273,16 +273,6 @@ class Interface(object):
 
         return rv
 
-    def compute_hashes(self, platform=None):
-        # legacy function, really only used for tests these days
-        # XXX: remove/rename, this does not return hashes but returns
-        # components that contribute into a hash
-        variant_components = self.get_grouping_component_variants(platform)
-        return [
-            x.flatten_values() for x in six.itervalues(variant_components)
-            if x.contributes
-        ]
-
     def get_title(self):
         return _(type(self).__name__)
 

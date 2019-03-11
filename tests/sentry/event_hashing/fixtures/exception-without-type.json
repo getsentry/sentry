@@ -1,0 +1,6 @@
+{
+  "exception": {
+    "module": "foo.bar",
+    "value": "hello world"
+  }
+}

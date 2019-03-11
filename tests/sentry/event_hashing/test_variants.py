@@ -54,12 +54,16 @@ _fixture_path = os.path.join(os.path.dirname(__file__), 'fixtures')
 def test_event_hash_variant(infile):
     with open(os.path.join(_fixture_path, infile + '.json')) as f:
         input = json.load(f)
-    with open(os.path.join(_fixture_path, infile + '.out')) as f:
-        refval = f.read().decode('utf-8').rstrip()
+    try:
+        with open(os.path.join(_fixture_path, infile + '.out')) as f:
+            refval = f.read().decode('utf-8').rstrip()
+    except IOError:
+        refval = ''
 
     mgr = EventManager(data=input)
     mgr.normalize()
-    evt = Event(data=mgr.get_data())
+    data = mgr.get_data()
+    evt = Event(data=data, platform=data['platform'])
 
     rv = []
     for (key, value) in sorted(evt.get_grouping_variants().items()):

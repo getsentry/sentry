@@ -3,7 +3,6 @@
 from __future__ import absolute_import
 
 from exam import fixture
-from itertools import chain
 
 from sentry.interfaces.exception import (SingleException, Exception, slim_exception_data,
                                          Mechanism, normalize_mechanism_meta, upgrade_legacy_mechanism)
@@ -109,12 +108,6 @@ class ExceptionTest(TestCase):
 
 ValueError: hello world
   File "foo/baz.py", line 1"""
-
-    def test_compute_hashes(self):
-        inst = self.interface
-
-        all_values = [sum(chain.from_iterable(v.compute_hashes() for v in inst.values), [])]
-        assert inst.compute_hashes() == all_values
 
     def test_context_with_mixed_frames(self):
         inst = Exception.to_python(
@@ -353,24 +346,6 @@ class SingleExceptionTest(TestCase):
             'value': self.interface.value,
             'module': self.interface.module,
         }
-
-    def test_comput_hashes(self):
-        assert self.interface.compute_hashes() == [[
-            self.interface.type,
-            self.interface.value,
-        ]]
-
-    def test_compute_hashes_without_type(self):
-        self.interface.type = None
-        assert self.interface.compute_hashes() == [[
-            self.interface.value,
-        ]]
-
-    def test_compute_hashes_without_value(self):
-        self.interface.value = None
-        assert self.interface.compute_hashes() == [[
-            self.interface.type,
-        ]]
 
     def test_serialize_unserialize_behavior(self):
         result = type(self.interface).to_python(self.interface.to_json())

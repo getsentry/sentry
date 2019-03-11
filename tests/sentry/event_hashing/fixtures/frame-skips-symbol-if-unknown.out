@@ -1,0 +1,21 @@
+app:
+  hash: None
+  component:
+    app (stacktrace of system takes precedence)
+      stacktrace (ignored because hash matches system variant)
+        frame* (frame considered in-app because no frame is in-app)
+          module*
+            u'libfoo'
+          function*
+            u'main'
+--------------------------------------------------------------------------
+system:
+  hash: 'a972f399399f5566f39b14a7afdd24ff'
+  component:
+    system*
+      stacktrace*
+        frame*
+          module*
+            u'libfoo'
+          function*
+            u'main'

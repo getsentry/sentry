@@ -1,0 +1,17 @@
+{
+  "stacktrace": {
+    "frames": [
+      {
+        "abs_path": "foo.py",
+        "filename": "foo.py",
+        "lineno": 1,
+        "in_app": true
+      },
+      {
+        "abs_path": "bar.py",
+        "lineno": 1,
+        "filename": "bar.py"
+      }
+    ]
+  }
+}
