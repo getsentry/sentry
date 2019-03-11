@@ -1,6 +1,9 @@
 from __future__ import absolute_import
 
+import json
+
 from datetime import datetime
+from django.conf import settings
 from django.utils import timezone
 
 from sentry.testutils import AcceptanceTestCase
@@ -194,5 +197,17 @@ class IssueDetailsTest(AcceptanceTestCase):
         self.browser.wait_until('[data-test-id="loaded-device-name"]')
 
     def dismiss_assistant(self):
-        self.client.put('/assistant/', data={'guide_id': 1, 'status': 'viewed', 'useful': True})
-        self.client.put('/assistant/', data={'guide_id': 3, 'status': 'viewed', 'useful': True})
+        # Forward session cookie to django client.
+        self.client.cookies[settings.SESSION_COOKIE_NAME] = self.session.session_key
+
+        res = self.client.put(
+            '/api/0/assistant/',
+            content_type='application/json',
+            data=json.dumps({'guide_id': 1, 'status': 'viewed', 'useful': True}))
+        assert res.status_code == 201
+
+        res = self.client.put(
+            '/api/0/assistant/',
+            content_type='application/json',
+            data=json.dumps({'guide_id': 3, 'status': 'viewed', 'useful': True}))
+        assert res.status_code == 201
