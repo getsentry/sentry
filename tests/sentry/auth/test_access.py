@@ -26,6 +26,24 @@ class FromUserTest(TestCase):
         assert not result.has_project_scope(project, 'project:read')
         assert not result.has_project_membership(project)
 
+    def test_unique_projects(self):
+        user = self.create_user()
+        organization = self.create_organization(owner=self.user)
+
+        team = self.create_team(organization=organization)
+        other_team = self.create_team(organization=organization)
+        self.create_member(
+            organization=organization,
+            user=user,
+            role='owner',
+            teams=[team, other_team]
+        )
+        project = self.create_project(organization=organization, teams=[team, other_team])
+
+        result = access.from_user(user, organization)
+        assert result.has_project_access(project)
+        assert len(result.projects) == 1
+
     def test_mixed_access(self):
         user = self.create_user()
         organization = self.create_organization(flags=0)  # disable default allow_joinleave

@@ -281,9 +281,7 @@ def from_sentry_app(user, organization=None):
         return NoAccess()
 
     team_list = list(sentry_app.teams.all())
-    project_list = list(Project.objects.filter(
-        teams__in=team_list,
-    ))
+    project_list = list(Project.objects.filter(teams__in=team_list).distinct())
 
     return Access(
         scopes=sentry_app.scope_list,
@@ -329,7 +327,7 @@ def from_member(member, scopes=None):
     requires_sso, sso_is_valid = _sso_params(member)
 
     team_list = member.get_teams()
-    project_list = list(Project.objects.filter(teams__in=team_list))
+    project_list = list(Project.objects.filter(teams__in=team_list).distinct())
 
     if scopes is not None:
         scopes = set(scopes) & member.get_scopes()
