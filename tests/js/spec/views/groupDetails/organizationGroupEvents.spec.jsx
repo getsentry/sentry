@@ -6,8 +6,9 @@ import {browserHistory} from 'react-router';
 import OrgnanizationGroupEvents from 'app/views/groupDetails/organization/groupEvents';
 
 describe('groupEvents', function() {
+  let request;
   beforeEach(function() {
-    MockApiClient.addMockResponse({
+    request = MockApiClient.addMockResponse({
       url: '/issues/1/events/',
       body: TestStubs.Events(),
     });
@@ -62,5 +63,27 @@ describe('groupEvents', function() {
         })
       );
     });
+  });
+
+  it('handles environment filtering', function() {
+    shallow(
+      <OrgnanizationGroupEvents
+        params={{orgId: 'orgId', projectId: 'projectId', groupId: '1'}}
+        group={TestStubs.Group()}
+        location={{query: {environment: ['prod', 'staging']}}}
+      />,
+      {
+        context: {...TestStubs.router()},
+        childContextTypes: {
+          router: PropTypes.object,
+        },
+      }
+    );
+    expect(request).toHaveBeenCalledWith(
+      '/issues/1/events/',
+      expect.objectContaining({
+        query: {limit: 50, query: '', environment: ['prod', 'staging']},
+      })
+    );
   });
 });
