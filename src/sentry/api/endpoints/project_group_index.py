@@ -20,7 +20,7 @@ from sentry.models.savedsearch import DEFAULT_SAVED_SEARCH_QUERIES
 from sentry.signals import advanced_search
 from sentry.utils.apidocs import attach_scenarios, scenario
 from sentry.utils.cursors import CursorResult
-
+from sentry.utils.validators import is_event_id
 
 ERR_INVALID_STATS_PERIOD = "Invalid stats_period. Valid choices are '', '24h', and '14d'"
 
@@ -143,7 +143,7 @@ class ProjectGroupIndexEndpoint(ProjectEndpoint, EnvironmentMixin):
         if query:
             matching_group = None
             matching_event = None
-            if len(query) == 32:
+            if is_event_id(query):
                 # check to see if we've got an event ID
                 try:
                     matching_group = Group.objects.from_event_id(project, query)
