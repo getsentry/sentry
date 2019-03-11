@@ -4,7 +4,6 @@ import React from 'react';
 import SavedSearchSelector from 'app/views/stream/savedSearchSelector';
 import SearchBar from 'app/views/stream/searchBar';
 import SortOptions from 'app/views/stream/sortOptions';
-import TagStore from 'app/stores/tagStore';
 
 class StreamFilters extends React.Component {
   static propTypes = {
@@ -27,6 +26,7 @@ class StreamFilters extends React.Component {
     onSavedSearchCreate: PropTypes.func.isRequired,
     onSavedSearchSelect: PropTypes.func.isRequired,
     tagValueLoader: PropTypes.func.isRequired,
+    tags: PropTypes.object.isRequired,
   };
 
   static contextTypes = {
@@ -61,6 +61,7 @@ class StreamFilters extends React.Component {
       onSavedSearchSelect,
       onSortChange,
       tagValueLoader,
+      tags,
     } = this.props;
 
     return (
@@ -92,7 +93,7 @@ class StreamFilters extends React.Component {
                 onSearch={onSearch}
                 disabled={isSearchDisabled}
                 excludeEnvironment={true}
-                supportedTags={TagStore.getAllTags()}
+                supportedTags={tags}
                 tagValueLoader={tagValueLoader}
               />
               <a

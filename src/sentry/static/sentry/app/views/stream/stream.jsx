@@ -704,6 +704,7 @@ const Stream = createReactClass({
             isSearchDisabled={this.state.isSidebarVisible}
             savedSearchList={this.state.savedSearchList}
             tagValueLoader={this.tagValueLoader}
+            tags={this.props.tags}
           />
           <Panel>
             <StreamActions
