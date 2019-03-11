@@ -9,8 +9,6 @@ from sentry.utils.dates import parse_stats_period
 
 
 MAX_STATS_PERIOD = timedelta(days=90)
-# make sure to update this message if you are changing the max period
-INVALID_PERIOD_ERROR = 'Time window must be less than or equal to 90 days'
 
 
 class InvalidParams(Exception):
@@ -26,7 +24,7 @@ def get_datetime_from_stats_period(stats_period, now=None):
     return now - stats_period
 
 
-def get_date_range_from_params(params, optional=False, validate_window=True):
+def get_date_range_from_params(params, optional=False):
     """
     Gets a date range from standard date range params we pass to the api.
 
@@ -43,7 +41,6 @@ def get_date_range_from_params(params, optional=False, validate_window=True):
     If `start` end `end` are passed, validate them, convert to `datetime` and
     returns them if valid.
     :param optional: When True, if no params passed then return `(None, None)`.
-    :param validate_window: When True, validate against min / max time delta.
     :return: A length 2 tuple containing start/end or raises an `InvalidParams`
     exception
     """
@@ -78,10 +75,5 @@ def get_date_range_from_params(params, optional=False, validate_window=True):
 
     if start > end:
         raise InvalidParams('start must be before end')
-
-    if validate_window:
-        delta = end - start
-        if delta > MAX_STATS_PERIOD:
-            raise InvalidParams(INVALID_PERIOD_ERROR)
 
     return start, end
