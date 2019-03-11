@@ -43,6 +43,23 @@ const forms = [
         ),
       },
       {
+        name: 'schema',
+        type: 'textarea',
+        label: 'Schema',
+        autosize: true,
+        help: 'Schema for your UI components',
+        getValue: val => {
+          return val == '' ? val : JSON.parse(val);
+        },
+        setValue: val => {
+          const schema = JSON.stringify(val, null, 2);
+          if (schema == '{}') {
+            return '';
+          }
+          return schema;
+        },
+      },
+      {
         name: 'overview',
         type: 'textarea',
         label: 'Overview',

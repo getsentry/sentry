@@ -40,6 +40,7 @@ class SentryAppDetailsEndpoint(SentryAppBaseEndpoint):
                 is_alertable=result.get('isAlertable'),
                 scopes=result.get('scopes'),
                 events=result.get('events'),
+                schema=result.get('schema'),
                 overview=result.get('overview'),
             )
 

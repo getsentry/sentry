@@ -503,6 +503,7 @@ exports[`Organization Developer Settings with published apps trash button is dis
                         "name": "Sample App",
                         "overview": "This is an app.",
                         "redirectUrl": "https://example/com/setup",
+                        "schema": Object {},
                         "scopes": Array [
                           "project:read",
                         ],
@@ -543,6 +544,7 @@ exports[`Organization Developer Settings with published apps trash button is dis
                                       "name": "Sample App",
                                       "overview": "This is an app.",
                                       "redirectUrl": "https://example/com/setup",
+                                      "schema": Object {},
                                       "scopes": Array [
                                         "project:read",
                                       ],
@@ -1075,6 +1077,7 @@ exports[`Organization Developer Settings with unpublished apps displays all Apps
                         "name": "Sample App",
                         "overview": "This is an app.",
                         "redirectUrl": "https://example/com/setup",
+                        "schema": Object {},
                         "scopes": Array [
                           "project:read",
                         ],
@@ -1115,6 +1118,7 @@ exports[`Organization Developer Settings with unpublished apps displays all Apps
                                       "name": "Sample App",
                                       "overview": "This is an app.",
                                       "redirectUrl": "https://example/com/setup",
+                                      "schema": Object {},
                                       "scopes": Array [
                                         "project:read",
                                       ],

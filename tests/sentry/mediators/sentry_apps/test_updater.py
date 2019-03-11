@@ -2,6 +2,7 @@ from __future__ import absolute_import
 
 from sentry.coreapi import APIError
 from sentry.mediators.sentry_apps import Updater
+from sentry.models import SentryAppComponent
 from sentry.testutils import TestCase
 
 
@@ -13,6 +14,7 @@ class TestUpdater(TestCase):
             name='nulldb',
             organization=self.org,
             scopes=('project:read',),
+            schema={'elements': [self.create_issue_link_schema()]},
         )
 
         self.updater = Updater(sentry_app=self.sentry_app)
@@ -66,6 +68,18 @@ class TestUpdater(TestCase):
         self.updater.is_alertable = True
         self.updater.call()
         assert self.sentry_app.is_alertable
+
+    def test_updates_schema(self):
+        ui_component = SentryAppComponent.objects.get(sentry_app_id=self.sentry_app.id)
+        self.updater.schema = {
+            'elements': [self.create_alert_rule_action_schema()],
+        }
+        self.updater.call()
+        new_ui_component = SentryAppComponent.objects.get(sentry_app_id=self.sentry_app.id)
+        assert not ui_component.type == new_ui_component.type
+        assert self.sentry_app.schema == {
+            'elements': [self.create_alert_rule_action_schema()],
+        }
 
     def test_updates_overview(self):
         self.updater.overview = 'Description of my very cool application'

@@ -53,6 +53,7 @@ class GetOrganizationSentryAppsTest(OrganizationSentryAppsTest):
             'clientId': self.unpublished_app.application.client_id,
             'clientSecret': self.unpublished_app.application.client_secret,
             'overview': self.unpublished_app.overview,
+            'schema': {},
         }])
 
     @with_feature('organizations:sentry-apps')

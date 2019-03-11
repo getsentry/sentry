@@ -681,7 +681,7 @@ class Factories(object):
             'scopes': scopes,
             'webhook_url': webhook_url,
             'events': [],
-            'schema': '{}',
+            'schema': {},
         }
 
         _kwargs.update(kwargs)

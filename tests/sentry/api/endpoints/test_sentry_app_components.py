@@ -6,7 +6,6 @@ from django.core.urlresolvers import reverse
 
 from sentry.testutils import APITestCase
 from sentry.testutils.helpers import with_feature
-from sentry.utils import json
 
 
 class SentryAppComponentsTest(APITestCase):
@@ -19,9 +18,9 @@ class SentryAppComponentsTest(APITestCase):
             name='Test',
             organization=self.org,
             published=True,
-            schema=json.dumps({
+            schema={
                 'elements': [self.create_issue_link_schema()],
-            }),
+            },
         )
 
         self.component = self.sentry_app.components.first()
@@ -52,21 +51,21 @@ class OrganizationSentryAppComponentsTest(APITestCase):
         self.org = self.create_organization(owner=self.user)
 
         self.sentry_app1 = self.create_sentry_app(
-            schema=json.dumps({
+            schema={
                 'elements': [self.create_issue_link_schema()],
-            })
+            }
         )
 
         self.sentry_app2 = self.create_sentry_app(
-            schema=json.dumps({
+            schema={
                 'elements': [self.create_issue_link_schema()],
-            })
+            }
         )
 
         self.sentry_app3 = self.create_sentry_app(
-            schema=json.dumps({
+            schema={
                 'elements': [self.create_issue_link_schema()],
-            })
+            }
         )
 
         self.create_sentry_app_installation(

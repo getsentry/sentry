@@ -13,6 +13,7 @@ exports[`SentryAppPermissionsModal installs the application 1`] = `
       "name": "Sample App",
       "overview": "This is an app.",
       "redirectUrl": "https://example/com/setup",
+      "schema": Object {},
       "scopes": Array [
         "project:read",
       ],
@@ -235,6 +236,7 @@ exports[`SentryAppPermissionsModal renders permissions modal 1`] = `
       "name": "Sample App",
       "overview": "This is an app.",
       "redirectUrl": "https://example/com/setup",
+      "schema": Object {},
       "scopes": Array [
         "project:read",
       ],
