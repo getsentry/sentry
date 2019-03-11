@@ -464,7 +464,7 @@ const OrganizationStream = createReactClass({
       }
 
       // If the saved search is project-less and the user doesn't have
-      // globao-views we retain their current project filter
+      // global-views we retain their current project filter
       // so that the backend doesn't reject their request.
       const hasMultipleProjectSelection = organization.features.includes('global-views');
       if (!savedSearch.projectId && !hasMultipleProjectSelection) {
