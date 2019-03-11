@@ -76,7 +76,7 @@ class TestUpdater(TestCase):
         }
         self.updater.call()
         new_ui_component = SentryAppComponent.objects.get(sentry_app_id=self.sentry_app.id)
-        assert ui_component != new_ui_component
+        assert not ui_component.type == new_ui_component.type
         assert self.sentry_app.schema == {
             'elements': [self.create_alert_rule_action_schema()],
         }
