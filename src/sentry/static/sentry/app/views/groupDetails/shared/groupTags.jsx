@@ -91,13 +91,14 @@ class GroupTags extends React.Component {
       children = this.state.tagList.map((tag, tagIdx) => {
         const valueChildren = tag.topValues.map((tagValue, tagValueIdx) => {
           const pct = percent(tagValue.count, tag.totalValues);
+          const query = tagValue.query || `${tag.key}:"${tagValue.value}"`;
           return (
-            <li key={tagValueIdx}>
+            <li key={tagValueIdx} data-test-id={tag.key}>
               <Link
                 className="tag-bar"
                 to={{
                   pathname: `${baseUrl}${group.id}/events/`,
-                  query: {query: tag.key + ':' + '"' + tagValue.value + '"'},
+                  query: {query},
                 }}
               >
                 <span className="tag-bar-background" style={{width: pct + '%'}} />

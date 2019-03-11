@@ -8,9 +8,27 @@ describe('GroupSidebar', function() {
   const project = TestStubs.Project();
   const environment = {name: 'production', displayName: 'Production', id: '1'};
   let wrapper;
-  let tagValuesMock;
+  let tagsMock;
 
   beforeEach(function() {
+    MockApiClient.addMockResponse({
+      url: '/projects/org-slug/project-slug/events/1/committers/',
+      body: {committers: []},
+    });
+
+    MockApiClient.addMockResponse({
+      url: '/projects/org-slug/project-slug/events/1/owners/',
+      body: {
+        owners: [],
+        rules: [],
+      },
+    });
+
+    MockApiClient.addMockResponse({
+      url: '/groups/1/integrations/',
+      body: [],
+    });
+
     MockApiClient.addMockResponse({
       url: '/issues/1/participants/',
       body: [],
@@ -21,9 +39,9 @@ describe('GroupSidebar', function() {
       body: group,
     });
 
-    tagValuesMock = MockApiClient.addMockResponse({
+    tagsMock = MockApiClient.addMockResponse({
       url: '/issues/1/tags/',
-      body: TestStubs.TagValues(),
+      body: TestStubs.Tags(),
     });
 
     wrapper = shallow(
@@ -43,17 +61,16 @@ describe('GroupSidebar', function() {
 
   describe('sidebar', function() {
     it('should make a request to the /tags/ endpoint to get top values', function() {
-      expect(tagValuesMock).toHaveBeenCalled();
+      expect(tagsMock).toHaveBeenCalled();
     });
   });
 
   describe('renders with tags', function() {
     it('renders', function() {
-      expect(wrapper).toMatchSnapshot();
-    });
-
-    it('renders tags', function() {
-      expect(wrapper.find('[data-test-id="group-tag"]')).toHaveLength(4);
+      expect(wrapper.find('SuggestedOwners')).toHaveLength(1);
+      expect(wrapper.find('GroupReleaseStats')).toHaveLength(1);
+      expect(wrapper.find('ExternalIssueList')).toHaveLength(1);
+      expect(wrapper.find('[data-test-id="group-tag"]')).toHaveLength(5);
     });
   });
 
@@ -119,10 +136,10 @@ describe('GroupSidebar', function() {
   describe('environment toggle', function() {
     it('re-requests tags with correct environment', function() {
       const stagingEnv = {name: 'staging', displayName: 'Staging', id: '2'};
-      expect(tagValuesMock).toHaveBeenCalledTimes(1);
+      expect(tagsMock).toHaveBeenCalledTimes(1);
       wrapper.setProps({environments: [stagingEnv]});
-      expect(tagValuesMock).toHaveBeenCalledTimes(2);
-      expect(tagValuesMock).toHaveBeenCalledWith(
+      expect(tagsMock).toHaveBeenCalledTimes(2);
+      expect(tagsMock).toHaveBeenCalledWith(
         '/issues/1/tags/',
         expect.objectContaining({
           query: expect.objectContaining({

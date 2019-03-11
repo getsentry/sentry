@@ -7,6 +7,7 @@ describe('TagDistributionMeter', function() {
   let element;
   let emptyElement;
   let organization;
+  const tags = TestStubs.Tags();
 
   beforeEach(function() {
     organization = TestStubs.Organization();
@@ -18,8 +19,8 @@ describe('TagDistributionMeter', function() {
         group={{id: '1337'}}
         organization={organization}
         projectId="456"
-        totalValues={TestStubs.Tags()[0].totalValues}
-        topValues={TestStubs.TagValues()[0].topValues}
+        totalValues={tags[0].totalValues}
+        topValues={tags[0].topValues}
       />
     );
 

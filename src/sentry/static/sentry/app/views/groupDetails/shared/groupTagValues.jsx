@@ -48,7 +48,7 @@ const GroupTagValues = createReactClass({
     }
   },
 
-  fetchData() {
+  async fetchData() {
     const {params, query} = this.props;
 
     this.setState({
@@ -56,38 +56,34 @@ const GroupTagValues = createReactClass({
       error: false,
     });
 
-    this.api.request(`/issues/${params.groupId}/tags/${params.tagKey}/`, {
-      query,
-      success: data => {
-        this.setState({
-          tagKey: data,
-          loading: this.state.tagValueList === null,
-        });
-      },
-      error: error => {
-        this.setState({
-          error: true,
-          loading: false,
-        });
-      },
-    });
+    const promises = [
+      this.api.requestPromise(`/issues/${params.groupId}/tags/${params.tagKey}/`, {
+        query,
+      }),
+      this.api.requestPromise(`/issues/${params.groupId}/tags/${params.tagKey}/values/`, {
+        query,
+        includeAllArgs: true,
+      }),
+    ];
 
-    this.api.request(`/issues/${params.groupId}/tags/${params.tagKey}/values/`, {
-      query,
-      success: (data, _, jqXHR) => {
-        this.setState({
-          tagValueList: data,
-          loading: this.state.tagKey === null,
-          pageLinks: jqXHR.getResponseHeader('Link'),
-        });
-      },
-      error: error => {
-        this.setState({
-          error: true,
-          loading: false,
-        });
-      },
-    });
+    try {
+      const [tagKey, tagValueResponse] = await Promise.all(promises);
+      const [tagValueList, , jqXHR] = tagValueResponse;
+
+      this.setState({
+        tagKey,
+        tagValueList,
+        loading: false,
+        pageLinks: jqXHR.getResponseHeader('Link'),
+      });
+    } catch (rejections) {
+      // eslint-disable-next-line no-console
+      console.error(rejections);
+      this.setState({
+        error: true,
+        loading: false,
+      });
+    }
   },
 
   getUserDisplayName(item) {
@@ -115,6 +111,7 @@ const GroupTagValues = createReactClass({
 
     const children = sortedTagValueList.map((tagValue, tagValueIdx) => {
       const pct = percent(tagValue.count, tagKey.totalValues).toFixed(2);
+      const query = tagValue.query || `${tagKey.key}:"${tagValue.value}"`;
       return (
         <tr key={tagValueIdx}>
           <td className="bar-cell">
@@ -125,12 +122,12 @@ const GroupTagValues = createReactClass({
             <Link
               to={{
                 pathname: issuesPath,
-                query: {query: `${tagKey.key}:"${tagValue.value}"`},
+                query: {query},
               }}
             >
               {tagKey.key === 'user' ? (
                 <React.Fragment>
-                  <Avatar user={tagValue} size={20} className="avatar" />,
+                  <Avatar user={tagValue} size={20} className="avatar" />
                   <span style={{marginLeft: 10}}>
                     {this.getUserDisplayName(tagValue)}
                   </span>
