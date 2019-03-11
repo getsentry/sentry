@@ -91,7 +91,6 @@ class Template(Interface):
                 context_line=self.context_line,
                 pre_context=self.pre_context,
                 post_context=self.post_context,
-                filename=self.filename,
             ),
         }
 
