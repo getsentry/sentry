@@ -19,7 +19,7 @@ def _generate_rule_label(project, rule, data):
 
 @register(Rule)
 class RuleSerializer(Serializer):
-    def get_attrs(self, item_list, user, *args, **kwargs):
+    def get_attrs(self, item_list, user, **kwargs):
         environments = Environment.objects.in_bulk(
             filter(None, [i.environment_id for i in item_list]),
         )
