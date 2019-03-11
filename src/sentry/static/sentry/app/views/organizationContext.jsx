@@ -35,6 +35,7 @@ const OrganizationContext = createReactClass({
   propTypes: {
     includeSidebar: PropTypes.bool,
     useLastOrganization: PropTypes.bool,
+    organizationsLoading: PropTypes.bool,
     organizations: PropTypes.arrayOf(SentryTypes.Organization),
   },
 
@@ -69,7 +70,11 @@ const OrganizationContext = createReactClass({
       this.props.params.orgId &&
       nextProps.params.orgId !== this.props.params.orgId;
 
-    if (hasOrgIdAndChanged || nextProps.location.state === 'refresh') {
+    if (
+      hasOrgIdAndChanged ||
+      nextProps.location.state === 'refresh' ||
+      this.props.organizations !== nextProps.organizations
+    ) {
       this.remountComponent();
     }
   },
@@ -102,7 +107,7 @@ const OrganizationContext = createReactClass({
 
   fetchData() {
     if (!this.getOrganizationSlug()) {
-      this.setState({loading: false});
+      this.setState({loading: this.props.organizationsLoading});
       return;
     }
 
