@@ -1,7 +1,7 @@
 import {browserHistory} from 'react-router';
 import React from 'react';
 import createReactClass from 'create-react-class';
-import {pickBy} from 'lodash';
+import {pick} from 'lodash';
 
 import SentryTypes from 'app/sentryTypes';
 import {Panel, PanelBody} from 'app/components/panels';
@@ -74,7 +74,7 @@ const GroupEvents = createReactClass({
     });
 
     const query = {
-      ...pickBy(this.props.location.query, ['cursor', 'environment']),
+      ...pick(this.props.location.query, ['cursor', 'environment']),
       limit: 50,
       query: this.state.query,
     };
