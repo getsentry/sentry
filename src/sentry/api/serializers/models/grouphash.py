@@ -42,7 +42,7 @@ class GroupHashSerializer(Serializer):
         GroupHash.State.LOCKED_IN_MIGRATION: 'locked',
     }
 
-    def get_attrs(self, item_list, user, *args, **kwargs):
+    def get_attrs(self, item_list, user, **kwargs):
         return {
             item: {
                 'latest_event': latest_event

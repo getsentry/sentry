@@ -6,7 +6,7 @@ from sentry.api.serializers import Serializer
 
 class RoleSerializer(Serializer):
 
-    def serialize(self, obj, attrs, *args, **kwargs):
+    def serialize(self, obj, attrs, user, **kwargs):
         allowed_roles = kwargs.get('allowed_roles') or []
 
         return {
