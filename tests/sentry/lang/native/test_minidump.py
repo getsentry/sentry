@@ -1062,6 +1062,13 @@ def test_merge_attached_event_empty():
     assert not event
 
 
+def test_merge_attached_event_too_large_empty():
+    mpack_event = msgpack.packb({'a': 'a' * 100000})
+    event = {}
+    merge_attached_event(io.BytesIO(mpack_event), event)
+    assert not event
+
+
 def test_merge_attached_event_arbitrary_key():
     mpack_event = msgpack.packb({'key': 'value'})
     event = {}
@@ -1074,6 +1081,13 @@ def test_merge_attached_breadcrumbs_empty_creates_crumb():
     event = {}
     merge_attached_breadcrumbs(io.BytesIO(mpack_crumb), event)
     assert event
+
+
+def test_merge_attached_breadcrumb_too_large_empty():
+    mpack_crumb = msgpack.packb({'message': 'a' * 50000})
+    event = {}
+    merge_attached_breadcrumbs(io.BytesIO(mpack_crumb), event)
+    assert not event.get('breadcrumbs')
 
 
 # See:
