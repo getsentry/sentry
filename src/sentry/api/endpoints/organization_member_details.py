@@ -76,11 +76,14 @@ class OrganizationMemberDetailsEndpoint(OrganizationEndpoint):
                 user__is_active=True,
             )
         else:
-            queryset = OrganizationMember.objects.filter(
-                Q(user__is_active=True) | Q(user__isnull=True),
-                organization=organization,
-                id=member_id,
-            )
+            try:
+                queryset = OrganizationMember.objects.filter(
+                    Q(user__is_active=True) | Q(user__isnull=True),
+                    organization=organization,
+                    id=member_id,
+                )
+            except ValueError:
+                raise OrganizationMember.DoesNotExist()
         return queryset.select_related('user').get()
 
     def _is_only_owner(self, member):
@@ -119,7 +122,7 @@ class OrganizationMemberDetailsEndpoint(OrganizationEndpoint):
 
         try:
             member = self._get_member(request, organization, member_id)
-        except (ValueError, OrganizationMember.DoesNotExist):
+        except OrganizationMember.DoesNotExist:
             raise ResourceDoesNotExist
 
         _, allowed_roles = get_allowed_roles(request, organization, member)
@@ -131,7 +134,7 @@ class OrganizationMemberDetailsEndpoint(OrganizationEndpoint):
     def put(self, request, organization, member_id):
         try:
             om = self._get_member(request, organization, member_id)
-        except (ValueError, OrganizationMember.DoesNotExist):
+        except OrganizationMember.DoesNotExist:
             raise ResourceDoesNotExist
 
         serializer = OrganizationMemberSerializer(
@@ -228,7 +231,7 @@ class OrganizationMemberDetailsEndpoint(OrganizationEndpoint):
     def delete(self, request, organization, member_id):
         try:
             om = self._get_member(request, organization, member_id)
-        except (ValueError, OrganizationMember.DoesNotExist):
+        except OrganizationMember.DoesNotExist:
             raise ResourceDoesNotExist
 
         if request.user.is_authenticated() and not is_active_superuser(request):
