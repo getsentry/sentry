@@ -13,6 +13,7 @@ exports[`Sentry App Installations when Apps exist displays all Apps owned by the
         "name": "Sample App",
         "overview": "This is an app.",
         "redirectUrl": "https://example/com/setup",
+        "schema": Object {},
         "scopes": Array [
           "project:read",
         ],
@@ -36,6 +37,7 @@ exports[`Sentry App Installations when Apps exist displays all Apps owned by the
         "name": "Sample App",
         "overview": "This is an app.",
         "redirectUrl": "https://example/com/setup",
+        "schema": Object {},
         "scopes": Array [
           "project:read",
         ],
@@ -77,6 +79,7 @@ exports[`Sentry App Installations when Apps exist displays all Apps owned by the
                       "name": "Sample App",
                       "overview": "This is an app.",
                       "redirectUrl": "https://example/com/setup",
+                      "schema": Object {},
                       "scopes": Array [
                         "project:read",
                       ],

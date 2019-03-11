@@ -12,6 +12,7 @@ export function SentryApp(params = {}) {
     clientId: 'client-id',
     clientSecret: 'client-secret',
     overview: 'This is an app.',
+    schema: {},
     ...params,
   };
 }

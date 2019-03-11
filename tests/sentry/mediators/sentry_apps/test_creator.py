@@ -3,7 +3,6 @@ from __future__ import absolute_import
 from sentry.mediators.sentry_apps import Creator
 from sentry.models import ApiApplication, SentryApp, SentryAppComponent, User
 from sentry.testutils import TestCase
-from sentry.utils import json
 
 
 class TestCreator(TestCase):
@@ -15,9 +14,7 @@ class TestCreator(TestCase):
             organization=self.org,
             scopes=('project:read',),
             webhook_url='http://example.com',
-            schema=json.dumps({
-                'elements': [self.create_issue_link_schema()],
-            }),
+            schema={'elements': [self.create_issue_link_schema()]},
         )
 
     def test_creates_proxy_user(self):
@@ -59,12 +56,12 @@ class TestCreator(TestCase):
         assert 'issue.created' in sentry_app.events
 
     def test_creates_ui_components(self):
-        self.creator.schema = json.dumps({
+        self.creator.schema = {
             'elements': [
                 self.create_issue_link_schema(),
                 self.create_alert_rule_action_schema(),
             ],
-        })
+        }
 
         app = self.creator.call()
 
@@ -87,5 +84,5 @@ class TestCreator(TestCase):
         assert self.creator.call()
 
     def test_schema_with_no_elements(self):
-        self.creator.schema = '{"elements":[]}'
+        self.creator.schema = {'elements': []}
         assert self.creator.call()

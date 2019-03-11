@@ -102,7 +102,7 @@ export default class SentryApplicationDetails extends AsyncView {
           apiMethod={method}
           apiEndpoint={endpoint}
           allowUndo
-          initialData={{organization: orgId, isAlertable: false, ...app}}
+          initialData={{organization: orgId, isAlertable: false, schema: '', ...app}}
           model={this.form}
           onSubmitSuccess={this.onSubmitSuccess}
         >

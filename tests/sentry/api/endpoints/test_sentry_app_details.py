@@ -121,6 +121,7 @@ class UpdateSentryAppDetailsTest(SentryAppDetailsTest):
             'clientId': self.published_app.application.client_id,
             'clientSecret': self.published_app.application.client_secret,
             'overview': self.published_app.overview,
+            'schema': {},
         }
 
     @with_feature('organizations:sentry-apps')
