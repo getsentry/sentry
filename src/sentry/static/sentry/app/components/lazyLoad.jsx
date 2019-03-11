@@ -40,6 +40,9 @@ class LazyLoad extends React.Component {
   }
 
   componentWillReceiveProps(nextProps, nextState) {
+    // No need to refetch when component does not change
+    if (nextProps.component && nextProps.component === this.props.component) return;
+
     // This is to handle the following case:
     // <Route path="a/">
     //   <Route path="b/" component={LazyLoad} componentPromise={...} />
