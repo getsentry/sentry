@@ -53,7 +53,7 @@ class SearchBar extends React.Component {
     api: PropTypes.object,
     orgId: PropTypes.string.isRequired,
     tagValueLoader: PropTypes.func.isRequired,
-    supportedTags: PropTypes.object,
+    supportedTags: PropTypes.object.isRequired,
   };
 
   /**
