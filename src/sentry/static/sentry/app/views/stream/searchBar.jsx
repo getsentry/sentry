@@ -3,7 +3,6 @@ import React from 'react';
 
 import {t} from 'app/locale';
 import SmartSearchBar from 'app/components/smartSearchBar';
-import TagStore from 'app/stores/tagStore';
 import withApi from 'app/utils/withApi';
 
 const SEARCH_ITEMS = [
@@ -54,6 +53,7 @@ class SearchBar extends React.Component {
     api: PropTypes.object,
     orgId: PropTypes.string.isRequired,
     tagValueLoader: PropTypes.func.isRequired,
+    supportedTags: PropTypes.object.isRequired,
   };
 
   /**
@@ -74,11 +74,10 @@ class SearchBar extends React.Component {
   render() {
     return (
       <SmartSearchBar
-        {...this.props}
         onGetTagValues={this.getTagValues}
-        supportedTags={TagStore.getAllTags()}
         defaultSearchItems={SEARCH_ITEMS}
         maxSearchItems={5}
+        {...this.props}
       />
     );
   }
