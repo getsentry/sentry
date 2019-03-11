@@ -323,6 +323,7 @@ exports[`FormField + model renders with Form 1`] = `
             type="submit"
           >
             <StyledButton
+              aria-disabled={false}
               aria-label="Save Changes"
               data-test-id="form-submit"
               disabled={false}
@@ -332,22 +333,20 @@ exports[`FormField + model renders with Form 1`] = `
               type="submit"
             >
               <Component
+                aria-disabled={false}
                 aria-label="Save Changes"
                 className="css-1msljz8-StyledButton-getColors eqrebog0"
                 data-test-id="form-submit"
-                disabled={false}
                 onClick={[Function]}
-                priority="primary"
                 role="button"
                 type="submit"
               >
                 <button
+                  aria-disabled={false}
                   aria-label="Save Changes"
                   className="css-1msljz8-StyledButton-getColors eqrebog0"
                   data-test-id="form-submit"
-                  disabled={false}
                   onClick={[Function]}
-                  priority="primary"
                   role="button"
                   type="submit"
                 >

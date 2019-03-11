@@ -77,6 +77,7 @@ exports[`Organization Developer Settings when no Apps exist displays empty state
                           to="/settings/org-slug/developer-settings/new/"
                         >
                           <StyledButton
+                            aria-disabled={false}
                             aria-label="Create New Application"
                             disabled={false}
                             onClick={[Function]}
@@ -86,33 +87,30 @@ exports[`Organization Developer Settings when no Apps exist displays empty state
                             to="/settings/org-slug/developer-settings/new/"
                           >
                             <Component
+                              aria-disabled={false}
                               aria-label="Create New Application"
                               className="css-zvpqlo-StyledButton-getColors eqrebog0"
-                              disabled={false}
                               onClick={[Function]}
-                              priority="primary"
                               role="button"
                               size="small"
                               to="/settings/org-slug/developer-settings/new/"
                             >
                               <Link
+                                aria-disabled={false}
                                 aria-label="Create New Application"
                                 className="css-zvpqlo-StyledButton-getColors eqrebog0"
-                                disabled={false}
                                 onClick={[Function]}
                                 onlyActiveOnIndex={false}
-                                priority="primary"
                                 role="button"
                                 size="small"
                                 style={Object {}}
                                 to="/settings/org-slug/developer-settings/new/"
                               >
                                 <a
+                                  aria-disabled={false}
                                   aria-label="Create New Application"
                                   className="css-zvpqlo-StyledButton-getColors eqrebog0"
-                                  disabled={false}
                                   onClick={[Function]}
-                                  priority="primary"
                                   role="button"
                                   size="small"
                                   style={Object {}}
@@ -340,6 +338,7 @@ exports[`Organization Developer Settings with published apps trash button is dis
                           to="/settings/org-slug/developer-settings/new/"
                         >
                           <StyledButton
+                            aria-disabled={false}
                             aria-label="Create New Application"
                             disabled={false}
                             onClick={[Function]}
@@ -349,33 +348,30 @@ exports[`Organization Developer Settings with published apps trash button is dis
                             to="/settings/org-slug/developer-settings/new/"
                           >
                             <Component
+                              aria-disabled={false}
                               aria-label="Create New Application"
                               className="css-zvpqlo-StyledButton-getColors eqrebog0"
-                              disabled={false}
                               onClick={[Function]}
-                              priority="primary"
                               role="button"
                               size="small"
                               to="/settings/org-slug/developer-settings/new/"
                             >
                               <Link
+                                aria-disabled={false}
                                 aria-label="Create New Application"
                                 className="css-zvpqlo-StyledButton-getColors eqrebog0"
-                                disabled={false}
                                 onClick={[Function]}
                                 onlyActiveOnIndex={false}
-                                priority="primary"
                                 role="button"
                                 size="small"
                                 style={Object {}}
                                 to="/settings/org-slug/developer-settings/new/"
                               >
                                 <a
+                                  aria-disabled={false}
                                   aria-label="Create New Application"
                                   className="css-zvpqlo-StyledButton-getColors eqrebog0"
-                                  disabled={false}
                                   onClick={[Function]}
-                                  priority="primary"
                                   role="button"
                                   size="small"
                                   style={Object {}}
@@ -727,6 +723,7 @@ exports[`Organization Developer Settings with published apps trash button is dis
                                             size="small"
                                           >
                                             <StyledButton
+                                              aria-disabled={true}
                                               disabled={true}
                                               href={null}
                                               onClick={[Function]}
@@ -735,8 +732,8 @@ exports[`Organization Developer Settings with published apps trash button is dis
                                               to={null}
                                             >
                                               <Component
+                                                aria-disabled={true}
                                                 className="css-1ujzp8g-StyledButton-getColors eqrebog0"
-                                                disabled={true}
                                                 href={null}
                                                 onClick={[Function]}
                                                 role="button"
@@ -744,8 +741,8 @@ exports[`Organization Developer Settings with published apps trash button is dis
                                                 to={null}
                                               >
                                                 <button
+                                                  aria-disabled={true}
                                                   className="css-1ujzp8g-StyledButton-getColors eqrebog0"
-                                                  disabled={true}
                                                   href={null}
                                                   onClick={[Function]}
                                                   role="button"
@@ -914,6 +911,7 @@ exports[`Organization Developer Settings with unpublished apps displays all Apps
                           to="/settings/org-slug/developer-settings/new/"
                         >
                           <StyledButton
+                            aria-disabled={false}
                             aria-label="Create New Application"
                             disabled={false}
                             onClick={[Function]}
@@ -923,33 +921,30 @@ exports[`Organization Developer Settings with unpublished apps displays all Apps
                             to="/settings/org-slug/developer-settings/new/"
                           >
                             <Component
+                              aria-disabled={false}
                               aria-label="Create New Application"
                               className="css-zvpqlo-StyledButton-getColors eqrebog0"
-                              disabled={false}
                               onClick={[Function]}
-                              priority="primary"
                               role="button"
                               size="small"
                               to="/settings/org-slug/developer-settings/new/"
                             >
                               <Link
+                                aria-disabled={false}
                                 aria-label="Create New Application"
                                 className="css-zvpqlo-StyledButton-getColors eqrebog0"
-                                disabled={false}
                                 onClick={[Function]}
                                 onlyActiveOnIndex={false}
-                                priority="primary"
                                 role="button"
                                 size="small"
                                 style={Object {}}
                                 to="/settings/org-slug/developer-settings/new/"
                               >
                                 <a
+                                  aria-disabled={false}
                                   aria-label="Create New Application"
                                   className="css-zvpqlo-StyledButton-getColors eqrebog0"
-                                  disabled={false}
                                   onClick={[Function]}
-                                  priority="primary"
                                   role="button"
                                   size="small"
                                   style={Object {}}
@@ -1346,21 +1341,22 @@ exports[`Organization Developer Settings with unpublished apps displays all Apps
                                             size="small"
                                           >
                                             <StyledButton
+                                              aria-disabled={false}
                                               disabled={false}
                                               onClick={[Function]}
                                               role="button"
                                               size="small"
                                             >
                                               <Component
+                                                aria-disabled={false}
                                                 className="css-dkprmi-StyledButton-getColors eqrebog0"
-                                                disabled={false}
                                                 onClick={[Function]}
                                                 role="button"
                                                 size="small"
                                               >
                                                 <button
+                                                  aria-disabled={false}
                                                   className="css-dkprmi-StyledButton-getColors eqrebog0"
-                                                  disabled={false}
                                                   onClick={[Function]}
                                                   role="button"
                                                   size="small"

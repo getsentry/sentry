@@ -245,6 +245,7 @@ exports[`ConfirmDelete renders 1`] = `
             }
           >
             <StyledButton
+              aria-disabled={false}
               aria-label="Cancel"
               disabled={false}
               onClick={[Function]}
@@ -256,9 +257,9 @@ exports[`ConfirmDelete renders 1`] = `
               }
             >
               <Component
+                aria-disabled={false}
                 aria-label="Cancel"
                 className="css-cmo08-StyledButton-getColors eqrebog0"
-                disabled={false}
                 onClick={[Function]}
                 role="button"
                 style={
@@ -268,9 +269,9 @@ exports[`ConfirmDelete renders 1`] = `
                 }
               >
                 <button
+                  aria-disabled={false}
                   aria-label="Cancel"
                   className="css-cmo08-StyledButton-getColors eqrebog0"
-                  disabled={false}
                   onClick={[Function]}
                   role="button"
                   style={
@@ -302,6 +303,7 @@ exports[`ConfirmDelete renders 1`] = `
             priority="primary"
           >
             <StyledButton
+              aria-disabled={true}
               aria-label="Confirm"
               autoFocus={true}
               data-test-id="confirm-modal"
@@ -313,26 +315,24 @@ exports[`ConfirmDelete renders 1`] = `
               to={null}
             >
               <Component
+                aria-disabled={true}
                 aria-label="Confirm"
                 autoFocus={true}
                 className="css-bo8dlg-StyledButton-getColors eqrebog0"
                 data-test-id="confirm-modal"
-                disabled={true}
                 href={null}
                 onClick={[Function]}
-                priority="primary"
                 role="button"
                 to={null}
               >
                 <button
+                  aria-disabled={true}
                   aria-label="Confirm"
                   autoFocus={true}
                   className="css-bo8dlg-StyledButton-getColors eqrebog0"
                   data-test-id="confirm-modal"
-                  disabled={true}
                   href={null}
                   onClick={[Function]}
-                  priority="primary"
                   role="button"
                   to={null}
                 >

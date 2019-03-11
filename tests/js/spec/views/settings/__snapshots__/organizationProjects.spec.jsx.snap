@@ -77,6 +77,7 @@ exports[`OrganizationProjects Should render the projects in the store 1`] = `
                           to="/organizations/org-slug/projects/new/"
                         >
                           <StyledButton
+                            aria-disabled={false}
                             aria-label="Create Project"
                             disabled={false}
                             onClick={[Function]}
@@ -86,33 +87,30 @@ exports[`OrganizationProjects Should render the projects in the store 1`] = `
                             to="/organizations/org-slug/projects/new/"
                           >
                             <Component
+                              aria-disabled={false}
                               aria-label="Create Project"
                               className="css-zvpqlo-StyledButton-getColors eqrebog0"
-                              disabled={false}
                               onClick={[Function]}
-                              priority="primary"
                               role="button"
                               size="small"
                               to="/organizations/org-slug/projects/new/"
                             >
                               <Link
+                                aria-disabled={false}
                                 aria-label="Create Project"
                                 className="css-zvpqlo-StyledButton-getColors eqrebog0"
-                                disabled={false}
                                 onClick={[Function]}
                                 onlyActiveOnIndex={false}
-                                priority="primary"
                                 role="button"
                                 size="small"
                                 style={Object {}}
                                 to="/organizations/org-slug/projects/new/"
                               >
                                 <a
+                                  aria-disabled={false}
                                   aria-label="Create Project"
                                   className="css-zvpqlo-StyledButton-getColors eqrebog0"
-                                  disabled={false}
                                   onClick={[Function]}
-                                  priority="primary"
                                   role="button"
                                   size="small"
                                   style={Object {}}
@@ -527,6 +525,7 @@ exports[`OrganizationProjects Should render the projects in the store 1`] = `
                                 to="/settings/org-slug/projects/project-slug/"
                               >
                                 <StyledButton
+                                  aria-disabled={false}
                                   aria-label="Settings"
                                   disabled={false}
                                   onClick={[Function]}
@@ -535,18 +534,18 @@ exports[`OrganizationProjects Should render the projects in the store 1`] = `
                                   to="/settings/org-slug/projects/project-slug/"
                                 >
                                   <Component
+                                    aria-disabled={false}
                                     aria-label="Settings"
                                     className="css-dkprmi-StyledButton-getColors eqrebog0"
-                                    disabled={false}
                                     onClick={[Function]}
                                     role="button"
                                     size="small"
                                     to="/settings/org-slug/projects/project-slug/"
                                   >
                                     <Link
+                                      aria-disabled={false}
                                       aria-label="Settings"
                                       className="css-dkprmi-StyledButton-getColors eqrebog0"
-                                      disabled={false}
                                       onClick={[Function]}
                                       onlyActiveOnIndex={false}
                                       role="button"
@@ -555,9 +554,9 @@ exports[`OrganizationProjects Should render the projects in the store 1`] = `
                                       to="/settings/org-slug/projects/project-slug/"
                                     >
                                       <a
+                                        aria-disabled={false}
                                         aria-label="Settings"
                                         className="css-dkprmi-StyledButton-getColors eqrebog0"
-                                        disabled={false}
                                         onClick={[Function]}
                                         role="button"
                                         size="small"

@@ -875,6 +875,7 @@ exports[`Project Ownership Input renders 1`] = `
             size="small"
           >
             <StyledButton
+              aria-disabled={true}
               className="css-po7kq7-AddButton e1hyuoc79"
               disabled={true}
               href={null}
@@ -885,21 +886,19 @@ exports[`Project Ownership Input renders 1`] = `
               to={null}
             >
               <Component
+                aria-disabled={true}
                 className="e1hyuoc79 css-ogw40-StyledButton-getColors-AddButton eqrebog0"
-                disabled={true}
                 href={null}
                 onClick={[Function]}
-                priority="primary"
                 role="button"
                 size="small"
                 to={null}
               >
                 <button
+                  aria-disabled={true}
                   className="e1hyuoc79 css-ogw40-StyledButton-getColors-AddButton eqrebog0"
-                  disabled={true}
                   href={null}
                   onClick={[Function]}
-                  priority="primary"
                   role="button"
                   size="small"
                   to={null}
@@ -1046,6 +1045,7 @@ url:http://example.com/settings/* #product"
                 size="small"
               >
                 <StyledButton
+                  aria-disabled={false}
                   aria-label="Save Changes"
                   disabled={false}
                   onClick={[Function]}
@@ -1054,20 +1054,18 @@ url:http://example.com/settings/* #product"
                   size="small"
                 >
                   <Component
+                    aria-disabled={false}
                     aria-label="Save Changes"
                     className="css-zvpqlo-StyledButton-getColors eqrebog0"
-                    disabled={false}
                     onClick={[Function]}
-                    priority="primary"
                     role="button"
                     size="small"
                   >
                     <button
+                      aria-disabled={false}
                       aria-label="Save Changes"
                       className="css-zvpqlo-StyledButton-getColors eqrebog0"
-                      disabled={false}
                       onClick={[Function]}
-                      priority="primary"
                       role="button"
                       size="small"
                     >

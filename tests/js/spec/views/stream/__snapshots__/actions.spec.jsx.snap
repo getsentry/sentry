@@ -153,6 +153,7 @@ exports[`StreamActions Bulk Total results < bulk limit bulk resolves 1`] = `
             }
           >
             <StyledButton
+              aria-disabled={false}
               aria-label="Cancel"
               disabled={false}
               onClick={[Function]}
@@ -164,9 +165,9 @@ exports[`StreamActions Bulk Total results < bulk limit bulk resolves 1`] = `
               }
             >
               <Component
+                aria-disabled={false}
                 aria-label="Cancel"
                 className="css-cmo08-StyledButton-getColors eqrebog0"
-                disabled={false}
                 onClick={[Function]}
                 role="button"
                 style={
@@ -176,9 +177,9 @@ exports[`StreamActions Bulk Total results < bulk limit bulk resolves 1`] = `
                 }
               >
                 <button
+                  aria-disabled={false}
                   aria-label="Cancel"
                   className="css-cmo08-StyledButton-getColors eqrebog0"
-                  disabled={false}
                   onClick={[Function]}
                   role="button"
                   style={
@@ -210,6 +211,7 @@ exports[`StreamActions Bulk Total results < bulk limit bulk resolves 1`] = `
             priority="primary"
           >
             <StyledButton
+              aria-disabled={false}
               aria-label="Bulk resolve issues"
               autoFocus={true}
               data-test-id="confirm-modal"
@@ -219,23 +221,21 @@ exports[`StreamActions Bulk Total results < bulk limit bulk resolves 1`] = `
               role="button"
             >
               <Component
+                aria-disabled={false}
                 aria-label="Bulk resolve issues"
                 autoFocus={true}
                 className="css-1msljz8-StyledButton-getColors eqrebog0"
                 data-test-id="confirm-modal"
-                disabled={false}
                 onClick={[Function]}
-                priority="primary"
                 role="button"
               >
                 <button
+                  aria-disabled={false}
                   aria-label="Bulk resolve issues"
                   autoFocus={true}
                   className="css-1msljz8-StyledButton-getColors eqrebog0"
                   data-test-id="confirm-modal"
-                  disabled={false}
                   onClick={[Function]}
-                  priority="primary"
                   role="button"
                 >
                   <ButtonLabel
@@ -448,6 +448,7 @@ exports[`StreamActions Bulk Total results > bulk limit bulk resolves 1`] = `
             }
           >
             <StyledButton
+              aria-disabled={false}
               aria-label="Cancel"
               disabled={false}
               onClick={[Function]}
@@ -459,9 +460,9 @@ exports[`StreamActions Bulk Total results > bulk limit bulk resolves 1`] = `
               }
             >
               <Component
+                aria-disabled={false}
                 aria-label="Cancel"
                 className="css-cmo08-StyledButton-getColors eqrebog0"
-                disabled={false}
                 onClick={[Function]}
                 role="button"
                 style={
@@ -471,9 +472,9 @@ exports[`StreamActions Bulk Total results > bulk limit bulk resolves 1`] = `
                 }
               >
                 <button
+                  aria-disabled={false}
                   aria-label="Cancel"
                   className="css-cmo08-StyledButton-getColors eqrebog0"
-                  disabled={false}
                   onClick={[Function]}
                   role="button"
                   style={
@@ -505,6 +506,7 @@ exports[`StreamActions Bulk Total results > bulk limit bulk resolves 1`] = `
             priority="primary"
           >
             <StyledButton
+              aria-disabled={false}
               aria-label="Bulk resolve issues"
               autoFocus={true}
               data-test-id="confirm-modal"
@@ -514,23 +516,21 @@ exports[`StreamActions Bulk Total results > bulk limit bulk resolves 1`] = `
               role="button"
             >
               <Component
+                aria-disabled={false}
                 aria-label="Bulk resolve issues"
                 autoFocus={true}
                 className="css-1msljz8-StyledButton-getColors eqrebog0"
                 data-test-id="confirm-modal"
-                disabled={false}
                 onClick={[Function]}
-                priority="primary"
                 role="button"
               >
                 <button
+                  aria-disabled={false}
                   aria-label="Bulk resolve issues"
                   autoFocus={true}
                   className="css-1msljz8-StyledButton-getColors eqrebog0"
                   data-test-id="confirm-modal"
-                  disabled={false}
                   onClick={[Function]}
-                  priority="primary"
                   role="button"
                 >
                   <ButtonLabel
