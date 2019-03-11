@@ -360,6 +360,7 @@ exports[`OrganizationProjects Should render the projects in the store 1`] = `
                                       "org:read",
                                       "org:write",
                                       "org:admin",
+                                      "org:integrations",
                                       "project:read",
                                       "project:write",
                                       "project:admin",

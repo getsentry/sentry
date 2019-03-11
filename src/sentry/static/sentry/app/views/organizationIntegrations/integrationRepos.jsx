@@ -120,7 +120,7 @@ export default class IntegrationRepos extends AsyncComponent {
 
   renderDropdown() {
     const access = new Set(this.context.organization.access);
-    if (!access.has('org:write')) {
+    if (!access.has('org:integrations')) {
       return (
         <DropdownButton
           disabled={true}

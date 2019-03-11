@@ -8,6 +8,7 @@ exports[`OrganizationIntegrations render() with installed integrations Displays 
         "org:read",
         "org:write",
         "org:admin",
+        "org:integrations",
         "project:read",
         "project:write",
         "project:admin",
@@ -172,6 +173,7 @@ exports[`OrganizationIntegrations render() with installed integrations Displays 
                 "org:read",
                 "org:write",
                 "org:admin",
+                "org:integrations",
                 "project:read",
                 "project:write",
                 "project:admin",
@@ -195,64 +197,7 @@ exports[`OrganizationIntegrations render() with installed integrations Displays 
           }
           renderNoAccessMessage={false}
           requireAll={true}
-        >
-          <Alert
-            icon="icon-warning-sm"
-            iconSize="24px"
-            type="warning"
-          >
-            <AlertWrapper
-              className="ref-warning"
-              type="warning"
-            >
-              <div
-                className="ref-warning css-3oyttp-AlertWrapper e1xb5l7j1"
-                type="warning"
-              >
-                <StyledInlineSvg
-                  size="24px"
-                  src="icon-warning-sm"
-                >
-                  <InlineSvg
-                    className="css-1e3iblq-StyledInlineSvg e1xb5l7j0"
-                    size="24px"
-                    src="icon-warning-sm"
-                  >
-                    <StyledSvg
-                      className="css-1e3iblq-StyledInlineSvg e1xb5l7j0"
-                      height="24px"
-                      viewBox={Object {}}
-                      width="24px"
-                    >
-                      <svg
-                        className="e1xb5l7j0 css-lbx2sj-StyledSvg-StyledInlineSvg e2idor0"
-                        height="24px"
-                        viewBox={Object {}}
-                        width="24px"
-                      >
-                        <use
-                          href="#test"
-                          xlinkHref="#test"
-                        />
-                      </svg>
-                    </StyledSvg>
-                  </InlineSvg>
-                </StyledInlineSvg>
-                <StyledTextBlock>
-                  <Component
-                    className="css-1h3n7tg-TextBlock-StyledTextBlock e1xb5l7j2"
-                  >
-                    <div
-                      className="css-1h3n7tg-TextBlock-StyledTextBlock e1xb5l7j2"
-                    >
-                      These settings can only be edited by users with the owner or manager role.
-                    </div>
-                  </Component>
-                </StyledTextBlock>
-              </div>
-            </AlertWrapper>
-          </Alert>
-        </Access>
+        />
       </AccessContainer>
     </withConfig(AccessContainer)>
   </PermissionAlert>
@@ -1533,6 +1478,7 @@ exports[`OrganizationIntegrations render() with installed integrations Displays 
                                       "org:read",
                                       "org:write",
                                       "org:admin",
+                                      "org:integrations",
                                       "project:read",
                                       "project:write",
                                       "project:admin",
@@ -1704,7 +1650,7 @@ exports[`OrganizationIntegrations render() with installed integrations Displays 
                                               cancelText="Cancel"
                                               confirmText="Delete"
                                               disableConfirmButton={false}
-                                              disabled={true}
+                                              disabled={false}
                                               message={
                                                 <React.Fragment>
                                                   <Alert
@@ -1722,14 +1668,14 @@ exports[`OrganizationIntegrations render() with installed integrations Displays 
                                             >
                                               <StyledButton
                                                 borderless={true}
-                                                disabled={true}
+                                                disabled={false}
                                                 icon="icon-trash"
                                                 onClick={[Function]}
                                               >
                                                 <Button
                                                   borderless={true}
                                                   className="css-1j0nrmm-StyledButton ejqw4f70"
-                                                  disabled={true}
+                                                  disabled={false}
                                                   icon="icon-trash"
                                                   onClick={[Function]}
                                                 >
@@ -1737,30 +1683,24 @@ exports[`OrganizationIntegrations render() with installed integrations Displays 
                                                     aria-label="Remove"
                                                     borderless={true}
                                                     className="css-1j0nrmm-StyledButton ejqw4f70"
-                                                    disabled={true}
-                                                    href={null}
+                                                    disabled={false}
                                                     onClick={[Function]}
                                                     role="button"
-                                                    to={null}
                                                   >
                                                     <Component
                                                       aria-label="Remove"
                                                       borderless={true}
-                                                      className="ejqw4f70 css-h1aems-StyledButton-getColors-StyledButton eqrebog0"
-                                                      disabled={true}
-                                                      href={null}
+                                                      className="ejqw4f70 css-1rs3lxn-StyledButton-getColors-StyledButton eqrebog0"
+                                                      disabled={false}
                                                       onClick={[Function]}
                                                       role="button"
-                                                      to={null}
                                                     >
                                                       <button
                                                         aria-label="Remove"
-                                                        className="ejqw4f70 css-h1aems-StyledButton-getColors-StyledButton eqrebog0"
-                                                        disabled={true}
-                                                        href={null}
+                                                        className="ejqw4f70 css-1rs3lxn-StyledButton-getColors-StyledButton eqrebog0"
+                                                        disabled={false}
                                                         onClick={[Function]}
                                                         role="button"
-                                                        to={null}
                                                       >
                                                         <ButtonLabel
                                                           borderless={true}
@@ -2980,6 +2920,7 @@ exports[`OrganizationIntegrations render() with installed integrations Displays 
                                       "org:read",
                                       "org:write",
                                       "org:admin",
+                                      "org:integrations",
                                       "project:read",
                                       "project:write",
                                       "project:admin",
@@ -3151,7 +3092,7 @@ exports[`OrganizationIntegrations render() with installed integrations Displays 
                                               cancelText="Cancel"
                                               confirmText="Delete"
                                               disableConfirmButton={false}
-                                              disabled={true}
+                                              disabled={false}
                                               message={
                                                 <React.Fragment>
                                                   <Alert
@@ -3169,14 +3110,14 @@ exports[`OrganizationIntegrations render() with installed integrations Displays 
                                             >
                                               <StyledButton
                                                 borderless={true}
-                                                disabled={true}
+                                                disabled={false}
                                                 icon="icon-trash"
                                                 onClick={[Function]}
                                               >
                                                 <Button
                                                   borderless={true}
                                                   className="css-1j0nrmm-StyledButton ejqw4f70"
-                                                  disabled={true}
+                                                  disabled={false}
                                                   icon="icon-trash"
                                                   onClick={[Function]}
                                                 >
@@ -3184,30 +3125,24 @@ exports[`OrganizationIntegrations render() with installed integrations Displays 
                                                     aria-label="Remove"
                                                     borderless={true}
                                                     className="css-1j0nrmm-StyledButton ejqw4f70"
-                                                    disabled={true}
-                                                    href={null}
+                                                    disabled={false}
                                                     onClick={[Function]}
                                                     role="button"
-                                                    to={null}
                                                   >
                                                     <Component
                                                       aria-label="Remove"
                                                       borderless={true}
-                                                      className="ejqw4f70 css-h1aems-StyledButton-getColors-StyledButton eqrebog0"
-                                                      disabled={true}
-                                                      href={null}
+                                                      className="ejqw4f70 css-1rs3lxn-StyledButton-getColors-StyledButton eqrebog0"
+                                                      disabled={false}
                                                       onClick={[Function]}
                                                       role="button"
-                                                      to={null}
                                                     >
                                                       <button
                                                         aria-label="Remove"
-                                                        className="ejqw4f70 css-h1aems-StyledButton-getColors-StyledButton eqrebog0"
-                                                        disabled={true}
-                                                        href={null}
+                                                        className="ejqw4f70 css-1rs3lxn-StyledButton-getColors-StyledButton eqrebog0"
+                                                        disabled={false}
                                                         onClick={[Function]}
                                                         role="button"
-                                                        to={null}
                                                       >
                                                         <ButtonLabel
                                                           borderless={true}
@@ -3355,6 +3290,7 @@ exports[`OrganizationIntegrations render() without integrations Displays integra
         "org:read",
         "org:write",
         "org:admin",
+        "org:integrations",
         "project:read",
         "project:write",
         "project:admin",
@@ -3519,6 +3455,7 @@ exports[`OrganizationIntegrations render() without integrations Displays integra
                 "org:read",
                 "org:write",
                 "org:admin",
+                "org:integrations",
                 "project:read",
                 "project:write",
                 "project:admin",
@@ -3542,64 +3479,7 @@ exports[`OrganizationIntegrations render() without integrations Displays integra
           }
           renderNoAccessMessage={false}
           requireAll={true}
-        >
-          <Alert
-            icon="icon-warning-sm"
-            iconSize="24px"
-            type="warning"
-          >
-            <AlertWrapper
-              className="ref-warning"
-              type="warning"
-            >
-              <div
-                className="ref-warning css-3oyttp-AlertWrapper e1xb5l7j1"
-                type="warning"
-              >
-                <StyledInlineSvg
-                  size="24px"
-                  src="icon-warning-sm"
-                >
-                  <InlineSvg
-                    className="css-1e3iblq-StyledInlineSvg e1xb5l7j0"
-                    size="24px"
-                    src="icon-warning-sm"
-                  >
-                    <StyledSvg
-                      className="css-1e3iblq-StyledInlineSvg e1xb5l7j0"
-                      height="24px"
-                      viewBox={Object {}}
-                      width="24px"
-                    >
-                      <svg
-                        className="e1xb5l7j0 css-lbx2sj-StyledSvg-StyledInlineSvg e2idor0"
-                        height="24px"
-                        viewBox={Object {}}
-                        width="24px"
-                      >
-                        <use
-                          href="#test"
-                          xlinkHref="#test"
-                        />
-                      </svg>
-                    </StyledSvg>
-                  </InlineSvg>
-                </StyledInlineSvg>
-                <StyledTextBlock>
-                  <Component
-                    className="css-1h3n7tg-TextBlock-StyledTextBlock e1xb5l7j2"
-                  >
-                    <div
-                      className="css-1h3n7tg-TextBlock-StyledTextBlock e1xb5l7j2"
-                    >
-                      These settings can only be edited by users with the owner or manager role.
-                    </div>
-                  </Component>
-                </StyledTextBlock>
-              </div>
-            </AlertWrapper>
-          </Alert>
-        </Access>
+        />
       </AccessContainer>
     </withConfig(AccessContainer)>
   </PermissionAlert>
