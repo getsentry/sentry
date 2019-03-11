@@ -41,6 +41,10 @@
     "editor.formatOnSave": true
   },
 
+  "[html]": {
+    "editor.formatOnSave": false
+  },
+
   "python.linting.pylintEnabled": false,
   "python.linting.flake8Enabled": true,
   "python.formatting.provider": "autopep8",
@@ -52,8 +56,7 @@
   "python.unitTest.pyTestEnabled": false,
   "python.unitTest.unittestEnabled": false,
   "python.unitTest.nosetestsEnabled": false,
-  "prettier-eslint.prettierPath":
-    "${env.WORKON_HOME}/node_modules/prettier/bin/prettier.js",
+  "prettier-eslint.prettierPath": "${env.WORKON_HOME}/node_modules/prettier/bin/prettier.js",
   "editor.tabSize": 4,
   "restructuredtext.confPath": "",
   "python.linting.enabled": true,
