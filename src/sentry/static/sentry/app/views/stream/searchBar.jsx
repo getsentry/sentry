@@ -3,7 +3,6 @@ import React from 'react';
 
 import {t} from 'app/locale';
 import SmartSearchBar from 'app/components/smartSearchBar';
-import TagStore from 'app/stores/tagStore';
 import withApi from 'app/utils/withApi';
 
 const SEARCH_ITEMS = [
@@ -76,7 +75,6 @@ class SearchBar extends React.Component {
     return (
       <SmartSearchBar
         onGetTagValues={this.getTagValues}
-        supportedTags={TagStore.getAllTags()}
         defaultSearchItems={SEARCH_ITEMS}
         maxSearchItems={5}
         {...this.props}
