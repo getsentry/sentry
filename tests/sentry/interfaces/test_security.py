@@ -97,52 +97,6 @@ class CspTest(TestCase):
         )
         assert result.get_culprit() == "style-src http://example2.com 'self'"
 
-    def test_compute_hashes(self):
-        result = Csp.to_python(
-            dict(
-                document_uri='http://example.com/foo',
-                effective_directive='script-src',
-                blocked_uri='',
-            )
-        )
-        assert result.compute_hashes() == [['script-src', "'self'"]]
-
-        result = Csp.to_python(
-            dict(
-                document_uri='http://example.com/foo',
-                effective_directive='script-src',
-                blocked_uri='self',
-            )
-        )
-        assert result.compute_hashes() == [['script-src', "'self'"]]
-
-        result = Csp.to_python(
-            dict(
-                document_uri='http://example.com/foo',
-                effective_directive='script-src',
-                blocked_uri='http://example.com/lol.js',
-            )
-        )
-        assert result.compute_hashes() == [['script-src', 'example.com']]
-
-        result = Csp.to_python(
-            dict(
-                document_uri='http://example.com/foo',
-                effective_directive='img-src',
-                blocked_uri='data:foo',
-            )
-        )
-        assert result.compute_hashes() == [['img-src', 'data:']]
-
-        result = Csp.to_python(
-            dict(
-                document_uri='http://example.com/foo',
-                effective_directive='img-src',
-                blocked_uri='ftp://example.com/foo',
-            )
-        )
-        assert result.compute_hashes() == [['img-src', 'ftp://example.com']]
-
     def test_get_tags(self):
         assert self.interface.get_tags() == [
             ('effective-directive', 'style-src'), ('blocked-uri', 'http://example.com/lol.css'),

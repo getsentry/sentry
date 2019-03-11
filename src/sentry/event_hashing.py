@@ -103,23 +103,22 @@ class GroupingComponent(object):
         if contributes is not None:
             self.contributes = contributes
 
-    def flatten_values(self):
+    def iter_values(self):
         """Recursively walks the component and flattens it into a list of
         values.
         """
-        rv = []
         if self.contributes:
             for value in self.values:
                 if isinstance(value, GroupingComponent):
-                    rv.extend(value.flatten_values())
+                    for x in value.iter_values():
+                        yield x
                 else:
-                    rv.append(value)
-        return rv
+                    yield value
 
     def get_hash(self):
         """Returns the hash of the values if it contributes."""
         if self.contributes:
-            return hash_from_values(self.flatten_values())
+            return hash_from_values(self.iter_values())
 
     def as_dict(self):
         """Converts the component tree into a dictionary."""
@@ -150,7 +149,11 @@ class GroupingComponent(object):
 
 
 class BaseVariant(object):
+    # The type of the variant that is reported to the UI.
     type = None
+
+    # This is true if `get_hash` does not return `None`.
+    contributes = True
 
     def get_hash(self):
         return None
@@ -197,6 +200,14 @@ class ChecksumVariant(BaseVariant):
         return self.hash
 
 
+class FallbackVariant(BaseVariant):
+    id = 'fallback'
+    contributes = True
+
+    def get_hash(self):
+        return hash_from_values([])
+
+
 class ComponentVariant(BaseVariant):
     """A component variant is a variant that produces a hash from the
     `GroupComponent` it encloses.
@@ -209,6 +220,10 @@ class ComponentVariant(BaseVariant):
     @property
     def description(self):
         return self.component.description
+
+    @property
+    def contributes(self):
+        return self.component.contributes
 
     def get_hash(self):
         return self.component.get_hash()
@@ -251,13 +266,17 @@ class SaltedComponentVariant(BaseVariant):
     def description(self):
         return 'modified ' + self.component.description
 
+    @property
+    def contributes(self):
+        return self.component.contributes
+
     def get_hash(self):
         if not self.component.contributes:
             return None
         final_values = []
         for value in self.values:
             if value in DEFAULT_FINGERPRINT_VALUES:
-                final_values.extend(self.component.flatten_values())
+                final_values.extend(self.component.iter_values())
             else:
                 final_values.append(value)
         return hash_from_values(final_values)
@@ -322,6 +341,7 @@ def get_calculated_grouping_variants_for_event(event):
 
 
 def get_grouping_variants_for_event(event):
+    """Returns a dict of all grouping variants for this event."""
     # If a checksum is set the only variant that comes back from this
     # event is the checksum variant.
     checksum = event.data.get('checksum')
@@ -361,54 +381,8 @@ def get_grouping_variants_for_event(event):
         for (key, component) in six.iteritems(components):
             rv[key] = SaltedComponentVariant(fingerprint, component)
 
+    # Ensure we have a fallback hash if nothing else works out
+    if not any(x.contributes for x in six.itervalues(rv)):
+        rv['fallback'] = FallbackVariant()
+
     return rv
-
-
-# legacy functionality follows:
-#
-# This is at present still the main grouping code in the event processing
-# but it should be possible to replace all of these with
-# `get_grouping_variants_for_event` once we feel more confident that no
-# regression ocurred.
-
-
-def get_hashes_for_event(event):
-    interfaces = event.get_interfaces()
-    for interface in six.itervalues(interfaces):
-        result = interface.compute_hashes(event.platform)
-        if not result:
-            continue
-        return result
-    return ['']
-
-
-def get_hashes_from_fingerprint(event, fingerprint):
-    if any(d in fingerprint for d in DEFAULT_FINGERPRINT_VALUES):
-        default_hashes = get_hashes_for_event(event)
-        hash_count = len(default_hashes)
-    else:
-        hash_count = 1
-
-    hashes = []
-    for idx in range(hash_count):
-        result = []
-        for bit in fingerprint:
-            if bit in DEFAULT_FINGERPRINT_VALUES:
-                result.extend(default_hashes[idx])
-            else:
-                result.append(bit)
-        hashes.append(result)
-    return hashes
-
-
-def calculate_event_hashes(event):
-    # If a checksum is set, use that one.
-    checksum = event.data.get('checksum')
-    if checksum:
-        if HASH_RE.match(checksum):
-            return [checksum]
-        return [hash_from_values([checksum]), checksum]
-
-    # Otherwise go with the new style fingerprint code
-    fingerprint = event.data.get('fingerprint') or ['{{ default }}']
-    return [hash_from_values(h) for h in get_hashes_from_fingerprint(event, fingerprint)]

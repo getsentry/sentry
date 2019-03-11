@@ -1,0 +1,21 @@
+app:
+  hash: None
+  component:
+    app (stacktrace of system takes precedence)
+      stacktrace (ignored because hash matches system variant)
+        frame* (frame considered in-app because no frame is in-app)
+          filename*
+            u'foo.py'
+          lineno*
+            1
+--------------------------------------------------------------------------
+system:
+  hash: '19fcc04a0c59eaf564ee1a00c58574cc'
+  component:
+    system*
+      stacktrace*
+        frame*
+          filename*
+            u'foo.py'
+          lineno*
+            1

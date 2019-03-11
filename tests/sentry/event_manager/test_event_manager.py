@@ -1263,7 +1263,7 @@ class EventManagerTest(TransactionTestCase):
         event = manager.save(self.project.id)
 
         hashes = [gh.hash for gh in GroupHash.objects.filter(group=event.group)]
-        assert hashes == [hash_from_values(checksum), checksum]
+        assert sorted(hashes) == sorted([hash_from_values(checksum), checksum])
 
     @mock.patch('sentry.event_manager.is_valid_error_message')
     def test_should_filter_message(self, mock_is_valid_error_message):

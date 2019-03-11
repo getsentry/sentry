@@ -1,0 +1,11 @@
+{
+  "stacktrace": {
+    "frames": [
+      {
+        "function": "invoke",
+        "module": "sun.reflect.GeneratedSerializationConstructorAccessor1"
+      }
+    ]
+  },
+  "platform": "java"
+}

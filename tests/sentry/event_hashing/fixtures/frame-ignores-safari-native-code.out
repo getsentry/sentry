@@ -1,0 +1,20 @@
+app:
+  hash: None
+  component:
+    app
+      stacktrace
+        frame (frame considered in-app because no frame is in-app)
+          function (function name is used only if module or filename are available)
+            u'forEach'
+--------------------------------------------------------------------------
+fallback:
+  hash: 'd41d8cd98f00b204e9800998ecf8427e'
+--------------------------------------------------------------------------
+system:
+  hash: None
+  component:
+    system
+      stacktrace
+        frame (native code indicated by filename)
+          function (function name is used only if module or filename are available)
+            u'forEach'

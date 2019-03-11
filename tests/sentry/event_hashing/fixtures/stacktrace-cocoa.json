@@ -1,0 +1,18 @@
+{
+  "stacktrace": {
+    "frames": [
+      {
+        "abs_path": "/foo/bar/bar.m",
+        "filename": "/foo/bar/bar.m",
+        "lineno": 1,
+        "in_app": true
+      },
+      {
+        "abs_path": "/foo/bar/baz.m",
+        "lineno": 1,
+        "filename": "/foo/bar/baz.m"
+      }
+    ]
+  },
+  "platform": "cocoa"
+}
