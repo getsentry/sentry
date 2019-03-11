@@ -6,7 +6,7 @@ from sentry.models import User, Team
 
 
 class ActorSerializer(Serializer):
-    def serialize(self, obj, attrs, *args, **kwargs):
+    def serialize(self, obj, attrs, **kwargs):
 
         if isinstance(obj, User):
             actor_type = 'user'

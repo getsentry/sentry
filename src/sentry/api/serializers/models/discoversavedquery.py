@@ -7,7 +7,7 @@ from sentry.models import DiscoverSavedQuery
 
 @register(DiscoverSavedQuery)
 class DiscoverSavedQuerySerializer(Serializer):
-    def serialize(self, obj, attrs, user, *args, **kwargs):
+    def serialize(self, obj, attrs, user, **kwargs):
 
         query_keys = [
             'fields',

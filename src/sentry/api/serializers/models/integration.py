@@ -139,7 +139,7 @@ class IntegrationIssueSerializer(IntegrationSerializer):
     def __init__(self, group):
         self.group = group
 
-    def get_attrs(self, item_list, user, *args, **kwargs):
+    def get_attrs(self, item_list, user, **kwargs):
         external_issues = ExternalIssue.objects.filter(
             id__in=GroupLink.objects.filter(
                 group_id=self.group.id,
