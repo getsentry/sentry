@@ -76,11 +76,14 @@ class OrganizationMemberDetailsEndpoint(OrganizationEndpoint):
                 user__is_active=True,
             )
         else:
-            queryset = OrganizationMember.objects.filter(
-                Q(user__is_active=True) | Q(user__isnull=True),
-                organization=organization,
-                id=member_id,
-            )
+            try:
+                queryset = OrganizationMember.objects.filter(
+                    Q(user__is_active=True) | Q(user__isnull=True),
+                    organization=organization,
+                    id=member_id,
+                )
+            except ValueError:
+                raise OrganizationMember.DoesNotExist()
         return queryset.select_related('user').get()
 
     def _is_only_owner(self, member):

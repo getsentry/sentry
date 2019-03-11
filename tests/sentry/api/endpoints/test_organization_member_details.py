@@ -1,5 +1,7 @@
 from __future__ import absolute_import
 
+import six
+
 from django.core import mail
 from django.core.urlresolvers import reverse
 from django.db.models import F
@@ -13,6 +15,26 @@ from sentry.testutils import APITestCase
 
 
 class UpdateOrganizationMemberTest(APITestCase):
+
+    def test_invalid_id(self):
+        self.login_as(user=self.user)
+
+        organization = self.create_organization(name='foo', owner=self.user)
+        member = self.create_user('bar@example.com')
+        self.create_member(
+            organization=organization,
+            user=member,
+            role='member',
+        )
+
+        path = reverse(
+            'sentry-api-0-organization-member-details', args=[organization.slug, 'trash']
+        )
+        self.login_as(self.user)
+
+        resp = self.client.put(path, data={'reinvite': 1})
+
+        assert resp.status_code == 404
 
     @patch('sentry.models.OrganizationMember.send_invite_email')
     def test_reinvite_pending_member(self, mock_send_invite_email):
@@ -651,8 +673,27 @@ class DeleteOrganizationMemberTest(APITestCase):
         resp = self.client.delete(path)
 
         assert resp.status_code == 204
-
         assert not OrganizationMember.objects.filter(id=member_om.id).exists()
+
+    def test_invalid_id(self):
+        self.login_as(user=self.user)
+
+        organization = self.create_organization(name='foo', owner=self.user)
+        member = self.create_user('bar@example.com')
+        self.create_member(
+            organization=organization,
+            user=member,
+            role='member',
+        )
+
+        path = reverse(
+            'sentry-api-0-organization-member-details', args=[organization.slug, 'trash']
+        )
+        self.login_as(self.user)
+
+        resp = self.client.delete(path)
+
+        assert resp.status_code == 404
 
     def test_cannot_delete_member_with_higher_access(self):
         organization = self.create_organization(name='foo', owner=self.user)
@@ -681,7 +722,6 @@ class DeleteOrganizationMemberTest(APITestCase):
         resp = self.client.delete(path)
 
         assert resp.status_code == 400
-
         assert OrganizationMember.objects.filter(id=owner_om.id).exists()
 
     def test_cannot_delete_only_owner(self):
@@ -712,7 +752,6 @@ class DeleteOrganizationMemberTest(APITestCase):
         resp = self.client.delete(path)
 
         assert resp.status_code == 403
-
         assert OrganizationMember.objects.filter(id=owner_om.id).exists()
 
     def test_can_delete_self(self):
@@ -734,7 +773,6 @@ class DeleteOrganizationMemberTest(APITestCase):
         resp = self.client.delete(path)
 
         assert resp.status_code == 204
-
         assert not OrganizationMember.objects.filter(
             user=other_user,
             organization=organization,
@@ -773,3 +811,56 @@ class DeleteOrganizationMemberTest(APITestCase):
         assert resp.status_code == 400
 
         assert OrganizationMember.objects.filter(id=member_om.id).exists()
+
+
+class GetOrganizationMemberTest(APITestCase):
+    def test_me(self):
+        user = self.create_user('dummy@example.com')
+        organization = self.create_organization(name='test', owner=user)
+        self.create_team(
+            name='first',
+            organization=organization,
+            members=[user])
+
+        path = reverse(
+            'sentry-api-0-organization-member-details', args=[organization.slug, 'me']
+        )
+        self.login_as(user)
+        resp = self.client.get(path)
+        assert resp.status_code == 200
+        assert resp.data['role'] == 'owner'
+        assert resp.data['user']['id'] == six.text_type(user.id)
+        assert resp.data['email'] == user.email
+
+    def test_get_by_id(self):
+        user = self.create_user('dummy@example.com')
+        organization = self.create_organization(name='test')
+        team = self.create_team(
+            name='first',
+            organization=organization,
+            members=[user])
+        member = team.member_set.first()
+
+        path = reverse(
+            'sentry-api-0-organization-member-details', args=[organization.slug, member.id]
+        )
+        self.login_as(user)
+        resp = self.client.get(path)
+        assert resp.status_code == 200
+        assert resp.data['role'] == 'member'
+        assert resp.data['id'] == six.text_type(member.id)
+
+    def test_get_by_garbage(self):
+        user = self.create_user('dummy@example.com')
+        organization = self.create_organization(name='test')
+        self.create_team(
+            name='first',
+            organization=organization,
+            members=[user])
+
+        path = reverse(
+            'sentry-api-0-organization-member-details', args=[organization.slug, 'trash']
+        )
+        self.login_as(user)
+        resp = self.client.get(path)
+        assert resp.status_code == 404
