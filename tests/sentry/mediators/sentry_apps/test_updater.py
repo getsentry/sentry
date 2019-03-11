@@ -81,7 +81,6 @@ class TestUpdater(TestCase):
             'elements': [self.create_alert_rule_action_schema()],
         }
 
-
     def test_updates_overview(self):
         self.updater.overview = 'Description of my very cool application'
         self.updater.call()

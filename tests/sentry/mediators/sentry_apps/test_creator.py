@@ -3,7 +3,6 @@ from __future__ import absolute_import
 from sentry.mediators.sentry_apps import Creator
 from sentry.models import ApiApplication, SentryApp, SentryAppComponent, User
 from sentry.testutils import TestCase
-from sentry.utils import json
 
 
 class TestCreator(TestCase):
@@ -85,5 +84,5 @@ class TestCreator(TestCase):
         assert self.creator.call()
 
     def test_schema_with_no_elements(self):
-        self.creator.schema = {'elements':[]}
+        self.creator.schema = {'elements': []}
         assert self.creator.call()

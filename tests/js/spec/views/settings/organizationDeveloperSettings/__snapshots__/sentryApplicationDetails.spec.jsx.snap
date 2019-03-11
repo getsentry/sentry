@@ -506,6 +506,7 @@ exports[`Sentry Application Details edit existing application renders() it shows
                 Map {
                   "organization" => "org-slug",
                   "isAlertable" => false,
+                  "schema" => Object {},
                   "name" => "Sample App",
                   "slug" => "sample-app",
                   "scopes" => Array [
@@ -519,7 +520,6 @@ exports[`Sentry Application Details edit existing application renders() it shows
                   "clientId" => "client-id",
                   "clientSecret" => "client-secret",
                   "overview" => "This is an app.",
-                  "schema" => Object {},
                 },
               ],
             }
@@ -1268,6 +1268,7 @@ exports[`Sentry Application Details edit existing application renders() it shows
                                                                   Map {
                                                                     "organization" => "org-slug",
                                                                     "isAlertable" => false,
+                                                                    "schema" => Object {},
                                                                     "name" => "Sample App",
                                                                     "slug" => "sample-app",
                                                                     "scopes" => Array [
@@ -1281,7 +1282,6 @@ exports[`Sentry Application Details edit existing application renders() it shows
                                                                     "clientId" => "client-id",
                                                                     "clientSecret" => "client-secret",
                                                                     "overview" => "This is an app.",
-                                                                    "schema" => Object {},
                                                                   },
                                                                 ],
                                                               }
@@ -1849,6 +1849,7 @@ exports[`Sentry Application Details edit existing application renders() it shows
                                                                                               Map {
                                                                                                 "organization" => "org-slug",
                                                                                                 "isAlertable" => false,
+                                                                                                "schema" => Object {},
                                                                                                 "name" => "Sample App",
                                                                                                 "slug" => "sample-app",
                                                                                                 "scopes" => Array [
@@ -1862,7 +1863,6 @@ exports[`Sentry Application Details edit existing application renders() it shows
                                                                                                 "clientId" => "client-id",
                                                                                                 "clientSecret" => "client-secret",
                                                                                                 "overview" => "This is an app.",
-                                                                                                "schema" => Object {},
                                                                                               },
                                                                                             ],
                                                                                           }
@@ -2439,6 +2439,7 @@ exports[`Sentry Application Details edit existing application renders() it shows
                                                                   Map {
                                                                     "organization" => "org-slug",
                                                                     "isAlertable" => false,
+                                                                    "schema" => Object {},
                                                                     "name" => "Sample App",
                                                                     "slug" => "sample-app",
                                                                     "scopes" => Array [
@@ -2452,7 +2453,6 @@ exports[`Sentry Application Details edit existing application renders() it shows
                                                                     "clientId" => "client-id",
                                                                     "clientSecret" => "client-secret",
                                                                     "overview" => "This is an app.",
-                                                                    "schema" => Object {},
                                                                   },
                                                                 ],
                                                               }
@@ -3020,6 +3020,7 @@ exports[`Sentry Application Details edit existing application renders() it shows
                                                                                               Map {
                                                                                                 "organization" => "org-slug",
                                                                                                 "isAlertable" => false,
+                                                                                                "schema" => Object {},
                                                                                                 "name" => "Sample App",
                                                                                                 "slug" => "sample-app",
                                                                                                 "scopes" => Array [
@@ -3033,7 +3034,6 @@ exports[`Sentry Application Details edit existing application renders() it shows
                                                                                                 "clientId" => "client-id",
                                                                                                 "clientSecret" => "client-secret",
                                                                                                 "overview" => "This is an app.",
-                                                                                                "schema" => Object {},
                                                                                               },
                                                                                             ],
                                                                                           }
@@ -3601,6 +3601,7 @@ exports[`Sentry Application Details edit existing application renders() it shows
                                                                   Map {
                                                                     "organization" => "org-slug",
                                                                     "isAlertable" => false,
+                                                                    "schema" => Object {},
                                                                     "name" => "Sample App",
                                                                     "slug" => "sample-app",
                                                                     "scopes" => Array [
@@ -3614,7 +3615,6 @@ exports[`Sentry Application Details edit existing application renders() it shows
                                                                     "clientId" => "client-id",
                                                                     "clientSecret" => "client-secret",
                                                                     "overview" => "This is an app.",
-                                                                    "schema" => Object {},
                                                                   },
                                                                 ],
                                                               }
@@ -4180,6 +4180,7 @@ exports[`Sentry Application Details edit existing application renders() it shows
                                                                                               Map {
                                                                                                 "organization" => "org-slug",
                                                                                                 "isAlertable" => false,
+                                                                                                "schema" => Object {},
                                                                                                 "name" => "Sample App",
                                                                                                 "slug" => "sample-app",
                                                                                                 "scopes" => Array [
@@ -4193,7 +4194,6 @@ exports[`Sentry Application Details edit existing application renders() it shows
                                                                                                 "clientId" => "client-id",
                                                                                                 "clientSecret" => "client-secret",
                                                                                                 "overview" => "This is an app.",
-                                                                                                "schema" => Object {},
                                                                                               },
                                                                                             ],
                                                                                           }
@@ -4861,6 +4861,7 @@ exports[`Sentry Application Details edit existing application renders() it shows
                                                                   Map {
                                                                     "organization" => "org-slug",
                                                                     "isAlertable" => false,
+                                                                    "schema" => Object {},
                                                                     "name" => "Sample App",
                                                                     "slug" => "sample-app",
                                                                     "scopes" => Array [
@@ -4874,7 +4875,6 @@ exports[`Sentry Application Details edit existing application renders() it shows
                                                                     "clientId" => "client-id",
                                                                     "clientSecret" => "client-secret",
                                                                     "overview" => "This is an app.",
-                                                                    "schema" => Object {},
                                                                   },
                                                                 ],
                                                               }
@@ -5474,6 +5474,7 @@ exports[`Sentry Application Details edit existing application renders() it shows
                                                                                               Map {
                                                                                                 "organization" => "org-slug",
                                                                                                 "isAlertable" => false,
+                                                                                                "schema" => Object {},
                                                                                                 "name" => "Sample App",
                                                                                                 "slug" => "sample-app",
                                                                                                 "scopes" => Array [
@@ -5487,7 +5488,6 @@ exports[`Sentry Application Details edit existing application renders() it shows
                                                                                                 "clientId" => "client-id",
                                                                                                 "clientSecret" => "client-secret",
                                                                                                 "overview" => "This is an app.",
-                                                                                                "schema" => Object {},
                                                                                               },
                                                                                             ],
                                                                                           }
@@ -6065,6 +6065,7 @@ exports[`Sentry Application Details edit existing application renders() it shows
                                                                   Map {
                                                                     "organization" => "org-slug",
                                                                     "isAlertable" => false,
+                                                                    "schema" => Object {},
                                                                     "name" => "Sample App",
                                                                     "slug" => "sample-app",
                                                                     "scopes" => Array [
@@ -6078,7 +6079,6 @@ exports[`Sentry Application Details edit existing application renders() it shows
                                                                     "clientId" => "client-id",
                                                                     "clientSecret" => "client-secret",
                                                                     "overview" => "This is an app.",
-                                                                    "schema" => Object {},
                                                                   },
                                                                 ],
                                                               }
@@ -6673,6 +6673,7 @@ exports[`Sentry Application Details edit existing application renders() it shows
                                                                                               Map {
                                                                                                 "organization" => "org-slug",
                                                                                                 "isAlertable" => false,
+                                                                                                "schema" => Object {},
                                                                                                 "name" => "Sample App",
                                                                                                 "slug" => "sample-app",
                                                                                                 "scopes" => Array [
@@ -6686,7 +6687,6 @@ exports[`Sentry Application Details edit existing application renders() it shows
                                                                                                 "clientId" => "client-id",
                                                                                                 "clientSecret" => "client-secret",
                                                                                                 "overview" => "This is an app.",
-                                                                                                "schema" => Object {},
                                                                                               },
                                                                                             ],
                                                                                           }
@@ -7254,6 +7254,7 @@ exports[`Sentry Application Details edit existing application renders() it shows
                                                                   Map {
                                                                     "organization" => "org-slug",
                                                                     "isAlertable" => false,
+                                                                    "schema" => Object {},
                                                                     "name" => "Sample App",
                                                                     "slug" => "sample-app",
                                                                     "scopes" => Array [
@@ -7267,7 +7268,6 @@ exports[`Sentry Application Details edit existing application renders() it shows
                                                                     "clientId" => "client-id",
                                                                     "clientSecret" => "client-secret",
                                                                     "overview" => "This is an app.",
-                                                                    "schema" => Object {},
                                                                   },
                                                                 ],
                                                               }
@@ -7860,6 +7860,7 @@ exports[`Sentry Application Details edit existing application renders() it shows
                                                                                               Map {
                                                                                                 "organization" => "org-slug",
                                                                                                 "isAlertable" => false,
+                                                                                                "schema" => Object {},
                                                                                                 "name" => "Sample App",
                                                                                                 "slug" => "sample-app",
                                                                                                 "scopes" => Array [
@@ -7873,7 +7874,6 @@ exports[`Sentry Application Details edit existing application renders() it shows
                                                                                                 "clientId" => "client-id",
                                                                                                 "clientSecret" => "client-secret",
                                                                                                 "overview" => "This is an app.",
-                                                                                                "schema" => Object {},
                                                                                               },
                                                                                             ],
                                                                                           }
@@ -8602,6 +8602,7 @@ exports[`Sentry Application Details edit existing application renders() it shows
                                                           Map {
                                                             "organization" => "org-slug",
                                                             "isAlertable" => false,
+                                                            "schema" => Object {},
                                                             "name" => "Sample App",
                                                             "slug" => "sample-app",
                                                             "scopes" => Array [
@@ -8615,7 +8616,6 @@ exports[`Sentry Application Details edit existing application renders() it shows
                                                             "clientId" => "client-id",
                                                             "clientSecret" => "client-secret",
                                                             "overview" => "This is an app.",
-                                                            "schema" => Object {},
                                                           },
                                                         ],
                                                       }
@@ -9656,6 +9656,7 @@ exports[`Sentry Application Details edit existing application renders() it shows
                                                                                       Map {
                                                                                         "organization" => "org-slug",
                                                                                         "isAlertable" => false,
+                                                                                        "schema" => Object {},
                                                                                         "name" => "Sample App",
                                                                                         "slug" => "sample-app",
                                                                                         "scopes" => Array [
@@ -9669,7 +9670,6 @@ exports[`Sentry Application Details edit existing application renders() it shows
                                                                                         "clientId" => "client-id",
                                                                                         "clientSecret" => "client-secret",
                                                                                         "overview" => "This is an app.",
-                                                                                        "schema" => Object {},
                                                                                       },
                                                                                     ],
                                                                                   }
@@ -10327,6 +10327,7 @@ exports[`Sentry Application Details edit existing application renders() it shows
                                                           Map {
                                                             "organization" => "org-slug",
                                                             "isAlertable" => false,
+                                                            "schema" => Object {},
                                                             "name" => "Sample App",
                                                             "slug" => "sample-app",
                                                             "scopes" => Array [
@@ -10340,7 +10341,6 @@ exports[`Sentry Application Details edit existing application renders() it shows
                                                             "clientId" => "client-id",
                                                             "clientSecret" => "client-secret",
                                                             "overview" => "This is an app.",
-                                                            "schema" => Object {},
                                                           },
                                                         ],
                                                       }
@@ -11381,6 +11381,7 @@ exports[`Sentry Application Details edit existing application renders() it shows
                                                                                       Map {
                                                                                         "organization" => "org-slug",
                                                                                         "isAlertable" => false,
+                                                                                        "schema" => Object {},
                                                                                         "name" => "Sample App",
                                                                                         "slug" => "sample-app",
                                                                                         "scopes" => Array [
@@ -11394,7 +11395,6 @@ exports[`Sentry Application Details edit existing application renders() it shows
                                                                                         "clientId" => "client-id",
                                                                                         "clientSecret" => "client-secret",
                                                                                         "overview" => "This is an app.",
-                                                                                        "schema" => Object {},
                                                                                       },
                                                                                     ],
                                                                                   }
@@ -12020,6 +12020,7 @@ exports[`Sentry Application Details edit existing application renders() it shows
                                                           Map {
                                                             "organization" => "org-slug",
                                                             "isAlertable" => false,
+                                                            "schema" => Object {},
                                                             "name" => "Sample App",
                                                             "slug" => "sample-app",
                                                             "scopes" => Array [
@@ -12033,7 +12034,6 @@ exports[`Sentry Application Details edit existing application renders() it shows
                                                             "clientId" => "client-id",
                                                             "clientSecret" => "client-secret",
                                                             "overview" => "This is an app.",
-                                                            "schema" => Object {},
                                                           },
                                                         ],
                                                       }
@@ -13026,6 +13026,7 @@ exports[`Sentry Application Details edit existing application renders() it shows
                                                                                       Map {
                                                                                         "organization" => "org-slug",
                                                                                         "isAlertable" => false,
+                                                                                        "schema" => Object {},
                                                                                         "name" => "Sample App",
                                                                                         "slug" => "sample-app",
                                                                                         "scopes" => Array [
@@ -13039,7 +13040,6 @@ exports[`Sentry Application Details edit existing application renders() it shows
                                                                                         "clientId" => "client-id",
                                                                                         "clientSecret" => "client-secret",
                                                                                         "overview" => "This is an app.",
-                                                                                        "schema" => Object {},
                                                                                       },
                                                                                     ],
                                                                                   }
@@ -13697,6 +13697,7 @@ exports[`Sentry Application Details edit existing application renders() it shows
                                                           Map {
                                                             "organization" => "org-slug",
                                                             "isAlertable" => false,
+                                                            "schema" => Object {},
                                                             "name" => "Sample App",
                                                             "slug" => "sample-app",
                                                             "scopes" => Array [
@@ -13710,7 +13711,6 @@ exports[`Sentry Application Details edit existing application renders() it shows
                                                             "clientId" => "client-id",
                                                             "clientSecret" => "client-secret",
                                                             "overview" => "This is an app.",
-                                                            "schema" => Object {},
                                                           },
                                                         ],
                                                       }
@@ -14751,6 +14751,7 @@ exports[`Sentry Application Details edit existing application renders() it shows
                                                                                       Map {
                                                                                         "organization" => "org-slug",
                                                                                         "isAlertable" => false,
+                                                                                        "schema" => Object {},
                                                                                         "name" => "Sample App",
                                                                                         "slug" => "sample-app",
                                                                                         "scopes" => Array [
@@ -14764,7 +14765,6 @@ exports[`Sentry Application Details edit existing application renders() it shows
                                                                                         "clientId" => "client-id",
                                                                                         "clientSecret" => "client-secret",
                                                                                         "overview" => "This is an app.",
-                                                                                        "schema" => Object {},
                                                                                       },
                                                                                     ],
                                                                                   }
@@ -15422,6 +15422,7 @@ exports[`Sentry Application Details edit existing application renders() it shows
                                                           Map {
                                                             "organization" => "org-slug",
                                                             "isAlertable" => false,
+                                                            "schema" => Object {},
                                                             "name" => "Sample App",
                                                             "slug" => "sample-app",
                                                             "scopes" => Array [
@@ -15435,7 +15436,6 @@ exports[`Sentry Application Details edit existing application renders() it shows
                                                             "clientId" => "client-id",
                                                             "clientSecret" => "client-secret",
                                                             "overview" => "This is an app.",
-                                                            "schema" => Object {},
                                                           },
                                                         ],
                                                       }
@@ -16476,6 +16476,7 @@ exports[`Sentry Application Details edit existing application renders() it shows
                                                                                       Map {
                                                                                         "organization" => "org-slug",
                                                                                         "isAlertable" => false,
+                                                                                        "schema" => Object {},
                                                                                         "name" => "Sample App",
                                                                                         "slug" => "sample-app",
                                                                                         "scopes" => Array [
@@ -16489,7 +16490,6 @@ exports[`Sentry Application Details edit existing application renders() it shows
                                                                                         "clientId" => "client-id",
                                                                                         "clientSecret" => "client-secret",
                                                                                         "overview" => "This is an app.",
-                                                                                        "schema" => Object {},
                                                                                       },
                                                                                     ],
                                                                                   }
@@ -17147,6 +17147,7 @@ exports[`Sentry Application Details edit existing application renders() it shows
                                                           Map {
                                                             "organization" => "org-slug",
                                                             "isAlertable" => false,
+                                                            "schema" => Object {},
                                                             "name" => "Sample App",
                                                             "slug" => "sample-app",
                                                             "scopes" => Array [
@@ -17160,7 +17161,6 @@ exports[`Sentry Application Details edit existing application renders() it shows
                                                             "clientId" => "client-id",
                                                             "clientSecret" => "client-secret",
                                                             "overview" => "This is an app.",
-                                                            "schema" => Object {},
                                                           },
                                                         ],
                                                       }
@@ -18201,6 +18201,7 @@ exports[`Sentry Application Details edit existing application renders() it shows
                                                                                       Map {
                                                                                         "organization" => "org-slug",
                                                                                         "isAlertable" => false,
+                                                                                        "schema" => Object {},
                                                                                         "name" => "Sample App",
                                                                                         "slug" => "sample-app",
                                                                                         "scopes" => Array [
@@ -18214,7 +18215,6 @@ exports[`Sentry Application Details edit existing application renders() it shows
                                                                                         "clientId" => "client-id",
                                                                                         "clientSecret" => "client-secret",
                                                                                         "overview" => "This is an app.",
-                                                                                        "schema" => Object {},
                                                                                       },
                                                                                     ],
                                                                                   }
@@ -18922,6 +18922,7 @@ exports[`Sentry Application Details edit existing application renders() it shows
                                                   Map {
                                                     "organization" => "org-slug",
                                                     "isAlertable" => false,
+                                                    "schema" => Object {},
                                                     "name" => "Sample App",
                                                     "slug" => "sample-app",
                                                     "scopes" => Array [
@@ -18935,7 +18936,6 @@ exports[`Sentry Application Details edit existing application renders() it shows
                                                     "clientId" => "client-id",
                                                     "clientSecret" => "client-secret",
                                                     "overview" => "This is an app.",
-                                                    "schema" => Object {},
                                                   },
                                                 ],
                                               }
@@ -19492,6 +19492,7 @@ exports[`Sentry Application Details edit existing application renders() it shows
                                                                               Map {
                                                                                 "organization" => "org-slug",
                                                                                 "isAlertable" => false,
+                                                                                "schema" => Object {},
                                                                                 "name" => "Sample App",
                                                                                 "slug" => "sample-app",
                                                                                 "scopes" => Array [
@@ -19505,7 +19506,6 @@ exports[`Sentry Application Details edit existing application renders() it shows
                                                                                 "clientId" => "client-id",
                                                                                 "clientSecret" => "client-secret",
                                                                                 "overview" => "This is an app.",
-                                                                                "schema" => Object {},
                                                                               },
                                                                             ],
                                                                           }
@@ -20024,6 +20024,7 @@ exports[`Sentry Application Details edit existing application renders() it shows
                                                   Map {
                                                     "organization" => "org-slug",
                                                     "isAlertable" => false,
+                                                    "schema" => Object {},
                                                     "name" => "Sample App",
                                                     "slug" => "sample-app",
                                                     "scopes" => Array [
@@ -20037,7 +20038,6 @@ exports[`Sentry Application Details edit existing application renders() it shows
                                                     "clientId" => "client-id",
                                                     "clientSecret" => "client-secret",
                                                     "overview" => "This is an app.",
-                                                    "schema" => Object {},
                                                   },
                                                 ],
                                               }
@@ -20594,6 +20594,7 @@ exports[`Sentry Application Details edit existing application renders() it shows
                                                                               Map {
                                                                                 "organization" => "org-slug",
                                                                                 "isAlertable" => false,
+                                                                                "schema" => Object {},
                                                                                 "name" => "Sample App",
                                                                                 "slug" => "sample-app",
                                                                                 "scopes" => Array [
@@ -20607,7 +20608,6 @@ exports[`Sentry Application Details edit existing application renders() it shows
                                                                                 "clientId" => "client-id",
                                                                                 "clientSecret" => "client-secret",
                                                                                 "overview" => "This is an app.",
-                                                                                "schema" => Object {},
                                                                               },
                                                                             ],
                                                                           }
@@ -20786,6 +20786,7 @@ exports[`Sentry Application Details new sentry application renders() it shows em
             Object {
               "isAlertable": false,
               "organization": "org-slug",
+              "schema": "",
             }
           }
           model={
@@ -21138,7 +21139,7 @@ exports[`Sentry Application Details new sentry application renders() it shows em
                 "events": Array [],
                 "isAlertable": false,
                 "organization": "org-slug",
-                "schema": undefined,
+                "schema": "\\"\\"",
               },
               "formState": "Ready",
               "initialData": Object {
@@ -21150,7 +21151,7 @@ exports[`Sentry Application Details new sentry application renders() it shows em
                 "Team--permission": "no-access",
                 "isAlertable": false,
                 "organization": "org-slug",
-                "schema": undefined,
+                "schema": "\\"\\"",
               },
               "options": Object {
                 "allowUndo": true,
@@ -21166,6 +21167,7 @@ exports[`Sentry Application Details new sentry application renders() it shows em
                 Map {
                   "organization" => "org-slug",
                   "isAlertable" => false,
+                  "schema" => "",
                 },
               ],
             }
@@ -21845,7 +21847,7 @@ exports[`Sentry Application Details new sentry application renders() it shows em
                                                                   "events": Array [],
                                                                   "isAlertable": false,
                                                                   "organization": "org-slug",
-                                                                  "schema": undefined,
+                                                                  "schema": "\\"\\"",
                                                                 },
                                                                 "formState": "Ready",
                                                                 "initialData": Object {
@@ -21857,7 +21859,7 @@ exports[`Sentry Application Details new sentry application renders() it shows em
                                                                   "Team--permission": "no-access",
                                                                   "isAlertable": false,
                                                                   "organization": "org-slug",
-                                                                  "schema": undefined,
+                                                                  "schema": "\\"\\"",
                                                                 },
                                                                 "options": Object {
                                                                   "allowUndo": true,
@@ -21873,6 +21875,7 @@ exports[`Sentry Application Details new sentry application renders() it shows em
                                                                   Map {
                                                                     "organization" => "org-slug",
                                                                     "isAlertable" => false,
+                                                                    "schema" => "",
                                                                   },
                                                                 ],
                                                               }
@@ -21955,7 +21958,7 @@ exports[`Sentry Application Details new sentry application renders() it shows em
                                                                                               "Team--permission": "no-access",
                                                                                               "isAlertable": false,
                                                                                               "organization": "org-slug",
-                                                                                              "schema": undefined,
+                                                                                              "schema": "\\"\\"",
                                                                                             }
                                                                                           }
                                                                                           innerRef={[Function]}
@@ -22358,7 +22361,7 @@ exports[`Sentry Application Details new sentry application renders() it shows em
                                                                                               "events": Array [],
                                                                                               "isAlertable": false,
                                                                                               "organization": "org-slug",
-                                                                                              "schema": undefined,
+                                                                                              "schema": "\\"\\"",
                                                                                             },
                                                                                             "formState": "Ready",
                                                                                             "initialData": Object {
@@ -22370,7 +22373,7 @@ exports[`Sentry Application Details new sentry application renders() it shows em
                                                                                               "Team--permission": "no-access",
                                                                                               "isAlertable": false,
                                                                                               "organization": "org-slug",
-                                                                                              "schema": undefined,
+                                                                                              "schema": "\\"\\"",
                                                                                             },
                                                                                             "options": Object {
                                                                                               "allowUndo": true,
@@ -22386,6 +22389,7 @@ exports[`Sentry Application Details new sentry application renders() it shows em
                                                                                               Map {
                                                                                                 "organization" => "org-slug",
                                                                                                 "isAlertable" => false,
+                                                                                                "schema" => "",
                                                                                               },
                                                                                             ],
                                                                                           }
@@ -22893,7 +22897,7 @@ exports[`Sentry Application Details new sentry application renders() it shows em
                                                                   "events": Array [],
                                                                   "isAlertable": false,
                                                                   "organization": "org-slug",
-                                                                  "schema": undefined,
+                                                                  "schema": "\\"\\"",
                                                                 },
                                                                 "formState": "Ready",
                                                                 "initialData": Object {
@@ -22905,7 +22909,7 @@ exports[`Sentry Application Details new sentry application renders() it shows em
                                                                   "Team--permission": "no-access",
                                                                   "isAlertable": false,
                                                                   "organization": "org-slug",
-                                                                  "schema": undefined,
+                                                                  "schema": "\\"\\"",
                                                                 },
                                                                 "options": Object {
                                                                   "allowUndo": true,
@@ -22921,6 +22925,7 @@ exports[`Sentry Application Details new sentry application renders() it shows em
                                                                   Map {
                                                                     "organization" => "org-slug",
                                                                     "isAlertable" => false,
+                                                                    "schema" => "",
                                                                   },
                                                                 ],
                                                               }
@@ -23003,7 +23008,7 @@ exports[`Sentry Application Details new sentry application renders() it shows em
                                                                                               "Team--permission": "no-access",
                                                                                               "isAlertable": false,
                                                                                               "organization": "org-slug",
-                                                                                              "schema": undefined,
+                                                                                              "schema": "\\"\\"",
                                                                                             }
                                                                                           }
                                                                                           innerRef={[Function]}
@@ -23406,7 +23411,7 @@ exports[`Sentry Application Details new sentry application renders() it shows em
                                                                                               "events": Array [],
                                                                                               "isAlertable": false,
                                                                                               "organization": "org-slug",
-                                                                                              "schema": undefined,
+                                                                                              "schema": "\\"\\"",
                                                                                             },
                                                                                             "formState": "Ready",
                                                                                             "initialData": Object {
@@ -23418,7 +23423,7 @@ exports[`Sentry Application Details new sentry application renders() it shows em
                                                                                               "Team--permission": "no-access",
                                                                                               "isAlertable": false,
                                                                                               "organization": "org-slug",
-                                                                                              "schema": undefined,
+                                                                                              "schema": "\\"\\"",
                                                                                             },
                                                                                             "options": Object {
                                                                                               "allowUndo": true,
@@ -23434,6 +23439,7 @@ exports[`Sentry Application Details new sentry application renders() it shows em
                                                                                               Map {
                                                                                                 "organization" => "org-slug",
                                                                                                 "isAlertable" => false,
+                                                                                                "schema" => "",
                                                                                               },
                                                                                             ],
                                                                                           }
@@ -23932,7 +23938,7 @@ exports[`Sentry Application Details new sentry application renders() it shows em
                                                                   "events": Array [],
                                                                   "isAlertable": false,
                                                                   "organization": "org-slug",
-                                                                  "schema": undefined,
+                                                                  "schema": "\\"\\"",
                                                                 },
                                                                 "formState": "Ready",
                                                                 "initialData": Object {
@@ -23944,7 +23950,7 @@ exports[`Sentry Application Details new sentry application renders() it shows em
                                                                   "Team--permission": "no-access",
                                                                   "isAlertable": false,
                                                                   "organization": "org-slug",
-                                                                  "schema": undefined,
+                                                                  "schema": "\\"\\"",
                                                                 },
                                                                 "options": Object {
                                                                   "allowUndo": true,
@@ -23960,6 +23966,7 @@ exports[`Sentry Application Details new sentry application renders() it shows em
                                                                   Map {
                                                                     "organization" => "org-slug",
                                                                     "isAlertable" => false,
+                                                                    "schema" => "",
                                                                   },
                                                                 ],
                                                               }
@@ -24042,7 +24049,7 @@ exports[`Sentry Application Details new sentry application renders() it shows em
                                                                                               "Team--permission": "no-access",
                                                                                               "isAlertable": false,
                                                                                               "organization": "org-slug",
-                                                                                              "schema": undefined,
+                                                                                              "schema": "\\"\\"",
                                                                                             }
                                                                                           }
                                                                                           innerRef={[Function]}
@@ -24443,7 +24450,7 @@ exports[`Sentry Application Details new sentry application renders() it shows em
                                                                                               "events": Array [],
                                                                                               "isAlertable": false,
                                                                                               "organization": "org-slug",
-                                                                                              "schema": undefined,
+                                                                                              "schema": "\\"\\"",
                                                                                             },
                                                                                             "formState": "Ready",
                                                                                             "initialData": Object {
@@ -24455,7 +24462,7 @@ exports[`Sentry Application Details new sentry application renders() it shows em
                                                                                               "Team--permission": "no-access",
                                                                                               "isAlertable": false,
                                                                                               "organization": "org-slug",
-                                                                                              "schema": undefined,
+                                                                                              "schema": "\\"\\"",
                                                                                             },
                                                                                             "options": Object {
                                                                                               "allowUndo": true,
@@ -24471,6 +24478,7 @@ exports[`Sentry Application Details new sentry application renders() it shows em
                                                                                               Map {
                                                                                                 "organization" => "org-slug",
                                                                                                 "isAlertable" => false,
+                                                                                                "schema" => "",
                                                                                               },
                                                                                             ],
                                                                                           }
@@ -25069,7 +25077,7 @@ exports[`Sentry Application Details new sentry application renders() it shows em
                                                                   "events": Array [],
                                                                   "isAlertable": false,
                                                                   "organization": "org-slug",
-                                                                  "schema": undefined,
+                                                                  "schema": "\\"\\"",
                                                                 },
                                                                 "formState": "Ready",
                                                                 "initialData": Object {
@@ -25081,7 +25089,7 @@ exports[`Sentry Application Details new sentry application renders() it shows em
                                                                   "Team--permission": "no-access",
                                                                   "isAlertable": false,
                                                                   "organization": "org-slug",
-                                                                  "schema": undefined,
+                                                                  "schema": "\\"\\"",
                                                                 },
                                                                 "options": Object {
                                                                   "allowUndo": true,
@@ -25097,6 +25105,7 @@ exports[`Sentry Application Details new sentry application renders() it shows em
                                                                   Map {
                                                                     "organization" => "org-slug",
                                                                     "isAlertable" => false,
+                                                                    "schema" => "",
                                                                   },
                                                                 ],
                                                               }
@@ -25194,7 +25203,7 @@ exports[`Sentry Application Details new sentry application renders() it shows em
                                                                                               "Team--permission": "no-access",
                                                                                               "isAlertable": false,
                                                                                               "organization": "org-slug",
-                                                                                              "schema": undefined,
+                                                                                              "schema": "\\"\\"",
                                                                                             }
                                                                                           }
                                                                                           innerRef={[Function]}
@@ -25614,7 +25623,7 @@ exports[`Sentry Application Details new sentry application renders() it shows em
                                                                                               "events": Array [],
                                                                                               "isAlertable": false,
                                                                                               "organization": "org-slug",
-                                                                                              "schema": undefined,
+                                                                                              "schema": "\\"\\"",
                                                                                             },
                                                                                             "formState": "Ready",
                                                                                             "initialData": Object {
@@ -25626,7 +25635,7 @@ exports[`Sentry Application Details new sentry application renders() it shows em
                                                                                               "Team--permission": "no-access",
                                                                                               "isAlertable": false,
                                                                                               "organization": "org-slug",
-                                                                                              "schema": undefined,
+                                                                                              "schema": "\\"\\"",
                                                                                             },
                                                                                             "options": Object {
                                                                                               "allowUndo": true,
@@ -25642,6 +25651,7 @@ exports[`Sentry Application Details new sentry application renders() it shows em
                                                                                               Map {
                                                                                                 "organization" => "org-slug",
                                                                                                 "isAlertable" => false,
+                                                                                                "schema" => "",
                                                                                               },
                                                                                             ],
                                                                                           }
@@ -26150,7 +26160,7 @@ exports[`Sentry Application Details new sentry application renders() it shows em
                                                                   "events": Array [],
                                                                   "isAlertable": false,
                                                                   "organization": "org-slug",
-                                                                  "schema": undefined,
+                                                                  "schema": "\\"\\"",
                                                                 },
                                                                 "formState": "Ready",
                                                                 "initialData": Object {
@@ -26162,7 +26172,7 @@ exports[`Sentry Application Details new sentry application renders() it shows em
                                                                   "Team--permission": "no-access",
                                                                   "isAlertable": false,
                                                                   "organization": "org-slug",
-                                                                  "schema": undefined,
+                                                                  "schema": "\\"\\"",
                                                                 },
                                                                 "options": Object {
                                                                   "allowUndo": true,
@@ -26178,6 +26188,7 @@ exports[`Sentry Application Details new sentry application renders() it shows em
                                                                   Map {
                                                                     "organization" => "org-slug",
                                                                     "isAlertable" => false,
+                                                                    "schema" => "",
                                                                   },
                                                                 ],
                                                               }
@@ -26262,7 +26273,7 @@ exports[`Sentry Application Details new sentry application renders() it shows em
                                                                                               "Team--permission": "no-access",
                                                                                               "isAlertable": false,
                                                                                               "organization": "org-slug",
-                                                                                              "schema": undefined,
+                                                                                              "schema": "\\"\\"",
                                                                                             }
                                                                                           }
                                                                                           innerRef={[Function]}
@@ -26272,6 +26283,7 @@ exports[`Sentry Application Details new sentry application renders() it shows em
                                                                                           onChange={[Function]}
                                                                                           setValue={[Function]}
                                                                                           type="textarea"
+                                                                                          value="\\"\\""
                                                                                         >
                                                                                           <ForwardRef
                                                                                             autosize={true}
@@ -26283,6 +26295,7 @@ exports[`Sentry Application Details new sentry application renders() it shows em
                                                                                             onBlur={[Function]}
                                                                                             onChange={[Function]}
                                                                                             type="textarea"
+                                                                                            value="\\"\\""
                                                                                           >
                                                                                             <TextareaAutosize
                                                                                               async={true}
@@ -26296,6 +26309,7 @@ exports[`Sentry Application Details new sentry application renders() it shows em
                                                                                               onChange={[Function]}
                                                                                               rows={2}
                                                                                               type="textarea"
+                                                                                              value="\\"\\""
                                                                                             >
                                                                                               <textarea
                                                                                                 async={true}
@@ -26308,6 +26322,7 @@ exports[`Sentry Application Details new sentry application renders() it shows em
                                                                                                 onChange={[Function]}
                                                                                                 rows={2}
                                                                                                 type="textarea"
+                                                                                                value="\\"\\""
                                                                                               />
                                                                                             </TextareaAutosize>
                                                                                           </ForwardRef>
@@ -26686,7 +26701,7 @@ exports[`Sentry Application Details new sentry application renders() it shows em
                                                                                               "events": Array [],
                                                                                               "isAlertable": false,
                                                                                               "organization": "org-slug",
-                                                                                              "schema": undefined,
+                                                                                              "schema": "\\"\\"",
                                                                                             },
                                                                                             "formState": "Ready",
                                                                                             "initialData": Object {
@@ -26698,7 +26713,7 @@ exports[`Sentry Application Details new sentry application renders() it shows em
                                                                                               "Team--permission": "no-access",
                                                                                               "isAlertable": false,
                                                                                               "organization": "org-slug",
-                                                                                              "schema": undefined,
+                                                                                              "schema": "\\"\\"",
                                                                                             },
                                                                                             "options": Object {
                                                                                               "allowUndo": true,
@@ -26714,6 +26729,7 @@ exports[`Sentry Application Details new sentry application renders() it shows em
                                                                                               Map {
                                                                                                 "organization" => "org-slug",
                                                                                                 "isAlertable" => false,
+                                                                                                "schema" => "",
                                                                                               },
                                                                                             ],
                                                                                           }
@@ -27212,7 +27228,7 @@ exports[`Sentry Application Details new sentry application renders() it shows em
                                                                   "events": Array [],
                                                                   "isAlertable": false,
                                                                   "organization": "org-slug",
-                                                                  "schema": undefined,
+                                                                  "schema": "\\"\\"",
                                                                 },
                                                                 "formState": "Ready",
                                                                 "initialData": Object {
@@ -27224,7 +27240,7 @@ exports[`Sentry Application Details new sentry application renders() it shows em
                                                                   "Team--permission": "no-access",
                                                                   "isAlertable": false,
                                                                   "organization": "org-slug",
-                                                                  "schema": undefined,
+                                                                  "schema": "\\"\\"",
                                                                 },
                                                                 "options": Object {
                                                                   "allowUndo": true,
@@ -27240,6 +27256,7 @@ exports[`Sentry Application Details new sentry application renders() it shows em
                                                                   Map {
                                                                     "organization" => "org-slug",
                                                                     "isAlertable" => false,
+                                                                    "schema" => "",
                                                                   },
                                                                 ],
                                                               }
@@ -27323,7 +27340,7 @@ exports[`Sentry Application Details new sentry application renders() it shows em
                                                                                               "Team--permission": "no-access",
                                                                                               "isAlertable": false,
                                                                                               "organization": "org-slug",
-                                                                                              "schema": undefined,
+                                                                                              "schema": "\\"\\"",
                                                                                             }
                                                                                           }
                                                                                           innerRef={[Function]}
@@ -27750,7 +27767,7 @@ exports[`Sentry Application Details new sentry application renders() it shows em
                                                                                               "events": Array [],
                                                                                               "isAlertable": false,
                                                                                               "organization": "org-slug",
-                                                                                              "schema": undefined,
+                                                                                              "schema": "\\"\\"",
                                                                                             },
                                                                                             "formState": "Ready",
                                                                                             "initialData": Object {
@@ -27762,7 +27779,7 @@ exports[`Sentry Application Details new sentry application renders() it shows em
                                                                                               "Team--permission": "no-access",
                                                                                               "isAlertable": false,
                                                                                               "organization": "org-slug",
-                                                                                              "schema": undefined,
+                                                                                              "schema": "\\"\\"",
                                                                                             },
                                                                                             "options": Object {
                                                                                               "allowUndo": true,
@@ -27778,6 +27795,7 @@ exports[`Sentry Application Details new sentry application renders() it shows em
                                                                                               Map {
                                                                                                 "organization" => "org-slug",
                                                                                                 "isAlertable" => false,
+                                                                                                "schema" => "",
                                                                                               },
                                                                                             ],
                                                                                           }
@@ -28433,7 +28451,7 @@ exports[`Sentry Application Details new sentry application renders() it shows em
                                                           "events": Array [],
                                                           "isAlertable": false,
                                                           "organization": "org-slug",
-                                                          "schema": undefined,
+                                                          "schema": "\\"\\"",
                                                         },
                                                         "formState": "Ready",
                                                         "initialData": Object {
@@ -28445,7 +28463,7 @@ exports[`Sentry Application Details new sentry application renders() it shows em
                                                           "Team--permission": "no-access",
                                                           "isAlertable": false,
                                                           "organization": "org-slug",
-                                                          "schema": undefined,
+                                                          "schema": "\\"\\"",
                                                         },
                                                         "options": Object {
                                                           "allowUndo": true,
@@ -28461,6 +28479,7 @@ exports[`Sentry Application Details new sentry application renders() it shows em
                                                           Map {
                                                             "organization" => "org-slug",
                                                             "isAlertable" => false,
+                                                            "schema" => "",
                                                           },
                                                         ],
                                                       }
@@ -28568,7 +28587,7 @@ exports[`Sentry Application Details new sentry application renders() it shows em
                                                                                       "Team--permission": "no-access",
                                                                                       "isAlertable": false,
                                                                                       "organization": "org-slug",
-                                                                                      "schema": undefined,
+                                                                                      "schema": "\\"\\"",
                                                                                     }
                                                                                   }
                                                                                   innerRef={[Function]}
@@ -28626,7 +28645,7 @@ exports[`Sentry Application Details new sentry application renders() it shows em
                                                                                         "Team--permission": "no-access",
                                                                                         "isAlertable": false,
                                                                                         "organization": "org-slug",
-                                                                                        "schema": undefined,
+                                                                                        "schema": "\\"\\"",
                                                                                       }
                                                                                     }
                                                                                     innerRef={[Function]}
@@ -28685,7 +28704,7 @@ exports[`Sentry Application Details new sentry application renders() it shows em
                                                                                           "Team--permission": "no-access",
                                                                                           "isAlertable": false,
                                                                                           "organization": "org-slug",
-                                                                                          "schema": undefined,
+                                                                                          "schema": "\\"\\"",
                                                                                         }
                                                                                       }
                                                                                       label="Project"
@@ -28744,7 +28763,7 @@ exports[`Sentry Application Details new sentry application renders() it shows em
                                                                                             "Team--permission": "no-access",
                                                                                             "isAlertable": false,
                                                                                             "organization": "org-slug",
-                                                                                            "schema": undefined,
+                                                                                            "schema": "\\"\\"",
                                                                                           }
                                                                                         }
                                                                                         label="Project"
@@ -28813,7 +28832,7 @@ exports[`Sentry Application Details new sentry application renders() it shows em
                                                                                               "Team--permission": "no-access",
                                                                                               "isAlertable": false,
                                                                                               "organization": "org-slug",
-                                                                                              "schema": undefined,
+                                                                                              "schema": "\\"\\"",
                                                                                             }
                                                                                           }
                                                                                           inputProps={Object {}}
@@ -29367,7 +29386,7 @@ exports[`Sentry Application Details new sentry application renders() it shows em
                                                                                       "events": Array [],
                                                                                       "isAlertable": false,
                                                                                       "organization": "org-slug",
-                                                                                      "schema": undefined,
+                                                                                      "schema": "\\"\\"",
                                                                                     },
                                                                                     "formState": "Ready",
                                                                                     "initialData": Object {
@@ -29379,7 +29398,7 @@ exports[`Sentry Application Details new sentry application renders() it shows em
                                                                                       "Team--permission": "no-access",
                                                                                       "isAlertable": false,
                                                                                       "organization": "org-slug",
-                                                                                      "schema": undefined,
+                                                                                      "schema": "\\"\\"",
                                                                                     },
                                                                                     "options": Object {
                                                                                       "allowUndo": true,
@@ -29395,6 +29414,7 @@ exports[`Sentry Application Details new sentry application renders() it shows em
                                                                                       Map {
                                                                                         "organization" => "org-slug",
                                                                                         "isAlertable" => false,
+                                                                                        "schema" => "",
                                                                                       },
                                                                                     ],
                                                                                   }
@@ -29983,7 +30003,7 @@ exports[`Sentry Application Details new sentry application renders() it shows em
                                                           "events": Array [],
                                                           "isAlertable": false,
                                                           "organization": "org-slug",
-                                                          "schema": undefined,
+                                                          "schema": "\\"\\"",
                                                         },
                                                         "formState": "Ready",
                                                         "initialData": Object {
@@ -29995,7 +30015,7 @@ exports[`Sentry Application Details new sentry application renders() it shows em
                                                           "Team--permission": "no-access",
                                                           "isAlertable": false,
                                                           "organization": "org-slug",
-                                                          "schema": undefined,
+                                                          "schema": "\\"\\"",
                                                         },
                                                         "options": Object {
                                                           "allowUndo": true,
@@ -30011,6 +30031,7 @@ exports[`Sentry Application Details new sentry application renders() it shows em
                                                           Map {
                                                             "organization" => "org-slug",
                                                             "isAlertable" => false,
+                                                            "schema" => "",
                                                           },
                                                         ],
                                                       }
@@ -30118,7 +30139,7 @@ exports[`Sentry Application Details new sentry application renders() it shows em
                                                                                       "Team--permission": "no-access",
                                                                                       "isAlertable": false,
                                                                                       "organization": "org-slug",
-                                                                                      "schema": undefined,
+                                                                                      "schema": "\\"\\"",
                                                                                     }
                                                                                   }
                                                                                   innerRef={[Function]}
@@ -30176,7 +30197,7 @@ exports[`Sentry Application Details new sentry application renders() it shows em
                                                                                         "Team--permission": "no-access",
                                                                                         "isAlertable": false,
                                                                                         "organization": "org-slug",
-                                                                                        "schema": undefined,
+                                                                                        "schema": "\\"\\"",
                                                                                       }
                                                                                     }
                                                                                     innerRef={[Function]}
@@ -30235,7 +30256,7 @@ exports[`Sentry Application Details new sentry application renders() it shows em
                                                                                           "Team--permission": "no-access",
                                                                                           "isAlertable": false,
                                                                                           "organization": "org-slug",
-                                                                                          "schema": undefined,
+                                                                                          "schema": "\\"\\"",
                                                                                         }
                                                                                       }
                                                                                       label="Team"
@@ -30294,7 +30315,7 @@ exports[`Sentry Application Details new sentry application renders() it shows em
                                                                                             "Team--permission": "no-access",
                                                                                             "isAlertable": false,
                                                                                             "organization": "org-slug",
-                                                                                            "schema": undefined,
+                                                                                            "schema": "\\"\\"",
                                                                                           }
                                                                                         }
                                                                                         label="Team"
@@ -30363,7 +30384,7 @@ exports[`Sentry Application Details new sentry application renders() it shows em
                                                                                               "Team--permission": "no-access",
                                                                                               "isAlertable": false,
                                                                                               "organization": "org-slug",
-                                                                                              "schema": undefined,
+                                                                                              "schema": "\\"\\"",
                                                                                             }
                                                                                           }
                                                                                           inputProps={Object {}}
@@ -30917,7 +30938,7 @@ exports[`Sentry Application Details new sentry application renders() it shows em
                                                                                       "events": Array [],
                                                                                       "isAlertable": false,
                                                                                       "organization": "org-slug",
-                                                                                      "schema": undefined,
+                                                                                      "schema": "\\"\\"",
                                                                                     },
                                                                                     "formState": "Ready",
                                                                                     "initialData": Object {
@@ -30929,7 +30950,7 @@ exports[`Sentry Application Details new sentry application renders() it shows em
                                                                                       "Team--permission": "no-access",
                                                                                       "isAlertable": false,
                                                                                       "organization": "org-slug",
-                                                                                      "schema": undefined,
+                                                                                      "schema": "\\"\\"",
                                                                                     },
                                                                                     "options": Object {
                                                                                       "allowUndo": true,
@@ -30945,6 +30966,7 @@ exports[`Sentry Application Details new sentry application renders() it shows em
                                                                                       Map {
                                                                                         "organization" => "org-slug",
                                                                                         "isAlertable" => false,
+                                                                                        "schema" => "",
                                                                                       },
                                                                                     ],
                                                                                   }
@@ -31501,7 +31523,7 @@ exports[`Sentry Application Details new sentry application renders() it shows em
                                                           "events": Array [],
                                                           "isAlertable": false,
                                                           "organization": "org-slug",
-                                                          "schema": undefined,
+                                                          "schema": "\\"\\"",
                                                         },
                                                         "formState": "Ready",
                                                         "initialData": Object {
@@ -31513,7 +31535,7 @@ exports[`Sentry Application Details new sentry application renders() it shows em
                                                           "Team--permission": "no-access",
                                                           "isAlertable": false,
                                                           "organization": "org-slug",
-                                                          "schema": undefined,
+                                                          "schema": "\\"\\"",
                                                         },
                                                         "options": Object {
                                                           "allowUndo": true,
@@ -31529,6 +31551,7 @@ exports[`Sentry Application Details new sentry application renders() it shows em
                                                           Map {
                                                             "organization" => "org-slug",
                                                             "isAlertable" => false,
+                                                            "schema" => "",
                                                           },
                                                         ],
                                                       }
@@ -31628,7 +31651,7 @@ exports[`Sentry Application Details new sentry application renders() it shows em
                                                                                       "Team--permission": "no-access",
                                                                                       "isAlertable": false,
                                                                                       "organization": "org-slug",
-                                                                                      "schema": undefined,
+                                                                                      "schema": "\\"\\"",
                                                                                     }
                                                                                   }
                                                                                   innerRef={[Function]}
@@ -31678,7 +31701,7 @@ exports[`Sentry Application Details new sentry application renders() it shows em
                                                                                         "Team--permission": "no-access",
                                                                                         "isAlertable": false,
                                                                                         "organization": "org-slug",
-                                                                                        "schema": undefined,
+                                                                                        "schema": "\\"\\"",
                                                                                       }
                                                                                     }
                                                                                     innerRef={[Function]}
@@ -31729,7 +31752,7 @@ exports[`Sentry Application Details new sentry application renders() it shows em
                                                                                           "Team--permission": "no-access",
                                                                                           "isAlertable": false,
                                                                                           "organization": "org-slug",
-                                                                                          "schema": undefined,
+                                                                                          "schema": "\\"\\"",
                                                                                         }
                                                                                       }
                                                                                       label="Release"
@@ -31780,7 +31803,7 @@ exports[`Sentry Application Details new sentry application renders() it shows em
                                                                                             "Team--permission": "no-access",
                                                                                             "isAlertable": false,
                                                                                             "organization": "org-slug",
-                                                                                            "schema": undefined,
+                                                                                            "schema": "\\"\\"",
                                                                                           }
                                                                                         }
                                                                                         label="Release"
@@ -31841,7 +31864,7 @@ exports[`Sentry Application Details new sentry application renders() it shows em
                                                                                               "Team--permission": "no-access",
                                                                                               "isAlertable": false,
                                                                                               "organization": "org-slug",
-                                                                                              "schema": undefined,
+                                                                                              "schema": "\\"\\"",
                                                                                             }
                                                                                           }
                                                                                           inputProps={Object {}}
@@ -32387,7 +32410,7 @@ exports[`Sentry Application Details new sentry application renders() it shows em
                                                                                       "events": Array [],
                                                                                       "isAlertable": false,
                                                                                       "organization": "org-slug",
-                                                                                      "schema": undefined,
+                                                                                      "schema": "\\"\\"",
                                                                                     },
                                                                                     "formState": "Ready",
                                                                                     "initialData": Object {
@@ -32399,7 +32422,7 @@ exports[`Sentry Application Details new sentry application renders() it shows em
                                                                                       "Team--permission": "no-access",
                                                                                       "isAlertable": false,
                                                                                       "organization": "org-slug",
-                                                                                      "schema": undefined,
+                                                                                      "schema": "\\"\\"",
                                                                                     },
                                                                                     "options": Object {
                                                                                       "allowUndo": true,
@@ -32415,6 +32438,7 @@ exports[`Sentry Application Details new sentry application renders() it shows em
                                                                                       Map {
                                                                                         "organization" => "org-slug",
                                                                                         "isAlertable" => false,
+                                                                                        "schema" => "",
                                                                                       },
                                                                                     ],
                                                                                   }
@@ -33003,7 +33027,7 @@ exports[`Sentry Application Details new sentry application renders() it shows em
                                                           "events": Array [],
                                                           "isAlertable": false,
                                                           "organization": "org-slug",
-                                                          "schema": undefined,
+                                                          "schema": "\\"\\"",
                                                         },
                                                         "formState": "Ready",
                                                         "initialData": Object {
@@ -33015,7 +33039,7 @@ exports[`Sentry Application Details new sentry application renders() it shows em
                                                           "Team--permission": "no-access",
                                                           "isAlertable": false,
                                                           "organization": "org-slug",
-                                                          "schema": undefined,
+                                                          "schema": "\\"\\"",
                                                         },
                                                         "options": Object {
                                                           "allowUndo": true,
@@ -33031,6 +33055,7 @@ exports[`Sentry Application Details new sentry application renders() it shows em
                                                           Map {
                                                             "organization" => "org-slug",
                                                             "isAlertable" => false,
+                                                            "schema" => "",
                                                           },
                                                         ],
                                                       }
@@ -33138,7 +33163,7 @@ exports[`Sentry Application Details new sentry application renders() it shows em
                                                                                       "Team--permission": "no-access",
                                                                                       "isAlertable": false,
                                                                                       "organization": "org-slug",
-                                                                                      "schema": undefined,
+                                                                                      "schema": "\\"\\"",
                                                                                     }
                                                                                   }
                                                                                   innerRef={[Function]}
@@ -33196,7 +33221,7 @@ exports[`Sentry Application Details new sentry application renders() it shows em
                                                                                         "Team--permission": "no-access",
                                                                                         "isAlertable": false,
                                                                                         "organization": "org-slug",
-                                                                                        "schema": undefined,
+                                                                                        "schema": "\\"\\"",
                                                                                       }
                                                                                     }
                                                                                     innerRef={[Function]}
@@ -33255,7 +33280,7 @@ exports[`Sentry Application Details new sentry application renders() it shows em
                                                                                           "Team--permission": "no-access",
                                                                                           "isAlertable": false,
                                                                                           "organization": "org-slug",
-                                                                                          "schema": undefined,
+                                                                                          "schema": "\\"\\"",
                                                                                         }
                                                                                       }
                                                                                       label="Issue & Event"
@@ -33314,7 +33339,7 @@ exports[`Sentry Application Details new sentry application renders() it shows em
                                                                                             "Team--permission": "no-access",
                                                                                             "isAlertable": false,
                                                                                             "organization": "org-slug",
-                                                                                            "schema": undefined,
+                                                                                            "schema": "\\"\\"",
                                                                                           }
                                                                                         }
                                                                                         label="Issue & Event"
@@ -33383,7 +33408,7 @@ exports[`Sentry Application Details new sentry application renders() it shows em
                                                                                               "Team--permission": "no-access",
                                                                                               "isAlertable": false,
                                                                                               "organization": "org-slug",
-                                                                                              "schema": undefined,
+                                                                                              "schema": "\\"\\"",
                                                                                             }
                                                                                           }
                                                                                           inputProps={Object {}}
@@ -33937,7 +33962,7 @@ exports[`Sentry Application Details new sentry application renders() it shows em
                                                                                       "events": Array [],
                                                                                       "isAlertable": false,
                                                                                       "organization": "org-slug",
-                                                                                      "schema": undefined,
+                                                                                      "schema": "\\"\\"",
                                                                                     },
                                                                                     "formState": "Ready",
                                                                                     "initialData": Object {
@@ -33949,7 +33974,7 @@ exports[`Sentry Application Details new sentry application renders() it shows em
                                                                                       "Team--permission": "no-access",
                                                                                       "isAlertable": false,
                                                                                       "organization": "org-slug",
-                                                                                      "schema": undefined,
+                                                                                      "schema": "\\"\\"",
                                                                                     },
                                                                                     "options": Object {
                                                                                       "allowUndo": true,
@@ -33965,6 +33990,7 @@ exports[`Sentry Application Details new sentry application renders() it shows em
                                                                                       Map {
                                                                                         "organization" => "org-slug",
                                                                                         "isAlertable" => false,
+                                                                                        "schema" => "",
                                                                                       },
                                                                                     ],
                                                                                   }
@@ -34553,7 +34579,7 @@ exports[`Sentry Application Details new sentry application renders() it shows em
                                                           "events": Array [],
                                                           "isAlertable": false,
                                                           "organization": "org-slug",
-                                                          "schema": undefined,
+                                                          "schema": "\\"\\"",
                                                         },
                                                         "formState": "Ready",
                                                         "initialData": Object {
@@ -34565,7 +34591,7 @@ exports[`Sentry Application Details new sentry application renders() it shows em
                                                           "Team--permission": "no-access",
                                                           "isAlertable": false,
                                                           "organization": "org-slug",
-                                                          "schema": undefined,
+                                                          "schema": "\\"\\"",
                                                         },
                                                         "options": Object {
                                                           "allowUndo": true,
@@ -34581,6 +34607,7 @@ exports[`Sentry Application Details new sentry application renders() it shows em
                                                           Map {
                                                             "organization" => "org-slug",
                                                             "isAlertable" => false,
+                                                            "schema" => "",
                                                           },
                                                         ],
                                                       }
@@ -34688,7 +34715,7 @@ exports[`Sentry Application Details new sentry application renders() it shows em
                                                                                       "Team--permission": "no-access",
                                                                                       "isAlertable": false,
                                                                                       "organization": "org-slug",
-                                                                                      "schema": undefined,
+                                                                                      "schema": "\\"\\"",
                                                                                     }
                                                                                   }
                                                                                   innerRef={[Function]}
@@ -34746,7 +34773,7 @@ exports[`Sentry Application Details new sentry application renders() it shows em
                                                                                         "Team--permission": "no-access",
                                                                                         "isAlertable": false,
                                                                                         "organization": "org-slug",
-                                                                                        "schema": undefined,
+                                                                                        "schema": "\\"\\"",
                                                                                       }
                                                                                     }
                                                                                     innerRef={[Function]}
@@ -34805,7 +34832,7 @@ exports[`Sentry Application Details new sentry application renders() it shows em
                                                                                           "Team--permission": "no-access",
                                                                                           "isAlertable": false,
                                                                                           "organization": "org-slug",
-                                                                                          "schema": undefined,
+                                                                                          "schema": "\\"\\"",
                                                                                         }
                                                                                       }
                                                                                       label="Organization"
@@ -34864,7 +34891,7 @@ exports[`Sentry Application Details new sentry application renders() it shows em
                                                                                             "Team--permission": "no-access",
                                                                                             "isAlertable": false,
                                                                                             "organization": "org-slug",
-                                                                                            "schema": undefined,
+                                                                                            "schema": "\\"\\"",
                                                                                           }
                                                                                         }
                                                                                         label="Organization"
@@ -34933,7 +34960,7 @@ exports[`Sentry Application Details new sentry application renders() it shows em
                                                                                               "Team--permission": "no-access",
                                                                                               "isAlertable": false,
                                                                                               "organization": "org-slug",
-                                                                                              "schema": undefined,
+                                                                                              "schema": "\\"\\"",
                                                                                             }
                                                                                           }
                                                                                           inputProps={Object {}}
@@ -35487,7 +35514,7 @@ exports[`Sentry Application Details new sentry application renders() it shows em
                                                                                       "events": Array [],
                                                                                       "isAlertable": false,
                                                                                       "organization": "org-slug",
-                                                                                      "schema": undefined,
+                                                                                      "schema": "\\"\\"",
                                                                                     },
                                                                                     "formState": "Ready",
                                                                                     "initialData": Object {
@@ -35499,7 +35526,7 @@ exports[`Sentry Application Details new sentry application renders() it shows em
                                                                                       "Team--permission": "no-access",
                                                                                       "isAlertable": false,
                                                                                       "organization": "org-slug",
-                                                                                      "schema": undefined,
+                                                                                      "schema": "\\"\\"",
                                                                                     },
                                                                                     "options": Object {
                                                                                       "allowUndo": true,
@@ -35515,6 +35542,7 @@ exports[`Sentry Application Details new sentry application renders() it shows em
                                                                                       Map {
                                                                                         "organization" => "org-slug",
                                                                                         "isAlertable" => false,
+                                                                                        "schema" => "",
                                                                                       },
                                                                                     ],
                                                                                   }
@@ -36103,7 +36131,7 @@ exports[`Sentry Application Details new sentry application renders() it shows em
                                                           "events": Array [],
                                                           "isAlertable": false,
                                                           "organization": "org-slug",
-                                                          "schema": undefined,
+                                                          "schema": "\\"\\"",
                                                         },
                                                         "formState": "Ready",
                                                         "initialData": Object {
@@ -36115,7 +36143,7 @@ exports[`Sentry Application Details new sentry application renders() it shows em
                                                           "Team--permission": "no-access",
                                                           "isAlertable": false,
                                                           "organization": "org-slug",
-                                                          "schema": undefined,
+                                                          "schema": "\\"\\"",
                                                         },
                                                         "options": Object {
                                                           "allowUndo": true,
@@ -36131,6 +36159,7 @@ exports[`Sentry Application Details new sentry application renders() it shows em
                                                           Map {
                                                             "organization" => "org-slug",
                                                             "isAlertable" => false,
+                                                            "schema" => "",
                                                           },
                                                         ],
                                                       }
@@ -36238,7 +36267,7 @@ exports[`Sentry Application Details new sentry application renders() it shows em
                                                                                       "Team--permission": "no-access",
                                                                                       "isAlertable": false,
                                                                                       "organization": "org-slug",
-                                                                                      "schema": undefined,
+                                                                                      "schema": "\\"\\"",
                                                                                     }
                                                                                   }
                                                                                   innerRef={[Function]}
@@ -36296,7 +36325,7 @@ exports[`Sentry Application Details new sentry application renders() it shows em
                                                                                         "Team--permission": "no-access",
                                                                                         "isAlertable": false,
                                                                                         "organization": "org-slug",
-                                                                                        "schema": undefined,
+                                                                                        "schema": "\\"\\"",
                                                                                       }
                                                                                     }
                                                                                     innerRef={[Function]}
@@ -36355,7 +36384,7 @@ exports[`Sentry Application Details new sentry application renders() it shows em
                                                                                           "Team--permission": "no-access",
                                                                                           "isAlertable": false,
                                                                                           "organization": "org-slug",
-                                                                                          "schema": undefined,
+                                                                                          "schema": "\\"\\"",
                                                                                         }
                                                                                       }
                                                                                       label="Member"
@@ -36414,7 +36443,7 @@ exports[`Sentry Application Details new sentry application renders() it shows em
                                                                                             "Team--permission": "no-access",
                                                                                             "isAlertable": false,
                                                                                             "organization": "org-slug",
-                                                                                            "schema": undefined,
+                                                                                            "schema": "\\"\\"",
                                                                                           }
                                                                                         }
                                                                                         label="Member"
@@ -36483,7 +36512,7 @@ exports[`Sentry Application Details new sentry application renders() it shows em
                                                                                               "Team--permission": "no-access",
                                                                                               "isAlertable": false,
                                                                                               "organization": "org-slug",
-                                                                                              "schema": undefined,
+                                                                                              "schema": "\\"\\"",
                                                                                             }
                                                                                           }
                                                                                           inputProps={Object {}}
@@ -37037,7 +37066,7 @@ exports[`Sentry Application Details new sentry application renders() it shows em
                                                                                       "events": Array [],
                                                                                       "isAlertable": false,
                                                                                       "organization": "org-slug",
-                                                                                      "schema": undefined,
+                                                                                      "schema": "\\"\\"",
                                                                                     },
                                                                                     "formState": "Ready",
                                                                                     "initialData": Object {
@@ -37049,7 +37078,7 @@ exports[`Sentry Application Details new sentry application renders() it shows em
                                                                                       "Team--permission": "no-access",
                                                                                       "isAlertable": false,
                                                                                       "organization": "org-slug",
-                                                                                      "schema": undefined,
+                                                                                      "schema": "\\"\\"",
                                                                                     },
                                                                                     "options": Object {
                                                                                       "allowUndo": true,
@@ -37065,6 +37094,7 @@ exports[`Sentry Application Details new sentry application renders() it shows em
                                                                                       Map {
                                                                                         "organization" => "org-slug",
                                                                                         "isAlertable" => false,
+                                                                                        "schema" => "",
                                                                                       },
                                                                                     ],
                                                                                   }
