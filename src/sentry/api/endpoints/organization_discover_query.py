@@ -98,7 +98,7 @@ class DiscoverQuerySerializer(serializers.Serializer):
                 'statsPeriod': data.get('statsPeriod') or data.get('range'),
                 'statsPeriodStart': data.get('statsPeriodStart'),
                 'statsPeriodEnd': data.get('statsPeriodEnd'),
-            }, optional=True, validate_window=False)
+            }, optional=True)
         except InvalidParams as exc:
             raise serializers.ValidationError(exc.message)
 
