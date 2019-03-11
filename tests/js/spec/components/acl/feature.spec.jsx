@@ -240,6 +240,7 @@ describe('Feature', function() {
     beforeEach(function() {
       hookFn = jest.fn(() => null);
       HookStore.hooks['feature-disabled:org-baz'] = [hookFn];
+      HookStore.hooks['feature-disabled:test-hook'] = [hookFn];
     });
 
     afterEach(function() {
@@ -280,6 +281,26 @@ describe('Feature', function() {
       expect(wrapper.find('Feature div')).toHaveLength(0);
       expect(hookFn).not.toHaveBeenCalled();
       expect(noFeatureRenderer).toHaveBeenCalled();
+    });
+
+    it('uses hookName if provided', function() {
+      const children = <div>The Child</div>;
+      const wrapper = mount(
+        <Feature features={['org-bazar']} hookName="test-hook">
+          {children}
+        </Feature>,
+        routerContext
+      );
+
+      expect(wrapper.find('Feature div')).toHaveLength(0);
+
+      expect(hookFn).toHaveBeenCalledWith({
+        hasFeature: false,
+        children,
+        organization,
+        project,
+        features: ['org-bazar'],
+      });
     });
   });
 });
