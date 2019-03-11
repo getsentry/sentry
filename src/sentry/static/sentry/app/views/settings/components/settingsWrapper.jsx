@@ -6,23 +6,6 @@ import ScrollToTop from 'app/views/settings/components/scrollToTop';
 import SentryTypes from 'app/sentryTypes';
 import withLatestContext from 'app/utils/withLatestContext';
 
-const StyledSettingsWrapper = styled.div`
-  display: flex;
-  flex: 1;
-  font-family: 'Rubik', sans-serif;
-  font-size: 16px;
-  color: ${p => p.theme.gray5};
-  margin-bottom: -20px; /* to account for footer margin top */
-  line-height: 1;
-
-  .messages-container {
-    margin: 0;
-  }
-  .sentry-error-embed-wrapper {
-    z-index: 1005;
-  }
-`;
-
 class SettingsWrapper extends React.Component {
   static propTypes = {
     project: SentryTypes.Project,
@@ -58,3 +41,20 @@ class SettingsWrapper extends React.Component {
 }
 
 export default withLatestContext(SettingsWrapper);
+
+const StyledSettingsWrapper = styled.div`
+  display: flex;
+  flex: 1;
+  font-family: 'Rubik', sans-serif;
+  font-size: 16px;
+  color: ${p => p.theme.gray5};
+  margin-bottom: -20px; /* to account for footer margin top */
+  line-height: 1;
+
+  .messages-container {
+    margin: 0;
+  }
+  .sentry-error-embed-wrapper {
+    z-index: ${p => p.theme.zIndex.sentryErrorEmbed};
+  }
+`;
