@@ -418,14 +418,17 @@ class SnubaEvent(EventCommon):
         """
         if name in ['user']:
             from sentry.interfaces.user import User
-            return User.to_python({
+            # This is a fake version of the User interface constructed
+            # from just the data we have in Snuba.
+            snuba_user = {
                 'id': self.user_id,
                 'email': self.email,
                 'username': self.username,
                 'ip_address': self.ip_address,
-            })
-        else:
-            return self.interfaces.get(name)
+            }
+            if any(v is not None for v in snuba_user.values()):
+                return User.to_python(snuba_user)
+        return self.interfaces.get(name)
 
     # ============================================
     # Snuba implementations of django Fields
@@ -463,7 +466,7 @@ class SnubaEvent(EventCommon):
         raise NotImplementedError
 
 
-class Event(Model, EventCommon):
+class Event(EventCommon, Model):
     """
     An event backed by data stored in postgres.
 
