@@ -64,7 +64,6 @@ class Template(Interface):
             context_line=self.context_line,
             pre_context=self.pre_context,
             post_context=self.post_context,
-            filename=self.filename,
         )
 
         result = ['Stacktrace (most recent call last):', '', self.get_traceback(event, context)]
@@ -104,6 +103,5 @@ class Template(Interface):
                 context_line=meta.get('context_line'),
                 pre_context=meta.get('pre_context'),
                 post_context=meta.get('post_context'),
-                filename=meta.get('filename'),
             ),
         }
