@@ -12,7 +12,6 @@ __all__ = ('Stacktrace', )
 
 import re
 import six
-import posixpath
 from itertools import islice, chain
 
 from django.conf import settings
@@ -25,57 +24,11 @@ from sentry.interfaces.schemas import validate_and_default_interface
 from sentry.models import UserOption
 from sentry.utils.safe import trim, trim_dict
 from sentry.web.helpers import render_to_string
-from sentry.event_hashing import GroupingComponent
 
-_ruby_anon_func = re.compile(r'_\d{2,}')
-_filename_version_re = re.compile(
-    r"""(?:
-    v?(?:\d+\.)*\d+|   # version numbers, v1, 1.0.0
-    [a-f0-9]{7,8}|     # short sha
-    [a-f0-9]{32}|      # md5
-    [a-f0-9]{40}       # sha1
-)/""", re.X | re.I
-)
 
 # Native function trim re.  For now this is a simple hack until we have the
 # language hints in which will let us trim this down better.
 _native_function_trim_re = re.compile(r'^(.[^(]*)\(')
-
-# OpenJDK auto-generated classes for reflection access:
-#   sun.reflect.GeneratedSerializationConstructorAccessor123
-#   sun.reflect.GeneratedConstructorAccessor456
-# Note that this doesn't cover the following pattern for the sake of
-# backward compatibility (to not to change the existing grouping):
-#   sun.reflect.GeneratedMethodAccessor789
-_java_reflect_enhancer_re = re.compile(
-    r'''(sun\.reflect\.Generated(?:Serialization)?ConstructorAccessor)\d+''',
-    re.X
-)
-
-# Java Spring specific anonymous classes.
-# see: http://mydailyjava.blogspot.co.at/2013/11/cglib-missing-manual.html
-_java_cglib_enhancer_re = re.compile(r'''(\$\$[\w_]+?CGLIB\$\$)[a-fA-F0-9]+(_[0-9]+)?''', re.X)
-
-# Handle Javassist auto-generated classes and filenames:
-#   com.example.api.entry.EntriesResource_$$_javassist_74
-#   com.example.api.entry.EntriesResource_$$_javassist_seam_74
-#   EntriesResource_$$_javassist_seam_74.java
-_java_assist_enhancer_re = re.compile(r'''(\$\$_javassist)(?:_seam)?(?:_[0-9]+)?''', re.X)
-
-# Clojure anon functions are compiled down to myapp.mymodule$fn__12345
-_clojure_enhancer_re = re.compile(r'''(\$fn__)\d+''', re.X)
-
-# fields that need to be the same between frames for them to be considered
-# recursive calls
-RECURSION_COMPARISON_FIELDS = [
-    'abs_path',
-    'package',
-    'module',
-    'filename',
-    'function',
-    'lineno',
-    'colno',
-]
 
 
 def max_addr(cur, addr):
@@ -132,7 +85,7 @@ def to_hex_addr(addr):
     return rv
 
 
-def get_context(lineno, context_line, pre_context=None, post_context=None, filename=None):
+def get_context(lineno, context_line, pre_context=None, post_context=None):
     if lineno is None:
         return []
 
@@ -163,10 +116,6 @@ def get_context(lineno, context_line, pre_context=None, post_context=None, filen
             context.append((at_lineno, line))
             at_lineno += 1
 
-    # HACK:
-    if filename and is_url(filename) and '.' not in filename.rsplit('/', 1)[-1]:
-        filename = 'index.html'
-
     return context
 
 
@@ -189,69 +138,6 @@ def is_newest_frame_first(event):
 
 def is_url(filename):
     return filename.startswith(('file:', 'http:', 'https:', 'applewebdata:'))
-
-
-def remove_function_outliers(function):
-    """
-    Attempt to normalize functions by removing common platform outliers.
-
-    - Ruby generates (random?) integers for various anonymous style functions
-      such as in erb and the active_support library.
-    - Block functions have metadata that we don't care about.
-    """
-    if function.startswith('block '):
-        return 'block', 'ruby block'
-    new_function = _ruby_anon_func.sub('_<anon>', function)
-    if new_function != function:
-        return new_function, 'trimmed integer suffix'
-    return new_function, None
-
-
-def remove_filename_outliers(filename, platform=None):
-    """
-    Attempt to normalize filenames by removing common platform outliers.
-
-    - Sometimes filename paths contain build numbers
-    """
-    # On cocoa we generally only want to use the last path component as
-    # the filename.  The reason for this is that the chances are very high
-    # that full filenames contain information we do want to strip but
-    # currently can't (for instance because the information we get from
-    # the dwarf files does not contain prefix information) and that might
-    # contain things like /Users/foo/Dropbox/...
-    if platform == 'cocoa':
-        return posixpath.basename(filename), 'stripped to basename'
-
-    removed = []
-    if platform == 'java':
-        new_filename = _java_assist_enhancer_re.sub(r'\1<auto>', filename)
-        if new_filename != filename:
-            removed.append('javassist parts')
-            filename = new_filename
-
-    new_filename = _filename_version_re.sub('<version>/', filename)
-    if new_filename != filename:
-        removed.append('version')
-        filename = new_filename
-
-    if removed:
-        return filename, 'removed %s' % ' and '.join(removed)
-    return filename, None
-
-
-def remove_module_outliers(module, platform=None):
-    """Remove things that augment the module but really should not."""
-    if platform == 'java':
-        if module[:35] == 'sun.reflect.GeneratedMethodAccessor':
-            return 'sun.reflect.GeneratedMethodAccessor', 'removed reflection marker'
-        old_module = module
-        module = _java_reflect_enhancer_re.sub(r'\1<auto>', module)
-        module = _java_cglib_enhancer_re.sub(r'\1<auto>', module)
-        module = _java_assist_enhancer_re.sub(r'\1<auto>', module)
-        module = _clojure_enhancer_re.sub(r'\1<auto>', module)
-        if old_module != module:
-            return module, 'removed codegen marker'
-    return module, None
 
 
 def slim_frame_data(frames, frame_allowance=settings.SENTRY_MAX_STACKTRACE_FRAMES):
@@ -322,15 +208,6 @@ def handle_nan(value):
         if value != value:
             return '<nan>'
     return value
-
-
-def is_recursion(frame1, frame2):
-    "Returns a boolean indicating whether frames are recursive calls."
-    for field in RECURSION_COMPARISON_FIELDS:
-        if getattr(frame1, field, None) != getattr(frame2, field, None):
-            return False
-
-    return True
 
 
 class Frame(Interface):
@@ -473,166 +350,6 @@ class Frame(Interface):
             'colno': self.colno
         })
 
-    def get_grouping_component(self, platform=None, variant=None):
-        platform = self.platform or platform
-
-        # In certain situations we want to disregard the entire frame.
-        contributes = None
-        hint = None
-
-        # Safari throws [native code] frames in for calls like ``forEach``
-        # whereas Chrome ignores these. Let's remove it from the hashing algo
-        # so that they're more likely to group together
-        filename_component = GroupingComponent(id='filename')
-        if self.filename == '<anonymous>':
-            filename_component.update(
-                contributes=False,
-                values=[self.filename],
-                hint='anonymous filename discarded'
-            )
-        elif self.filename == '[native code]':
-            contributes = False
-            hint = 'native code indicated by filename'
-        elif self.filename:
-            if self.is_url():
-                filename_component.update(
-                    contributes=False,
-                    values=[self.filename],
-                    hint='ignored because filename is a URL',
-                )
-            elif self.is_caused_by():
-                filename_component.update(
-                    values=[self.filename],
-                    contributes=False,
-                    hint='ignored because invalid'
-                )
-            else:
-                hashable_filename, hashable_filename_hint = \
-                    remove_filename_outliers(self.filename, platform)
-                filename_component.update(
-                    values=[hashable_filename],
-                    hint=hashable_filename_hint
-                )
-
-        # if we have a module we use that for grouping.  This will always
-        # take precedence over the filename, even if the module is
-        # considered unhashable.
-        module_component = GroupingComponent(id='module')
-        if self.module:
-            if self.is_unhashable_module(platform):
-                module_component.update(
-                    values=[GroupingComponent(
-                        id='salt',
-                        values=['<module>'],
-                        hint='normalized generated module name'
-                    )],
-                    hint='ignored module',
-                )
-            else:
-                module_name, module_hint = \
-                    remove_module_outliers(self.module, platform)
-                module_component.update(
-                    values=[module_name],
-                    hint=module_hint
-                )
-            if self.filename:
-                filename_component.update(
-                    values=[self.filename],
-                    contributes=False,
-                    hint='module takes precedence'
-                )
-
-        # Context line when available is the primary contributor
-        context_line_component = GroupingComponent(id='context-line')
-        if self.context_line is not None:
-            if len(self.context_line) > 120:
-                context_line_component.update(hint='discarded because line too long')
-            elif self.is_url() and not self.function:
-                context_line_component.update(hint='discarded because from URL origin')
-            else:
-                context_line_component.update(values=[self.context_line])
-
-        symbol_component = GroupingComponent(id='symbol')
-        function_component = GroupingComponent(id='function')
-        lineno_component = GroupingComponent(id='lineno')
-
-        # The context line grouping information is the most reliable one.
-        # If we did not manage to find some information there, we want to
-        # see if we can come up with some extra information.  We only want
-        # to do that if we managed to get a module of filename.
-        if not context_line_component.contributes and \
-           (module_component.contributes or filename_component.contributes):
-            if self.symbol:
-                symbol_component.update(values=[self.symbol])
-                if self.function:
-                    function_component.update(
-                        contributes=False,
-                        values=[self.function],
-                        hint='symbol takes precedence'
-                    )
-                if self.lineno:
-                    lineno_component.update(
-                        contributes=False,
-                        values=[self.lineno],
-                        hint='symbol takes precedence'
-                    )
-            elif self.function:
-                if self.is_unhashable_function():
-                    function_component.update(values=[
-                        GroupingComponent(
-                            id='salt',
-                            values=['<function>'],
-                            hint='normalized lambda function name'
-                        )
-                    ])
-                else:
-                    function, function_hint = remove_function_outliers(self.function)
-                    function_component.update(
-                        values=[function],
-                        hint=function_hint
-                    )
-                if self.lineno:
-                    lineno_component.update(
-                        contributes=False,
-                        values=[self.lineno],
-                        hint='function takes precedence'
-                    )
-            elif self.lineno:
-                lineno_component.update(values=[self.lineno])
-        else:
-            if self.symbol:
-                symbol_component.update(
-                    contributes=False,
-                    values=[self.symbol],
-                    hint='symbol is used only if module or filename are available'
-                )
-            if self.function:
-                function_component.update(
-                    contributes=False,
-                    values=[self.function],
-                    hint='function name is used only if module or filename are available'
-                )
-            if self.lineno:
-                lineno_component.update(
-                    contributes=False,
-                    values=[self.lineno],
-                    hint='line number is used only if module or filename are available'
-                )
-
-        return GroupingComponent(
-            id='frame',
-            values=[
-                module_component,
-                filename_component,
-                context_line_component,
-                symbol_component,
-                function_component,
-                lineno_component,
-            ],
-            contributes=contributes,
-            hint=hint,
-        )
-
     def get_api_context(self, is_public=False, pad_addr=None):
         data = {
             'filename': self.filename,
@@ -649,7 +366,6 @@ class Frame(Interface):
                 context_line=self.context_line,
                 pre_context=self.pre_context,
                 post_context=self.post_context,
-                filename=self.filename or self.module,
             ),
             'lineNo': self.lineno,
             'colNo': self.colno,
@@ -695,7 +411,6 @@ class Frame(Interface):
                 context_line=meta.get('context_line'),
                 pre_context=meta.get('pre_context'),
                 post_context=meta.get('post_context'),
-                filename=meta.get('filename') if self.filename else meta.get('module'),
             ),
             'lineNo': meta.get('lineno'),
             'colNo': meta.get('colno'),
@@ -949,62 +664,6 @@ class Stacktrace(Interface):
             'frames_omitted': self.frames_omitted,
             'registers': self.registers,
         })
-
-    def get_grouping_component(self, platform=None, variant=None):
-        frames = self.frames
-        contributes = None
-        hint = None
-        all_frames_considered_in_app = False
-
-        # TODO(dcramer): this should apply only to platform=javascript
-        # Browser JS will often throw errors (from inlined code in an HTML page)
-        # which contain only a single frame, no function name, and have the HTML
-        # document as the filename. In this case the hash is often not usable as
-        # the context cannot be trusted and the URL is dynamic (this also means
-        # the line number cannot be trusted).
-        if (len(frames) == 1 and not frames[0].function and frames[0].is_url()):
-            contributes = False
-            hint = 'ignored single frame stack'
-        elif variant == 'app':
-            total_frames = len(frames)
-            in_app_count = sum(1 if f.in_app else 0 for f in frames)
-            if in_app_count == 0:
-                in_app_count = total_frames
-                all_frames_considered_in_app = True
-
-            # if app frames make up less than 10% of the stacktrace discard
-            # the hash as invalid
-            if total_frames > 0 and in_app_count / float(total_frames) < 0.10:
-                contributes = False
-                hint = 'less than 10% of frames are in-app'
-
-        values = []
-        prev_frame = None
-        for frame in frames:
-            frame_component = frame.get_grouping_component(platform, variant)
-            if variant == 'app' and not frame.in_app and not all_frames_considered_in_app:
-                frame_component.update(
-                    contributes=False,
-                    hint='non app frame',
-                )
-            elif prev_frame is not None and is_recursion(frame, prev_frame):
-                frame_component.update(
-                    contributes=False,
-                    hint='ignored due to recursion',
-                )
-            elif variant == 'app' and not frame.in_app and all_frames_considered_in_app:
-                frame_component.update(
-                    hint='frame considered in-app because no frame is in-app'
-                )
-            values.append(frame_component)
-            prev_frame = frame
-
-        return GroupingComponent(
-            id='stacktrace',
-            values=values,
-            contributes=contributes,
-            hint=hint,
-        )
 
     def to_string(self, event, is_public=False, **kwargs):
         return self.get_stacktrace(event, system_frames=False, max_frames=10)
