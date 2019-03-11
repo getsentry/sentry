@@ -126,7 +126,7 @@ def merge_attached_breadcrumbs(mpack_breadcrumbs, data):
     levels = {-1: 'debug', 0: 'info', 1: 'warning', 2: 'error', 3: 'critical'}
     breadcrumbs = []
     for crumb in unpacker:
-        breadcrumbs.insert(0, {
+        breadcrumbs.append({
             'timestamp': crumb.get('timestamp'),
             'category': crumb.get('category'),
             'type': crumb.get('type'),
@@ -137,10 +137,8 @@ def merge_attached_breadcrumbs(mpack_breadcrumbs, data):
     if not breadcrumbs:
         return
 
-    breadcrumbs.reverse()
-
     current_crumbs = data.get('breadcrumbs')
-    if current_crumbs is None:
+    if not current_crumbs:
         data['breadcrumbs'] = breadcrumbs
         return
 
