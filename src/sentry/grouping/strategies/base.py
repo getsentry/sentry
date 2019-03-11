@@ -88,12 +88,6 @@ class Strategy(object):
         self.variant_processor_func = func
         return func
 
-    def get_score_for_event(self, event):
-        """Given an event scores this strategy against it.  If a score is
-        returned it will be considered.  The highes score's strategy applies.
-        """
-        return all(event.get(x) is not None for x in self.interfaces)
-
     def get_grouping_component(self, event, variant, config=None):
         """Given a specific variant this calculates the grouping component.
         """
