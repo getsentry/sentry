@@ -20,7 +20,6 @@ from sentry.interfaces.schemas import validate_and_default_interface
 from sentry.interfaces.stacktrace import Stacktrace, slim_frame_data
 from sentry.utils import json
 from sentry.utils.safe import get_path, trim
-from sentry.event_hashing import GroupingComponent
 
 _type_value_re = re.compile('^(\w+):(.*)$')
 
@@ -855,8 +854,6 @@ class SingleException(Interface):
     >>>     }
     >>> }
     """
-    score = 2000
-    path = 'exception'
     grouping_variants = ['system', 'app']
 
     @classmethod
@@ -981,49 +978,6 @@ class SingleException(Interface):
             'stacktrace': stacktrace_meta,
         }
 
-    def get_grouping_component(self, platform=None, variant=None):
-        type_component = GroupingComponent(
-            id='type',
-            values=[self.type] if self.type else [],
-            contributes=False
-        )
-        value_component = GroupingComponent(
-            id='value',
-            values=[self.value] if self.value else [],
-            contributes=False
-        )
-        stacktrace_component = GroupingComponent(id='stacktrace')
-
-        if self.stacktrace is not None:
-            stacktrace_component = self.stacktrace.get_grouping_component(
-                platform, variant)
-            if stacktrace_component.contributes:
-                if self.type:
-                    type_component.update(contributes=True)
-                    if self.value:
-                        value_component.update(hint='stacktrace and type take precedence')
-                elif self.value:
-                    value_component.update(hint='stacktrace takes precedence')
-
-        if not stacktrace_component.contributes:
-            if self.type:
-                type_component.update(contributes=True)
-            if self.value:
-                value_component.update(contributes=True)
-
-        return GroupingComponent(
-            id='exception',
-            values=[
-                stacktrace_component,
-                type_component,
-                value_component,
-            ]
-        )
-
-    def get_grouping_component_variants(self, platform=None):
-        return uncontribute_non_stacktrace_variants(
-            Interface.get_grouping_component_variants(self, platform))
-
 
 class Exception(Interface):
     """
@@ -1061,17 +1015,17 @@ class Exception(Interface):
     score = 2000
     grouping_variants = ['system', 'app']
 
-    def _values(self):
+    def exceptions(self):
         return get_path(self.values, filter=True)
 
     def __getitem__(self, key):
-        return self._values()[key]
+        return self.exceptions()[key]
 
     def __iter__(self):
-        return iter(self._values())
+        return iter(self.exceptions())
 
     def __len__(self):
-        return len(self._values())
+        return len(self.exceptions())
 
     @classmethod
     def to_python(cls, data):
@@ -1109,44 +1063,6 @@ class Exception(Interface):
             'values': [v and v.to_json() for v in self.values] or None,
             'exc_omitted': self.exc_omitted,
         })
-
-    def get_grouping_component(self, platform=None, variant=None):
-        # Case 1: we have a single exception, use the single exception
-        # component directly
-        exceptions = self._values()
-        if len(exceptions) == 1:
-            return exceptions[0].get_grouping_component(platform, variant)
-
-        # Case 2: try to build a new component out of the individual
-        # errors however with a trick.  In case any exeption has a
-        # stacktrace we want to ignore all other exceptions.
-        any_stacktraces = False
-        values = []
-        for exception in exceptions:
-            exception_component = exception.get_grouping_component(platform, variant)
-            stacktrace_component = exception_component.get_subcomponent('stacktrace')
-            if stacktrace_component is not None and \
-               stacktrace_component.contributes:
-                any_stacktraces = True
-            values.append(exception_component)
-
-        if any_stacktraces:
-            for value in values:
-                stacktrace_component = value.get_subcomponent('stacktrace')
-                if stacktrace_component is None or not stacktrace_component.contributes:
-                    value.update(
-                        contributes=False,
-                        hint='exception has no stacktrace',
-                    )
-
-        return GroupingComponent(
-            id='chained-exception',
-            values=values,
-        )
-
-    def get_grouping_component_variants(self, platform=None):
-        return uncontribute_non_stacktrace_variants(
-            Interface.get_grouping_component_variants(self, platform))
 
     def get_api_context(self, is_public=False):
         return {

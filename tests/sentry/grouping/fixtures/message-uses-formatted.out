@@ -1,0 +1,6 @@
+default:
+  hash: 'd3f5e52d24e9c1eae5abe6c866cced63'
+  component:
+    default*
+      message*
+        u'Hello there Peter!'

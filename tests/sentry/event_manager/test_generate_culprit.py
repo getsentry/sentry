@@ -4,7 +4,7 @@ from __future__ import absolute_import
 
 from sentry.constants import MAX_CULPRIT_LENGTH
 from sentry.event_manager import generate_culprit
-from sentry.event_hashing import hash_from_values
+from sentry.grouping.utils import hash_from_values
 
 
 def test_with_exception_interface():

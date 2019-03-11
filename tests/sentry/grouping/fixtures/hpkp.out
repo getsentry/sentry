@@ -1,0 +1,9 @@
+default:
+  hash: '1e37a374cb33572622d02ff7a6237c44'
+  component:
+    default*
+      hpkp*
+        salt* (a static salt)
+          'hpkp'
+        hostname*
+          u'example.com'

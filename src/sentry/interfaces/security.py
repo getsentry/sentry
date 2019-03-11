@@ -22,7 +22,6 @@ from sentry.utils.cache import memoize
 from sentry.utils.http import is_valid_origin
 from sentry.utils.safe import trim
 from sentry.web.helpers import render_to_string
-from sentry.event_hashing import GroupingComponent
 
 # Default block list sourced from personal experience as well as
 # reputable blogs from Twitter and Dropbox
@@ -172,15 +171,6 @@ class Hpkp(SecurityReport):
     def get_culprit(self):
         return None
 
-    def get_grouping_component(self, platform=None, variant=None):
-        return GroupingComponent(
-            id='hpkp',
-            values=[
-                GroupingComponent(id='salt', values=['hpkp']),
-                GroupingComponent(id='hostname', values=[self.hostname]),
-            ]
-        )
-
     def get_message(self):
         return u"Public key pinning validation failed for '{self.hostname}'".format(self=self)
 
@@ -242,15 +232,6 @@ class ExpectStaple(SecurityReport):
     def get_culprit(self):
         return self.hostname
 
-    def get_grouping_component(self, platform=None, variant=None):
-        return GroupingComponent(
-            id='expect-staple',
-            values=[
-                GroupingComponent(id='salt', values=['expect-staple']),
-                GroupingComponent(id='hostname', values=[self.hostname]),
-            ]
-        )
-
     def get_message(self):
         return u"Expect-Staple failed for '{self.hostname}'".format(self=self)
 
@@ -310,15 +291,6 @@ class ExpectCT(SecurityReport):
     def get_culprit(self):
         return self.hostname
 
-    def get_grouping_component(self, platform=None, variant=None):
-        return GroupingComponent(
-            id='expect-ct',
-            values=[
-                GroupingComponent(id='salt', values=['expect-ct']),
-                GroupingComponent(id='hostname', values=[self.hostname]),
-            ]
-        )
-
     def get_message(self):
         return u"Expect-CT failed for '{self.hostname}'".format(self=self)
 
@@ -372,37 +344,6 @@ class Csp(SecurityReport):
 
         return cls.to_python(kwargs)
 
-    def get_grouping_component(self, platform=None, variant=None):
-        violation_component = GroupingComponent(id='violation')
-        uri_component = GroupingComponent(id='uri')
-
-        if self._local_script_violation_type:
-            violation_component.update(
-                values=["'%s'" % self._local_script_violation_type],
-            )
-            uri_component.update(
-                contributes=False,
-                hint='violation takes precedence',
-                values=[self._normalized_blocked_uri],
-            )
-        else:
-            violation_component.update(
-                contributes=False,
-                hint='not a local script violation',
-            )
-            uri_component.update(
-                values=[self._normalized_blocked_uri]
-            )
-
-        return GroupingComponent(
-            id='csp',
-            values=[
-                GroupingComponent(id='salt', values=[self.effective_directive]),
-                violation_component,
-                uri_component,
-            ],
-        )
-
     def get_message(self):
         templates = {
             'child-src': (u"Blocked 'child' from '{uri}'", "Blocked inline 'child'"),
@@ -424,8 +365,8 @@ class Csp(SecurityReport):
         }
         default_template = ('Blocked {directive!r} from {uri!r}', 'Blocked inline {directive!r}')
 
-        directive = self._local_script_violation_type or self.effective_directive
-        uri = self._normalized_blocked_uri
+        directive = self.local_script_violation_type or self.effective_directive
+        uri = self.normalized_blocked_uri
         index = 1 if uri == self.LOCAL else 0
 
         try:
@@ -495,7 +436,7 @@ class Csp(SecurityReport):
         return uri
 
     @memoize
-    def _normalized_blocked_uri(self):
+    def normalized_blocked_uri(self):
         return self._normalize_uri(self.blocked_uri)
 
     @memoize
@@ -542,13 +483,13 @@ class Csp(SecurityReport):
         return self._unsplit(scheme, value)
 
     @memoize
-    def _local_script_violation_type(self):
+    def local_script_violation_type(self):
         """
         If this is a locally-sourced script-src error, gives the type.
         """
         if (self.violated_directive
                 and self.effective_directive == 'script-src'
-                and self._normalized_blocked_uri == self.LOCAL):
+                and self.normalized_blocked_uri == self.LOCAL):
             if "'unsafe-inline'" in self.violated_directive:
                 return "unsafe-inline"
             elif "'unsafe-eval'" in self.violated_directive:

@@ -26,29 +26,6 @@ class MessageTest(TestCase):
             'formatted': 'Hello there world!'
         }
 
-    def test_grouping_components_prefers_message(self):
-        assert self.interface.get_grouping_component().as_dict() == {
-            'hint': None,
-            'id': 'message',
-            'name': 'message',
-            'contributes': True,
-            'values': ['Hello there %s!'],
-        }
-
-    def test_grouping_component_uses_formatted(self):
-        interface = Message.to_python(dict(
-            message=None,
-            params=(),
-            formatted='Hello there world!'
-        ))
-        assert interface.get_grouping_component().as_dict() == {
-            'hint': None,
-            'id': 'message',
-            'name': 'message',
-            'contributes': True,
-            'values': ['Hello there world!'],
-        }
-
     def test_format_kwargs(self):
         interface = Message.to_python(dict(
             message='Hello there %(name)s!',

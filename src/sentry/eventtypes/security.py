@@ -17,7 +17,7 @@ class CspEvent(BaseEvent):
 
         return {
             'directive': csp.effective_directive,
-            'uri': csp._normalized_blocked_uri,
+            'uri': csp.normalized_blocked_uri,
             'message': csp.get_message(),
         }
 

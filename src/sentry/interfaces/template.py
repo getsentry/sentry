@@ -13,7 +13,6 @@ from sentry.interfaces.base import Interface, InterfaceValidationError
 from sentry.interfaces.schemas import validate_and_default_interface
 from sentry.interfaces.stacktrace import get_context
 from sentry.utils.safe import trim
-from sentry.event_hashing import GroupingComponent
 
 
 class Template(Interface):
@@ -59,30 +58,12 @@ class Template(Interface):
         }
         return cls(**kwargs)
 
-    def get_grouping_component(self, platform=None, variant=None):
-        filename_component = GroupingComponent(id='filename')
-        if self.filename is not None:
-            filename_component.update(values=[self.filename])
-
-        context_line_component = GroupingComponent(id='context-line')
-        if self.context_line is not None:
-            context_line_component.update(values=[self.context_line])
-
-        return GroupingComponent(
-            id='template',
-            values=[
-                filename_component,
-                context_line_component,
-            ]
-        )
-
     def to_string(self, event, is_public=False, **kwargs):
         context = get_context(
             lineno=self.lineno,
             context_line=self.context_line,
             pre_context=self.pre_context,
             post_context=self.post_context,
-            filename=self.filename,
         )
 
         result = ['Stacktrace (most recent call last):', '', self.get_traceback(event, context)]
@@ -109,7 +90,6 @@ class Template(Interface):
                 context_line=self.context_line,
                 pre_context=self.pre_context,
                 post_context=self.post_context,
-                filename=self.filename,
             ),
         }
 
@@ -123,6 +103,5 @@ class Template(Interface):
                 context_line=meta.get('context_line'),
                 pre_context=meta.get('pre_context'),
                 post_context=meta.get('post_context'),
-                filename=meta.get('filename'),
             ),
         }
