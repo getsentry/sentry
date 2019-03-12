@@ -37,24 +37,24 @@ from sentry.utils.safe import get_path
 from sentry.utils.strings import truncatechars
 
 
-def _should_skip_to_python(node_id):
-    if not node_id:
+def _should_skip_to_python(event_data):
+    event_id = event_data.get("event_id")
+    if not event_id:
         return False
 
     sample_rate = options.get('store.empty-interface-sample-rate')
-    return int(md5(node_id).hexdigest(), 16) % (10 ** 8) <= (sample_rate * (10 ** 8))
+    return int(md5(event_id).hexdigest(), 16) % (10 ** 8) <= (sample_rate * (10 ** 8))
 
 
 class EventDict(CanonicalKeyDict):
     def __init__(self, data, **kwargs):
-        rust_renormalized = _should_skip_to_python(kwargs.pop('node_id', None))
+        rust_renormalized = _should_skip_to_python(data)
         if rust_renormalized:
             normalizer = StoreNormalizer(is_renormalize=True)
             data = normalizer.normalize_event(dict(data))
 
         metrics.incr('rust.renormalized',
                      tags={'value': rust_renormalized})
-        self._rust_renormalized = rust_renormalized
         CanonicalKeyDict.__init__(self, data, **kwargs)
 
 
@@ -76,8 +76,7 @@ class Event(Model):
         null=True,
         ref_func=lambda x: x.project_id or x.project.id,
         ref_version=2,
-        wrapper=EventDict,
-        pass_node_id_to_wrapper=True
+        wrapper=EventDict
     )
 
     objects = EventManager()
@@ -246,8 +245,9 @@ class Event(Model):
         return None
 
     def get_interfaces(self):
-        return CanonicalKeyView(get_interfaces(
-            self.data, rust_renormalized=self.data.data._rust_renormalized))
+        was_renormalized = _should_skip_to_python(self.data)
+
+        return CanonicalKeyView(get_interfaces(self.data, rust_renormalized=was_renormalized))
 
     @memoize
     def interfaces(self):
