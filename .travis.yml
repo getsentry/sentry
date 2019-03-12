@@ -42,7 +42,6 @@ script:
   # installing dependencies for after_* steps here ensures they get cached
   # since those steps execute after travis runs `store build cache`
   - pip install codecov
-  - pip uninstall numpy
   - npm install -g @zeus-ci/cli
 
 after_success:
