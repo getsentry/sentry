@@ -779,6 +779,7 @@ exports[`ProjectCard renders 1`] = `
                                   aria-disabled={false}
                                   aria-label="Track deploys"
                                   className="css-dkprmi-StyledButton-getColors eqrebog0"
+                                  external={true}
                                   href="https://docs.sentry.io/learn/releases/"
                                   onClick={[Function]}
                                   role="button"

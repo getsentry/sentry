@@ -88,7 +88,6 @@ class Button extends React.Component {
       onClick,
       ...buttonProps
     } = this.props;
-
     // For `aria-label`
     const screenReaderLabel =
       label || (typeof children === 'string' ? children : undefined);
@@ -191,9 +190,12 @@ const getColors = ({priority, disabled, borderless, theme}) => {
   `;
 };
 
-const shouldForwardProp = p => p !== 'disabled' && isPropValid(p);
+const customProps = ['external', 'size'];
+const shouldForwardProp = p =>
+  (p !== 'disabled' && isPropValid(p)) || customProps.includes(p);
+
 const StyledButton = styled(
-  props => {
+  ({external, ...props}) => {
     // Get component to use based on existance of `to` or `href` properties
     // Can be react-router `Link`, `a`, or `button`
     if (props.to) {
