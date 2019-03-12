@@ -67,8 +67,8 @@ def multiprocess_worker(task_queue):
     configured = False
 
     while True:
-        j = task_queue.get()
-        if j == _STOP_WORKER:
+        task = task_queue.get()
+        if task == _STOP_WORKER:
             task_queue.task_done()
             return
 
@@ -79,9 +79,9 @@ def multiprocess_worker(task_queue):
             configured = True
 
         try:
-            topic, message = j
+            topic, payload = task
             handler = dispatch[topic]
-            handler(message)
+            handler(json.loads(payload))
         finally:
             task_queue.task_done()
 
@@ -100,10 +100,10 @@ class ConsumerWorker(AbstractBatchWorker):
 
     def process_message(self, message):
         topic = message.topic()
-        self.task_queue.put((topic, json.loads(message.value())))
+        self.task_queue.put((topic, message.value()))
 
     def flush_batch(self, batch):
-        # Batch flush is when Kafka offsets are committed. We away the completion
+        # Batch flush is when Kafka offsets are committed. We await the completion
         # of all submitted tasks so that we don't publish offsets for anything
         # that hasn't been processed.
         self.task_queue.join()
