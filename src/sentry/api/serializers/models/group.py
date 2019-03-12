@@ -375,6 +375,7 @@ class GroupSerializerBase(Serializer):
                 'id': six.text_type(obj.project.id),
                 'name': obj.project.name,
                 'slug': obj.project.slug,
+                'platform': obj.project.platform,
             },
             'type': obj.get_event_type(),
             'metadata': obj.get_event_metadata(),
