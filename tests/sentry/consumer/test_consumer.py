@@ -7,7 +7,6 @@ from sentry.coreapi import ClientApiHelper
 from sentry.models import Event
 from sentry.plugins import Plugin2
 from sentry.testutils import PluginTestCase
-from sentry.utils import json
 
 
 class BasicPreprocessorPlugin(Plugin2):
@@ -32,10 +31,21 @@ class TestConsumer(PluginTestCase):
         args, kwargs = list(mock_produce.call_args)
         mock_produce.call_args = None
         topic = args[0]
-        value = json.loads(kwargs['value'])
+
+        class Msg(object):
+            def __init__(self, topic, value):
+                self._topic = topic
+                self._value = value
+
+            def topic(self):
+                return self._topic
+
+            def value(self):
+                return self._value
 
         consumer = ConsumerWorker()
-        consumer._handle(topic, value)
+        consumer.process_message(Msg(topic, kwargs['value']))
+        consumer.flush_batch([])
 
     def _create_event_with_platform(self, project, platform):
         from sentry.event_manager import EventManager
