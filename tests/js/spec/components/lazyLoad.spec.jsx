@@ -61,4 +61,22 @@ describe('LazyLoad', function() {
     // eslint-disable-next-line no-console
     console.error.mockRestore();
   });
+
+  it('refetches when component changes', async function() {
+    const getComponent = jest.fn(() => new Promise());
+    const wrapper = mount(<LazyLoad component={getComponent} />);
+
+    // Should be loading
+    expect(wrapper.find('LoadingIndicator')).toHaveLength(1);
+    expect(getComponent).toHaveBeenCalled();
+
+    // Update component prop
+    const getComponent2 = jest.fn(() => new Promise());
+    wrapper.setProps({component: getComponent2});
+    expect(getComponent2).toHaveBeenCalledTimes(1);
+
+    // Does not refetch on other prop changes
+    wrapper.setProps({testProp: true});
+    expect(getComponent2).toHaveBeenCalledTimes(1);
+  });
 });
