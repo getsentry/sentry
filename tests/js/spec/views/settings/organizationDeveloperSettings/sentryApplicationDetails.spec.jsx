@@ -80,7 +80,7 @@ describe('Sentry Application Details', function() {
           ]),
           events: observable(['issue']),
           isAlertable: true,
-          schema: '',
+          schema: {},
         };
 
         expect(createAppRequest).toHaveBeenCalledWith(
