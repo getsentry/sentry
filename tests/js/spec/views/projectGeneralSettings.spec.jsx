@@ -17,7 +17,7 @@ describe('projectGeneralSettings', function() {
   let putMock;
 
   beforeEach(function() {
-    sinon.stub(window.location, 'assign');
+    jest.spyOn(window.location, 'assign');
     routerContext = TestStubs.routerContext([
       {
         router: TestStubs.router({
@@ -48,7 +48,7 @@ describe('projectGeneralSettings', function() {
   });
 
   afterEach(function() {
-    window.location.assign.restore();
+    window.location.assign.mockRestore();
   });
 
   it('renders form fields', function() {
