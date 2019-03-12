@@ -128,20 +128,10 @@ def merge_attached_breadcrumbs(mpack_breadcrumbs, data):
 
     try:
         unpacker = msgpack.Unpacker(mpack_breadcrumbs)
-
-        levels = {-1: 'debug', 0: 'info', 1: 'warning', 2: 'error', 3: 'critical'}
-        breadcrumbs = []
-        for crumb in unpacker:
-            breadcrumbs.append({
-                'timestamp': crumb.get('timestamp'),
-                'category': crumb.get('category'),
-                'type': crumb.get('type'),
-                'level': levels.get(crumb.get('level', 0), 'info'),
-                'message': crumb.get('message'),
-            })
+        breadcrumbs = list(unpacker)
     except UnpackException as e:
         minidumps_logger.exception(e)
-        # Continue in case some breadcrumbs exist
+        return
 
     if not breadcrumbs:
         return
@@ -152,8 +142,9 @@ def merge_attached_breadcrumbs(mpack_breadcrumbs, data):
         return
 
     current_crumb = next((c for c in reversed(current_crumbs)
-                          if c.get('timestamp') is not None), None)
-    new_crumb = next((c for c in reversed(breadcrumbs) if c.get('timestamp') is not None), None)
+                          if isinstance(c, dict) and c.get('timestamp') is not None), None)
+    new_crumb = next((c for c in reversed(breadcrumbs) if isinstance(
+        c, dict) and c.get('timestamp') is not None), None)
     if current_crumb is not None and new_crumb is not None:
         if dp.parse(current_crumb['timestamp']) > dp.parse(new_crumb['timestamp']):
             data['breadcrumbs'] = breadcrumbs + current_crumbs

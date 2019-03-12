@@ -1107,7 +1107,7 @@ def test_merge_attached_breadcrumbs_single_crumb():
         'timestamp': '0000-00-00T00:00:00Z',
         'category': 'c',
         'type': 't',
-        'level': -1,
+        'level': 'debug',
         'message': 'm',
     })
     event = {}
@@ -1117,22 +1117,6 @@ def test_merge_attached_breadcrumbs_single_crumb():
     assert event['breadcrumbs'][0]['type'] == 't'
     assert event['breadcrumbs'][0]['level'] == 'debug'
     assert event['breadcrumbs'][0]['message'] == 'm'
-
-
-def test_merge_attached_breadcrumbs_invalid_level():
-    mpack_crumb = msgpack.packb({
-        'level': 'invalid',
-    })
-    event = {}
-    merge_attached_breadcrumbs(MockFile(mpack_crumb), event)
-    assert event['breadcrumbs'][0]['level'] == 'info'  # fallsback to info
-
-
-def test_merge_attached_breadcrumbs_missing_level():
-    mpack_crumb = msgpack.packb({})
-    event = {}
-    merge_attached_breadcrumbs(MockFile(mpack_crumb), event)
-    assert event['breadcrumbs'][0]['level'] == 'info'  # fallsback to info
 
 
 def test_merge_attached_breadcrumbs_timestamp_ordered():
