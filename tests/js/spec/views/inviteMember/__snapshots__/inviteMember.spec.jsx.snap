@@ -15,6 +15,7 @@ exports[`InviteMember should render loading 1`] = `
 
 exports[`InviteMember should render roles when available and allowed, and handle submitting 1`] = `
 <InviteMember
+  api={Client {}}
   location={
     Object {
       "query": Object {},

@@ -2,7 +2,7 @@
 
 exports[`DiffModal renders 1`] = `
 <Body>
-  <IssueDiffContainer
+  <withApi(IssueDiffContainer)
     Body={[Function]}
   />
 </Body>

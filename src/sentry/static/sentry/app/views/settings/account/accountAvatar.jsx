@@ -5,7 +5,7 @@ import styled from 'react-emotion';
 
 import {addErrorMessage, addSuccessMessage} from 'app/actionCreators/indicator';
 import {t} from 'app/locale';
-import ApiMixin from 'app/mixins/apiMixin';
+import withApi from 'app/utils/withApi';
 import Avatar from 'app/components/avatar';
 import AvatarCropper from 'app/components/avatarCropper';
 import LoadingError from 'app/components/loadingError';
@@ -19,12 +19,11 @@ const AccountAvatar = createReactClass({
   displayName: 'AccountAvatar',
 
   propTypes: {
+    api: PropTypes.object,
     userId: PropTypes.number,
     user: SentryTypes.User,
     onSave: PropTypes.func,
   },
-
-  mixins: [ApiMixin],
 
   getDefaultProps() {
     return {
@@ -77,7 +76,7 @@ const AccountAvatar = createReactClass({
     if (this.state.dataUrl) {
       avatarPhoto = this.state.dataUrl.split(',')[1];
     }
-    this.api.request(this.getEndpoint(), {
+    this.props.api.request(this.getEndpoint(), {
       method: 'PUT',
       data: {
         avatar_photo: avatarPhoto,
@@ -185,4 +184,6 @@ const AvatarUploadSection = styled('div')`
   margin-top: 1em;
 `;
 
-export default AccountAvatar;
+export {AccountAvatar};
+
+export default withApi(AccountAvatar);

@@ -7,7 +7,7 @@ import classNames from 'classnames';
 import {MentionsInput, Mention} from 'react-mentions';
 import _ from 'lodash';
 
-import ApiMixin from 'app/mixins/apiMixin';
+import withApi from 'app/utils/withApi';
 import OrganizationState from 'app/mixins/organizationState';
 
 import GroupStore from 'app/stores/groupStore';
@@ -32,6 +32,7 @@ const NoteInput = createReactClass({
   displayName: 'NoteInput',
 
   propTypes: {
+    api: PropTypes.object,
     item: PropTypes.object,
     group: PropTypes.object.isRequired,
     onFinish: PropTypes.func,
@@ -39,7 +40,7 @@ const NoteInput = createReactClass({
     sessionUser: PropTypes.object.isRequired,
   },
 
-  mixins: [ApiMixin, OrganizationState],
+  mixins: [OrganizationState],
 
   getInitialState() {
     const {item, group} = this.props;
@@ -143,7 +144,7 @@ const NoteInput = createReactClass({
 
     const loadingIndicator = IndicatorStore.add(t('Posting comment..'));
 
-    this.api.request('/issues/' + group.id + '/comments/', {
+    this.props.api.request('/issues/' + group.id + '/comments/', {
       method: 'POST',
       data: {
         text: this.cleanMarkdown(this.state.value),
@@ -179,7 +180,7 @@ const NoteInput = createReactClass({
 
     const loadingIndicator = IndicatorStore.add(t('Updating comment..'));
 
-    this.api.request('/issues/' + group.id + '/comments/' + item.id + '/', {
+    this.props.api.request('/issues/' + group.id + '/comments/' + item.id + '/', {
       method: 'PUT',
       data: {
         text: this.state.value,
@@ -391,4 +392,6 @@ const NoteInput = createReactClass({
   },
 });
 
-export default NoteInput;
+export {NoteInput};
+
+export default withApi(NoteInput);

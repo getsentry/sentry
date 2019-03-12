@@ -5,7 +5,7 @@ import _ from 'lodash';
 import createReactClass from 'create-react-class';
 
 import {t} from 'app/locale';
-import ApiMixin from 'app/mixins/apiMixin';
+import withApi from 'app/utils/withApi';
 import Button from 'app/components/button';
 import IndicatorStore from 'app/stores/indicatorStore';
 import LoadingIndicator from 'app/components/loadingIndicator';
@@ -17,14 +17,13 @@ const PluginConfig = createReactClass({
   displayName: 'PluginConfig',
 
   propTypes: {
+    api: PropTypes.object,
     organization: PropTypes.object.isRequired,
     project: PropTypes.object.isRequired,
     data: PropTypes.object.isRequired,
     onDisablePlugin: PropTypes.func,
     enabled: PropTypes.bool,
   },
-
-  mixins: [ApiMixin],
 
   getDefaultProps() {
     return {
@@ -77,7 +76,7 @@ const PluginConfig = createReactClass({
 
   testPlugin() {
     const loadingIndicator = IndicatorStore.add(t('Sending test..'));
-    this.api.request(this.getPluginEndpoint(), {
+    this.props.api.request(this.getPluginEndpoint(), {
       method: 'POST',
       data: {
         test: true,
@@ -161,4 +160,6 @@ const PluginConfig = createReactClass({
   },
 });
 
-export default PluginConfig;
+export {PluginConfig};
+
+export default withApi(PluginConfig);

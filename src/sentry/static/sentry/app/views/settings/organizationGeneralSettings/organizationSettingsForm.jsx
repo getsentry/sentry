@@ -4,7 +4,7 @@ import createReactClass from 'create-react-class';
 
 import {addErrorMessage} from 'app/actionCreators/indicator';
 import {updateOrganization} from 'app/actionCreators/organizations';
-import ApiMixin from 'app/mixins/apiMixin';
+import withApi from 'app/utils/withApi';
 import AvatarChooser from 'app/components/avatarChooser';
 import Form from 'app/views/settings/components/forms/form';
 import JsonForm from 'app/views/settings/components/forms/jsonForm';
@@ -16,6 +16,7 @@ const OrganizationSettingsForm = createReactClass({
   displayName: 'OrganizationSettingsForm',
 
   propTypes: {
+    api: PropTypes.object,
     location: PropTypes.object,
     orgId: PropTypes.string.isRequired,
     access: PropTypes.object.isRequired,
@@ -23,7 +24,7 @@ const OrganizationSettingsForm = createReactClass({
     onSave: PropTypes.func.isRequired,
   },
 
-  mixins: [ApiMixin, OrganizationState],
+  mixins: [OrganizationState],
 
   render() {
     const {initialData, orgId, onSave, access} = this.props;
@@ -65,4 +66,6 @@ const OrganizationSettingsForm = createReactClass({
   },
 });
 
-export default OrganizationSettingsForm;
+export {OrganizationSettingsForm};
+
+export default withApi(OrganizationSettingsForm);

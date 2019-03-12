@@ -13,7 +13,7 @@ exports[`projectUserFeedback renders 1`] = `
     pageLinks="<https://sentry.io/api/0/organizations/sentry/user-feedback/?statsPeriod=14d&cursor=0:0:1>; rel=\\"previous\\"; results=\\"false\\"; cursor=\\"0:0:1\\", <https://sentry.io/api/0/organizations/sentry/user-feedback/?statsPeriod=14d&cursor=0:100:0>; rel=\\"next\\"; results=\\"true\\"; cursor=\\"0:100:0\\""
     status="unresolved"
   >
-    <WithOrganizationMockWrapper
+    <withApi(WithOrganizationMockWrapper)
       data={
         Object {
           "activity": Array [],
@@ -173,7 +173,7 @@ exports[`projectUserFeedback renders 1`] = `
           }
         }
       />
-    </WithOrganizationMockWrapper>
+    </withApi(WithOrganizationMockWrapper)>
   </UserFeedbackContainer>
 </SideEffect(DocumentTitle)>
 `;

@@ -1,9 +1,10 @@
+import PropTypes from 'prop-types';
 import {debounce} from 'lodash';
 import React from 'react';
 import createReactClass from 'create-react-class';
 import styled from 'react-emotion';
 
-import ApiMixin from 'app/mixins/apiMixin';
+import withApi from 'app/utils/withApi';
 import IdBadge from 'app/components/idBadge';
 import Avatar from 'app/components/avatar';
 import Button from 'app/components/button';
@@ -23,8 +24,12 @@ import space from 'app/styles/space';
 import overflowEllipsis from 'app/styles/overflowEllipsis';
 
 const TeamMembers = createReactClass({
+  propTypes: {
+    api: PropTypes.object,
+  },
+
   displayName: 'TeamMembers',
-  mixins: [ApiMixin, OrganizationState],
+  mixins: [OrganizationState],
 
   getInitialState() {
     return {
@@ -68,7 +73,7 @@ const TeamMembers = createReactClass({
   removeMember(member) {
     const {params} = this.props;
     leaveTeam(
-      this.api,
+      this.props.api,
       {
         orgId: params.orgId,
         teamId: params.teamId,
@@ -98,7 +103,7 @@ const TeamMembers = createReactClass({
 
   fetchMembersRequest(query) {
     const {orgId} = this.props.params;
-    return this.api.request(`/organizations/${orgId}/members/`, {
+    return this.props.api.request(`/organizations/${orgId}/members/`, {
       query: {
         query,
       },
@@ -122,7 +127,7 @@ const TeamMembers = createReactClass({
   fetchData() {
     const params = this.props.params;
 
-    this.api.request(`/teams/${params.orgId}/${params.teamId}/members/`, {
+    this.props.api.request(`/teams/${params.orgId}/${params.teamId}/members/`, {
       success: data => {
         this.setState({
           teamMemberList: data,
@@ -152,7 +157,7 @@ const TeamMembers = createReactClass({
     this.debouncedFetchMembersRequest('');
 
     joinTeam(
-      this.api,
+      this.props.api,
       {
         orgId: params.orgId,
         teamId: params.teamId,
@@ -340,4 +345,6 @@ const StyledCreateMemberLink = styled(Link)`
   text-transform: none;
 `;
 
-export default TeamMembers;
+export {TeamMembers};
+
+export default withApi(TeamMembers);

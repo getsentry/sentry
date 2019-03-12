@@ -22,6 +22,7 @@ describe('projectUserFeedback', function() {
 
   it('renders', function() {
     const params = {
+      api: new MockApiClient(),
       location: {query: {}},
       setProjectNavSection: jest.fn(),
       params: {

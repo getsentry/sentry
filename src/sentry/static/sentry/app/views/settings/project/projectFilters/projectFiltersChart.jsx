@@ -7,7 +7,7 @@ import moment from 'moment';
 
 import {intcomma} from 'app/utils';
 import {t, tn} from 'app/locale';
-import ApiMixin from 'app/mixins/apiMixin';
+import withApi from 'app/utils/withApi';
 import EmptyMessage from 'app/views/settings/components/emptyMessage';
 import LoadingError from 'app/components/loadingError';
 import LoadingIndicator from 'app/components/loadingIndicator';
@@ -15,11 +15,13 @@ import {Panel, PanelBody, PanelHeader} from 'app/components/panels';
 import StackedBarChart from 'app/components/stackedBarChart';
 
 const ProjectFiltersChart = createReactClass({
+  propTypes: {
+    api: PropTypes.object,
+  },
   displayName: 'ProjectFiltersChart',
   contextTypes: {
     project: PropTypes.object,
   },
-  mixins: [ApiMixin],
 
   getInitialState() {
     const until = Math.floor(new Date().getTime() / 1000);
@@ -87,7 +89,7 @@ const ProjectFiltersChart = createReactClass({
         // parallelize requests for each statistic
         statOptions.map(stat => {
           const deferred = $.Deferred();
-          this.api.request(statEndpoint, {
+          this.props.api.request(statEndpoint, {
             query: Object.assign({stat}, query),
             success: deferred.resolve.bind(deferred),
             error: deferred.reject.bind(deferred),
@@ -207,4 +209,6 @@ const ProjectFiltersChart = createReactClass({
   },
 });
 
-export default ProjectFiltersChart;
+export {ProjectFiltersChart};
+
+export default withApi(ProjectFiltersChart);

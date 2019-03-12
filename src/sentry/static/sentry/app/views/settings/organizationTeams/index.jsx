@@ -5,7 +5,7 @@ import Reflux from 'reflux';
 
 import {loadStats} from 'app/actionCreators/projects';
 import {sortArray} from 'app/utils';
-import ApiMixin from 'app/mixins/apiMixin';
+import withApi from 'app/utils/withApi';
 import OrganizationState from 'app/mixins/organizationState';
 import ProjectsStore from 'app/stores/projectsStore';
 import TeamStore from 'app/stores/teamStore';
@@ -15,11 +15,11 @@ const OrganizationTeamsContainer = createReactClass({
   displayName: 'OrganizationTeamsContainer',
 
   propTypes: {
+    api: PropTypes.object,
     routes: PropTypes.arrayOf(PropTypes.object),
   },
 
   mixins: [
-    ApiMixin,
     OrganizationState,
     Reflux.listenTo(TeamStore, 'onTeamListChange'),
     Reflux.listenTo(ProjectsStore, 'onProjectListChange'),
@@ -42,7 +42,7 @@ const OrganizationTeamsContainer = createReactClass({
   },
 
   fetchStats() {
-    loadStats(this.api, {
+    loadStats(this.props.api, {
       orgId: this.props.params.orgId,
       query: {
         since: new Date().getTime() / 1000 - 3600 * 24,
@@ -98,4 +98,6 @@ const OrganizationTeamsContainer = createReactClass({
   },
 });
 
-export default OrganizationTeamsContainer;
+export {OrganizationTeamsContainer};
+
+export default withApi(OrganizationTeamsContainer);

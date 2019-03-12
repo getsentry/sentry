@@ -1,3 +1,4 @@
+import PropTypes from 'prop-types';
 import React from 'react';
 import createReactClass from 'create-react-class';
 
@@ -5,7 +6,7 @@ import {Panel} from 'app/components/panels';
 import {addLoadingMessage, removeIndicator} from 'app/actionCreators/indicator';
 import {t, tn} from 'app/locale';
 import Access from 'app/components/acl/access';
-import ApiMixin from 'app/mixins/apiMixin';
+import withApi from 'app/utils/withApi';
 import Button from 'app/components/button';
 import EmptyStateWarning from 'app/components/emptyStateWarning';
 import Form from 'app/views/settings/components/forms/form';
@@ -44,8 +45,12 @@ const HELP_LINKS = {
 };
 
 const ProjectProcessingIssues = createReactClass({
+  propTypes: {
+    api: PropTypes.object,
+  },
+
   displayName: 'ProjectProcessingIssues',
-  mixins: [ApiMixin, OrganizationState],
+  mixins: [OrganizationState],
 
   getInitialState() {
     return {
@@ -67,7 +72,7 @@ const ProjectProcessingIssues = createReactClass({
     this.setState({
       expected: this.state.expected + 2,
     });
-    this.api.request(`/projects/${orgId}/${projectId}/`, {
+    this.props.api.request(`/projects/${orgId}/${projectId}/`, {
       success: (data, _, jqXHR) => {
         const expected = this.state.expected - 1;
         this.setState({
@@ -86,26 +91,29 @@ const ProjectProcessingIssues = createReactClass({
       },
     });
 
-    this.api.request(`/projects/${orgId}/${projectId}/processingissues/?detailed=1`, {
-      success: (data, _, jqXHR) => {
-        const expected = this.state.expected - 1;
-        this.setState({
-          expected,
-          error: false,
-          loading: expected > 0,
-          processingIssues: data,
-          pageLinks: jqXHR.getResponseHeader('Link'),
-        });
-      },
-      error: () => {
-        const expected = this.state.expected - 1;
-        this.setState({
-          expected,
-          error: true,
-          loading: expected > 0,
-        });
-      },
-    });
+    this.props.api.request(
+      `/projects/${orgId}/${projectId}/processingissues/?detailed=1`,
+      {
+        success: (data, _, jqXHR) => {
+          const expected = this.state.expected - 1;
+          this.setState({
+            expected,
+            error: false,
+            loading: expected > 0,
+            processingIssues: data,
+            pageLinks: jqXHR.getResponseHeader('Link'),
+          });
+        },
+        error: () => {
+          const expected = this.state.expected - 1;
+          this.setState({
+            expected,
+            error: true,
+            loading: expected > 0,
+          });
+        },
+      }
+    );
   },
 
   sendReprocessing() {
@@ -114,7 +122,7 @@ const ProjectProcessingIssues = createReactClass({
     });
     const loadingIndicator = addLoadingMessage(t('Started reprocessing..'));
     const {orgId, projectId} = this.props.params;
-    this.api.request(`/projects/${orgId}/${projectId}/reprocessing/`, {
+    this.props.api.request(`/projects/${orgId}/${projectId}/reprocessing/`, {
       method: 'POST',
       success: (data, _, jqXHR) => {
         this.fetchData();
@@ -138,7 +146,7 @@ const ProjectProcessingIssues = createReactClass({
     this.setState({
       expected: this.state.expected + 1,
     });
-    this.api.request(`/projects/${orgId}/${projectId}/processingissues/discard/`, {
+    this.props.api.request(`/projects/${orgId}/${projectId}/processingissues/discard/`, {
       method: 'DELETE',
       success: (data, _, jqXHR) => {
         const expected = this.state.expected - 1;
@@ -167,7 +175,7 @@ const ProjectProcessingIssues = createReactClass({
     this.setState({
       expected: this.state.expected + 1,
     });
-    this.api.request(`/projects/${orgId}/${projectId}/processingissues/`, {
+    this.props.api.request(`/projects/${orgId}/${projectId}/processingissues/`, {
       method: 'DELETE',
       success: (data, _, jqXHR) => {
         const expected = this.state.expected - 1;
@@ -443,4 +451,6 @@ const ProjectProcessingIssues = createReactClass({
   },
 });
 
-export default ProjectProcessingIssues;
+export {ProjectProcessingIssues};
+
+export default withApi(ProjectProcessingIssues);

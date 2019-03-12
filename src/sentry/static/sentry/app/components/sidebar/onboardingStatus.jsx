@@ -4,7 +4,7 @@ import React from 'react';
 import {analytics} from 'app/utils/analytics';
 import {t} from '../../locale';
 import SidebarPanel from './sidebarPanel';
-import TodoList from '../onboardingWizard/todos';
+import TodoList, {TASKS} from '../onboardingWizard/todos';
 import Tooltip from '../tooltip';
 
 class OnboardingStatus extends React.Component {
@@ -45,7 +45,7 @@ class OnboardingStatus extends React.Component {
     const doneTasks = (org.onboardingTasks || []).filter(
       task => task.status === 'complete' || task.status === 'skipped'
     );
-    const allDisplayedTasks = TodoList.TASKS.filter(task => task.display);
+    const allDisplayedTasks = TASKS.filter(task => task.display);
 
     const percentage = Math.round(
       (doneTasks.length / allDisplayedTasks.length) * 100

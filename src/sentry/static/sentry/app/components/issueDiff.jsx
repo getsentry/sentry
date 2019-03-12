@@ -5,7 +5,7 @@ import styled, {css} from 'react-emotion';
 
 import {addErrorMessage} from 'app/actionCreators/indicator';
 import {t} from 'app/locale';
-import ApiMixin from 'app/mixins/apiMixin';
+import withApi from 'app/utils/withApi';
 import LoadingIndicator from 'app/components/loadingIndicator';
 import rawStacktraceContent from 'app/components/events/interfaces/rawStacktraceContent';
 
@@ -130,14 +130,18 @@ class IssueDiff extends React.Component {
 }
 
 const IssueDiffContainer = createReactClass({
+  propTypes: {
+    api: PropTypes.object,
+  },
   displayName: 'IssueDiffContainer',
-  mixins: [ApiMixin],
   render() {
-    return <IssueDiff {...this.props} api={this.api} />;
+    return <IssueDiff {...this.props} api={this.props.api} />;
   },
 });
 
-export default IssueDiffContainer;
+export {IssueDiffContainer};
+
+export default withApi(IssueDiffContainer);
 export {IssueDiff};
 
 const getLoadingStyle = p =>

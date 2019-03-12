@@ -1,3 +1,4 @@
+import PropTypes from 'prop-types';
 import {omit} from 'lodash';
 import React from 'react';
 import createReactClass from 'create-react-class';
@@ -5,7 +6,7 @@ import createReactClass from 'create-react-class';
 import {Panel, PanelHeader, PanelBody} from 'app/components/panels';
 import {URL_PARAM} from 'app/components/organizations/globalSelectionHeader/constants';
 import {t} from 'app/locale';
-import ApiMixin from 'app/mixins/apiMixin';
+import withApi from 'app/utils/withApi';
 import CommitRow from 'app/components/commitRow';
 import DropdownLink from 'app/components/dropdownLink';
 import EmptyStateWarning from 'app/components/emptyStateWarning';
@@ -14,8 +15,10 @@ import LoadingIndicator from 'app/components/loadingIndicator';
 import MenuItem from 'app/components/menuItem';
 
 const ReleaseCommits = createReactClass({
+  propTypes: {
+    api: PropTypes.object,
+  },
   displayName: 'ReleaseCommits',
-  mixins: [ApiMixin],
 
   getInitialState() {
     return {
@@ -27,7 +30,7 @@ const ReleaseCommits = createReactClass({
   },
 
   componentDidMount() {
-    this.api.request(this.getPath(), {
+    this.props.api.request(this.getPath(), {
       method: 'GET',
       // We need to omit global selection header url params because they are not supported
       data: omit(this.props.location.query, Object.values(URL_PARAM)),
@@ -169,4 +172,6 @@ const ReleaseCommits = createReactClass({
   },
 });
 
-export default ReleaseCommits;
+export {ReleaseCommits};
+
+export default withApi(ReleaseCommits);

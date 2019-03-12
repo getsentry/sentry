@@ -46,6 +46,7 @@ describe('GroupSidebar', function() {
 
     wrapper = mount(
       <GroupSidebar
+        api={new MockApiClient()}
         group={group}
         project={project}
         event={TestStubs.Event()}
@@ -91,6 +92,7 @@ describe('GroupSidebar', function() {
 
       wrapper = shallow(
         <GroupSidebar
+          api={new MockApiClient()}
           group={group}
           project={project}
           event={TestStubs.Event()}

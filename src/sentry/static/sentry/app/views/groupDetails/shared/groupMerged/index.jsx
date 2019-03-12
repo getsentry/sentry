@@ -1,10 +1,11 @@
+import PropTypes from 'prop-types';
 import React from 'react';
 import Reflux from 'reflux';
 import createReactClass from 'create-react-class';
 import queryString from 'query-string';
 
 import {t} from 'app/locale';
-import ApiMixin from 'app/mixins/apiMixin';
+import withApi from 'app/utils/withApi';
 import GroupingActions from 'app/actions/groupingActions';
 import GroupingStore from 'app/stores/groupingStore';
 import LoadingError from 'app/components/loadingError';
@@ -14,11 +15,15 @@ import SentryTypes from 'app/sentryTypes';
 import MergedList from './mergedList';
 
 const GroupMergedView = createReactClass({
+  propTypes: {
+    api: PropTypes.object,
+  },
+
   displayName: 'GroupMergedView',
   propTypes: {
     project: SentryTypes.Project,
   },
-  mixins: [ApiMixin, Reflux.listenTo(GroupingStore, 'onGroupingUpdate')],
+  mixins: [Reflux.listenTo(GroupingStore, 'onGroupingUpdate')],
 
   getInitialState() {
     const queryParams = this.props.location.query;
@@ -131,4 +136,6 @@ const GroupMergedView = createReactClass({
   },
 });
 
-export default GroupMergedView;
+export {GroupMergedView};
+
+export default withApi(GroupMergedView);

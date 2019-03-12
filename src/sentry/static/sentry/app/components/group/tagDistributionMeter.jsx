@@ -7,7 +7,7 @@ import isPropValid from '@emotion/is-prop-valid';
 
 import {escape, percent} from 'app/utils';
 import {t} from 'app/locale';
-import ApiMixin from 'app/mixins/apiMixin';
+import withApi from 'app/utils/withApi';
 import DeviceName, {
   deviceNameMapper,
   loadDeviceListModule,
@@ -20,6 +20,7 @@ const TagDistributionMeter = createReactClass({
   displayName: 'TagDistributionMeter',
 
   propTypes: {
+    api: PropTypes.object,
     group: SentryTypes.Group.isRequired,
     tag: PropTypes.string.isRequired,
     name: PropTypes.string,
@@ -29,8 +30,6 @@ const TagDistributionMeter = createReactClass({
     totalValues: PropTypes.number,
     topValues: PropTypes.array,
   },
-
-  mixins: [ApiMixin],
 
   getInitialState() {
     return {
@@ -265,4 +264,4 @@ const Segment = styled(Link, {shouldForwardProp: isPropValid})`
 `;
 
 export {TagDistributionMeter};
-export default withEnvironment(TagDistributionMeter);
+export default withApi(withEnvironment(TagDistributionMeter));
