@@ -6,7 +6,6 @@ import dateutil.parser as dp
 from sentry.utils.safe import get_path
 import logging
 import msgpack
-import sys
 from msgpack import UnpackException
 
 minidumps_logger = logging.getLogger('sentry.minidumps')
@@ -107,7 +106,7 @@ def merge_process_state_event(data, state, cfi=None):
 
 def merge_attached_event(mpack_event, data):
     # Merge msgpack serialized event.
-    if sys.getsizeof(mpack_event) > MAX_MSGPACK_EVENT_SIZE_BYTES:
+    if mpack_event.size > MAX_MSGPACK_EVENT_SIZE_BYTES:
         return
 
     try:
@@ -124,7 +123,7 @@ def merge_attached_event(mpack_event, data):
 
 def merge_attached_breadcrumbs(mpack_breadcrumbs, data):
     # Merge msgpack breadcrumb file.
-    if sys.getsizeof(mpack_breadcrumbs) > MAX_MSGPACK_BREADCRUMB_SIZE_BYTES:
+    if mpack_breadcrumbs.size > MAX_MSGPACK_BREADCRUMB_SIZE_BYTES:
         return
 
     try:
