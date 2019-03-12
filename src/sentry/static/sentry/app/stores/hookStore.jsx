@@ -49,6 +49,12 @@ const validHookNames = new Set([
   'feature-disabled:sso-basic',
   'feature-disabled:sso-rippling',
   'feature-disabled:sso-saml2',
+
+  // Explicit Feature hookNames
+  'feature-disabled:events-page',
+  'feature-disabled:events-sidebar-item',
+  'feature-disabled:discover-page',
+  'feature-disabled:discover-sidebar-item',
 ]);
 
 /**
