@@ -1,7 +1,7 @@
 import React from 'react';
 import {browserHistory, withRouter} from 'react-router';
 import PropTypes from 'prop-types';
-import {throttle} from 'lodash';
+import {throttle, isEqual} from 'lodash';
 
 import SentryTypes from 'app/sentryTypes';
 import {t} from 'app/locale';
@@ -75,6 +75,10 @@ class Result extends React.Component {
         search,
       });
     }
+  }
+
+  shouldComponentUpdate(nextProps, nextState) {
+    return !isEqual(nextProps, this.props) || !isEqual(nextState, this.state);
   }
 
   componentWillUnmount() {
