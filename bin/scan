@@ -29,6 +29,9 @@ ignored=(
     # Description: The session backends in Django before 1.4.21, 1.5.x through 1.6.x, 1.7.x before 1.7.9, and 1.8.x before 1.8.3 allows remote attackers to cause a denial of service (session store consumption) via multiple requests with unique session keys.
     # Reason: This does not apply to us with the cookie based session backend.
     25725
+    # numpy, installed 1.13.1, affected <=1.16.0
+    # we don't use numpy it is provided by travis though.
+    36810
 )
 
 args="--full-report"
