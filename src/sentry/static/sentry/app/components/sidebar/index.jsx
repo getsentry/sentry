@@ -268,7 +268,11 @@ class Sidebar extends React.Component {
                   />
                 </Feature>
 
-                <Feature features={['events']} organization={organization}>
+                <Feature
+                  features={['events']}
+                  hookName="events-sidebar-item"
+                  organization={organization}
+                >
                   <SidebarItem
                     {...sidebarItemProps}
                     onClick={(_id, evt) =>
@@ -326,8 +330,8 @@ class Sidebar extends React.Component {
                 )}
               </SidebarSection>
 
-              <Feature features={['sentry10', 'discover']} organization={organization}>
-                <SidebarSection>
+              <SidebarSection>
+                <Feature features={['sentry10', 'discover']} organization={organization}>
                   <SidebarItem
                     {...sidebarItemProps}
                     index
@@ -337,6 +341,12 @@ class Sidebar extends React.Component {
                     to={`/organizations/${organization.slug}/dashboards/`}
                     id="customizable-dashboards"
                   />
+                </Feature>
+                <Feature
+                  features={['sentry10', 'discover']}
+                  hookName="discover-sidebar-item"
+                  organization={organization}
+                >
                   <SidebarItem
                     {...sidebarItemProps}
                     onClick={this.hidePanel}
@@ -345,8 +355,8 @@ class Sidebar extends React.Component {
                     to={`/organizations/${organization.slug}/discover/`}
                     id="discover"
                   />
-                </SidebarSection>
-              </Feature>
+                </Feature>
+              </SidebarSection>
 
               <Feature features={['monitors']} organization={organization}>
                 <SidebarItem
@@ -565,6 +575,10 @@ const SidebarSection = styled(SidebarSectionGroup)`
   ${p => !p.noMargin && `margin: ${space(1)} 0`};
   @media (max-width: ${p => p.theme.breakpoints[0]}) {
     margin: 0 ${space(1)};
+  }
+
+  &:empty {
+    display: none;
   }
 `;
 
