@@ -129,20 +129,20 @@ def merge_attached_breadcrumbs(mpack_breadcrumbs, data):
 
     try:
         unpacker = msgpack.Unpacker(mpack_breadcrumbs)
+
+        levels = {-1: 'debug', 0: 'info', 1: 'warning', 2: 'error', 3: 'critical'}
+        breadcrumbs = []
+        for crumb in unpacker:
+            breadcrumbs.append({
+                'timestamp': crumb.get('timestamp'),
+                'category': crumb.get('category'),
+                'type': crumb.get('type'),
+                'level': levels.get(crumb.get('level', 0), 'info'),
+                'message': crumb.get('message'),
+            })
     except UnpackException as e:
         minidumps_logger.exception(e)
-        return
-
-    levels = {-1: 'debug', 0: 'info', 1: 'warning', 2: 'error', 3: 'critical'}
-    breadcrumbs = []
-    for crumb in unpacker:
-        breadcrumbs.append({
-            'timestamp': crumb.get('timestamp'),
-            'category': crumb.get('category'),
-            'type': crumb.get('type'),
-            'level': levels.get(crumb.get('level', 0), 'info'),
-            'message': crumb.get('message'),
-        })
+        # Continue in case some breadcrumbs exist
 
     if not breadcrumbs:
         return
