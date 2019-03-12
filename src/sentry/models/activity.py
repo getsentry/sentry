@@ -82,6 +82,8 @@ class Activity(Model):
     class Meta:
         app_label = 'sentry'
         db_table = 'sentry_activity'
+        # NOTE: In Postgres, this index is actually on (project_id, datetime DESC)
+        index_together = (('project', 'datetime'),)
 
     __repr__ = sane_repr('project_id', 'group_id', 'event_id', 'user_id', 'type', 'ident')
 
