@@ -14,8 +14,8 @@ from sentry.runner.decorators import configuration
               help='Consumer group name.')
 @click.option('--bootstrap-server', default=['localhost:9092'], multiple=True,
               help='Kafka bootstrap server(s) to use.')
-@click.option('--concurrency', default=2,
-              help='Number of worker subprocess to run that process messages.')
+@click.option('--concurrency', default=1,
+              help='Number of worker subprocess to run that process messages. If set to 1 they will be processed in the consumer.')
 @click.option('--max-batch-size', default=10000,
               help='Max number of messages to batch in memory before committing offsets to Kafka.')
 @click.option('--max-batch-time-ms', default=60000,

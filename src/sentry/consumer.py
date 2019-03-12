@@ -62,6 +62,12 @@ for key, handler in (
     dispatch[topic] = handler
 
 
+def handle_task(task):
+    topic, payload = task
+    handler = dispatch[topic]
+    handler(json.loads(payload))
+
+
 def multiprocess_worker(task_queue):
     # Configure within each Process
     configured = False
@@ -79,40 +85,48 @@ def multiprocess_worker(task_queue):
             configured = True
 
         try:
-            topic, payload = task
-            handler = dispatch[topic]
-            handler(json.loads(payload))
+            handle_task(task)
         finally:
             task_queue.task_done()
 
 
 class ConsumerWorker(AbstractBatchWorker):
-    def __init__(self, concurrency=2):
+    def __init__(self, concurrency=1):
         from multiprocessing import Process, JoinableQueue as Queue
 
+        self.concurrency = concurrency
         self.pool = []
-        self.task_queue = Queue(1000)
-        for _ in xrange(concurrency):
-            p = Process(target=multiprocess_worker, args=(self.task_queue,))
-            p.daemon = True
-            p.start()
-            self.pool.append(p)
+
+        if self.concurrency > 1:
+            self.task_queue = Queue(1000)
+            for _ in xrange(concurrency):
+                p = Process(target=multiprocess_worker, args=(self.task_queue,))
+                p.daemon = True
+                p.start()
+                self.pool.append(p)
 
     def process_message(self, message):
         topic = message.topic()
-        self.task_queue.put((topic, message.value()))
+        task = (topic, message.value())
+
+        if self.concurrency > 1:
+            self.task_queue.put(task)
+        else:
+            handle_task(task)
 
     def flush_batch(self, batch):
-        # Batch flush is when Kafka offsets are committed. We await the completion
-        # of all submitted tasks so that we don't publish offsets for anything
-        # that hasn't been processed.
-        self.task_queue.join()
+        if self.concurrency > 1:
+            # Batch flush is when Kafka offsets are committed. We await the completion
+            # of all submitted tasks so that we don't publish offsets for anything
+            # that hasn't been processed.
+            self.task_queue.join()
 
     def shutdown(self):
-        # Shut down our pool
-        for _ in self.pool:
-            self.task_queue.put(_STOP_WORKER)
+        if self.concurrency > 1:
+            # Shut down our pool
+            for _ in self.pool:
+                self.task_queue.put(_STOP_WORKER)
 
-        # And wait for it to drain
-        for p in self.pool:
-            p.join()
+            # And wait for it to drain
+            for p in self.pool:
+                p.join()
