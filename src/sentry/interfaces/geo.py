@@ -4,7 +4,7 @@ __all__ = ('Geo', )
 
 import six
 
-from sentry.interfaces.base import Interface
+from sentry.interfaces.base import Interface, RUST_RENORMALIZED_DEFAULT
 from sentry.utils.geo import geo_by_addr
 
 
@@ -20,13 +20,12 @@ class Geo(Interface):
     """
 
     @classmethod
-    def to_python(cls, data, rust_renormalized=False):
-        if not rust_renormalized:
-            data = {
-                'country_code': data.get('country_code'),
-                'city': data.get('city'),
-                'region': data.get('region'),
-            }
+    def to_python(cls, data, rust_renormalized=RUST_RENORMALIZED_DEFAULT):
+        data = {
+            'country_code': data.get('country_code'),
+            'city': data.get('city'),
+            'region': data.get('region'),
+        }
 
         return cls(**data)
 

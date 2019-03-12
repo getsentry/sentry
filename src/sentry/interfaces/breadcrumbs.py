@@ -13,7 +13,7 @@ __all__ = ('Breadcrumbs', )
 import six
 
 from sentry.constants import LOG_LEVELS_MAP
-from sentry.interfaces.base import Interface, InterfaceValidationError, prune_empty_keys
+from sentry.interfaces.base import Interface, InterfaceValidationError, prune_empty_keys, RUST_RENORMALIZED_DEFAULT
 from sentry.utils.safe import get_path, trim
 from sentry.utils.dates import to_timestamp, to_datetime, parse_timestamp
 
@@ -37,7 +37,7 @@ class Breadcrumbs(Interface):
     score = 800
 
     @classmethod
-    def to_python(cls, data, rust_renormalized=False):
+    def to_python(cls, data, rust_renormalized=RUST_RENORMALIZED_DEFAULT):
         values = []
         for index, crumb in enumerate(get_path(data, 'values', filter=True, default=())):
             # TODO(ja): Handle already invalid and None breadcrumbs
@@ -77,6 +77,17 @@ class Breadcrumbs(Interface):
                 crumb['timestamp'] = to_timestamp(ts)
             else:
                 crumb['timestamp'] = None
+
+            for key in (
+                'type',
+                'level',
+                'message',
+                'category',
+                'event_id',
+                'data',
+            ):
+                crumb.setdefault(key, None)
+
             return crumb
 
         ty = crumb.get('type') or 'default'

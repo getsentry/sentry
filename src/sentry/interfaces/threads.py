@@ -1,13 +1,13 @@
 from __future__ import absolute_import
 
-from sentry.interfaces.base import Interface, prune_empty_keys
+from sentry.interfaces.base import Interface, prune_empty_keys, RUST_RENORMALIZED_DEFAULT
 from sentry.interfaces.stacktrace import Stacktrace
 from sentry.utils.safe import trim
 
 __all__ = ('Threads', )
 
 
-def get_stacktrace(value, raw=False, rust_renormalized=False):
+def get_stacktrace(value, raw=False, rust_renormalized=RUST_RENORMALIZED_DEFAULT):
     # Special case: if the thread has no frames we set the
     # stacktrace to none.  Otherwise this will fail really
     # badly.
@@ -20,7 +20,7 @@ class Threads(Interface):
     grouping_variants = ['system', 'app']
 
     @classmethod
-    def to_python(cls, data, rust_renormalized=False):
+    def to_python(cls, data, rust_renormalized=RUST_RENORMALIZED_DEFAULT):
         threads = []
 
         for thread in data.get('values') or ():

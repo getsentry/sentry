@@ -13,7 +13,7 @@ import string
 
 from django.utils.encoding import force_text
 
-from sentry.interfaces.base import Interface, prune_empty_keys
+from sentry.interfaces.base import Interface, prune_empty_keys, RUST_RENORMALIZED_DEFAULT
 from sentry.utils.contexts_normalization import normalize_os, normalize_runtime
 from sentry.utils.safe import get_path, trim
 
@@ -176,16 +176,13 @@ class Contexts(Interface):
     score = 800
 
     @classmethod
-    def to_python(cls, data, rust_renormalized=False):
+    def to_python(cls, data, rust_renormalized=RUST_RENORMALIZED_DEFAULT):
         rv = {}
         for alias, value in six.iteritems(data):
             # XXX(markus): The `None`-case should be handled in the UI and
             # other consumers of this interface
             if value is not None:
-                if rust_renormalized:
-                    rv[alias] = value
-                else:
-                    rv[alias] = cls.normalize_context(alias, value)
+                rv[alias] = cls.normalize_context(alias, value)
         return cls(**rv)
 
     @classmethod

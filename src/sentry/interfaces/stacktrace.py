@@ -19,7 +19,7 @@ from django.utils.translation import ugettext as _
 from six.moves.urllib.parse import urlparse
 
 from sentry.app import env
-from sentry.interfaces.base import Interface, InterfaceValidationError, prune_empty_keys
+from sentry.interfaces.base import Interface, InterfaceValidationError, prune_empty_keys, RUST_RENORMALIZED_DEFAULT
 from sentry.interfaces.schemas import validate_and_default_interface
 from sentry.models import UserOption
 from sentry.utils.safe import trim, trim_dict
@@ -214,8 +214,31 @@ class Frame(Interface):
     grouping_variants = ['system', 'app']
 
     @classmethod
-    def to_python(cls, data, raw=False, rust_renormalized=False):
+    def to_python(cls, data, raw=False, rust_renormalized=RUST_RENORMALIZED_DEFAULT):
         if rust_renormalized:
+            for key in (
+                'abs_path',
+                'colno',
+                'context_line',
+                'data',
+                'errors',
+                'filename',
+                'function',
+                'image_addr',
+                'in_app',
+                'instruction_addr',
+                'lineno',
+                'module',
+                'package',
+                'platform',
+                'post_context',
+                'pre_context',
+                'symbol',
+                'symbol_addr',
+                'trust',
+                'vars',
+            ):
+                data.setdefault(key, None)
             return cls(**data)
 
         is_valid, errors = validate_and_default_interface(data, cls.path)
@@ -580,7 +603,8 @@ class Stacktrace(Interface):
         return iter(self.frames)
 
     @classmethod
-    def to_python(cls, data, slim_frames=True, raw=False, rust_renormalized=False):
+    def to_python(cls, data, slim_frames=True, raw=False,
+                  rust_renormalized=RUST_RENORMALIZED_DEFAULT):
         if rust_renormalized:
             data = dict(data)
             frame_list = []
@@ -593,6 +617,8 @@ class Stacktrace(Interface):
                         rust_renormalized=rust_renormalized))
 
             data['frames'] = frame_list
+            data.setdefault('registers', None)
+            data.setdefault('frames_omitted', None)
             return cls(**data)
 
         is_valid, errors = validate_and_default_interface(data, cls.path)

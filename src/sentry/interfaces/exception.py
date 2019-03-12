@@ -15,7 +15,7 @@ import six
 
 from django.conf import settings
 
-from sentry.interfaces.base import Interface, InterfaceValidationError, prune_empty_keys
+from sentry.interfaces.base import Interface, InterfaceValidationError, prune_empty_keys, RUST_RENORMALIZED_DEFAULT
 from sentry.interfaces.schemas import validate_and_default_interface
 from sentry.interfaces.stacktrace import Stacktrace, slim_frame_data
 from sentry.utils import json
@@ -726,8 +726,19 @@ class Mechanism(Interface):
     """
 
     @classmethod
-    def to_python(cls, data, rust_renormalized=False):
+    def to_python(cls, data, rust_renormalized=RUST_RENORMALIZED_DEFAULT):
         if rust_renormalized:
+            for key in (
+                'type',
+                'synthetic',
+                'description',
+                'help_link',
+                'handled',
+                'data',
+                'meta',
+            ):
+                data.setdefault(key, None)
+
             return cls(**data)
 
         data = upgrade_legacy_mechanism(data)
@@ -860,7 +871,7 @@ class SingleException(Interface):
     grouping_variants = ['system', 'app']
 
     @classmethod
-    def to_python(cls, data, slim_frames=True, rust_renormalized=False):
+    def to_python(cls, data, slim_frames=True, rust_renormalized=RUST_RENORMALIZED_DEFAULT):
         if not rust_renormalized:
             is_valid, errors = validate_and_default_interface(data, cls.path)
             if not is_valid:
@@ -886,9 +897,10 @@ class SingleException(Interface):
         else:
             raw_stacktrace = None
 
+        type = data.get('type')
+        value = data.get('value')
+
         if not rust_renormalized:
-            type = data.get('type')
-            value = data.get('value')
             if isinstance(value, six.string_types):
                 if type is None:
                     m = _type_value_re.match(value)
@@ -1036,12 +1048,14 @@ class Exception(Interface):
         return len(self.exceptions())
 
     @classmethod
-    def to_python(cls, data, rust_renormalized=False):
+    def to_python(cls, data, rust_renormalized=RUST_RENORMALIZED_DEFAULT):
         if not rust_renormalized:
             if data and 'values' not in data and 'exc_omitted' not in data:
                 data = {"values": [data]}
 
-            values = get_path(data, 'values', default=[])
+        values = get_path(data, 'values', default=[])
+
+        if not rust_renormalized:
             if not isinstance(values, list):
                 raise InterfaceValidationError("Invalid value for 'values'")
 
@@ -1060,6 +1074,8 @@ class Exception(Interface):
                 kwargs['exc_omitted'] = data['exc_omitted']
             else:
                 kwargs['exc_omitted'] = None
+        else:
+            kwargs.setdefault('exc_omitted', None)
 
         instance = cls(**kwargs)
 
