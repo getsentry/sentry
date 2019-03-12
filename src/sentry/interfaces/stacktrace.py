@@ -214,7 +214,10 @@ class Frame(Interface):
     grouping_variants = ['system', 'app']
 
     @classmethod
-    def to_python(cls, data, raw=False):
+    def to_python(cls, data, raw=False, rust_renormalized=False):
+        if rust_renormalized:
+            return cls(**data)
+
         is_valid, errors = validate_and_default_interface(data, cls.path)
         if not is_valid:
             raise InterfaceValidationError("Invalid stack frame data.")
@@ -577,7 +580,21 @@ class Stacktrace(Interface):
         return iter(self.frames)
 
     @classmethod
-    def to_python(cls, data, slim_frames=True, raw=False):
+    def to_python(cls, data, slim_frames=True, raw=False, rust_renormalized=False):
+        if rust_renormalized:
+            data = dict(data)
+            frame_list = []
+            for f in data.get('frames') or []:
+                # XXX(dcramer): handle PHP sending an empty array for a frame
+                frame_list.append(
+                    Frame.to_python(
+                        f or {},
+                        raw=raw,
+                        rust_renormalized=rust_renormalized))
+
+            data['frames'] = frame_list
+            return cls(**data)
+
         is_valid, errors = validate_and_default_interface(data, cls.path)
         if not is_valid:
             raise InterfaceValidationError("Invalid stack frame data.")
@@ -595,7 +612,11 @@ class Stacktrace(Interface):
             if f is None:
                 continue
             # XXX(dcramer): handle PHP sending an empty array for a frame
-            frame_list.append(Frame.to_python(f or {}, raw=raw))
+            frame_list.append(
+                Frame.to_python(
+                    f or {},
+                    raw=raw,
+                    rust_renormalized=rust_renormalized))
 
         kwargs = {
             'frames': frame_list,
