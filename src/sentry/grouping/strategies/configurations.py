@@ -1,10 +1,23 @@
 from __future__ import absolute_import
 
-from sentry.grouping.strategies.base import register_strategy_config
+from sentry.grouping.strategies.base import StrategyConfiguration
+
+
+# The latest version of th edefault config that should be used
+DEFAULT_CONFIG = 'legacy:v1'
+
+# The full mapping of all known configurations.
+CONFIGURATIONS = {}
+
+
+def register_strategy_config(id, strategies, delegates=None):
+    rv = StrategyConfiguration(id, strategies, delegates)
+    CONFIGURATIONS[rv.id] = rv
+    return rv
 
 
 register_strategy_config(
-    id='legacy',
+    id='legacy:v1',
     strategies=[
         'expect-ct:v1',
         'expect-staple:v1',
