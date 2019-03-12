@@ -100,13 +100,16 @@ class EventSerializer(Serializer):
         tags = sorted(
             [
                 {
-                    'key': key.split('sentry:', 1)[-1],
-                    'value': value,
-                    '_meta': meta.get(key) or get_path(meta, six.text_type(i), '1') or None,
+                    'key': kv[0].split('sentry:', 1)[-1],
+                    'value': kv[1],
+                    '_meta': meta.get(kv[0]) or get_path(meta, six.text_type(i), '1') or None,
                 }
-                # TODO this should be using the Event.tags getter
-                for i, (key, value) in enumerate(event.data.get('tags') or ())
-                if key is not None and value is not None],
+                # TODO this should be using event.tags but there are some weird
+                # issues around that because event.tags re-sorts the tags and
+                # this function relies on them being in the original order to
+                # look up meta.
+                for i, kv in enumerate(event.data.get('tags') or ())
+                if kv is not None and kv[0] is not None and kv[1] is not None],
             key=lambda x: x['key']
         )
 
