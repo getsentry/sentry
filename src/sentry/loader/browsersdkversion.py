@@ -13,9 +13,9 @@ from django.conf import settings
 
 logger = logging.getLogger('sentry')
 
-_version_regexp = re.compile(r'\d+')
+_version_regexp = re.compile(r'^\d\.\d\.\d$')  # We really only want stable releases
 LOADER_FOLDER = os.path.abspath(os.path.join(os.path.dirname(sentry.__file__), 'loader'))
-DEFAULT_VERSION = '4.x'
+DEFAULT_VERSION = '4.x'  # DEFAULT_VERSION must exists, in case of 5.0 a new constant should be introduced
 
 
 @lru_cache(maxsize=10)
@@ -30,11 +30,8 @@ def load_registry(path):
         return None
 
 
-def get_highest_browser_sdk_version():
-    return max(get_browser_sdk_version_versions(),
-               key=lambda version: int(_version_regexp.match(version).group(0))
-               if _version_regexp.search(version) else -1
-               )
+def get_highest_browser_sdk_version(versions):
+    return max(filter(lambda x: _version_regexp.match(x), versions))
 
 
 def get_browser_sdk_version_versions():
@@ -50,20 +47,25 @@ def get_browser_sdk_version_choices():
 
 def load_version_from_file():
     data = load_registry('_registry')
-    return data['version']
+    return data['versions']
+
+
+def get_highest_selected_browser_sdk_version(selected_version):
+    versions = load_version_from_file()
+    if selected_version == 'latest':
+        return get_highest_browser_sdk_version(versions)
+    return get_highest_browser_sdk_version(
+        filter(lambda x: x.startswith(selected_version[0]), versions))
 
 
 def get_browser_sdk_version(project_key):
     selected_version = get_selected_browser_sdk_version(project_key)
 
-    if selected_version == DEFAULT_VERSION:
-        try:
-            return load_version_from_file()
-        except BaseException:
-            logger.error('error ocurred while trying to read js sdk information from the registry')
-            return settings.JS_SDK_LOADER_SDK_VERSION
-
-    return settings.JS_SDK_LOADER_SDK_VERSION
+    try:
+        return get_highest_selected_browser_sdk_version(selected_version)
+    except BaseException:
+        logger.error('error ocurred while trying to read js sdk information from the registry')
+        return settings.JS_SDK_LOADER_SDK_VERSION
 
 
 def get_selected_browser_sdk_version(project_key):
