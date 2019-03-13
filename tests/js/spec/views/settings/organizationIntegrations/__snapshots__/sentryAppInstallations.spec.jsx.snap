@@ -199,11 +199,6 @@ exports[`Sentry App Installations when Apps exist displays all Apps owned by the
                                   theme={
                                     Object {
                                       "alert": Object {
-                                        "attention": Object {
-                                          "background": "#F09E71",
-                                          "backgroundLight": "#ECBFA6",
-                                          "border": "#D0816D",
-                                        },
                                         "beta": Object {
                                           "background": "linear-gradient(90deg, #F868BC, #6C5FC7)",
                                         },
@@ -215,32 +210,32 @@ exports[`Sentry App Installations when Apps exist displays all Apps owned by the
                                         "error": Object {
                                           "background": "#e03e2f",
                                           "backgroundLight": "#FDF6F5",
-                                          "border": "#E7C0BC",
-                                          "iconColor": "#C72516",
-                                          "textLight": "#92635f",
+                                          "border": "#FA5849",
+                                          "iconColor": "#e03e2f",
+                                          "textLight": "#FA5849",
                                         },
                                         "info": Object {
                                           "background": "#3B6ECC",
                                           "backgroundLight": "#F5FAFE",
-                                          "border": "#B5D6ED",
+                                          "border": "#628BD6",
                                           "iconColor": "#3B6ECC",
                                         },
                                         "success": Object {
                                           "background": "#57be8c",
-                                          "backgroundLight": "#F8FCF7",
-                                          "border": "#BBD6B3",
+                                          "backgroundLight": "#f8fcf7",
+                                          "border": "#57be8c",
                                           "iconColor": "#3EA573",
                                         },
                                         "warn": Object {
-                                          "background": "#ecc844",
+                                          "background": "#ecbb08",
                                           "backgroundLight": "#FFFDF7",
-                                          "border": "#E1D697",
+                                          "border": "#e6bc23",
                                           "iconColor": "#e6bc23",
                                         },
                                         "warning": Object {
-                                          "background": "#ecc844",
+                                          "background": "#ecbb08",
                                           "backgroundLight": "#FFFDF7",
-                                          "border": "#E1D697",
+                                          "border": "#e6bc23",
                                           "iconColor": "#e6bc23",
                                         },
                                       },
@@ -248,6 +243,7 @@ exports[`Sentry App Installations when Apps exist displays all Apps owned by the
                                       "blue": "#3B6ECC",
                                       "blueDark": "#2F58A3",
                                       "blueLight": "#628BD6",
+                                      "blueLightest": "#F5FAFE",
                                       "borderDark": "#D1CAD8",
                                       "borderLight": "#E2DBE8",
                                       "borderLighter": "#f9f6fd",
@@ -349,6 +345,7 @@ exports[`Sentry App Installations when Apps exist displays all Apps owned by the
                                       "green": "#57be8c",
                                       "greenDark": "#3EA573",
                                       "greenLight": "#71D8A6",
+                                      "greenLightest": "#f8fcf7",
                                       "greenTransparent": "rgba(87, 190, 140, 0.5)",
                                       "grid": 8,
                                       "headerFontSize": "22px",
@@ -370,6 +367,7 @@ exports[`Sentry App Installations when Apps exist displays all Apps owned by the
                                       "red": "#e03e2f",
                                       "redDark": "#C72516",
                                       "redLight": "#FA5849",
+                                      "redLightest": "#FDF6F5",
                                       "settings": Object {
                                         "containerWidth": "1440px",
                                         "headerHeight": "115px",
@@ -413,6 +411,7 @@ exports[`Sentry App Installations when Apps exist displays all Apps owned by the
                                       "whiteDark": "#fbfbfc",
                                       "yellow": "#ecc844",
                                       "yellowDark": "#e6bc23",
+                                      "yellowDarkest": "#ecbb08",
                                       "yellowLight": "#FFF15E",
                                       "yellowLightest": "#FFFDF7",
                                       "yellowOrange": "#f9a66d",
@@ -468,11 +467,6 @@ exports[`Sentry App Installations when Apps exist displays all Apps owned by the
                                           theme={
                                             Object {
                                               "alert": Object {
-                                                "attention": Object {
-                                                  "background": "#F09E71",
-                                                  "backgroundLight": "#ECBFA6",
-                                                  "border": "#D0816D",
-                                                },
                                                 "beta": Object {
                                                   "background": "linear-gradient(90deg, #F868BC, #6C5FC7)",
                                                 },
@@ -484,32 +478,32 @@ exports[`Sentry App Installations when Apps exist displays all Apps owned by the
                                                 "error": Object {
                                                   "background": "#e03e2f",
                                                   "backgroundLight": "#FDF6F5",
-                                                  "border": "#E7C0BC",
-                                                  "iconColor": "#C72516",
-                                                  "textLight": "#92635f",
+                                                  "border": "#FA5849",
+                                                  "iconColor": "#e03e2f",
+                                                  "textLight": "#FA5849",
                                                 },
                                                 "info": Object {
                                                   "background": "#3B6ECC",
                                                   "backgroundLight": "#F5FAFE",
-                                                  "border": "#B5D6ED",
+                                                  "border": "#628BD6",
                                                   "iconColor": "#3B6ECC",
                                                 },
                                                 "success": Object {
                                                   "background": "#57be8c",
-                                                  "backgroundLight": "#F8FCF7",
-                                                  "border": "#BBD6B3",
+                                                  "backgroundLight": "#f8fcf7",
+                                                  "border": "#57be8c",
                                                   "iconColor": "#3EA573",
                                                 },
                                                 "warn": Object {
-                                                  "background": "#ecc844",
+                                                  "background": "#ecbb08",
                                                   "backgroundLight": "#FFFDF7",
-                                                  "border": "#E1D697",
+                                                  "border": "#e6bc23",
                                                   "iconColor": "#e6bc23",
                                                 },
                                                 "warning": Object {
-                                                  "background": "#ecc844",
+                                                  "background": "#ecbb08",
                                                   "backgroundLight": "#FFFDF7",
-                                                  "border": "#E1D697",
+                                                  "border": "#e6bc23",
                                                   "iconColor": "#e6bc23",
                                                 },
                                               },
@@ -517,6 +511,7 @@ exports[`Sentry App Installations when Apps exist displays all Apps owned by the
                                               "blue": "#3B6ECC",
                                               "blueDark": "#2F58A3",
                                               "blueLight": "#628BD6",
+                                              "blueLightest": "#F5FAFE",
                                               "borderDark": "#D1CAD8",
                                               "borderLight": "#E2DBE8",
                                               "borderLighter": "#f9f6fd",
@@ -618,6 +613,7 @@ exports[`Sentry App Installations when Apps exist displays all Apps owned by the
                                               "green": "#57be8c",
                                               "greenDark": "#3EA573",
                                               "greenLight": "#71D8A6",
+                                              "greenLightest": "#f8fcf7",
                                               "greenTransparent": "rgba(87, 190, 140, 0.5)",
                                               "grid": 8,
                                               "headerFontSize": "22px",
@@ -639,6 +635,7 @@ exports[`Sentry App Installations when Apps exist displays all Apps owned by the
                                               "red": "#e03e2f",
                                               "redDark": "#C72516",
                                               "redLight": "#FA5849",
+                                              "redLightest": "#FDF6F5",
                                               "settings": Object {
                                                 "containerWidth": "1440px",
                                                 "headerHeight": "115px",
@@ -682,6 +679,7 @@ exports[`Sentry App Installations when Apps exist displays all Apps owned by the
                                               "whiteDark": "#fbfbfc",
                                               "yellow": "#ecc844",
                                               "yellowDark": "#e6bc23",
+                                              "yellowDarkest": "#ecbb08",
                                               "yellowLight": "#FFF15E",
                                               "yellowLightest": "#FFFDF7",
                                               "yellowOrange": "#f9a66d",
