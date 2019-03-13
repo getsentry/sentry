@@ -9,7 +9,7 @@ from __future__ import absolute_import, print_function, unicode_literals
 
 import os
 import sys
-import json
+import yaml
 
 import pytest
 import six
@@ -261,36 +261,34 @@ def log():
 
 @pytest.fixture
 def insta_snapshot(request, log):
+    calls = []
+
     def inner(output, reference_file=None, subname=None):
+        calls.append(1)
         if reference_file is None:
-            node = request.node
-            parts = []
-            if subname is not None:
-                parts.append(subname)
+            name = request.node.nodeid
+            for c in ('::', '-', '[', ']'):
+                name = name.replace(c, '/')
+            name = name.strip('/')
 
-            while True:
-                parts.append(node.name)
-                if not node.parent:
-                    break
-                node = node.parent
+            reference_file = os.path.join(
+                os.path.dirname(six.text_type(request.node.fspath)),
+                'snapshots',
+                name + '.snap'
 
-            parts[0] += '.snap'
-            parts.pop()
-            reference_file = os.path.join(*parts[::-1])
+            )
         elif subname is not None:
             raise ValueError(
                 "subname only works if you don't provide your own entire reference_file")
 
         if not isinstance(output, six.string_types):
-            output = json.dumps(
-                output, sort_keys=True, indent=4, separators=(',', ': ')
-            )
+            output = yaml.safe_dump(output, indent=4)
 
         reference_file = os.path.join(_snapshot_path, reference_file)
 
         try:
             with open(reference_file) as f:
-                refval = f.read().decode('utf-8').rstrip()
+                refval = f.read().decode('utf-8')
         except IOError:
             refval = ''
 
@@ -303,4 +301,5 @@ def insta_snapshot(request, log):
             log("Run with SENTRY_SNAPSHOTS_WRITEBACK=1 to update snapshots.")
             assert refval == output
 
-    return inner
+    yield inner
+    assert calls, "Test is loading insta_snapshot but is not using it. This is likely a bug"

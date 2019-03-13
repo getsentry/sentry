@@ -59,7 +59,11 @@ def load_configs():
     return rv
 
 
-@pytest.mark.parametrize('config_name,test_name', load_configs())
+@pytest.mark.parametrize(
+    'config_name,test_name',
+    load_configs(),
+    ids=lambda x: x.replace("-", "_")  # Nicer folder structure for insta_snapshot
+)
 def test_event_hash_variant(insta_snapshot, config_name, test_name, log):
     with open(os.path.join(_fixture_path, config_name, test_name + '.json')) as f:
         input = json.load(f)
