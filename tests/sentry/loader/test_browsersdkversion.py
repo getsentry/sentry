@@ -17,7 +17,9 @@ MOCK_VERSIONS = [
     "4.7.4-beta1",
     "5.0.0",
     "5.0.1",
-    "5.0.2-beta1"
+    "5.0.2-beta1",
+    "5.1.1",
+    "5.10.1",
 ]
 
 
@@ -29,14 +31,14 @@ class BrowserSdkVersionTestCase(TestCase):
     @mock.patch('sentry.loader.browsersdkversion.load_version_from_file',
                 return_value=MOCK_VERSIONS)
     def test_get_highest_browser_sdk_version_from_versions(self, load_version_from_file):
-        assert get_highest_browser_sdk_version(load_version_from_file()) == '5.0.1'
+        assert get_highest_browser_sdk_version(load_version_from_file()) == '5.10.1'
 
     @mock.patch('sentry.loader.browsersdkversion.load_version_from_file',
                 return_value=MOCK_VERSIONS)
     def test_get_highest_selected_version(self, load_version_from_file):
         assert get_highest_selected_browser_sdk_version('4.x') == '4.6.4'
-        assert get_highest_selected_browser_sdk_version('5.x') == '5.0.1'
-        assert get_highest_selected_browser_sdk_version('latest') == '5.0.1'
+        assert get_highest_selected_browser_sdk_version('5.x') == '5.10.1'
+        assert get_highest_selected_browser_sdk_version('latest') == '5.10.1'
 
     @mock.patch('sentry.loader.browsersdkversion.load_version_from_file',
                 return_value=[])

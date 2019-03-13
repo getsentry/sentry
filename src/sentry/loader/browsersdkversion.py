@@ -4,7 +4,9 @@ import os
 import re
 import logging
 import json
+import six
 
+from pkg_resources import parse_version
 from functools32 import lru_cache
 
 import sentry
@@ -13,7 +15,7 @@ from django.conf import settings
 
 logger = logging.getLogger('sentry')
 
-_version_regexp = re.compile(r'^\d\.\d\.\d$')  # We really only want stable releases
+_version_regexp = re.compile(r'^\d+\.\d+\.\d+$')  # We really only want stable releases
 LOADER_FOLDER = os.path.abspath(os.path.join(os.path.dirname(sentry.__file__), 'loader'))
 DEFAULT_VERSION = '4.x'  # DEFAULT_VERSION must exists, in case of 5.0 a new constant should be introduced
 
@@ -32,7 +34,8 @@ def load_registry(path):
 
 def get_highest_browser_sdk_version(versions):
     full_versions = filter(lambda x: _version_regexp.match(x), versions)
-    return max(full_versions) if full_versions else settings.JS_SDK_LOADER_SDK_VERSION
+    return six.binary_type(max(map(parse_version, full_versions))
+                           ) if full_versions else settings.JS_SDK_LOADER_SDK_VERSION
 
 
 def get_browser_sdk_version_versions():
