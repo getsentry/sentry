@@ -266,7 +266,7 @@ def insta_snapshot(request, log):
     def inner(output, reference_file=None, subname=None):
         calls.append(1)
         if reference_file is None:
-            name = request.node.nodeid
+            name = request.node.name
             for c in ('::', '-', '[', ']'):
                 name = name.replace(c, '/')
             name = name.strip('/')
@@ -274,6 +274,7 @@ def insta_snapshot(request, log):
             reference_file = os.path.join(
                 os.path.dirname(six.text_type(request.node.fspath)),
                 'snapshots',
+                os.path.basename(request.node.parent.name),
                 name + '.snap'
 
             )
