@@ -6,7 +6,6 @@ import {isEqual} from 'lodash';
 import qs from 'query-string';
 
 import SentryTypes from 'app/sentryTypes';
-import ApiMixin from 'app/mixins/apiMixin';
 import {fetchOrgMembers, indexMembersByProject} from 'app/actionCreators/members';
 import GroupListHeader from 'app/components/groupListHeader';
 import GroupStore from 'app/stores/groupStore';
@@ -14,6 +13,7 @@ import LoadingError from 'app/components/loadingError';
 import LoadingIndicator from 'app/components/loadingIndicator';
 import StreamGroup from 'app/components/stream/group';
 import utils from 'app/utils';
+import withApi from 'app/utils/withApi';
 import {t} from 'app/locale';
 import EmptyStateWarning from 'app/components/emptyStateWarning';
 import {Panel, PanelBody} from 'app/components/panels';
@@ -22,6 +22,7 @@ const GroupList = createReactClass({
   displayName: 'GroupList',
 
   propTypes: {
+    api: PropTypes.object.isRequired,
     query: PropTypes.string.isRequired,
     canSelectGroups: PropTypes.bool,
     orgId: PropTypes.string.isRequired,
@@ -34,7 +35,7 @@ const GroupList = createReactClass({
     location: PropTypes.object,
   },
 
-  mixins: [Reflux.listenTo(GroupStore, 'onGroupChange'), ApiMixin],
+  mixins: [Reflux.listenTo(GroupStore, 'onGroupChange')],
 
   getDefaultProps() {
     return {
@@ -75,17 +76,18 @@ const GroupList = createReactClass({
 
   fetchData() {
     GroupStore.loadInitialData([]);
+    const {api, orgId} = this.props;
 
     this.setState({
       loading: true,
       error: false,
     });
 
-    fetchOrgMembers(this.api, this.props.orgId).then(members => {
+    fetchOrgMembers(api, orgId).then(members => {
       this.setState({memberList: indexMembersByProject(members)});
     });
 
-    this.api.request(this.getGroupListEndpoint(), {
+    api.request(this.getGroupListEndpoint(), {
       success: (data, _, jqXHR) => {
         this._streamManager.push(data);
 
@@ -187,4 +189,4 @@ const GroupList = createReactClass({
   },
 });
 
-export default GroupList;
+export default withApi(GroupList);
