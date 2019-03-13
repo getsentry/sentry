@@ -3,7 +3,7 @@ from __future__ import absolute_import
 from django import template
 from django.http import HttpRequest
 
-from sentry.auth.access import NoAccess
+from sentry.auth.access import NoAccess, from_user
 from sentry.api.serializers.base import serialize as serialize_func
 from sentry.api.serializers.models.organization import (DetailedOrganizationSerializer)
 from sentry.utils import json
@@ -30,7 +30,7 @@ def convert_to_json(obj):
 def serialize_detailed_org(context, obj):
     if 'request' in context:
         user = context['request'].user
-        access = context['request'].access
+        access = from_user(user, obj)
     else:
         user = None
         access = NoAccess()
