@@ -145,6 +145,10 @@ def merge_attached_breadcrumbs(mpack_breadcrumbs, data):
                           if isinstance(c, dict) and c.get('timestamp') is not None), None)
     new_crumb = next((c for c in reversed(breadcrumbs) if isinstance(
         c, dict) and c.get('timestamp') is not None), None)
+
+    # cap the breadcrumbs to the highest count of either file
+    cap = max(len(current_crumbs), len(breadcrumbs))
+
     if current_crumb is not None and new_crumb is not None:
         if dp.parse(current_crumb['timestamp']) > dp.parse(new_crumb['timestamp']):
             data['breadcrumbs'] = breadcrumbs + current_crumbs
@@ -152,6 +156,8 @@ def merge_attached_breadcrumbs(mpack_breadcrumbs, data):
             data['breadcrumbs'] = current_crumbs + breadcrumbs
     else:
         data['breadcrumbs'] = current_crumbs + breadcrumbs
+
+    data['breadcrumbs'] = data['breadcrumbs'][-cap:]
 
 
 def is_valid_module_id(id):

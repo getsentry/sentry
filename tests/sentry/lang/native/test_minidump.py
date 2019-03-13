@@ -1125,20 +1125,58 @@ def test_merge_attached_breadcrumbs_timestamp_ordered():
     merge_attached_breadcrumbs(MockFile(mpack_crumb1), event)
     assert event['breadcrumbs'][0]['timestamp'] == '0001-01-01T01:00:02Z'
 
-    mpack_crumb2 = msgpack.packb({'timestamp': '0001-01-01T01:00:01Z'})
-    merge_attached_breadcrumbs(MockFile(mpack_crumb2), event)
+    crumbs_file2 = bytearray()
+    crumbs_file2.extend(msgpack.packb({'timestamp': '0001-01-01T01:00:01Z'}))
+    # File with 2 items to extend cap
+    crumbs_file2.extend(msgpack.packb({'timestamp': '0001-01-01T01:00:01Z'}))
+    merge_attached_breadcrumbs(MockFile(crumbs_file2), event)
     assert event['breadcrumbs'][0]['timestamp'] == '0001-01-01T01:00:01Z'
     assert event['breadcrumbs'][1]['timestamp'] == '0001-01-01T01:00:02Z'
 
     mpack_crumb3 = msgpack.packb({'timestamp': '0001-01-01T01:00:03Z'})
     merge_attached_breadcrumbs(MockFile(mpack_crumb3), event)
-    assert event['breadcrumbs'][0]['timestamp'] == '0001-01-01T01:00:01Z'
-    assert event['breadcrumbs'][1]['timestamp'] == '0001-01-01T01:00:02Z'
-    assert event['breadcrumbs'][2]['timestamp'] == '0001-01-01T01:00:03Z'
+    assert event['breadcrumbs'][0]['timestamp'] == '0001-01-01T01:00:02Z'
+    assert event['breadcrumbs'][1]['timestamp'] == '0001-01-01T01:00:03Z'
 
     mpack_crumb4 = msgpack.packb({'timestamp': '0001-01-01T01:00:00Z'})
     merge_attached_breadcrumbs(MockFile(mpack_crumb4), event)
-    assert event['breadcrumbs'][0]['timestamp'] == '0001-01-01T01:00:00Z'
+    assert event['breadcrumbs'][0]['timestamp'] == '0001-01-01T01:00:02Z'
+    assert event['breadcrumbs'][1]['timestamp'] == '0001-01-01T01:00:03Z'
+
+
+def test_merge_attached_breadcrumbs_capped():
+    # Crumbs are capped by the largest file
+    event = {}
+
+    crumbs_file1 = bytearray()
+    for i in range(0, 2):
+        crumbs_file1.extend(msgpack.packb({'timestamp': '0001-01-01T01:00:01Z'}))
+
+    merge_attached_breadcrumbs(MockFile(crumbs_file1), event)
+    assert len(event['breadcrumbs']) == 2
+    assert event['breadcrumbs'][0]['timestamp'] == '0001-01-01T01:00:01Z'
     assert event['breadcrumbs'][1]['timestamp'] == '0001-01-01T01:00:01Z'
+
+    crumbs_file2 = bytearray()
+    for i in range(0, 3):
+        crumbs_file2.extend(msgpack.packb({'timestamp': '0001-01-01T01:00:02Z'}))
+
+    merge_attached_breadcrumbs(MockFile(crumbs_file2), event)
+    assert len(event['breadcrumbs']) == 3
+    assert event['breadcrumbs'][0]['timestamp'] == '0001-01-01T01:00:02Z'
+    assert event['breadcrumbs'][1]['timestamp'] == '0001-01-01T01:00:02Z'
     assert event['breadcrumbs'][2]['timestamp'] == '0001-01-01T01:00:02Z'
-    assert event['breadcrumbs'][3]['timestamp'] == '0001-01-01T01:00:03Z'
+
+    crumbs_file3 = msgpack.packb({'timestamp': '0001-01-01T01:00:03Z'})
+    merge_attached_breadcrumbs(MockFile(crumbs_file3), event)
+    assert len(event['breadcrumbs']) == 3
+    assert event['breadcrumbs'][0]['timestamp'] == '0001-01-01T01:00:02Z'
+    assert event['breadcrumbs'][1]['timestamp'] == '0001-01-01T01:00:02Z'
+    assert event['breadcrumbs'][2]['timestamp'] == '0001-01-01T01:00:03Z'
+
+    crumbs_file4 = msgpack.packb({'timestamp': '0001-01-01T01:00:04Z'})
+    merge_attached_breadcrumbs(MockFile(crumbs_file4), event)
+    assert len(event['breadcrumbs']) == 3
+    assert event['breadcrumbs'][0]['timestamp'] == '0001-01-01T01:00:02Z'
+    assert event['breadcrumbs'][1]['timestamp'] == '0001-01-01T01:00:03Z'
+    assert event['breadcrumbs'][2]['timestamp'] == '0001-01-01T01:00:04Z'
