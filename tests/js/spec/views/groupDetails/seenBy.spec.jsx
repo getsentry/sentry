@@ -5,17 +5,11 @@ import GroupSeenBy from 'app/views/groupDetails/shared/seenBy';
 import ConfigStore from 'app/stores/configStore';
 
 describe('GroupSeenBy', function() {
-  let sandbox;
-
   beforeEach(function() {
-    sandbox = sinon.sandbox.create();
-
-    sandbox.stub(ConfigStore, 'get').returns([]);
+    jest.spyOn(ConfigStore, 'get').mockImplementation(() => []);
   });
 
-  afterEach(function() {
-    sandbox.restore();
-  });
+  afterEach(function() {});
 
   describe('render()', function() {
     it('should return null if seenBy is falsy', function() {

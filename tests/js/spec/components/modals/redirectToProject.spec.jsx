@@ -14,11 +14,11 @@ describe('RedirectToProjectModal', function() {
   ];
 
   beforeEach(function() {
-    sinon.stub(window.location, 'assign');
+    jest.spyOn(window.location, 'assign').mockImplementation(() => {});
   });
 
   afterEach(function() {
-    window.location.assign.restore();
+    window.location.assign.mockRestore();
   });
 
   it('has timer to redirect to new slug after mounting', function() {
@@ -34,10 +34,10 @@ describe('RedirectToProjectModal', function() {
     );
 
     jest.advanceTimersByTime(4900);
-    expect(window.location.assign.calledOnce).toBe(false);
+    expect(window.location.assign).not.toHaveBeenCalled();
 
     jest.advanceTimersByTime(200);
-    expect(window.location.assign.calledOnce).toBe(true);
-    expect(window.location.assign.calledWith('/org-slug/new-slug/')).toBe(true);
+    expect(window.location.assign).toHaveBeenCalledTimes(1);
+    expect(window.location.assign).toHaveBeenCalledWith('/org-slug/new-slug/');
   });
 });

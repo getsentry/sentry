@@ -8,7 +8,6 @@ jest.mock('app/api');
 jest.mock('jquery');
 
 describe('CreateProject', function() {
-  let sandbox;
   const baseProps = {
     params: {
       orgId: 'testOrg',
@@ -36,8 +35,10 @@ describe('CreateProject', function() {
   ]);
 
   beforeEach(function() {
-    sandbox = sinon.sandbox.create();
-    sandbox.stub(ConfigStore, 'getConfig').returns({id: 1, invitesEnabled: true});
+    jest.spyOn(ConfigStore, 'getConfig').mockImplementation(() => ({
+      id: 1,
+      invitesEnabled: true,
+    }));
     MockApiClient.clearMockResponses();
 
     MockApiClient.addMockResponse({
@@ -46,9 +47,7 @@ describe('CreateProject', function() {
     });
   });
 
-  afterEach(function() {
-    sandbox.restore();
-  });
+  afterEach(function() {});
 
   it('should render loading', function() {
     const wrapper = shallow(<InviteMember {...baseProps} />, baseContext);
@@ -82,8 +81,10 @@ describe('CreateProject', function() {
   });
 
   it('should use invite/add language based on config', function() {
-    sandbox.restore(ConfigStore, 'getConfig');
-    sandbox.stub(ConfigStore, 'getConfig').returns({id: 1, invitesEnabled: false});
+    jest.spyOn(ConfigStore, 'getConfig').mockImplementation(() => ({
+      id: 1,
+      invitesEnabled: false,
+    }));
 
     const wrapper = shallow(<InviteMember {...baseProps} />, baseContext);
     wrapper.setState({
