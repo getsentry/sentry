@@ -4,70 +4,56 @@ from __future__ import absolute_import
 
 import pytest
 
-from sentry.interfaces.base import InterfaceValidationError
 from sentry.event_manager import EventManager
 from sentry.models import Event
-from sentry.testutils import TestCase
 
 
-class FrameTest(TestCase):
-    @classmethod
-    def to_python(cls, data):
+@pytest.fixture
+def make_frames_snapshot(insta_snapshot):
+    def inner(data):
         mgr = EventManager(data={"stacktrace": {"frames": [data]}})
         mgr.normalize()
         evt = Event(data=mgr.get_data())
-        if evt.data.get('errors'):
-            raise InterfaceValidationError(evt.data.get('errors'))
+        frame = evt.interfaces['stacktrace'].frames[0]
 
-        return evt.interfaces['stacktrace'].frames[0]
+        insta_snapshot({
+            'errors': evt.data.get('errors'),
+            'to_json': frame.to_json()
+        })
 
-    def test_bad_input(self):
-        with pytest.raises(InterfaceValidationError):
-            self.to_python({'filename': 1})
+    return inner
 
-        assert self.to_python({'filename': 'foo', 'abs_path': 1}).abs_path == 'foo'
 
-        with pytest.raises(InterfaceValidationError):
-            self.to_python({'function': 1})
+@pytest.mark.parametrize('input', [
+    {'filename': 1},
+    {'filename': 'foo', 'abs_path': 1},
+    {'function': 1},
+    {'module': 1},
+    {'function': '?'}
+])
+def test_bad_input(make_frames_snapshot, input):
+    make_frames_snapshot(input)
 
-        with pytest.raises(InterfaceValidationError):
-            self.to_python({'module': 1})
 
-        assert self.to_python({'function': '?'}).function is None
+@pytest.mark.parametrize('x', [float('inf'), float('-inf'), float('nan')],
+                         ids=['inf', 'neginf', 'nan'])
+def test_context_with_nan(make_frames_snapshot, x):
+    make_frames_snapshot({
+        'filename': 'x',
+        'vars': {
+            'x': x
+        },
+    })
 
-    def test_context_with_nan(self):
-        assert self.to_python({
-            'filename': 'x',
-            'vars': {
-                'x': float('inf')
-            },
-        }).vars == {'x': 0}
 
-        assert self.to_python({
-            'filename': 'x',
-            'vars': {
-                'x': float('-inf')
-            },
-        }).vars == {'x': 0}
-
-        assert self.to_python({
-            'filename': 'x',
-            'vars': {
-                'x': float('nan')
-            },
-        }).vars == {'x': 0}
-
-    def test_address_normalization(self):
-        interface = self.to_python(
-            {
-                'lineno': 1,
-                'filename': 'blah.c',
-                'function': 'main',
-                'instruction_addr': 123456,
-                'symbol_addr': '123450',
-                'image_addr': '0x0',
-            }
-        )
-        assert interface.instruction_addr == '0x1e240'
-        assert interface.symbol_addr == '0x1e23a'
-        assert interface.image_addr == '0x0'
+def test_address_normalization(make_frames_snapshot):
+    make_frames_snapshot(
+        {
+            'lineno': 1,
+            'filename': 'blah.c',
+            'function': 'main',
+            'instruction_addr': 123456,
+            'symbol_addr': '123450',
+            'image_addr': '0x0',
+        }
+    )
