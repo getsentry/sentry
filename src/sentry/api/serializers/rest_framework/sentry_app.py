@@ -31,6 +31,9 @@ class EventListField(serializers.WritableField):
 
 class SchemaField(serializers.WritableField):
     def validate(self, data):
+        if data == {}:
+            return
+
         try:
             validate_schema(data)
         except SchemaValidationError as e:
