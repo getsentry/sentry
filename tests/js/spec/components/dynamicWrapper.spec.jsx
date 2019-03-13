@@ -3,15 +3,9 @@ import {shallow} from 'enzyme';
 import DynamicWrapper from 'app/components/dynamicWrapper';
 
 describe('DynamicWrapper', function() {
-  let sandbox;
+  beforeEach(function() {});
 
-  beforeEach(function() {
-    sandbox = sinon.sandbox.create();
-  });
-
-  afterEach(function() {
-    sandbox.restore();
-  });
+  afterEach(function() {});
 
   it('renders actual value', function() {
     const wrapper = shallow(<DynamicWrapper fixed="Test" value="Dynamic Content" />);

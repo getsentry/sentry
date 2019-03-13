@@ -5,7 +5,6 @@ import SearchBar from 'app/views/stream/searchBar';
 import TagStore from 'app/stores/tagStore';
 
 describe('SearchBar', function() {
-  let sandbox;
   let options;
   let tagValuePromise;
   let supportedTags;
@@ -15,8 +14,6 @@ describe('SearchBar', function() {
     TagStore.reset();
     TagStore.onLoadTagsSuccess(TestStubs.Tags());
     supportedTags = TagStore.getAllTags();
-
-    sandbox = sinon.sandbox.create();
 
     options = {
       context: {organization: {id: '123'}},
@@ -29,17 +26,11 @@ describe('SearchBar', function() {
 
   afterEach(function() {
     MockApiClient.clearMockResponses();
-    sandbox.restore();
   });
 
   describe('updateAutoCompleteItems()', function() {
-    let clock;
-
-    beforeEach(function() {
-      clock = sandbox.useFakeTimers();
-    });
-    afterEach(function() {
-      clock.restore();
+    beforeAll(function() {
+      jest.useFakeTimers();
     });
 
     it('sets state with complete tag', function() {
@@ -56,7 +47,7 @@ describe('SearchBar', function() {
       };
       const searchBar = mount(<SearchBar {...props} />, options);
       clickInput(searchBar);
-      clock.tick(301);
+      jest.advanceTimersByTime(301);
       expect(searchBar.find('SearchDropdown').prop('searchSubstring')).toEqual('"fu"');
       expect(searchBar.find('SearchDropdown').prop('items')).toEqual([]);
     });
@@ -83,7 +74,7 @@ describe('SearchBar', function() {
         '"http://example.com"'
       );
       expect(searchBar.find('SearchDropdown').prop('items')).toEqual([]);
-      clock.tick(301);
+      jest.advanceTimersByTime(301);
     });
 
     it('does not request values when tag is `timesSeen`', function() {
@@ -99,7 +90,7 @@ describe('SearchBar', function() {
       };
       const searchBar = mount(<SearchBar {...props} />, options);
       clickInput(searchBar);
-      clock.tick(301);
+      jest.advanceTimersByTime(301);
       expect(loader).not.toHaveBeenCalled();
     });
   });

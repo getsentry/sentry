@@ -7,16 +7,11 @@ import OnboardingWizard from 'app/views/onboarding/';
 import Project from 'app/views/onboarding/project';
 
 describe('OnboardingWizard', function() {
-  let sandbox;
-
   beforeEach(function() {
-    sandbox = sinon.sandbox.create();
-    this.stubbedApiRequest = sandbox.stub(Client.prototype, 'request');
+    this.stubbedApiRequest = jest.spyOn(Client.prototype, 'request');
   });
 
-  afterEach(function() {
-    sandbox.restore();
-  });
+  afterEach(function() {});
 
   describe('render()', function() {
     const baseProps = {

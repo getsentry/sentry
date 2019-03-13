@@ -28,34 +28,34 @@ describe('StreamManager', function() {
     });
 
     it('adds items', function() {
-      const storeAdd = sinon.spy(store, 'add');
+      const storeAdd = jest.spyOn(store, 'add');
       const mgr = new StreamManager(store);
       const items = [{id: 1}];
       mgr.push(items);
 
       expect(mgr.idList).toHaveLength(1);
-      expect(storeAdd.calledWith(items)).toBe(true);
+      expect(storeAdd).toHaveBeenCalledWith(items);
     });
 
     it('allows adding a single item', function() {
-      const storeAdd = sinon.spy(store, 'add');
+      const storeAdd = jest.spyOn(store, 'add');
       const mgr = new StreamManager(store);
       const item = {id: 1};
       mgr.push(item);
 
       expect(mgr.idList).toHaveLength(1);
-      expect(storeAdd.calledWith([item])).toBe(true);
+      expect(storeAdd).toHaveBeenCalledWith([item]);
     });
 
     it('trims after adding', function() {
       const mgr = new StreamManager(store, {limit: 1});
-      const storeRemove = sinon.spy(store, 'remove');
-      const mgrTrim = sinon.spy(mgr, 'trim');
+      const storeRemove = jest.spyOn(store, 'remove');
+      const mgrTrim = jest.spyOn(mgr, 'trim');
       mgr.push([{id: 1}, {id: 2}]);
 
       expect(mgr.idList).toHaveLength(1);
-      expect(storeRemove.calledWith(2)).toBe(true);
-      expect(mgrTrim.called).toBe(true);
+      expect(storeRemove).toHaveBeenCalledWith(2, expect.anything(), expect.anything());
+      expect(mgrTrim).toHaveBeenCalled();
     });
 
     it('preserves NEW order of duplicates', function() {
@@ -69,48 +69,46 @@ describe('StreamManager', function() {
 
   describe('trim()', function() {
     it('removes trailing items in excess of the limit', function() {
-      const storeRemove = sinon.spy(store, 'remove');
+      const storeRemove = jest.spyOn(store, 'remove');
       const mgr = new StreamManager(store, {limit: 1});
       mgr.idList = [1, 2, 3];
       mgr.trim();
 
       expect(mgr.idList).toEqual([1]);
       expect(mgr.idList).toHaveLength(1);
-      expect(storeRemove.firstCall.calledWith(2)).toBe(true);
-      expect(storeRemove.secondCall.calledWith(3)).toBe(true);
+      expect(storeRemove.mock.calls[0][0]).toEqual(2);
+      expect(storeRemove.mock.calls[1][0]).toEqual(3);
     });
 
     it('does nothing with fewer items than limit', function() {
-      const storeRemove = sinon.spy(store, 'remove');
+      const storeRemove = jest.spyOn(store, 'remove');
       const mgr = new StreamManager(store, {limit: 10});
       mgr.idList = [1, 2, 3];
       mgr.trim();
 
       expect(mgr.idList).toEqual([1, 2, 3]);
       expect(mgr.idList).toHaveLength(3);
-      expect(storeRemove.called).toBe(false);
+      expect(storeRemove).not.toHaveBeenCalled();
     });
   });
 
   describe('getAllItems()', function() {
     it('retrives ordered items from store', function() {
-      const storeGetAllItems = sinon.stub(store, 'getAllItems', function() {
-        return [{id: 1}, {id: 2}];
-      });
+      const storeGetAllItems = jest
+        .spyOn(store, 'getAllItems')
+        .mockImplementation(() => [{id: 1}, {id: 2}]);
       const mgr = new StreamManager(store);
       mgr.push({id: 2});
       mgr.push({id: 1});
       const items = mgr.getAllItems();
 
       expect(items).toEqual([{id: 2}, {id: 1}]);
-      expect(storeGetAllItems.called).toBe(true);
+      expect(storeGetAllItems).toHaveBeenCalled();
     });
 
     it('does not mutate store', function() {
       const storeItems = [{id: 1}, {id: 2}];
-      sinon.stub(store, 'getAllItems', function() {
-        return storeItems;
-      });
+      jest.spyOn(store, 'getAllItems').mockImplementation(() => storeItems);
       const mgr = new StreamManager(store);
       mgr.push([{id: 2}, {id: 1}]);
       mgr.getAllItems();
@@ -121,14 +119,14 @@ describe('StreamManager', function() {
 
   describe('unshift()', function() {
     it('adds items to the start of the list', function() {
-      const storeAdd = sinon.spy(store, 'add');
+      const storeAdd = jest.spyOn(store, 'add');
       const mgr = new StreamManager(store);
       mgr.unshift([{id: 2}]);
       mgr.unshift([{id: 1}]);
 
       expect(mgr.idList).toEqual([1, 2]);
-      expect(storeAdd.firstCall.calledWith([{id: 2}])).toBe(true);
-      expect(storeAdd.secondCall.calledWith([{id: 1}])).toBe(true);
+      expect(storeAdd.mock.calls[0][0]).toEqual([{id: 2}]);
+      expect(storeAdd.mock.calls[1][0]).toEqual([{id: 1}]);
     });
 
     it('moves duplicates to the start of the list', function() {

@@ -3,15 +3,9 @@ import {shallow} from 'enzyme';
 import ScoreBar from 'app/components/scoreBar';
 
 describe('ScoreBar', function() {
-  let sandbox;
+  beforeEach(function() {});
 
-  beforeEach(function() {
-    sandbox = sinon.sandbox.create();
-  });
-
-  afterEach(function() {
-    sandbox.restore();
-  });
+  afterEach(function() {});
 
   it('renders', function() {
     const wrapper = shallow(<ScoreBar size={60} thickness={2} score={3} />);

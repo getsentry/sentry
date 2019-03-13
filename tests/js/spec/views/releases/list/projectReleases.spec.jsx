@@ -2,19 +2,27 @@ import React from 'react';
 import {shallow, mount} from 'enzyme';
 import {browserHistory} from 'react-router';
 
-import {Client} from 'app/api';
 import {ProjectReleases} from 'app/views/releases/list/projectReleases';
 
 describe('ProjectReleases', function() {
-  let sandbox;
   let props;
   let projectReleases;
+  const requestMock = MockApiClient.addMockResponse({
+    url: '/projects/123/456/releases/',
+    body: [],
+  });
+
+  MockApiClient.addMockResponse({
+    url: '/promptsactivity/',
+    body: [],
+  });
+
+  MockApiClient.addMockResponse({
+    url: '/projects/org-slug/project-slug/releases/completion/',
+    body: [],
+  });
 
   beforeEach(function() {
-    sandbox = sinon.sandbox.create();
-
-    sandbox.stub(Client.prototype, 'request');
-
     props = {
       setProjectNavSection: function() {},
       params: {orgId: '123', projectId: '456'},
@@ -23,13 +31,12 @@ describe('ProjectReleases', function() {
     projectReleases = shallow(<ProjectReleases {...props} />, TestStubs.routerContext());
   });
 
-  afterEach(function() {
-    sandbox.restore();
-  });
+  afterEach(function() {});
 
   describe('fetchData()', function() {
     it('should call releases endpoint', function() {
-      expect(Client.prototype.request.args[0][1]).toEqual(
+      expect(requestMock).toHaveBeenCalledWith(
+        expect.anything(),
         expect.objectContaining({
           query: {per_page: 20, query: 'derp'},
         })
@@ -59,7 +66,7 @@ describe('ProjectReleases', function() {
 
   describe('componentWillReceiveProps()', function() {
     it('should update state with latest query pulled from query string', function() {
-      const setState = sandbox.stub(projectReleases.instance(), 'setState');
+      const setState = jest.spyOn(projectReleases.instance(), 'setState');
 
       const newProps = {
         ...props,
@@ -68,12 +75,15 @@ describe('ProjectReleases', function() {
           query: {query: 'newquery'},
         },
       };
-      projectReleases.instance().componentWillReceiveProps(newProps);
+      projectReleases.setProps(newProps);
+      projectReleases.update();
 
-      expect(setState.calledOnce).toBeTruthy();
-      expect(setState.getCall(0).args[0]).toEqual({
-        query: 'newquery',
-      });
+      expect(setState).toHaveBeenCalledWith(
+        {
+          query: 'newquery',
+        },
+        expect.anything()
+      );
     });
   });
 

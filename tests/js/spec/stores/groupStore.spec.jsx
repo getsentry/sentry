@@ -1,15 +1,8 @@
 import GroupStore from 'app/stores/groupStore';
 
 describe('GroupStore', function() {
-  let sandbox;
-
   beforeEach(function() {
     GroupStore.reset();
-    sandbox = sinon.sandbox.create();
-  });
-
-  afterEach(function() {
-    sandbox.restore();
   });
 
   describe('add()', function() {
@@ -47,48 +40,50 @@ describe('GroupStore', function() {
   });
 
   describe('update methods', function() {
+    beforeAll(function() {
+      jest.spyOn(GroupStore, 'trigger');
+    });
     beforeEach(function() {
-      GroupStore.reset();
+      GroupStore.trigger.mockReset();
+    });
+
+    beforeEach(function() {
       GroupStore.items = [{id: 1}, {id: 2}, {id: 3}];
     });
 
     describe('onUpdate()', function() {
       it("should treat undefined itemIds argument as 'all'", function() {
-        sandbox.stub(GroupStore, 'trigger');
         GroupStore.onUpdate(1337, undefined, 'somedata');
 
-        expect(GroupStore.trigger.calledOnce).toBeTruthy();
-        expect(GroupStore.trigger.firstCall.args[0]).toEqual(new Set([1, 2, 3]));
+        expect(GroupStore.trigger).toHaveBeenCalledTimes(1);
+        expect(GroupStore.trigger).toHaveBeenCalledWith(new Set([1, 2, 3]));
       });
     });
 
     describe('onUpdateSuccess()', function() {
       it("should treat undefined itemIds argument as 'all'", function() {
-        sandbox.stub(GroupStore, 'trigger');
         GroupStore.onUpdateSuccess(1337, undefined, 'somedata');
 
-        expect(GroupStore.trigger.calledOnce).toBeTruthy();
-        expect(GroupStore.trigger.firstCall.args[0]).toEqual(new Set([1, 2, 3]));
+        expect(GroupStore.trigger).toHaveBeenCalledTimes(1);
+        expect(GroupStore.trigger).toHaveBeenCalledWith(new Set([1, 2, 3]));
       });
     });
 
     describe('onUpdateError()', function() {
       it("should treat undefined itemIds argument as 'all'", function() {
-        sandbox.stub(GroupStore, 'trigger');
         GroupStore.onUpdateError(1337, undefined, 'something failed', false);
 
-        expect(GroupStore.trigger.calledOnce).toBeTruthy();
-        expect(GroupStore.trigger.firstCall.args[0]).toEqual(new Set([1, 2, 3]));
+        expect(GroupStore.trigger).toHaveBeenCalledTimes(1);
+        expect(GroupStore.trigger).toHaveBeenCalledWith(new Set([1, 2, 3]));
       });
     });
 
     describe('onDeleteSuccess()', function() {
       it("should treat undefined itemIds argument as 'all'", function() {
-        sandbox.stub(GroupStore, 'trigger');
         GroupStore.onDeleteSuccess(1337, undefined, 'somedata');
 
-        expect(GroupStore.trigger.calledOnce).toBeTruthy();
-        expect(GroupStore.trigger.firstCall.args[0]).toEqual(new Set([1, 2, 3]));
+        expect(GroupStore.trigger).toHaveBeenCalledTimes(1);
+        expect(GroupStore.trigger).toHaveBeenCalledWith(new Set([1, 2, 3]));
       });
     });
   });

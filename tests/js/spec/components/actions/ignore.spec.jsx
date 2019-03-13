@@ -7,7 +7,7 @@ describe('IgnoreActions', function() {
   const routerContext = TestStubs.routerContext();
   describe('disabled', function() {
     let component, button;
-    const spy = sinon.stub();
+    const spy = jest.fn();
 
     beforeEach(function() {
       component = mount(<IgnoreActions onUpdate={spy} disabled={true} />, routerContext);
@@ -20,13 +20,13 @@ describe('IgnoreActions', function() {
 
     it('does not call onUpdate when clicked', function() {
       button.simulate('click');
-      expect(spy.notCalled).toBe(true);
+      expect(spy).not.toHaveBeenCalled();
     });
   });
 
   describe('ignored', function() {
     let component;
-    const spy = sinon.spy();
+    const spy = jest.fn();
     beforeEach(function() {
       component = mount(<IgnoreActions onUpdate={spy} isIgnored={true} />, routerContext);
     });
@@ -39,13 +39,13 @@ describe('IgnoreActions', function() {
 
     it('calls onUpdate with unresolved status when clicked', function() {
       component.find('a.btn.active').simulate('click');
-      expect(spy.calledWith({status: 'unresolved'})).toBeTruthy();
+      expect(spy).toHaveBeenCalledWith({status: 'unresolved'});
     });
   });
 
   describe('without confirmation', function() {
     let component;
-    const spy = sinon.stub();
+    const spy = jest.fn();
 
     beforeEach(function() {
       component = mount(<IgnoreActions onUpdate={spy} />, routerContext);
@@ -58,14 +58,14 @@ describe('IgnoreActions', function() {
     it('calls spy with ignore details when clicked', function() {
       const button = component.find('a.btn.btn-default').first();
       button.simulate('click');
-      expect(spy.calledOnce).toBe(true);
-      expect(spy.calledWith({status: 'ignored'})).toBe(true);
+      expect(spy).toHaveBeenCalledTimes(1);
+      expect(spy).toHaveBeenCalledWith({status: 'ignored'});
     });
   });
 
   describe('with confirmation step', function() {
     let component, button;
-    const spy = sinon.stub();
+    const spy = jest.fn();
 
     beforeEach(function() {
       component = mount(
@@ -84,12 +84,12 @@ describe('IgnoreActions', function() {
 
       const modal = $(document.body).find('.modal');
       expect(modal.text()).toContain('Yoooooo');
-      expect(spy.notCalled).toBe(true);
+      expect(spy).not.toHaveBeenCalled();
       $(document.body)
         .find('.modal button:contains("Ignore")')
         .click();
 
-      expect(spy.called).toBe(true);
+      expect(spy).toHaveBeenCalled();
     });
   });
 });

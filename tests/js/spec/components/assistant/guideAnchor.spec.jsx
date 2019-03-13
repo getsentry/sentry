@@ -3,7 +3,6 @@ import {shallow} from 'enzyme';
 import GuideAnchor from 'app/components/assistant/guideAnchor';
 
 describe('GuideAnchor', function() {
-  let sandbox;
   const data = {
     currentGuide: {steps: [{message: 'abc', target: 'target 1', title: 'title 1'}]},
     currentStep: 1,
@@ -12,13 +11,9 @@ describe('GuideAnchor', function() {
     guidesSeen: new Set(),
   };
 
-  beforeEach(function() {
-    sandbox = sinon.sandbox.create();
-  });
+  beforeEach(function() {});
 
-  afterEach(function() {
-    sandbox.restore();
-  });
+  afterEach(function() {});
 
   it('renders', function() {
     const component = shallow(<GuideAnchor target="target 1" type="text" />);

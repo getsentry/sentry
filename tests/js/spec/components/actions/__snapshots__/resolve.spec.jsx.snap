@@ -7,7 +7,7 @@ exports[`ResolveActions with confirmation step renders 1`] = `
   hasRelease={false}
   isAutoResolved={false}
   isResolved={false}
-  onUpdate={[Function]}
+  onUpdate={[MockFunction]}
   orgId="org-1"
   projectId="proj-1"
   shouldConfirm={true}
@@ -468,7 +468,7 @@ exports[`ResolveActions without confirmation renders 1`] = `
   hasRelease={false}
   isAutoResolved={false}
   isResolved={false}
-  onUpdate={[Function]}
+  onUpdate={[MockFunction]}
   orgId="org-1"
   projectId="proj-1"
 >

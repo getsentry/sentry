@@ -1,7 +1,6 @@
 /* global __dirname */
 import {channel, createBroadcast} from 'emotion-theming';
 import jQuery from 'jquery';
-import sinon from 'sinon';
 import Adapter from 'enzyme-adapter-react-16';
 import Enzyme from 'enzyme';
 import MockDate from 'mockdate';
@@ -126,7 +125,6 @@ jest.unmock('jquery');
 window.tick = () => new Promise(resolve => setTimeout(resolve));
 
 window.$ = window.jQuery = jQuery;
-window.sinon = sinon;
 window.scrollTo = jest.fn();
 
 // this is very commonly used, so expose it globally

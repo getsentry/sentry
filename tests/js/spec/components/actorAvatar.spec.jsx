@@ -5,8 +5,6 @@ import MemberListStore from 'app/stores/memberListStore';
 import TeamStore from 'app/stores/teamStore';
 
 describe('Avatar', function() {
-  let sandbox;
-
   const USER = {
     id: '1',
     name: 'Jane Doe',
@@ -23,14 +21,11 @@ describe('Avatar', function() {
     ],
   };
   beforeEach(function() {
-    sandbox = sinon.sandbox.create();
     MemberListStore.loadInitialData([USER]);
     TeamStore.loadInitialData([TEAM_1]);
   });
 
-  afterEach(function() {
-    sandbox.restore();
-  });
+  afterEach(function() {});
 
   describe('render()', function() {
     it('should show a gravatar when actor type is a user', function() {

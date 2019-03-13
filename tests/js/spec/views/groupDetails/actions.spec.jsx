@@ -5,17 +5,11 @@ import GroupActions from 'app/views/groupDetails/shared/actions';
 import ConfigStore from 'app/stores/configStore';
 
 describe('GroupActions', function() {
-  let sandbox;
-
   beforeEach(function() {
-    sandbox = sinon.sandbox.create();
-
-    sandbox.stub(ConfigStore, 'get').returns([]);
+    jest.spyOn(ConfigStore, 'get').mockImplementation(() => []);
   });
 
-  afterEach(function() {
-    sandbox.restore();
-  });
+  afterEach(function() {});
 
   describe('render()', function() {
     it('renders correctly', function() {

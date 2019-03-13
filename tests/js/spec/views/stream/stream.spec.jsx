@@ -10,7 +10,6 @@ import ErrorRobot from 'app/components/errorRobot';
 import Stream from 'app/views/stream/stream';
 import EnvironmentStore from 'app/stores/environmentStore';
 import {setActiveEnvironment} from 'app/actionCreators/environments';
-import {browserHistory} from 'react-router';
 import TagStore from 'app/stores/tagStore';
 
 jest.mock('app/stores/groupStore');
@@ -20,7 +19,6 @@ const DEFAULT_LINKS_HEADER =
   '<http://127.0.0.1:8000/api/0/projects/org-slug/project-slug/issues/?cursor=1443575731:0:0>; rel="next"; results="true"; cursor="1443575731:0:0';
 
 describe('Stream', function() {
-  let sandbox;
   let context;
   let wrapper;
   let props;
@@ -33,8 +31,6 @@ describe('Stream', function() {
   let groupListRequest;
 
   beforeEach(function() {
-    sandbox = sinon.sandbox.create();
-
     organization = TestStubs.Organization({
       id: '1337',
       slug: 'org-slug',
@@ -65,7 +61,6 @@ describe('Stream', function() {
       url: '/organizations/org-slug/processingissues/',
       method: 'GET',
     });
-    sandbox.stub(browserHistory, 'push');
 
     context = {
       project,
@@ -85,17 +80,24 @@ describe('Stream', function() {
   });
 
   afterEach(function() {
-    sandbox.restore();
     MockApiClient.clearMockResponses();
   });
 
   describe('fetchData()', function() {
     describe('complete handler', function() {
+      beforeAll(function() {
+        jest.spyOn(CursorPoller.prototype, 'setEndpoint');
+      });
+
       beforeEach(function() {
+        CursorPoller.prototype.setEndpoint.mockReset();
         wrapper = shallow(<Stream {...props} />, {
           context,
         });
-        sandbox.stub(CursorPoller.prototype, 'setEndpoint');
+      });
+
+      afterAll(function() {
+        CursorPoller.prototype.setEndpoint.mockRestore();
       });
 
       it('should reset the poller endpoint and sets cursor URL', function() {
@@ -105,11 +107,9 @@ describe('Stream', function() {
 
         stream.fetchData();
 
-        expect(
-          CursorPoller.prototype.setEndpoint.calledWith(
-            'http://127.0.0.1:8000/api/0/projects/org-slug/project-slug/issues/?cursor=1443575731:0:1'
-          )
-        ).toBe(true);
+        expect(CursorPoller.prototype.setEndpoint).toHaveBeenCalledWith(
+          'http://127.0.0.1:8000/api/0/projects/org-slug/project-slug/issues/?cursor=1443575731:0:1'
+        );
       });
 
       it('should not enable the poller if realtimeActive is false', function() {
@@ -118,7 +118,7 @@ describe('Stream', function() {
         stream.state.realtimeActive = false;
         stream.fetchData();
 
-        expect(CursorPoller.prototype.setEndpoint.notCalled).toBeTruthy();
+        expect(CursorPoller.prototype.setEndpoint).not.toHaveBeenCalled();
       });
 
       it("should not enable the poller if the 'previous' link has results", function() {
@@ -147,7 +147,7 @@ describe('Stream', function() {
 
         stream.fetchData();
 
-        expect(CursorPoller.prototype.setEndpoint.notCalled).toBeTruthy();
+        expect(CursorPoller.prototype.setEndpoint).not.toHaveBeenCalled();
       });
     }); // complete handler
 
@@ -172,9 +172,9 @@ describe('Stream', function() {
     });
 
     it('should cancel any previous, unfinished fetches', function() {
-      const requestCancel = sandbox.stub();
+      const requestCancel = jest.fn();
       let requestOptions;
-      sandbox.stub(Client.prototype, 'request', function(url, options) {
+      jest.spyOn(Client.prototype, 'request').mockImplementation(function(url, options) {
         requestOptions = options;
         return {
           cancel: requestCancel,
@@ -188,7 +188,7 @@ describe('Stream', function() {
       stream.fetchData();
       stream.fetchData();
 
-      expect(requestCancel.calledOnce).toBeTruthy();
+      expect(requestCancel).toHaveBeenCalledTimes(1);
       expect(stream.lastRequest).toBeTruthy();
 
       // when request "completes", lastRequest is cleared
@@ -197,12 +197,13 @@ describe('Stream', function() {
       });
 
       expect(stream.lastRequest).toBeNull();
+      Client.prototype.request.mockRestore();
     });
 
     it('sends environment attribute', function() {
-      const requestCancel = sandbox.stub();
+      const requestCancel = jest.fn();
       let requestOptions;
-      sandbox.stub(Client.prototype, 'request', function(url, options) {
+      jest.spyOn(Client.prototype, 'request').mockImplementation(function(url, options) {
         requestOptions = options;
         return {
           cancel: requestCancel,
@@ -216,6 +217,7 @@ describe('Stream', function() {
 
       expect(requestOptions.data.query).toContain('environment:prod');
       expect(requestOptions.data.environment).toBe('prod');
+      Client.prototype.request.mockRestore();
     });
   });
 

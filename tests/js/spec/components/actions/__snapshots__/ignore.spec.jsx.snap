@@ -5,7 +5,7 @@ exports[`IgnoreActions with confirmation step renders 1`] = `
   confirmLabel="Ignore"
   confirmMessage="Yoooooo"
   isIgnored={false}
-  onUpdate={[Function]}
+  onUpdate={[MockFunction]}
   shouldConfirm={true}
 >
   <div
@@ -6023,7 +6023,7 @@ exports[`IgnoreActions without confirmation renders 1`] = `
 <IgnoreActions
   confirmLabel="Ignore"
   isIgnored={false}
-  onUpdate={[Function]}
+  onUpdate={[MockFunction]}
 >
   <div
     style={

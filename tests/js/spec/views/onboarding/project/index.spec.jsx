@@ -6,16 +6,11 @@ import {Client} from 'app/api';
 import Project from 'app/views/onboarding/project';
 
 describe('Project', function() {
-  let sandbox;
-
   beforeEach(function() {
-    sandbox = sinon.sandbox.create();
-    this.stubbedApiRequest = sandbox.stub(Client.prototype, 'request');
+    this.stubbedApiRequest = jest.spyOn(Client.prototype, 'request');
   });
 
-  afterEach(function() {
-    sandbox.restore();
-  });
+  afterEach(function() {});
 
   describe('render()', function() {
     const baseProps = {

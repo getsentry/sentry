@@ -10,8 +10,6 @@ import RuleBuilder from 'app/views/settings/project/projectOwnership/ruleBuilder
 jest.mock('jquery');
 
 describe('RuleBuilder', function() {
-  let sandbox;
-
   const organization = TestStubs.Organization();
   let project;
   let handleAdd;
@@ -50,11 +48,10 @@ describe('RuleBuilder', function() {
   });
 
   beforeEach(function() {
-    sandbox = sinon.sandbox.create();
     // User in project
     MemberListStore.loadInitialData([USER_1]);
     // All teams
-    sandbox.stub(TeamStore, 'getAll').returns([TEAM_1, TEAM_2]);
+    jest.spyOn(TeamStore, 'getAll').mockImplementation(() => [TEAM_1, TEAM_2]);
 
     handleAdd = jest.fn();
 
@@ -63,7 +60,7 @@ describe('RuleBuilder', function() {
       teams: [TEAM_1],
     });
     ProjectsStore.loadInitialData([project]);
-    sandbox.stub(ProjectsStore, 'getBySlug').returns(project);
+    jest.spyOn(ProjectsStore, 'getBySlug').mockImplementation(() => project);
     MockApiClient.clearMockResponses();
     MockApiClient.addMockResponse({
       url: '/organizations/org-slug/members/',
@@ -71,9 +68,7 @@ describe('RuleBuilder', function() {
     });
   });
 
-  afterEach(function() {
-    sandbox.restore();
-  });
+  afterEach(function() {});
 
   it('renders', async function() {
     const wrapper = mount(

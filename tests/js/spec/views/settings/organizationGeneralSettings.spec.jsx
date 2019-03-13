@@ -303,7 +303,7 @@ describe('OrganizationGeneralSettings', function() {
     wrapper.find('Switch[name="require2FA"]').simulate('click');
 
     // hide console.error for this test
-    sinon.stub(console, 'error');
+    jest.spyOn(console, 'error').mockImplementation(() => {});
     // Confirm but has API failure
     wrapper
       .find(
@@ -315,6 +315,6 @@ describe('OrganizationGeneralSettings', function() {
     wrapper.update();
     expect(wrapper.find('Switch[name="require2FA"]').prop('isActive')).toBe(false);
     // eslint-disable-next-line no-console
-    console.error.restore();
+    console.error.mockRestore();
   });
 });

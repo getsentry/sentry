@@ -29,15 +29,15 @@ describe('FormSource', function() {
       },
     },
   ];
-  let loadStub;
 
   beforeEach(function() {
-    loadStub = sinon.stub(ActionCreators, 'loadSearchMap');
+    jest.spyOn(ActionCreators, 'loadSearchMap').mockImplementation(() => {});
+
     FormSearchActions.loadSearchMap(searchMap);
   });
 
   afterEach(function() {
-    loadStub.restore();
+    ActionCreators.loadSearchMap.mockRestore();
   });
 
   it('can find a form field', async function() {
@@ -47,20 +47,27 @@ describe('FormSource', function() {
     await tick();
     await tick();
     wrapper.update();
-    const calls = mock.mock.calls;
-    expect(calls[calls.length - 1][0].results[0].item).toEqual({
-      field: {
-        label: 'Test Field',
-        name: 'test-field',
-        help: 'test-help',
-      },
-      title: 'Test Field',
-      description: 'test-help',
-      route: '/route/',
-      resultType: 'field',
-      sourceType: 'field',
-      to: '/route/#test-field',
-    });
+    expect(mock).toHaveBeenLastCalledWith(
+      expect.objectContaining({
+        results: [
+          expect.objectContaining({
+            item: {
+              field: {
+                label: 'Test Field',
+                name: 'test-field',
+                help: 'test-help',
+              },
+              title: 'Test Field',
+              description: 'test-help',
+              route: '/route/',
+              resultType: 'field',
+              sourceType: 'field',
+              to: '/route/#test-field',
+            },
+          }),
+        ],
+      })
+    );
   });
 
   it('does not find any form field ', async function() {
