@@ -3,6 +3,7 @@ from __future__ import absolute_import
 import pytest
 import six
 
+from django.utils import timezone
 from mock import patch
 
 from sentry.api.exceptions import InvalidRepository
@@ -341,6 +342,8 @@ class SetCommitsTestCase(TestCase):
             organization_id=org.id,
             key='b' * 40,
             author=author,
+            date_added='2019-03-13 12:00:00',
+            message='fixed a thing'
         )
 
         release = Release.objects.create(version='abcdabc', organization=org)
@@ -360,16 +363,28 @@ class SetCommitsTestCase(TestCase):
             ]
         )
 
+        date_format = '%Y-%m-%d %H:%M:%S'
         assert Commit.objects.filter(
             repository_id=repo.id,
             organization_id=org.id,
             key='a' * 40,
         ).exists()
-        assert Commit.objects.filter(
+        commit_c = Commit.objects.get(
             repository_id=repo.id,
             organization_id=org.id,
             key='c' * 40,
-        ).exists()
+        )
+        assert commit_c.date_added.strftime(date_format) == timezone.now().strftime(date_format)
+        assert commit_c.message is None
+
+        # Using the id/repository payload should retain existing data.
+        commit_b = Commit.objects.get(
+            repository_id=repo.id,
+            organization_id=org.id,
+            key='b' * 40,
+        )
+        assert commit_b.message == 'fixed a thing'
+        assert commit_b.date_added.strftime(date_format) == '2019-03-13 12:00:00'
 
         latest_commit = Commit.objects.get(
             repository_id=repo.id,

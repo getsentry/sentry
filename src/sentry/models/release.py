@@ -417,13 +417,17 @@ class Release(Model):
                     else:
                         author = authors[author_email]
 
-                    commit_data = {
-                        'message': data.get('message'),
-                        'date_added': data.get('timestamp') or timezone.now(),
-                    }
-                    # If we didn't get an author don't overwrite an existing one.
+                    commit_data = {}
+
+                    # Update/set message and author if they are provided.
                     if author is not None:
                         commit_data['author'] = author
+                    if 'message' in data:
+                        commit_data['message'] = data['message']
+                    if 'timestamp' in data:
+                        commit_data['date_added'] = data['timestamp']
+                    else:
+                        commit_data['date_added'] = timezone.now()
 
                     commit, created = Commit.objects.create_or_update(
                         organization_id=self.organization_id,
