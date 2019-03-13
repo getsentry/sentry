@@ -64,23 +64,29 @@ const theme = {
 
   background: '#fff',
 
+  // Try to keep these ordered plz
   zIndex: {
-    orgAndUserMenu: 1004,
+    header: 1000,
+    dropdown: 1001,
     globalSelectionHeader: 1002,
     sidebar: 1003,
-    dropdown: 1001,
-    header: 1000,
-    modal: 10000,
-    toast: 10001,
-    dropdownAutocomplete: {
-      // needs to be above menu
-      actor: 1008,
+    orgAndUserMenu: 1004,
 
+    dropdownAutocomplete: {
       // needs to be below actor but above other page elements (e.g. pagination)
       // (e.g. Issue Details "seen" dots on chart is 2)
       // stream header is 1000
       menu: 1007,
+
+      // needs to be above menu
+      actor: 1008,
     },
+
+    // Sentry user feedback modal
+    sentryErrorEmbed: 1009,
+
+    modal: 10000,
+    toast: 10001,
   },
 
   alert: {
