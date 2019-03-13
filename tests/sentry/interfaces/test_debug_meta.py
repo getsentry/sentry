@@ -4,22 +4,32 @@ from __future__ import absolute_import
 
 from sentry.interfaces.debug_meta import DebugMeta
 from sentry.testutils import TestCase
+from sentry.models import Event
+
+from sentry.event_manager import EventManager
+
+
+def to_python(data):
+    mgr = EventManager(data={"debug_meta": data})
+    mgr.normalize()
+    evt = Event(data=mgr.get_data())
+    return evt.interfaces.get('debug_meta') or DebugMeta.to_python({})
 
 
 class DebugMetaTest(TestCase):
     def test_null_values(self):
-        assert DebugMeta.to_python({}).to_json() == {}
-        assert DebugMeta.to_python({"images": None}).to_json() == {}
+        assert to_python({}).to_json() == {}
+        assert to_python({"images": None}).to_json() == {}
 
         # TODO(markus): Should eventually generate {"images": [None]}
-        assert DebugMeta.to_python({"images": [None]}).to_json() == {}
+        assert to_python({"images": [None]}).to_json() == {}
 
     def test_apple_behavior(self):
         image_name = (
             '/var/containers/Bundle/Application/'
             'B33C37A8-F933-4B6B-9FFA-152282BFDF13/SentryTest.app/SentryTest'
         )
-        interface = DebugMeta.to_python(
+        interface = to_python(
             {
                 "images": [
                     {
@@ -67,7 +77,7 @@ class DebugMetaTest(TestCase):
             '/var/containers/Bundle/Application/'
             'B33C37A8-F933-4B6B-9FFA-152282BFDF13/SentryTest.app/SentryTest'
         )
-        interface = DebugMeta.to_python(
+        interface = to_python(
             {
                 "images": [
                     {
@@ -94,7 +104,7 @@ class DebugMetaTest(TestCase):
         assert interface.images[0]['arch'] == 'x86_64'
 
     def test_symbolic_behavior(self):
-        interface = DebugMeta.to_python(
+        interface = to_python(
             {
                 "images": [
                     {
@@ -134,7 +144,7 @@ class DebugMetaTest(TestCase):
         }
 
     def test_symbolic_behavior_with_arch(self):
-        interface = DebugMeta.to_python(
+        interface = to_python(
             {
                 "images": [
                     {
@@ -158,7 +168,7 @@ class DebugMetaTest(TestCase):
         assert interface.images[0]['arch'] == 'x86'
 
     def test_proguard_behavior(self):
-        interface = DebugMeta.to_python(
+        interface = to_python(
             {
                 "images": [{
                     "type": "proguard",

@@ -1,0 +1,6 @@
+default:
+  hash: '329b29efcf1f77067a063e34f56e7791'
+  component:
+    default*
+      message*
+        u'Hello there world!'

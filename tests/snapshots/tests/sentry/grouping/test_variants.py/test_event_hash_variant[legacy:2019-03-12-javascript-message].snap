@@ -1,0 +1,6 @@
+default:
+  hash: '4119639092e62c55ea8be348e4d9260d'
+  component:
+    default*
+      message*
+        u'event'

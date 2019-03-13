@@ -3,17 +3,12 @@
 from __future__ import absolute_import, print_function
 
 import os
-import sys
 import json
 import pytest
 
 from sentry.models import Event
 from sentry.event_manager import EventManager
 from sentry.grouping.component import GroupingComponent
-
-
-def log(x):
-    return sys.stdout.write(x + '\n')
 
 
 def dump_variant(variant, lines=None, indent=0):
@@ -65,14 +60,9 @@ def load_configs():
 
 
 @pytest.mark.parametrize('config_name,test_name', load_configs())
-def test_event_hash_variant(config_name, test_name):
+def test_event_hash_variant(insta_snapshot, config_name, test_name, log):
     with open(os.path.join(_fixture_path, config_name, test_name + '.json')) as f:
         input = json.load(f)
-    try:
-        with open(os.path.join(_fixture_path, config_name, test_name + '.out')) as f:
-            refval = f.read().decode('utf-8').rstrip()
-    except IOError:
-        refval = ''
 
     mgr = EventManager(data=input)
     mgr.normalize()
@@ -86,8 +76,6 @@ def test_event_hash_variant(config_name, test_name):
         rv.append('%s:' % key)
         dump_variant(value, rv, 1)
     output = '\n'.join(rv)
-    if not refval:
-        log(output)
     log(repr(evt.get_hashes()))
 
-    assert refval == output
+    insta_snapshot(output)

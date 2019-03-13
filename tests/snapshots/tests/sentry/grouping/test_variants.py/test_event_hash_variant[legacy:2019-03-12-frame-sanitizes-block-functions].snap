@@ -1,0 +1,21 @@
+app:
+  hash: None
+  component:
+    app (stacktrace of system takes precedence)
+      stacktrace (ignored because hash matches system variant)
+        frame* (frame considered in-app because no frame is in-app)
+          filename*
+            u'foo.py'
+          function* (ruby block)
+            'block'
+--------------------------------------------------------------------------
+system:
+  hash: '27eed4125fc13d42163ddb0b8f357b48'
+  component:
+    system*
+      stacktrace*
+        frame*
+          filename*
+            u'foo.py'
+          function* (ruby block)
+            'block'

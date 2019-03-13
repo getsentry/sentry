@@ -1,0 +1,25 @@
+app:
+  hash: None
+  component:
+    app (stacktrace of system takes precedence)
+      stacktrace (ignored because hash matches system variant)
+        frame* (frame considered in-app because no frame is in-app)
+          module*
+            u'foo'
+          filename (module takes precedence)
+            u'foo.py'
+          lineno*
+            1
+--------------------------------------------------------------------------
+system:
+  hash: '299a0be4a5a79e6a59fdd251b19d78bb'
+  component:
+    system*
+      stacktrace*
+        frame*
+          module*
+            u'foo'
+          filename (module takes precedence)
+            u'foo.py'
+          lineno*
+            1

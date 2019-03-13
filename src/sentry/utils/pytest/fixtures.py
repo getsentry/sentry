@@ -7,7 +7,12 @@ including ``db`` fixture in the function resolution scope.
 """
 from __future__ import absolute_import, print_function, unicode_literals
 
+import os
+import sys
+import json
+
 import pytest
+import six
 
 
 DEFAULT_EVENT_DATA = {
@@ -238,3 +243,64 @@ def default_activity(default_group, default_project, default_user):
     return Activity.objects.create(
         group=default_group, project=default_project, type=Activity.NOTE, user=default_user, data={}
     )
+
+
+_snapshot_path = os.path.abspath(
+    os.path.join(
+        os.path.dirname(__file__),
+        '../../../../tests/snapshots/'))
+_snapshot_writeback = os.environ.get("SENTRY_SNAPSHOTS_WRITEBACK", "0") in ("true", "1")
+
+
+@pytest.fixture
+def log():
+    def inner(x):
+        return sys.stdout.write(x + '\n')
+    return inner
+
+
+@pytest.fixture
+def insta_snapshot(request, log):
+    def inner(output, reference_file=None, subname=None):
+        if reference_file is None:
+            node = request.node
+            parts = []
+            if subname is not None:
+                parts.append(subname)
+
+            while True:
+                parts.append(node.name)
+                if not node.parent:
+                    break
+                node = node.parent
+
+            parts[0] += '.snap'
+            parts.pop()
+            reference_file = os.path.join(*parts[::-1])
+        elif subname is not None:
+            raise ValueError(
+                "subname only works if you don't provide your own entire reference_file")
+
+        if not isinstance(output, six.string_types):
+            output = json.dumps(
+                output, sort_keys=True, indent=4, separators=(',', ': ')
+            )
+
+        reference_file = os.path.join(_snapshot_path, reference_file)
+
+        try:
+            with open(reference_file) as f:
+                refval = f.read().decode('utf-8').rstrip()
+        except IOError:
+            refval = ''
+
+        if _snapshot_writeback and refval != output:
+            if not os.path.isdir(os.path.dirname(reference_file)):
+                os.makedirs(os.path.dirname(reference_file))
+            with open(reference_file, "w") as f:
+                f.write(output)
+        else:
+            log("Run with SENTRY_SNAPSHOTS_WRITEBACK=1 to update snapshots.")
+            assert refval == output
+
+    return inner
