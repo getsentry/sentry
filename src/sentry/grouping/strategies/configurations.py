@@ -4,7 +4,7 @@ from sentry.grouping.strategies.base import StrategyConfiguration
 
 
 # The latest version of th edefault config that should be used
-DEFAULT_CONFIG = 'legacy:v1'
+DEFAULT_CONFIG = 'legacy:2019-03-12'
 
 # The full mapping of all known configurations.
 CONFIGURATIONS = {}
@@ -17,7 +17,7 @@ def register_strategy_config(id, strategies, delegates=None):
 
 
 register_strategy_config(
-    id='legacy:v1',
+    id='legacy:2019-03-12',
     strategies=[
         'expect-ct:v1',
         'expect-staple:v1',
