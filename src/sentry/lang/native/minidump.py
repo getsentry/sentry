@@ -2,11 +2,19 @@ from __future__ import absolute_import
 
 from django.core.files.uploadedfile import InMemoryUploadedFile, TemporaryUploadedFile
 from symbolic import arch_from_breakpad, ProcessState, id_from_breakpad
-
+import dateutil.parser as dp
 from sentry.utils.safe import get_path
+import logging
+import msgpack
+from msgpack import UnpackException, ExtraData
+
+minidumps_logger = logging.getLogger('sentry.minidumps')
 
 # Attachment type used for minidump files
 MINIDUMP_ATTACHMENT_TYPE = 'event.minidump'
+
+MAX_MSGPACK_BREADCRUMB_SIZE_BYTES = 50000
+MAX_MSGPACK_EVENT_SIZE_BYTES = 100000
 
 # Mapping of well-known minidump OS constants to our internal names
 MINIDUMP_OS_TYPES = {
@@ -94,6 +102,62 @@ def merge_process_state_event(data, state, cfi=None):
         'name': module.name,
     } for module in state.modules() if is_valid_module_id(module.id)]
     data.setdefault('debug_meta', {})['images'] = images
+
+
+def merge_attached_event(mpack_event, data):
+    # Merge msgpack serialized event.
+    if mpack_event.size > MAX_MSGPACK_EVENT_SIZE_BYTES:
+        return
+
+    try:
+        event = msgpack.unpack(mpack_event)
+    except (UnpackException, ExtraData) as e:
+        minidumps_logger.exception(e)
+        return
+
+    for key in event:
+        value = event.get(key)
+        if value is not None:
+            data[key] = value
+
+
+def merge_attached_breadcrumbs(mpack_breadcrumbs, data):
+    # Merge msgpack breadcrumb file.
+    if mpack_breadcrumbs.size > MAX_MSGPACK_BREADCRUMB_SIZE_BYTES:
+        return
+
+    try:
+        unpacker = msgpack.Unpacker(mpack_breadcrumbs)
+        breadcrumbs = list(unpacker)
+    except (UnpackException, ExtraData) as e:
+        minidumps_logger.exception(e)
+        return
+
+    if not breadcrumbs:
+        return
+
+    current_crumbs = data.get('breadcrumbs')
+    if not current_crumbs:
+        data['breadcrumbs'] = breadcrumbs
+        return
+
+    current_crumb = next((c for c in reversed(current_crumbs)
+                          if isinstance(c, dict) and c.get('timestamp') is not None), None)
+    new_crumb = next((c for c in reversed(breadcrumbs) if isinstance(
+        c, dict) and c.get('timestamp') is not None), None)
+
+    # cap the breadcrumbs to the highest count of either file
+    cap = max(len(current_crumbs), len(breadcrumbs))
+
+    if current_crumb is not None and new_crumb is not None:
+        if dp.parse(current_crumb['timestamp']) > dp.parse(new_crumb['timestamp']):
+            data['breadcrumbs'] = breadcrumbs + current_crumbs
+        else:
+            data['breadcrumbs'] = current_crumbs + breadcrumbs
+    else:
+        data['breadcrumbs'] = current_crumbs + breadcrumbs
+
+    data['breadcrumbs'] = data['breadcrumbs'][-cap:]
 
 
 def is_valid_module_id(id):
