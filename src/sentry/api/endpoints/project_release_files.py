@@ -12,6 +12,7 @@ from sentry.api.content_negotiation import ConditionalContentNegotiation
 from sentry.api.exceptions import ResourceDoesNotExist
 from sentry.api.paginator import OffsetPaginator
 from sentry.api.serializers import serialize
+from sentry.api.endpoints.organization_release_files import load_dist
 from sentry.models import File, Release, ReleaseFile
 from sentry.utils.apidocs import scenario, attach_scenarios
 
@@ -80,14 +81,14 @@ class ProjectReleaseFilesEndpoint(ProjectEndpoint):
 
         file_list = ReleaseFile.objects.filter(
             release=release,
-        ).select_related('file', 'dist').order_by('name')
+        ).select_related('file').order_by('name')
 
         return self.paginate(
             request=request,
             queryset=file_list,
             order_by='name',
             paginator_cls=OffsetPaginator,
-            on_results=lambda x: serialize(x, request.user),
+            on_results=lambda r: serialize(load_dist(r), request.user),
         )
 
     @attach_scenarios([upload_file_scenario])
