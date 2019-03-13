@@ -50,9 +50,7 @@ SENTRY_SNUBA_MAP = {
     'timestamp': 'timestamp',
     'time': 'time',
     # We support type as both tag and a real column
-    'type.name': 'type',
-    # We support version as both tag and a real column
-    'version.name': 'version',
+    'event.type': 'type',
     # user
     'user.id': 'user_id',
     'user.email': 'email',
