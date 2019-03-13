@@ -11,10 +11,30 @@ from sentry.api.content_negotiation import ConditionalContentNegotiation
 from sentry.api.exceptions import ResourceDoesNotExist
 from sentry.api.paginator import OffsetPaginator
 from sentry.api.serializers import serialize
-from sentry.models import File, Release, ReleaseFile
+from sentry.models import File, Release, ReleaseFile, Distribution
 
 ERR_FILE_EXISTS = 'A file matching this name already exists for the given release'
 _filename_re = re.compile(r"[\n\t\r\f\v\\]")
+
+
+def load_dist(results):
+    # Dists are pretty uncommon.  In case they do appear load them now
+    # as trying to join this on the DB does terrible things with large
+    # offsets (it would otherwise generate a left outer join).
+    dists = dict.fromkeys(x.dist_id for x in results)
+    if not dists:
+        return results
+
+    for dist in Distribution.objects.filter(pk__in=dists.keys()):
+        dists[dist.id] = dist
+
+    for result in results:
+        if result.dist_id is not None:
+            dist = dists.get(result.dist_id)
+            if dist is not None:
+                result.dist = dist
+
+    return results
 
 
 class OrganizationReleaseFilesEndpoint(OrganizationReleasesBaseEndpoint):
@@ -46,14 +66,14 @@ class OrganizationReleaseFilesEndpoint(OrganizationReleasesBaseEndpoint):
 
         file_list = ReleaseFile.objects.filter(
             release=release,
-        ).select_related('file', 'dist').order_by('name')
+        ).select_related('file').order_by('name')
 
         return self.paginate(
             request=request,
             queryset=file_list,
             order_by='name',
             paginator_cls=OffsetPaginator,
-            on_results=lambda x: serialize(x, request.user),
+            on_results=lambda r: serialize(load_dist(r), request.user),
         )
 
     def post(self, request, organization, version):
