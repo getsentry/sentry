@@ -157,7 +157,7 @@ def merge_attached_breadcrumbs(mpack_breadcrumbs, data):
     else:
         data['breadcrumbs'] = current_crumbs + breadcrumbs
 
-    data['breadcrumbs'] = data['breadcrumbs'][len(data['breadcrumbs']) - cap:]
+    data['breadcrumbs'] = data['breadcrumbs'][-cap:]
 
 
 def is_valid_module_id(id):
