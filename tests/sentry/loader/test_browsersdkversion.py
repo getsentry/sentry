@@ -41,9 +41,7 @@ class BrowserSdkVersionTestCase(TestCase):
     @mock.patch('sentry.loader.browsersdkversion.load_version_from_file',
                 return_value=[])
     def test_get_highest_selected_version_no_version(self, load_version_from_file):
-        prev = settings.JS_SDK_LOADER_SDK_VERSION
-        settings.JS_SDK_LOADER_SDK_VERSION = '0.5.2'
-        assert get_highest_selected_browser_sdk_version('4.x') == '0.5.2'
-        assert get_highest_selected_browser_sdk_version('5.x') == '0.5.2'
-        assert get_highest_selected_browser_sdk_version('latest') == '0.5.2'
-        settings.JS_SDK_LOADER_SDK_VERSION = prev
+        assert get_highest_selected_browser_sdk_version('4.x') == settings.JS_SDK_LOADER_SDK_VERSION
+        assert get_highest_selected_browser_sdk_version('5.x') == settings.JS_SDK_LOADER_SDK_VERSION
+        assert get_highest_selected_browser_sdk_version(
+            'latest') == settings.JS_SDK_LOADER_SDK_VERSION
