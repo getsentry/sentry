@@ -49,7 +49,7 @@ const forms = [
         autosize: true,
         help: 'Schema for your UI components',
         getValue: val => {
-          return val == '' ? val : JSON.parse(val);
+          return val == '' ? {} : JSON.parse(val);
         },
         setValue: val => {
           const schema = JSON.stringify(val, null, 2);
