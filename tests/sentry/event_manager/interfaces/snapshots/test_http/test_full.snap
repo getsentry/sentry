@@ -1,0 +1,13 @@
+errors: null
+to_json:
+    cookies:
+    - [foo, bar]
+    data: hello world
+    env: {bing: bong}
+    fragment: foobar
+    headers:
+    - [X-Foo-Bar, baz]
+    method: GET
+    query_string:
+    - [foo, bar]
+    url: http://example.com/
