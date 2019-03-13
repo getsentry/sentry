@@ -220,7 +220,7 @@ FILTER_MASK = '[Filtered]'
 MAX_SYM = 256
 
 # Known debug information file mimetypes
-KNOWN_DIF_TYPES = {
+KNOWN_DIF_FORMATS = {
     'text/x-breakpad': 'breakpad',
     'application/x-mach-binary': 'macho',
     'application/x-elf-binary': 'elf',

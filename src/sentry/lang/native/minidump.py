@@ -1,7 +1,7 @@
 from __future__ import absolute_import
 
 from django.core.files.uploadedfile import InMemoryUploadedFile, TemporaryUploadedFile
-from symbolic import arch_from_breakpad, ProcessState, id_from_breakpad
+from symbolic import normalize_arch, ProcessState, id_from_breakpad
 
 from sentry.utils.safe import get_path
 
@@ -46,7 +46,7 @@ def merge_process_state_event(data, state, cfi=None):
     os['name'] = MINIDUMP_OS_TYPES.get(info.os_name, info.os_name)
     os['version'] = info.os_version
     os['build'] = info.os_build
-    device['arch'] = arch_from_breakpad(info.cpu_family)
+    device['arch'] = normalize_arch(info.cpu_family)
 
     # We can extract stack traces here already but since CFI is not
     # available yet (without debug symbols), the stackwalker will

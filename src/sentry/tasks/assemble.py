@@ -52,9 +52,9 @@ def assemble_dif(project_id, name, checksum, chunks, **kwargs):
                                     % len(result))
                 return
 
-            dif_type, cpu, file_id, filename, data = result[0]
+            file_format, arch, file_id, filename, data = result[0]
             dif, created = debugfile.create_dif_from_id(
-                project, dif_type, cpu, file_id, data,
+                project, file_format, arch, file_id, data,
                 os.path.basename(name),
                 file=file)
             indicate_success = True

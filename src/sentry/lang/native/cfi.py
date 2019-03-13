@@ -47,7 +47,7 @@ class ThreadRef(object):
             return None
 
         return (
-            module.id,
+            module.debug_id,
             rebase_addr(frame['instruction_addr'], module)
         )
 
@@ -103,7 +103,7 @@ class ThreadRef(object):
 
         values = []
         for module, frame in self.resolved_frames:
-            module_id = module and module.id
+            module_id = module and module.debug_id
             addr = frame['instruction_addr']
             if module:
                 addr = '0x%x' % rebase_addr(addr, module)
@@ -242,7 +242,7 @@ def reprocess_minidump_with_cfi(data):
         return handle.result()
 
     # Determine modules loaded into the process during the crash
-    debug_ids = [module.id for module in handle.iter_modules()]
+    debug_ids = [module.debug_id for module in handle.iter_modules()]
     if not debug_ids:
         return handle.result()
 
