@@ -1,0 +1,7 @@
+errors: null
+tags:
+- [os, Windows 95]
+- [os.name, Windows]
+- [os.rooted, 'yes']
+to_json:
+    os: {name: Windows, rooted: true, type: os, version: '95'}

@@ -274,7 +274,7 @@ def insta_snapshot(request, log):
             reference_file = os.path.join(
                 os.path.dirname(six.text_type(request.node.fspath)),
                 'snapshots',
-                os.path.basename(request.node.parent.name),
+                os.path.splitext(os.path.basename(request.node.parent.name))[0],
                 name + '.snap'
 
             )
