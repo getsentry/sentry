@@ -8,14 +8,25 @@ import pytest
 
 from sentry.interfaces.base import InterfaceValidationError
 from sentry.interfaces.template import Template
+from sentry.event_manager import EventManager
 from sentry.models import Event
 from sentry.testutils import TestCase
+
+
+def to_python(data):
+    mgr = EventManager(data={"template": data})
+    mgr.normalize()
+    evt = Event(data=mgr.get_data())
+    if evt.data.get('errors'):
+        raise InterfaceValidationError(evt.data.get('errors'))
+
+    return evt.interfaces.get('template') or Template.to_python({})
 
 
 class TemplateTest(TestCase):
     @fixture
     def interface(self):
-        return Template.to_python(
+        return to_python(
             dict(
                 filename='foo.html',
                 context_line='hello world',
@@ -31,15 +42,15 @@ class TemplateTest(TestCase):
 
     def test_required_attributes(self):
         with pytest.raises(InterfaceValidationError):
-            Template.to_python({})
+            to_python({})
         with pytest.raises(InterfaceValidationError):
-            Template.to_python({"lineno": None, "context_line": ""})
+            to_python({"lineno": None, "context_line": ""})
         with pytest.raises(InterfaceValidationError):
-            Template.to_python({"lineno": 0, "context_line": ""})
+            to_python({"lineno": 0, "context_line": ""})
         with pytest.raises(InterfaceValidationError):
-            Template.to_python({"lineno": 1})
+            to_python({"lineno": 1})
         with pytest.raises(InterfaceValidationError):
-            Template.to_python({"lineno": 1, "context_line": 42})
+            to_python({"lineno": 1, "context_line": 42})
 
     @mock.patch('sentry.interfaces.template.get_context')
     @mock.patch('sentry.interfaces.template.Template.get_traceback')
@@ -49,10 +60,6 @@ class TemplateTest(TestCase):
         result = self.interface.to_string(event)
         get_traceback.assert_called_once_with(event, get_context.return_value)
         self.assertEquals(result, 'Stacktrace (most recent call last):\n\ntraceback')
-
-    def test_serialize_unserialize_behavior(self):
-        result = type(self.interface).to_python(self.interface.to_json())
-        assert result.to_json() == self.interface.to_json()
 
     def test_get_api_context(self):
         result = self.interface.get_api_context()

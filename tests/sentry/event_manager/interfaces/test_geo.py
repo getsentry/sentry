@@ -2,13 +2,26 @@ from __future__ import absolute_import
 
 import mock
 
+from sentry.interfaces.base import InterfaceValidationError
 from sentry.interfaces.geo import Geo
 from sentry.testutils import TestCase
+from sentry.models import Event
+from sentry.event_manager import EventManager
+
+
+def to_python(data):
+    mgr = EventManager(data={"user": {"id": "123", "geo": data}})
+    mgr.normalize()
+    evt = Event(data=mgr.get_data())
+    if evt.data.get('errors'):
+        raise InterfaceValidationError(evt.data.get('errors'))
+    user = evt.interfaces['user']
+    return user.geo or Geo.to_python({})
 
 
 class GeoTest(TestCase):
     def test_serialize_behavior(self):
-        assert Geo.to_python({
+        assert to_python({
             'country_code': 'US',
             'city': 'San Francisco',
             'region': 'CA',
@@ -20,10 +33,10 @@ class GeoTest(TestCase):
 
     def test_null_values(self):
         sink = {}
-        assert Geo.to_python({}).to_json() == sink
-        assert Geo.to_python({"country_code": None}).to_json() == sink
-        assert Geo.to_python({"city": None}).to_json() == sink
-        assert Geo.to_python({"region": None}).to_json() == sink
+        assert to_python({}).to_json() == sink
+        assert to_python({"country_code": None}).to_json() == sink
+        assert to_python({"city": None}).to_json() == sink
+        assert to_python({"region": None}).to_json() == sink
 
     @mock.patch('sentry.interfaces.geo.geo_by_addr')
     def test_from_ip_address(self, geo_by_addr_mock):

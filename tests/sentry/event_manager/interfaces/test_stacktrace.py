@@ -3,16 +3,19 @@
 from __future__ import absolute_import
 
 import functools
+import pytest
 
 import mock
 from django.conf import settings
 from django.template.loader import render_to_string
 from exam import fixture
 
+from sentry.interfaces.base import InterfaceValidationError
 from sentry.interfaces.stacktrace import (
-    Frame, Stacktrace, get_context, is_url, slim_frame_data,
+    Stacktrace, get_context, is_url, slim_frame_data,
     trim_function_name
 )
+from sentry.event_manager import EventManager
 from sentry.models import Event
 from sentry.testutils import TestCase
 
@@ -45,9 +48,19 @@ class GetContextTest(TestCase):
 
 
 class StacktraceTest(TestCase):
+    @classmethod
+    def to_python(cls, data):
+        mgr = EventManager(data={"stacktrace": data})
+        mgr.normalize()
+        evt = Event(data=mgr.get_data())
+        if evt.data.get('errors'):
+            raise InterfaceValidationError(evt.data.get('errors'))
+
+        return evt.interfaces.get('stacktrace') or Stacktrace.to_python({})
+
     @fixture
     def interface(self):
-        return Stacktrace.to_python(
+        return self.to_python(
             dict(
                 frames=[
                     {
@@ -61,41 +74,31 @@ class StacktraceTest(TestCase):
             )
         )
 
-    def test_null_values(self):
-        sink = {}
-
-        assert Stacktrace.to_python({}).to_json() == sink
-        assert Stacktrace.to_python({'frames': None}).to_json() == sink
-        assert Stacktrace.to_python({'frames': []}).to_json() == sink
-
-        # TODO(markus): Should eventually generate frames: [None]
-        assert Stacktrace.to_python({'frames': [None]}).to_json() == {}
-
     def test_null_values_in_frames(self):
         sink = {'frames': [{}]}
 
-        assert Stacktrace.to_python({'frames': [{}]}).to_json() == sink
-        assert Stacktrace.to_python({'frames': [{'abs_path': None}]}).to_json() == sink
+        assert self.to_python({'frames': [{}]}).to_json() == sink
+        assert self.to_python({'frames': [{'abs_path': None}]}).to_json() == sink
 
     def test_legacy_interface(self):
         # Simple test to ensure legacy data works correctly with the ``Frame``
         # objects
         event = self.event
-        interface = Stacktrace.to_python(event.data['stacktrace'])
+        interface = self.to_python(event.data['stacktrace'])
         assert len(interface.frames) == 2
         assert interface == event.interfaces['stacktrace']
 
     def test_filename(self):
-        Stacktrace.to_python(dict(frames=[{
+        self.to_python(dict(frames=[{
             'filename': 'foo.py',
         }]))
-        Stacktrace.to_python(dict(frames=[{
+        self.to_python(dict(frames=[{
             'lineno': 1,
             'filename': 'foo.py',
         }]))
 
     def test_allows_abs_path_without_filename(self):
-        interface = Stacktrace.to_python(
+        interface = self.to_python(
             dict(frames=[{
                 'lineno': 1,
                 'abs_path': 'foo/bar/baz.py',
@@ -106,7 +109,7 @@ class StacktraceTest(TestCase):
         assert frame.abs_path == frame.filename
 
     def test_coerces_url_filenames(self):
-        interface = Stacktrace.to_python(
+        interface = self.to_python(
             dict(frames=[{
                 'lineno': 1,
                 'filename': 'http://foo.com/foo.js',
@@ -117,7 +120,7 @@ class StacktraceTest(TestCase):
         assert frame.abs_path == 'http://foo.com/foo.js'
 
     def test_does_not_overwrite_filename(self):
-        interface = Stacktrace.to_python(
+        interface = self.to_python(
             dict(
                 frames=[{
                     'lineno': 1,
@@ -131,7 +134,7 @@ class StacktraceTest(TestCase):
         assert frame.abs_path == 'http://foo.com/foo.js'
 
     def test_ignores_results_with_empty_path(self):
-        interface = Stacktrace.to_python(
+        interface = self.to_python(
             dict(frames=[{
                 'lineno': 1,
                 'filename': 'http://foo.com',
@@ -142,7 +145,7 @@ class StacktraceTest(TestCase):
         assert frame.abs_path == frame.filename
 
     def test_serialize_returns_frames(self):
-        interface = Stacktrace.to_python(dict(frames=[{
+        interface = self.to_python(dict(frames=[{
             'lineno': 1,
             'filename': 'foo.py',
         }]))
@@ -151,7 +154,7 @@ class StacktraceTest(TestCase):
 
     def test_frame_hard_limit(self):
         hard_limit = settings.SENTRY_STACKTRACE_FRAMES_HARD_LIMIT
-        interface = Stacktrace.to_python(
+        interface = self.to_python(
             {
                 'frames': [
                     {
@@ -180,7 +183,7 @@ class StacktraceTest(TestCase):
     @mock.patch('sentry.interfaces.stacktrace.is_newest_frame_first', mock.Mock(return_value=False))
     def test_get_stacktrace_with_only_filename(self):
         event = mock.Mock(spec=Event())
-        interface = Stacktrace.to_python(dict(frames=[{'filename': 'foo'}, {'filename': 'bar'}]))
+        interface = self.to_python(dict(frames=[{'filename': 'foo'}, {'filename': 'bar'}]))
         result = interface.get_stacktrace(event)
         self.assertEquals(
             result, 'Stacktrace (most recent call last):\n\n  File "foo"\n  File "bar"'
@@ -189,7 +192,7 @@ class StacktraceTest(TestCase):
     @mock.patch('sentry.interfaces.stacktrace.is_newest_frame_first', mock.Mock(return_value=False))
     def test_get_stacktrace_with_module(self):
         event = mock.Mock(spec=Event())
-        interface = Stacktrace.to_python(dict(frames=[{'module': 'foo'}, {'module': 'bar'}]))
+        interface = self.to_python(dict(frames=[{'module': 'foo'}, {'module': 'bar'}]))
         result = interface.get_stacktrace(event)
         self.assertEquals(
             result, 'Stacktrace (most recent call last):\n\n  Module "foo"\n  Module "bar"'
@@ -198,7 +201,7 @@ class StacktraceTest(TestCase):
     @mock.patch('sentry.interfaces.stacktrace.is_newest_frame_first', mock.Mock(return_value=False))
     def test_get_stacktrace_with_filename_and_function(self):
         event = mock.Mock(spec=Event())
-        interface = Stacktrace.to_python(
+        interface = self.to_python(
             dict(
                 frames=[
                     {
@@ -220,7 +223,7 @@ class StacktraceTest(TestCase):
     @mock.patch('sentry.interfaces.stacktrace.is_newest_frame_first', mock.Mock(return_value=False))
     def test_get_stacktrace_with_filename_function_lineno_and_context(self):
         event = mock.Mock(spec=Event())
-        interface = Stacktrace.to_python(
+        interface = self.to_python(
             dict(
                 frames=[
                     {
@@ -244,59 +247,50 @@ class StacktraceTest(TestCase):
             'Stacktrace (most recent call last):\n\n  File "foo", line 3, in biz\n    def foo(r):\n  File "bar", line 5, in baz\n    return None'
         )
 
+
+class FrameTest(TestCase):
+    @classmethod
+    def to_python(cls, data):
+        return StacktraceTest.to_python({"frames": [data]}).frames[0]
+
     def test_bad_input(self):
-        assert Frame.to_python({
-            'filename': 1,
-        }).filename is None
+        with pytest.raises(InterfaceValidationError):
+            self.to_python({'filename': 1})
 
-        assert Frame.to_python({
-            'filename': 'foo',
-            'abs_path': 1,
-        }).abs_path == 'foo'
+        assert self.to_python({'filename': 'foo', 'abs_path': 1}).abs_path == 'foo'
 
-        assert Frame.to_python({
-            'function': 1,
-        }).function is None
+        with pytest.raises(InterfaceValidationError):
+            self.to_python({'function': 1})
 
-        assert Frame.to_python({
-            'module': 1,
-        }).module is None
+        with pytest.raises(InterfaceValidationError):
+            self.to_python({'module': 1})
 
-        assert Frame.to_python({
-            'function': '?',
-        }).function is None
+        assert self.to_python({'function': '?'}).function is None
 
     def test_context_with_nan(self):
-        self.assertEquals(
-            Frame.to_python({
-                'filename': 'x',
-                'vars': {
-                    'x': float('inf')
-                },
-            }).vars,
-            {'x': '<inf>'},
-        )
-        self.assertEquals(
-            Frame.to_python({
-                'filename': 'x',
-                'vars': {
-                    'x': float('-inf')
-                },
-            }).vars,
-            {'x': '<-inf>'},
-        )
-        self.assertEquals(
-            Frame.to_python({
-                'filename': 'x',
-                'vars': {
-                    'x': float('nan')
-                },
-            }).vars,
-            {'x': '<nan>'},
-        )
+        assert self.to_python({
+            'filename': 'x',
+            'vars': {
+                'x': float('inf')
+            },
+        }).vars == {'x': 0}
+
+        assert self.to_python({
+            'filename': 'x',
+            'vars': {
+                'x': float('-inf')
+            },
+        }).vars == {'x': 0}
+
+        assert self.to_python({
+            'filename': 'x',
+            'vars': {
+                'x': float('nan')
+            },
+        }).vars == {'x': 0}
 
     def test_address_normalization(self):
-        interface = Frame.to_python(
+        interface = self.to_python(
             {
                 'lineno': 1,
                 'filename': 'blah.c',
@@ -313,7 +307,7 @@ class StacktraceTest(TestCase):
 
 class SlimFrameDataTest(TestCase):
     def test_under_max(self):
-        interface = Stacktrace.to_python({'frames': [{'filename': 'foo'}]})
+        interface = StacktraceTest.to_python({'frames': [{'filename': 'foo'}]})
         slim_frame_data(interface, 4)
         assert len(interface.frames) == 1
         assert not interface.frames_omitted
@@ -332,7 +326,7 @@ class SlimFrameDataTest(TestCase):
                     'post_context': ['c'],
                 }
             )
-        interface = Stacktrace.to_python({'frames': values})
+        interface = StacktraceTest.to_python({'frames': values})
         slim_frame_data(interface, 4)
 
         assert len(interface.frames) == 5

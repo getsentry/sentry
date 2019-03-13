@@ -4,16 +4,29 @@ from __future__ import absolute_import
 
 from exam import fixture
 
+from sentry.interfaces.base import InterfaceValidationError
 from sentry.interfaces.exception import (SingleException, Exception, slim_exception_data,
                                          Mechanism, normalize_mechanism_meta, upgrade_legacy_mechanism)
 from sentry.testutils import TestCase
 from sentry.stacktraces import normalize_in_app
+from sentry.models import Event
+from sentry.event_manager import EventManager
 
 
 class ExceptionTest(TestCase):
+    @classmethod
+    def to_python(cls, data):
+        mgr = EventManager(data={"exception": data})
+        mgr.normalize()
+        evt = Event(data=mgr.get_data())
+        if evt.data.get('errors'):
+            raise InterfaceValidationError(evt.data.get('errors'))
+
+        return evt.interfaces.get('exception') or Exception.to_python({})
+
     @fixture
     def interface(self):
-        return Exception.to_python(
+        return self.to_python(
             dict(
                 values=[
                     {
@@ -43,28 +56,11 @@ class ExceptionTest(TestCase):
             )
         )
 
-    def test_null_values(self):
-        sink = {}
-        assert Exception.to_python({}).to_json() == sink
-        assert Exception.to_python({'exc_omitted': None}).to_json() == sink
-        assert Exception.to_python({'values': None}).to_json() == sink
-        assert Exception.to_python({'values': []}).to_json() == sink
-        assert Exception.to_python({'values': [None]}).to_json() == {"values": [None]}
-
-    def test_does_not_wrap_if_exception_omitted_present(self):
-        input = {
-            "exc_omitted": None,
-            "mechanism": {
-                "handled": True, "type": "generic"
-            }
-        }
-        assert Exception.to_python(input).to_json() == {}
-
     def test_path(self):
         assert self.interface.get_path() == 'exception'
 
     def test_args_as_keyword_args(self):
-        inst = Exception.to_python(
+        inst = self.to_python(
             dict(values=[{
                 'type': 'ValueError',
                 'value': 'hello world',
@@ -77,7 +73,7 @@ class ExceptionTest(TestCase):
         assert inst.values[0].module == 'foo.bar'
 
     def test_args_as_old_style(self):
-        inst = Exception.to_python(
+        inst = self.to_python(
             {
                 'type': 'ValueError',
                 'value': 'hello world',
@@ -90,7 +86,7 @@ class ExceptionTest(TestCase):
         assert inst.values[0].module == 'foo.bar'
 
     def test_non_string_value_with_no_type(self):
-        inst = Exception.to_python(
+        inst = self.to_python(
             {
                 'value': {'foo': 'bar'},
             }
@@ -110,7 +106,7 @@ ValueError: hello world
   File "foo/baz.py", line 1"""
 
     def test_context_with_mixed_frames(self):
-        inst = Exception.to_python(
+        inst = self.to_python(
             dict(
                 values=[
                     {
@@ -147,7 +143,7 @@ ValueError: hello world
         assert context['hasSystemFrames']
 
     def test_context_with_symbols(self):
-        inst = Exception.to_python(
+        inst = self.to_python(
             dict(
                 values=[
                     {
@@ -177,7 +173,7 @@ ValueError: hello world
         assert context['values'][0]['stacktrace']['frames'][0]['symbol'] == 'Class.myfunc'
 
     def test_context_with_only_system_frames(self):
-        inst = Exception.to_python(
+        inst = self.to_python(
             dict(
                 values=[
                     {
@@ -241,7 +237,7 @@ ValueError: hello world
         ]
         exc = dict(values=values)
         normalize_in_app({'exception': exc})
-        inst = Exception.to_python(exc)
+        inst = self.to_python(exc)
 
         self.create_event(data={
             'exception': inst.to_json(),
@@ -250,7 +246,7 @@ ValueError: hello world
         assert not context['hasSystemFrames']
 
     def test_context_with_raw_stacks(self):
-        inst = Exception.to_python(
+        inst = self.to_python(
             dict(
                 values=[
                     {
@@ -290,7 +286,7 @@ ValueError: hello world
         assert context['values'][0]['rawStacktrace']['frames'][0]['function'] == '<redacted>'
 
     def test_context_with_mechanism(self):
-        inst = Exception.to_python(
+        inst = self.to_python(
             dict(
                 values=[
                     {
@@ -319,7 +315,7 @@ ValueError: hello world
         assert context['values'][0]['mechanism']['type'] == 'generic'
 
     def test_iteration(self):
-        inst = Exception.to_python({
+        inst = self.to_python({
             'values': [None, {'type': 'ValueError'}, None]
         })
 
@@ -330,9 +326,22 @@ ValueError: hello world
 
 
 class SingleExceptionTest(TestCase):
+    @classmethod
+    def to_python(cls, data):
+        mgr = EventManager(data={"exception": {"values": [data]}})
+        mgr.normalize()
+        evt = Event(data=mgr.get_data())
+        if evt.data.get('errors'):
+            raise InterfaceValidationError(evt.data.get('errors'))
+
+        excs = evt.interfaces['exception'].values
+        if not excs:
+            return SingleException.to_python({})
+        return excs[0]
+
     @fixture
     def interface(self):
-        return SingleException.to_python(
+        return self.to_python(
             dict(
                 type='ValueError',
                 value='hello world',
@@ -352,45 +361,35 @@ class SingleExceptionTest(TestCase):
         assert result.to_json() == self.interface.to_json()
 
     def test_only_requires_only_type_or_value(self):
-        SingleException.to_python(dict(
+        self.to_python(dict(
             type='ValueError',
         ))
-        SingleException.to_python(dict(
+        self.to_python(dict(
             value='ValueError',
         ))
 
-    def test_throws_away_empty_stacktrace(self):
-        result = SingleException.to_python(
-            dict(
-                type='ValueError',
-                value='foo',
-                stacktrace={'frames': []},
-            )
-        )
-        assert not result.stacktrace
-
     def test_coerces_object_value_to_string(self):
-        result = SingleException.to_python({
+        result = self.to_python({
             'type': 'ValueError',
             'value': {'unauthorized': True},
         })
         assert result.value == '{"unauthorized":true}'
 
     def test_handles_type_in_value(self):
-        result = SingleException.to_python(dict(
+        result = self.to_python(dict(
             value='ValueError: unauthorized',
         ))
         assert result.type == 'ValueError'
         assert result.value == 'unauthorized'
 
-        result = SingleException.to_python(dict(
+        result = self.to_python(dict(
             value='ValueError:unauthorized',
         ))
         assert result.type == 'ValueError'
         assert result.value == 'unauthorized'
 
     def test_value_serialization_idempotent(self):
-        result = SingleException.to_python({
+        result = self.to_python({
             'type': None,
             'value': {'unauthorized': True},
         }).to_json()
@@ -399,14 +398,16 @@ class SingleExceptionTest(TestCase):
         assert result['value'] == '{"unauthorized":true}'
 
         # Don't re-split a json-serialized value on the colon
-        result = SingleException.to_python(result).to_json()
+        result = self.to_python(result).to_json()
         assert 'type' not in result
         assert result['value'] == '{"unauthorized":true}'
 
 
 class SlimExceptionDataTest(TestCase):
+    to_python = ExceptionTest.to_python
+
     def test_under_max(self):
-        interface = Exception.to_python(
+        interface = self.to_python(
             {
                 'values': [{
                     'value': 'foo',
@@ -439,7 +440,7 @@ class SlimExceptionDataTest(TestCase):
                     }
                 )
 
-        interface = Exception.to_python({'values': values})
+        interface = self.to_python({'values': values})
 
         # slim to 10 frames to make tests easier
         slim_exception_data(interface, 10)
@@ -461,17 +462,31 @@ class SlimExceptionDataTest(TestCase):
 
 
 class MechanismTest(TestCase):
+    @classmethod
+    def to_python(cls, data):
+        mgr = EventManager(data={
+            "exception": {
+                "values": [{"type": "FooError", "mechanism": data}]
+            }
+        })
+        mgr.normalize()
+        evt = Event(data=mgr.get_data())
+        if evt.data.get('errors'):
+            raise InterfaceValidationError(evt.data.get('errors'))
+        exc = evt.interfaces['exception'].values[0]
+        return exc.mechanism or Mechanism.to_python({})
+
     def test_path(self):
-        inst = Mechanism.to_python({'type': 'generic'})
+        inst = self.to_python({'type': 'generic'})
         assert inst.get_path() == 'mechanism'
 
     def test_empty_mechanism(self):
         data = {'type': 'generic'}
-        assert Mechanism.to_python(data).to_json() == data
+        assert self.to_python(data).to_json() == data
 
     def test_tag(self):
         data = {'type': 'generic'}
-        inst = Mechanism.to_python(data)
+        inst = self.to_python(data)
         assert list(inst.iter_tags()) == [
             ('mechanism', 'generic')
         ]
@@ -482,7 +497,7 @@ class MechanismTest(TestCase):
             'handled': False,
         }
 
-        inst = Mechanism.to_python(data)
+        inst = self.to_python(data)
         assert list(inst.iter_tags()) == [
             ('mechanism', 'generic'),
             ('handled', 'no')
@@ -493,7 +508,7 @@ class MechanismTest(TestCase):
             'type': 'generic',
             'data': {'relevant_address': '0x1'},
         }
-        assert Mechanism.to_python(data).to_json() == data
+        assert self.to_python(data).to_json() == data
 
     def test_empty_data(self):
         data = {
@@ -501,12 +516,12 @@ class MechanismTest(TestCase):
             'data': {},
         }
 
-        assert Mechanism.to_python(data).to_json() == {
+        assert self.to_python(data).to_json() == {
             'type': 'generic'
         }
 
     def test_min_mach_meta(self):
-        data = {
+        input = {
             'type': 'generic',
             'meta': {
                 'mach_exception': {
@@ -516,7 +531,19 @@ class MechanismTest(TestCase):
                 }
             }
         }
-        assert Mechanism.to_python(data).to_json() == data
+
+        output = {
+            'type': 'generic',
+            'meta': {
+                'mach_exception': {
+                    'exception': 10,
+                    'name': 'EXC_CRASH',
+                    'code': 0,
+                    'subcode': 0,
+                }
+            }
+        }
+        assert self.to_python(input).to_json() == output
 
     def test_full_mach_meta(self):
         data = {
@@ -530,7 +557,7 @@ class MechanismTest(TestCase):
                 }
             }
         }
-        assert Mechanism.to_python(data).to_json() == data
+        assert self.to_python(data).to_json() == data
 
     def test_min_signal_meta(self):
         data = {
@@ -542,7 +569,7 @@ class MechanismTest(TestCase):
                 }
             }
         }
-        assert Mechanism.to_python(data).to_json() == data
+        assert self.to_python(data).to_json() == data
 
     def test_full_signal_meta(self):
         data = {
@@ -556,7 +583,7 @@ class MechanismTest(TestCase):
                 }
             }
         }
-        assert Mechanism.to_python(data).to_json() == data
+        assert self.to_python(data).to_json() == data
 
     def test_min_errno_meta(self):
         data = {
@@ -567,7 +594,7 @@ class MechanismTest(TestCase):
                 }
             }
         }
-        assert Mechanism.to_python(data).to_json() == data
+        assert self.to_python(data).to_json() == data
 
     def test_full_errno_meta(self):
         data = {
@@ -579,7 +606,7 @@ class MechanismTest(TestCase):
                 }
             }
         }
-        assert Mechanism.to_python(data).to_json() == data
+        assert self.to_python(data).to_json() == data
 
     def test_upgrade(self):
         data = {

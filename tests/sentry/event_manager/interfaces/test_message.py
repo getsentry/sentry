@@ -5,13 +5,25 @@ from __future__ import absolute_import
 from exam import fixture
 
 from sentry.testutils import TestCase
+from sentry.interfaces.base import InterfaceValidationError
 from sentry.interfaces.message import Message
+from sentry.models import Event
+from sentry.event_manager import EventManager
+
+
+def to_python(data):
+    mgr = EventManager(data={"logentry": data})
+    mgr.normalize()
+    evt = Event(data=mgr.get_data())
+    if evt.data.get('errors'):
+        raise InterfaceValidationError(evt.data.get('errors'))
+    return evt.interfaces.get('logentry') or Message.to_python({})
 
 
 class MessageTest(TestCase):
     @fixture
     def interface(self):
-        return Message.to_python(
+        return to_python(
             dict(
                 message='Hello there %s!',
                 params=('world', ),
@@ -27,7 +39,7 @@ class MessageTest(TestCase):
         }
 
     def test_format_kwargs(self):
-        interface = Message.to_python(dict(
+        interface = to_python(dict(
             message='Hello there %(name)s!',
             params={'name': 'world'},
         ))
@@ -38,7 +50,7 @@ class MessageTest(TestCase):
         }
 
     def test_format_braces(self):
-        interface = Message.to_python(dict(
+        interface = to_python(dict(
             message='Hello there {}!',
             params=('world', ),
         ))
@@ -49,9 +61,9 @@ class MessageTest(TestCase):
         }
 
     def test_stringify_primitives(self):
-        assert Message.to_python({'formatted': 42}).formatted == '42'
-        assert Message.to_python({'formatted': True}).formatted == 'true'
-        assert Message.to_python({'formatted': 4.2}).formatted == '4.2'
+        assert to_python(42).formatted == '42'
+        assert to_python(True).formatted == 'true'
+        assert to_python(4.2).formatted == '4.2'
 
     def test_serialize_unserialize_behavior(self):
         result = type(self.interface).to_python(self.interface.to_json())

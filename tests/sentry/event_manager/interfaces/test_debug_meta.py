@@ -2,10 +2,10 @@
 
 from __future__ import absolute_import
 
+from sentry.interfaces.base import InterfaceValidationError
 from sentry.interfaces.debug_meta import DebugMeta
 from sentry.testutils import TestCase
 from sentry.models import Event
-
 from sentry.event_manager import EventManager
 
 
@@ -13,6 +13,8 @@ def to_python(data):
     mgr = EventManager(data={"debug_meta": data})
     mgr.normalize()
     evt = Event(data=mgr.get_data())
+    if evt.data.get('errors'):
+        raise InterfaceValidationError(evt.data.get('errors'))
     return evt.interfaces.get('debug_meta') or DebugMeta.to_python({})
 
 

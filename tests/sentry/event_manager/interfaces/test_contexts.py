@@ -2,13 +2,25 @@
 
 from __future__ import absolute_import
 
+from sentry.interfaces.base import InterfaceValidationError
 from sentry.interfaces.contexts import Contexts
 from sentry.testutils import TestCase
+from sentry.models import Event
+from sentry.event_manager import EventManager
+
+
+def to_python(data):
+    mgr = EventManager(data={"contexts": data})
+    mgr.normalize()
+    evt = Event(data=mgr.get_data())
+    if evt.data.get('errors'):
+        raise InterfaceValidationError(evt.data.get('errors'))
+    return evt.interfaces.get('contexts') or Contexts.to_python({})
 
 
 class ContextsTest(TestCase):
     def test_os(self):
-        ctx = Contexts.to_python({
+        ctx = to_python({
             'os': {
                 'name': 'Windows',
                 'version': '95',
@@ -30,12 +42,12 @@ class ContextsTest(TestCase):
         }
 
     def test_null_values(self):
-        assert Contexts.to_python({'os': None}).to_json() == {}
-        assert Contexts.to_python({'os': {}}).to_json() == {'os': {'type': 'os'}}
-        assert Contexts.to_python({'os': {'name': None}}).to_json() == {'os': {'type': 'os'}}
+        assert to_python({'os': None}).to_json() == {}
+        assert to_python({'os': {}}).to_json() == {'os': {'type': 'os'}}
+        assert to_python({'os': {'name': None}}).to_json() == {'os': {'type': 'os'}}
 
     def test_os_normalization(self):
-        ctx = Contexts.to_python({
+        ctx = to_python({
             'os': {
                 'raw_description': 'Microsoft Windows 6.1.7601 S'
             },
@@ -54,7 +66,7 @@ class ContextsTest(TestCase):
         }
 
     def test_runtime(self):
-        ctx = Contexts.to_python(
+        ctx = to_python(
             {
                 'runtime': {
                     'name': 'Java',
@@ -77,7 +89,7 @@ class ContextsTest(TestCase):
         }
 
     def test_runtime_normalization(self):
-        ctx = Contexts.to_python({
+        ctx = to_python({
             'runtime': {
                 'raw_description': '.NET Framework 4.0.30319.42000',
                 'build': '461808',
@@ -98,7 +110,7 @@ class ContextsTest(TestCase):
         }
 
     def test_device(self):
-        ctx = Contexts.to_python(
+        ctx = to_python(
             {
                 'device': {
                     'name': 'My iPad',
@@ -124,7 +136,7 @@ class ContextsTest(TestCase):
         }
 
     def test_device_with_alias(self):
-        ctx = Contexts.to_python(
+        ctx = to_python(
             {
                 'my_device': {
                     'type': 'device',
@@ -151,7 +163,7 @@ class ContextsTest(TestCase):
         }
 
     def test_default(self):
-        ctx = Contexts.to_python(
+        ctx = to_python(
             {
                 'whatever': {
                     'foo': 'bar',
@@ -180,7 +192,7 @@ class ContextsTest(TestCase):
         assert Contexts().get_path() == 'contexts'
 
     def test_app(self):
-        ctx = Contexts.to_python({
+        ctx = to_python({
             'app': {
                 'app_id': '1234',
                 'device_app_hash': '5678',
@@ -198,7 +210,7 @@ class ContextsTest(TestCase):
         }
 
     def test_gpu(self):
-        ctx = Contexts.to_python({
+        ctx = to_python({
             'gpu': {
                 'name': 'AMD Radeon Pro 560',
                 'vendor_name': 'Apple',

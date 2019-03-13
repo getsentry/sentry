@@ -2,12 +2,25 @@
 
 from __future__ import absolute_import
 
+import pytest
 import mock
 from exam import fixture
 
+from sentry.interfaces.base import InterfaceValidationError
 from sentry.testutils import TestCase
 from sentry.interfaces.user import User
+from sentry.event_manager import EventManager
 from sentry.models import Event
+
+
+def to_python(data):
+    mgr = EventManager(data={"user": data})
+    mgr.normalize()
+    evt = Event(data=mgr.get_data())
+    if evt.data.get('errors'):
+        raise InterfaceValidationError(evt.data.get('errors'))
+
+    return evt.interfaces.get('user') or User.to_python({})
 
 
 class UserTest(TestCase):
@@ -17,7 +30,7 @@ class UserTest(TestCase):
 
     @fixture
     def interface(self):
-        return User.to_python(dict(
+        return to_python(dict(
             id=1,
             email='lol@example.com',
             favorite_color='brown',
@@ -26,7 +39,7 @@ class UserTest(TestCase):
     def test_null_values(self):
         sink = {}
 
-        assert User.to_python({}).to_json() == sink
+        assert to_python({}).to_json() == sink
 
     def test_path(self):
         assert self.interface.get_path() == 'user'
@@ -41,43 +54,20 @@ class UserTest(TestCase):
         }
 
     def test_invalid_ip_address(self):
-        user = User.to_python(dict(
-            ip_address='abc',
-        ))
-        assert user.ip_address is None
+        with pytest.raises(InterfaceValidationError):
+            to_python(dict(ip_address='abc'))
 
     def test_invalid_email_address(self):
-        user = User.to_python(dict(
-            email=1,
-        ))
-        assert user.email is None
+        with pytest.raises(InterfaceValidationError):
+            to_python(dict(email=1))
 
-        user = User.to_python(dict(
+        user = to_python(dict(
             email='foo',
         ))
         assert user.email == 'foo'
 
-    def test_id_long_dict(self):
-        u = User.to_python({
-            'id': {x: 'foobarbaz' for x in range(10)},  # dict longer than 128 chars
-        })
-        assert len(u.to_json()['id']) == 128
-
-    def test_serialize_unserialize_behavior(self):
-        result = type(self.interface).to_python(self.interface.to_json())
-        assert result.to_json() == self.interface.to_json()
-
-    def test_trimming(self):
-        u = User.to_python({
-            'name': ['v' * 100, 'v' * 100],
-            'username': ['v' * 100, 'v' * 100],
-        })
-
-        assert len(u.name) <= 128
-        assert len(u.username) <= 128
-
     def test_extra_keys(self):
-        u = User.to_python({
+        u = to_python({
             'extra1': 'foo',
             'data': {'extra2': 'bar'},
         })

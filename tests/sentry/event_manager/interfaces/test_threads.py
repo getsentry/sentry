@@ -4,14 +4,27 @@ from __future__ import absolute_import
 
 from exam import fixture
 
+from sentry.interfaces.base import InterfaceValidationError
 from sentry.interfaces.threads import Threads
 from sentry.testutils import TestCase
+from sentry.event_manager import EventManager
+from sentry.models import Event
+
+
+def to_python(data):
+    mgr = EventManager(data={"threads": data})
+    mgr.normalize()
+    evt = Event(data=mgr.get_data())
+    if evt.data.get('errors'):
+        raise InterfaceValidationError(evt.data.get('errors'))
+
+    return evt.interfaces.get('threads') or Threads.to_python({})
 
 
 class ThreadsTest(TestCase):
     @fixture
     def interface(self):
-        return Threads.to_python(
+        return to_python(
             dict(
                 values=[
                     {
@@ -56,22 +69,10 @@ class ThreadsTest(TestCase):
         assert context['values'][0]['crashed'] is False
         assert context['values'][0]['current'] is True
 
-    def test_null_values(self):
-        sink = {"values": []}
-        assert Threads.to_python({}).to_json() == sink
-        assert Threads.to_python({'values': []}).to_json() == sink
-        assert Threads.to_python({'values': None}).to_json() == sink
-
-        # TODO(markus): Should eventually generate values: [None]
-        assert Threads.to_python({"values": [None]}).to_json() == sink
-
     def test_null_values_in_values(self):
-        sink = {"values": [{
-            "crashed": False,
-            "current": False,
-        }]}
+        sink = {"values": []}
 
-        assert Threads.to_python({"values": [{}]}).to_json() == sink
-        assert Threads.to_python({"values": [{"id": None}]}).to_json() == sink
-        assert Threads.to_python({"values": [{"name": None}]}).to_json() == sink
-        assert Threads.to_python({"values": [{"stacktrace": None}]}).to_json() == sink
+        assert to_python({"values": [{}]}).to_json() == sink
+        assert to_python({"values": [{"id": None}]}).to_json() == sink
+        assert to_python({"values": [{"name": None}]}).to_json() == sink
+        assert to_python({"values": [{"stacktrace": None}]}).to_json() == sink

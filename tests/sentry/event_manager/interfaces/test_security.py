@@ -4,14 +4,27 @@ from __future__ import absolute_import
 
 from exam import fixture
 
+from sentry.interfaces.base import InterfaceValidationError
 from sentry.interfaces.security import Csp, ExpectCT, ExpectStaple
 from sentry.testutils import TestCase
+from sentry.event_manager import EventManager
+from sentry.models import Event
 
 
 class CspTest(TestCase):
+    @classmethod
+    def to_python(cls, data):
+        mgr = EventManager(data={"csp": data})
+        mgr.normalize()
+        evt = Event(data=mgr.get_data())
+        if evt.data.get('errors'):
+            raise InterfaceValidationError(evt.data.get('errors'))
+
+        return evt.interfaces.get('csp') or Csp.to_python({})
+
     @fixture
     def interface(self):
-        return Csp.to_python(
+        return self.to_python(
             dict(
                 document_uri='http://example.com',
                 violated_directive='style-src cdn.example.com',
@@ -34,7 +47,7 @@ class CspTest(TestCase):
         assert result.blocked_uri == 'http://example.com/lol.css'
 
     def test_coerce_blocked_uri_if_missing(self):
-        result = Csp.to_python(
+        result = self.to_python(
             dict(
                 document_uri='http://example.com',
                 effective_directive='script-src',
@@ -43,7 +56,7 @@ class CspTest(TestCase):
         assert result.blocked_uri == 'self'
 
     def test_get_culprit(self):
-        result = Csp.to_python(
+        result = self.to_python(
             dict(
                 document_uri='http://example.com/foo',
                 violated_directive='style-src http://cdn.example.com',
@@ -52,7 +65,7 @@ class CspTest(TestCase):
         )
         assert result.get_culprit() == 'style-src http://cdn.example.com'
 
-        result = Csp.to_python(
+        result = self.to_python(
             dict(
                 document_uri='http://example.com/foo',
                 violated_directive='style-src cdn.example.com',
@@ -61,7 +74,7 @@ class CspTest(TestCase):
         )
         assert result.get_culprit() == 'style-src cdn.example.com'
 
-        result = Csp.to_python(
+        result = self.to_python(
             dict(
                 document_uri='https://example.com/foo',
                 violated_directive='style-src cdn.example.com',
@@ -70,7 +83,7 @@ class CspTest(TestCase):
         )
         assert result.get_culprit() == 'style-src cdn.example.com'
 
-        result = Csp.to_python(
+        result = self.to_python(
             dict(
                 document_uri='http://example.com/foo',
                 violated_directive='style-src https://cdn.example.com',
@@ -79,7 +92,7 @@ class CspTest(TestCase):
         )
         assert result.get_culprit() == 'style-src https://cdn.example.com'
 
-        result = Csp.to_python(
+        result = self.to_python(
             dict(
                 document_uri='http://example.com/foo',
                 violated_directive='style-src http://example.com',
@@ -88,7 +101,7 @@ class CspTest(TestCase):
         )
         assert result.get_culprit() == "style-src 'self'"
 
-        result = Csp.to_python(
+        result = self.to_python(
             dict(
                 document_uri='http://example.com/foo',
                 violated_directive='style-src http://example2.com example.com',
@@ -103,7 +116,7 @@ class CspTest(TestCase):
         ]
 
     def test_get_tags_stripe(self):
-        result = Csp.to_python(
+        result = self.to_python(
             dict(
                 blocked_uri='https://api.stripe.com/v1/tokens?card[number]=xxx',
                 effective_directive='script-src',
@@ -115,7 +128,7 @@ class CspTest(TestCase):
         ]
 
     def test_get_message(self):
-        result = Csp.to_python(
+        result = self.to_python(
             dict(
                 document_uri='http://example.com/foo',
                 effective_directive='img-src',
@@ -124,7 +137,7 @@ class CspTest(TestCase):
         )
         assert result.get_message() == "Blocked 'image' from 'google.com'"
 
-        result = Csp.to_python(
+        result = self.to_python(
             dict(
                 document_uri='http://example.com/foo',
                 effective_directive='style-src',
@@ -133,7 +146,7 @@ class CspTest(TestCase):
         )
         assert result.get_message() == "Blocked inline 'style'"
 
-        result = Csp.to_python(
+        result = self.to_python(
             dict(
                 document_uri='http://example.com/foo',
                 effective_directive='script-src',
@@ -143,7 +156,7 @@ class CspTest(TestCase):
         )
         assert result.get_message() == "Blocked unsafe inline 'script'"
 
-        result = Csp.to_python(
+        result = self.to_python(
             dict(
                 document_uri='http://example.com/foo',
                 effective_directive='script-src',
@@ -153,7 +166,7 @@ class CspTest(TestCase):
         )
         assert result.get_message() == "Blocked unsafe eval() 'script'"
 
-        result = Csp.to_python(
+        result = self.to_python(
             dict(
                 document_uri='http://example.com/foo',
                 effective_directive='script-src',
@@ -163,7 +176,7 @@ class CspTest(TestCase):
         )
         assert result.get_message() == "Blocked unsafe (eval() or inline) 'script'"
 
-        result = Csp.to_python(
+        result = self.to_python(
             dict(
                 document_uri='http://example.com/foo',
                 effective_directive='script-src',
@@ -172,7 +185,7 @@ class CspTest(TestCase):
         )
         assert result.get_message() == "Blocked 'script' from 'data:'"
 
-        result = Csp.to_python(
+        result = self.to_python(
             dict(
                 document_uri='http://example.com/foo',
                 effective_directive='script-src',
@@ -181,7 +194,7 @@ class CspTest(TestCase):
         )
         assert result.get_message() == "Blocked 'script' from 'data:'"
 
-        result = Csp.to_python(
+        result = self.to_python(
             dict(
                 document_uri='http://example.com/foo',
                 effective_directive='style-src-elem',
@@ -190,7 +203,7 @@ class CspTest(TestCase):
         )
         assert result.get_message() == "Blocked 'style' from 'fonts.google.com'"
 
-        result = Csp.to_python(
+        result = self.to_python(
             dict(
                 document_uri='http://example.com/foo',
                 effective_directive='script-src-elem',
@@ -221,6 +234,15 @@ class CspTest(TestCase):
 
 
 class ExpectCTTest(TestCase):
+    @classmethod
+    def to_python(cls, data):
+        mgr = EventManager(data={"expectct": data})
+        mgr.normalize()
+        evt = Event(data=mgr.get_data())
+        if evt.data.get('errors'):
+            raise InterfaceValidationError(evt.data.get('errors'))
+
+        return evt.interfaces.get('expectct') or ExpectCT.to_python({})
 
     raw_report = {
         "expect-ct-report": {
@@ -263,17 +285,17 @@ class ExpectCTTest(TestCase):
         assert len(interface.served_certificate_chain) == 1
 
     def test_to_python(self):
-        interface = ExpectCT.to_python(self.interface_json)
+        interface = self.to_python(self.interface_json)
         assert interface.hostname == 'www.example.com'
         assert interface.date_time == '2014-04-06T13:00:50Z'
         assert interface.port == 443
         assert len(interface.served_certificate_chain) == 1
 
     def test_serialize_unserialize_behavior(self):
-        assert ExpectCT.to_python(self.interface_json).to_json() == self.interface_json
+        assert self.to_python(self.interface_json).to_json() == self.interface_json
 
     def test_invalid_format(self):
-        interface = ExpectCT.to_python({
+        interface = self.to_python({
             'hostname': 'www.example.com',
             'date_time': 'Not an RFC3339 datetime'
         })
@@ -282,6 +304,16 @@ class ExpectCTTest(TestCase):
 
 
 class ExpectStapleTest(TestCase):
+
+    @classmethod
+    def to_python(cls, data):
+        mgr = EventManager(data={"expectstaple": data})
+        mgr.normalize()
+        evt = Event(data=mgr.get_data())
+        if evt.data.get('errors'):
+            raise InterfaceValidationError(evt.data.get('errors'))
+
+        return evt.interfaces.get('expectstaple') or ExpectStaple.to_python({})
 
     raw_report = {
         "expect-staple-report": {
@@ -314,11 +346,11 @@ class ExpectStapleTest(TestCase):
         assert len(interface.served_certificate_chain) == 1
 
     def test_to_python(self):
-        interface = ExpectStaple.to_python(self.interface_json)
+        interface = self.to_python(self.interface_json)
         assert interface.hostname == 'www.example.com'
         assert interface.date_time == '2014-04-06T13:00:50Z'
         assert interface.port == 443
         assert len(interface.served_certificate_chain) == 1
 
     def test_serialize_unserialize_behavior(self):
-        assert ExpectStaple.to_python(self.interface_json).to_json() == self.interface_json
+        assert self.to_python(self.interface_json).to_json() == self.interface_json
