@@ -6,7 +6,7 @@ import dateutil.parser as dp
 from sentry.utils.safe import get_path
 import logging
 import msgpack
-from msgpack import UnpackException
+from msgpack import UnpackException, ExtraData
 
 minidumps_logger = logging.getLogger('sentry.minidumps')
 
@@ -111,7 +111,7 @@ def merge_attached_event(mpack_event, data):
 
     try:
         event = msgpack.unpack(mpack_event)
-    except UnpackException as e:
+    except (UnpackException, ExtraData) as e:
         minidumps_logger.exception(e)
         return
 
@@ -129,7 +129,7 @@ def merge_attached_breadcrumbs(mpack_breadcrumbs, data):
     try:
         unpacker = msgpack.Unpacker(mpack_breadcrumbs)
         breadcrumbs = list(unpacker)
-    except UnpackException as e:
+    except (UnpackException, ExtraData) as e:
         minidumps_logger.exception(e)
         return
 
