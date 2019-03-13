@@ -342,7 +342,7 @@ class SetCommitsTestCase(TestCase):
             organization_id=org.id,
             key='b' * 40,
             author=author,
-            date_added='2019-03-13 12:00:00',
+            date_added='2019-03-01 12:00:00',
             message='fixed a thing'
         )
 
@@ -384,7 +384,7 @@ class SetCommitsTestCase(TestCase):
             key='b' * 40,
         )
         assert commit_b.message == 'fixed a thing'
-        assert commit_b.date_added.strftime(date_format) == '2019-03-13 12:00:00'
+        assert commit_b.date_added.strftime(date_format) == '2019-03-01 12:00:00'
 
         latest_commit = Commit.objects.get(
             repository_id=repo.id,

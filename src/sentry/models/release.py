@@ -418,6 +418,7 @@ class Release(Model):
                         author = authors[author_email]
 
                     commit_data = {}
+                    defaults = {}
 
                     # Update/set message and author if they are provided.
                     if author is not None:
@@ -427,12 +428,13 @@ class Release(Model):
                     if 'timestamp' in data:
                         commit_data['date_added'] = data['timestamp']
                     else:
-                        commit_data['date_added'] = timezone.now()
+                        defaults['date_added'] = timezone.now()
 
                     commit, created = Commit.objects.create_or_update(
                         organization_id=self.organization_id,
                         repository_id=repo.id,
                         key=data['id'],
+                        defaults=defaults,
                         values=commit_data)
                     if not created:
                         commit = Commit.objects.get(
