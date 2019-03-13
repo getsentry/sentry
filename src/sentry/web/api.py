@@ -38,7 +38,7 @@ from sentry.event_manager import EventManager
 from sentry.interfaces import schemas
 from sentry.interfaces.base import get_interface
 from sentry.lang.native.unreal import process_unreal_crash, merge_apple_crash_report, unreal_attachment_type, merge_unreal_context_event, merge_unreal_logs_event
-from sentry.lang.native.minidump import merge_process_state_event, process_minidump, MINIDUMP_ATTACHMENT_TYPE
+from sentry.lang.native.minidump import merge_process_state_event, process_minidump, merge_attached_event, merge_attached_breadcrumbs, MINIDUMP_ATTACHMENT_TYPE
 from sentry.models import Project, OrganizationOption, Organization
 from sentry.signals import (
     event_accepted, event_dropped, event_filtered, event_received)
@@ -698,8 +698,18 @@ class MinidumpView(StoreView):
         if features.has('organizations:event-attachments',
                         project.organization, actor=request.user):
             for name, file in six.iteritems(request.FILES):
-                if name != 'upload_file_minidump':
-                    attachments.append(CachedAttachment.from_upload(file))
+                if name == 'upload_file_minidump':
+                    continue
+                # Known attachment: msgpack event
+                if name == "__sentry-event":
+                    merge_attached_event(file, data)
+                    continue
+                if name == "__sentry-breadcrumb1" or name == "__sentry-breadcrumb2":
+                    merge_attached_breadcrumbs(file, data)
+                    continue
+
+                # Add any other file as attachment
+                attachments.append(CachedAttachment.from_upload(file))
 
         try:
             state = process_minidump(minidump)
