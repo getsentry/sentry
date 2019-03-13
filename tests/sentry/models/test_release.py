@@ -253,29 +253,34 @@ class SetCommitsTestCase(TestCase):
             ]
         )
 
-        assert Commit.objects.filter(
-            repository_id=repo.id,
-            organization_id=org.id,
-            key='a' * 40,
-        ).exists()
-        assert Commit.objects.filter(
-            repository_id=repo.id,
-            organization_id=org.id,
-            key='c' * 40,
-        ).exists()
-
         author = CommitAuthor.objects.get(
             name='foo bar baz',
             email='foo@example.com',
             organization_id=org.id,
         )
 
+        commit_a = Commit.objects.get(
+            repository_id=repo.id,
+            organization_id=org.id,
+            key='a' * 40,
+        )
+        assert commit_a
+        assert commit_a.message == 'i fixed a bug'
+        assert commit_a.author_id == author.id
+
+        commit_c = Commit.objects.get(
+            repository_id=repo.id,
+            organization_id=org.id,
+            key='c' * 40,
+        )
+        assert commit_c
+        assert 'fixes' in commit_c.message
+        assert commit_c.author_id == author.id
+
         # test that backfilling fills in missing message and author
         commit = Commit.objects.get(id=commit.id)
         assert commit.message == 'i fixed another bug'
-        assert commit.author
-        assert commit.author.email == 'foo@example.com'
-        assert commit.author.name == 'foo bar baz'
+        assert commit.author_id == author.id
 
         assert ReleaseCommit.objects.filter(
             commit__key='a' * 40,
@@ -296,10 +301,7 @@ class SetCommitsTestCase(TestCase):
         assert GroupLink.objects.filter(
             group_id=group.id,
             linked_type=GroupLink.LinkedType.commit,
-            linked_id=Commit.objects.get(
-                key='c' * 40,
-                repository_id=repo.id,
-            ).id
+            linked_id=commit_c.id
         ).exists()
 
         assert GroupResolution.objects.filter(group=group, release=release).exists()
