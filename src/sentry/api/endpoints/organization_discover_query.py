@@ -41,6 +41,11 @@ class DiscoverQuerySerializer(serializers.Serializer):
         required=False,
         allow_null=True,
     )
+    condition_fields = ListField(
+        child=ListField(),
+        required=False,
+        allow_null=True,
+    )
     limit = serializers.IntegerField(min_value=0, max_value=10000, required=False)
     rollup = serializers.IntegerField(required=False)
     orderby = serializers.CharField(required=False)
@@ -131,6 +136,8 @@ class DiscoverQuerySerializer(serializers.Serializer):
         return attrs
 
     def get_array_field(self, field):
+        if not isinstance(field, six.string_types):
+            return None
         pattern = r"^(error|stack)\..+"
         return re.search(pattern, field)
 
@@ -303,7 +310,8 @@ class OrganizationDiscoverQueryEndpoint(OrganizationEndpoint):
 
         has_aggregations = len(serialized.get('aggregations')) > 0
 
-        selected_columns = [] if has_aggregations else serialized.get('fields')
+        selected_columns = serialized.get(
+            'condition_fields') or [] if has_aggregations else serialized.get('fields')
 
         projects_map = {}
         for project in projects:

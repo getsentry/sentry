@@ -299,14 +299,22 @@ def transform_aliases_and_query(**kwargs):
     filter_keys = kwargs['filter_keys']
 
     for (idx, col) in enumerate(selected_columns):
-        name = get_snuba_column_name(col)
-        selected_columns[idx] = name
-        translated_columns[name] = col
+        if isinstance(col, list):
+            # e.g. ['if', condition, '<name>']
+            # also ['in', ['<col>', 'tuple', ["<value>"]]]
+
+            selected_columns[idx] = col
+            translated_columns[col[2]] = col[2]
+        else:
+            name = get_snuba_column_name(col)
+            selected_columns[idx] = name
+            translated_columns[name] = col
 
     for (idx, col) in enumerate(groupby):
-        name = get_snuba_column_name(col)
-        groupby[idx] = name
-        translated_columns[name] = col
+        if not col.startswith('__'):
+            name = get_snuba_column_name(col)
+            groupby[idx] = name
+            translated_columns[name] = col
 
     for aggregation in aggregations or []:
         derived_columns.add(aggregation[2])

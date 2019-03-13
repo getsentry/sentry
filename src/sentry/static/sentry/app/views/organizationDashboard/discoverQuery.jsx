@@ -8,6 +8,27 @@ import {parsePeriodToHours} from 'app/utils';
 import SentryTypes from 'app/sentryTypes';
 import createQueryBuilder from 'app/views/organizationDiscover/queryBuilder';
 
+const topReleases = {
+  name: 'Top Releases',
+  fields: ['release'],
+  conditions: [['release', 'IS NOT NULL', null]],
+  aggregations: [['count()', null, 'count']],
+  orderby: '-count',
+  limit: 10,
+};
+
+const createReleaseFieldCondition = releases => [
+  [
+    'if',
+    [
+      ['in', ['tags[sentry:release]', 'tuple', releases.map(r => `'${r}'`)]],
+      'tags[sentry:release]',
+      "'other'",
+    ],
+    '__release',
+  ],
+];
+
 class DiscoverQuery extends React.Component {
   static propTypes = {
     compareToPeriod: PropTypes.shape({
@@ -68,8 +89,26 @@ class DiscoverQuery extends React.Component {
 
   createQueryBuilders() {
     const {organization, queries} = this.props;
-    queries.forEach(query => {
-      this.queryBuilders.push(createQueryBuilder(this.getQuery(query), organization));
+    queries.forEach(async ({constraints, ...query}) => {
+      if (constraints && constraints.includes('top10Releases')) {
+        const releases = await createQueryBuilder(
+          this.getQuery(topReleases),
+          organization
+        ).fetchWithoutLimit();
+        const newQuery = {
+          ...query,
+          fields: [],
+          condition_fields: createReleaseFieldCondition(
+            releases.data.map(({release}) => release)
+          ),
+        };
+        this.queryBuilders.push(
+          createQueryBuilder(this.getQuery(newQuery), organization)
+        );
+        this.fetchData();
+      } else {
+        this.queryBuilders.push(createQueryBuilder(this.getQuery(query), organization));
+      }
     });
   }
 
@@ -109,7 +148,7 @@ class DiscoverQuery extends React.Component {
 
   async fetchData() {
     // Reset query builder
-    this.resetQueries();
+    // this.resetQueries();
 
     // Fetch
     this.setState({reloading: true});

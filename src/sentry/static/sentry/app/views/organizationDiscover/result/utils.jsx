@@ -220,9 +220,10 @@ function getDataWithKeys(data, query, options = {}) {
       return row;
     }
 
-    const key = fields.length
-      ? fields.map(field => getLabel(row[field], options)).join(',')
-      : aggregate;
+    const key =
+      fields && fields.length
+        ? fields.map(field => getLabel(row[field], options)).join(',')
+        : aggregate;
 
     return {
       ...row,
