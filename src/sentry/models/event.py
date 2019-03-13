@@ -349,6 +349,7 @@ class SnubaEvent(EventCommon):
         'project_id',
         'message',
         'title',
+        'type',
         'location',
         'culprit',
         'timestamp',
@@ -429,6 +430,27 @@ class SnubaEvent(EventCommon):
             if any(v is not None for v in snuba_user.values()):
                 return User.to_python(snuba_user)
         return self.interfaces.get(name)
+
+    def get_event_type(self):
+        return self.__dict__.get('type', 'default')
+
+    # These should all have been normalized to the correct values on
+    # the way in to snuba, so we should be able to just use them as is.
+    @property
+    def ip_address(self):
+        return self.__dict__['ip_address']
+
+    @property
+    def title(self):
+        return self.__dict__['title']
+
+    @property
+    def culprit(self):
+        return self.__dict__['culprit']
+
+    @property
+    def location(self):
+        return self.__dict__['location']
 
     # ============================================
     # Snuba implementations of django Fields

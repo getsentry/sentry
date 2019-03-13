@@ -314,6 +314,11 @@ class SimpleEventSerializer(EventSerializer):
     where we don't need the full detail. The side effect is that, if the
     serialized events are actually SnubaEvents, we can render them without
     needing to fetch the event bodies from nodestore.
+
+    NB it would be super easy to inadvertently add a property accessor here
+    that would require a nodestore lookup for a SnubaEvent serialized using
+    this serializer. You will only really notice you've done this when the
+    organization event search API gets real slow.
     """
 
     def get_attrs(self, item_list, user):

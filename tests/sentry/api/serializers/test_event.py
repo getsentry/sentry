@@ -201,12 +201,17 @@ class SharedEventSerializerTest(TestCase):
 
 class SnubaEventSerializerTest(TestCase):
     def test_user(self):
+        """
+        Use the SimpleEventSerializer to serialize an event
+        """
+
         group = self.create_group()
         event = SnubaEvent({
             'event_id': 'a',
             'project_id': 1,
             'message': 'hello there',
             'title': 'hi',
+            'type': 'default',
             'location': 'somewhere',
             'culprit': 'foo',
             'timestamp': '2011-01-01T00:00:00Z',
@@ -220,6 +225,11 @@ class SnubaEventSerializerTest(TestCase):
             'tags.value': ['email:test@test.com'],
         })
         result = serialize(event, None, SimpleEventSerializer())
+
+        # Make sure we didn't have to call out to Nodestore to get the data
+        # required to serialize this event and the NodeData is still empty.
+        assert event.data._node_data is None
+
         assert result['eventID'] == event.event_id
         assert result['projectID'] == six.text_type(event.project_id)
         assert result['groupID'] == six.text_type(group.id)
