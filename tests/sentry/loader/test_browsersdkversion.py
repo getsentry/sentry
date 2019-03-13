@@ -2,6 +2,7 @@ from __future__ import absolute_import
 
 import mock
 
+from django.conf import settings
 from sentry.testutils import TestCase
 from sentry.loader.browsersdkversion import (
     get_highest_browser_sdk_version,
@@ -36,3 +37,11 @@ class BrowserSdkVersionTestCase(TestCase):
         assert get_highest_selected_browser_sdk_version('4.x') == '4.6.4'
         assert get_highest_selected_browser_sdk_version('5.x') == '5.0.1'
         assert get_highest_selected_browser_sdk_version('latest') == '5.0.1'
+
+    @mock.patch('sentry.loader.browsersdkversion.load_version_from_file',
+                return_value=[])
+    def test_get_highest_selected_version_no_version(self, load_version_from_file):
+        settings.JS_SDK_LOADER_SDK_VERSION = '0.5.2'
+        assert get_highest_selected_browser_sdk_version('4.x') == '0.5.2'
+        assert get_highest_selected_browser_sdk_version('5.x') == '0.5.2'
+        assert get_highest_selected_browser_sdk_version('latest') == '0.5.2'
