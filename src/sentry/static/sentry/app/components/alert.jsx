@@ -84,6 +84,7 @@ Alert.propTypes = {
 
 Alert.defaultProps = {
   iconSize: '24px',
+  type: 'info',
 };
 
 export default Alert;
