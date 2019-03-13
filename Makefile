@@ -7,7 +7,7 @@ ifneq "$(wildcard /usr/local/opt/openssl/lib)" ""
 	LDFLAGS += -L/usr/local/opt/openssl/lib
 endif
 
-PIP = LDFLAGS="$(LDFLAGS)" pip
+PIP = LDFLAGS="$(LDFLAGS)" pip -q
 WEBPACK = NODE_ENV=production ./node_modules/.bin/webpack
 YARN_VERSION = 1.13.0
 
