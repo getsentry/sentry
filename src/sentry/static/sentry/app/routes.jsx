@@ -625,66 +625,6 @@ function routes() {
 
       <Redirect from="/account/" to="/settings/account/details/" />
 
-      <Route path="/settings/" name="Settings" component={SettingsWrapper}>
-        <IndexRoute
-          getComponent={(loc, cb) =>
-            import(/* webpackChunkName: "SettingsIndex" */ './views/settings/settingsIndex').then(
-              lazyLoad(cb)
-            )}
-        />
-
-        <Route
-          path="account/"
-          name="Account"
-          getComponent={(loc, cb) =>
-            import(/* webpackChunkName: "AccountSettingsLayout" */ './views/settings/account/accountSettingsLayout').then(
-              lazyLoad(cb)
-            )}
-        >
-          {accountSettingsRoutes}
-        </Route>
-
-        <Route
-          name="Organization"
-          path=":orgId/"
-          component={errorHandler(OrganizationContext)}
-        >
-          <Route
-            getComponent={(loc, cb) =>
-              import(/* webpackChunkName: "OrganizationSettingsLayout" */ './views/settings/organization/organizationSettingsLayout').then(
-                lazyLoad(cb)
-              )}
-          >
-            {hooksOrgRoutes}
-            {orgSettingsRoutes}
-          </Route>
-
-          <Route
-            name="Project"
-            path="projects/:projectId/"
-            getComponent={(loc, cb) =>
-              import(/* webpackChunkName: "ProjectSettingsLayout" */ './views/settings/project/projectSettingsLayout').then(
-                lazyLoad(cb)
-              )}
-          >
-            <Route component={errorHandler(SettingsProjectProvider)}>
-              {projectSettingsRoutes}
-            </Route>
-          </Route>
-
-          <Redirect from=":projectId/" to="projects/:projectId/" />
-          <Redirect from=":projectId/alerts/" to="projects/:projectId/alerts/" />
-          <Redirect
-            from=":projectId/alerts/rules/"
-            to="projects/:projectId/alerts/rules/"
-          />
-          <Redirect
-            from=":projectId/alerts/rules/:ruleId/"
-            to="projects/:projectId/alerts/rules/:ruleId/"
-          />
-        </Route>
-      </Route>
-
       <Route
         path="/manage/"
         componentPromise={() =>
@@ -765,6 +705,64 @@ function routes() {
             path=":projectId/configure/(:platform)"
             component={errorHandler(OnboardingConfigure)}
           />
+        </Route>
+      </Route>
+
+      <Route component={errorHandler(OrganizationDetails)}>
+        <Route path="/settings/" name="Settings" component={SettingsWrapper}>
+          <IndexRoute
+            getComponent={(loc, cb) =>
+              import(/* webpackChunkName: "SettingsIndex" */ './views/settings/settingsIndex').then(
+                lazyLoad(cb)
+              )}
+          />
+
+          <Route
+            path="account/"
+            name="Account"
+            getComponent={(loc, cb) =>
+              import(/* webpackChunkName: "AccountSettingsLayout" */ './views/settings/account/accountSettingsLayout').then(
+                lazyLoad(cb)
+              )}
+          >
+            {accountSettingsRoutes}
+          </Route>
+
+          <Route name="Organization" path=":orgId/">
+            <Route
+              getComponent={(loc, cb) =>
+                import(/* webpackChunkName: "OrganizationSettingsLayout" */ './views/settings/organization/organizationSettingsLayout').then(
+                  lazyLoad(cb)
+                )}
+            >
+              {hooksOrgRoutes}
+              {orgSettingsRoutes}
+            </Route>
+
+            <Route
+              name="Project"
+              path="projects/:projectId/"
+              getComponent={(loc, cb) =>
+                import(/* webpackChunkName: "ProjectSettingsLayout" */ './views/settings/project/projectSettingsLayout').then(
+                  lazyLoad(cb)
+                )}
+            >
+              <Route component={errorHandler(SettingsProjectProvider)}>
+                {projectSettingsRoutes}
+              </Route>
+            </Route>
+
+            <Redirect from=":projectId/" to="projects/:projectId/" />
+            <Redirect from=":projectId/alerts/" to="projects/:projectId/alerts/" />
+            <Redirect
+              from=":projectId/alerts/rules/"
+              to="projects/:projectId/alerts/rules/"
+            />
+            <Redirect
+              from=":projectId/alerts/rules/:ruleId/"
+              to="projects/:projectId/alerts/rules/:ruleId/"
+            />
+          </Route>
         </Route>
       </Route>
 

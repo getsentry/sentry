@@ -498,6 +498,7 @@ exports[`Sidebar SidebarDropdown can open Sidebar org/name dropdown menu 1`] = `
                   <SwitchOrganization
                     canCreateOrganization={false}
                     organizations={Array []}
+                    organizationsLoading={true}
                   >
                     <DropdownMenu
                       closeOnEscape={true}

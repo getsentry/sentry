@@ -11,6 +11,16 @@ class AccountSettingsLayout extends React.Component {
     organization: SentryTypes.Organization,
   };
 
+  static childContextTypes = {
+    organization: SentryTypes.Organization,
+  };
+
+  getChildContext() {
+    return {
+      organization: this.props.organization,
+    };
+  }
+
   componentDidUpdate(prevProps) {
     const {organization} = this.props;
     if (prevProps.organization === organization) return;
@@ -28,14 +38,12 @@ class AccountSettingsLayout extends React.Component {
 
   render() {
     return (
-      <div className="app">
-        <SettingsLayout
-          {...this.props}
-          renderNavigation={() => <AccountSettingsNavigation {...this.props} />}
-        >
-          {this.props.children}
-        </SettingsLayout>
-      </div>
+      <SettingsLayout
+        {...this.props}
+        renderNavigation={() => <AccountSettingsNavigation {...this.props} />}
+      >
+        {this.props.children}
+      </SettingsLayout>
     );
   }
 }

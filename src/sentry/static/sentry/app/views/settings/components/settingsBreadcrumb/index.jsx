@@ -59,7 +59,7 @@ class SettingsBreadcrumb extends React.Component {
             ? Menu
             : () => (
                 <Crumb route={route} isLast={isLast}>
-                  <TextLink to={recreateRoute(route, {routes, params})}>
+                  <TextLink to={recreateRoute(route, {routes, params, stepBack: -1})}>
                     {pathTitle || route.name}{' '}
                   </TextLink>
                   <Divider isLast={isLast} />

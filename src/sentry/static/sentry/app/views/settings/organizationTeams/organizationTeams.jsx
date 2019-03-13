@@ -60,7 +60,7 @@ class OrganizationTeams extends React.Component {
     );
 
     const teamRoute = routes.find(({path}) => path === 'teams/');
-    const urlPrefix = recreateRoute(teamRoute, {routes, params, stepBack: -1});
+    const urlPrefix = recreateRoute(teamRoute, {routes, params, stepBack: -2});
 
     const activeTeamIds = new Set(activeTeams.map(team => team.id));
     const otherTeams = allTeams.filter(team => !activeTeamIds.has(team.id));
