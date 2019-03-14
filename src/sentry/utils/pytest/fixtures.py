@@ -245,10 +245,6 @@ def default_activity(default_group, default_project, default_user):
     )
 
 
-_snapshot_path = os.path.abspath(
-    os.path.join(
-        os.path.dirname(__file__),
-        '../../../../tests/snapshots/'))
 _snapshot_writeback = os.environ.get("SENTRY_SNAPSHOTS_WRITEBACK", "0") in ("true", "1")
 
 
@@ -284,8 +280,6 @@ def insta_snapshot(request, log):
 
         if not isinstance(output, six.string_types):
             output = yaml.safe_dump(output, indent=2)
-
-        reference_file = os.path.join(_snapshot_path, reference_file)
 
         try:
             with open(reference_file) as f:
