@@ -65,7 +65,7 @@ class IntegrationDetailsModal extends React.Component {
 
   earlyAdopterLabel(provider) {
     return EARLY_ADOPTER_INTEGRATIONS.includes(provider.key) ? (
-      <StyledTag priority="attention">Early Adopter</StyledTag>
+      <StyledTag priority="warning">Early Adopter</StyledTag>
     ) : null;
   }
 

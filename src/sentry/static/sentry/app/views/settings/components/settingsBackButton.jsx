@@ -1,15 +1,32 @@
 import {Link} from 'react-router';
 import React from 'react';
-import PropTypes from 'prop-types';
 import Cookies from 'js-cookie';
 import styled from 'react-emotion';
 
-import {t, tct} from 'app/locale';
+import {t} from 'app/locale';
 import InlineSvg from 'app/components/inlineSvg';
-import SentryTypes from 'app/sentryTypes';
-import replaceRouterParams from 'app/utils/replaceRouterParams';
-import withLatestContext from 'app/utils/withLatestContext';
 import space from 'app/styles/space';
+
+class SettingsBackButton extends React.Component {
+  render() {
+    // if the user needs to setup 2fa as part of the org invite flow,
+    // send them back to accept the invite
+    const pendingInvite = Cookies.get('pending-invite');
+
+    if (!pendingInvite) {
+      return null;
+    }
+
+    return (
+      <BackButtonWrapper href={pendingInvite}>
+        <Icon src="icon-arrow-left" size="10px" />
+        {t('Back to Invite')}
+      </BackButtonWrapper>
+    );
+  }
+}
+
+export default SettingsBackButton;
 
 const BackButtonWrapper = styled(Link)`
   display: flex;
@@ -36,68 +53,3 @@ const Icon = styled(InlineSvg)`
     display: block;
   }
 `;
-
-class BackButton extends React.Component {
-  static propTypes = {
-    organization: SentryTypes.Organization,
-    lastRoute: PropTypes.string,
-  };
-
-  static contextTypes = {
-    lastAppContext: PropTypes.oneOf(['project', 'organization']),
-  };
-
-  render() {
-    const {params, organization, lastRoute} = this.props;
-    const {lastAppContext} = this.context;
-    // lastAppContext is set when Settings is initial loaded,
-    // so if that is truthy, determine if we have project context at that point
-    // otherwise use what we have in latest context (e.g. if you navigated to settings directly)
-    const shouldGoBackToProject = lastRoute && lastAppContext === 'project';
-
-    if (organization && organization.features.includes('sentry10')) {
-      return null;
-    }
-
-    const projectId = shouldGoBackToProject || !lastAppContext ? params.projectId : null;
-    const orgId = params.orgId || (organization && organization.slug);
-    const url = projectId ? '/:orgId/:projectId/' : '/:orgId/';
-    const label =
-      shouldGoBackToProject || (!lastAppContext && projectId)
-        ? t('Project')
-        : t('Organization');
-
-    // if the user needs to setup 2fa as part of the org invite flow,
-    // send them back to accept the invite
-    const pendingInvite = Cookies.get('pending-invite');
-
-    if (pendingInvite) {
-      return (
-        <BackButtonWrapper href={pendingInvite}>
-          <Icon src="icon-arrow-left" size="10px" />
-          {t('Back to Invite')}
-        </BackButtonWrapper>
-      );
-    }
-
-    return (
-      <BackButtonWrapper
-        to={
-          lastRoute ||
-          replaceRouterParams(url, {
-            orgId,
-            projectId,
-          })
-        }
-      >
-        <Icon src="icon-arrow-left" size="10px" />
-        {tct('Back to [label]', {label})}
-      </BackButtonWrapper>
-    );
-  }
-}
-
-const SettingsBackButton = withLatestContext(BackButton);
-
-export {BackButton};
-export default SettingsBackButton;

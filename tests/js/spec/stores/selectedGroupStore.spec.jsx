@@ -2,30 +2,28 @@ import GroupStore from 'app/stores/groupStore';
 import SelectedGroupStore from 'app/stores/selectedGroupStore';
 
 describe('SelectedGroupStore', function() {
-  let sandbox;
   let trigger;
 
   beforeEach(function() {
     SelectedGroupStore.records = {};
 
-    sandbox = sinon.sandbox.create();
-    trigger = sandbox.spy(SelectedGroupStore, 'trigger');
+    trigger = jest.spyOn(SelectedGroupStore, 'trigger').mockImplementation(() => {});
   });
 
   afterEach(function() {
-    sandbox.restore();
+    SelectedGroupStore.trigger.mockRestore();
   });
 
   describe('prune()', function() {
     it('removes records no longer in the GroupStore', function() {
-      sandbox.stub(GroupStore, 'getAllItemIds', () => ['3']);
+      jest.spyOn(GroupStore, 'getAllItemIds').mockImplementation(() => ['3']);
       SelectedGroupStore.records = {1: true, 2: true, 3: true};
       SelectedGroupStore.prune();
       expect(SelectedGroupStore.records).toEqual({3: true});
     });
 
     it("doesn't have any effect when already in sync", function() {
-      sandbox.stub(GroupStore, 'getAllItemIds', () => ['1', '2', '3']);
+      jest.spyOn(GroupStore, 'getAllItemIds').mockImplementation(() => ['1', '2', '3']);
       SelectedGroupStore.records = {1: true, 2: true, 3: true};
       SelectedGroupStore.prune();
       expect(SelectedGroupStore.records).toEqual({1: true, 2: true, 3: true});
@@ -51,23 +49,25 @@ describe('SelectedGroupStore', function() {
     let add;
 
     beforeEach(function() {
-      prune = sandbox.stub(SelectedGroupStore, 'prune');
-      add = sandbox.stub(SelectedGroupStore, 'add');
+      prune = jest.spyOn(SelectedGroupStore, 'prune');
+      add = jest.spyOn(SelectedGroupStore, 'add');
     });
+
+    afterEach(function() {});
 
     it('adds new ids', function() {
       SelectedGroupStore.onGroupChange([]);
-      expect(add.called).toBe(true);
+      expect(add).toHaveBeenCalled();
     });
 
     it('prunes stale records', function() {
       SelectedGroupStore.onGroupChange([]);
-      expect(prune.called).toBe(true);
+      expect(prune).toHaveBeenCalled();
     });
 
     it('triggers an update', function() {
       SelectedGroupStore.onGroupChange([]);
-      expect(trigger.called).toBe(true);
+      expect(trigger).toHaveBeenCalled();
     });
   });
 
@@ -163,7 +163,7 @@ describe('SelectedGroupStore', function() {
 
     it('triggers an update', function() {
       SelectedGroupStore.deselectAll();
-      expect(trigger.called).toBe(true);
+      expect(trigger).toHaveBeenCalled();
     });
   });
 
@@ -184,12 +184,12 @@ describe('SelectedGroupStore', function() {
     it('triggers an update given pre-existing id', function() {
       SelectedGroupStore.records = {1: true};
       SelectedGroupStore.toggleSelect(1);
-      expect(trigger.called).toBe(true);
+      expect(trigger).toHaveBeenCalled();
     });
 
     it('does not trigger an update given unknown id', function() {
       SelectedGroupStore.toggleSelect();
-      expect(trigger.called).toBe(false);
+      expect(trigger).not.toHaveBeenCalled();
     });
   });
 
@@ -208,7 +208,7 @@ describe('SelectedGroupStore', function() {
 
     it('triggers an update', function() {
       SelectedGroupStore.toggleSelectAll();
-      expect(trigger.called).toBe(true);
+      expect(trigger).toHaveBeenCalled();
     });
   });
 });

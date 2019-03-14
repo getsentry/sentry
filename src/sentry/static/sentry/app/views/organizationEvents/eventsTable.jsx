@@ -85,19 +85,13 @@ class EventsTable extends React.Component {
 
     events: PropTypes.array,
     organization: SentryTypes.Organization,
+    projects: PropTypes.arrayOf(SentryTypes.Project),
     utc: PropTypes.bool,
 
     // When Table is in loading state due to chart zoom but has
     // completed its new API request
     onUpdateComplete: PropTypes.func,
   };
-
-  constructor(props) {
-    super(props);
-    this.projectsMap = new Map(
-      props.organization.projects.map(project => [project.id, project])
-    );
-  }
 
   shouldComponentUpdate(nextProps) {
     // Update if any of these "loading"-type props change so we can display loader
@@ -126,6 +120,13 @@ class EventsTable extends React.Component {
     if (this.props.onUpdateComplete && prevProps.zoomChanged && this.props.reloading) {
       this.props.onUpdateComplete();
     }
+  }
+
+  get projectsMap() {
+    const {organization, projects} = this.props;
+    const projectList = projects || organization.projects;
+
+    return new Map(projectList.map(project => [project.id, project]));
   }
 
   render() {
