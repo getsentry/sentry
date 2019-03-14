@@ -40,6 +40,13 @@ class IntegrationPipeline(Pipeline):
         try:
             data = self.provider.build_integration(self.state.data)
         except IntegrationError as e:
+            self.get_logger().info(
+                'build-integration.failure',
+                extra={
+                    'error_message': e.message,
+                    'provider_key': self.provider.key,
+                }
+            )
             return self.error(e.message)
 
         response = self._finish_pipeline(data)
