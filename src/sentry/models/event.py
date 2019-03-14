@@ -538,13 +538,67 @@ class SnubaEvent(EventCommon):
         # have to reference the row id anyway.
         return self.event_id
 
-    @property
-    def next_event(self):
-        return None
+    def next_event(self, environments=[]):
+        from sentry.utils import snuba
 
-    @property
-    def prev_event(self):
-        return None
+        conditions = [['event_id', '!=', self.id]]
+
+        if len(environments) > 0:
+            conditions.append(['environment', 'IN', environments])
+
+        result = snuba.raw_query(
+            start=self.datetime,  # gte current event
+            end=datetime.utcnow(),  # will be clamped to project retention
+            selected_columns=self.selected_columns,
+            conditions=conditions,
+            filter_keys={
+                'project_id': [self.project_id],
+                'issue': [self.group_id],
+            },
+            orderby=['timestamp', 'event_id'],
+            limit=5
+        )
+
+        if 'error' in result or len(result['data']) == 0:
+            return None
+
+        events = [e for e in result['data'] if
+                  e['timestamp'] == self.timestamp and
+                  e['event_id'] > self.event_id or
+                  e['timestamp'] > self.timestamp]
+
+        return SnubaEvent(events[0]) if events else None
+
+    def prev_event(self, environments=None):
+        from sentry.utils import snuba
+
+        conditions = [['event_id', '!=', self.id]]
+
+        if len(environments) > 0:
+            conditions.append(['environment', 'IN', environments])
+
+        result = snuba.raw_query(
+            start=datetime.utcfromtimestamp(0),  # will be clamped to project retention
+            end=self.datetime,  # lte current event
+            selected_columns=self.selected_columns,
+            conditions=conditions,
+            filter_keys={
+                'project_id': [self.project_id],
+                'issue': [self.group_id],
+            },
+            orderby=['-timestamp', '-event_id'],
+            limit=5
+        )
+
+        if 'error' in result or len(result['data']) == 0:
+            return None
+
+        events = [e for e in result['data'] if
+                  e['timestamp'] == self.timestamp and
+                  e['event_id'] < self['event_id'] or
+                  e['timestamp'] < self.timestamp]
+
+        return SnubaEvent(events[0]) if events else None
 
     def save(self):
         raise NotImplementedError
@@ -603,8 +657,7 @@ class Event(EventCommon, Model):
     # get the next/prev events. Given that timestamps only have 1-second
     # granularity, this will be inaccurate if there are more than 5 events
     # in a given second.
-    @property
-    def next_event(self):
+    def next_event(self, environments=None):
         events = self.__class__.objects.filter(
             datetime__gte=self.datetime,
             group_id=self.group_id,
@@ -615,8 +668,7 @@ class Event(EventCommon, Model):
         events.sort(key=EVENT_ORDERING_KEY)
         return events[0] if events else None
 
-    @property
-    def prev_event(self):
+    def prev_event(self, environments=None):
         events = self.__class__.objects.filter(
             datetime__lte=self.datetime,
             group_id=self.group_id,

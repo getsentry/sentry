@@ -33,8 +33,8 @@ class EventDetailsEndpoint(Endpoint):
 
         data = serialize(event, request.user, DetailedEventSerializer())
 
-        next_event = event.next_event
-        prev_event = event.prev_event
+        next_event = event.next_event()
+        prev_event = event.prev_event()
         data['nextEventID'] = next_event and six.text_type(next_event.id)
         data['previousEventID'] = prev_event and six.text_type(prev_event.id)
 
