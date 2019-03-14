@@ -44,7 +44,6 @@ class IntegrationPipeline(Pipeline):
                 'build-integration.failure',
                 extra={
                     'error_message': e.message,
-                    'error_status': e.code,
                     'provider_key': self.provider.key,
                 }
             )

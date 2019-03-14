@@ -170,7 +170,7 @@ class InstallationConfigView(PipelineView):
                     "client_secret": form_data.get('client_secret'),
                     "verify_ssl": form_data.get('verify_ssl')
                 })
-                self.get_logger().info(
+                pipeline.get_logger().info(
                     'gitlab.setup.installation-config-view.success',
                     extra={
                         'base_url': form_data.get('url'),
