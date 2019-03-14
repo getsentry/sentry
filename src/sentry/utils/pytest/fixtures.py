@@ -271,7 +271,7 @@ def insta_snapshot(request, log):
                 os.path.dirname(six.text_type(request.node.fspath)),
                 'snapshots',
                 os.path.splitext(os.path.basename(request.node.parent.name))[0],
-                name + '.snap'
+                name + '.pysnap'
 
             )
         elif subname is not None:

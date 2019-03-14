@@ -1,0 +1,3 @@
+custom-fingerprint:
+  hash: 'f30afa00b85f5cac5ee0bce01b31f08d'
+  values: [u'celery', u'SoftTimeLimitExceeded', u'sentry.tasks.store.process_event']
