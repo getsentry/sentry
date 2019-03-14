@@ -287,6 +287,9 @@ def insta_snapshot(request, log):
         except IOError:
             refval = ''
 
+        refval = refval.rstrip()
+        output = output.rstrip()
+
         if _snapshot_writeback and refval != output:
             if not os.path.isdir(os.path.dirname(reference_file)):
                 os.makedirs(os.path.dirname(reference_file))
