@@ -128,12 +128,13 @@ class GroupManager(BaseManager):
         # Look up event_id in both Event and EventMapping,
         # and bail when it matches one of them, prioritizing
         # Event since it contains more history.
+        event_id_lower = event_id.lower()
         for model in Event, EventMapping:
             try:
                 group_id = model.objects.filter(
                     project_id=project.id,
                     # XXX(dcramer): enforce case insensitivty by coercing this to a lowercase string
-                    event_id=event_id.lower(),
+                    event_id=event_id_lower,
                 ).values_list('group_id', flat=True)[0]
 
                 # It's possible that group_id is NULL
@@ -141,6 +142,23 @@ class GroupManager(BaseManager):
                     break
             except IndexError:
                 pass
+
+        # Some legacy events might have non lowercase event ID in the
+        # database.
+        # TODO(mitsuhiko): Kill this in July 2019
+        if group_id is None and event_id_lower != event_id:
+            for model in Event, EventMapping:
+                try:
+                    group_id = model.objects.filter(
+                        project_id=project.id,
+                        event_id=event_id,
+                    ).values_list('group_id', flat=True)[0]
+
+                    # It's possible that group_id is NULL
+                    if group_id is not None:
+                        break
+                except IndexError:
+                    pass
 
         if group_id is None:
             # Raise a Group.DoesNotExist here since it makes
@@ -156,13 +174,23 @@ class GroupManager(BaseManager):
         # see above for explanation as to why we're
         # looking at both Event and EventMapping
         for model in Event, EventMapping:
+            event_id_lower = event_id.lower()
             group_ids.update(
                 model.objects.filter(
                     project_id__in=project_ids,
-                    event_id=event_id,
+                    event_id=event_id_lower,
                     group_id__isnull=False,
                 ).values_list('group_id', flat=True)
             )
+
+            if event_id_lower != event_id:
+                group_ids.update(
+                    model.objects.filter(
+                        project_id__in=project_ids,
+                        event_id=event_id,
+                        group_id__isnull=False,
+                    ).values_list('group_id', flat=True)
+                )
 
         return Group.objects.filter(id__in=group_ids)
 

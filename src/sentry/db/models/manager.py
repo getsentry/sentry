@@ -367,13 +367,27 @@ class EventManager(BaseManager):
                 pass
         # If it was not found as a PK, and its a possible event_id, search by that instead.
         if project_id is not None and event is None and is_event_id(id_or_event_id):
+            lower_event_id = id_or_event_id.lower()
             try:
                 event = self.get(
-                    # XXX(dcramer): enforce case insensitivty by coercing this to a lowercase string
-                    event_id=id_or_event_id.lower(),
+                    # XXX(dcramer): enforce case insensitivty by coercing
+                    # this to a lowercase string
+                    event_id=lower_event_id,
                     project_id=project_id,
                 )
             except ObjectDoesNotExist:
                 pass
+
+            # Some legacy events might have non lowercase event ID in the
+            # database.
+            # TODO(mitsuhiko): Kill this in July 2019
+            if event is None and lower_event_id != id_or_event_id:
+                try:
+                    event = self.get(
+                        event_id=id_or_event_id,
+                        project_id=project_id,
+                    )
+                except ObjectDoesNotExist:
+                    pass
 
         return event
