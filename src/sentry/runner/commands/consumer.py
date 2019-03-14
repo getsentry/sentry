@@ -8,6 +8,8 @@ from django.conf import settings
 @click.command()
 @click.option('--topic', multiple=True, required=True,
               help='Topic(s) to consume from.')
+@click.option('--dead-letter-topic', required=True,
+              help='Topic to produce failed messages into.')
 @click.option('--consumer-group', default='sentry-consumers',
               help='Consumer group name.')
 @click.option('--bootstrap-server', default=['localhost:9092'], multiple=True,
@@ -44,6 +46,7 @@ def consumer(**options):
         bootstrap_servers=options['bootstrap_server'],
         group_id=options['consumer_group'],
         auto_offset_reset=options['auto_offset_reset'],
+        dead_letter_topic=options['dead_letter_topic'],
     )
 
     def handler(signum, frame):
