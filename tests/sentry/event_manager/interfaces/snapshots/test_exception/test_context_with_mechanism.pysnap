@@ -1,9 +1,15 @@
+---
+created: '2019-03-14T17:12:35.416286Z'
+creator: sentry
+source: tests/sentry/event_manager/interfaces/test_exception.py
+---
 errors: null
 get_api_context:
   excOmitted: null
   hasSystemFrames: true
   values:
-  - mechanism: {type: generic}
+  - mechanism:
+      type: generic
     module: foo.bar
     rawStacktrace: null
     stacktrace:
@@ -32,11 +38,15 @@ get_api_context:
     value: hello world
 to_json:
   values:
-  - mechanism: {type: generic}
+  - mechanism:
+      type: generic
     module: foo.bar
     stacktrace:
       frames:
-      - {abs_path: foo/baz.py, filename: foo/baz.py, in_app: true, lineno: 1}
+      - abs_path: foo/baz.py
+        filename: foo/baz.py
+        in_app: true
+        lineno: 1
     type: ValueError
     value: hello world
 to_string: "ValueError: hello world\n  File \"foo/baz.py\", line 1"
