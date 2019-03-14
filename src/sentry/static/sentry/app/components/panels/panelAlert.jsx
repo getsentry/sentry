@@ -17,7 +17,6 @@ const PanelAlert = styled(({type, icon, ...props}) => (
 ))`
   margin: 1px 0;
   border-radius: 0;
-  width: calc(100% - 2px);
 `;
 
 PanelAlert.propTypes = {
