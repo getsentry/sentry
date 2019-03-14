@@ -4,8 +4,6 @@ import click
 import signal
 from django.conf import settings
 
-from sentry.runner.decorators import configuration
-
 
 @click.command()
 @click.option('--topic', multiple=True, required=True,
@@ -22,7 +20,6 @@ from sentry.runner.decorators import configuration
               help='Max length of time to buffer messages in memory before committing offsets to Kafka.')
 @click.option('--auto-offset-reset', default='error', type=click.Choice(['error', 'earliest', 'latest']),
               help='Kafka consumer auto offset reset.')
-@configuration
 def consumer(**options):
     from batching_kafka_consumer import BatchingKafkaConsumer
     from sentry.consumer import ConsumerWorker
@@ -33,9 +30,15 @@ def consumer(**options):
         if topic not in known_topics:
             raise RuntimeError("topic '%s' is not one of: %s" % (topic, known_topics))
 
+    # forks off multiprocessing workers if necessary
+    worker = ConsumerWorker(concurrency=options['concurrency'])
+
+    from sentry.runner import configure
+    configure()
+
     consumer = BatchingKafkaConsumer(
         topics=options['topic'],
-        worker=ConsumerWorker(concurrency=options['concurrency']),
+        worker=worker,
         max_batch_size=options['max_batch_size'],
         max_batch_time=options['max_batch_time_ms'],
         bootstrap_servers=options['bootstrap_server'],
