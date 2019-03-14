@@ -156,21 +156,6 @@ const ProjectsStore = Reflux.createStore({
     });
   },
 
-  getAllGroupedByOrganization() {
-    return this.getAll().reduce((acc, project) => {
-      const orgSlug = project.organization.slug;
-      if (acc[orgSlug]) {
-        acc[orgSlug].projects.push(project);
-      } else {
-        acc[orgSlug] = {
-          organization: project.organization,
-          projects: [project],
-        };
-      }
-      return acc;
-    }, {});
-  },
-
   getById(id) {
     return this.getAll().find(project => project.id === id);
   },
