@@ -2,11 +2,6 @@ from __future__ import absolute_import, print_function
 
 from batching_kafka_consumer import AbstractBatchWorker
 
-from django.conf import settings
-
-import sentry.tasks.store as store_tasks
-from sentry.utils import json
-
 
 # We need a unique value to indicate when to stop multiprocessing queue
 # an identity on an object() isn't guaranteed to work between parent
@@ -15,6 +10,8 @@ _STOP_WORKER = '91650ec271ae4b3e8a67cdc909d80f8c'
 
 
 def handle_preprocess(message):
+    import sentry.tasks.store as store_tasks
+
     data = message['data']
     event_id = data['event_id']
     cache_key = message['cache_key']
@@ -29,6 +26,8 @@ def handle_preprocess(message):
 
 
 def handle_process(message):
+    import sentry.tasks.store as store_tasks
+
     data = message['data']
     event_id = data['event_id']
     cache_key = message['cache_key']
@@ -43,6 +42,8 @@ def handle_process(message):
 
 
 def handle_save(message):
+    import sentry.tasks.store as store_tasks
+
     data = message['data']
     event_id = data['event_id']
     cache_key = message['cache_key']
@@ -53,16 +54,22 @@ def handle_save(message):
 
 
 dispatch = {}
-for key, handler in (
-    (settings.KAFKA_PREPROCESS, handle_preprocess),
-    (settings.KAFKA_PROCESS, handle_process),
-    (settings.KAFKA_SAVE, handle_save)
-):
-    topic = settings.KAFKA_TOPICS[key]['topic']
-    dispatch[topic] = handler
 
 
 def handle_task(task):
+    from sentry.utils import json
+
+    if not dispatch:
+        from django.conf import settings
+
+        for key, handler in (
+            (settings.KAFKA_PREPROCESS, handle_preprocess),
+            (settings.KAFKA_PROCESS, handle_process),
+            (settings.KAFKA_SAVE, handle_save)
+        ):
+            topic = settings.KAFKA_TOPICS[key]['topic']
+            dispatch[topic] = handler
+
     topic, payload = task
     handler = dispatch[topic]
     handler(json.loads(payload))

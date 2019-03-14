@@ -2,7 +2,6 @@ from __future__ import absolute_import, print_function
 
 import click
 import signal
-from django.conf import settings
 
 
 @click.command()
@@ -26,17 +25,19 @@ def consumer(**options):
     from batching_kafka_consumer import BatchingKafkaConsumer
     from sentry.consumer import ConsumerWorker
 
-    known_topics = {x['topic'] for x in settings.KAFKA_TOPICS.values()}
-    topics = options['topic']
-    for topic in topics:
-        if topic not in known_topics:
-            raise RuntimeError("topic '%s' is not one of: %s" % (topic, known_topics))
-
     # forks off multiprocessing workers if necessary
     worker = ConsumerWorker(concurrency=options['concurrency'])
 
     from sentry.runner import configure
     configure()
+
+    from django.conf import settings
+
+    known_topics = {x['topic'] for x in settings.KAFKA_TOPICS.values()}
+    topics = options['topic']
+    for topic in topics:
+        if topic not in known_topics:
+            raise RuntimeError("topic '%s' is not one of: %s" % (topic, known_topics))
 
     consumer = BatchingKafkaConsumer(
         topics=options['topic'],
