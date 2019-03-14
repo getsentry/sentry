@@ -11,13 +11,14 @@ from sentry.models import (
 from sentry.plugins import IssueTrackingPlugin, IssueTrackingPlugin2, NotificationPlugin
 from sentry.signals import (
     event_processed,
-    project_created,
     first_event_pending,
     first_event_received,
+    issue_tracker_used,
+    issue_resolved,
     member_invited,
     member_joined,
     plugin_enabled,
-    issue_tracker_used,
+    project_created,
 )
 from sentry.utils.javascript import has_sourcemap
 
@@ -331,4 +332,22 @@ def record_issue_tracker_used(plugin, project, user, **kwargs):
         organization_id=project.organization_id,
         project_id=project.id,
         issue_tracker=plugin.slug,
+    )
+
+
+@issue_resolved.connect(weak=False)
+def record_issue_resolved(project, group, user, **kwargs):
+    if user and user.is_authenticated():
+        user_id = default_user_id = user.id
+    else:
+        user_id = None
+        default_user_id = project.organization.get_default_owner().id
+
+    analytics.record(
+        'issue.resolved',
+        user_id=user_id,
+        default_user_id=default_user_id,
+        organization_id=project.organization_id,
+        group_id=group.id,
+        resolution_type='now',
     )
