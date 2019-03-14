@@ -101,13 +101,18 @@ class IssueLinkRequester(Mediator):
 
     @memoize
     def body(self):
-        body = {}
+        body = {'fields': {}}
         for name, value in six.iteritems(self.fields):
-            body[name] = value
+            body['fields'][name] = value
 
         body['issueId'] = self.group.id
         body['installationId'] = self.install.uuid
         body['webUrl'] = self.group.get_absolute_url()
+        project = self.group.project
+        body['project'] = {
+            'slug': project.slug,
+            'id': project.id,
+        }
         return json.dumps(body)
 
     @memoize
