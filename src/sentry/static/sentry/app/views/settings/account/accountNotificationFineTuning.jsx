@@ -11,7 +11,6 @@ import EmptyMessage from 'app/views/settings/components/emptyMessage';
 import Form from 'app/views/settings/components/forms/form';
 import JsonForm from 'app/views/settings/components/forms/jsonForm';
 import Pagination from 'app/components/pagination';
-import ProjectsStore from 'app/stores/projectsStore';
 import SelectField from 'app/views/settings/components/forms/selectField';
 import SettingsPageHeader from 'app/views/settings/components/settingsPageHeader';
 import TextBlock from 'app/views/settings/components/text/textBlock';
@@ -87,6 +86,21 @@ const PanelBodyLineItem = styled(PanelBody)`
 // Which fine tuning parts are grouped by project
 const isGroupedByProject = type => ['alerts', 'workflow', 'email'].indexOf(type) > -1;
 
+function groupByOrganization(projects) {
+  return projects.reduce((acc, project) => {
+    const orgSlug = project.organization.slug;
+    if (acc[orgSlug]) {
+      acc[orgSlug].projects.push(project);
+    } else {
+      acc[orgSlug] = {
+        organization: project.organization,
+        projects: [project],
+      };
+    }
+    return acc;
+  }, {});
+}
+
 class AccountNotificationsByProject extends React.Component {
   static propTypes = {
     projects: PropTypes.array,
@@ -95,9 +109,7 @@ class AccountNotificationsByProject extends React.Component {
 
   getFieldData() {
     const {projects, field} = this.props;
-    ProjectsStore.loadInitialData(projects);
-
-    const projectsByOrg = ProjectsStore.getAllGroupedByOrganization();
+    const projectsByOrg = groupByOrganization(projects);
 
     // eslint-disable-next-line no-unused-vars
     const {title, description, ...fieldConfig} = field;
