@@ -256,7 +256,7 @@ elif _snapshot_writeback != 'new':
     _snapshot_writeback = None
 _test_base = os.path.realpath(os.path.dirname(
     os.path.dirname(os.path.dirname(os.path.abspath(sentry.__file__)))))
-_yaml_snap_re = re.compile(r'^---\r?\n(.*?)\r?\n---\r?\n(.*)$(?i)')
+_yaml_snap_re = re.compile(r'^---\r?\n(.*?)\r?\n---\r?\n(.*)$(?s)')
 
 
 @pytest.fixture
@@ -295,10 +295,9 @@ def insta_snapshot(request, log):
         try:
             with open(reference_file) as f:
                 match = _yaml_snap_re.match(f.read().decode('utf-8'))
-                if match is not None:
-                    _header, refval = match.groups()
-                else:
+                if match is None:
                     raise IOError()
+                _header, refval = match.groups()
         except IOError:
             refval = ''
 
@@ -315,7 +314,7 @@ def insta_snapshot(request, log):
                 reference_file += '.new'
             with open(reference_file, "w") as f:
                 f.write('---\n%s\n---\n%s\n' % (yaml.safe_dump({
-                    'created': datetime.utcnow().isoformat(),
+                    'created': datetime.utcnow().isoformat() + 'Z',
                     'creator': 'sentry',
                     'source': source,
                 }, indent=2, default_flow_style=False).rstrip(), output))
