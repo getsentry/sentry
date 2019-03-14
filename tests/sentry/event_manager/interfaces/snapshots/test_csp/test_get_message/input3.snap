@@ -1,0 +1,9 @@
+culprit: script-src 'unsafe-eval'
+errors: null
+message: Blocked unsafe eval() 'script'
+origin: http://example.com/foo
+tags:
+- [effective-directive, script-src]
+- [blocked-uri, '']
+to_json: {blocked_uri: '', document_uri: 'http://example.com/foo', effective_directive: script-src,
+    violated_directive: script-src 'unsafe-eval'}

@@ -1,0 +1,9 @@
+culprit: ''
+errors: null
+message: Blocked 'script' from 'data:'
+origin: http://example.com/foo
+tags:
+- [effective-directive, script-src]
+- [blocked-uri, 'data:text/plain;base64,SGVsbG8sIFdvcmxkIQ%3D%3D']
+to_json: {blocked_uri: 'data:text/plain;base64,SGVsbG8sIFdvcmxkIQ%3D%3D', document_uri: 'http://example.com/foo',
+    effective_directive: script-src, violated_directive: ''}

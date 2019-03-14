@@ -1,0 +1,9 @@
+culprit: style-src http://example2.com 'self'
+errors: null
+message: Blocked inline 'style'
+origin: http://example.com/foo
+tags:
+- [effective-directive, style-src]
+- [blocked-uri, self]
+to_json: {blocked_uri: self, document_uri: 'http://example.com/foo', effective_directive: style-src,
+    violated_directive: 'style-src http://example2.com example.com'}
