@@ -7,7 +7,12 @@ including ``db`` fixture in the function resolution scope.
 """
 from __future__ import absolute_import, print_function, unicode_literals
 
+import os
+import sys
+import yaml
+
 import pytest
+import six
 
 
 DEFAULT_EVENT_DATA = {
@@ -238,3 +243,61 @@ def default_activity(default_group, default_project, default_user):
     return Activity.objects.create(
         group=default_group, project=default_project, type=Activity.NOTE, user=default_user, data={}
     )
+
+
+_snapshot_writeback = os.environ.get("SENTRY_SNAPSHOTS_WRITEBACK", "0") in ("true", "1")
+
+
+@pytest.fixture
+def log():
+    def inner(x):
+        return sys.stdout.write(x + '\n')
+    return inner
+
+
+@pytest.fixture
+def insta_snapshot(request, log):
+    calls = []
+
+    def inner(output, reference_file=None, subname=None):
+        calls.append(1)
+        if reference_file is None:
+            name = request.node.name
+            for c in ('::', '-', '[', ']'):
+                name = name.replace(c, '/')
+            name = name.strip('/')
+
+            reference_file = os.path.join(
+                os.path.dirname(six.text_type(request.node.fspath)),
+                'snapshots',
+                os.path.splitext(os.path.basename(request.node.parent.name))[0],
+                name + '.pysnap'
+
+            )
+        elif subname is not None:
+            raise ValueError(
+                "subname only works if you don't provide your own entire reference_file")
+
+        if not isinstance(output, six.string_types):
+            output = yaml.safe_dump(output, indent=2)
+
+        try:
+            with open(reference_file) as f:
+                refval = f.read().decode('utf-8')
+        except IOError:
+            refval = ''
+
+        refval = refval.rstrip()
+        output = output.rstrip()
+
+        if _snapshot_writeback and refval != output:
+            if not os.path.isdir(os.path.dirname(reference_file)):
+                os.makedirs(os.path.dirname(reference_file))
+            with open(reference_file, "w") as f:
+                f.write(output)
+        else:
+            log("Run with SENTRY_SNAPSHOTS_WRITEBACK=1 to update snapshots.")
+            assert refval == output
+
+    yield inner
+    assert calls, "Test is loading insta_snapshot but is not using it. This is likely a bug"

@@ -1,0 +1,3 @@
+errors:
+- {name: request.method, type: invalid_data, value: A}
+to_json: {url: 'http://example.com/'}

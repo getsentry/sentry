@@ -1,0 +1,9 @@
+culprit: ''
+errors: null
+message: Blocked 'style' from 'fonts.google.com'
+origin: http://example.com/foo
+tags:
+- [effective-directive, style-src-elem]
+- [blocked-uri, 'http://fonts.google.com/foo']
+to_json: {blocked_uri: 'http://fonts.google.com/foo', document_uri: 'http://example.com/foo',
+  effective_directive: style-src-elem, violated_directive: ''}

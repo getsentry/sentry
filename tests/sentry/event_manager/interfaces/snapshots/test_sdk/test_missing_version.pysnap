@@ -1,0 +1,3 @@
+errors:
+- {name: sdk.version, type: missing_attribute}
+to_json: {name: sentry-unity}

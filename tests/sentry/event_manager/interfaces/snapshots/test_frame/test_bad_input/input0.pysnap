@@ -1,0 +1,4 @@
+errors:
+- {name: stacktrace.frames.0.abs_path, reason: expected a string, type: invalid_data,
+  value: 1}
+to_json: {}

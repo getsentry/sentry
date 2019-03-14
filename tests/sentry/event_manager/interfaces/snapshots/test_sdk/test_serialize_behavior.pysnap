@@ -1,0 +1,7 @@
+errors: null
+to_json:
+  integrations: [log4j]
+  name: sentry-java
+  packages:
+  - {name: 'maven:io.sentry.sentry', version: 1.7.10}
+  version: '1.0'

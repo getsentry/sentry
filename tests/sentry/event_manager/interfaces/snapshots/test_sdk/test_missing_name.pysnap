@@ -1,0 +1,3 @@
+errors:
+- {name: sdk.name, type: missing_attribute}
+to_json: {version: '1.0'}

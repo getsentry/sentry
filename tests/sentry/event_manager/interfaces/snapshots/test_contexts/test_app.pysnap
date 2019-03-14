@@ -1,0 +1,5 @@
+errors: null
+tags:
+- [app.device, '5678']
+to_json:
+  app: {app_id: '1234', device_app_hash: '5678', type: app}

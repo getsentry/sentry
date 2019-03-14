@@ -1,0 +1,8 @@
+errors: null
+to_json:
+  values:
+  - data:
+      extra: {foo: '"bar"'}
+    level: info
+    timestamp: 1458857193.973
+    type: message
