@@ -132,7 +132,8 @@ class GroupManager(BaseManager):
             try:
                 group_id = model.objects.filter(
                     project_id=project.id,
-                    event_id=event_id,
+                    # XXX(dcramer): enforce case insensitivty by coercing this to a lowercase string
+                    event_id=event_id.lower(),
                 ).values_list('group_id', flat=True)[0]
 
                 # It's possible that group_id is NULL

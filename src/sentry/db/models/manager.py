@@ -271,7 +271,7 @@ class BaseManager(Manager):
             if key != pk_name:
                 return self.get_from_cache(**{pk_name: retval})
 
-            if type(retval) != self.model:
+            if not isinstance(retval, self.model):
                 if settings.DEBUG:
                     raise ValueError('Unexpected value type returned from cache')
                 logger.error('Cache response returned invalid value %r', retval)
@@ -369,7 +369,8 @@ class EventManager(BaseManager):
         if project_id is not None and event is None and is_event_id(id_or_event_id):
             try:
                 event = self.get(
-                    event_id=id_or_event_id,
+                    # XXX(dcramer): enforce case insensitivty by coercing this to a lowercase string
+                    event_id=id_or_event_id.lower(),
                     project_id=project_id,
                 )
             except ObjectDoesNotExist:
