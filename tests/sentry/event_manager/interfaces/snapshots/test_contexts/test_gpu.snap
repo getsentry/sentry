@@ -3,4 +3,4 @@ tags:
 - [gpu.name, AMD Radeon Pro 560]
 - [gpu.vendor, Apple]
 to_json:
-    gpu: {name: AMD Radeon Pro 560, type: gpu, vendor_name: Apple, version: Metal}
+  gpu: {name: AMD Radeon Pro 560, type: gpu, vendor_name: Apple, version: Metal}

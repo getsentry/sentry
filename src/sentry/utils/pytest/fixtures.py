@@ -283,7 +283,7 @@ def insta_snapshot(request, log):
                 "subname only works if you don't provide your own entire reference_file")
 
         if not isinstance(output, six.string_types):
-            output = yaml.safe_dump(output, indent=4)
+            output = yaml.safe_dump(output, indent=2)
 
         reference_file = os.path.join(_snapshot_path, reference_file)
 

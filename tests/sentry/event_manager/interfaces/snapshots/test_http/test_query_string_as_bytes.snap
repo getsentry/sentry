@@ -1,5 +1,5 @@
 errors: null
 to_json:
-    query_string:
-    - [foo, "\0"]
-    url: http://example.com/
+  query_string:
+  - [foo, "\0"]
+  url: http://example.com/

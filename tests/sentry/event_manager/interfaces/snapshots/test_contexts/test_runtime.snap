@@ -3,4 +3,4 @@ tags:
 - [runtime, Java 1.2.3]
 - [runtime.name, Java]
 to_json:
-    runtime: {build: BLAH, name: Java, type: runtime, version: 1.2.3}
+  runtime: {build: BLAH, name: Java, type: runtime, version: 1.2.3}

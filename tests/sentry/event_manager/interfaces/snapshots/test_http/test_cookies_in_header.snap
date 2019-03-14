@@ -1,6 +1,6 @@
 errors: null
 to_json:
-    cookies:
-    - [a, b]
-    - [c, d]
-    url: http://example.com/
+  cookies:
+  - [a, b]
+  - [c, d]
+  url: http://example.com/

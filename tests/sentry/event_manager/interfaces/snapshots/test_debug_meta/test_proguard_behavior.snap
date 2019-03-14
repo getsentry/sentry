@@ -1,4 +1,4 @@
 errors: null
 to_json:
-    images:
-    - {type: proguard, uuid: c05b4ddd-69a7-3840-a649-32180d341587}
+  images:
+  - {type: proguard, uuid: c05b4ddd-69a7-3840-a649-32180d341587}

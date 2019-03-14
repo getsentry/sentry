@@ -1,5 +1,5 @@
 errors: null
 to_json:
-    abs_path: x
-    filename: x
-    vars: {x: 0}
+  abs_path: x
+  filename: x
+  vars: {x: 0}

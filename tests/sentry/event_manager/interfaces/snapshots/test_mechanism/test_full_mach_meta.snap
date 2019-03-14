@@ -2,6 +2,6 @@ errors: null
 tags:
 - [mechanism, generic]
 to_json:
-    meta:
-        mach_exception: {code: 0, exception: 10, name: EXC_CRASH, subcode: 0}
-    type: generic
+  meta:
+    mach_exception: {code: 0, exception: 10, name: EXC_CRASH, subcode: 0}
+  type: generic

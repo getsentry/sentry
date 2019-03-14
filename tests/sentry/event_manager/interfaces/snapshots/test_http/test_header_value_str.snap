@@ -1,5 +1,5 @@
 errors: null
 to_json:
-    headers:
-    - [Foo, '1']
-    url: http://example.com/
+  headers:
+  - [Foo, '1']
+  url: http://example.com/

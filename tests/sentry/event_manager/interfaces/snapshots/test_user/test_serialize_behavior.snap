@@ -1,5 +1,5 @@
 errors: null
 to_json:
-    data: {favorite_color: brown}
-    email: lol@example.com
-    id: '1'
+  data: {favorite_color: brown}
+  email: lol@example.com
+  id: '1'

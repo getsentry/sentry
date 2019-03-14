@@ -1,5 +1,5 @@
 values:
--   stacktrace:
-        frames:
-        - {abs_path: foo, filename: foo}
-    value: foo
+- stacktrace:
+    frames:
+    - {abs_path: foo, filename: foo}
+  value: foo

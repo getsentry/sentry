@@ -1,5 +1,5 @@
 errors: null
 to_json:
-    cookies:
-    - [foo, bar]
-    url: http://example.com/
+  cookies:
+  - [foo, bar]
+  url: http://example.com/

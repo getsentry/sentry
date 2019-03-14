@@ -1,9 +1,9 @@
 errors: null
 tags: []
 to_json:
-    whatever:
-        baz: {foo: bar}
-        biz: [1, 2, 3]
-        blub: blah
-        foo: bar
-        type: default
+  whatever:
+    baz: {foo: bar}
+    biz: [1, 2, 3]
+    blub: blah
+    foo: bar
+    type: default

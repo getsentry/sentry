@@ -1,5 +1,5 @@
 errors: null
 to_json:
-    formatted: Hello there world!
-    message: Hello there %s!
-    params: [world]
+  formatted: Hello there world!
+  message: Hello there %s!
+  params: [world]

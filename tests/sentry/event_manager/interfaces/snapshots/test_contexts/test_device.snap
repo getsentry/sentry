@@ -2,5 +2,5 @@ errors: null
 tags:
 - [device, iPad]
 to_json:
-    device: {arch: arm64, model: iPad, model_id: 1234AB, name: My iPad, type: device,
-        version: 1.2.3}
+  device: {arch: arm64, model: iPad, model_id: 1234AB, name: My iPad, type: device,
+    version: 1.2.3}

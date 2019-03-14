@@ -1,7 +1,7 @@
 errors: null
 to_json:
-    data: {foo: bar}
-    headers:
-    - [Content-Type, application/x-www-form-urlencoded]
-    inferred_content_type: application/x-www-form-urlencoded
-    url: http://example.com/
+  data: {foo: bar}
+  headers:
+  - [Content-Type, application/x-www-form-urlencoded]
+  inferred_content_type: application/x-www-form-urlencoded
+  url: http://example.com/

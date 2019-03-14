@@ -6,4 +6,4 @@ tags:
 - [effective-directive, style-src]
 - [blocked-uri, '']
 to_json: {blocked_uri: '', document_uri: 'http://example.com/foo', effective_directive: style-src,
-    violated_directive: ''}
+  violated_directive: ''}
