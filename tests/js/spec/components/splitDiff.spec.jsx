@@ -3,15 +3,9 @@ import {shallow} from 'enzyme';
 import SplitDiff from 'app/components/splitDiff';
 
 describe('SplitDiff', function() {
-  let sandbox;
+  beforeEach(function() {});
 
-  beforeEach(function() {
-    sandbox = sinon.sandbox.create();
-  });
-
-  afterEach(function() {
-    sandbox.restore();
-  });
+  afterEach(function() {});
 
   it('renders', function() {
     const wrapper = shallow(<SplitDiff base="restaurant" target="aura" />);

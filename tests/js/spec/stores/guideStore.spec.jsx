@@ -4,7 +4,6 @@ import GuideAnchor from 'app/components/assistant/guideAnchor';
 import ConfigStore from 'app/stores/configStore';
 
 describe('GuideStore', function() {
-  let sandbox;
   const anchor1 = <GuideAnchor target="target 1" type="text" />;
   const anchor2 = <GuideAnchor target="target 2" type="text" />;
   let data;
@@ -16,7 +15,6 @@ describe('GuideStore', function() {
       },
     };
     GuideStore.init();
-    sandbox = sinon.sandbox.create();
     data = {
       Guide1: {
         cue: 'Click here for a tour of the issue page',
@@ -59,9 +57,7 @@ describe('GuideStore', function() {
     });
   });
 
-  afterEach(function() {
-    sandbox.restore();
-  });
+  afterEach(function() {});
 
   it('should move through the steps in the guide', async function() {
     GuideStore.onFetchSucceeded(data);

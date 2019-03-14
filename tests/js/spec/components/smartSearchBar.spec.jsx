@@ -33,7 +33,6 @@ describe('removeSpace()', function() {
 });
 
 describe('SmartSearchBar', function() {
-  let sandbox;
   let options;
   let environmentTagValuesMock;
   let supportedTags;
@@ -44,8 +43,6 @@ describe('SmartSearchBar', function() {
     TagStore.onLoadTagsSuccess(TestStubs.Tags());
     tagValuesMock.mockClear();
     supportedTags = {};
-
-    sandbox = sinon.sandbox.create();
 
     options = {
       context: {organization: {id: '123'}},
@@ -59,7 +56,6 @@ describe('SmartSearchBar', function() {
 
   afterEach(function() {
     MockApiClient.clearMockResponses();
-    sandbox.restore();
   });
 
   describe('componentWillReceiveProps()', function() {
@@ -162,12 +158,12 @@ describe('SmartSearchBar', function() {
         query: 'is:unresolved ruby',
         defaultQuery: 'is:unresolved',
         supportedTags,
-        onSearch: sandbox.spy(),
+        onSearch: jest.fn(),
       };
       const searchBar = shallow(<SmartSearchBar {...props} />, options).instance();
 
       await searchBar.clearSearch();
-      expect(props.onSearch.calledWith('')).toBe(true);
+      expect(props.onSearch).toHaveBeenCalledWith('');
     });
   });
 
@@ -198,9 +194,9 @@ describe('SmartSearchBar', function() {
       ).instance();
       searchBar.state.dropdownVisible = true;
 
-      const clock = sandbox.useFakeTimers();
+      jest.useFakeTimers();
       searchBar.onQueryBlur();
-      clock.tick(201); // doesn't close until 200ms
+      jest.advanceTimersByTime(201); // doesn't close until 200ms
 
       expect(searchBar.state.dropdownVisible).toBe(false);
     });
@@ -216,18 +212,18 @@ describe('SmartSearchBar', function() {
         wrapper.setState({dropdownVisible: true});
 
         const instance = wrapper.instance();
-        sandbox.stub(instance, 'blur');
+        jest.spyOn(instance, 'blur');
 
         wrapper.find('input').simulate('keyup', {key: 'Escape', keyCode: '27'});
 
-        expect(instance.blur.calledOnce).toBeTruthy();
+        expect(instance.blur).toHaveBeenCalledTimes(1);
       });
     });
   });
 
   describe('render()', function() {
     it('invokes onSearch() when submitting the form', function() {
-      const stubbedOnSearch = sandbox.spy();
+      const stubbedOnSearch = jest.fn();
       const wrapper = mount(
         <SmartSearchBar
           onSearch={stubbedOnSearch}
@@ -243,25 +239,24 @@ describe('SmartSearchBar', function() {
         preventDefault() {},
       });
 
-      expect(stubbedOnSearch.calledWith('is:unresolved')).toBe(true);
+      expect(stubbedOnSearch).toHaveBeenCalledWith('is:unresolved');
     });
 
-    it('invokes onSearch() when search is cleared', function(done) {
+    it('invokes onSearch() when search is cleared', async function() {
+      jest.useRealTimers();
       const props = {
         orgId: '123',
         projectId: '456',
         query: 'is:unresolved',
         supportedTags,
-        onSearch: sandbox.spy(),
+        onSearch: jest.fn(),
       };
       const wrapper = mount(<SmartSearchBar {...props} />, options);
 
       wrapper.find('.search-clear-form').simulate('click');
 
-      setTimeout(function() {
-        expect(props.onSearch.calledWith('')).toBe(true);
-        done();
-      });
+      await tick();
+      expect(props.onSearch).toHaveBeenCalledWith('');
     });
   });
 
@@ -278,13 +273,8 @@ describe('SmartSearchBar', function() {
   });
 
   describe('updateAutoCompleteItems()', function() {
-    let clock;
-
     beforeEach(function() {
-      clock = sandbox.useFakeTimers();
-    });
-    afterEach(function() {
-      clock.restore();
+      jest.useFakeTimers();
     });
     it('sets state when empty', function() {
       const props = {
@@ -354,7 +344,7 @@ describe('SmartSearchBar', function() {
       };
       const searchBar = mount(<SmartSearchBar {...props} />, options).instance();
       searchBar.updateAutoCompleteItems();
-      clock.tick(301);
+      jest.advanceTimersByTime(301);
       expect(environmentTagValuesMock).not.toHaveBeenCalled();
     });
 
@@ -372,7 +362,7 @@ describe('SmartSearchBar', function() {
       };
       const searchBar = mount(<SmartSearchBar {...props} />, options).instance();
       searchBar.updateAutoCompleteItems();
-      clock.tick(301);
+      jest.advanceTimersByTime(301);
       expect(mock).not.toHaveBeenCalled();
     });
   });

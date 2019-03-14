@@ -5,10 +5,7 @@ import Configure from 'app/views/onboarding/configure';
 import ProjectsStore from 'app/stores/projectsStore';
 
 describe('Configure should render correctly', function() {
-  let sandbox;
-
   beforeEach(function() {
-    sandbox = sinon.sandbox.create();
     MockApiClient.addMockResponse({
       url: '/projects/testOrg/project-slug/',
       body: TestStubs.Project(),
@@ -71,7 +68,6 @@ describe('Configure should render correctly', function() {
   });
 
   afterEach(function() {
-    sandbox.restore();
     ProjectsStore.loadInitialData([]);
   });
 
@@ -105,11 +101,13 @@ describe('Configure should render correctly', function() {
 
       const component = wrapper.instance();
 
-      const handleSubmitStub = sandbox.stub(component, 'redirectToNeutralDocs', () => {});
+      const handleSubmitStub = jest
+        .spyOn(component, 'redirectToNeutralDocs')
+        .mockImplementation(() => {});
 
       wrapper.update();
       expect(wrapper).toMatchSnapshot();
-      expect(handleSubmitStub.callCount).toEqual(0);
+      expect(handleSubmitStub).toHaveBeenCalledTimes(0);
     });
 
     it('should redirect to if no matching platform', function() {
@@ -118,7 +116,7 @@ describe('Configure should render correctly', function() {
       };
       props.params.platform = 'other';
 
-      const handleSubmitStub = sandbox.stub(Configure.prototype, 'redirectToNeutralDocs');
+      const handleSubmitStub = jest.spyOn(Configure.prototype, 'redirectToNeutralDocs');
 
       // 👺 ⚠️ this is a hack to defeat the method auto binding so we can fully stub the method. It would not be neccessary with es6 class components and it relies on react internals so it's fragile - maxbittker
       const index =
@@ -135,7 +133,7 @@ describe('Configure should render correctly', function() {
       );
 
       expect(wrapper).toMatchSnapshot();
-      expect(handleSubmitStub.callCount).toEqual(1);
+      expect(handleSubmitStub).toHaveBeenCalledTimes(1);
     });
 
     it('should render platform docs', async function() {
