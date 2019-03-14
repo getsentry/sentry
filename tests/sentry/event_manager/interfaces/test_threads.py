@@ -2,77 +2,70 @@
 
 from __future__ import absolute_import
 
-from exam import fixture
+import pytest
 
-from sentry.interfaces.base import InterfaceValidationError
-from sentry.interfaces.threads import Threads
-from sentry.testutils import TestCase
 from sentry.event_manager import EventManager
 from sentry.models import Event
 
 
-def to_python(data):
-    mgr = EventManager(data={"threads": data})
-    mgr.normalize()
-    evt = Event(data=mgr.get_data())
-    if evt.data.get('errors'):
-        raise InterfaceValidationError(evt.data.get('errors'))
+@pytest.fixture
+def make_threads_snapshot(insta_snapshot):
+    def inner(data):
+        mgr = EventManager(data={"threads": data})
+        mgr.normalize()
+        evt = Event(data=mgr.get_data())
 
-    return evt.interfaces.get('threads') or Threads.to_python({})
+        interface = evt.interfaces.get('threads')
+        insta_snapshot({
+            'errors': evt.data.get('errors'),
+            'to_json': interface and interface.to_json(),
+            'api_context': interface and interface.get_api_context()
+        })
+
+    return inner
 
 
-class ThreadsTest(TestCase):
-    @fixture
-    def interface(self):
-        return to_python(
-            dict(
-                values=[
+basic_payload = dict(
+    values=[
+        {
+            'id': 42,
+            'crashed': False,
+            'current': True,
+            'name': 'Main Thread',
+            'stacktrace': {
+                'frames': [
                     {
-                        'id': 42,
-                        'crashed': False,
-                        'current': True,
-                        'name': 'Main Thread',
-                        'stacktrace': {
-                            'frames': [
-                                {
-                                    'filename': 'foo/baz.c',
-                                    'function': 'main',
-                                    'lineno': 1,
-                                    'in_app': True,
-                                }
-                            ]
-                        },
-                        'raw_stacktrace': {
-                            'frames': [
-                                {
-                                    'filename': None,
-                                    'lineno': 1,
-                                    'function': '<redacted>',
-                                    'in_app': True,
-                                }
-                            ]
-                        },
+                        'filename': 'foo/baz.c',
+                        'function': 'main',
+                        'lineno': 1,
+                        'in_app': True,
                     }
                 ]
-            )
-        )
+            },
+            'raw_stacktrace': {
+                'frames': [
+                    {
+                        'filename': None,
+                        'lineno': 1,
+                        'function': '<redacted>',
+                        'in_app': True,
+                    }
+                ]
+            },
+        }
+    ]
+)
 
-    def test_basics(self):
-        self.create_event(data={
-            'exception': self.interface.to_json(),
-        })
-        context = self.interface.get_api_context()
-        assert context['values'][0]['stacktrace']['frames'][0]['function'] == 'main'
-        assert context['values'][0]['rawStacktrace']['frames'][0]['function'] == '<redacted>'
-        assert context['values'][0]['id'] == 42
-        assert context['values'][0]['name'] == 'Main Thread'
-        assert context['values'][0]['crashed'] is False
-        assert context['values'][0]['current'] is True
 
-    def test_null_values_in_values(self):
-        sink = {"values": []}
+def test_basics(make_threads_snapshot):
+    make_threads_snapshot(basic_payload)
 
-        assert to_python({"values": [{}]}).to_json() == sink
-        assert to_python({"values": [{"id": None}]}).to_json() == sink
-        assert to_python({"values": [{"name": None}]}).to_json() == sink
-        assert to_python({"values": [{"stacktrace": None}]}).to_json() == sink
+
+@pytest.mark.parametrize('input', [
+    {"values": [{}]},
+    {"values": [{"id": None}]},
+    {"values": [{"name": None}]},
+    {"values": [{"stacktrace": None}]},
+])
+def test_null_values(make_threads_snapshot, input):
+    make_threads_snapshot(input)
