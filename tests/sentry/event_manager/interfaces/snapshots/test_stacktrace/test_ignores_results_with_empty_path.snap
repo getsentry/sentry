@@ -1,0 +1,8 @@
+errors: null
+get_stacktrace: "Stacktrace (most recent call last):\n\n  File \"http://foo.com\"\
+    , line 1"
+to_json:
+    frames:
+    - {abs_path: 'http://foo.com', filename: 'http://foo.com', lineno: 1}
+to_string: "Stacktrace (most recent call last):\n\n  File \"http://foo.com\", line\
+    \ 1"

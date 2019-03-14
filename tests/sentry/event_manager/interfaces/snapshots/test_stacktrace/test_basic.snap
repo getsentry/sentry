@@ -1,0 +1,9 @@
+errors: null
+get_stacktrace: "Stacktrace (most recent call last):\n\n  File \"foo/bar.py\"\n  File\
+    \ \"foo/baz.py\", line 1"
+to_json:
+    frames:
+    - {abs_path: foo/bar.py, filename: foo/bar.py}
+    - {abs_path: foo/baz.py, filename: foo/baz.py, in_app: true, lineno: 1}
+to_string: "Stacktrace (most recent call last):\n\n  File \"foo/bar.py\"\n  File \"\
+    foo/baz.py\", line 1"
