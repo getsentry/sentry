@@ -1,4 +1,11 @@
-{blocked_uri: 'http://baddomain.com/test.js?_=1515535030116', column_number: 66270,
+culprit: script-src
+errors: null
+message: Blocked 'script' from 'baddomain.com'
+origin: https://sentry.io/sentry/csp/issues/88513416/
+tags:
+- [effective-directive, script-src]
+- [blocked-uri, 'http://baddomain.com/test.js?_=1515535030116']
+to_json: {blocked_uri: 'http://baddomain.com/test.js?_=1515535030116', column_number: 66270,
     disposition: enforce, document_uri: 'https://sentry.io/sentry/csp/issues/88513416/',
     effective_directive: script-src, line_number: 24, original_policy: 'default-src
         *; script-src ''make_csp_snapshot'' ''unsafe-eval'' ''unsafe-inline'' e90d271df3e973c7.global.ssl.fastly.net

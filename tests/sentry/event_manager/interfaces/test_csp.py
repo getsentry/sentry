@@ -150,7 +150,7 @@ def test_get_message(make_csp_snapshot, input):
     make_csp_snapshot(input)
 
 
-def test_real_report(insta_snapshot):
+def test_real_report(make_csp_snapshot):
     raw_report = {
         "csp-report": {
             "document-uri": "https://sentry.io/sentry/csp/issues/88513416/",
@@ -168,4 +168,4 @@ def test_real_report(insta_snapshot):
         }
     }
     interface = Csp.from_raw(raw_report)
-    insta_snapshot(interface.to_json())
+    make_csp_snapshot(interface.to_json())
