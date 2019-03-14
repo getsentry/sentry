@@ -1,6 +1,0 @@
-errors: null
-get_stacktrace: "Stacktrace (most recent call last):\n\n  ?"
-to_json:
-    frames:
-    - {}
-to_string: "Stacktrace (most recent call last):\n\n  ?"
