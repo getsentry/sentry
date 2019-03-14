@@ -3,7 +3,7 @@ from __future__ import absolute_import
 import re
 import six
 
-from sentry.grouping.strategies.base import CONFIGURATIONS
+from sentry.grouping.strategies.configurations import CONFIGURATIONS, DEFAULT_CONFIG
 from sentry.grouping.component import GroupingComponent
 from sentry.grouping.variants import ChecksumVariant, FallbackVariant, \
     ComponentVariant, CustomFingerprintVariant, SaltedComponentVariant
@@ -22,7 +22,7 @@ def get_calculated_grouping_variants_for_event(event, config_name=None):
     precedence_hint = None
     per_variant_components = {}
 
-    config = CONFIGURATIONS[config_name or 'legacy']
+    config = CONFIGURATIONS[config_name or DEFAULT_CONFIG]
 
     for strategy in config.iter_strategies():
         rv = strategy.get_grouping_component_variants(event, config=config)
@@ -56,7 +56,7 @@ def get_calculated_grouping_variants_for_event(event, config_name=None):
     return rv
 
 
-def get_grouping_variants_for_event(event):
+def get_grouping_variants_for_event(event, config_name=None):
     """Returns a dict of all grouping variants for this event."""
     # If a checksum is set the only variant that comes back from this
     # event is the checksum variant.
@@ -84,7 +84,7 @@ def get_grouping_variants_for_event(event):
 
     # At this point we need to calculate the default event values.  If the
     # fingerprint is salted we will wrap it.
-    components = get_calculated_grouping_variants_for_event(event)
+    components = get_calculated_grouping_variants_for_event(event, config_name)
     rv = {}
 
     # If the fingerprints are unsalted, we can return them right away.

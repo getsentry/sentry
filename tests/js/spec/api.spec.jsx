@@ -7,17 +7,10 @@ import {PROJECT_MOVED} from 'app/constants/apiErrorCodes';
 jest.unmock('app/api');
 
 describe('api', function() {
-  let sandbox;
   let api;
 
   beforeEach(function() {
-    sandbox = sinon.sandbox.create();
-
     api = new Client();
-  });
-
-  afterEach(function() {
-    sandbox.restore();
   });
 
   describe('paramsToQueryArgs()', function() {
@@ -69,16 +62,16 @@ describe('api', function() {
 
   describe('Client', function() {
     beforeEach(function() {
-      sandbox.stub($, 'ajax');
+      jest.spyOn($, 'ajax');
     });
 
     describe('cancel()', function() {
       it('should abort any open XHR requests', function() {
         const req1 = new Request({
-          abort: sinon.stub(),
+          abort: jest.fn(),
         });
         const req2 = new Request({
-          abort: sinon.stub(),
+          abort: jest.fn(),
         });
 
         api.activeRequests = {
@@ -88,8 +81,8 @@ describe('api', function() {
 
         api.clear();
 
-        expect(req1.xhr.abort.calledOnce).toBeTruthy();
-        expect(req2.xhr.abort.calledOnce).toBeTruthy();
+        expect(req1.xhr.abort).toHaveBeenCalledTimes(1);
+        expect(req2.xhr.abort).toHaveBeenCalledTimes(1);
       });
     });
   });
@@ -112,7 +105,7 @@ describe('api', function() {
   });
 
   it('handles error callback', function() {
-    sandbox.stub(api, 'wrapCallback', (id, func) => func);
+    jest.spyOn(api, 'wrapCallback').mockImplementation((id, func) => func);
     const errorCb = jest.fn();
     const args = ['test', true, 1];
     api.handleRequestError(
@@ -125,7 +118,6 @@ describe('api', function() {
     );
 
     expect(errorCb).toHaveBeenCalledWith(...args);
-    api.wrapCallback.restore();
   });
 
   it('handles undefined error callback', function() {
@@ -144,8 +136,8 @@ describe('api', function() {
 
   describe('bulkUpdate()', function() {
     beforeEach(function() {
-      sandbox.stub(api, '_wrapRequest');
-      sandbox.stub(GroupActions, 'update'); // stub GroupActions.update call from api.update
+      jest.spyOn(api, '_wrapRequest');
+      jest.spyOn(GroupActions, 'update'); // stub GroupActions.update call from api.update
     });
 
     it('should use itemIds as query if provided', function() {
@@ -157,9 +149,12 @@ describe('api', function() {
         query: 'is:resolved',
       });
 
-      expect(api._wrapRequest.calledOnce).toBeTruthy();
-      const requestArgs = api._wrapRequest.getCall(0).args[1];
-      expect(requestArgs.query).toEqual({id: [1, 2, 3]});
+      expect(api._wrapRequest).toHaveBeenCalledTimes(1);
+      expect(api._wrapRequest).toHaveBeenCalledWith(
+        '/projects/1337/1337/issues/',
+        expect.objectContaining({query: {id: [1, 2, 3]}}),
+        undefined
+      );
     });
 
     it('should use query as query if itemIds are absent', function() {
@@ -171,9 +166,12 @@ describe('api', function() {
         query: 'is:resolved',
       });
 
-      expect(api._wrapRequest.calledOnce).toBeTruthy();
-      const requestArgs = api._wrapRequest.getCall(0).args[1];
-      expect(requestArgs.query).toEqual({query: 'is:resolved'});
+      expect(api._wrapRequest).toHaveBeenCalledTimes(1);
+      expect(api._wrapRequest).toHaveBeenCalledWith(
+        '/projects/1337/1337/issues/',
+        expect.objectContaining({query: {query: 'is:resolved'}}),
+        undefined
+      );
     });
   });
 
@@ -181,8 +179,8 @@ describe('api', function() {
     // TODO: this is totally copypasta from the test above. We need to refactor
     //       these API methods/tests.
     beforeEach(function() {
-      sandbox.stub(api, '_wrapRequest');
-      sandbox.stub(GroupActions, 'merge'); // stub GroupActions.merge call from api.merge
+      jest.spyOn(api, '_wrapRequest');
+      jest.spyOn(GroupActions, 'merge'); // stub GroupActions.merge call from api.merge
     });
 
     it('should use itemIds as query if provided', function() {
@@ -194,9 +192,12 @@ describe('api', function() {
         query: 'is:resolved',
       });
 
-      expect(api._wrapRequest.calledOnce).toBeTruthy();
-      const requestArgs = api._wrapRequest.getCall(0).args[1];
-      expect(requestArgs.query).toEqual({id: [1, 2, 3]});
+      expect(api._wrapRequest).toHaveBeenCalledTimes(1);
+      expect(api._wrapRequest).toHaveBeenCalledWith(
+        '/projects/1337/1337/issues/',
+        expect.objectContaining({query: {id: [1, 2, 3]}}),
+        undefined
+      );
     });
 
     it('should use query as query if itemIds are absent', function() {
@@ -208,9 +209,12 @@ describe('api', function() {
         query: 'is:resolved',
       });
 
-      expect(api._wrapRequest.calledOnce).toBeTruthy();
-      const requestArgs = api._wrapRequest.getCall(0).args[1];
-      expect(requestArgs.query).toEqual({query: 'is:resolved'});
+      expect(api._wrapRequest).toHaveBeenCalledTimes(1);
+      expect(api._wrapRequest).toHaveBeenCalledWith(
+        '/projects/1337/1337/issues/',
+        expect.objectContaining({query: {query: 'is:resolved'}}),
+        undefined
+      );
     });
   });
 });

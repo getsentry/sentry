@@ -447,44 +447,30 @@ exports[`Configure should render correctly render() should render platform docs 
                                                         role="button"
                                                         size="small"
                                                       >
-                                                        <ExternalLink
+                                                        <a
                                                           aria-disabled={false}
                                                           aria-label="< Back"
                                                           className="css-dkprmi-StyledButton-getColors eqrebog0"
                                                           href="/testOrg/project-slug/getting-started/"
                                                           onClick={[Function]}
-                                                          rel="noreferrer noopener"
                                                           role="button"
                                                           size="small"
-                                                          target="_blank"
                                                         >
-                                                          <a
-                                                            aria-disabled={false}
-                                                            aria-label="< Back"
-                                                            className="css-dkprmi-StyledButton-getColors eqrebog0"
-                                                            href="/testOrg/project-slug/getting-started/"
-                                                            onClick={[Function]}
-                                                            rel="noreferrer noopener"
-                                                            role="button"
+                                                          <ButtonLabel
                                                             size="small"
-                                                            target="_blank"
                                                           >
-                                                            <ButtonLabel
+                                                            <Component
+                                                              className="css-7ui8bl-ButtonLabel eqrebog1"
                                                               size="small"
                                                             >
-                                                              <Component
+                                                              <span
                                                                 className="css-7ui8bl-ButtonLabel eqrebog1"
-                                                                size="small"
                                                               >
-                                                                <span
-                                                                  className="css-7ui8bl-ButtonLabel eqrebog1"
-                                                                >
-                                                                  &lt; Back
-                                                                </span>
-                                                              </Component>
-                                                            </ButtonLabel>
-                                                          </a>
-                                                        </ExternalLink>
+                                                                &lt; Back
+                                                              </span>
+                                                            </Component>
+                                                          </ButtonLabel>
+                                                        </a>
                                                       </Component>
                                                     </StyledButton>
                                                   </Button>
@@ -522,6 +508,7 @@ exports[`Configure should render correctly render() should render platform docs 
                                                         aria-disabled={false}
                                                         aria-label="Full Documentation"
                                                         className="css-dkprmi-StyledButton-getColors eqrebog0"
+                                                        external={true}
                                                         href="https://docs.getsentry.com/hosted/clients/csharp/"
                                                         onClick={[Function]}
                                                         role="button"

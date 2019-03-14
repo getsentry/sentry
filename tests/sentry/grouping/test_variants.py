@@ -3,17 +3,12 @@
 from __future__ import absolute_import, print_function
 
 import os
-import sys
 import json
 import pytest
 
 from sentry.models import Event
 from sentry.event_manager import EventManager
 from sentry.grouping.component import GroupingComponent
-
-
-def log(x):
-    return sys.stdout.write(x + '\n')
 
 
 def dump_variant(variant, lines=None, indent=0):
@@ -46,19 +41,32 @@ def dump_variant(variant, lines=None, indent=0):
     return lines
 
 
-_fixture_path = os.path.join(os.path.dirname(__file__), 'fixtures')
+_fixture_path = os.path.join(os.path.dirname(__file__), 'configs')
 
 
-@pytest.mark.parametrize('infile', list(x[:-5] for x in os.listdir(_fixture_path)
-                                        if x.endswith('.json')))
-def test_event_hash_variant(infile):
-    with open(os.path.join(_fixture_path, infile + '.json')) as f:
+def load_configs():
+    configs = os.listdir(_fixture_path)
+
+    rv = []
+    for config in configs:
+        folder = os.path.join(_fixture_path, config)
+        for filename in os.listdir(folder):
+            if filename.endswith('.json'):
+                rv.append((config, filename[:-5]))
+
+    rv.sort()
+
+    return rv
+
+
+@pytest.mark.parametrize(
+    'config_name,test_name',
+    load_configs(),
+    ids=lambda x: x.replace("-", "_")  # Nicer folder structure for insta_snapshot
+)
+def test_event_hash_variant(insta_snapshot, config_name, test_name, log):
+    with open(os.path.join(_fixture_path, config_name, test_name + '.json')) as f:
         input = json.load(f)
-    try:
-        with open(os.path.join(_fixture_path, infile + '.out')) as f:
-            refval = f.read().decode('utf-8').rstrip()
-    except IOError:
-        refval = ''
 
     mgr = EventManager(data=input)
     mgr.normalize()
@@ -72,11 +80,6 @@ def test_event_hash_variant(infile):
         rv.append('%s:' % key)
         dump_variant(value, rv, 1)
     output = '\n'.join(rv)
-    if not refval:
-        log(output)
     log(repr(evt.get_hashes()))
 
-    assert sorted(evt.get_hashes()) == sorted(
-        filter(None, [x.get_hash() for x in evt.get_grouping_variants().values()]))
-
-    assert refval == output
+    insta_snapshot(output)

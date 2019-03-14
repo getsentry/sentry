@@ -1,0 +1,5 @@
+errors: null
+to_json:
+  query_string:
+  - [foo, bar]
+  url: http://example.com/

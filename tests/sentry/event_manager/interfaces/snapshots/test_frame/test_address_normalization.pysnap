@@ -1,0 +1,3 @@
+errors: null
+to_json: {abs_path: blah.c, filename: blah.c, function: main, image_addr: '0x0', instruction_addr: '0x1e240',
+  lineno: 1, symbol_addr: '0x1e23a'}

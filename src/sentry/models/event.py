@@ -181,13 +181,13 @@ class Event(Model):
             return hashes
         return filter(None, [x.get_hash() for x in self.get_grouping_variants().values()])
 
-    def get_grouping_variants(self):
+    def get_grouping_variants(self, force_config=None):
         """
         This is similar to `get_hashes` but will instead return the
         grouping components for each variant in a dictionary.
         """
         from sentry.grouping.api import get_grouping_variants_for_event
-        return get_grouping_variants_for_event(self)
+        return get_grouping_variants_for_event(self, config_name=force_config)
 
     def get_primary_hash(self):
         # TODO: This *might* need to be protected from an IndexError?

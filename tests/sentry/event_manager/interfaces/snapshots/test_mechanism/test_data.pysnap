@@ -1,0 +1,6 @@
+errors: null
+tags:
+- [mechanism, generic]
+to_json:
+  data: {relevant_address: '0x1'}
+  type: generic

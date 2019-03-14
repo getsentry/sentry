@@ -824,7 +824,7 @@ class TwoFactorForm(forms.Form):
         max_length=20,
         widget=forms.TextInput(
             attrs={
-                'placeholder': _('Code from authenticator'),
+                'placeholder': _('Authenticator or recovery code'),
                 'autofocus': True,
             }
         ),

@@ -4,7 +4,6 @@ import {mount, shallow} from 'enzyme';
 import RichHttpContent from 'app/components/events/interfaces/richHttpContent';
 
 describe('RichHttpContent', function() {
-  let sandbox;
   let data;
   let elem;
 
@@ -17,12 +16,9 @@ describe('RichHttpContent', function() {
       env: {},
     };
     elem = shallow(<RichHttpContent data={data} />).instance();
-    sandbox = sinon.sandbox.create();
   });
 
-  afterEach(function() {
-    sandbox.restore();
-  });
+  afterEach(function() {});
 
   describe('getBodySection', function() {
     it('should return plain-text when given unrecognized inferred Content-Type', function() {
