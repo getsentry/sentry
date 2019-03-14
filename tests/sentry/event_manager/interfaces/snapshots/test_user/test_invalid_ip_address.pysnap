@@ -1,3 +1,11 @@
+---
+created: '2019-03-14T16:43:58.605318'
+creator: sentry
+source: tests/sentry/event_manager/interfaces/test_user.py
+---
 errors:
-- {name: user.ip_address, reason: expected an ip address, type: invalid_data, value: abc}
+- name: user.ip_address
+  reason: expected an ip address
+  type: invalid_data
+  value: abc
 to_json: {}

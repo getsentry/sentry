@@ -1,9 +1,18 @@
+---
+created: '2019-03-14T16:43:56.493348'
+creator: sentry
+source: tests/sentry/event_manager/interfaces/test_contexts.py
+---
 errors: null
 tags: []
 to_json:
   whatever:
-    baz: {foo: bar}
-    biz: [1, 2, 3]
+    baz:
+      foo: bar
+    biz:
+    - 1
+    - 2
+    - 3
     blub: blah
     foo: bar
     type: default

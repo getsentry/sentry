@@ -1,3 +1,8 @@
+---
+created: '2019-03-14T16:43:59.141874'
+creator: sentry
+source: tests/sentry/grouping/test_variants.py
+---
 app:
   hash: 'ca1e356d85bc74d82d4ae8f3f8bfbbf7'
   component:

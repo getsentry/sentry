@@ -1,3 +1,8 @@
+---
+created: '2019-03-14T16:43:58.544448'
+creator: sentry
+source: tests/sentry/event_manager/interfaces/test_threads.py
+---
 api_context:
   values:
   - crashed: false
@@ -55,7 +60,13 @@ to_json:
     name: Main Thread
     raw_stacktrace:
       frames:
-      - {function: <redacted>, in_app: true, lineno: 1}
+      - function: <redacted>
+        in_app: true
+        lineno: 1
     stacktrace:
       frames:
-      - {abs_path: foo/baz.c, filename: foo/baz.c, function: main, in_app: true, lineno: 1}
+      - abs_path: foo/baz.c
+        filename: foo/baz.c
+        function: main
+        in_app: true
+        lineno: 1

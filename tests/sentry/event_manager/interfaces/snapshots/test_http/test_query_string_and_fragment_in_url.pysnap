@@ -1,6 +1,12 @@
+---
+created: '2019-03-14T16:43:57.398755'
+creator: sentry
+source: tests/sentry/event_manager/interfaces/test_http.py
+---
 errors: null
 to_json:
   fragment: fragment...
   query_string:
-  - ["foo\uFFFD", bar]
+  - - "foo\uFFFD"
+    - bar
   url: http://example.com/

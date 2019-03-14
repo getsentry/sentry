@@ -1,5 +1,11 @@
+---
+created: '2019-03-14T16:43:57.345597'
+creator: sentry
+source: tests/sentry/event_manager/interfaces/test_http.py
+---
 errors: null
 to_json:
-  data: {foo: bar}
+  data:
+    foo: bar
   inferred_content_type: application/json
   url: http://example.com/

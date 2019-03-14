@@ -1,3 +1,8 @@
+---
+created: '2019-03-14T16:43:56.905650'
+creator: sentry
+source: tests/sentry/event_manager/interfaces/test_exception.py
+---
 errors: null
 get_api_context:
   excOmitted: null
@@ -35,8 +40,12 @@ to_json:
   - module: foo.bar
     stacktrace:
       frames:
-      - {abs_path: foo/baz.py, filename: foo/baz.py, function: myfunc, in_app: true,
-        lineno: 1, symbol: Class.myfunc}
+      - abs_path: foo/baz.py
+        filename: foo/baz.py
+        function: myfunc
+        in_app: true
+        lineno: 1
+        symbol: Class.myfunc
     type: ValueError
     value: hello world
 to_string: "ValueError: hello world\n  File \"foo/baz.py\", line 1, in myfunc"

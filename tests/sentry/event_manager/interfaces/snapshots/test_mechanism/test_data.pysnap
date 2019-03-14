@@ -1,6 +1,13 @@
+---
+created: '2019-03-14T16:43:57.517177'
+creator: sentry
+source: tests/sentry/event_manager/interfaces/test_mechanism.py
+---
 errors: null
 tags:
-- [mechanism, generic]
+- - mechanism
+  - generic
 to_json:
-  data: {relevant_address: '0x1'}
+  data:
+    relevant_address: '0x1'
   type: generic

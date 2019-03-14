@@ -8,11 +8,15 @@ including ``db`` fixture in the function resolution scope.
 from __future__ import absolute_import, print_function, unicode_literals
 
 import os
+import re
 import sys
 import yaml
+import sentry
 
 import pytest
 import six
+
+from datetime import datetime
 
 
 DEFAULT_EVENT_DATA = {
@@ -245,7 +249,14 @@ def default_activity(default_group, default_project, default_user):
     )
 
 
-_snapshot_writeback = os.environ.get("SENTRY_SNAPSHOTS_WRITEBACK", "0") in ("true", "1")
+_snapshot_writeback = os.environ.get("SENTRY_SNAPSHOTS_WRITEBACK") or '0'
+if _snapshot_writeback in ('true', '1', 'overwrite'):
+    _snapshot_writeback = 'overwrite'
+elif _snapshot_writeback != 'new':
+    _snapshot_writeback = None
+_test_base = os.path.realpath(os.path.dirname(
+    os.path.dirname(os.path.dirname(os.path.abspath(sentry.__file__)))))
+_yaml_snap_re = re.compile(r'^---\r?\n(.*?)\r?\n---\r?\n(.*)$(?i)')
 
 
 @pytest.fixture
@@ -279,22 +290,35 @@ def insta_snapshot(request, log):
                 "subname only works if you don't provide your own entire reference_file")
 
         if not isinstance(output, six.string_types):
-            output = yaml.safe_dump(output, indent=2)
+            output = yaml.safe_dump(output, indent=2, default_flow_style=False)
 
         try:
             with open(reference_file) as f:
-                refval = f.read().decode('utf-8')
+                match = _yaml_snap_re.match(f.read().decode('utf-8'))
+                if match is not None:
+                    _header, refval = match.groups()
+                else:
+                    raise IOError()
         except IOError:
             refval = ''
 
         refval = refval.rstrip()
         output = output.rstrip()
 
-        if _snapshot_writeback and refval != output:
+        if _snapshot_writeback is not None and refval != output:
             if not os.path.isdir(os.path.dirname(reference_file)):
                 os.makedirs(os.path.dirname(reference_file))
+            source = os.path.realpath(six.text_type(request.node.fspath))
+            if source.startswith(_test_base + os.path.sep):
+                source = source[len(_test_base) + 1:]
+            if _snapshot_writeback == 'new':
+                reference_file += '.new'
             with open(reference_file, "w") as f:
-                f.write(output)
+                f.write('---\n%s\n---\n%s\n' % (yaml.safe_dump({
+                    'created': datetime.utcnow().isoformat(),
+                    'creator': 'sentry',
+                    'source': source,
+                }, indent=2, default_flow_style=False).rstrip(), output))
         else:
             log("Run with SENTRY_SNAPSHOTS_WRITEBACK=1 to update snapshots.")
             assert refval == output

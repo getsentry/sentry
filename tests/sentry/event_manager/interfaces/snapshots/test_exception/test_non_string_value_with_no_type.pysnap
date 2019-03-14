@@ -1,11 +1,21 @@
+---
+created: '2019-03-14T16:43:56.871593'
+creator: sentry
+source: tests/sentry/event_manager/interfaces/test_exception.py
+---
 errors: null
 get_api_context:
   excOmitted: null
   hasSystemFrames: false
   values:
-  - {mechanism: null, module: null, rawStacktrace: null, stacktrace: null, threadId: null,
-    type: null, value: '{"foo":"bar"}'}
+  - mechanism: null
+    module: null
+    rawStacktrace: null
+    stacktrace: null
+    threadId: null
+    type: null
+    value: '{"foo":"bar"}'
 to_json:
   values:
-  - {value: '{"foo":"bar"}'}
+  - value: '{"foo":"bar"}'
 to_string: 'None: {"foo":"bar"}'

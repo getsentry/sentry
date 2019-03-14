@@ -1,7 +1,15 @@
+---
+created: '2019-03-14T16:43:57.675002'
+creator: sentry
+source: tests/sentry/event_manager/interfaces/test_mechanism.py
+---
 errors: null
 tags:
-- [mechanism, generic]
+- - mechanism
+  - generic
 to_json:
   meta:
-    errno: {name: ENOENT, number: 2}
+    errno:
+      name: ENOENT
+      number: 2
   type: generic

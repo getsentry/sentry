@@ -1,5 +1,14 @@
+---
+created: '2019-03-14T16:43:56.501750'
+creator: sentry
+source: tests/sentry/event_manager/interfaces/test_contexts.py
+---
 errors: null
 tags:
-- [app.device, '5678']
+- - app.device
+  - '5678'
 to_json:
-  app: {app_id: '1234', device_app_hash: '5678', type: app}
+  app:
+    app_id: '1234'
+    device_app_hash: '5678'
+    type: app

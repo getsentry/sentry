@@ -1,3 +1,8 @@
+---
+created: '2019-03-14T16:43:57.065666'
+creator: sentry
+source: tests/sentry/event_manager/interfaces/test_expectstaple.py
+---
 errors: null
 to_json:
   cert_status: REVOKED
@@ -6,9 +11,11 @@ to_json:
   hostname: www.example.com
   port: 443
   response_status: ERROR_RESPONSE
-  served_certificate_chain: ['-----BEGIN CERTIFICATE-----
+  served_certificate_chain:
+  - '-----BEGIN CERTIFICATE-----
 
-      -----END CERTIFICATE-----']
-  validated_certificate_chain: ['-----BEGIN CERTIFICATE-----
+    -----END CERTIFICATE-----'
+  validated_certificate_chain:
+  - '-----BEGIN CERTIFICATE-----
 
-      -----END CERTIFICATE-----']
+    -----END CERTIFICATE-----'

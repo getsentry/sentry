@@ -1,5 +1,11 @@
+---
+created: '2019-03-14T16:43:57.376166'
+creator: sentry
+source: tests/sentry/event_manager/interfaces/test_http.py
+---
 errors: null
 to_json:
   cookies:
-  - [foo, bar]
+  - - foo
+    - bar
   url: http://example.com/

@@ -1,5 +1,11 @@
+---
+created: '2019-03-14T16:43:57.710492'
+creator: sentry
+source: tests/sentry/event_manager/interfaces/test_message.py
+---
 errors: null
 to_json:
   formatted: Hello there world!
   message: Hello there %(name)s!
-  params: {name: world}
+  params:
+    name: world

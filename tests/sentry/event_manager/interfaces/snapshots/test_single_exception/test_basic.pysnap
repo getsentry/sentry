@@ -1,2 +1,10 @@
+---
+created: '2019-03-14T16:43:57.819949'
+creator: sentry
+source: tests/sentry/event_manager/interfaces/test_single_exception.py
+---
 errors: null
-to_json: {module: foo.bar, type: ValueError, value: hello world}
+to_json:
+  module: foo.bar
+  type: ValueError
+  value: hello world

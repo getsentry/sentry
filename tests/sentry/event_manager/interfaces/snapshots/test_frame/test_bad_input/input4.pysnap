@@ -1,2 +1,7 @@
+---
+created: '2019-03-14T16:43:57.131331'
+creator: sentry
+source: tests/sentry/event_manager/interfaces/test_frame.py
+---
 errors: null
 to_json: {}

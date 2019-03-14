@@ -1,2 +1,8 @@
+---
+created: '2019-03-14T16:43:57.852473'
+creator: sentry
+source: tests/sentry/event_manager/interfaces/test_single_exception.py
+---
 errors: null
-to_json: {type: ValueError}
+to_json:
+  type: ValueError
