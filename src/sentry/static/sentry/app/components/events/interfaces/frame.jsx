@@ -16,6 +16,7 @@ import StrictClick from 'app/components/strictClick';
 import Tooltip from 'app/components/tooltip';
 import Truncate from 'app/components/truncate';
 import space from 'app/styles/space';
+import OpenInButton from 'app/components/events/interfaces/openInButton';
 
 export function trimPackage(pkg) {
   const pieces = pkg.split(/^([a-z]:\\|\\\\)/i.test(pkg) ? '\\' : '/');
@@ -260,8 +261,14 @@ const Frame = createReactClass({
 
           {data.context &&
             contextLines.map((line, index) => {
+              const isActive = data.lineNo === line[0];
               return (
-                <ContextLine key={index} line={line} isActive={data.lineNo === line[0]} />
+                <React.Fragment key={index}>
+                  <ContextLine key={index} line={line} isActive={isActive} />
+                  {isActive && (
+                    <OpenInButton filename={data.filename} lineNo={data.lineNo} />
+                  )}
+                </React.Fragment>
               );
             })}
 
