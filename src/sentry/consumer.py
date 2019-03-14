@@ -80,16 +80,19 @@ def multiprocess_worker(task_queue):
     configured = False
 
     while True:
+        if not configured:
+            from sentry.runner import configure
+            configure()
+
+            import signal
+            signal.signal(signal.SIGINT, signal.SIG_IGN)
+
+            configured = True
+
         task = task_queue.get()
         if task == _STOP_WORKER:
             task_queue.task_done()
             return
-
-        # On first task, configure Sentry environment
-        if not configured:
-            from sentry.runner import configure
-            configure()
-            configured = True
 
         try:
             handle_task(task)
