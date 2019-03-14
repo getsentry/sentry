@@ -450,13 +450,18 @@ def convert_search_filter_to_snuba_query(search_filter):
         value = int(to_timestamp(value)) * 1000 if isinstance(value,
                                                               datetime) and snuba_name != 'timestamp' else value
 
+        # Tags are never null, but promoted tags are columns and so can be null.
+        # To handle both cases, use `ifNull` to convert to an empty string and
+        # compare so we need to check for empty values.
+        if search_filter.key.is_tag:
+            snuba_name = ['ifNull', [snuba_name, "''"]]
+
         # Handle checks for existence
         if search_filter.operator in ('=', '!=') and search_filter.value.value == '':
-            # Tags are never null, so we need to check for empty values
             if search_filter.key.is_tag:
                 return [snuba_name, search_filter.operator, value]
             else:
-                # Otherwise, check that the column is null.
+                # If not a tag, we can just check that the column is null.
                 return [['isNull', [snuba_name]], search_filter.operator, 1]
 
         is_null_condition = None
