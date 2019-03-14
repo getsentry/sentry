@@ -58,8 +58,8 @@ class JavaScriptSdkLoaderTest(TestCase):
 
     @patch('sentry.loader.browsersdkversion.load_version_from_file')
     def test_headers(self, mock_load_version_from_file):
-        mocked_version = '9.9.9'
-        mock_load_version_from_file.return_value = mocked_version
+        mocked_version = '4.9.9'
+        mock_load_version_from_file.return_value = [mocked_version]
 
         resp = self.client.get(self.path)
         assert resp.status_code == 200, resp

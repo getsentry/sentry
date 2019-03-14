@@ -9,7 +9,7 @@ from distutils import log
 
 import sentry
 
-JS_SDK_REGISTRY_URL = 'https://release-registry.services.sentry.io/packages/npm:@sentry/browser/latest'
+JS_SDK_REGISTRY_URL = 'https://release-registry.services.sentry.io/sdks/sentry.javascript.browser/versions'
 LOADER_FOLDER = os.path.abspath(os.path.join(os.path.dirname(sentry.__file__), 'loader'))
 
 # We cannot leverage six here, so we need to vendor
