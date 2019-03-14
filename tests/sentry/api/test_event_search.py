@@ -568,7 +568,7 @@ class GetSnubaQueryArgsTest(TestCase):
             'conditions': [
                 ['email', '=', 'foo@example.com'],
                 ['tags[sentry:release]', '=', '1.2.1'],
-                ['tags[fruit]', '=', 'apple'],
+                [['ifNull', ['tags[fruit]', "''"]], '=', 'apple'],
                 [['positionCaseInsensitive', ['message', "'hello'"]], '!=', 0],
             ],
             'filter_keys': {'project_id': [1, 2, 3]},
