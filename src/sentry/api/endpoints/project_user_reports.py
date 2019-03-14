@@ -135,6 +135,8 @@ class ProjectUserReportsEndpoint(ProjectEndpoint, EnvironmentMixin):
             return self.respond(serializer.errors, status=400)
 
         report = serializer.object
+        # XXX(dcramer): enforce case insensitivty by coercing this to a lowercase string
+        report.event_id = report.event_id.lower()
         report.project = project
 
         # TODO(dcramer): we should probably create the user if they dont
