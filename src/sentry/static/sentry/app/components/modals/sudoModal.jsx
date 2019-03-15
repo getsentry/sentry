@@ -171,18 +171,13 @@ class SudoModal extends React.Component {
 }
 
 const SudoModalContainer = createReactClass({
-  propTypes: {
-    api: PropTypes.object,
-  },
   displayName: 'SudoModalContainer',
 
   render() {
     const user = ConfigStore.get('user');
-    return <SudoModal {...this.props} user={user} api={this.props.api} />;
+    return <SudoModal {...this.props} user={user} />;
   },
 });
-
-export {SudoModalContainer};
 
 export default withApi(withRouter(SudoModalContainer));
 export {SudoModal};

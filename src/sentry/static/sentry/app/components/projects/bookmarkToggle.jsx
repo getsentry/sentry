@@ -8,11 +8,10 @@ import {update as projectUpdate} from 'app/actionCreators/projects';
 import LatestContextStore from 'app/stores/latestContextStore';
 
 const BookmarkToggle = createReactClass({
+  displayName: 'BookmarkToggle',
   propTypes: {
     api: PropTypes.object,
   },
-
-  displayName: 'BookmarkToggle',
   mixins: [Reflux.connect(LatestContextStore, 'latestContext')],
 
   handleBookmarkClick() {

@@ -15,10 +15,10 @@ import {Panel, PanelBody, PanelHeader} from 'app/components/panels';
 import StackedBarChart from 'app/components/stackedBarChart';
 
 const ProjectFiltersChart = createReactClass({
+  displayName: 'ProjectFiltersChart',
   propTypes: {
     api: PropTypes.object,
   },
-  displayName: 'ProjectFiltersChart',
   contextTypes: {
     project: PropTypes.object,
   },

@@ -1,4 +1,3 @@
-import PropTypes from 'prop-types';
 import {browserHistory} from 'react-router';
 import React from 'react';
 import createReactClass from 'create-react-class';
@@ -8,7 +7,6 @@ import styled from 'react-emotion';
 import space from 'app/styles/space';
 
 import {openCreateTeamModal} from 'app/actionCreators/modal';
-import withApi from 'app/utils/withApi';
 import OrganizationState from 'app/mixins/organizationState';
 import DropdownLink from 'app/components/dropdownLink';
 import MenuItem from 'app/components/menuItem';
@@ -18,10 +16,6 @@ import ProjectSelector from 'app/components/projectHeader/projectSelector';
 import Tooltip from 'app/components/tooltip';
 
 const ProjectNav = createReactClass({
-  propTypes: {
-    api: PropTypes.object,
-  },
-
   mixins: [OrganizationState],
 
   render() {
@@ -143,6 +137,4 @@ const StyledDropdown = styled.div`
   }
 `;
 
-export {ProjectNav};
-
-export default withApi(ProjectNav);
+export default ProjectNav;

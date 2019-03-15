@@ -1,6 +1,5 @@
 import PropTypes from 'prop-types';
 import React from 'react';
-import createReactClass from 'create-react-class';
 import styled, {css} from 'react-emotion';
 
 import {addErrorMessage} from 'app/actionCreators/indicator';
@@ -129,19 +128,7 @@ class IssueDiff extends React.Component {
   }
 }
 
-const IssueDiffContainer = createReactClass({
-  propTypes: {
-    api: PropTypes.object,
-  },
-  displayName: 'IssueDiffContainer',
-  render() {
-    return <IssueDiff {...this.props} api={this.props.api} />;
-  },
-});
-
-export {IssueDiffContainer};
-
-export default withApi(IssueDiffContainer);
+export default withApi(IssueDiff);
 export {IssueDiff};
 
 const getLoadingStyle = p =>

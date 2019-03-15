@@ -24,11 +24,10 @@ import space from 'app/styles/space';
 import overflowEllipsis from 'app/styles/overflowEllipsis';
 
 const TeamMembers = createReactClass({
+  displayName: 'TeamMembers',
   propTypes: {
     api: PropTypes.object,
   },
-
-  displayName: 'TeamMembers',
   mixins: [OrganizationState],
 
   getInitialState() {

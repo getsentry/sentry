@@ -4,7 +4,6 @@ import createReactClass from 'create-react-class';
 
 import {addErrorMessage} from 'app/actionCreators/indicator';
 import {updateOrganization} from 'app/actionCreators/organizations';
-import withApi from 'app/utils/withApi';
 import AvatarChooser from 'app/components/avatarChooser';
 import Form from 'app/views/settings/components/forms/form';
 import JsonForm from 'app/views/settings/components/forms/jsonForm';
@@ -16,7 +15,6 @@ const OrganizationSettingsForm = createReactClass({
   displayName: 'OrganizationSettingsForm',
 
   propTypes: {
-    api: PropTypes.object,
     location: PropTypes.object,
     orgId: PropTypes.string.isRequired,
     access: PropTypes.object.isRequired,
@@ -66,6 +64,4 @@ const OrganizationSettingsForm = createReactClass({
   },
 });
 
-export {OrganizationSettingsForm};
-
-export default withApi(OrganizationSettingsForm);
+export default OrganizationSettingsForm;

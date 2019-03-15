@@ -45,11 +45,10 @@ const HELP_LINKS = {
 };
 
 const ProjectProcessingIssues = createReactClass({
+  displayName: 'ProjectProcessingIssues',
   propTypes: {
     api: PropTypes.object,
   },
-
-  displayName: 'ProjectProcessingIssues',
   mixins: [OrganizationState],
 
   getInitialState() {

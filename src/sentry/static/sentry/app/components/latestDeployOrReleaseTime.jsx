@@ -1,7 +1,6 @@
 import PropTypes from 'prop-types';
 import React from 'react';
 import createReactClass from 'create-react-class';
-import withApi from 'app/utils/withApi';
 import Tooltip from 'app/components/tooltip';
 import TimeSince from 'app/components/timeSince';
 import {t} from 'app/locale';
@@ -10,7 +9,6 @@ const LatestDeployOrReleaseTime = createReactClass({
   displayName: 'LatestDeployOrReleaseTime',
 
   propTypes: {
-    api: PropTypes.object,
     release: PropTypes.object.isRequired,
   },
 
@@ -58,6 +56,4 @@ const LatestDeployOrReleaseTime = createReactClass({
   },
 });
 
-export {LatestDeployOrReleaseTime};
-
-export default withApi(LatestDeployOrReleaseTime);
+export default LatestDeployOrReleaseTime;

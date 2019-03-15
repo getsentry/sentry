@@ -8,10 +8,6 @@ jest.mock('app/api');
 jest.mock('jquery');
 
 describe('InviteMember', function() {
-<<<<<<< HEAD
-=======
-  let sandbox;
->>>>>>> ref(js): Remove ApiMixin [WIP]
   const baseProps = {
     api: new MockApiClient(),
     params: {

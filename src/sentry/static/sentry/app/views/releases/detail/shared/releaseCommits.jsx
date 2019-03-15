@@ -15,10 +15,10 @@ import LoadingIndicator from 'app/components/loadingIndicator';
 import MenuItem from 'app/components/menuItem';
 
 const ReleaseCommits = createReactClass({
+  displayName: 'ReleaseCommits',
   propTypes: {
     api: PropTypes.object,
   },
-  displayName: 'ReleaseCommits',
 
   getInitialState() {
     return {

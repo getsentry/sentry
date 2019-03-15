@@ -134,11 +134,12 @@ const TASKS = [
 ];
 
 const TodoList = createReactClass({
+  displayName: 'TodoList',
+
   propTypes: {
     api: PropTypes.object,
   },
 
-  displayName: 'TodoList',
   mixins: [OrganizationState],
 
   getInitialState() {

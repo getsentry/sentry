@@ -14,11 +14,11 @@ import SentryTypes from 'app/sentryTypes';
 import SharedGroupHeader from 'app/views/sharedGroupDetails/sharedGroupHeader';
 
 const SharedGroupDetails = createReactClass({
+  displayName: 'SharedGroupDetails',
+
   propTypes: {
     api: PropTypes.object,
   },
-
-  displayName: 'SharedGroupDetails',
 
   childContextTypes: {
     group: SentryTypes.Group,

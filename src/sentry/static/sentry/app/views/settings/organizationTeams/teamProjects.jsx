@@ -22,11 +22,10 @@ import {sortProjects} from 'app/utils';
 import {t} from 'app/locale';
 
 const TeamProjects = createReactClass({
+  displayName: 'TeamProjects',
   propTypes: {
     api: PropTypes.object,
   },
-
-  displayName: 'TeamProjects',
   mixins: [OrganizationState],
 
   getInitialState() {

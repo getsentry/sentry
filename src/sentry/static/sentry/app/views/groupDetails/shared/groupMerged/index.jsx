@@ -1,11 +1,9 @@
-import PropTypes from 'prop-types';
 import React from 'react';
 import Reflux from 'reflux';
 import createReactClass from 'create-react-class';
 import queryString from 'query-string';
 
 import {t} from 'app/locale';
-import withApi from 'app/utils/withApi';
 import GroupingActions from 'app/actions/groupingActions';
 import GroupingStore from 'app/stores/groupingStore';
 import LoadingError from 'app/components/loadingError';
@@ -15,10 +13,6 @@ import SentryTypes from 'app/sentryTypes';
 import MergedList from './mergedList';
 
 const GroupMergedView = createReactClass({
-  propTypes: {
-    api: PropTypes.object,
-  },
-
   displayName: 'GroupMergedView',
   propTypes: {
     project: SentryTypes.Project,
@@ -86,11 +80,11 @@ const GroupMergedView = createReactClass({
     ]);
   },
 
-  handleCollapse(...args) {
+  handleCollapse() {
     GroupingActions.collapseFingerprints();
   },
 
-  handleUnmerge(...args) {
+  handleUnmerge() {
     GroupingActions.unmerge({
       groupId: this.props.params.groupId,
       loadingMessage: `${t('Unmerging events')}...`,
@@ -138,4 +132,4 @@ const GroupMergedView = createReactClass({
 
 export {GroupMergedView};
 
-export default withApi(GroupMergedView);
+export default GroupMergedView;

@@ -17,11 +17,11 @@ const prettyDate = function(x) {
 };
 
 const AdminRelays = createReactClass({
+  displayName: 'GroupEventDetails',
+
   propTypes: {
     api: PropTypes.object,
   },
-
-  displayName: 'GroupEventDetails',
 
   getInitialState() {
     return {

@@ -7,7 +7,6 @@ import isPropValid from '@emotion/is-prop-valid';
 
 import {escape, percent} from 'app/utils';
 import {t} from 'app/locale';
-import withApi from 'app/utils/withApi';
 import DeviceName, {
   deviceNameMapper,
   loadDeviceListModule,
@@ -20,7 +19,6 @@ const TagDistributionMeter = createReactClass({
   displayName: 'TagDistributionMeter',
 
   propTypes: {
-    api: PropTypes.object,
     group: SentryTypes.Group.isRequired,
     tag: PropTypes.string.isRequired,
     name: PropTypes.string,
@@ -264,4 +262,4 @@ const Segment = styled(Link, {shouldForwardProp: isPropValid})`
 `;
 
 export {TagDistributionMeter};
-export default withApi(withEnvironment(TagDistributionMeter));
+export default withEnvironment(TagDistributionMeter);

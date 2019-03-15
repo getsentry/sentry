@@ -10,11 +10,10 @@ import LoadingError from 'app/components/loadingError';
 import LoadingIndicator from 'app/components/loadingIndicator';
 
 const ProjectDocsContext = createReactClass({
+  displayName: 'ProjectDocsContext',
   propTypes: {
     api: PropTypes.object,
   },
-
-  displayName: 'ProjectDocsContext',
   mixins: [ProjectState],
 
   getInitialState() {
