@@ -134,7 +134,7 @@ const App = createReactClass({
     });
 
     const user = ConfigStore.get('user');
-    if (user !== undefined) {
+    if (user) {
       HookStore.get('analytics:init-user').map(cb => cb(user));
     }
   },
