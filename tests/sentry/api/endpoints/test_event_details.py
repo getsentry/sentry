@@ -40,8 +40,8 @@ class EventDetailsTest(APITestCase):
 
         assert response.status_code == 200, response.content
         assert response.data['id'] == six.text_type(cur_event.id)
-        assert response.data['nextEventID'] == six.text_type(next_event.id)
-        assert response.data['previousEventID'] == six.text_type(prev_event.id)
+        assert response.data['nextEventID'] == six.text_type(next_event.event_id)
+        assert response.data['previousEventID'] == six.text_type(prev_event.event_id)
         assert response.data['groupID'] == six.text_type(group.id)
         assert not response.data['userReport']
 
@@ -54,7 +54,7 @@ class EventDetailsTest(APITestCase):
 
         assert response.status_code == 200, response.content
         assert response.data['id'] == six.text_type(prev_event.id)
-        assert response.data['nextEventID'] == six.text_type(cur_event.id)
+        assert response.data['nextEventID'] == six.text_type(cur_event.event_id)
         assert response.data['previousEventID'] is None
         assert response.data['groupID'] == six.text_type(group.id)
         assert not response.data['userReport']
@@ -69,7 +69,7 @@ class EventDetailsTest(APITestCase):
         assert response.status_code == 200, response.content
         assert response.data['id'] == six.text_type(next_event.id)
         assert response.data['nextEventID'] is None
-        assert response.data['previousEventID'] == six.text_type(cur_event.id)
+        assert response.data['previousEventID'] == six.text_type(cur_event.event_id)
         assert response.data['groupID'] == six.text_type(group.id)
         assert not response.data['userReport']
 
@@ -115,7 +115,7 @@ class EventDetailsTest(APITestCase):
 
         assert response.status_code == 200, response.content
         assert response.data['id'] == six.text_type(events[0].id)
-        assert response.data['nextEventID'] == six.text_type(events[1].id)
+        assert response.data['nextEventID'] == six.text_type(events[1].event_id)
         assert response.data['previousEventID'] is None
         assert response.data['groupID'] == six.text_type(group.id)
         assert not response.data['userReport']
@@ -130,8 +130,8 @@ class EventDetailsTest(APITestCase):
 
         assert response.status_code == 200, response.content
         assert response.data['id'] == six.text_type(events[1].id)
-        assert response.data['nextEventID'] == six.text_type(events[2].id)
-        assert response.data['previousEventID'] == six.text_type(events[0].id)
+        assert response.data['nextEventID'] == six.text_type(events[2].event_id)
+        assert response.data['previousEventID'] == six.text_type(events[0].event_id)
         assert response.data['groupID'] == six.text_type(group.id)
         assert not response.data['userReport']
 
@@ -145,8 +145,8 @@ class EventDetailsTest(APITestCase):
 
         assert response.status_code == 200, response.content
         assert response.data['id'] == six.text_type(events[2].id)
-        assert response.data['nextEventID'] == six.text_type(events[3].id)
-        assert response.data['previousEventID'] == six.text_type(events[1].id)
+        assert response.data['nextEventID'] == six.text_type(events[3].event_id)
+        assert response.data['previousEventID'] == six.text_type(events[1].event_id)
         assert response.data['groupID'] == six.text_type(group.id)
         assert not response.data['userReport']
 
@@ -160,8 +160,8 @@ class EventDetailsTest(APITestCase):
 
         assert response.status_code == 200, response.content
         assert response.data['id'] == six.text_type(events[3].id)
-        assert response.data['nextEventID'] == six.text_type(events[4].id)
-        assert response.data['previousEventID'] == six.text_type(events[2].id)
+        assert response.data['nextEventID'] == six.text_type(events[4].event_id)
+        assert response.data['previousEventID'] == six.text_type(events[2].event_id)
         assert response.data['groupID'] == six.text_type(group.id)
         assert not response.data['userReport']
 
@@ -176,7 +176,7 @@ class EventDetailsTest(APITestCase):
         assert response.status_code == 200, response.content
         assert response.data['id'] == six.text_type(events[4].id)
         assert response.data['nextEventID'] is None
-        assert response.data['previousEventID'] == six.text_type(events[3].id)
+        assert response.data['previousEventID'] == six.text_type(events[3].event_id)
         assert response.data['groupID'] == six.text_type(group.id)
         assert not response.data['userReport']
 
@@ -209,8 +209,8 @@ class EventDetailsTest(APITestCase):
 
         assert response.status_code == 200, response.content
         assert response.data['id'] == six.text_type(cur_event.id)
-        assert response.data['nextEventID'] == six.text_type(next_event.id)
-        assert response.data['previousEventID'] == six.text_type(prev_event.id)
+        assert response.data['nextEventID'] == six.text_type(next_event.event_id)
+        assert response.data['previousEventID'] == six.text_type(prev_event.event_id)
         assert response.data['groupID'] == six.text_type(group.id)
         assert not response.data['userReport']
 
@@ -223,7 +223,7 @@ class EventDetailsTest(APITestCase):
 
         assert response.status_code == 200, response.content
         assert response.data['id'] == six.text_type(prev_event.id)
-        assert response.data['nextEventID'] == six.text_type(cur_event.id)
+        assert response.data['nextEventID'] == six.text_type(cur_event.event_id)
         assert response.data['previousEventID'] is None
         assert response.data['groupID'] == six.text_type(group.id)
         assert not response.data['userReport']
@@ -238,7 +238,7 @@ class EventDetailsTest(APITestCase):
         assert response.status_code == 200, response.content
         assert response.data['id'] == six.text_type(next_event.id)
         assert response.data['nextEventID'] is None
-        assert response.data['previousEventID'] == six.text_type(cur_event.id)
+        assert response.data['previousEventID'] == six.text_type(cur_event.event_id)
         assert response.data['groupID'] == six.text_type(group.id)
         assert not response.data['userReport']
 
@@ -308,4 +308,4 @@ class EventDetailsTest(APITestCase):
 
         assert response.status_code == 200, response.content
         assert response.data['id'] == six.text_type(event.id)
-        assert response.data['previousEventID'] == six.text_type(before.id)
+        assert response.data['previousEventID'] == six.text_type(before.event_id)
