@@ -18,7 +18,6 @@ from sentry.api.serializers import (
     UserReportWithGroupSerializer,
 )
 from sentry.digests.notifications import build_digest, event_to_record
-from sentry.interfaces.stacktrace import Stacktrace
 from sentry.models import (
     Activity, Event, Group, GroupSubscription, OrganizationMember, OrganizationMemberTeam,
     ProjectOwnership, Rule, UserOption, UserReport
@@ -61,59 +60,34 @@ class MailPluginTest(TestCase):
         assert msg.subject == '[Sentry] BAR-1 - Hello world'
         assert 'my rule' in msg.alternatives[0][0]
 
+    @mock.patch('sentry.interfaces.stacktrace.Stacktrace.get_title')
+    @mock.patch('sentry.interfaces.stacktrace.Stacktrace.to_email_html')
     @mock.patch('sentry.plugins.sentry_mail.models.MailPlugin._send_mail')
-    def test_notify_users_renders_interfaces_with_utf8(self, _send_mail):
-        group = Group(
-            id=2,
+    def test_notify_users_renders_interfaces_with_utf8(self, _send_mail, _to_email_html, _get_title):
+        group = self.create_group(
             first_seen=timezone.now(),
             last_seen=timezone.now(),
             project=self.project,
         )
 
-        stacktrace = Mock(spec=Stacktrace)
-        stacktrace.to_email_html.return_value = u'רונית מגן'
-        stacktrace.get_title.return_value = 'Stacktrace'
+        _to_email_html.return_value = u'רונית מגן'
+        _get_title.return_value = 'Stacktrace'
 
-        event = Event()
-        event.group = group
-        event.project = self.project
-        event.message = 'hello world'
-        event.interfaces = {'stacktrace': stacktrace}
+        event = Event(
+            group_id=group.id,
+            project_id=self.project.id,
+            message='Soubor ji\xc5\xbe existuje',
+            # Create interface so get_title will be called on it.
+            data={'stacktrace': {'frames': []}},
+        )
 
         notification = Notification(event=event)
 
         with self.options({'system.url-prefix': 'http://example.com'}):
             self.plugin.notify(notification)
 
-        stacktrace.get_title.assert_called_once_with()
-        stacktrace.to_email_html.assert_called_once_with(event)
-
-    @mock.patch('sentry.plugins.sentry_mail.models.MailPlugin._send_mail')
-    def test_notify_users_renders_interfaces_with_utf8_fix_issue_422(self, _send_mail):
-        group = Group(
-            id=2,
-            first_seen=timezone.now(),
-            last_seen=timezone.now(),
-            project=self.project,
-        )
-
-        stacktrace = Mock(spec=Stacktrace)
-        stacktrace.to_email_html.return_value = u'רונית מגן'
-        stacktrace.get_title.return_value = 'Stacktrace'
-
-        event = Event()
-        event.group = group
-        event.project = self.project
-        event.message = 'Soubor ji\xc5\xbe existuje'
-        event.interfaces = {'stacktrace': stacktrace}
-
-        notification = Notification(event=event)
-
-        with self.options({'system.url-prefix': 'http://example.com'}):
-            self.plugin.notify(notification)
-
-        stacktrace.get_title.assert_called_once_with()
-        stacktrace.to_email_html.assert_called_once_with(event)
+        _get_title.assert_called_once_with()
+        _to_email_html.assert_called_once_with(event)
 
     @mock.patch('sentry.plugins.sentry_mail.models.MailPlugin._send_mail')
     def test_notify_users_does_email(self, _send_mail):

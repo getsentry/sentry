@@ -8,9 +8,9 @@ from rest_framework.response import Response
 
 from sentry.api.bases import OrganizationEventsEndpointBase, OrganizationEventsError, NoProjects
 from sentry.api.paginator import GenericOffsetPaginator
-from sentry.api.serializers import serialize
-from sentry.api.serializers.models.event import SnubaEvent
+from sentry.api.serializers import serialize, SimpleEventSerializer
 from sentry.api.serializers.snuba import SnubaTSResultSerializer
+from sentry.models import SnubaEvent
 from sentry.utils.dates import parse_stats_period
 from sentry.utils.snuba import raw_query
 from sentry.utils.validators import is_event_id
@@ -63,10 +63,11 @@ class OrganizationEventsEndpoint(OrganizationEventsEndpointBase):
                 **snuba_args
             )
 
+        serializer = SimpleEventSerializer()
         return self.paginate(
             request=request,
             on_results=lambda results: serialize(
-                [SnubaEvent(row) for row in results], request.user),
+                [SnubaEvent(row) for row in results], request.user, serializer),
             paginator=GenericOffsetPaginator(data_fn=data_fn)
         )
 
