@@ -285,6 +285,9 @@ matrix:
     - language: node_js
       env: STORYBOOK_BUILD=1
 
+    # XXX(markus): Remove after rust interfaces are done
+    - env: TEST_SUITE=postgres DB=postgres SENTRY_TEST_USE_RUST_INTERFACE_RENORMALIZATION=1
+
 notifications:
   webhooks:
     urls:
