@@ -7,14 +7,7 @@ from django.utils import timezone
 from semaphore import meta_with_chunks
 
 from sentry.api.serializers import Serializer, register, serialize
-from sentry.models import (
-    Event,
-    EventError,
-    EventAttachment,
-    Release,
-    UserReport,
-    SnubaEvent
-)
+from sentry.models import Event, EventError, EventAttachment, Release, UserReport
 from sentry.search.utils import convert_user_tag_to_query
 from sentry.utils.safe import get_path
 
@@ -35,7 +28,6 @@ def get_crash_files(events):
     return rv
 
 
-@register(SnubaEvent)
 @register(Event)
 class EventSerializer(Serializer):
     _reserved_keys = frozenset(
@@ -78,7 +70,7 @@ class EventSerializer(Serializer):
         )
 
     def _get_interface_with_meta(self, event, name, is_public=False):
-        interface = event.get_interface(name)
+        interface = event.interfaces.get(name)
         if not interface:
             return (None, None)
 
@@ -104,21 +96,10 @@ class EventSerializer(Serializer):
                     'value': kv[1],
                     '_meta': meta.get(kv[0]) or get_path(meta, six.text_type(i), '1') or None,
                 }
-                # TODO this should be using event.tags but there are some weird
-                # issues around that because event.tags re-sorts the tags and
-                # this function relies on them being in the original order to
-                # look up meta.
                 for i, kv in enumerate(event.data.get('tags') or ())
                 if kv is not None and kv[0] is not None and kv[1] is not None],
             key=lambda x: x['key']
         )
-
-        # Add 'query' for each tag to tell the UI what to use as query
-        # params for this tag.
-        for tag in tags:
-            query = convert_user_tag_to_query(tag['key'], tag['value'])
-            if query:
-                tag['query'] = query
 
         tags_meta = {
             six.text_type(i): {'value': e.pop('_meta')}
@@ -240,7 +221,6 @@ class EventSerializer(Serializer):
             'id': six.text_type(obj.id),
             'groupID': six.text_type(obj.group_id),
             'eventID': six.text_type(obj.event_id),
-            'projectID': six.text_type(obj.project_id),
             'size': obj.size,
             'entries': attrs['entries'],
             'dist': obj.dist,
@@ -307,50 +287,78 @@ class SharedEventSerializer(EventSerializer):
         return result
 
 
-class SimpleEventSerializer(EventSerializer):
+class SnubaEvent(object):
     """
-    Simple event serializer that renders a basic outline of an event without
-    most interfaces/breadcrumbs. This can be used for basic event list queries
-    where we don't need the full detail. The side effect is that, if the
-    serialized events are actually SnubaEvents, we can render them without
-    needing to fetch the event bodies from nodestore.
-
-    NB it would be super easy to inadvertently add a property accessor here
-    that would require a nodestore lookup for a SnubaEvent serialized using
-    this serializer. You will only really notice you've done this when the
-    organization event search API gets real slow.
+        A simple wrapper class on a row (dict) returned from snuba representing
+        an event. Provides a class name to register a serializer against, and
+        Makes keys accessible as attributes.
     """
 
-    def get_attrs(self, item_list, user):
-        return {}
+    # The list of columns that we should request from snuba to be able to fill
+    # out a proper event object.
+    selected_columns = [
+        'event_id',
+        'project_id',
+        'message',
+        'title',
+        'location',
+        'culprit',
+        'user_id',
+        'username',
+        'ip_address',
+        'email',
+        'timestamp',
+    ]
+
+    def __init__(self, kv):
+        assert len(set(self.selected_columns) - set(kv.keys())
+                   ) == 0, "SnubaEvents need all of the selected_columns"
+        self.__dict__ = kv
+
+
+@register(SnubaEvent)
+class SnubaEventSerializer(Serializer):
+    """
+        A bare-bones version of EventSerializer which uses snuba event rows as
+        the source data but attempts to produce a compatible (subset) of the
+        serialization returned by EventSerializer.
+    """
+
+    def get_tags_dict(self, obj):
+        keys = getattr(obj, 'tags.key', None)
+        values = getattr(obj, 'tags.value', None)
+        if keys and values and len(keys) == len(values):
+            results = []
+            for key, value in zip(keys, values):
+                key = key.split('sentry:', 1)[-1]
+                result = {'key': key, 'value': value}
+                query = convert_user_tag_to_query(key, value)
+                if query:
+                    result['query'] = query
+                results.append(result)
+            results.sort(key=lambda x: x['key'])
+            return results
+        return []
 
     def serialize(self, obj, attrs, user):
-        tags = [{
-            'key': key.split('sentry:', 1)[-1],
-            'value': value,
-        } for key, value in obj.tags]
-        for tag in tags:
-            query = convert_user_tag_to_query(tag['key'], tag['value'])
-            if query:
-                tag['query'] = query
-
-        user = obj.get_interface('user')
-        if user is not None:
-            user = user.get_api_context()
-
-        return {
-            'id': six.text_type(obj.id),
-            'groupID': six.text_type(obj.group_id),
+        result = {
             'eventID': six.text_type(obj.event_id),
             'projectID': six.text_type(obj.project_id),
-            # XXX for 'message' this doesn't do the proper resolution of logentry
-            # etc. that _get_legacy_message_with_meta does.
             'message': obj.message,
             'title': obj.title,
             'location': obj.location,
             'culprit': obj.culprit,
-            'user': user,
-            'tags': tags,
-            'platform': obj.platform,
-            'dateCreated': obj.datetime,
+            'dateCreated': obj.timestamp,
+            'user': {
+                'id': obj.user_id,
+                'email': obj.email,
+                'username': obj.username,
+                'ipAddress': obj.ip_address,
+            },
         }
+
+        tags = self.get_tags_dict(obj)
+        if tags:
+            result['tags'] = tags
+
+        return result
