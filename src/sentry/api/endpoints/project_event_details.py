@@ -1,7 +1,5 @@
 from __future__ import absolute_import
 
-import six
-
 from rest_framework.response import Response
 
 from sentry import options
@@ -68,12 +66,11 @@ class ProjectEventDetailsEndpoint(ProjectEndpoint):
 
         requested_environments = set(request.GET.getlist('environment'))
 
-        next_event = snuba_event.next_event(environments=requested_environments)
-        prev_event = snuba_event.prev_event(environments=requested_environments)
-        # # TODO this is inconsistent with the event_details API which uses the
-        # # `id` instead of the `event_id`
-        data['nextEventID'] = next_event and six.text_type(next_event.event_id)
-        data['previousEventID'] = prev_event and six.text_type(prev_event.event_id)
+        next_event_id = snuba_event.next_event_id(environments=requested_environments)
+        prev_event_id = snuba_event.prev_event_id(environments=requested_environments)
+
+        data['nextEventID'] = next_event_id
+        data['previousEventID'] = prev_event_id
 
         return Response(data)
 
@@ -86,11 +83,11 @@ class ProjectEventDetailsEndpoint(ProjectEndpoint):
         Event.objects.bind_nodes([event], 'data')
 
         data = serialize(event, request.user, DetailedEventSerializer())
-        next_event = event.next_event()
-        prev_event = event.prev_event()
+        next_event_id = event.next_event_id()
+        prev_event_id = event.prev_event_id()
         # TODO this is inconsistent with the event_details API which uses the
         # `id` instead of the `event_id`
-        data['nextEventID'] = next_event and six.text_type(next_event.event_id)
-        data['previousEventID'] = prev_event and six.text_type(prev_event.event_id)
+        data['nextEventID'] = next_event_id
+        data['previousEventID'] = prev_event_id
 
         return Response(data)

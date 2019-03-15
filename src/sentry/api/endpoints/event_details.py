@@ -1,7 +1,5 @@
 from __future__ import absolute_import
 
-import six
-
 from rest_framework.response import Response
 
 from sentry.api.base import Endpoint
@@ -33,9 +31,7 @@ class EventDetailsEndpoint(Endpoint):
 
         data = serialize(event, request.user, DetailedEventSerializer())
 
-        next_event = event.next_event()
-        prev_event = event.prev_event()
-        data['nextEventID'] = next_event and six.text_type(next_event.id)
-        data['previousEventID'] = prev_event and six.text_type(prev_event.id)
+        data['nextEventID'] = event.next_event_id()
+        data['previousEventID'] = event.prev_event_id()
 
         return Response(data)
