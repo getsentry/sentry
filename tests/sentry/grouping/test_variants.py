@@ -9,6 +9,7 @@ import pytest
 from sentry.models import Event
 from sentry.event_manager import EventManager
 from sentry.grouping.component import GroupingComponent
+from sentry.grouping.strategies.configurations import CONFIGURATIONS
 
 
 def dump_variant(variant, lines=None, indent=0):
@@ -41,17 +42,16 @@ def dump_variant(variant, lines=None, indent=0):
     return lines
 
 
-_fixture_path = os.path.join(os.path.dirname(__file__), 'configs')
+_fixture_path = os.path.join(os.path.dirname(__file__), 'inputs')
 
 
 def load_configs():
-    configs = os.listdir(_fixture_path)
+    configs = CONFIGURATIONS.keys()
 
     rv = []
-    for config in configs:
-        folder = os.path.join(_fixture_path, config)
-        for filename in os.listdir(folder):
-            if filename.endswith('.json'):
+    for filename in os.listdir(_fixture_path):
+        if filename.endswith('.json'):
+            for config in configs:
                 rv.append((config, filename[:-5]))
 
     rv.sort()
@@ -65,7 +65,7 @@ def load_configs():
     ids=lambda x: x.replace("-", "_")  # Nicer folder structure for insta_snapshot
 )
 def test_event_hash_variant(insta_snapshot, config_name, test_name, log):
-    with open(os.path.join(_fixture_path, config_name, test_name + '.json')) as f:
+    with open(os.path.join(_fixture_path, test_name + '.json')) as f:
         input = json.load(f)
 
     mgr = EventManager(data=input)
