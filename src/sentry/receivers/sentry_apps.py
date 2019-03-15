@@ -5,7 +5,6 @@ from sentry.signals import (
     issue_ignored,
     issue_assigned,
     issue_resolved,
-    resolved_with_commit,
 )
 from sentry.tasks.sentry_apps import workflow_notification
 
@@ -35,19 +34,21 @@ def send_issue_assigned_webhook(project, group, user, **kwargs):
 
 
 @issue_resolved.connect(weak=False)
-def send_issue_resolved_webhook(project, group, user, resolution_type, **kwargs):
-    resolution_type = resolution_type
+def send_issue_resolved_webhook(organization_id, project, group, user, resolution_type, **kwargs):
+    data_resolution_type = resolution_type
     if resolution_type in ('in_next_release', 'in_release'):
-        resolution_type = 'resolved_in_release'
+        data_resolution_type = 'resolved_in_release'
+    elif resolution_type == 'in_commit':
+        data_resolution_type = 'resolved_in_commit'
     else:
-        resolution_type = 'resolved'
+        data_resolution_type = 'resolved'
 
     send_workflow_webhooks(
         project.organization,
         group,
         user,
         'issue.resolved',
-        data={'resolution_type': resolution_type},
+        data={'resolution_type': data_resolution_type},
     )
 
 
@@ -60,18 +61,6 @@ def send_issue_ignored_webhook(project, user, group_list, **kwargs):
             user,
             'issue.ignored',
         )
-
-
-@resolved_with_commit.connect(weak=False)
-def send_resolved_with_commit_webhook(organization_id, group, user, **kwargs):
-    organization = Organization.objects.get(id=organization_id)
-    send_workflow_webhooks(
-        organization,
-        group,
-        user,
-        'issue.resolved',
-        data={'resolution_type': 'resolved_in_commit'},
-    )
 
 
 def send_workflow_webhooks(organization, issue, user, event, data=None):

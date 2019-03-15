@@ -652,6 +652,7 @@ class FeatureAdoptionTest(TestCase):
 
     def test_resolved_in_release(self):
         issue_resolved.send(
+            organization_id=self.organization.id,
             project=self.project,
             group=self.group,
             user=self.user,
@@ -665,6 +666,7 @@ class FeatureAdoptionTest(TestCase):
 
     def test_resolved_manually(self):
         issue_resolved.send(
+            organization_id=self.organization.id,
             project=self.project,
             group=self.group,
             user=self.user,

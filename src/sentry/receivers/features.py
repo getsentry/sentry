@@ -29,7 +29,6 @@ from sentry.signals import (
     project_created,
     release_created,
     repo_linked,
-    resolved_with_commit,
     save_search_created,
     sso_enabled,
     team_created,
@@ -147,15 +146,20 @@ def record_issue_assigned(project, group, user, **kwargs):
 
 
 @issue_resolved.connect(weak=False)
-def record_issue_resolved(project, group, user, resolution_type, **kwargs):
-    resolution_type = resolution_type
+def record_issue_resolved(organization_id, project, group, user, resolution_type, **kwargs):
+    data_resolution_type = resolution_type
     if resolution_type in ('in_next_release', 'in_release'):
-        resolution_type = 'resolved_in_release'
+        data_resolution_type = 'resolved_in_release'
         FeatureAdoption.objects.record(
-            organization_id=project.organization_id, feature_slug="resolved_in_release", complete=True
+            organization_id=organization_id, feature_slug="resolved_in_release", complete=True
+        )
+    elif resolution_type == 'in_commit':
+        data_resolution_type = 'with_commit'
+        FeatureAdoption.objects.record(
+            organization_id=organization_id, feature_slug="resolved_with_commit", complete=True
         )
     else:
-        resolution_type = 'now'
+        data_resolution_type = 'now'
 
     if user and user.is_authenticated():
         user_id = default_user_id = user.id
@@ -167,9 +171,9 @@ def record_issue_resolved(project, group, user, resolution_type, **kwargs):
         'issue.resolved',
         user_id=user_id,
         default_user_id=default_user_id,
-        organization_id=project.organization_id,
+        organization_id=organization_id,
         group_id=group.id,
-        resolution_type=resolution_type,
+        resolution_type=data_resolution_type,
     )
 
 
@@ -311,28 +315,6 @@ def record_release_created(release, **kwargs):
 def record_deploy_created(deploy, **kwargs):
     FeatureAdoption.objects.record(
         organization_id=deploy.organization_id, feature_slug="deploy_created", complete=True
-    )
-
-
-@resolved_with_commit.connect(weak=False)
-def record_resolved_with_commit(organization_id, user, group, **kwargs):
-    FeatureAdoption.objects.record(
-        organization_id=organization_id, feature_slug="resolved_with_commit", complete=True
-    )
-
-    if user and user.is_authenticated():
-        user_id = default_user_id = user.id
-    else:
-        user_id = None
-        default_user_id = group.organization.get_default_owner().id
-
-    analytics.record(
-        'issue.resolved',
-        user_id=user_id,
-        default_user_id=default_user_id,
-        organization_id=organization_id,
-        group_id=group.id,
-        resolution_type='with_commit',
     )
 
 
