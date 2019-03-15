@@ -54,7 +54,7 @@ class ProjectEventsEndpoint(ProjectEndpoint):
 
     def _get_events_snuba(self, request, project):
         from sentry.api.paginator import GenericOffsetPaginator
-        from sentry.api.serializers.models.event import SnubaEvent
+        from sentry.models import SnubaEvent
         from sentry.utils.snuba import raw_query
 
         query = request.GET.get('query')

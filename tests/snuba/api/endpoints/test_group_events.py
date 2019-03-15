@@ -275,7 +275,8 @@ class GroupEventsTest(APITestCase, SnubaTestCase):
 
         assert response.status_code == 200, response.content
         assert len(response.data) == 1
-        assert response.data[0]['tags'][0] == {'key': 'logger', 'value': 'python'}
+        assert response.data[0]['tags'][0]['key'] == 'logger'
+        assert response.data[0]['tags'][0]['value'] == 'python'
 
     @freeze_time()
     def test_date_filters(self):
