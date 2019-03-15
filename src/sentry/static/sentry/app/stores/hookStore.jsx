@@ -13,6 +13,7 @@ const validHookNames = new Set([
   // Analytics and tracking hooks
   'amplitude:event',
   'analytics:event',
+  'analytics:init-user',
   'analytics:onboarding-survey-log',
 
   // Operational metrics
