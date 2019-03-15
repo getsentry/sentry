@@ -17,11 +17,11 @@ import {Panel, PanelBody, PanelHeader, PanelItem} from 'app/components/panels';
 import {removeAuthenticator} from 'app/actionCreators/account';
 import SentryTypes from 'app/sentryTypes';
 import SettingsPageHeader from 'app/views/settings/components/settingsPageHeader';
+import TeamSelect from 'app/views/settings/components/teamSelect';
 import Tooltip from 'app/components/tooltip';
 import recreateRoute from 'app/utils/recreateRoute';
 
 import RoleSelect from './inviteMember/roleSelect';
-import TeamSelect from './inviteMember/teamSelect';
 
 const NOT_ENROLLED = t('Not enrolled in two-factor authentication');
 const NO_PERMISSION = t('You do not have permission to perform this action');

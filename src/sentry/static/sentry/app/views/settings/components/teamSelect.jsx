@@ -6,6 +6,7 @@ import {debounce} from 'lodash';
 import {Box} from 'grid-emotion';
 import {t} from 'app/locale';
 import Button from 'app/components/button';
+import Confirm from 'app/components/confirm';
 import SentryTypes from 'app/sentryTypes';
 import Link from 'app/components/link';
 import {Panel, PanelBody, PanelHeader, PanelItem} from 'app/components/panels';
@@ -20,9 +21,19 @@ class TeamSelect extends React.Component {
     api: PropTypes.object.isRequired,
     organization: SentryTypes.Organization.isRequired,
     disabled: PropTypes.bool,
+    // Teams that are already selected.
     selectedTeams: PropTypes.array.isRequired,
+    // callback when teams are added
     onAddTeam: PropTypes.func.isRequired,
+    // Callback when teams are removed
     onRemoveTeam: PropTypes.func.isRequired,
+
+    // Optional menu header.
+    menuHeader: PropTypes.element,
+
+    // Message to display when the last team is removed
+    // if empty no confirm will be displayed.
+    confirmLastTeamRemoveMessage: PropTypes.string,
   };
 
   state = {
@@ -55,7 +66,7 @@ class TeamSelect extends React.Component {
   };
 
   renderTeamAddDropDown() {
-    const {disabled, selectedTeams} = this.props;
+    const {disabled, selectedTeams, menuHeader} = this.props;
     const {teams} = this.state;
     const noTeams = teams === null || teams.length === 0;
     const isDisabled = noTeams || disabled;
@@ -81,6 +92,7 @@ class TeamSelect extends React.Component {
         onChange={this.handleQueryUpdate}
         onSelect={this.handleAddTeam}
         emptyMessage={t('No teams')}
+        menuHeader={menuHeader}
         disabled={isDisabled}
       >
         {({isOpen}) => (
@@ -93,10 +105,20 @@ class TeamSelect extends React.Component {
   }
 
   renderBody() {
-    const {organization, selectedTeams, disabled} = this.props;
+    const {
+      organization,
+      selectedTeams,
+      disabled,
+      confirmLastTeamRemoveMessage,
+    } = this.props;
+
     if (selectedTeams.length === 0) {
       return <EmptyMessage>{t('No Teams assigned')}</EmptyMessage>;
     }
+    const confirmMessage =
+      selectedTeams.length === 1 && confirmLastTeamRemoveMessage
+        ? confirmLastTeamRemoveMessage
+        : null;
 
     return selectedTeams.map(team => {
       return (
@@ -106,6 +128,7 @@ class TeamSelect extends React.Component {
           team={team}
           onRemove={this.handleRemove}
           disabled={disabled}
+          confirmMessage={confirmMessage}
         />
       );
     });
@@ -126,20 +149,22 @@ class TeamSelect extends React.Component {
 }
 
 const TeamRow = props => {
-  const {orgId, team, onRemove, disabled} = props;
+  const {orgId, team, onRemove, disabled, confirmMessage} = props;
   return (
     <PanelItem p={2} align="center">
       <Box flex={1}>
         <Link to={`/settings/${orgId}/teams/${team}/`}>#{team}</Link>
       </Box>
-      <Button
-        size="xsmall"
-        icon="icon-circle-subtract"
-        onClick={() => onRemove(team)}
+      <Confirm
+        message={confirmMessage}
+        bypass={!confirmMessage}
+        onConfirm={() => onRemove(team)}
         disabled={disabled}
       >
-        {t('Remove')}
-      </Button>
+        <Button size="xsmall" icon="icon-circle-subtract" disabled={disabled}>
+          {t('Remove')}
+        </Button>
+      </Confirm>
     </PanelItem>
   );
 };
@@ -149,6 +174,7 @@ TeamRow.propTypes = {
   team: PropTypes.string.isRequired,
   orgId: PropTypes.string.isRequired,
   onRemove: PropTypes.func.isRequired,
+  confirmMessage: PropTypes.string,
 };
 
 const TeamDropdownElement = styled.div`
