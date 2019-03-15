@@ -145,7 +145,7 @@
     "webpack-profile": "yarn -s webpack --profile --json > stats.json"
   },
   "toolchain": {
-    "node": "8.10.0",
+    "node": "8.15.1",
     "yarn": "1.13.0"
   }
 }
