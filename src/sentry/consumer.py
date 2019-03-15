@@ -1,7 +1,12 @@
 from __future__ import absolute_import, print_function
 
+import logging
+import six
+
 from batching_kafka_consumer import AbstractBatchWorker
 
+
+logger = logging.getLogger('sentry.consumer')
 
 # We need a unique value to indicate when to stop multiprocessing queue
 # an identity on an object() isn't guaranteed to work between parent
@@ -54,6 +59,7 @@ def handle_save(message):
 
 
 dispatch = {}
+topic_to_dead_topic_key = {}
 
 
 def handle_task(task):
@@ -69,10 +75,38 @@ def handle_task(task):
         ):
             topic = settings.KAFKA_TOPICS[key]['topic']
             dispatch[topic] = handler
+            topic_to_dead_topic_key[topic] = key + '-dead'
 
-    topic, payload = task
+    topic = task['topic']
     handler = dispatch[topic]
-    handler(json.loads(payload))
+
+    try:
+        handler(json.loads(task['value']))
+    except Exception:
+        from sentry.utils import kafka
+
+        topic_config = kafka.get_topic_config(topic)
+        dead_letter_key = topic_config.get('dead-letter-key')
+        if not dead_letter_key:
+            logger.exception(
+                "Error handling message on topic '%s' and no dead-letter-topic is defined.")
+            return
+
+        dead_letter_topic = kafka.get_topic_key_config(dead_letter_key)['topic']
+        logger.exception(
+            "Error handling message on topic '%s', sending to dead letter topic: '%s'." % (
+                topic, dead_letter_topic)
+        )
+
+        kafka.produce_sync(
+            dead_letter_key,
+            value=task['value'],
+            headers={
+                'partition': task['partition'],
+                'offset': task['offset'],
+                'topic': topic,
+            },
+        )
 
 
 def multiprocess_worker(task_queue):
@@ -94,14 +128,12 @@ def multiprocess_worker(task_queue):
             task_queue.task_done()
             return
 
-        try:
-            handle_task(task)
-        finally:
-            task_queue.task_done()
+        handle_task(task)
+        task_queue.task_done()
 
 
 class ConsumerWorker(AbstractBatchWorker):
-    def __init__(self, concurrency=1):
+    def __init__(self, concurrency):
         from multiprocessing import Process, JoinableQueue as Queue
 
         self.concurrency = concurrency
@@ -116,8 +148,12 @@ class ConsumerWorker(AbstractBatchWorker):
                 self.pool.append(p)
 
     def process_message(self, message):
-        topic = message.topic()
-        task = (topic, message.value())
+        task = {
+            'topic': message.topic(),
+            'value': message.value(),
+            'partition': six.text_type(message.partition()) if message.partition() else None,
+            'offset': six.text_type(message.offset()) if message.offset() else None,
+        }
 
         if self.concurrency > 1:
             self.task_queue.put(task)

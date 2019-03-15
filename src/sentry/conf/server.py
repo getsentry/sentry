@@ -1560,22 +1560,40 @@ KAFKA_CLUSTERS = {
 }
 
 KAFKA_PREPROCESS = 'events-preprocess'
+KAFKA_PREPROCESS_DEAD = 'events-preprocess-dead'
 KAFKA_PROCESS = 'events-process'
+KAFKA_PROCESS_DEAD = 'events-process-dead'
 KAFKA_SAVE = 'events-save'
+KAFKA_SAVE_DEAD = 'events-save-dead'
 KAFKA_EVENTS = 'events'
 
 KAFKA_TOPICS = {
     KAFKA_PREPROCESS: {
         'cluster': 'default',
         'topic': KAFKA_PREPROCESS,
+        'dead-letter-key': KAFKA_PREPROCESS_DEAD,
+    },
+    KAFKA_PREPROCESS_DEAD: {
+        'cluster': 'default',
+        'topic': KAFKA_PREPROCESS_DEAD,
     },
     KAFKA_PROCESS: {
         'cluster': 'default',
         'topic': KAFKA_PROCESS,
+        'dead-letter-key': KAFKA_PROCESS_DEAD,
+    },
+    KAFKA_PROCESS_DEAD: {
+        'cluster': 'default',
+        'topic': KAFKA_PROCESS_DEAD,
     },
     KAFKA_SAVE: {
         'cluster': 'default',
         'topic': KAFKA_SAVE,
+        'dead-letter-key': KAFKA_SAVE_DEAD,
+    },
+    KAFKA_SAVE_DEAD: {
+        'cluster': 'default',
+        'topic': KAFKA_SAVE_DEAD,
     },
     KAFKA_EVENTS: {
         'cluster': 'default',

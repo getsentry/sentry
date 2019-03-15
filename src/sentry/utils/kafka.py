@@ -1,11 +1,27 @@
 from __future__ import absolute_import
 
 import logging
+import six
 
 from django.conf import settings
 
 
 logger = logging.getLogger(__name__)
+
+
+_topic_to_config = {}
+
+
+def get_topic_config(topic):
+    if not _topic_to_config:
+        for topic_key, config in six.iteritems(settings.KAFKA_TOPICS):
+            _topic_to_config[config['topic']] = config
+
+    return _topic_to_config[topic]
+
+
+def get_topic_key_config(topic_key):
+    return settings.KAFKA_TOPICS[topic_key]
 
 
 class ProducerManager(object):
@@ -18,8 +34,8 @@ class ProducerManager(object):
     def __init__(self):
         self.__producers = {}
 
-    def get(self, key):
-        cluster_name = settings.KAFKA_TOPICS[key]['cluster']
+    def get(self, topic_key):
+        cluster_name = get_topic_key_config(topic_key)['cluster']
         producer = self.__producers.get(cluster_name)
 
         if producer:
@@ -45,12 +61,12 @@ def produce_sync(topic_key, **kwargs):
 
     try:
         producer.produce(
-            topic=settings.KAFKA_TOPICS[topic_key]['topic'],
+            topic=get_topic_key_config(topic_key)['topic'],
             on_delivery=delivery_callback,
             **kwargs
         )
+
+        producer.flush()
     except Exception as error:
         logger.error('Could not publish message: %s', error, exc_info=True)
         return
-
-    producer.flush()

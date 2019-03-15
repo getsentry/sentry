@@ -43,7 +43,13 @@ class TestConsumer(PluginTestCase):
             def value(self):
                 return self._value
 
-        consumer = ConsumerWorker()
+            def partition(self):
+                return 0
+
+            def offset(self):
+                return 0
+
+        consumer = ConsumerWorker(concurrency=1)
         consumer.process_message(Msg(topic, kwargs['value']))
         consumer.flush_batch([])
 
