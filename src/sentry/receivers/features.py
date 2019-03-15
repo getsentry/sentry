@@ -147,7 +147,6 @@ def record_issue_assigned(project, group, user, **kwargs):
 
 @issue_resolved.connect(weak=False)
 def record_issue_resolved(organization_id, project, group, user, resolution_type, **kwargs):
-    data_resolution_type = resolution_type
     if resolution_type in ('in_next_release', 'in_release'):
         data_resolution_type = 'resolved_in_release'
         FeatureAdoption.objects.record(

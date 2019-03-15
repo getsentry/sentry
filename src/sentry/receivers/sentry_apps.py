@@ -35,7 +35,6 @@ def send_issue_assigned_webhook(project, group, user, **kwargs):
 
 @issue_resolved.connect(weak=False)
 def send_issue_resolved_webhook(organization_id, project, group, user, resolution_type, **kwargs):
-    data_resolution_type = resolution_type
     if resolution_type in ('in_next_release', 'in_release'):
         data_resolution_type = 'resolved_in_release'
     elif resolution_type == 'in_commit':

@@ -96,7 +96,6 @@ alert_rule_created = BetterSignal(providing_args=["project", "rule", "user"])
 repo_linked = BetterSignal(providing_args=["repo", "user"])
 release_created = BetterSignal(providing_args=["release"])
 deploy_created = BetterSignal(providing_args=["deploy"])
-resolved_with_commit = BetterSignal(providing_args=["organization_id", "user", "group"])
 ownership_rule_created = BetterSignal(providing_args=["project"])
 issue_ignored = BetterSignal(providing_args=["project", "user", "group_list", "activity_data"])
 
