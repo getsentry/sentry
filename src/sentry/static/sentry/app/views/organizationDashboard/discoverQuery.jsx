@@ -8,15 +8,6 @@ import {parsePeriodToHours} from 'app/utils';
 import SentryTypes from 'app/sentryTypes';
 import createQueryBuilder from 'app/views/organizationDiscover/queryBuilder';
 
-const topReleases = {
-  name: 'Top Releases',
-  fields: ['release'],
-  conditions: [['release', 'IS NOT NULL', null]],
-  aggregations: [['count()', null, 'count']],
-  orderby: '-count',
-  limit: 10,
-};
-
 const createReleaseFieldCondition = releases => [
   [
     'if',
@@ -39,6 +30,7 @@ class DiscoverQuery extends React.Component {
     organization: SentryTypes.Organization,
     selection: SentryTypes.GlobalSelection,
     queries: PropTypes.arrayOf(SentryTypes.DiscoverQuery),
+    releases: PropTypes.arrayOf(SentryTypes.Release),
   };
 
   constructor(props) {
@@ -64,6 +56,10 @@ class DiscoverQuery extends React.Component {
       return true;
     }
 
+    if (this.props.releases !== nextProps.releases) {
+      return true;
+    }
+
     if (
       this.props.organization === nextProps.organization &&
       this.props.selection === nextProps.selection
@@ -80,7 +76,11 @@ class DiscoverQuery extends React.Component {
       return;
     }
 
-    this.fetchData();
+    if (this.props.releases !== prevProps.releases) {
+      this.createQueryBuilders();
+    } else {
+      this.fetchData();
+    }
   }
 
   componentWillUnmount() {
@@ -89,18 +89,17 @@ class DiscoverQuery extends React.Component {
 
   createQueryBuilders() {
     const {organization, queries} = this.props;
-    queries.forEach(async ({constraints, ...query}) => {
-      if (constraints && constraints.includes('top10Releases')) {
-        const releases = await createQueryBuilder(
-          this.getQuery(topReleases),
-          organization
-        ).fetchWithoutLimit();
+    queries.forEach(({constraints, ...query}) => {
+      if (constraints && constraints.includes('recentReleases')) {
+        if (!this.props.releases) {
+          return;
+        }
         const newQuery = {
           ...query,
           fields: [],
-          condition_fields: createReleaseFieldCondition(
-            releases.data.map(({release}) => release)
-          ),
+          condition_fields:
+            this.props.releases &&
+            createReleaseFieldCondition(this.props.releases.map(({version}) => version)),
         };
         this.queryBuilders.push(
           createQueryBuilder(this.getQuery(newQuery), organization)
@@ -147,9 +146,6 @@ class DiscoverQuery extends React.Component {
   }
 
   async fetchData() {
-    // Reset query builder
-    // this.resetQueries();
-
     // Fetch
     this.setState({reloading: true});
     const promises = this.queryBuilders.map(builder => builder.fetchWithoutLimit());
