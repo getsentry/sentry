@@ -4,6 +4,7 @@ import styled, {css} from 'react-emotion';
 import {getOrganizationState} from 'app/mixins/organizationState';
 import {openCreateTeamModal} from 'app/actionCreators/modal';
 import {removeTeamFromProject, addTeamToProject} from 'app/actionCreators/projects';
+import {addErrorMessage} from 'app/actionCreators/indicator';
 import {t} from 'app/locale';
 import AsyncView from 'app/views/asyncView';
 import Link from 'app/components/link';
@@ -40,10 +41,8 @@ class ProjectTeams extends AsyncView {
     removeTeamFromProject(this.api, orgId, projectId, team.slug)
       .then(() => this.handleRemovedTeam(team))
       .catch(() => {
-        this.setState({
-          error: true,
-          loading: false,
-        });
+        addErrorMessage(t('Could not remove the %s team', team.slug));
+        this.setState({loading: false});
       });
   };
 
