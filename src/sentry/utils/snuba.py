@@ -305,13 +305,14 @@ def transform_aliases_and_query(**kwargs):
 
             selected_columns[idx] = col
             translated_columns[col[2]] = col[2]
+            derived_columns.add(col[2])
         else:
             name = get_snuba_column_name(col)
             selected_columns[idx] = name
             translated_columns[name] = col
 
     for (idx, col) in enumerate(groupby):
-        if not col.startswith('__'):
+        if col not in derived_columns:
             name = get_snuba_column_name(col)
             groupby[idx] = name
             translated_columns[name] = col
