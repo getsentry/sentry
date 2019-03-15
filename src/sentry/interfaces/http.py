@@ -126,10 +126,10 @@ class Http(Interface):
     @classmethod
     def to_python(cls, data, rust_renormalized=RUST_RENORMALIZED_DEFAULT):
         if rust_renormalized:
+            data.setdefault('query_string', [])
             for key in (
                 "method",
                 "url",
-                "query_string",
                 "fragment",
                 "cookies",
                 "headers",
