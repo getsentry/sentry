@@ -16,7 +16,7 @@ const createReleaseFieldCondition = releases => [
       'tags[sentry:release]',
       "'other'",
     ],
-    '__release',
+    'release',
   ],
 ];
 
