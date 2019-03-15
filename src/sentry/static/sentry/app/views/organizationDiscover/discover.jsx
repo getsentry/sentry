@@ -3,13 +3,14 @@ import PropTypes from 'prop-types';
 import React from 'react';
 import moment from 'moment';
 
+import {DEFAULT_STATS_PERIOD} from 'app/constants';
 import {addErrorMessage, addSuccessMessage} from 'app/actionCreators/indicator';
 import {getUtcDateString} from 'app/utils/dates';
 import {t, tct} from 'app/locale';
 import {updateProjects, updateDateTime} from 'app/actionCreators/globalSelection';
 import BetaTag from 'app/components/betaTag';
-import SentryTypes from 'app/sentryTypes';
 import PageHeading from 'app/components/pageHeading';
+import SentryTypes from 'app/sentryTypes';
 
 import {
   DiscoverContainer,
@@ -136,7 +137,7 @@ export default class OrganizationDiscover extends React.Component {
           start: start && new Date(moment.utc(start).local()),
           end: end && new Date(moment.utc(end).local()),
           period: range,
-          utc,
+          utc: typeof utc !== 'undefined' ? utc : null,
         });
         hasChange = true;
       }
@@ -153,8 +154,8 @@ export default class OrganizationDiscover extends React.Component {
   };
 
   getDateTimeFields = ({period, start, end, utc}) => ({
-    range: period || null,
-    utc,
+    range: period || (!start && !end && DEFAULT_STATS_PERIOD) || null,
+    utc: typeof utc !== 'undefined' ? utc : null,
     start: (start && getUtcDateString(start)) || null,
     end: (end && getUtcDateString(end)) || null,
   });
