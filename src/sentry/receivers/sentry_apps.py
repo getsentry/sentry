@@ -5,7 +5,6 @@ from sentry.signals import (
     issue_ignored,
     issue_assigned,
     issue_resolved,
-    issue_resolved_in_release,
     resolved_with_commit,
 )
 from sentry.tasks.sentry_apps import workflow_notification
@@ -35,25 +34,20 @@ def send_issue_assigned_webhook(project, group, user, **kwargs):
     send_workflow_webhooks(org, group, user, 'issue.assigned', data=data)
 
 
-@issue_resolved_in_release.connect(weak=False)
-def send_issue_resolved_in_release_webhook(project, group, user, resolution_type, **kwargs):
-    send_workflow_webhooks(
-        project.organization,
-        group,
-        user,
-        'issue.resolved',
-        data={'resolution_type': 'resolved_in_release'},
-    )
-
-
 @issue_resolved.connect(weak=False)
-def send_issue_resolved_webhook(project, group, user, **kwargs):
+def send_issue_resolved_webhook(project, group, user, resolution_type, **kwargs):
+    resolution_type = resolution_type
+    if resolution_type in ('in_next_release', 'in_release'):
+        resolution_type = 'resolved_in_release'
+    else:
+        resolution_type = 'resolved'
+
     send_workflow_webhooks(
         project.organization,
         group,
         user,
         'issue.resolved',
-        data={'resolution_type': 'resolved'},
+        data={'resolution_type': resolution_type},
     )
 
 

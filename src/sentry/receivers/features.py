@@ -20,7 +20,7 @@ from sentry.signals import (
     integration_issue_created,
     integration_issue_linked,
     issue_assigned,
-    issue_resolved_in_release,
+    issue_resolved,
     issue_ignored,
     issue_deleted,
     member_joined,
@@ -146,11 +146,16 @@ def record_issue_assigned(project, group, user, **kwargs):
     )
 
 
-@issue_resolved_in_release.connect(weak=False)
-def record_issue_resolved_in_release(project, group, user, resolution_type, **kwargs):
-    FeatureAdoption.objects.record(
-        organization_id=project.organization_id, feature_slug="resolved_in_release", complete=True
-    )
+@issue_resolved.connect(weak=False)
+def record_issue_resolved(project, group, user, resolution_type, **kwargs):
+    resolution_type = resolution_type
+    if resolution_type in ('in_next_release', 'in_release'):
+        resolution_type = 'resolved_in_release'
+        FeatureAdoption.objects.record(
+            organization_id=project.organization_id, feature_slug="resolved_in_release", complete=True
+        )
+    else:
+        resolution_type = 'now'
 
     if user and user.is_authenticated():
         user_id = default_user_id = user.id
