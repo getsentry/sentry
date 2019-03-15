@@ -1,0 +1,26 @@
+---
+created: '2019-03-15T11:58:33.059164Z'
+creator: sentry
+source: tests/sentry/grouping/test_variants.py
+---
+app:
+  hash: None
+  component:
+    app (stacktrace of system takes precedence)
+      stacktrace
+        frame (non app frame)
+          filename*
+            u'foo.html.erb'
+          context-line*
+            u'<% if @hotels.size > 0 %>'
+--------------------------------------------------------------------------
+system:
+  hash: '98dfd49def29609d5d43c4b587147462'
+  component:
+    system*
+      stacktrace*
+        frame*
+          filename*
+            u'foo.html.erb'
+          context-line*
+            u'<% if @hotels.size > 0 %>'

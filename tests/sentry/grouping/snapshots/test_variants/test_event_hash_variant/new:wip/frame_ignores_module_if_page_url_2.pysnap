@@ -1,0 +1,28 @@
+---
+created: '2019-03-15T11:58:32.985560Z'
+creator: sentry
+source: tests/sentry/grouping/test_variants.py
+---
+app:
+  hash: None
+  component:
+    app (stacktrace of system takes precedence)
+      stacktrace
+        frame (non app frame)
+          module* (ignored module)
+            salt* (normalized generated module name)
+              '<module>'
+          filename (ignored because filename is a URL)
+            u'foo.py'
+--------------------------------------------------------------------------
+system:
+  hash: '3334b29258653e8ccc2ee7806e9747e7'
+  component:
+    system*
+      stacktrace*
+        frame*
+          module* (ignored module)
+            salt* (normalized generated module name)
+              '<module>'
+          filename (ignored because filename is a URL)
+            u'foo.py'

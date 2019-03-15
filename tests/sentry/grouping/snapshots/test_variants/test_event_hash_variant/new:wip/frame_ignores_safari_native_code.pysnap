@@ -1,0 +1,25 @@
+---
+created: '2019-03-15T11:58:32.993074Z'
+creator: sentry
+source: tests/sentry/grouping/test_variants.py
+---
+app:
+  hash: None
+  component:
+    app
+      stacktrace
+        frame (non app frame)
+          function (function name is used only if module or filename are available)
+            u'forEach'
+--------------------------------------------------------------------------
+fallback:
+  hash: 'd41d8cd98f00b204e9800998ecf8427e'
+--------------------------------------------------------------------------
+system:
+  hash: None
+  component:
+    system
+      stacktrace
+        frame (native code indicated by filename)
+          function (function name is used only if module or filename are available)
+            u'forEach'

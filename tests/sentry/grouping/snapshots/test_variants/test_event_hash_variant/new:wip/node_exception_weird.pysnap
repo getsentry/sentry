@@ -1,0 +1,194 @@
+---
+created: '2019-03-15T11:58:33.295488Z'
+creator: sentry
+source: tests/sentry/grouping/test_variants.py
+---
+app:
+  hash: 'c8ca830ac0c77d17d67726468bf421c6'
+  component:
+    app*
+      exception*
+        stacktrace*
+          frame*
+            module*
+              u'hub'
+            filename (module takes precedence)
+              u'hub.js'
+            context-line*
+              u'*/'
+            function (function name is used only if module or filename are available)
+              u'Hub.Object.<anonymous>.Hub.withScope'
+          frame*
+            module*
+              u'onunhandledrejection.ts'
+            filename (module takes precedence)
+              u'onunhandledrejection.ts'
+            function*
+              u'null.<anonymous>'
+          frame (non app frame)
+            module*
+              u'jest-mock.build:index'
+            filename (module takes precedence)
+              u'index.js'
+            context-line*
+              u'return fn.apply(this, arguments);'
+            function (function name is used only if module or filename are available)
+              u'Hub.mockConstructor [as captureException]'
+          frame (non app frame)
+            module*
+              u'jest-mock.build:index'
+            filename (module takes precedence)
+              u'index.js'
+            context-line*
+              u'})();'
+            function (function name is used only if module or filename are available)
+              u'Hub.<anonymous>'
+          frame (non app frame)
+            module*
+              u'jest-mock.build:index'
+            filename (module takes precedence)
+              u'index.js'
+            context-line*
+              u'return specificMockImpl.apply(this, arguments);'
+            function (function name is used only if module or filename are available)
+              u'finalReturnValue'
+          frame (non app frame)
+            module*
+              u'jest-mock.build:index'
+            filename (module takes precedence)
+              u'index.js'
+            context-line*
+              u'return original.apply(this, arguments);'
+            function (function name is used only if module or filename are available)
+              u'Hub.<anonymous>'
+          frame*
+            module*
+              u'hub.ts'
+            filename (module takes precedence)
+              u'hub.ts'
+            context-line*
+              u'if (maxBreadcrumbs <= 0) {'
+            function (function name is used only if module or filename are available)
+              u'Hub.Object.<anonymous>.Hub.captureException'
+          frame*
+            module*
+              u'hub'
+            filename (module takes precedence)
+              u'hub.js'
+            context-line*
+              u'* @returns Scope, the new cloned scope'
+            function (function name is used only if module or filename are available)
+              u'Hub.Object.<anonymous>.Hub.invokeClient'
+          frame*
+            module*
+              u'baseclient.ts'
+            filename (module takes precedence)
+              u'baseclient.ts'
+            context-line*
+              u'promisedEvent'
+            function (function name is used only if module or filename are available)
+              u'NodeClient.Object.<anonymous>.BaseClient.captureException'
+          frame*
+            module*
+              u'backend.ts'
+            filename (module takes precedence)
+              u'backend.ts'
+            function*
+              u'NodeBackend.Object.<anonymous>.NodeBackend.eventFromException'
+        type*
+          u'Error'
+--------------------------------------------------------------------------
+system:
+  hash: '1ae10586db12c704cc7dd1d5c6de4fdb'
+  component:
+    system*
+      exception*
+        stacktrace*
+          frame*
+            module*
+              u'hub'
+            filename (module takes precedence)
+              u'hub.js'
+            context-line*
+              u'*/'
+            function (function name is used only if module or filename are available)
+              u'Hub.Object.<anonymous>.Hub.withScope'
+          frame*
+            module*
+              u'onunhandledrejection.ts'
+            filename (module takes precedence)
+              u'onunhandledrejection.ts'
+            function*
+              u'null.<anonymous>'
+          frame*
+            module*
+              u'jest-mock.build:index'
+            filename (module takes precedence)
+              u'index.js'
+            context-line*
+              u'return fn.apply(this, arguments);'
+            function (function name is used only if module or filename are available)
+              u'Hub.mockConstructor [as captureException]'
+          frame*
+            module*
+              u'jest-mock.build:index'
+            filename (module takes precedence)
+              u'index.js'
+            context-line*
+              u'})();'
+            function (function name is used only if module or filename are available)
+              u'Hub.<anonymous>'
+          frame*
+            module*
+              u'jest-mock.build:index'
+            filename (module takes precedence)
+              u'index.js'
+            context-line*
+              u'return specificMockImpl.apply(this, arguments);'
+            function (function name is used only if module or filename are available)
+              u'finalReturnValue'
+          frame*
+            module*
+              u'jest-mock.build:index'
+            filename (module takes precedence)
+              u'index.js'
+            context-line*
+              u'return original.apply(this, arguments);'
+            function (function name is used only if module or filename are available)
+              u'Hub.<anonymous>'
+          frame*
+            module*
+              u'hub.ts'
+            filename (module takes precedence)
+              u'hub.ts'
+            context-line*
+              u'if (maxBreadcrumbs <= 0) {'
+            function (function name is used only if module or filename are available)
+              u'Hub.Object.<anonymous>.Hub.captureException'
+          frame*
+            module*
+              u'hub'
+            filename (module takes precedence)
+              u'hub.js'
+            context-line*
+              u'* @returns Scope, the new cloned scope'
+            function (function name is used only if module or filename are available)
+              u'Hub.Object.<anonymous>.Hub.invokeClient'
+          frame*
+            module*
+              u'baseclient.ts'
+            filename (module takes precedence)
+              u'baseclient.ts'
+            context-line*
+              u'promisedEvent'
+            function (function name is used only if module or filename are available)
+              u'NodeClient.Object.<anonymous>.BaseClient.captureException'
+          frame*
+            module*
+              u'backend.ts'
+            filename (module takes precedence)
+              u'backend.ts'
+            function*
+              u'NodeBackend.Object.<anonymous>.NodeBackend.eventFromException'
+        type*
+          u'Error'

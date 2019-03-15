@@ -1,0 +1,45 @@
+---
+created: '2019-03-15T11:58:33.412028Z'
+creator: sentry
+source: tests/sentry/grouping/test_variants.py
+---
+app:
+  hash: None
+  component:
+    app
+      stacktrace
+        frame (non app frame)
+          filename (anonymous filename discarded)
+            u'<anonymous>'
+        frame (non app frame)
+          filename (ignored because filename is a URL)
+            u'/C:/Users/redacted/AppData/Local/redacted/app-2.4.1/resources/app.asar/dojo/dojo.js'
+          function (function name is used only if module or filename are available)
+            u'c'
+        frame (non app frame)
+          filename (ignored because filename is a URL)
+            u'/C:/Users/redacted/AppData/Local/redacted/app-2.4.1/resources/app.asar/dojo/dojo.js'
+          function (function name is used only if module or filename are available)
+            u'Object._createDocumentViewModel'
+--------------------------------------------------------------------------
+fallback:
+  hash: 'd41d8cd98f00b204e9800998ecf8427e'
+--------------------------------------------------------------------------
+system:
+  hash: None
+  component:
+    system
+      stacktrace
+        frame
+          filename (anonymous filename discarded)
+            u'<anonymous>'
+        frame
+          filename (ignored because filename is a URL)
+            u'/C:/Users/redacted/AppData/Local/redacted/app-2.4.1/resources/app.asar/dojo/dojo.js'
+          function (function name is used only if module or filename are available)
+            u'c'
+        frame
+          filename (ignored because filename is a URL)
+            u'/C:/Users/redacted/AppData/Local/redacted/app-2.4.1/resources/app.asar/dojo/dojo.js'
+          function (function name is used only if module or filename are available)
+            u'Object._createDocumentViewModel'

@@ -1,0 +1,30 @@
+---
+created: '2019-03-15T11:58:32.918068Z'
+creator: sentry
+source: tests/sentry/grouping/test_variants.py
+---
+app:
+  hash: None
+  component:
+    app (stacktrace of system takes precedence)
+      stacktrace
+        frame (non app frame)
+          filename (ignored because filename is a URL)
+            u'/foo.py'
+          context-line*
+            u'hello world'
+          function (function name is used only if module or filename are available)
+            u'test'
+--------------------------------------------------------------------------
+system:
+  hash: '5eb63bbbe01eeed093cb22bb8f5acdc3'
+  component:
+    system*
+      stacktrace*
+        frame*
+          filename (ignored because filename is a URL)
+            u'/foo.py'
+          context-line*
+            u'hello world'
+          function (function name is used only if module or filename are available)
+            u'test'

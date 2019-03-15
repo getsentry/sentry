@@ -1,0 +1,27 @@
+---
+created: '2019-03-15T11:58:33.385890Z'
+creator: sentry
+source: tests/sentry/grouping/test_variants.py
+---
+app:
+  hash: None
+  component:
+    app
+      stacktrace
+        frame (non app frame)
+          filename (ignored because filename is a URL)
+            u'/index.js'
+          context-line (discarded because from URL origin)
+--------------------------------------------------------------------------
+fallback:
+  hash: 'd41d8cd98f00b204e9800998ecf8427e'
+--------------------------------------------------------------------------
+system:
+  hash: None
+  component:
+    system
+      stacktrace
+        frame
+          filename (ignored because filename is a URL)
+            u'/index.js'
+          context-line (discarded because from URL origin)

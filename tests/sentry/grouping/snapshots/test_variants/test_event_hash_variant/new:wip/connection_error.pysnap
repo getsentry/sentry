@@ -1,0 +1,227 @@
+---
+created: '2019-03-15T11:58:32.702656Z'
+creator: sentry
+source: tests/sentry/grouping/test_variants.py
+---
+app:
+  hash: 'b2643ebd913406921485d9e290b713bb'
+  component:
+    app*
+      exception*
+        stacktrace*
+          frame*
+            module*
+              u'sentry.utils.safe'
+            filename (module takes precedence)
+              u'safe.py'
+            context-line*
+              u'result = func(*args, **kwargs)'
+            function (function name is used only if module or filename are available)
+              u'safe_execute'
+          frame*
+            module*
+              u'sentry.utils.services'
+            filename (module takes precedence)
+              u'services.py'
+            context-line*
+              u'context[key] = (lambda f: lambda *a, **k: getattr(self, f)(*a, **k))(key)'
+            function (function name is used only if module or filename are available)
+              u'<lambda>'
+          frame*
+            module*
+              u'getsentry.quotas'
+            filename (module takes precedence)
+              u'quotas.py'
+            context-line*
+              u'return super(SubscriptionQuota, self).is_rate_limited(project, key=key)'
+            function (function name is used only if module or filename are available)
+              u'is_rate_limited'
+          frame*
+            module*
+              u'sentry.quotas.redis'
+            filename (module takes precedence)
+              u'redis.py'
+            context-line*
+              u'rejections = is_rate_limited(client, keys, args)'
+            function (function name is used only if module or filename are available)
+              u'is_rate_limited'
+          frame*
+            module*
+              u'sentry.utils.redis'
+            filename (module takes precedence)
+              u'redis.py'
+            context-line*
+              u'return script(keys, args, client)'
+            function (function name is used only if module or filename are available)
+              u'call_script'
+          frame (non app frame)
+            module*
+              u'redis.client'
+            filename (module takes precedence)
+              u'client.py'
+            context-line*
+              u'return client.evalsha(self.sha, len(keys), *args)'
+            function (function name is used only if module or filename are available)
+              u'__call__'
+          frame (non app frame)
+            module*
+              u'redis.client'
+            filename (module takes precedence)
+              u'client.py'
+            context-line*
+              u"return self.execute_command('EVALSHA', sha, numkeys, *keys_and_args)"
+            function (function name is used only if module or filename are available)
+              u'evalsha'
+          frame (non app frame)
+            module*
+              u'redis.client'
+            filename (module takes precedence)
+              u'client.py'
+            context-line*
+              u'return self.parse_response(connection, command_name, **options)'
+            function (function name is used only if module or filename are available)
+              u'execute_command'
+          frame (non app frame)
+            module*
+              u'redis.client'
+            filename (module takes precedence)
+              u'client.py'
+            context-line*
+              u'response = connection.read_response()'
+            function (function name is used only if module or filename are available)
+              u'parse_response'
+          frame (non app frame)
+            module*
+              u'redis.connection'
+            filename (module takes precedence)
+              u'connection.py'
+            context-line*
+              u'response = self._parser.read_response()'
+            function (function name is used only if module or filename are available)
+              u'read_response'
+          frame (non app frame)
+            module*
+              u'redis.connection'
+            filename (module takes precedence)
+              u'connection.py'
+            context-line*
+              u'(e.args,))'
+            function (function name is used only if module or filename are available)
+              u'read_response'
+        type*
+          u'ConnectionError'
+--------------------------------------------------------------------------
+default:
+  hash: None
+  component:
+    default (exception of app takes precedence)
+      message (exception of app takes precedence)
+        u'%s.process_error'
+--------------------------------------------------------------------------
+system:
+  hash: '41729a8ae425d9f059903d9adf0b328f'
+  component:
+    system*
+      exception*
+        stacktrace*
+          frame*
+            module*
+              u'sentry.utils.safe'
+            filename (module takes precedence)
+              u'safe.py'
+            context-line*
+              u'result = func(*args, **kwargs)'
+            function (function name is used only if module or filename are available)
+              u'safe_execute'
+          frame*
+            module*
+              u'sentry.utils.services'
+            filename (module takes precedence)
+              u'services.py'
+            context-line*
+              u'context[key] = (lambda f: lambda *a, **k: getattr(self, f)(*a, **k))(key)'
+            function (function name is used only if module or filename are available)
+              u'<lambda>'
+          frame*
+            module*
+              u'getsentry.quotas'
+            filename (module takes precedence)
+              u'quotas.py'
+            context-line*
+              u'return super(SubscriptionQuota, self).is_rate_limited(project, key=key)'
+            function (function name is used only if module or filename are available)
+              u'is_rate_limited'
+          frame*
+            module*
+              u'sentry.quotas.redis'
+            filename (module takes precedence)
+              u'redis.py'
+            context-line*
+              u'rejections = is_rate_limited(client, keys, args)'
+            function (function name is used only if module or filename are available)
+              u'is_rate_limited'
+          frame*
+            module*
+              u'sentry.utils.redis'
+            filename (module takes precedence)
+              u'redis.py'
+            context-line*
+              u'return script(keys, args, client)'
+            function (function name is used only if module or filename are available)
+              u'call_script'
+          frame*
+            module*
+              u'redis.client'
+            filename (module takes precedence)
+              u'client.py'
+            context-line*
+              u'return client.evalsha(self.sha, len(keys), *args)'
+            function (function name is used only if module or filename are available)
+              u'__call__'
+          frame*
+            module*
+              u'redis.client'
+            filename (module takes precedence)
+              u'client.py'
+            context-line*
+              u"return self.execute_command('EVALSHA', sha, numkeys, *keys_and_args)"
+            function (function name is used only if module or filename are available)
+              u'evalsha'
+          frame*
+            module*
+              u'redis.client'
+            filename (module takes precedence)
+              u'client.py'
+            context-line*
+              u'return self.parse_response(connection, command_name, **options)'
+            function (function name is used only if module or filename are available)
+              u'execute_command'
+          frame*
+            module*
+              u'redis.client'
+            filename (module takes precedence)
+              u'client.py'
+            context-line*
+              u'response = connection.read_response()'
+            function (function name is used only if module or filename are available)
+              u'parse_response'
+          frame*
+            module*
+              u'redis.connection'
+            filename (module takes precedence)
+              u'connection.py'
+            context-line*
+              u'response = self._parser.read_response()'
+            function (function name is used only if module or filename are available)
+              u'read_response'
+          frame*
+            module*
+              u'redis.connection'
+            filename (module takes precedence)
+              u'connection.py'
+            context-line*
+              u'(e.args,))'
+            function (function name is used only if module or filename are available)
+              u'read_response'
+        type*
+          u'ConnectionError'

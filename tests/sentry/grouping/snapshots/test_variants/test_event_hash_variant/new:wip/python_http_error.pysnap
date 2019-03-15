@@ -1,0 +1,83 @@
+---
+created: '2019-03-15T11:58:33.312602Z'
+creator: sentry
+source: tests/sentry/grouping/test_variants.py
+---
+app:
+  hash: 'b995713d3aa8ec1fbe87b0ad643478ca'
+  component:
+    app*
+      exception*
+        stacktrace*
+          frame*
+            module*
+              u'sentry.utils.safe'
+            filename (module takes precedence)
+              u'safe.py'
+            context-line*
+              u'result = func(*args, **kwargs)'
+            function (function name is used only if module or filename are available)
+              u'safe_execute'
+          frame*
+            module*
+              u'sentry.integrations.slack.notify_action'
+            filename (module takes precedence)
+              u'notify_action.py'
+            context-line*
+              u'resp.raise_for_status()'
+            function (function name is used only if module or filename are available)
+              u'send_notification'
+          frame (non app frame)
+            module*
+              u'requests.models'
+            filename (module takes precedence)
+              u'models.py'
+            context-line*
+              u'raise HTTPError(http_error_msg, response=self)'
+            function (function name is used only if module or filename are available)
+              u'raise_for_status'
+        type*
+          u'HTTPError'
+--------------------------------------------------------------------------
+default:
+  hash: None
+  component:
+    default (exception of app takes precedence)
+      message (exception of app takes precedence)
+        u'%s.process_error'
+--------------------------------------------------------------------------
+system:
+  hash: '454c057705e4d8fc1b7940f20c8ec826'
+  component:
+    system*
+      exception*
+        stacktrace*
+          frame*
+            module*
+              u'sentry.utils.safe'
+            filename (module takes precedence)
+              u'safe.py'
+            context-line*
+              u'result = func(*args, **kwargs)'
+            function (function name is used only if module or filename are available)
+              u'safe_execute'
+          frame*
+            module*
+              u'sentry.integrations.slack.notify_action'
+            filename (module takes precedence)
+              u'notify_action.py'
+            context-line*
+              u'resp.raise_for_status()'
+            function (function name is used only if module or filename are available)
+              u'send_notification'
+          frame*
+            module*
+              u'requests.models'
+            filename (module takes precedence)
+              u'models.py'
+            context-line*
+              u'raise HTTPError(http_error_msg, response=self)'
+            function (function name is used only if module or filename are available)
+              u'raise_for_status'
+        type*
+          u'HTTPError'

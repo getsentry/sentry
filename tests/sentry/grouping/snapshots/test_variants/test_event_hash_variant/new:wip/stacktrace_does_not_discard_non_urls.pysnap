@@ -1,0 +1,26 @@
+---
+created: '2019-03-15T11:58:33.377801Z'
+creator: sentry
+source: tests/sentry/grouping/test_variants.py
+---
+app:
+  hash: None
+  component:
+    app (stacktrace of system takes precedence)
+      stacktrace
+        frame (non app frame)
+          filename*
+            u'foo'
+          context-line*
+            u'<HTML>'
+--------------------------------------------------------------------------
+system:
+  hash: '9b478586e7375aef8bedb80ae2fcaab7'
+  component:
+    system*
+      stacktrace*
+        frame*
+          filename*
+            u'foo'
+          context-line*
+            u'<HTML>'

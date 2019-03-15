@@ -74,7 +74,7 @@ def test_event_hash_variant(insta_snapshot, config_name, test_name, log):
     evt = Event(data=data, platform=data['platform'])
 
     rv = []
-    for (key, value) in sorted(evt.get_grouping_variants().items()):
+    for (key, value) in sorted(evt.get_grouping_variants(force_config=config_name).items()):
         if rv:
             rv.append('-' * 74)
         rv.append('%s:' % key)
