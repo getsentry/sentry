@@ -27,7 +27,7 @@ from sentry.utils.canonical import CANONICAL_TYPES, CanonicalKeyDict
 
 from .gzippeddict import GzippedDictField
 
-__all__ = ('NodeField', 'NodeData')
+__all__ = ('NodeField', )
 
 logger = logging.getLogger('sentry')
 
@@ -100,9 +100,10 @@ class NodeData(collections.MutableMapping):
         return '<%s: id=%s>' % (cls_name, self.id, )
 
     def get_ref(self, instance):
-        if not self.field or not self.field.ref_func:
+        ref_func = self.field.ref_func
+        if not ref_func:
             return
-        return self.field.ref_func(instance)
+        return ref_func(instance)
 
     def copy(self):
         return self.data.copy()
@@ -125,18 +126,18 @@ class NodeData(collections.MutableMapping):
             return self._node_data
 
         rv = {}
-        if self.field is not None and self.field.wrapper is not None:
+        if self.field.wrapper is not None:
             rv = self.field.wrapper(rv)
         return rv
 
     def bind_data(self, data, ref=None):
         self.ref = data.pop('_ref', ref)
         self.ref_version = data.pop('_ref_version', None)
-        if self.field is not None and self.ref_version == self.field.ref_version and ref is not None and self.ref != ref:
+        if self.ref_version == self.field.ref_version and ref is not None and self.ref != ref:
             raise NodeIntegrityFailure(
                 'Node reference for %s is invalid: %s != %s' % (self.id, ref, self.ref, )
             )
-        if self.field is not None and self.field.wrapper is not None:
+        if self.field.wrapper is not None:
             data = self.field.wrapper(data)
         self._node_data = data
 
