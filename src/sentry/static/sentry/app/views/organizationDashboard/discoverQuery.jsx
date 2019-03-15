@@ -43,11 +43,10 @@ class DiscoverQuery extends React.Component {
 
     // Query builders based on `queries`
     this.queryBuilders = [];
-
-    this.createQueryBuilders();
   }
 
   componentDidMount() {
+    this.createQueryBuilders();
     this.fetchData();
   }
 
