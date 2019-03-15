@@ -507,19 +507,19 @@ exports[`CreateProject should render roles when available and allowed, and handl
                                                 size="xsmall"
                                               >
                                                 <Component
-                                                  className="css-o27a2e-StyledButton e1yghndz1"
+                                                  className="css-w99oc4-StyledButton e1yghndz1"
                                                   disabled={true}
                                                   isOpen={false}
                                                   size="xsmall"
                                                 >
                                                   <Button
-                                                    className="css-o27a2e-StyledButton e1yghndz1"
+                                                    className="css-w99oc4-StyledButton e1yghndz1"
                                                     disabled={true}
                                                     size="xsmall"
                                                   >
                                                     <StyledButton
                                                       aria-disabled={true}
-                                                      className="css-o27a2e-StyledButton e1yghndz1"
+                                                      className="css-w99oc4-StyledButton e1yghndz1"
                                                       disabled={true}
                                                       href={null}
                                                       onClick={[Function]}
@@ -529,7 +529,7 @@ exports[`CreateProject should render roles when available and allowed, and handl
                                                     >
                                                       <Component
                                                         aria-disabled={true}
-                                                        className="e1yghndz1 css-1wbxhyw-StyledButton-getColors-StyledButton eqrebog0"
+                                                        className="e1yghndz1 css-10lmrhm-StyledButton-getColors-StyledButton eqrebog0"
                                                         href={null}
                                                         onClick={[Function]}
                                                         role="button"
@@ -538,7 +538,7 @@ exports[`CreateProject should render roles when available and allowed, and handl
                                                       >
                                                         <button
                                                           aria-disabled={true}
-                                                          className="e1yghndz1 css-1wbxhyw-StyledButton-getColors-StyledButton eqrebog0"
+                                                          className="e1yghndz1 css-10lmrhm-StyledButton-getColors-StyledButton eqrebog0"
                                                           href={null}
                                                           onClick={[Function]}
                                                           role="button"

@@ -29,7 +29,7 @@ const StyledButton = styled(({isOpen, ...props}) => <Button {...props} />)`
   border-bottom-left-radius: ${p => (p.isOpen ? 0 : p.theme.borderRadius)};
   position: relative;
   z-index: 2;
-  box-shadow: ${p => (p.isOpen ? 'none' : p.theme.dropShadowLight)};
+  box-shadow: ${p => (p.isOpen || p.disabled ? 'none' : p.theme.dropShadowLight)};
 
   &,
   &:hover {
