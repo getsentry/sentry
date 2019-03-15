@@ -9,6 +9,7 @@ import pytz
 import six
 from django.contrib.auth.models import AnonymousUser
 from django.core import mail
+from django.db.models import F
 from django.utils import timezone
 from exam import fixture
 from mock import Mock
@@ -20,8 +21,8 @@ from sentry.api.serializers import (
 from sentry.digests.notifications import build_digest, event_to_record
 from sentry.interfaces.stacktrace import Stacktrace
 from sentry.models import (
-    Activity, Event, Group, GroupSubscription, OrganizationMember, OrganizationMemberTeam,
-    ProjectOwnership, Rule, UserOption, UserReport
+    Activity, Event, Group, GroupSubscription, Organization, OrganizationMember,
+    OrganizationMemberTeam, ProjectOwnership, Rule, UserOption, UserReport
 )
 from sentry.ownership.grammar import Owner, Matcher, dump_schema
 from sentry.plugins import Notification
@@ -424,17 +425,19 @@ class MailPluginSignalsTest(TestCase):
     def plugin(self):
         return MailPlugin()
 
-    def test_user_feedback(self):
+    def create_report(self):
         user_foo = self.create_user('foo@example.com')
+        self.project.teams.first().organization.member_set.create(user=user_foo)
 
-        report = UserReport.objects.create(
+        return UserReport.objects.create(
             project=self.project,
             group=self.group,
             name='Homer Simpson',
             email='homer.simpson@example.com'
         )
 
-        self.project.teams.first().organization.member_set.create(user=user_foo)
+    def test_user_feedback(self):
+        report = self.create_report()
 
         with self.tasks():
             self.plugin.handle_signal(
@@ -446,8 +449,38 @@ class MailPluginSignalsTest(TestCase):
             )
 
         assert len(mail.outbox) == 1
-
         msg = mail.outbox[0]
+
+        # email includes issue metadata
+        assert 'group-header' in msg.alternatives[0][0]
+        assert 'enhanced privacy' not in msg.body
+
+        assert msg.subject == u'[Sentry] {} - New Feedback from Homer Simpson'.format(
+            self.group.qualified_short_id,
+        )
+        assert msg.to == [self.user.email]
+
+    def test_user_feedback__enhanced_privacy(self):
+        self.organization.update(flags=F('flags').bitor(Organization.flags.enhanced_privacy))
+        assert self.organization.flags.enhanced_privacy.is_set is True
+
+        report = self.create_report()
+
+        with self.tasks():
+            self.plugin.handle_signal(
+                name='user-reports.created',
+                project=self.project,
+                payload={
+                    'report': serialize(report, AnonymousUser(), UserReportWithGroupSerializer()),
+                },
+            )
+
+        assert len(mail.outbox) == 1
+        msg = mail.outbox[0]
+
+        # email does not include issue metadata
+        assert 'group-header' not in msg.alternatives[0][0]
+        assert 'enhanced privacy' in msg.body
 
         assert msg.subject == u'[Sentry] {} - New Feedback from Homer Simpson'.format(
             self.group.qualified_short_id,
