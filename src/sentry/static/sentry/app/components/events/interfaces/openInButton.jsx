@@ -2,8 +2,9 @@ import PropTypes from 'prop-types';
 import React from 'react';
 import SentryTypes from 'app/sentryTypes';
 import Button from 'app/components/button';
+import parseurl from 'parseurl';
+import qs from 'query-string';
 import styled from 'react-emotion';
-
 
 import withApi from 'app/utils/withApi';
 import withLatestContext from 'app/utils/withLatestContext';
@@ -36,7 +37,7 @@ class OpenInButton extends React.Component {
     const {api, organization, project} = this.props;
     api
       .requestPromise(
-        `/organizations/${organization.slug}/sentry-app-components/?filter=stracktrace-link&projectId=${project.id}`
+        `/organizations/${organization.slug}/sentry-app-components/?filter=stacktrace-link&projectId=${project.id}`
       )
       .then(data => {
         if (data.length) {
@@ -76,40 +77,29 @@ class OpenInButton extends React.Component {
       });
   }
 
-  getInstallforComponent(component) {
+  getInstallApp(component) {
     const appId = component.sentryApp.uuid;
-    return this.state.installs.filter(install => install.app.uuid == appId)[0];
+    const sentryApp = this.state.sentryApps.filter(a => a.uuid == appId)[0];
+    const install = this.state.installs.filter(i => i.app.uuid == appId)[0];
+    return {sentryApp, install};
   }
 
-  getAppforComponent(component) {
-    const appId = component.sentryApp.uuid;
-    return this.state.sentryApps.filter(app => app.uuid == appId)[0];
-  }
-
-  getLinkUrl() {
-    //won't need to filter once other PR is in
-    const components = (this.state.components || []).filter(
-      c => c.type == 'stacktrace-link'
-    );
+  getUrl() {
+    const components = this.state.components.filter(c => c.type == 'stacktrace-link');
     const {filename, lineNo, project} = this.props;
 
-    if (components.length) {
-      const uri = components[0].schema.uri;
-      const install = this.getInstallforComponent(components[0]);
-      const sentryApp = this.getAppforComponent(components[0]);
-      const baseUrl = sentryApp.webhookUrl;
-      const file = encodeURIComponent(filename);
-      return `${baseUrl}${uri}?filename=${file}&lineNo=${lineNo}&project=${project.slug}&installationId=${install.uuid}`;
-    }
-    return '';
-  }
-
-  getName() {
-    const {components} = this.state;
-    if (components.length) {
-      return components[0].sentryApp.name;
-    }
-    return '';
+    const {sentryApp, install} = this.getInstallApp(components[0]);
+    const {host, protocol} = parseurl({url: sentryApp.webhookUrl});
+    const urlBase = `${protocol}//${host}`;
+    const queryParams = {
+      lineNo,
+      filename,
+      projectSlug: project.slug,
+      installationId: install.id,
+    };
+    const query = qs.stringify(queryParams);
+    const uri = components[0].schema.uri;
+    return `${urlBase}${uri}?${query}`;
   }
 
   render() {
@@ -118,12 +108,11 @@ class OpenInButton extends React.Component {
       return null;
     }
 
-    const url = this.getLinkUrl();
-    const name = this.getName();
+    const url = this.getUrl();
     return (
       <StyledButtonContainer>
         <StyledButton href={url} size="small" priority="primary">
-          {`Debug In ${name}`}
+          {`Debug In ${components[0].sentryApp.name}`}
         </StyledButton>
       </StyledButtonContainer>
     );

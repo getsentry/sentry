@@ -264,10 +264,7 @@ const Frame = createReactClass({
               const isActive = data.lineNo === line[0];
               return (
                 <React.Fragment key={index}>
-                  <ContextLine key={index} line={line} isActive={isActive} />
-                  {isActive && (
-                    <OpenInButton filename={data.filename} lineNo={data.lineNo} />
-                  )}
+                  <ContextLine key={index} line={line} isActive={isActive} filename={data.filename}/>
                 </React.Fragment>
               );
             })}
