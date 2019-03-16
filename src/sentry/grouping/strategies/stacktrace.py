@@ -1,13 +1,16 @@
+# coding: utf-8
 from __future__ import absolute_import
 
 import re
 
 from sentry.grouping.component import GroupingComponent
 from sentry.grouping.strategies.base import strategy
+from sentry.grouping.strategies.utils import replace_enclosed_string, split_func_tokens
 
 
 _ruby_anon_func = re.compile(r'_\d{2,}')
 _basename_re = re.compile(r'[/\\]')
+_cpp_trailer_re = re.compile(r'(\bconst\b|&)$')
 
 # OpenJDK auto-generated classes for reflection access:
 #   sun.reflect.GeneratedSerializationConstructorAccessor123
@@ -32,6 +35,10 @@ _java_assist_enhancer_re = re.compile(r'''(\$\$_javassist)(?:_seam)?(?:_[0-9]+)?
 
 # Clojure anon functions are compiled down to myapp.mymodule$fn__12345
 _clojure_enhancer_re = re.compile(r'''(\$fn__)\d+''', re.X)
+
+# Native function trim re.  For now this is a simple hack until we have the
+# language hints in which will let us trim this down better.
+_native_function_trim_re = re.compile(r'^(.[^(]*)\(')
 
 # fields that need to be the same between frames for them to be considered
 # recursive calls
@@ -125,7 +132,55 @@ def remove_filename_outliers_v1(filename, platform):
     return filename, None
 
 
-def remove_function_outliers_v1(function):
+def isolate_native_function_v1(function):
+    original_function = function
+    function = function.strip()
+
+    # Ensure we don't operated on objc functions
+    if function.startswith(('[', '+[', '-[')):
+        return function
+
+    # Chop off C++ trailers
+    while 1:
+        match = _cpp_trailer_re.search(function)
+        if match is None:
+            break
+        function = function[:match.start()].rstrip()
+
+    # Because operator<< really screws with our balancing, so let's work
+    # around that by replacing it with a character we do not observe in
+    # `split_func_tokens` or `replace_enclosed_string`.
+    function = function \
+        .replace('operator<<', u'operator⟨⟨') \
+        .replace('operator<', u'operator⟨')
+
+    # Remove the arguments if there is one.
+    def process_args(value, start):
+        value = value.strip()
+        if value in ('anonymous namespace', 'operator'):
+            return '(%s)' % value
+        return ''
+    function = replace_enclosed_string(function, '(', ')', process_args)
+
+    # Resolve generic types, but special case rust which uses things like
+    # <Foo as Bar>::baz to denote traits.
+    def process_generics(value, start):
+        # Rust special case
+        if start == 0:
+            return '<%s>' % replace_enclosed_string(value, '<', '>', process_generics)
+        return '<T>'
+    function = replace_enclosed_string(function, '<', '>', process_generics)
+
+    # The last token is the function name.
+    tokens = split_func_tokens(function)
+    if tokens:
+        return tokens[-1].replace(u'⟨', '<')
+
+    # This really should never happen
+    return original_function
+
+
+def remove_function_outliers_v1(function, platform):
     """
     Attempt to normalize functions by removing common platform outliers.
 
@@ -133,12 +188,19 @@ def remove_function_outliers_v1(function):
       such as in erb and the active_support library.
     - Block functions have metadata that we don't care about.
     """
-    if function.startswith('block '):
-        return 'block', 'ruby block'
-    new_function = _ruby_anon_func.sub('_<anon>', function)
-    if new_function != function:
-        return new_function, 'trimmed integer suffix'
-    return new_function, None
+    if platform == 'ruby':
+        if function.startswith('block '):
+            return 'block', 'ruby block'
+        new_function = _ruby_anon_func.sub('_<anon>', function)
+        if new_function != function:
+            return new_function, 'trimmed integer suffix'
+
+    if platform in ('objc', 'cocoa', 'native'):
+        new_function = isolate_native_function_v1(function)
+        if new_function != function:
+            return new_function, 'isolated function'
+
+    return function, None
 
 
 @strategy(
@@ -208,61 +270,21 @@ def frame_v1(frame, event, **meta):
                 hint='module takes precedence'
             )
 
-    # Context line when available is the primary contributor
-    context_line_component = GroupingComponent(id='context-line')
-    if frame.context_line is not None:
-        context_line = frame.context_line.strip()
-        if len(context_line) > 120:
-            context_line_component.update(hint='discarded because line too long')
-        elif is_url_frame_v1(frame) and not frame.function:
-            context_line_component.update(hint='discarded because from URL origin')
-        else:
-            context_line_component.update(values=[context_line])
-
-    symbol_component = GroupingComponent(id='symbol')
     function_component = GroupingComponent(id='function')
 
-    # The context line grouping information is the most reliable one.
-    # If we did not manage to find some information there, we want to
-    # see if we can come up with some extra information.  We only want
-    # to do that if we managed to get a module of filename.
-    if not context_line_component.contributes and \
-       (module_component.contributes or filename_component.contributes):
-        if frame.symbol:
-            symbol_component.update(values=[frame.symbol])
-            if frame.function:
-                function_component.update(
-                    contributes=False,
-                    values=[frame.function],
-                    hint='symbol takes precedence'
-                )
-        elif frame.function:
-            if is_unhashable_function_v1(frame):
-                function_component.update(values=[
-                    GroupingComponent(
-                        id='salt',
-                        values=['<function>'],
-                        hint='normalized lambda function name'
-                    )
-                ])
-            else:
-                function, function_hint = remove_function_outliers_v1(frame.function)
-                function_component.update(
-                    values=[function],
-                    hint=function_hint
-                )
-    else:
-        if frame.symbol:
-            symbol_component.update(
-                contributes=False,
-                values=[frame.symbol],
-                hint='symbol is used only if module or filename are available'
-            )
-        if frame.function:
+    if frame.function:
+        function, function_hint = remove_function_outliers_v1(
+            frame.function, platform)
+        if is_unhashable_function_v1(frame):
             function_component.update(
+                values=[function],
                 contributes=False,
-                values=[frame.function],
-                hint='function name is used only if module or filename are available'
+                hint='normalized lambda function name ignored'
+            )
+        else:
+            function_component.update(
+                values=[function],
+                hint=function_hint
             )
 
     return GroupingComponent(
@@ -270,8 +292,6 @@ def frame_v1(frame, event, **meta):
         values=[
             module_component,
             filename_component,
-            context_line_component,
-            symbol_component,
             function_component,
         ],
         contributes=contributes,

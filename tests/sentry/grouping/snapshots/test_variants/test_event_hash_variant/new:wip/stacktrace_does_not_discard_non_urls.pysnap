@@ -1,5 +1,5 @@
 ---
-created: '2019-03-15T11:58:33.377801Z'
+created: '2019-03-15T18:37:00.256352Z'
 creator: sentry
 source: tests/sentry/grouping/test_variants.py
 ---
@@ -11,16 +11,12 @@ app:
         frame (non app frame)
           filename*
             u'foo'
-          context-line*
-            u'<HTML>'
 --------------------------------------------------------------------------
 system:
-  hash: '9b478586e7375aef8bedb80ae2fcaab7'
+  hash: 'acbd18db4cc2f85cedef654fccc4a4d8'
   component:
     system*
       stacktrace*
         frame*
           filename*
             u'foo'
-          context-line*
-            u'<HTML>'

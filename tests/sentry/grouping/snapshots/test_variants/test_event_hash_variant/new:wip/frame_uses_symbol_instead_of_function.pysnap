@@ -1,5 +1,5 @@
 ---
-created: '2019-03-15T11:58:33.098907Z'
+created: '2019-03-15T18:36:59.902749Z'
 creator: sentry
 source: tests/sentry/grouping/test_variants.py
 ---
@@ -11,20 +11,16 @@ app:
         frame (non app frame)
           module*
             u'libfoo'
-          symbol*
-            u'_main'
-          function (symbol takes precedence)
+          function*
             u'int main()'
 --------------------------------------------------------------------------
 system:
-  hash: '01143b49f8875c22617bac5bb1aaf638'
+  hash: '23db4a9e73800923f345d2b868993345'
   component:
     system*
       stacktrace*
         frame*
           module*
             u'libfoo'
-          symbol*
-            u'_main'
-          function (symbol takes precedence)
+          function*
             u'int main()'

@@ -1,12 +1,12 @@
 ---
-created: '2019-03-15T11:58:33.412028Z'
+created: '2019-03-15T18:37:00.334640Z'
 creator: sentry
 source: tests/sentry/grouping/test_variants.py
 ---
 app:
   hash: None
   component:
-    app
+    app (stacktrace of system takes precedence)
       stacktrace
         frame (non app frame)
           filename (anonymous filename discarded)
@@ -14,32 +14,29 @@ app:
         frame (non app frame)
           filename (ignored because filename is a URL)
             u'/C:/Users/redacted/AppData/Local/redacted/app-2.4.1/resources/app.asar/dojo/dojo.js'
-          function (function name is used only if module or filename are available)
+          function*
             u'c'
         frame (non app frame)
           filename (ignored because filename is a URL)
             u'/C:/Users/redacted/AppData/Local/redacted/app-2.4.1/resources/app.asar/dojo/dojo.js'
-          function (function name is used only if module or filename are available)
+          function*
             u'Object._createDocumentViewModel'
 --------------------------------------------------------------------------
-fallback:
-  hash: 'd41d8cd98f00b204e9800998ecf8427e'
---------------------------------------------------------------------------
 system:
-  hash: None
+  hash: 'e61225523929cf925f6ac3b1f7f26d85'
   component:
-    system
-      stacktrace
+    system*
+      stacktrace*
         frame
           filename (anonymous filename discarded)
             u'<anonymous>'
-        frame
+        frame*
           filename (ignored because filename is a URL)
             u'/C:/Users/redacted/AppData/Local/redacted/app-2.4.1/resources/app.asar/dojo/dojo.js'
-          function (function name is used only if module or filename are available)
+          function*
             u'c'
-        frame
+        frame*
           filename (ignored because filename is a URL)
             u'/C:/Users/redacted/AppData/Local/redacted/app-2.4.1/resources/app.asar/dojo/dojo.js'
-          function (function name is used only if module or filename are available)
+          function*
             u'Object._createDocumentViewModel'

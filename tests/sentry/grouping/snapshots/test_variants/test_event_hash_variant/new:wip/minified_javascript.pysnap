@@ -1,5 +1,5 @@
 ---
-created: '2019-03-15T11:58:33.272254Z'
+created: '2019-03-15T18:37:00.139067Z'
 creator: sentry
 source: tests/sentry/grouping/test_variants.py
 ---
@@ -14,7 +14,6 @@ app:
               u'sentry/dist/vendor'
             filename (ignored because filename is a URL)
               u'/_static/5788ef38fefa0df624cb96af56fd1435/sentry/dist/vendor.js'
-            context-line (discarded because line too long)
             function*
               u'M'
           frame (non app frame)
@@ -22,7 +21,6 @@ app:
               u'sentry/dist/vendor'
             filename (ignored because filename is a URL)
               u'/_static/5788ef38fefa0df624cb96af56fd1435/sentry/dist/vendor.js'
-            context-line (discarded because line too long)
             function*
               u'S/<'
           frame (non app frame)
@@ -30,7 +28,6 @@ app:
               u'sentry/dist/vendor'
             filename (ignored because filename is a URL)
               u'/_static/5788ef38fefa0df624cb96af56fd1435/sentry/dist/vendor.js'
-            context-line (discarded because line too long)
             function*
               u'i'
           frame (non app frame)
@@ -38,7 +35,6 @@ app:
               u'sentry/dist/vendor'
             filename (ignored because filename is a URL)
               u'/_static/5788ef38fefa0df624cb96af56fd1435/sentry/dist/vendor.js'
-            context-line (discarded because line too long)
             function*
               u'b'
           frame (non app frame)
@@ -46,7 +42,6 @@ app:
               u'sentry/dist/vendor'
             filename (ignored because filename is a URL)
               u'/_static/5788ef38fefa0df624cb96af56fd1435/sentry/dist/vendor.js'
-            context-line (discarded because line too long)
             function*
               u'n'
           frame (non app frame)
@@ -54,7 +49,6 @@ app:
               u'sentry/dist/vendor'
             filename (ignored because filename is a URL)
               u'/_static/5788ef38fefa0df624cb96af56fd1435/sentry/dist/vendor.js'
-            context-line (discarded because line too long)
             function*
               u'g/</t[e]'
           frame (non app frame)
@@ -62,7 +56,6 @@ app:
               u'sentry/dist/vendor'
             filename (ignored because filename is a URL)
               u'/_static/5788ef38fefa0df624cb96af56fd1435/sentry/dist/vendor.js'
-            context-line (discarded because line too long)
             function*
               u'h/p._invoke</<'
           frame (non app frame)
@@ -70,7 +63,6 @@ app:
               u'sentry/dist/vendor'
             filename (ignored because filename is a URL)
               u'/_static/5788ef38fefa0df624cb96af56fd1435/sentry/dist/vendor.js'
-            context-line (discarded because line too long)
             function*
               u'W'
           frame (non app frame)
@@ -78,7 +70,6 @@ app:
               u'sentry/dist/app'
             filename (ignored because filename is a URL)
               u'/_static/5788ef38fefa0df624cb96af56fd1435/sentry/dist/app.js'
-            context-line (discarded because line too long)
             function*
               u'e/<'
           frame (non app frame)
@@ -86,7 +77,6 @@ app:
               u'sentry/dist/app'
             filename (ignored because filename is a URL)
               u'/_static/5788ef38fefa0df624cb96af56fd1435/sentry/dist/app.js'
-            context-line (discarded because line too long)
             function*
               u'e/</a</<'
           frame (non app frame)
@@ -94,7 +84,6 @@ app:
               u'sentry/dist/vendor'
             filename (ignored because filename is a URL)
               u'/_static/5788ef38fefa0df624cb96af56fd1435/sentry/dist/vendor.js'
-            context-line (discarded because line too long)
             function*
               u't.exports/<'
           frame (non app frame)
@@ -102,7 +91,6 @@ app:
               u'sentry/dist/vendor'
             filename (ignored because filename is a URL)
               u'/_static/5788ef38fefa0df624cb96af56fd1435/sentry/dist/vendor.js'
-            context-line (discarded because line too long)
             function*
               u'L'
           frame (non app frame)
@@ -110,7 +98,6 @@ app:
               u'sentry/dist/vendor'
             filename (ignored because filename is a URL)
               u'/_static/5788ef38fefa0df624cb96af56fd1435/sentry/dist/vendor.js'
-            context-line (discarded because line too long)
             function*
               u't.exports/</<'
           frame (non app frame)
@@ -118,7 +105,6 @@ app:
               u'sentry/dist/vendor'
             filename (ignored because filename is a URL)
               u'/_static/5788ef38fefa0df624cb96af56fd1435/sentry/dist/vendor.js'
-            context-line (discarded because line too long)
             function*
               u'c'
           frame (non app frame)
@@ -126,7 +112,6 @@ app:
               u'sentry/dist/vendor'
             filename (ignored because filename is a URL)
               u'/_static/5788ef38fefa0df624cb96af56fd1435/sentry/dist/vendor.js'
-            context-line (discarded because line too long)
             function*
               u'n'
           frame (non app frame)
@@ -134,7 +119,6 @@ app:
               u'sentry/dist/vendor'
             filename (ignored because filename is a URL)
               u'/_static/5788ef38fefa0df624cb96af56fd1435/sentry/dist/vendor.js'
-            context-line (discarded because line too long)
             function*
               u'g/</t[e]'
           frame (non app frame)
@@ -142,7 +126,6 @@ app:
               u'sentry/dist/vendor'
             filename (ignored because filename is a URL)
               u'/_static/5788ef38fefa0df624cb96af56fd1435/sentry/dist/vendor.js'
-            context-line (discarded because line too long)
             function*
               u'h/p._invoke</<'
           frame (non app frame)
@@ -150,7 +133,6 @@ app:
               u'sentry/dist/vendor'
             filename (ignored because filename is a URL)
               u'/_static/5788ef38fefa0df624cb96af56fd1435/sentry/dist/vendor.js'
-            context-line (discarded because line too long)
             function*
               u'W'
           frame (non app frame)
@@ -158,7 +140,6 @@ app:
               u'sentry/dist/app'
             filename (ignored because filename is a URL)
               u'/_static/5788ef38fefa0df624cb96af56fd1435/sentry/dist/app.js'
-            context-line (discarded because line too long)
             function*
               u'e/<'
           frame (non app frame)
@@ -166,7 +147,6 @@ app:
               u'sentry/dist/app'
             filename (ignored because filename is a URL)
               u'/_static/5788ef38fefa0df624cb96af56fd1435/sentry/dist/app.js'
-            context-line (discarded because line too long)
             function*
               u'componentPromise'
           frame (non app frame)
@@ -174,7 +154,6 @@ app:
               u'sentry/dist/app'
             filename (ignored because filename is a URL)
               u'/_static/5788ef38fefa0df624cb96af56fd1435/sentry/dist/app.js'
-            context-line (discarded because line too long)
             function*
               u'o.e'
           frame (non app frame)
@@ -182,7 +161,6 @@ app:
               u'sentry/dist/vendor'
             filename (ignored because filename is a URL)
               u'/_static/5788ef38fefa0df624cb96af56fd1435/sentry/dist/vendor.js'
-            context-line (discarded because line too long)
             function*
               u'Pt</t.prototype.wrapTimeFunction/<'
         type*
@@ -199,7 +177,6 @@ system:
               u'sentry/dist/vendor'
             filename (ignored because filename is a URL)
               u'/_static/5788ef38fefa0df624cb96af56fd1435/sentry/dist/vendor.js'
-            context-line (discarded because line too long)
             function*
               u'M'
           frame*
@@ -207,7 +184,6 @@ system:
               u'sentry/dist/vendor'
             filename (ignored because filename is a URL)
               u'/_static/5788ef38fefa0df624cb96af56fd1435/sentry/dist/vendor.js'
-            context-line (discarded because line too long)
             function*
               u'S/<'
           frame*
@@ -215,7 +191,6 @@ system:
               u'sentry/dist/vendor'
             filename (ignored because filename is a URL)
               u'/_static/5788ef38fefa0df624cb96af56fd1435/sentry/dist/vendor.js'
-            context-line (discarded because line too long)
             function*
               u'i'
           frame*
@@ -223,7 +198,6 @@ system:
               u'sentry/dist/vendor'
             filename (ignored because filename is a URL)
               u'/_static/5788ef38fefa0df624cb96af56fd1435/sentry/dist/vendor.js'
-            context-line (discarded because line too long)
             function*
               u'b'
           frame*
@@ -231,7 +205,6 @@ system:
               u'sentry/dist/vendor'
             filename (ignored because filename is a URL)
               u'/_static/5788ef38fefa0df624cb96af56fd1435/sentry/dist/vendor.js'
-            context-line (discarded because line too long)
             function*
               u'n'
           frame*
@@ -239,7 +212,6 @@ system:
               u'sentry/dist/vendor'
             filename (ignored because filename is a URL)
               u'/_static/5788ef38fefa0df624cb96af56fd1435/sentry/dist/vendor.js'
-            context-line (discarded because line too long)
             function*
               u'g/</t[e]'
           frame*
@@ -247,7 +219,6 @@ system:
               u'sentry/dist/vendor'
             filename (ignored because filename is a URL)
               u'/_static/5788ef38fefa0df624cb96af56fd1435/sentry/dist/vendor.js'
-            context-line (discarded because line too long)
             function*
               u'h/p._invoke</<'
           frame*
@@ -255,7 +226,6 @@ system:
               u'sentry/dist/vendor'
             filename (ignored because filename is a URL)
               u'/_static/5788ef38fefa0df624cb96af56fd1435/sentry/dist/vendor.js'
-            context-line (discarded because line too long)
             function*
               u'W'
           frame*
@@ -263,7 +233,6 @@ system:
               u'sentry/dist/app'
             filename (ignored because filename is a URL)
               u'/_static/5788ef38fefa0df624cb96af56fd1435/sentry/dist/app.js'
-            context-line (discarded because line too long)
             function*
               u'e/<'
           frame*
@@ -271,7 +240,6 @@ system:
               u'sentry/dist/app'
             filename (ignored because filename is a URL)
               u'/_static/5788ef38fefa0df624cb96af56fd1435/sentry/dist/app.js'
-            context-line (discarded because line too long)
             function*
               u'e/</a</<'
           frame*
@@ -279,7 +247,6 @@ system:
               u'sentry/dist/vendor'
             filename (ignored because filename is a URL)
               u'/_static/5788ef38fefa0df624cb96af56fd1435/sentry/dist/vendor.js'
-            context-line (discarded because line too long)
             function*
               u't.exports/<'
           frame*
@@ -287,7 +254,6 @@ system:
               u'sentry/dist/vendor'
             filename (ignored because filename is a URL)
               u'/_static/5788ef38fefa0df624cb96af56fd1435/sentry/dist/vendor.js'
-            context-line (discarded because line too long)
             function*
               u'L'
           frame*
@@ -295,7 +261,6 @@ system:
               u'sentry/dist/vendor'
             filename (ignored because filename is a URL)
               u'/_static/5788ef38fefa0df624cb96af56fd1435/sentry/dist/vendor.js'
-            context-line (discarded because line too long)
             function*
               u't.exports/</<'
           frame*
@@ -303,7 +268,6 @@ system:
               u'sentry/dist/vendor'
             filename (ignored because filename is a URL)
               u'/_static/5788ef38fefa0df624cb96af56fd1435/sentry/dist/vendor.js'
-            context-line (discarded because line too long)
             function*
               u'c'
           frame*
@@ -311,7 +275,6 @@ system:
               u'sentry/dist/vendor'
             filename (ignored because filename is a URL)
               u'/_static/5788ef38fefa0df624cb96af56fd1435/sentry/dist/vendor.js'
-            context-line (discarded because line too long)
             function*
               u'n'
           frame*
@@ -319,7 +282,6 @@ system:
               u'sentry/dist/vendor'
             filename (ignored because filename is a URL)
               u'/_static/5788ef38fefa0df624cb96af56fd1435/sentry/dist/vendor.js'
-            context-line (discarded because line too long)
             function*
               u'g/</t[e]'
           frame*
@@ -327,7 +289,6 @@ system:
               u'sentry/dist/vendor'
             filename (ignored because filename is a URL)
               u'/_static/5788ef38fefa0df624cb96af56fd1435/sentry/dist/vendor.js'
-            context-line (discarded because line too long)
             function*
               u'h/p._invoke</<'
           frame*
@@ -335,7 +296,6 @@ system:
               u'sentry/dist/vendor'
             filename (ignored because filename is a URL)
               u'/_static/5788ef38fefa0df624cb96af56fd1435/sentry/dist/vendor.js'
-            context-line (discarded because line too long)
             function*
               u'W'
           frame*
@@ -343,7 +303,6 @@ system:
               u'sentry/dist/app'
             filename (ignored because filename is a URL)
               u'/_static/5788ef38fefa0df624cb96af56fd1435/sentry/dist/app.js'
-            context-line (discarded because line too long)
             function*
               u'e/<'
           frame*
@@ -351,7 +310,6 @@ system:
               u'sentry/dist/app'
             filename (ignored because filename is a URL)
               u'/_static/5788ef38fefa0df624cb96af56fd1435/sentry/dist/app.js'
-            context-line (discarded because line too long)
             function*
               u'componentPromise'
           frame*
@@ -359,7 +317,6 @@ system:
               u'sentry/dist/app'
             filename (ignored because filename is a URL)
               u'/_static/5788ef38fefa0df624cb96af56fd1435/sentry/dist/app.js'
-            context-line (discarded because line too long)
             function*
               u'o.e'
           frame*
@@ -367,7 +324,6 @@ system:
               u'sentry/dist/vendor'
             filename (ignored because filename is a URL)
               u'/_static/5788ef38fefa0df624cb96af56fd1435/sentry/dist/vendor.js'
-            context-line (discarded because line too long)
             function*
               u'Pt</t.prototype.wrapTimeFunction/<'
         type*

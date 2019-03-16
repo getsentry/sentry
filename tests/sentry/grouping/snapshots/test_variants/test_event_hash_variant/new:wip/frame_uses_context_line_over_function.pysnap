@@ -1,5 +1,5 @@
 ---
-created: '2019-03-15T11:58:33.075277Z'
+created: '2019-03-15T18:36:59.879998Z'
 creator: sentry
 source: tests/sentry/grouping/test_variants.py
 ---
@@ -11,20 +11,16 @@ app:
         frame (non app frame)
           filename*
             u'foo.py'
-          context-line*
-            u'foo bar'
-          function (function name is used only if module or filename are available)
+          function*
             u'bar'
 --------------------------------------------------------------------------
 system:
-  hash: '60e0a667027bef0d0b7c4882891df7e8'
+  hash: 'fb73cb54ced59b1c0c60d9bb40b7336b'
   component:
     system*
       stacktrace*
         frame*
           filename*
             u'foo.py'
-          context-line*
-            u'foo bar'
-          function (function name is used only if module or filename are available)
+          function*
             u'bar'

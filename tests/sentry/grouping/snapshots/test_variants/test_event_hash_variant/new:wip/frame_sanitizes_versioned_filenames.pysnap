@@ -1,5 +1,5 @@
 ---
-created: '2019-03-15T11:57:19.665061Z'
+created: '2019-03-15T18:36:59.810594Z'
 creator: sentry
 source: tests/sentry/grouping/test_variants.py
 ---
@@ -11,16 +11,12 @@ app:
         frame (non app frame)
           filename*
             u'foo.html.erb'
-          context-line*
-            u'<% if @hotels.size > 0 %>'
 --------------------------------------------------------------------------
 system:
-  hash: '98dfd49def29609d5d43c4b587147462'
+  hash: '2f908c015ad77a50595512fcf65d344c'
   component:
     system*
       stacktrace*
         frame*
           filename*
             u'foo.html.erb'
-          context-line*
-            u'<% if @hotels.size > 0 %>'

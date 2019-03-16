@@ -1,5 +1,5 @@
 ---
-created: '2019-03-15T11:58:33.369458Z'
+created: '2019-03-15T18:37:00.248789Z'
 creator: sentry
 source: tests/sentry/grouping/test_variants.py
 ---
@@ -11,7 +11,6 @@ app:
         frame (non app frame)
           filename (ignored because filename is a URL)
             u'foo'
-          context-line (discarded because from URL origin)
 --------------------------------------------------------------------------
 fallback:
   hash: 'd41d8cd98f00b204e9800998ecf8427e'
@@ -24,4 +23,3 @@ system:
         frame
           filename (ignored because filename is a URL)
             u'foo'
-          context-line (discarded because from URL origin)

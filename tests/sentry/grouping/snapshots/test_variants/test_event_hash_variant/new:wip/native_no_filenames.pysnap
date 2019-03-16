@@ -1,94 +1,94 @@
 ---
-created: '2019-03-15T11:58:33.283037Z'
+created: '2019-03-15T18:37:00.151249Z'
 creator: sentry
 source: tests/sentry/grouping/test_variants.py
 ---
 app:
-  hash: None
+  hash: '0069ba38208554530eed55f7647f7c5c'
   component:
-    app (exception of system takes precedence)
-      exception (ignored because hash matches system variant)
-        stacktrace
-          frame
-            function (function name is used only if module or filename are available)
+    app*
+      exception*
+        stacktrace*
+          frame*
+            function*
               u'_main'
           frame (non app frame)
-            function (function name is used only if module or filename are available)
+            function*
               u'std::rt::lang_start'
           frame (non app frame)
-            function (function name is used only if module or filename are available)
+            function*
               u'std::rt::lang_start_internal'
-          frame
-            function (function name is used only if module or filename are available)
+          frame*
+            function*
               u'___rust_maybe_catch_panic'
           frame (non app frame)
-            function (function name is used only if module or filename are available)
+            function*
               u'std::panicking::try::do_call'
           frame (non app frame)
-            function (function name is used only if module or filename are available)
+            function*
               u'std::rt::lang_start::{{closure}}'
-          frame
-            function (function name is used only if module or filename are available)
+          frame*
+            function*
               u'log_demo::main'
-          frame
-            function (function name is used only if module or filename are available)
+          frame*
+            function*
               u'log::__private_api_log'
           frame (non app frame)
-            function (function name is used only if module or filename are available)
+            function*
               u'<sentry::integrations::log::Logger as log::Log>::log'
           frame (non app frame)
-            function (function name is used only if module or filename are available)
+            function*
               u'sentry::hub::Hub::with_active'
           frame (non app frame)
-            function (function name is used only if module or filename are available)
+            function*
               u'sentry::hub::Hub::with'
           frame (non app frame)
-            function (function name is used only if module or filename are available)
+            function*
               u'sentry::hub::Hub::with_active::{{closure}}'
         type*
           u'log_demo'
 --------------------------------------------------------------------------
 system:
-  hash: 'fed4f6eb500e04f59e97d31e8743ec8f'
+  hash: '30f71d6ff287238ce1541e21e633a8c5'
   component:
     system*
       exception*
-        stacktrace
-          frame
-            function (function name is used only if module or filename are available)
+        stacktrace*
+          frame*
+            function*
               u'_main'
-          frame
-            function (function name is used only if module or filename are available)
+          frame*
+            function*
               u'std::rt::lang_start'
-          frame
-            function (function name is used only if module or filename are available)
+          frame*
+            function*
               u'std::rt::lang_start_internal'
-          frame
-            function (function name is used only if module or filename are available)
+          frame*
+            function*
               u'___rust_maybe_catch_panic'
-          frame
-            function (function name is used only if module or filename are available)
+          frame*
+            function*
               u'std::panicking::try::do_call'
-          frame
-            function (function name is used only if module or filename are available)
+          frame*
+            function*
               u'std::rt::lang_start::{{closure}}'
-          frame
-            function (function name is used only if module or filename are available)
+          frame*
+            function*
               u'log_demo::main'
-          frame
-            function (function name is used only if module or filename are available)
+          frame*
+            function*
               u'log::__private_api_log'
-          frame
-            function (function name is used only if module or filename are available)
+          frame*
+            function*
               u'<sentry::integrations::log::Logger as log::Log>::log'
-          frame
-            function (function name is used only if module or filename are available)
+          frame*
+            function*
               u'sentry::hub::Hub::with_active'
-          frame
-            function (function name is used only if module or filename are available)
+          frame*
+            function*
               u'sentry::hub::Hub::with'
-          frame
-            function (function name is used only if module or filename are available)
+          frame*
+            function*
               u'sentry::hub::Hub::with_active::{{closure}}'
         type*
           u'log_demo'

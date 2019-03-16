@@ -1,5 +1,5 @@
 ---
-created: '2019-03-15T11:58:32.993074Z'
+created: '2019-03-15T18:36:59.770189Z'
 creator: sentry
 source: tests/sentry/grouping/test_variants.py
 ---
@@ -9,7 +9,7 @@ app:
     app
       stacktrace
         frame (non app frame)
-          function (function name is used only if module or filename are available)
+          function*
             u'forEach'
 --------------------------------------------------------------------------
 fallback:
@@ -21,5 +21,5 @@ system:
     system
       stacktrace
         frame (native code indicated by filename)
-          function (function name is used only if module or filename are available)
+          function*
             u'forEach'

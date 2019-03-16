@@ -1,5 +1,5 @@
 ---
-created: '2019-03-15T11:58:33.394227Z'
+created: '2019-03-15T18:37:00.270796Z'
 creator: sentry
 source: tests/sentry/grouping/test_variants.py
 ---
@@ -13,7 +13,6 @@ app:
             u'<unknown module>'
           filename (ignored because filename is a URL)
             u'/bar/'
-          context-line (discarded because from URL origin)
 --------------------------------------------------------------------------
 system:
   hash: 'cd2a9fd0cdaa8cd55ed22b101fc65882'
@@ -25,4 +24,3 @@ system:
             u'<unknown module>'
           filename (ignored because filename is a URL)
             u'/bar/'
-          context-line (discarded because from URL origin)
