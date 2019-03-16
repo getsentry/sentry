@@ -1,5 +1,5 @@
 ---
-created: '2019-03-15T18:37:00.270796Z'
+created: '2019-03-16T15:38:21.182114Z'
 creator: sentry
 source: tests/sentry/grouping/test_variants.py
 ---
@@ -11,8 +11,8 @@ app:
         frame (non app frame)
           module*
             u'<unknown module>'
-          filename (ignored because filename is a URL)
-            u'/bar/'
+          filename (ignored because frame points to a URL)
+            u''
 --------------------------------------------------------------------------
 system:
   hash: 'cd2a9fd0cdaa8cd55ed22b101fc65882'
@@ -22,5 +22,5 @@ system:
         frame*
           module*
             u'<unknown module>'
-          filename (ignored because filename is a URL)
-            u'/bar/'
+          filename (ignored because frame points to a URL)
+            u''

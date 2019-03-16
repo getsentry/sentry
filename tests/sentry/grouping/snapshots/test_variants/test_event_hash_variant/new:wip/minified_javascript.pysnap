@@ -1,5 +1,5 @@
 ---
-created: '2019-03-15T18:37:00.139067Z'
+created: '2019-03-16T15:38:21.060366Z'
 creator: sentry
 source: tests/sentry/grouping/test_variants.py
 ---
@@ -12,155 +12,155 @@ app:
           frame (non app frame)
             module*
               u'sentry/dist/vendor'
-            filename (ignored because filename is a URL)
-              u'/_static/5788ef38fefa0df624cb96af56fd1435/sentry/dist/vendor.js'
+            filename (ignored because frame points to a URL)
+              u'vendor.js'
             function*
               u'M'
           frame (non app frame)
             module*
               u'sentry/dist/vendor'
-            filename (ignored because filename is a URL)
-              u'/_static/5788ef38fefa0df624cb96af56fd1435/sentry/dist/vendor.js'
+            filename (ignored because frame points to a URL)
+              u'vendor.js'
             function*
               u'S/<'
           frame (non app frame)
             module*
               u'sentry/dist/vendor'
-            filename (ignored because filename is a URL)
-              u'/_static/5788ef38fefa0df624cb96af56fd1435/sentry/dist/vendor.js'
+            filename (ignored because frame points to a URL)
+              u'vendor.js'
             function*
               u'i'
           frame (non app frame)
             module*
               u'sentry/dist/vendor'
-            filename (ignored because filename is a URL)
-              u'/_static/5788ef38fefa0df624cb96af56fd1435/sentry/dist/vendor.js'
+            filename (ignored because frame points to a URL)
+              u'vendor.js'
             function*
               u'b'
           frame (non app frame)
             module*
               u'sentry/dist/vendor'
-            filename (ignored because filename is a URL)
-              u'/_static/5788ef38fefa0df624cb96af56fd1435/sentry/dist/vendor.js'
+            filename (ignored because frame points to a URL)
+              u'vendor.js'
             function*
               u'n'
           frame (non app frame)
             module*
               u'sentry/dist/vendor'
-            filename (ignored because filename is a URL)
-              u'/_static/5788ef38fefa0df624cb96af56fd1435/sentry/dist/vendor.js'
+            filename (ignored because frame points to a URL)
+              u'vendor.js'
             function*
               u'g/</t[e]'
           frame (non app frame)
             module*
               u'sentry/dist/vendor'
-            filename (ignored because filename is a URL)
-              u'/_static/5788ef38fefa0df624cb96af56fd1435/sentry/dist/vendor.js'
+            filename (ignored because frame points to a URL)
+              u'vendor.js'
             function*
               u'h/p._invoke</<'
           frame (non app frame)
             module*
               u'sentry/dist/vendor'
-            filename (ignored because filename is a URL)
-              u'/_static/5788ef38fefa0df624cb96af56fd1435/sentry/dist/vendor.js'
+            filename (ignored because frame points to a URL)
+              u'vendor.js'
             function*
               u'W'
           frame (non app frame)
             module*
               u'sentry/dist/app'
-            filename (ignored because filename is a URL)
-              u'/_static/5788ef38fefa0df624cb96af56fd1435/sentry/dist/app.js'
+            filename (ignored because frame points to a URL)
+              u'app.js'
             function*
               u'e/<'
           frame (non app frame)
             module*
               u'sentry/dist/app'
-            filename (ignored because filename is a URL)
-              u'/_static/5788ef38fefa0df624cb96af56fd1435/sentry/dist/app.js'
+            filename (ignored because frame points to a URL)
+              u'app.js'
             function*
               u'e/</a</<'
           frame (non app frame)
             module*
               u'sentry/dist/vendor'
-            filename (ignored because filename is a URL)
-              u'/_static/5788ef38fefa0df624cb96af56fd1435/sentry/dist/vendor.js'
+            filename (ignored because frame points to a URL)
+              u'vendor.js'
             function*
               u't.exports/<'
           frame (non app frame)
             module*
               u'sentry/dist/vendor'
-            filename (ignored because filename is a URL)
-              u'/_static/5788ef38fefa0df624cb96af56fd1435/sentry/dist/vendor.js'
+            filename (ignored because frame points to a URL)
+              u'vendor.js'
             function*
               u'L'
           frame (non app frame)
             module*
               u'sentry/dist/vendor'
-            filename (ignored because filename is a URL)
-              u'/_static/5788ef38fefa0df624cb96af56fd1435/sentry/dist/vendor.js'
+            filename (ignored because frame points to a URL)
+              u'vendor.js'
             function*
               u't.exports/</<'
           frame (non app frame)
             module*
               u'sentry/dist/vendor'
-            filename (ignored because filename is a URL)
-              u'/_static/5788ef38fefa0df624cb96af56fd1435/sentry/dist/vendor.js'
+            filename (ignored because frame points to a URL)
+              u'vendor.js'
             function*
               u'c'
           frame (non app frame)
             module*
               u'sentry/dist/vendor'
-            filename (ignored because filename is a URL)
-              u'/_static/5788ef38fefa0df624cb96af56fd1435/sentry/dist/vendor.js'
+            filename (ignored because frame points to a URL)
+              u'vendor.js'
             function*
               u'n'
           frame (non app frame)
             module*
               u'sentry/dist/vendor'
-            filename (ignored because filename is a URL)
-              u'/_static/5788ef38fefa0df624cb96af56fd1435/sentry/dist/vendor.js'
+            filename (ignored because frame points to a URL)
+              u'vendor.js'
             function*
               u'g/</t[e]'
           frame (non app frame)
             module*
               u'sentry/dist/vendor'
-            filename (ignored because filename is a URL)
-              u'/_static/5788ef38fefa0df624cb96af56fd1435/sentry/dist/vendor.js'
+            filename (ignored because frame points to a URL)
+              u'vendor.js'
             function*
               u'h/p._invoke</<'
           frame (non app frame)
             module*
               u'sentry/dist/vendor'
-            filename (ignored because filename is a URL)
-              u'/_static/5788ef38fefa0df624cb96af56fd1435/sentry/dist/vendor.js'
+            filename (ignored because frame points to a URL)
+              u'vendor.js'
             function*
               u'W'
           frame (non app frame)
             module*
               u'sentry/dist/app'
-            filename (ignored because filename is a URL)
-              u'/_static/5788ef38fefa0df624cb96af56fd1435/sentry/dist/app.js'
+            filename (ignored because frame points to a URL)
+              u'app.js'
             function*
               u'e/<'
           frame (non app frame)
             module*
               u'sentry/dist/app'
-            filename (ignored because filename is a URL)
-              u'/_static/5788ef38fefa0df624cb96af56fd1435/sentry/dist/app.js'
+            filename (ignored because frame points to a URL)
+              u'app.js'
             function*
               u'componentPromise'
           frame (non app frame)
             module*
               u'sentry/dist/app'
-            filename (ignored because filename is a URL)
-              u'/_static/5788ef38fefa0df624cb96af56fd1435/sentry/dist/app.js'
+            filename (ignored because frame points to a URL)
+              u'app.js'
             function*
               u'o.e'
           frame (non app frame)
             module*
               u'sentry/dist/vendor'
-            filename (ignored because filename is a URL)
-              u'/_static/5788ef38fefa0df624cb96af56fd1435/sentry/dist/vendor.js'
+            filename (ignored because frame points to a URL)
+              u'vendor.js'
             function*
               u'Pt</t.prototype.wrapTimeFunction/<'
         type*
@@ -175,155 +175,155 @@ system:
           frame*
             module*
               u'sentry/dist/vendor'
-            filename (ignored because filename is a URL)
-              u'/_static/5788ef38fefa0df624cb96af56fd1435/sentry/dist/vendor.js'
+            filename (ignored because frame points to a URL)
+              u'vendor.js'
             function*
               u'M'
           frame*
             module*
               u'sentry/dist/vendor'
-            filename (ignored because filename is a URL)
-              u'/_static/5788ef38fefa0df624cb96af56fd1435/sentry/dist/vendor.js'
+            filename (ignored because frame points to a URL)
+              u'vendor.js'
             function*
               u'S/<'
           frame*
             module*
               u'sentry/dist/vendor'
-            filename (ignored because filename is a URL)
-              u'/_static/5788ef38fefa0df624cb96af56fd1435/sentry/dist/vendor.js'
+            filename (ignored because frame points to a URL)
+              u'vendor.js'
             function*
               u'i'
           frame*
             module*
               u'sentry/dist/vendor'
-            filename (ignored because filename is a URL)
-              u'/_static/5788ef38fefa0df624cb96af56fd1435/sentry/dist/vendor.js'
+            filename (ignored because frame points to a URL)
+              u'vendor.js'
             function*
               u'b'
           frame*
             module*
               u'sentry/dist/vendor'
-            filename (ignored because filename is a URL)
-              u'/_static/5788ef38fefa0df624cb96af56fd1435/sentry/dist/vendor.js'
+            filename (ignored because frame points to a URL)
+              u'vendor.js'
             function*
               u'n'
           frame*
             module*
               u'sentry/dist/vendor'
-            filename (ignored because filename is a URL)
-              u'/_static/5788ef38fefa0df624cb96af56fd1435/sentry/dist/vendor.js'
+            filename (ignored because frame points to a URL)
+              u'vendor.js'
             function*
               u'g/</t[e]'
           frame*
             module*
               u'sentry/dist/vendor'
-            filename (ignored because filename is a URL)
-              u'/_static/5788ef38fefa0df624cb96af56fd1435/sentry/dist/vendor.js'
+            filename (ignored because frame points to a URL)
+              u'vendor.js'
             function*
               u'h/p._invoke</<'
           frame*
             module*
               u'sentry/dist/vendor'
-            filename (ignored because filename is a URL)
-              u'/_static/5788ef38fefa0df624cb96af56fd1435/sentry/dist/vendor.js'
+            filename (ignored because frame points to a URL)
+              u'vendor.js'
             function*
               u'W'
           frame*
             module*
               u'sentry/dist/app'
-            filename (ignored because filename is a URL)
-              u'/_static/5788ef38fefa0df624cb96af56fd1435/sentry/dist/app.js'
+            filename (ignored because frame points to a URL)
+              u'app.js'
             function*
               u'e/<'
           frame*
             module*
               u'sentry/dist/app'
-            filename (ignored because filename is a URL)
-              u'/_static/5788ef38fefa0df624cb96af56fd1435/sentry/dist/app.js'
+            filename (ignored because frame points to a URL)
+              u'app.js'
             function*
               u'e/</a</<'
           frame*
             module*
               u'sentry/dist/vendor'
-            filename (ignored because filename is a URL)
-              u'/_static/5788ef38fefa0df624cb96af56fd1435/sentry/dist/vendor.js'
+            filename (ignored because frame points to a URL)
+              u'vendor.js'
             function*
               u't.exports/<'
           frame*
             module*
               u'sentry/dist/vendor'
-            filename (ignored because filename is a URL)
-              u'/_static/5788ef38fefa0df624cb96af56fd1435/sentry/dist/vendor.js'
+            filename (ignored because frame points to a URL)
+              u'vendor.js'
             function*
               u'L'
           frame*
             module*
               u'sentry/dist/vendor'
-            filename (ignored because filename is a URL)
-              u'/_static/5788ef38fefa0df624cb96af56fd1435/sentry/dist/vendor.js'
+            filename (ignored because frame points to a URL)
+              u'vendor.js'
             function*
               u't.exports/</<'
           frame*
             module*
               u'sentry/dist/vendor'
-            filename (ignored because filename is a URL)
-              u'/_static/5788ef38fefa0df624cb96af56fd1435/sentry/dist/vendor.js'
+            filename (ignored because frame points to a URL)
+              u'vendor.js'
             function*
               u'c'
           frame*
             module*
               u'sentry/dist/vendor'
-            filename (ignored because filename is a URL)
-              u'/_static/5788ef38fefa0df624cb96af56fd1435/sentry/dist/vendor.js'
+            filename (ignored because frame points to a URL)
+              u'vendor.js'
             function*
               u'n'
           frame*
             module*
               u'sentry/dist/vendor'
-            filename (ignored because filename is a URL)
-              u'/_static/5788ef38fefa0df624cb96af56fd1435/sentry/dist/vendor.js'
+            filename (ignored because frame points to a URL)
+              u'vendor.js'
             function*
               u'g/</t[e]'
           frame*
             module*
               u'sentry/dist/vendor'
-            filename (ignored because filename is a URL)
-              u'/_static/5788ef38fefa0df624cb96af56fd1435/sentry/dist/vendor.js'
+            filename (ignored because frame points to a URL)
+              u'vendor.js'
             function*
               u'h/p._invoke</<'
           frame*
             module*
               u'sentry/dist/vendor'
-            filename (ignored because filename is a URL)
-              u'/_static/5788ef38fefa0df624cb96af56fd1435/sentry/dist/vendor.js'
+            filename (ignored because frame points to a URL)
+              u'vendor.js'
             function*
               u'W'
           frame*
             module*
               u'sentry/dist/app'
-            filename (ignored because filename is a URL)
-              u'/_static/5788ef38fefa0df624cb96af56fd1435/sentry/dist/app.js'
+            filename (ignored because frame points to a URL)
+              u'app.js'
             function*
               u'e/<'
           frame*
             module*
               u'sentry/dist/app'
-            filename (ignored because filename is a URL)
-              u'/_static/5788ef38fefa0df624cb96af56fd1435/sentry/dist/app.js'
+            filename (ignored because frame points to a URL)
+              u'app.js'
             function*
               u'componentPromise'
           frame*
             module*
               u'sentry/dist/app'
-            filename (ignored because filename is a URL)
-              u'/_static/5788ef38fefa0df624cb96af56fd1435/sentry/dist/app.js'
+            filename (ignored because frame points to a URL)
+              u'app.js'
             function*
               u'o.e'
           frame*
             module*
               u'sentry/dist/vendor'
-            filename (ignored because filename is a URL)
-              u'/_static/5788ef38fefa0df624cb96af56fd1435/sentry/dist/vendor.js'
+            filename (ignored because frame points to a URL)
+              u'vendor.js'
             function*
               u'Pt</t.prototype.wrapTimeFunction/<'
         type*

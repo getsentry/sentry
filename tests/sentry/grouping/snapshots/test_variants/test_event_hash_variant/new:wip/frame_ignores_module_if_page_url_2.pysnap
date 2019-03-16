@@ -1,5 +1,5 @@
 ---
-created: '2019-03-15T11:58:32.985560Z'
+created: '2019-03-16T15:38:20.747855Z'
 creator: sentry
 source: tests/sentry/grouping/test_variants.py
 ---
@@ -12,7 +12,7 @@ app:
           module* (ignored module)
             salt* (normalized generated module name)
               '<module>'
-          filename (ignored because filename is a URL)
+          filename (ignored because frame points to a URL)
             u'foo.py'
 --------------------------------------------------------------------------
 system:
@@ -24,5 +24,5 @@ system:
           module* (ignored module)
             salt* (normalized generated module name)
               '<module>'
-          filename (ignored because filename is a URL)
+          filename (ignored because frame points to a URL)
             u'foo.py'

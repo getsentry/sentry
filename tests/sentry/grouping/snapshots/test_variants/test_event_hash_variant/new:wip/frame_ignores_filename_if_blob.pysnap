@@ -1,5 +1,5 @@
 ---
-created: '2019-03-15T11:58:32.890848Z'
+created: '2019-03-16T15:38:20.680003Z'
 creator: sentry
 source: tests/sentry/grouping/test_variants.py
 ---
@@ -9,8 +9,8 @@ app:
     app
       stacktrace
         frame (non app frame)
-          filename (ignored because filename is a URL)
-            u'blob:http://example.com/7f7aaadf-a006-4217-9ed5-5fbf8585c6c0'
+          filename (ignored because frame points to a URL)
+            u'7f7aaadf-a006-4217-9ed5-5fbf8585c6c0'
 --------------------------------------------------------------------------
 fallback:
   hash: 'd41d8cd98f00b204e9800998ecf8427e'
@@ -21,5 +21,5 @@ system:
     system
       stacktrace
         frame
-          filename (ignored because filename is a URL)
-            u'blob:http://example.com/7f7aaadf-a006-4217-9ed5-5fbf8585c6c0'
+          filename (ignored because frame points to a URL)
+            u'7f7aaadf-a006-4217-9ed5-5fbf8585c6c0'

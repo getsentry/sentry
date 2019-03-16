@@ -1,5 +1,5 @@
 ---
-created: '2019-03-15T11:58:32.965957Z'
+created: '2019-03-16T15:38:20.740059Z'
 creator: sentry
 source: tests/sentry/grouping/test_variants.py
 ---
@@ -11,7 +11,7 @@ app:
         frame (non app frame)
           module*
             u'foo/bar/baz'
-          filename (ignored because filename is a URL)
+          filename (ignored because frame points to a URL)
             u'foo.py'
 --------------------------------------------------------------------------
 system:
@@ -22,5 +22,5 @@ system:
         frame*
           module*
             u'foo/bar/baz'
-          filename (ignored because filename is a URL)
+          filename (ignored because frame points to a URL)
             u'foo.py'

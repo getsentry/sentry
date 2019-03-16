@@ -1,5 +1,5 @@
 ---
-created: '2019-03-15T18:37:00.334640Z'
+created: '2019-03-16T15:38:21.198348Z'
 creator: sentry
 source: tests/sentry/grouping/test_variants.py
 ---
@@ -12,13 +12,13 @@ app:
           filename (anonymous filename discarded)
             u'<anonymous>'
         frame (non app frame)
-          filename (ignored because filename is a URL)
-            u'/C:/Users/redacted/AppData/Local/redacted/app-2.4.1/resources/app.asar/dojo/dojo.js'
+          filename (ignored because frame points to a URL)
+            u'dojo.js'
           function*
             u'c'
         frame (non app frame)
-          filename (ignored because filename is a URL)
-            u'/C:/Users/redacted/AppData/Local/redacted/app-2.4.1/resources/app.asar/dojo/dojo.js'
+          filename (ignored because frame points to a URL)
+            u'dojo.js'
           function*
             u'Object._createDocumentViewModel'
 --------------------------------------------------------------------------
@@ -31,12 +31,12 @@ system:
           filename (anonymous filename discarded)
             u'<anonymous>'
         frame*
-          filename (ignored because filename is a URL)
-            u'/C:/Users/redacted/AppData/Local/redacted/app-2.4.1/resources/app.asar/dojo/dojo.js'
+          filename (ignored because frame points to a URL)
+            u'dojo.js'
           function*
             u'c'
         frame*
-          filename (ignored because filename is a URL)
-            u'/C:/Users/redacted/AppData/Local/redacted/app-2.4.1/resources/app.asar/dojo/dojo.js'
+          filename (ignored because frame points to a URL)
+            u'dojo.js'
           function*
             u'Object._createDocumentViewModel'

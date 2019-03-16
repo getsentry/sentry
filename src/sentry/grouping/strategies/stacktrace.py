@@ -229,15 +229,15 @@ def frame_v1(frame, event, **meta):
         contributes = False
         hint = 'native code indicated by filename'
     elif frame.filename:
+        hashable_filename, hashable_filename_hint = \
+            remove_filename_outliers_v1(frame.filename, platform)
         if is_url_frame_v1(frame):
             filename_component.update(
                 contributes=False,
-                values=[frame.filename],
-                hint='ignored because filename is a URL',
+                values=[hashable_filename],
+                hint='ignored because frame points to a URL',
             )
         else:
-            hashable_filename, hashable_filename_hint = \
-                remove_filename_outliers_v1(frame.filename, platform)
             filename_component.update(
                 values=[hashable_filename],
                 hint=hashable_filename_hint
