@@ -13,6 +13,10 @@ from sentry.grouping.utils import DEFAULT_FINGERPRINT_VALUES, hash_from_values
 HASH_RE = re.compile(r'^[0-9a-f]{32}$')
 
 
+class ConfigNotFoundException(LookupError):
+    pass
+
+
 def get_calculated_grouping_variants_for_event(event, config_name=None):
     """Given an event this returns a dictionary of the matching grouping
     variants.  Checksum and fingerprinting logic are not handled by this
@@ -22,7 +26,11 @@ def get_calculated_grouping_variants_for_event(event, config_name=None):
     precedence_hint = None
     per_variant_components = {}
 
-    config = CONFIGURATIONS[config_name or DEFAULT_CONFIG]
+    config_name = config_name or DEFAULT_CONFIG
+    try:
+        config = CONFIGURATIONS[config_name]
+    except LookupError:
+        raise ConfigNotFoundException(config_name)
 
     for strategy in config.iter_strategies():
         rv = strategy.get_grouping_component_variants(event, config=config)
