@@ -17,6 +17,21 @@ class ConfigNotFoundException(LookupError):
     pass
 
 
+def get_grouping_config_for_project(project, silent=True):
+    config = project.get_option('sentry:grouping_config')
+    if config is None:
+        return DEFAULT_CONFIG
+
+    try:
+        CONFIGURATIONS[config]
+    except KeyError:
+        if not silent:
+            raise ConfigNotFoundException(config)
+        return DEFAULT_CONFIG
+    else:
+        return config
+
+
 def get_calculated_grouping_variants_for_event(event, config_name=None):
     """Given an event this returns a dictionary of the matching grouping
     variants.  Checksum and fingerprinting logic are not handled by this
