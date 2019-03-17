@@ -179,29 +179,10 @@ NOT_SCRUBBED_VALUES = set([
     'undefined',
 ])
 
-VALID_PLATFORMS = set(
-    [
-        'as3',
-        'c',
-        'cfml',
-        'cocoa',
-        'csharp',
-        'go',
-        'java',
-        'javascript',
-        'node',
-        'objc',
-        'other',
-        'perl',
-        'php',
-        'python',
-        'ruby',
-        'elixir',
-        'haskell',
-        'groovy',
-        'native',
-    ]
-)
+# This is the historic location of the platform list, and we want to keep
+# it here for now.
+from sentry.lang.mapping import PLATFORMS as VALID_PLATFORMS
+VALID_PLATFORMS = set(VALID_PLATFORMS)
 
 OK_PLUGIN_ENABLED = _("The {name} integration has been enabled.")
 
