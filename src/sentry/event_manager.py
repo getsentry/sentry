@@ -20,6 +20,7 @@ from sentry import buffer, eventtypes, eventstream, features, tagstore, tsdb, fi
 from sentry.constants import (
     LOG_LEVELS, LOG_LEVELS_MAP, VALID_PLATFORMS, MAX_TAG_VALUE_LENGTH,
 )
+from sentry.grouping.strategies.configurations import DEFAULT_CONFIG as DEFAULT_GROUPING_CONFIG
 from sentry.coreapi import (
     APIError,
     APIForbidden,
@@ -701,9 +702,11 @@ class EventManager(object):
             if iface.ephemeral:
                 data.pop(iface.path, None)
 
-        # Put the actual fingerprint back
+        # Put the actual fingerprint and grouping config value into the
+        # payload.  These are picked up by `get_hashes`.
         data['fingerprint'] = fingerprint
-
+        data['grouping_config'] = project.get_option('sentry:grouping_config') \
+            or DEFAULT_GROUPING_CONFIG
         hashes = event.get_hashes()
         data['hashes'] = hashes
 

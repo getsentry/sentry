@@ -144,18 +144,29 @@ class Event(Model):
         # further.
         return self.data.get('metadata') or {}
 
-    def get_hashes(self):
+    def get_hashes(self, force_config=None):
         """
         Returns the calculated hashes for the event.  This uses the stored
         information if available.  Grouping hashes will take into account
         fingerprinting and checksums.
         """
+        stored_config = self.data.get('grouping_config')
+        if stored_config is None:
+            from sentry.grouping.strategies.configurations import DEFAULT_CONFIG
+            stored_config = DEFAULT_CONFIG
+
+        config_name = force_config or stored_config
+
         # If we have hashes stored in the data we use them, otherwise we
-        # fall back to generating new ones from the data
-        hashes = self.data.get('hashes')
-        if hashes is not None:
-            return hashes
-        return filter(None, [x.get_hash() for x in self.get_grouping_variants().values()])
+        # fall back to generating new ones from the data.  We can only use
+        # this if we do not force a dfferent config.
+        if config_name == stored_config:
+            hashes = self.data.get('hashes')
+            if hashes is not None:
+                return hashes
+
+        return filter(None, [
+            x.get_hash() for x in self.get_grouping_variants(force_config).values()])
 
     def get_grouping_variants(self, force_config=None):
         """
@@ -163,7 +174,8 @@ class Event(Model):
         grouping components for each variant in a dictionary.
         """
         from sentry.grouping.api import get_grouping_variants_for_event
-        return get_grouping_variants_for_event(self, config_name=force_config)
+        config_name = force_config or self.data.get('grouping_config')
+        return get_grouping_variants_for_event(self, config_name=config_name)
 
     def get_primary_hash(self):
         # TODO: This *might* need to be protected from an IndexError?
