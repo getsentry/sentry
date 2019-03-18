@@ -20,7 +20,7 @@ from sentry import buffer, eventtypes, eventstream, features, tagstore, tsdb, fi
 from sentry.constants import (
     LOG_LEVELS, LOG_LEVELS_MAP, VALID_PLATFORMS, MAX_TAG_VALUE_LENGTH,
 )
-from sentry.grouping.api import get_grouping_config_for_project
+from sentry.grouping.api import get_grouping_config_dict_for_project
 from sentry.coreapi import (
     APIError,
     APIForbidden,
@@ -351,7 +351,7 @@ class EventManager(object):
         self.version = version
         self._project = project
         if grouping_config is None and project is not None:
-            grouping_config = get_grouping_config_for_project(self._project)
+            grouping_config = get_grouping_config_dict_for_project(self._project)
         self._grouping_config = grouping_config
         self._client_ip = client_ip
         self._user_agent = user_agent

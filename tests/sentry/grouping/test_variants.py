@@ -36,6 +36,9 @@ def dump_variant(variant, lines=None, indent=0):
         if isinstance(value, GroupingComponent):
             lines.append('%s%s:' % ('  ' * indent, key))
             _dump_component(value, indent + 1)
+        elif key == 'config':
+            # We do not want to dump the config
+            continue
         else:
             lines.append('%s%s: %r' % ('  ' * indent, key, value))
 
