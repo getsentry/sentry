@@ -826,6 +826,17 @@ class SnubaSearchTest(SnubaTestCase):
         )
         assert set(results) == set([self.group1, self.group2])
 
+        # Test with `Z` utc marker, should be equivalent
+        results = self.make_query(
+            date_from=self.event1.datetime,
+            date_to=self.event2.datetime + timedelta(minutes=1),
+            search_filter_query='timestamp:>=%s timestamp:<=%s' % (
+                date_to_query_format(self.event1.datetime) + 'Z',
+                date_to_query_format(self.event2.datetime + timedelta(minutes=1)) + 'Z',
+            )
+        )
+        assert set(results) == set([self.group1, self.group2])
+
     @pytest.mark.xfail(
         not settings.SENTRY_TAGSTORE.startswith('sentry.tagstore.v2'),
         reason='unsupported on legacy backend due to insufficient index',

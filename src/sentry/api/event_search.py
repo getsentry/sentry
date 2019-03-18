@@ -114,8 +114,8 @@ key             = ~r"[a-zA-Z0-9_\.-]+"
 # only allow colons in quoted keys
 quoted_key      = ~r"\"([a-zA-Z0-9_\.:-]+)\""
 
-date_format     = ~r"\d{4}-\d{2}-\d{2}(T\d{2}:\d{2}:\d{2}(\.\d{1,6})?)?"
-rel_date_format = ~r"[\+\-][0-9]+[wdhm]"
+date_format     = ~r"\d{4}-\d{2}-\d{2}(T\d{2}:\d{2}:\d{2}(\.\d{1,6})?)?Z?(?=\s|$)"
+rel_date_format = ~r"[\+\-][0-9]+[wdhm](?=\s|$)"
 
 # NOTE: the order in which these operators are listed matters
 # because for example, if < comes before <= it will match that
