@@ -5,6 +5,7 @@ from exam import fixture
 
 from sentry.api.serializers import serialize
 from sentry.models import SavedSearch
+from sentry.models.search_common import SearchType
 from sentry.models.savedsearch import DEFAULT_SAVED_SEARCHES
 from sentry.testutils import APITestCase
 
@@ -140,3 +141,89 @@ class OrgLevelOrganizationSearchesListTest(APITestCase):
         pinned_query.save()
         included[0] = to_be_pinned
         self.check_results(included)
+
+
+class CreateOrganizationSearchesTest(APITestCase):
+    endpoint = 'sentry-api-0-organization-searches'
+    method = 'post'
+
+    @fixture
+    def manager(self):
+        user = self.create_user('test@test.com')
+        self.create_member(organization=self.organization, user=user, role='manager')
+        return user
+
+    @fixture
+    def member(self):
+        user = self.create_user('test@test.com')
+        self.create_member(organization=self.organization, user=user)
+        return user
+
+    def test_simple(self):
+        search_type = SearchType.ISSUE.value
+        name = 'test'
+        query = 'hello'
+        self.login_as(user=self.manager)
+        resp = self.get_valid_response(
+            self.organization.slug,
+            type=search_type,
+            name=name,
+            query=query,
+        )
+        assert resp.data['name'] == name
+        assert resp.data['query'] == query
+        assert resp.data['type'] == search_type
+        assert SavedSearch.objects.filter(id=resp.data['id']).exists()
+
+    def test_perms(self):
+        self.login_as(user=self.member)
+        resp = self.get_response(
+            self.organization.slug,
+            type=SearchType.ISSUE.value,
+            name='hello',
+            query='test',
+        )
+        assert resp.status_code == 403
+
+    def test_exists(self):
+        global_search = SavedSearch.objects.create(
+            type=SearchType.ISSUE.value,
+            name='Some global search',
+            query='is:unresolved',
+            is_global=True,
+        )
+        self.login_as(user=self.manager)
+        resp = self.get_response(
+            self.organization.slug,
+            type=SearchType.ISSUE.value,
+            name='hello',
+            query=global_search.query,
+        )
+        assert resp.status_code == 400
+        assert 'already exists' in resp.data['detail']
+
+        org_search = SavedSearch.objects.create(
+            organization=self.organization,
+            type=SearchType.ISSUE.value,
+            name='Some org search',
+            query='org search',
+        )
+        resp = self.get_response(
+            self.organization.slug,
+            type=SearchType.ISSUE.value,
+            name='hello',
+            query=org_search.query,
+        )
+        assert resp.status_code == 400
+        assert 'already exists' in resp.data['detail']
+
+    def test_empty(self):
+        self.login_as(user=self.manager)
+        resp = self.get_response(
+            self.organization.slug,
+            type=SearchType.ISSUE.value,
+            name='hello',
+            query='',
+        )
+        assert resp.status_code == 400
+        assert 'This field is required' in resp.data['query'][0]
