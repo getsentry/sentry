@@ -10,7 +10,7 @@ import {t} from 'app/locale';
 class ExceptionMechanism extends React.Component {
   static propTypes = {
     data: PropTypes.shape({
-      type: PropTypes.string.isRequired,
+      type: PropTypes.string,
       description: PropTypes.string,
       help_link: PropTypes.string,
       handled: PropTypes.bool,
@@ -62,7 +62,7 @@ class ExceptionMechanism extends React.Component {
     );
 
     const pills = [
-      <Pill key="mechanism" name="mechanism" value={type}>
+      <Pill key="mechanism" name="mechanism" value={type || 'unknown'}>
         {descriptionElement || linkElement}
       </Pill>,
     ];
