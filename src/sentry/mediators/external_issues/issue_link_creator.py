@@ -35,10 +35,12 @@ class IssueLinkCreator(Mediator):
 
     def _format_response_data(self):
         web_url = self.response['webUrl']
+
         display_name = u'{}#{}'.format(
             self.response['project'],
             self.response['identifier'],
         )
+
         return [web_url, display_name]
 
     def _create_external_issue(self):

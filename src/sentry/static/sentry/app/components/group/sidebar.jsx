@@ -25,6 +25,7 @@ const GroupSidebar = createReactClass({
     group: SentryTypes.Group,
     event: SentryTypes.Event,
     environments: PropTypes.arrayOf(SentryTypes.Environment),
+    sentryAppInstallations: PropTypes.array,
   },
 
   contextTypes: {
@@ -232,7 +233,7 @@ const GroupSidebar = createReactClass({
   },
 
   render() {
-    const {group, project} = this.props;
+    const {group, project, sentryAppInstallations} = this.props;
     const projectId = project.slug;
     const organization = this.getOrganization();
 
@@ -252,6 +253,7 @@ const GroupSidebar = createReactClass({
           group={this.props.group}
           project={project}
           orgId={organization.slug}
+          sentryAppInstallations={sentryAppInstallations}
         />
 
         {this.renderPluginIssue()}

@@ -10,6 +10,7 @@ import LoadingIndicator from 'app/components/loadingIndicator';
 import ResolutionBox from 'app/components/resolutionBox';
 import MutedBox from 'app/components/mutedBox';
 import withOrganization from 'app/utils/withOrganization';
+import fetchSentryAppInstallations from 'app/utils/fetchSentryAppInstallations';
 
 import GroupEventToolbar from './eventToolbar';
 import {fetchGroupEventAndMarkSeen} from './utils';
@@ -68,7 +69,10 @@ class GroupEventDetails extends React.Component {
           loading: false,
         });
       });
+
+    fetchSentryAppInstallations(orgSlug);
   };
+
   render() {
     const {group, project, organization, environments} = this.props;
     const evt = withMeta(this.state.event);

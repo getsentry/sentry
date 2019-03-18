@@ -16,9 +16,13 @@ class SentryAppInstallationExternalIssuesEndpoint(SentryAppInstallationBaseEndpo
                             actor=request.user):
             return Response(status=404)
 
-        group_id = request.DATA.get('groupId')
-        if not group_id:
-            return Response({'detail': 'groupId is required'}, status=400)
+        data = request.DATA.copy()
+
+        if not set(['groupId', 'action', 'uri']).issubset(data.keys()):
+            return Response(status=400)
+
+        group_id = data.get('groupId')
+        del data['groupId']
 
         try:
             group = Group.objects.get(
@@ -30,13 +34,19 @@ class SentryAppInstallationExternalIssuesEndpoint(SentryAppInstallationBaseEndpo
         except Group.DoesNotExist:
             return Response(status=404)
 
+        action = data['action']
+        del data['action']
+
+        uri = data.get('uri')
+        del data['uri']
+
         try:
             external_issue = IssueLinkCreator.run(
                 install=installation,
                 group=group,
-                action=request.DATA.get('action'),
-                fields=request.DATA.get('fields'),
-                uri=request.DATA.get('uri'),
+                action=action,
+                fields=data,
+                uri=uri,
             )
         except Exception:
             return Response({'error': 'Error communicating with Sentry App service'}, status=400)

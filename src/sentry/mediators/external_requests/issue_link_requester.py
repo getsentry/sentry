@@ -54,9 +54,8 @@ class IssueLinkRequester(Mediator):
         return self._make_request()
 
     def _build_url(self):
-        domain = urlparse(self.sentry_app.webhook_url).netloc
-        url = u'https://{}{}'.format(domain, self.uri)
-        return url
+        urlparts = urlparse(self.sentry_app.webhook_url)
+        return u'{}://{}{}'.format(urlparts.scheme, urlparts.netloc, self.uri)
 
     def _make_request(self):
         req = safe_urlopen(

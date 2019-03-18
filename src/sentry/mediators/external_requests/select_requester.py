@@ -4,7 +4,7 @@ import six
 import logging
 from uuid import uuid4
 
-from six.moves.urllib.parse import urlparse, urlencode
+from six.moves.urllib.parse import urlparse, urlencode, urlunparse
 from sentry.http import safe_urlopen, safe_urlread
 from sentry.coreapi import APIError
 from sentry.mediators import Mediator, Param
@@ -33,22 +33,26 @@ class SelectRequester(Mediator):
         return self._make_request()
 
     def _build_url(self):
-        domain = urlparse(self.sentry_app.webhook_url).netloc
-        url = u'https://{}{}'.format(domain, self.uri)
-        params = {'installationId': self.install.uuid}
+        urlparts = list(urlparse(self.sentry_app.webhook_url))
+        urlparts[2] = self.uri
+
+        query = {'installationId': self.install.uuid}
+
         if self.project:
-            params['projectSlug'] = self.project.slug
-        url += '?' + urlencode(params)
-        return url
+            query['projectSlug'] = self.project.slug
+
+        urlparts[4] = urlencode(query)
+        return urlunparse(urlparts)
 
     def _make_request(self):
-        req = safe_urlopen(
-            url=self._build_url(),
-            headers=self._build_headers(),
-        )
-
         try:
-            body = safe_urlread(req)
+            body = safe_urlread(
+                safe_urlopen(
+                    url=self._build_url(),
+                    headers=self._build_headers(),
+                )
+            )
+
             response = json.loads(body)
         except Exception:
             logger.info(
@@ -78,9 +82,9 @@ class SelectRequester(Mediator):
         choices = []
 
         for option in resp:
-            choices.append([option['label'], option['value']])
+            choices.append([option['value'], option['label']])
             if option.get('default'):
-                response['default'] = [option['label'], option['value']]
+                response['defaultValue'] = option['value']
 
         response['choices'] = choices
         return response

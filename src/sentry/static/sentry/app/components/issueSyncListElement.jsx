@@ -12,7 +12,7 @@ const hoverCardContainer = css`
   min-width: 0; /* flex-box overflow workaround */
 `;
 
-class IssueSyncElement extends React.Component {
+class IssueSyncListElement extends React.Component {
   static propTypes = {
     externalIssueLink: PropTypes.string,
     externalIssueId: PropTypes.oneOfType([PropTypes.number, PropTypes.string]),
@@ -120,7 +120,7 @@ class IssueSyncElement extends React.Component {
   }
 }
 
-const IssueSyncListElementContainer = styled('div')`
+export const IssueSyncListElementContainer = styled('div')`
   line-height: 0;
   display: flex;
   align-items: center;
@@ -131,7 +131,7 @@ const IssueSyncListElementContainer = styled('div')`
   }
 `;
 
-const IntegrationIcon = styled(InlineSvg)`
+export const IntegrationIcon = styled(InlineSvg)`
   color: ${p => p.theme.gray4};
   width: ${space(3)};
   height: ${space(3)};
@@ -139,7 +139,7 @@ const IntegrationIcon = styled(InlineSvg)`
   flex-shrink: 0;
 `;
 
-const IntegrationLink = styled('a')`
+export const IntegrationLink = styled('a')`
   text-decoration: none;
   padding-bottom: ${space(0.25)};
   margin-left: ${space(1)};
@@ -157,7 +157,7 @@ const IntegrationLink = styled('a')`
   }
 `;
 
-const OpenCloseIcon = styled(InlineSvg)`
+export const OpenCloseIcon = styled(InlineSvg)`
   height: ${space(1.5)};
   color: ${p => p.theme.gray4};
   transition: 0.2s transform;
@@ -168,4 +168,4 @@ const OpenCloseIcon = styled(InlineSvg)`
   ${p => (p.isLinked ? '' : 'transform: rotate(45deg) scale(0.9);')};
 `;
 
-export default IssueSyncElement;
+export default IssueSyncListElement;
