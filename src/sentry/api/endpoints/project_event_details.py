@@ -6,8 +6,7 @@ from sentry import options
 from sentry.api.base import DocSection
 from sentry.api.bases.project import ProjectEndpoint
 from sentry.api.serializers import DetailedEventSerializer, serialize
-from sentry.models import Event, SnubaEvent
-from sentry.utils.validators import is_event_id
+from sentry.models import Event
 
 from sentry.utils.apidocs import scenario, attach_scenarios
 
@@ -48,16 +47,7 @@ class ProjectEventDetailsEndpoint(ProjectEndpoint):
         if not use_snuba:
             return self.get_legacy(request, project, event_id)
 
-        # We might get a database id instead of an event id
-        if not is_event_id(event_id):
-            event = Event.objects.from_event_id(event_id, project.id)
-
-            if event is None:
-                return Response({'detail': 'Event not found'}, status=404)
-
-            event_id = event.event_id
-
-        snuba_event = SnubaEvent.get_event(project.id, event_id)
+        snuba_event = Event.objects.snuba_event_from_event_id(event_id, project.id)
 
         if snuba_event is None:
             return Response({'detail': 'Event not found'}, status=404)

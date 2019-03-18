@@ -342,6 +342,30 @@ class EventManager(BaseManager):
             data = node_results.get(node.id) or {}
             node.bind_data(data, ref=node.get_ref(item))
 
+    def snuba_event_from_event_id(self, id_or_event_id, project_id):
+        """
+        Get a SnubaEvent by either its id primary key or its hex event_id.
+
+        Returns None if the event cannot be found under either scheme.
+
+        Log any attempt to fetch a SnubaEvent by primary key and eventually remove.
+        """
+        from sentry.models import SnubaEvent
+
+        if not is_event_id(id_or_event_id):
+            logger.warning('Attempt to fetch SnubaEvent by primary key', exc_info=True, extra={
+                'stack': True
+            })
+
+            event = self.from_event_id(id_or_event_id, project_id)
+
+            if not event:
+                return None
+
+            id_or_event_id = event.event_id
+
+        return SnubaEvent.get_event(project_id, id_or_event_id)
+
     def from_event_id(self, id_or_event_id, project_id):
         """
         Get an Event by either its id primary key or its hex event_id.
