@@ -37,15 +37,14 @@ class ErrorEvent(BaseEvent):
             return {}
 
         loc = get_crash_location(exception, data.get('platform'))
-        rv = {}
+        rv = {
+            'value': trim(get_path(exception, 'value', default=''), 1024),
+        }
 
         # If the exception mechanism indicates a synthetic exception we do not
         # want to record the type and value into the metadata.
         if not get_path(exception, 'mechanism', 'synthetic'):
-            rv.update({
-                'type': trim(get_path(exception, 'type', default='Error'), 128),
-                'value': trim(get_path(exception, 'value', default=''), 1024),
-            })
+            rv['type'] = trim(get_path(exception, 'type', default='Error'), 128)
 
         # Attach crash location if available
         if loc is not None:
