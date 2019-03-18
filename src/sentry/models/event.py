@@ -43,6 +43,9 @@ def _should_skip_to_python(event_data):
         return False
 
     sample_rate = options.get('store.empty-interface-sample-rate')
+    if sample_rate == 0:
+        return False
+
     return int(md5(event_id).hexdigest(), 16) % (10 ** 8) <= (sample_rate * (10 ** 8))
 
 
