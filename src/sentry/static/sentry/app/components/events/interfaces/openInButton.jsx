@@ -129,7 +129,7 @@ const StyledButtonContainer = styled('div')`
 
 const StyledButton = styled(Button)`
   position: absolute;
-  z-index: 1000;
+  z-index: ${p => p.theme.zIndex.header};
   height: 36px;
   line-height: 1.5;
   padding: 0px 5px;
