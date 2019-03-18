@@ -1,10 +1,14 @@
 from __future__ import absolute_import
 
+from rest_framework import serializers
 from rest_framework.response import Response
 from django.db.models import Q
 from django.utils import six
 
-from sentry.api.bases.organization import OrganizationEndpoint
+from sentry.api.bases.organization import (
+    OrganizationEndpoint,
+    OrganizationSearchPermission,
+)
 from sentry.api.serializers import serialize
 from sentry.models.savedsearch import (
     DEFAULT_SAVED_SEARCH_QUERIES,
@@ -13,7 +17,14 @@ from sentry.models.savedsearch import (
 from sentry.models.search_common import SearchType
 
 
+class OrganizationSearchSerializer(serializers.Serializer):
+    type = serializers.IntegerField(required=True)
+    name = serializers.CharField(required=True)
+    query = serializers.CharField(required=True, min_length=1)
+
+
 class OrganizationSearchesEndpoint(OrganizationEndpoint):
+    permission_classes = (OrganizationSearchPermission, )
 
     def get(self, request, organization):
         """
@@ -75,3 +86,28 @@ class OrganizationSearchesEndpoint(OrganizationEndpoint):
             ).order_by('name', 'project'))
 
         return Response(serialize(results, request.user))
+
+    def post(self, request, organization):
+        serializer = OrganizationSearchSerializer(data=request.DATA)
+
+        if serializer.is_valid():
+            result = serializer.object
+            # Prevent from creating duplicate queries
+            if SavedSearch.objects.filter(
+                Q(is_global=True) | Q(organization=organization, owner__isnull=True),
+                query=result['query'],
+            ).exists():
+                return Response(
+                    {'detail': u'Query {} already exists'.format(result['query'])},
+                    status=400,
+                )
+
+            saved_search = SavedSearch.objects.create(
+                organization=organization,
+                type=result['type'],
+                name=result['name'],
+                query=result['query'],
+            )
+
+            return Response(serialize(saved_search, request.user))
+        return Response(serializer.errors, status=400)
