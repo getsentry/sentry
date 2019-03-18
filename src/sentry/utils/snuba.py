@@ -356,8 +356,11 @@ def transform_aliases_and_query(**kwargs):
     for (idx, col) in enumerate(groupby):
         if col not in derived_columns:
             name = get_snuba_column_name(col)
-            groupby[idx] = name
-            translated_columns[name] = col
+        else:
+            name = col
+
+        groupby[idx] = name
+        translated_columns[name] = col
 
     for aggregation in aggregations or []:
         derived_columns.add(aggregation[2])
