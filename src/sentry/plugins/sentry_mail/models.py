@@ -368,6 +368,9 @@ class MailPlugin(NotificationPlugin):
         if not participants:
             return
 
+        org = group.organization
+        enhanced_privacy = org.flags.enhanced_privacy
+
         context = {
             'project': project,
             'project_link': absolute_uri(u'/{}/{}/'.format(
@@ -387,6 +390,7 @@ class MailPlugin(NotificationPlugin):
             )),
             'group': group,
             'report': payload['report'],
+            'enhanced_privacy': enhanced_privacy,
         }
 
         subject_prefix = self.get_option('subject_prefix', project) or self._subject_prefix()
