@@ -1,0 +1,34 @@
+---
+created: '2019-03-16T14:31:51.956347Z'
+creator: sentry
+source: tests/sentry/grouping/test_variants.py
+---
+app:
+  hash: 'fed4f6eb500e04f59e97d31e8743ec8f'
+  component:
+    app*
+      exception*
+        stacktrace
+          frame (non app frame)
+            function* (isolated function)
+              u'Scaleform::GFx::IME::GImeNamesManagerVista::OnActivated'
+          frame (non app frame)
+            function* (isolated function)
+              u'Scaleform::GFx::AS3::IMEManager::DispatchEvent'
+        type*
+          u'log_demo'
+--------------------------------------------------------------------------
+system:
+  hash: 'd6125002ce075cab3755011dddefe9e1'
+  component:
+    system*
+      exception*
+        stacktrace*
+          frame*
+            function* (isolated function)
+              u'Scaleform::GFx::IME::GImeNamesManagerVista::OnActivated'
+          frame*
+            function* (isolated function)
+              u'Scaleform::GFx::AS3::IMEManager::DispatchEvent'
+        type*
+          u'log_demo'
