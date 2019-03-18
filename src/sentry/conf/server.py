@@ -819,8 +819,10 @@ SENTRY_FEATURES = {
     'organizations:internal-catchall': False,
     # Enable inviting members to organizations.
     'organizations:invite-members': True,
-    # Enable new saved searches (org-wide saved searches + pinned search + recent searches)
+    # Enable org-wide saved searches and user pinned search
     'organizations:org-saved-searches': False,
+    # Enable user recent searches
+    'organizations:recent-searches': False,
     # Enable organizations to create and utilize Sentry Apps.
     'organizations:sentry-apps': False,
 

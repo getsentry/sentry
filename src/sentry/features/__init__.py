@@ -74,6 +74,7 @@ default_manager.add('organizations:onboarding', OrganizationFeature)  # NOQA
 default_manager.add('organizations:org-saved-searches', OrganizationFeature)  # NOQA
 default_manager.add('organizations:relay', OrganizationFeature)  # NOQA
 default_manager.add('organizations:release-commits', OrganizationFeature)  # NOQA
+default_manager.add('organizations:recent-searches', OrganizationFeature)  # NOQA
 default_manager.add('organizations:repos', OrganizationFeature)  # NOQA
 default_manager.add('organizations:require-2fa', OrganizationFeature)  # NOQA
 default_manager.add('organizations:sentry10', OrganizationFeature)  # NOQA
