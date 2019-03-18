@@ -12,6 +12,7 @@ const OrganizationsStore = Reflux.createStore({
 
   init() {
     this.items = [];
+    this.loaded = false;
   },
 
   onUpdate(org) {
@@ -59,6 +60,7 @@ const OrganizationsStore = Reflux.createStore({
 
   load(items) {
     this.items = items;
+    this.loaded = true;
     this.trigger(items);
   },
 });

@@ -1,0 +1,17 @@
+---
+created: '2019-03-14T17:12:35.925641Z'
+creator: sentry
+source: tests/sentry/event_manager/interfaces/test_mechanism.py
+---
+errors: null
+tags:
+- - mechanism
+  - generic
+to_json:
+  meta:
+    mach_exception:
+      code: 0
+      exception: 10
+      name: EXC_CRASH
+      subcode: 0
+  type: generic

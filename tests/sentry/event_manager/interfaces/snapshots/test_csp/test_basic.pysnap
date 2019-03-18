@@ -1,0 +1,19 @@
+---
+created: '2019-03-14T17:12:35.009400Z'
+creator: sentry
+source: tests/sentry/event_manager/interfaces/test_csp.py
+---
+culprit: style-src cdn.example.com
+errors: null
+message: Blocked 'style' from 'example.com'
+origin: http://example.com
+tags:
+- - effective-directive
+  - style-src
+- - blocked-uri
+  - http://example.com/lol.css
+to_json:
+  blocked_uri: http://example.com/lol.css
+  document_uri: http://example.com
+  effective_directive: style-src
+  violated_directive: style-src cdn.example.com

@@ -1,0 +1,7 @@
+---
+created: '2019-03-14T17:12:34.838618Z'
+creator: sentry
+source: tests/sentry/event_manager/interfaces/test_breadcrumbs.py
+---
+errors: null
+to_json: null

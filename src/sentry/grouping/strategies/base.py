@@ -1,10 +1,11 @@
 from __future__ import absolute_import
 
+import inspect
+
 from sentry.grouping.component import GroupingComponent
 
 
 STRATEGIES = {}
-CONFIGURATIONS = {}
 
 
 def strategy(id, variants, interfaces, name=None, score=None):
@@ -25,13 +26,6 @@ def strategy(id, variants, interfaces, name=None, score=None):
         )
         return rv
     return decorator
-
-
-def register_strategy_config(id, strategies, delegates=None):
-    """Registers a strategy config."""
-    rv = StrategyConfiguration(id, strategies, delegates)
-    CONFIGURATIONS[rv.id] = rv
-    return rv
 
 
 def lookup_strategy(strategy_id):
@@ -166,10 +160,11 @@ class Strategy(object):
 
 class StrategyConfiguration(object):
 
-    def __init__(self, id, strategies, delegates=None):
+    def __init__(self, id, strategies, delegates=None, changelog=None):
         self.id = id
         self.strategies = {}
         self.delegates = {}
+        self.changelog = inspect.cleandoc(changelog or '')
 
         for strategy_id in strategies:
             strategy = lookup_strategy(strategy_id)
@@ -213,4 +208,4 @@ class StrategyConfiguration(object):
 
 
 # A noop config that is passed by default
-NOTHING_CONFIG = register_strategy_config('nothing', {})
+NOTHING_CONFIG = StrategyConfiguration('nothing', {})

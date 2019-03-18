@@ -1,0 +1,9 @@
+---
+created: '2019-03-14T17:12:36.699582Z'
+creator: sentry
+source: tests/sentry/event_manager/interfaces/test_template.py
+---
+api_context: null
+errors: null
+to_json: null
+to_string: null

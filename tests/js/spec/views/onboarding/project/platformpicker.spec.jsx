@@ -4,18 +4,14 @@ import {shallow, mount} from 'enzyme';
 
 import {Client} from 'app/api';
 import PlatformPicker from 'app/views/onboarding/project/platformpicker';
-import sinon from 'sinon';
 
 describe('PlatformPicker', function() {
-  let sandbox;
-
   beforeEach(function() {
-    sandbox = sinon.sandbox.create();
-    this.stubbedApiRequest = sandbox.stub(Client.prototype, 'request');
+    this.stubbedApiRequest = jest.spyOn(Client.prototype, 'request');
   });
 
   afterEach(function() {
-    sandbox.restore();
+    Client.prototype.request.mockRestore();
   });
 
   describe('render()', function() {

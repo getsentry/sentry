@@ -498,6 +498,7 @@ exports[`Sidebar SidebarDropdown can open Sidebar org/name dropdown menu 1`] = `
                   <SwitchOrganization
                     canCreateOrganization={false}
                     organizations={Array []}
+                    organizationsLoading={true}
                   >
                     <DropdownMenu
                       closeOnEscape={true}
@@ -1258,6 +1259,7 @@ exports[`Sidebar SidebarPanel can show Incidents in Sidebar Panel 1`] = `
                 aria-disabled={false}
                 aria-label="Learn more"
                 className="css-dkprmi-StyledButton-getColors eqrebog0"
+                external={true}
                 href="https://status.sentry.io"
                 onClick={[Function]}
                 role="button"

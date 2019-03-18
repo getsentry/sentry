@@ -1,5 +1,7 @@
 from __future__ import absolute_import, print_function
 
+import logging
+
 from types import LambdaType
 
 from sentry.models import Organization
@@ -240,3 +242,6 @@ class Pipeline(object):
 
     def fetch_state(self, key=None):
         return self.state.data if key is None else self.state.data.get(key)
+
+    def get_logger(self):
+        return logging.getLogger('sentry.integration.%s' % (self.provider.key, ))

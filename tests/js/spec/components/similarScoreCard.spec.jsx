@@ -3,15 +3,9 @@ import {shallow} from 'enzyme';
 import SimilarScoreCard from 'app/components/similarScoreCard';
 
 describe('SimilarScoreCard', function() {
-  let sandbox;
+  beforeEach(function() {});
 
-  beforeEach(function() {
-    sandbox = sinon.sandbox.create();
-  });
-
-  afterEach(function() {
-    sandbox.restore();
-  });
+  afterEach(function() {});
 
   it('renders', function() {
     const wrapper = shallow(<SimilarScoreCard />);

@@ -5,17 +5,12 @@ import StreamActions from 'app/views/stream/actions';
 import SelectedGroupStore from 'app/stores/selectedGroupStore';
 
 describe('StreamActions', function() {
-  let sandbox;
   let actions;
   let wrapper;
 
-  beforeEach(function() {
-    sandbox = sinon.sandbox.create();
-  });
+  beforeEach(function() {});
 
-  afterEach(function() {
-    sandbox.restore();
-  });
+  afterEach(function() {});
 
   describe('Bulk', function() {
     describe('Total results > bulk limit', function() {
@@ -142,7 +137,12 @@ describe('StreamActions', function() {
   });
 
   describe('actionSelectedGroups()', function() {
+    beforeAll(function() {
+      jest.spyOn(SelectedGroupStore, 'deselectAll');
+    });
+
     beforeEach(function() {
+      SelectedGroupStore.deselectAll.mockReset();
       actions = shallow(
         <StreamActions
           query=""
@@ -162,17 +162,21 @@ describe('StreamActions', function() {
       ).instance();
     });
 
+    afterAll(function() {
+      SelectedGroupStore.mockRestore();
+    });
+
     describe('for all items', function() {
       it("should invoke the callback with 'undefined' and deselect all", function() {
-        sandbox.stub(SelectedGroupStore, 'deselectAll');
-        const callback = sandbox.stub();
+        const callback = jest.fn();
 
         actions.state.allInQuerySelected = true;
 
         actions.actionSelectedGroups(callback);
 
-        expect(callback.withArgs(undefined).calledOnce).toBeTruthy();
-        expect(SelectedGroupStore.deselectAll.calledOnce).toBeTruthy();
+        expect(callback).toHaveBeenCalledWith(undefined);
+        expect(callback).toHaveBeenCalledTimes(1);
+        expect(SelectedGroupStore.deselectAll).toHaveBeenCalledTimes(1);
 
         // all selected is reset
         expect(actions.state.allInQuerySelected).toBe(false);
@@ -181,15 +185,17 @@ describe('StreamActions', function() {
 
     describe('for page-selected items', function() {
       it('should invoke the callback with an array of selected items and deselect all', function() {
-        sandbox.stub(SelectedGroupStore, 'deselectAll');
-        sandbox.stub(SelectedGroupStore, 'getSelectedIds').returns(new Set([1, 2, 3]));
+        jest
+          .spyOn(SelectedGroupStore, 'getSelectedIds')
+          .mockImplementation(() => new Set([1, 2, 3]));
 
         actions.state.allInQuerySelected = false;
-        const callback = sandbox.stub();
+        const callback = jest.fn();
         actions.actionSelectedGroups(callback);
 
-        expect(callback.withArgs([1, 2, 3]).calledOnce).toBeTruthy();
-        expect(SelectedGroupStore.deselectAll.calledOnce).toBeTruthy();
+        expect(callback).toHaveBeenCalledWith([1, 2, 3]);
+        expect(callback).toHaveBeenCalledTimes(1);
+        expect(SelectedGroupStore.deselectAll).toHaveBeenCalledTimes(1);
       });
     });
   });

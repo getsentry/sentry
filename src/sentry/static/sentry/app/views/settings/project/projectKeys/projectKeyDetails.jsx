@@ -387,7 +387,7 @@ const KeySettings = createReactClass({
                 initialData={data}
               >
                 <Panel>
-                  <PanelHeader>{t('CDN')}</PanelHeader>
+                  <PanelHeader>{t('JavaScript Loader')}</PanelHeader>
                   <PanelBody>
                     <Field
                       help={tct(

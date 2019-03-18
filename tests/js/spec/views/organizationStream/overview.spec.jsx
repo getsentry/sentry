@@ -12,7 +12,6 @@ const DEFAULT_LINKS_HEADER =
   '<http://127.0.0.1:8000/api/0/organizations/org-slug/issues/?cursor=1443575731:0:0>; rel="next"; results="true"; cursor="1443575731:0:0';
 
 describe('OrganizationStream', function() {
-  let sandbox;
   let wrapper;
   let props;
 
@@ -25,8 +24,6 @@ describe('OrganizationStream', function() {
   let fetchMembersRequest;
 
   beforeEach(function() {
-    sandbox = sinon.sandbox.create();
-
     project = TestStubs.ProjectDetails({
       id: '3559',
       name: 'Foo Project',
@@ -81,7 +78,6 @@ describe('OrganizationStream', function() {
       body: [TestStubs.Member({projects: [project.slug]})],
     });
 
-    sandbox.stub(browserHistory, 'push');
     TagStore.init();
 
     props = {
@@ -97,8 +93,87 @@ describe('OrganizationStream', function() {
   });
 
   afterEach(function() {
-    sandbox.restore();
     MockApiClient.clearMockResponses();
+  });
+
+  describe('transitionTo', function() {
+    let instance;
+    beforeEach(function() {
+      wrapper = shallow(<OrganizationStream {...props} />);
+      instance = wrapper.instance();
+    });
+
+    it('transitions to query updates', function() {
+      instance.transitionTo({query: 'is:ignored'});
+
+      expect(browserHistory.push).toHaveBeenCalledWith({
+        pathname: '/organizations/org-slug/issues/',
+        query: {
+          environment: [],
+          project: [parseInt(project.id, 10)],
+          query: 'is:ignored',
+          statsPeriod: '14d',
+        },
+      });
+    });
+
+    it('transitions to saved search that has a projectId', function() {
+      savedSearch = {
+        id: 123,
+        projectId: 99,
+        query: 'foo:bar',
+      };
+      instance.setState({savedSearch});
+      instance.transitionTo();
+
+      expect(browserHistory.push).toHaveBeenCalledWith({
+        pathname: '/organizations/org-slug/issues/searches/123/',
+        query: {
+          environment: [],
+          project: [savedSearch.projectId],
+          statsPeriod: '14d',
+        },
+      });
+    });
+
+    it('goes to all projects when using a basic saved searches and global-views feature', function() {
+      organization.features = ['global-views'];
+      savedSearch = {
+        id: 1,
+        project: null,
+        query: 'is:unresolved',
+      };
+      instance.setState({savedSearch});
+      instance.transitionTo();
+
+      expect(browserHistory.push).toHaveBeenCalledWith({
+        pathname: '/organizations/org-slug/issues/searches/1/',
+        query: {
+          environment: [],
+          statsPeriod: '14d',
+        },
+      });
+    });
+
+    it('retains project selection when using a basic saved search and no global-views feature', function() {
+      organization.features = [];
+      savedSearch = {
+        id: 1,
+        projectId: null,
+        query: 'is:unresolved',
+      };
+      instance.setState({savedSearch});
+      instance.transitionTo();
+
+      expect(browserHistory.push).toHaveBeenCalledWith({
+        pathname: '/organizations/org-slug/issues/searches/1/',
+        query: {
+          environment: [],
+          project: props.selection.projects,
+          statsPeriod: '14d',
+        },
+      });
+    });
   });
 
   describe('getEndpointParams', function() {

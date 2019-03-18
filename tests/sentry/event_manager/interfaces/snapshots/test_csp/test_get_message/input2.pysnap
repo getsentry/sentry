@@ -1,0 +1,19 @@
+---
+created: '2019-03-14T17:12:35.114199Z'
+creator: sentry
+source: tests/sentry/event_manager/interfaces/test_csp.py
+---
+culprit: script-src 'unsafe-inline'
+errors: null
+message: Blocked unsafe inline 'script'
+origin: http://example.com/foo
+tags:
+- - effective-directive
+  - script-src
+- - blocked-uri
+  - ''
+to_json:
+  blocked_uri: ''
+  document_uri: http://example.com/foo
+  effective_directive: script-src
+  violated_directive: script-src 'unsafe-inline'

@@ -5,15 +5,9 @@ import EventsTable from 'app/components/eventsTable/eventsTable';
 import events from '../../../mocks/events';
 
 describe('EventsTable', function() {
-  let sandbox;
+  beforeEach(function() {});
 
-  beforeEach(function() {
-    sandbox = sinon.sandbox.create();
-  });
-
-  afterEach(function() {
-    sandbox.restore();
-  });
+  afterEach(function() {});
 
   it('renders', function() {
     const wrapper = shallow(

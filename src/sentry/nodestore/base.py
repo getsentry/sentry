@@ -64,7 +64,7 @@ class NodeStorage(local, Service):
         """
         return dict((id, self.get(id)) for id in id_list)
 
-    def set(self, id, data):
+    def set(self, id, data, ttl=None):
         """
         >>> nodestore.set('key1', {'foo': 'bar'})
         """

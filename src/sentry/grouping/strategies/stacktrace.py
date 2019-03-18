@@ -1,21 +1,16 @@
+# coding: utf-8
 from __future__ import absolute_import
 
 import re
-import posixpath
 
 from sentry.grouping.component import GroupingComponent
 from sentry.grouping.strategies.base import strategy
+from sentry.grouping.strategies.utils import replace_enclosed_string, split_func_tokens
 
 
 _ruby_anon_func = re.compile(r'_\d{2,}')
-_filename_version_re = re.compile(
-    r"""(?:
-    v?(?:\d+\.)*\d+|   # version numbers, v1, 1.0.0
-    [a-f0-9]{7,8}|     # short sha
-    [a-f0-9]{32}|      # md5
-    [a-f0-9]{40}       # sha1
-)/""", re.X | re.I
-)
+_basename_re = re.compile(r'[/\\]')
+_cpp_trailer_re = re.compile(r'(\bconst\b|&)$')
 
 # OpenJDK auto-generated classes for reflection access:
 #   sun.reflect.GeneratedSerializationConstructorAccessor123
@@ -40,6 +35,10 @@ _java_assist_enhancer_re = re.compile(r'''(\$\$_javassist)(?:_seam)?(?:_[0-9]+)?
 
 # Clojure anon functions are compiled down to myapp.mymodule$fn__12345
 _clojure_enhancer_re = re.compile(r'''(\$fn__)\d+''', re.X)
+
+# Native function trim re.  For now this is a simple hack until we have the
+# language hints in which will let us trim this down better.
+_native_function_trim_re = re.compile(r'^(.[^(]*)\(')
 
 # fields that need to be the same between frames for them to be considered
 # recursive calls
@@ -117,14 +116,9 @@ def remove_filename_outliers_v1(filename, platform):
 
     - Sometimes filename paths contain build numbers
     """
-    # On cocoa we generally only want to use the last path component as
-    # the filename.  The reason for this is that the chances are very high
-    # that full filenames contain information we do want to strip but
-    # currently can't (for instance because the information we get from
-    # the dwarf files does not contain prefix information) and that might
-    # contain things like /Users/foo/Dropbox/...
-    if platform == 'cocoa':
-        return posixpath.basename(filename), 'stripped to basename'
+    # Only use the platform independent basename for grouping and
+    # lowercase it
+    filename = _basename_re.split(filename)[-1].lower()
 
     removed = []
     if platform == 'java':
@@ -133,17 +127,61 @@ def remove_filename_outliers_v1(filename, platform):
             removed.append('javassist parts')
             filename = new_filename
 
-    new_filename = _filename_version_re.sub('<version>/', filename)
-    if new_filename != filename:
-        removed.append('version')
-        filename = new_filename
-
     if removed:
         return filename, 'removed %s' % ' and '.join(removed)
     return filename, None
 
 
-def remove_function_outliers_v1(function):
+def isolate_native_function_v1(function):
+    original_function = function
+    function = function.strip()
+
+    # Ensure we don't operated on objc functions
+    if function.startswith(('[', '+[', '-[')):
+        return function
+
+    # Chop off C++ trailers
+    while 1:
+        match = _cpp_trailer_re.search(function)
+        if match is None:
+            break
+        function = function[:match.start()].rstrip()
+
+    # Because operator<< really screws with our balancing, so let's work
+    # around that by replacing it with a character we do not observe in
+    # `split_func_tokens` or `replace_enclosed_string`.
+    function = function \
+        .replace('operator<<', u'operator⟨⟨') \
+        .replace('operator<', u'operator⟨') \
+        .replace('operator()', u'operator◯')
+
+    # Remove the arguments if there is one.
+    def process_args(value, start):
+        value = value.strip()
+        if value in ('anonymous namespace', 'operator'):
+            return '(%s)' % value
+        return ''
+    function = replace_enclosed_string(function, '(', ')', process_args)
+
+    # Resolve generic types, but special case rust which uses things like
+    # <Foo as Bar>::baz to denote traits.
+    def process_generics(value, start):
+        # Rust special case
+        if start == 0:
+            return '<%s>' % replace_enclosed_string(value, '<', '>', process_generics)
+        return '<T>'
+    function = replace_enclosed_string(function, '<', '>', process_generics)
+
+    # The last token is the function name.
+    tokens = split_func_tokens(function)
+    if tokens:
+        return tokens[-1].replace(u'⟨', '<').replace(u'◯', '()')
+
+    # This really should never happen
+    return original_function
+
+
+def remove_function_outliers_v1(function, platform):
     """
     Attempt to normalize functions by removing common platform outliers.
 
@@ -151,12 +189,19 @@ def remove_function_outliers_v1(function):
       such as in erb and the active_support library.
     - Block functions have metadata that we don't care about.
     """
-    if function.startswith('block '):
-        return 'block', 'ruby block'
-    new_function = _ruby_anon_func.sub('_<anon>', function)
-    if new_function != function:
-        return new_function, 'trimmed integer suffix'
-    return new_function, None
+    if platform == 'ruby':
+        if function.startswith('block '):
+            return 'block', 'ruby block'
+        new_function = _ruby_anon_func.sub('_<anon>', function)
+        if new_function != function:
+            return new_function, 'trimmed integer suffix'
+
+    if platform in ('objc', 'cocoa', 'native'):
+        new_function = isolate_native_function_v1(function)
+        if new_function != function:
+            return new_function, 'isolated function'
+
+    return function, None
 
 
 @strategy(
@@ -185,24 +230,15 @@ def frame_v1(frame, event, **meta):
         contributes = False
         hint = 'native code indicated by filename'
     elif frame.filename:
+        hashable_filename, hashable_filename_hint = \
+            remove_filename_outliers_v1(frame.filename, platform)
         if is_url_frame_v1(frame):
             filename_component.update(
                 contributes=False,
-                values=[frame.filename],
-                hint='ignored because filename is a URL',
-            )
-        # XXX(dcramer): dont compute hash using frames containing the 'Caused by'
-        # text as it contains an exception value which may may contain dynamic
-        # values (see raven-java#125)
-        elif frame.filename.startswith('Caused by: '):
-            filename_component.update(
-                values=[frame.filename],
-                contributes=False,
-                hint='ignored because invalid'
+                values=[hashable_filename],
+                hint='ignored because frame points to a URL',
             )
         else:
-            hashable_filename, hashable_filename_hint = \
-                remove_filename_outliers_v1(frame.filename, platform)
             filename_component.update(
                 values=[hashable_filename],
                 hint=hashable_filename_hint
@@ -229,88 +265,27 @@ def frame_v1(frame, event, **meta):
                 values=[module_name],
                 hint=module_hint
             )
-        if frame.filename:
+        if filename_component.contributes:
             filename_component.update(
-                values=[frame.filename],
                 contributes=False,
                 hint='module takes precedence'
             )
 
-    # Context line when available is the primary contributor
-    context_line_component = GroupingComponent(id='context-line')
-    if frame.context_line is not None:
-        if len(frame.context_line) > 120:
-            context_line_component.update(hint='discarded because line too long')
-        elif is_url_frame_v1(frame) and not frame.function:
-            context_line_component.update(hint='discarded because from URL origin')
-        else:
-            context_line_component.update(values=[frame.context_line])
-
-    symbol_component = GroupingComponent(id='symbol')
     function_component = GroupingComponent(id='function')
-    lineno_component = GroupingComponent(id='lineno')
 
-    # The context line grouping information is the most reliable one.
-    # If we did not manage to find some information there, we want to
-    # see if we can come up with some extra information.  We only want
-    # to do that if we managed to get a module of filename.
-    if not context_line_component.contributes and \
-       (module_component.contributes or filename_component.contributes):
-        if frame.symbol:
-            symbol_component.update(values=[frame.symbol])
-            if frame.function:
-                function_component.update(
-                    contributes=False,
-                    values=[frame.function],
-                    hint='symbol takes precedence'
-                )
-            if frame.lineno:
-                lineno_component.update(
-                    contributes=False,
-                    values=[frame.lineno],
-                    hint='symbol takes precedence'
-                )
-        elif frame.function:
-            if is_unhashable_function_v1(frame):
-                function_component.update(values=[
-                    GroupingComponent(
-                        id='salt',
-                        values=['<function>'],
-                        hint='normalized lambda function name'
-                    )
-                ])
-            else:
-                function, function_hint = remove_function_outliers_v1(frame.function)
-                function_component.update(
-                    values=[function],
-                    hint=function_hint
-                )
-            if frame.lineno:
-                lineno_component.update(
-                    contributes=False,
-                    values=[frame.lineno],
-                    hint='function takes precedence'
-                )
-        elif frame.lineno:
-            lineno_component.update(values=[frame.lineno])
-    else:
-        if frame.symbol:
-            symbol_component.update(
-                contributes=False,
-                values=[frame.symbol],
-                hint='symbol is used only if module or filename are available'
-            )
-        if frame.function:
+    if frame.function:
+        function, function_hint = remove_function_outliers_v1(
+            frame.function, platform)
+        if is_unhashable_function_v1(frame):
             function_component.update(
+                values=[function],
                 contributes=False,
-                values=[frame.function],
-                hint='function name is used only if module or filename are available'
+                hint='normalized lambda function name ignored'
             )
-        if frame.lineno:
-            lineno_component.update(
-                contributes=False,
-                values=[frame.lineno],
-                hint='line number is used only if module or filename are available'
+        else:
+            function_component.update(
+                values=[function],
+                hint=function_hint
             )
 
     return GroupingComponent(
@@ -318,10 +293,7 @@ def frame_v1(frame, event, **meta):
         values=[
             module_component,
             filename_component,
-            context_line_component,
-            symbol_component,
             function_component,
-            lineno_component,
         ],
         contributes=contributes,
         hint=hint,
@@ -336,31 +308,8 @@ def frame_v1(frame, event, **meta):
 )
 def stacktrace_v1(stacktrace, config, variant, **meta):
     frames = stacktrace.frames
-    contributes = None
     hint = None
     all_frames_considered_in_app = False
-
-    # TODO(dcramer): this should apply only to platform=javascript
-    # Browser JS will often throw errors (from inlined code in an HTML page)
-    # which contain only a single frame, no function name, and have the HTML
-    # document as the filename. In this case the hash is often not usable as
-    # the context cannot be trusted and the URL is dynamic (this also means
-    # the line number cannot be trusted).
-    if (len(frames) == 1 and not frames[0].function and frames[0].is_url()):
-        contributes = False
-        hint = 'ignored single frame stack'
-    elif variant == 'app':
-        total_frames = len(frames)
-        in_app_count = sum(1 if f.in_app else 0 for f in frames)
-        if in_app_count == 0:
-            in_app_count = total_frames
-            all_frames_considered_in_app = True
-
-        # if app frames make up less than 10% of the stacktrace discard
-        # the hash as invalid
-        if total_frames > 0 and in_app_count / float(total_frames) < 0.10:
-            contributes = False
-            hint = 'less than 10% of frames are in-app'
 
     values = []
     prev_frame = None
@@ -386,6 +335,5 @@ def stacktrace_v1(stacktrace, config, variant, **meta):
     return GroupingComponent(
         id='stacktrace',
         values=values,
-        contributes=contributes,
         hint=hint,
     )
