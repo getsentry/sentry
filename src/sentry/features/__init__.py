@@ -71,6 +71,7 @@ default_manager.add('organizations:legacy-event-id', OrganizationFeature)  # NOQ
 default_manager.add('organizations:monitors', OrganizationFeature)  # NOQA
 default_manager.add('organizations:new-teams', OrganizationFeature)  # NOQA
 default_manager.add('organizations:onboarding', OrganizationFeature)  # NOQA
+default_manager.add('organizations:org-saved-searches', OrganizationFeature)  # NOQA
 default_manager.add('organizations:relay', OrganizationFeature)  # NOQA
 default_manager.add('organizations:release-commits', OrganizationFeature)  # NOQA
 default_manager.add('organizations:repos', OrganizationFeature)  # NOQA
