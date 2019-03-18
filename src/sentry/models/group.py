@@ -12,14 +12,14 @@ import math
 import re
 import warnings
 
-from datetime import timedelta
+from datetime import datetime, timedelta
 from django.core.urlresolvers import reverse
 from django.db import models
 from django.utils import timezone
 from django.utils.http import urlencode
 from django.utils.translation import ugettext_lazy as _
 
-from sentry import eventtypes, tagstore
+from sentry import eventtypes, tagstore, options
 from sentry.constants import (
     DEFAULT_LOGGER_NAME, EVENT_ORDERING_KEY, LOG_LEVELS, MAX_CULPRIT_LENGTH
 )
@@ -377,6 +377,39 @@ class Group(Model):
                 self._latest_event = None
         return self._latest_event
 
+    def get_latest_event_for_environments(self, environments=[]):
+        from sentry.utils import snuba
+        from sentry.models import SnubaEvent
+
+        use_snuba = options.get('snuba.events-queries.enabled')
+
+        # Fetch without environment if Snuba is not enabled
+        if not use_snuba:
+            return self.get_latest_event()
+
+        conditions = []
+
+        if len(environments) > 0:
+            conditions.append(['environment', 'IN', environments])
+
+        result = snuba.raw_query(
+            start=datetime.utcfromtimestamp(0),
+            end=datetime.utcnow(),
+            selected_columns=SnubaEvent.selected_columns,
+            conditions=conditions,
+            filter_keys={
+                'issue': [self.id],
+                'project_id': [self.project_id],
+            },
+            orderby=['-timestamp', '-event_id'],
+            limit=1,
+        )
+
+        if 'error' not in result and len(result['data']) == 1:
+            return SnubaEvent(result['data'][0])
+
+        return None
+
     def get_oldest_event(self):
         from sentry.models import Event
 
@@ -392,6 +425,39 @@ class Group(Model):
             except IndexError:
                 self._oldest_event = None
         return self._oldest_event
+
+    def get_oldest_event_for_environments(self, environments=[]):
+        from sentry.utils import snuba
+        from sentry.models import SnubaEvent
+
+        use_snuba = options.get('snuba.events-queries.enabled')
+
+        # Fetch without environment if Snuba is not enabled
+        if not use_snuba:
+            return self.get_oldest_event()
+
+        conditions = []
+
+        if len(environments) > 0:
+            conditions.append(['environment', 'IN', environments])
+
+        result = snuba.raw_query(
+            start=datetime.utcfromtimestamp(0),
+            end=datetime.utcnow(),
+            selected_columns=SnubaEvent.selected_columns,
+            conditions=conditions,
+            filter_keys={
+                'issue': [self.id],
+                'project_id': [self.project_id],
+            },
+            orderby=['timestamp', 'event_id'],
+            limit=1,
+        )
+
+        if 'error' not in result and len(result['data']) == 1:
+            return SnubaEvent(result['data'][0])
+
+        return None
 
     def get_first_release(self):
         if self.first_release_id is None:

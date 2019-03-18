@@ -32,7 +32,11 @@ class GroupEventsOldestEndpoint(GroupEndpoint):
 
         :pparam string group_id: the ID of the issue
         """
-        event = group.get_oldest_event()
+
+        requested_environments = set(request.GET.getlist('environment'))
+
+        event = group.get_oldest_event_for_environments(requested_environments)
+
         if not event:
             return Response({'detail': 'No events found for group'}, status=404)
 
