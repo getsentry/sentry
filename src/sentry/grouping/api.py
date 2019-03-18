@@ -18,21 +18,48 @@ class ConfigNotFoundException(LookupError):
 
 
 def get_grouping_config_for_project(project, silent=True):
-    config = project.get_option('sentry:grouping_config')
-    if config is None:
-        return DEFAULT_CONFIG
+    """Fetches all the information necessary for grouping from the project
+    settings.  The return value of this is persisted with the event on
+    ingestion so that the grouping algorithm can be re-run later.
 
-    try:
-        CONFIGURATIONS[config]
-    except KeyError:
-        if not silent:
-            raise ConfigNotFoundException(config)
-        return DEFAULT_CONFIG
+    This is called early on in normalization so that everything that is needed
+    to group the project is pulled into the event.
+    """
+    config_id = project.get_option('sentry:grouping_config')
+    if config_id is None:
+        config_id = DEFAULT_CONFIG
     else:
-        return config
+        try:
+            CONFIGURATIONS[config_id]
+        except KeyError:
+            if not silent:
+                raise ConfigNotFoundException(config_id)
+            config_id = DEFAULT_CONFIG
+
+    # At a later point we might want to store additional information here
+    # such as frames that mark the end of a stacktrace and more.
+    return {
+        'id': config_id,
+    }
 
 
-def get_calculated_grouping_variants_for_event(event, config_name=None):
+def get_default_grouping_config():
+    """Returns the default grouping config."""
+    return {
+        'id': DEFAULT_CONFIG,
+    }
+
+
+def _get_config(config):
+    if config is None:
+        config = get_default_grouping_config()
+    elif config.get('id') not in CONFIGURATIONS:
+        raise ConfigNotFoundException(config.get('id'))
+    config_obj = CONFIGURATIONS[config['id']]
+    return config_obj, config
+
+
+def get_calculated_grouping_variants_for_event(event, config=None):
     """Given an event this returns a dictionary of the matching grouping
     variants.  Checksum and fingerprinting logic are not handled by this
     function which is handled by `get_grouping_variants_for_event`.
@@ -40,15 +67,11 @@ def get_calculated_grouping_variants_for_event(event, config_name=None):
     winning_strategy = None
     precedence_hint = None
     per_variant_components = {}
+    config_obj, options = _get_config(config)
 
-    config_name = config_name or DEFAULT_CONFIG
-    try:
-        config = CONFIGURATIONS[config_name]
-    except LookupError:
-        raise ConfigNotFoundException(config_name)
-
-    for strategy in config.iter_strategies():
-        rv = strategy.get_grouping_component_variants(event, config=config)
+    for strategy in config_obj.iter_strategies():
+        rv = strategy.get_grouping_component_variants(
+            event, config=config_obj, options=options)
         for (variant, component) in six.iteritems(rv):
             per_variant_components.setdefault(variant, []).append(component)
 
@@ -79,7 +102,7 @@ def get_calculated_grouping_variants_for_event(event, config_name=None):
     return rv
 
 
-def get_grouping_variants_for_event(event, config_name=None):
+def get_grouping_variants_for_event(event, config=None):
     """Returns a dict of all grouping variants for this event."""
     # If a checksum is set the only variant that comes back from this
     # event is the checksum variant.
@@ -107,7 +130,7 @@ def get_grouping_variants_for_event(event, config_name=None):
 
     # At this point we need to calculate the default event values.  If the
     # fingerprint is salted we will wrap it.
-    components = get_calculated_grouping_variants_for_event(event, config_name)
+    components = get_calculated_grouping_variants_for_event(event, config)
     rv = {}
 
     # If the fingerprints are unsalted, we can return them right away.

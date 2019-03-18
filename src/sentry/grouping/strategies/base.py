@@ -82,7 +82,7 @@ class Strategy(object):
         self.variant_processor_func = func
         return func
 
-    def get_grouping_component(self, event, variant, config=None):
+    def get_grouping_component(self, event, variant, config=None, options=None):
         """Given a specific variant this calculates the grouping component.
         """
         args = []
@@ -91,9 +91,9 @@ class Strategy(object):
             if iface is None:
                 return None
             args.append(iface)
-        return self(event=event, variant=variant, config=config, *args)
+        return self(event=event, variant=variant, config=config, options=options, *args)
 
-    def get_grouping_component_variants(self, event, config=None):
+    def get_grouping_component_variants(self, event, config=None, options=None):
         """This returns a dictionary of all components by variant that this
         strategy can produce.
         """
@@ -102,7 +102,7 @@ class Strategy(object):
         # them all the same.
         if not self.mandatory_variants:
             for variant in self.variants:
-                component = self.get_grouping_component(event, variant, config)
+                component = self.get_grouping_component(event, variant, config, options)
                 if component is not None:
                     rv[variant] = component
 
@@ -111,7 +111,7 @@ class Strategy(object):
             prevent_contribution = None
 
             for variant in self.mandatory_variants:
-                component = self.get_grouping_component(event, variant, config)
+                component = self.get_grouping_component(event, variant, config, options)
                 if component is None:
                     continue
                 if component.contributes:
@@ -123,7 +123,7 @@ class Strategy(object):
             for variant in self.optional_variants:
                 # We also only want to create another variant if it
                 # produces different results than the mandatory components
-                component = self.get_grouping_component(event, variant, config)
+                component = self.get_grouping_component(event, variant, config, options)
                 if component is None:
                     continue
 
@@ -154,7 +154,7 @@ class Strategy(object):
 
         if self.variant_processor_func is not None:
             rv = self._invoke(self.variant_processor_func, rv,
-                              event=event, config=config)
+                              event=event, config=config, options=options)
         return rv
 
 

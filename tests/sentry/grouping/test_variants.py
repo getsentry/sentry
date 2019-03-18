@@ -68,13 +68,15 @@ def test_event_hash_variant(insta_snapshot, config_name, test_name, log):
     with open(os.path.join(_fixture_path, test_name + '.json')) as f:
         input = json.load(f)
 
-    mgr = EventManager(data=input)
+    mgr = EventManager(data=input, grouping_config={
+        'id': config_name,
+    })
     mgr.normalize()
     data = mgr.get_data()
     evt = Event(data=data, platform=data['platform'])
 
     rv = []
-    for (key, value) in sorted(evt.get_grouping_variants(force_config=config_name).items()):
+    for (key, value) in sorted(evt.get_grouping_variants().items()):
         if rv:
             rv.append('-' * 74)
         rv.append('%s:' % key)

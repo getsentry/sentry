@@ -150,17 +150,10 @@ class Event(Model):
         information if available.  Grouping hashes will take into account
         fingerprinting and checksums.
         """
-        stored_config = self.data.get('grouping_config')
-        if stored_config is None:
-            from sentry.grouping.strategies.configurations import DEFAULT_CONFIG
-            stored_config = DEFAULT_CONFIG
-
-        config_name = force_config or stored_config
-
         # If we have hashes stored in the data we use them, otherwise we
         # fall back to generating new ones from the data.  We can only use
         # this if we do not force a dfferent config.
-        if config_name == stored_config:
+        if force_config is None:
             hashes = self.data.get('hashes')
             if hashes is not None:
                 return hashes
@@ -174,8 +167,8 @@ class Event(Model):
         grouping components for each variant in a dictionary.
         """
         from sentry.grouping.api import get_grouping_variants_for_event
-        config_name = force_config or self.data.get('grouping_config')
-        return get_grouping_variants_for_event(self, config_name=config_name)
+        config = force_config or self.data.get('grouping_config')
+        return get_grouping_variants_for_event(self, config)
 
     def get_primary_hash(self):
         # TODO: This *might* need to be protected from an IndexError?
