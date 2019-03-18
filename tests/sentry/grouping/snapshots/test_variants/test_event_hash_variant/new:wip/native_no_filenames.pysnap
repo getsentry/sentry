@@ -1,0 +1,94 @@
+---
+created: '2019-03-15T18:37:00.151249Z'
+creator: sentry
+source: tests/sentry/grouping/test_variants.py
+---
+app:
+  hash: '0069ba38208554530eed55f7647f7c5c'
+  component:
+    app*
+      exception*
+        stacktrace*
+          frame*
+            function*
+              u'_main'
+          frame (non app frame)
+            function*
+              u'std::rt::lang_start'
+          frame (non app frame)
+            function*
+              u'std::rt::lang_start_internal'
+          frame*
+            function*
+              u'___rust_maybe_catch_panic'
+          frame (non app frame)
+            function*
+              u'std::panicking::try::do_call'
+          frame (non app frame)
+            function*
+              u'std::rt::lang_start::{{closure}}'
+          frame*
+            function*
+              u'log_demo::main'
+          frame*
+            function*
+              u'log::__private_api_log'
+          frame (non app frame)
+            function*
+              u'<sentry::integrations::log::Logger as log::Log>::log'
+          frame (non app frame)
+            function*
+              u'sentry::hub::Hub::with_active'
+          frame (non app frame)
+            function*
+              u'sentry::hub::Hub::with'
+          frame (non app frame)
+            function*
+              u'sentry::hub::Hub::with_active::{{closure}}'
+        type*
+          u'log_demo'
+--------------------------------------------------------------------------
+system:
+  hash: '30f71d6ff287238ce1541e21e633a8c5'
+  component:
+    system*
+      exception*
+        stacktrace*
+          frame*
+            function*
+              u'_main'
+          frame*
+            function*
+              u'std::rt::lang_start'
+          frame*
+            function*
+              u'std::rt::lang_start_internal'
+          frame*
+            function*
+              u'___rust_maybe_catch_panic'
+          frame*
+            function*
+              u'std::panicking::try::do_call'
+          frame*
+            function*
+              u'std::rt::lang_start::{{closure}}'
+          frame*
+            function*
+              u'log_demo::main'
+          frame*
+            function*
+              u'log::__private_api_log'
+          frame*
+            function*
+              u'<sentry::integrations::log::Logger as log::Log>::log'
+          frame*
+            function*
+              u'sentry::hub::Hub::with_active'
+          frame*
+            function*
+              u'sentry::hub::Hub::with'
+          frame*
+            function*
+              u'sentry::hub::Hub::with_active::{{closure}}'
+        type*
+          u'log_demo'
