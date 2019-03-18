@@ -39,6 +39,7 @@ from sentry.utils.cache import memoize
 from sentry.utils.canonical import CanonicalKeyDict, CanonicalKeyView
 from sentry.utils.safe import get_path
 from sentry.utils.strings import truncatechars
+from sentry.utils.sdk import configure_scope
 
 
 def _should_skip_to_python(event_data):
@@ -62,6 +63,10 @@ class EventDict(CanonicalKeyDict):
 
         metrics.incr('rust.renormalized',
                      tags={'value': rust_renormalized})
+
+        with configure_scope() as scope:
+            scope.set_tag("rust.renormalized", rust_renormalized)
+
         CanonicalKeyDict.__init__(self, data, **kwargs)
 
 
