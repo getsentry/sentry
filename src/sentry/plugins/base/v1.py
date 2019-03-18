@@ -444,7 +444,7 @@ class IPlugin(local, PluggableViewMixin, PluginConfigMixin, PluginStatusMixin):
         >>> def is_regression(self, group, event, **kwargs):
         >>>     # regression if 'version' tag has a value we haven't seen before
         >>>     seen_versions = set(t[0] for t in group.get_unique_tags("version"))
-        >>>     event_version = dict(event.get_tags()).get("version")
+        >>>     event_version = dict(event.tags).get("version")
         >>>     return event_version not in seen_versions
         """
 
