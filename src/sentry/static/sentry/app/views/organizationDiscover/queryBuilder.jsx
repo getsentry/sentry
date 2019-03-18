@@ -113,6 +113,14 @@ export default function createQueryBuilder(initial = {}, organization) {
     // Default to all projects if none is selected
     const projects = query.projects.length ? query.projects : defaultProjects;
 
+    // Default to DEFAULT_STATS_PERIOD when no date range selected (either relative or absolute)
+    const {range, start, end} = query;
+    const hasAbsolute = start && end;
+    const daterange = {
+      ...(hasAbsolute && {start, end}),
+      ...(range || (!hasAbsolute && {range: DEFAULT_STATS_PERIOD})),
+    };
+
     // Default to all fields if there are none selected, and no aggregation is
     // specified
     const useDefaultFields = !query.fields.length && !query.aggregations.length;
@@ -126,6 +134,7 @@ export default function createQueryBuilder(initial = {}, organization) {
 
     return {
       ...query,
+      ...daterange,
       projects,
       fields,
     };
