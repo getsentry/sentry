@@ -110,6 +110,8 @@ describe('OrganizationMemberDetail', function() {
         <OrganizationMemberDetail params={{memberId: member.id}} />,
         routerContext
       );
+      // Wait for team list to load
+      await tick();
 
       // Remove our one team
       const button = wrapper.find('TeamSelect TeamRow Button');

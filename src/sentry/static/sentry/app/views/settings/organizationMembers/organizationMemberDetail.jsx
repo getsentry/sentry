@@ -113,23 +113,21 @@ class OrganizationMemberDetail extends AsyncView {
       });
   };
 
-  handleAddTeam = slug => {
+  handleAddTeam = team => {
     const {member} = this.state;
-    if (!member.teams.includes(slug)) {
-      member.teams.push(slug);
+    if (!member.teams.includes(team.slug)) {
+      member.teams.push(team.slug);
     }
     this.setState({member});
   };
 
-  handleRemoveTeam = slug => {
+  handleRemoveTeam = team => {
     const {member} = this.state;
-    const teams = new Set(member.teams);
-    teams.delete(slug);
 
     this.setState({
       member: {
         ...member,
-        teams: Array.from(teams.values()),
+        teams: member.teams.filter(teamSlug => teamSlug !== team.slug),
       },
     });
   };
