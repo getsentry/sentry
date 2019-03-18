@@ -44,7 +44,10 @@ class TestSelectRequester(TestCase):
         ]
         responses.add(
             method=responses.GET,
-            url='https://example.com/get-issues?projectSlug=boop&installationId=f3d37e3a-9a87-4651-8463-d375118f4996',
+            url=u'https://example.com/get-issues?installationId={}&projectSlug={}'.format(
+                self.install.uuid,
+                self.project.slug,
+            ),
             json=options,
             status=200,
             content_type='application/json',
@@ -55,12 +58,13 @@ class TestSelectRequester(TestCase):
             project=self.project,
             uri='/get-issues',
         )
+
         assert result == {
             'choices': [
-                ['An Issue', '123'],
-                ['Another Issue', '456']
+                ['123', 'An Issue'],
+                ['456', 'Another Issue']
             ],
-            'default': ['An Issue', '123'],
+            'defaultValue': '123',
         }
 
         request = responses.calls[0].request
@@ -74,7 +78,10 @@ class TestSelectRequester(TestCase):
         }
         responses.add(
             method=responses.GET,
-            url='https://example.com/get-issues?projectSlug=boop&installationId=f3d37e3a-9a87-4651-8463-d375118f4996',
+            url=u'https://example.com/get-issues?installationId={}&projectSlug={}'.format(
+                self.install.uuid,
+                self.project.slug,
+            ),
             json=invalid_format,
             status=200,
             content_type='application/json',
@@ -93,7 +100,10 @@ class TestSelectRequester(TestCase):
     def test_500_response(self):
         responses.add(
             method=responses.GET,
-            url='https://example.com/get-issues?projectSlug=boop&installationId=f3d37e3a-9a87-4651-8463-d375118f4996',
+            url=u'https://example.com/get-issues?installationId={}&projectSlug={}'.format(
+                self.install.uuid,
+                self.project.slug,
+            ),
             body='Something failed',
             status=500,
         )
