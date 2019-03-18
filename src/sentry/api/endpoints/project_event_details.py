@@ -66,7 +66,6 @@ class ProjectEventDetailsEndpoint(ProjectEndpoint):
 
     def get_legacy(self, request, project, event_id):
         event = Event.objects.from_event_id(event_id, project.id)
-        event = Event.objects.from_event_id(event_id, project.id)
         if event is None:
             return Response({'detail': 'Event not found'}, status=404)
 
