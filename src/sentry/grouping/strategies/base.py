@@ -1,5 +1,7 @@
 from __future__ import absolute_import
 
+import inspect
+
 from sentry.grouping.component import GroupingComponent
 
 
@@ -158,10 +160,11 @@ class Strategy(object):
 
 class StrategyConfiguration(object):
 
-    def __init__(self, id, strategies, delegates=None):
+    def __init__(self, id, strategies, delegates=None, changelog=None):
         self.id = id
         self.strategies = {}
         self.delegates = {}
+        self.changelog = inspect.cleandoc(changelog or '')
 
         for strategy_id in strategies:
             strategy = lookup_strategy(strategy_id)

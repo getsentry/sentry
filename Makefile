@@ -149,6 +149,18 @@ lint-python:
 	bash -eo pipefail -c "flake8 | tee .artifacts/flake8.pycodestyle.log"
 	@echo ""
 
+review-python-snapshots:
+	@cargo insta --version &> /dev/null || cargo install cargo-insta
+	@cargo insta review --workspace-root `pwd` -e pysnap
+
+accept-python-snapshots:
+	@cargo insta --version &> /dev/null || cargo install cargo-insta
+	@cargo insta accept --workspace-root `pwd` -e pysnap
+
+reject-python-snapshots:
+	@cargo insta --version &> /dev/null || cargo install cargo-insta
+	@cargo insta reject --workspace-root `pwd` -e pysnap
+
 lint-js:
 	@echo "--> Linting javascript"
 	bin/lint --js --parseable

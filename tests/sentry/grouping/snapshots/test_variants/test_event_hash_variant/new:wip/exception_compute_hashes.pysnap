@@ -1,0 +1,28 @@
+---
+created: '2019-03-15T11:58:32.789150Z'
+creator: sentry
+source: tests/sentry/grouping/test_variants.py
+---
+app:
+  hash: None
+  component:
+    app (exception of system takes precedence)
+      exception (ignored because hash matches system variant)
+        stacktrace*
+          frame*
+            filename*
+              u'baz.py'
+        type*
+          u'ValueError'
+--------------------------------------------------------------------------
+system:
+  hash: '9509e122c6175606d52862fa4f64853c'
+  component:
+    system*
+      exception*
+        stacktrace*
+          frame*
+            filename*
+              u'baz.py'
+        type*
+          u'ValueError'
