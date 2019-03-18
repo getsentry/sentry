@@ -92,7 +92,7 @@
         ]
     },
     "request": {
-        "method": "unknown"
+        "method": "unknown",
         "query_string": [
             ["foo", "bar"],
             ["bam", null],
