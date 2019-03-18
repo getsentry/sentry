@@ -542,8 +542,8 @@ class SnubaEvent(EventCommon):
         from sentry.utils import snuba
 
         conditions = [
-            ["timestamp", ">=", self.timestamp],
-            [["timestamp", ">", self.timestamp], ["event_id", ">", self.event_id]]
+            ['timestamp', '>=', self.timestamp],
+            [['timestamp', '>', self.timestamp], ['event_id', '>', self.event_id]]
         ]
 
         if len(environments) > 0:
@@ -570,7 +570,10 @@ class SnubaEvent(EventCommon):
     def prev_event_id(self, environments=None):
         from sentry.utils import snuba
 
-        conditions = [['event_id', '!=', self.id]]
+        conditions = [
+            ['timestamp', '<=', self.timestamp],
+            [['timestamp', '<', self.timestamp], ['event_id', '<', self.event_id]]
+        ]
 
         if len(environments) > 0:
             conditions.append(['environment', 'IN', environments])
@@ -619,20 +622,20 @@ class Event(EventCommon, Model):
         wrapper=EventDict,
     )
 
-    objects = EventManager()
+    objects=EventManager()
 
     class Meta:
-        app_label = 'sentry'
-        db_table = 'sentry_message'
-        verbose_name = _('message')
-        verbose_name_plural = _('messages')
-        unique_together = (('project_id', 'event_id'), )
-        index_together = (('group_id', 'datetime'), )
+        app_label='sentry'
+        db_table='sentry_message'
+        verbose_name=_('message')
+        verbose_name_plural=_('messages')
+        unique_together=(('project_id', 'event_id'), )
+        index_together=(('group_id', 'datetime'), )
 
-    __repr__ = sane_repr('project_id', 'group_id')
+    __repr__=sane_repr('project_id', 'group_id')
 
     def __getstate__(self):
-        state = Model.__getstate__(self)
+        state=Model.__getstate__(self)
 
         # do not pickle cached info.  We want to fetch this on demand
         # again.  In particular if we were to pickle interfaces we would
@@ -651,46 +654,46 @@ class Event(EventCommon, Model):
     # granularity, this will be inaccurate if there are more than 5 events
     # in a given second.
     def next_event_id(self, environments=None):
-        events = self.__class__.objects.filter(
+        events=self.__class__.objects.filter(
             datetime__gte=self.datetime,
             group_id=self.group_id,
         ).exclude(id=self.id).order_by('datetime')[0:5]
 
-        events = [e for e in events if e.datetime == self.datetime and e.id > self.id or
+        events=[e for e in events if e.datetime == self.datetime and e.id > self.id or
                   e.datetime > self.datetime]
         events.sort(key=EVENT_ORDERING_KEY)
         return six.text_type(events[0].event_id) if events else None
 
     def prev_event_id(self, environments=None):
-        events = self.__class__.objects.filter(
+        events=self.__class__.objects.filter(
             datetime__lte=self.datetime,
             group_id=self.group_id,
         ).exclude(id=self.id).order_by('-datetime')[0:5]
 
-        events = [e for e in events if e.datetime == self.datetime and e.id < self.id or
+        events=[e for e in events if e.datetime == self.datetime and e.id < self.id or
                   e.datetime < self.datetime]
         events.sort(key=EVENT_ORDERING_KEY, reverse=True)
         return six.text_type(events[0].event_id) if events else None
 
 
 class EventSubjectTemplate(string.Template):
-    idpattern = r'(tag:)?[_a-z][_a-z0-9]*'
+    idpattern=r'(tag:)?[_a-z][_a-z0-9]*'
 
 
 class EventSubjectTemplateData(object):
-    tag_aliases = {
+    tag_aliases={
         'release': 'sentry:release',
         'dist': 'sentry:dist',
         'user': 'sentry:user',
     }
 
     def __init__(self, event):
-        self.event = event
+        self.event=event
 
     def __getitem__(self, name):
         if name.startswith('tag:'):
-            name = name[4:]
-            value = self.event.get_tag(self.tag_aliases.get(name, name))
+            name=name[4:]
+            value=self.event.get_tag(self.tag_aliases.get(name, name))
             if value is None:
                 raise KeyError
             return six.text_type(value)
@@ -707,4 +710,4 @@ class EventSubjectTemplateData(object):
         raise KeyError
 
 
-DEFAULT_SUBJECT_TEMPLATE = EventSubjectTemplate('$shortID - $title')
+DEFAULT_SUBJECT_TEMPLATE=EventSubjectTemplate('$shortID - $title')
