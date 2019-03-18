@@ -99,6 +99,25 @@ class ParseSearchQueryTest(TestCase):
             ),
         ]
 
+        # test date time format w microseconds and utc marker
+        assert parse_search_query('timestamp:>2015-05-18T10:15:01.103Z') == [
+            SearchFilter(
+                key=SearchKey(name='timestamp'),
+                operator=">",
+                value=SearchValue(
+                    raw_value=datetime.datetime(
+                        2015,
+                        5,
+                        18,
+                        10,
+                        15,
+                        1,
+                        103000,
+                        tzinfo=timezone.utc),
+                ),
+            ),
+        ]
+
     def test_other_dates(self):
         # test date format with other name
         assert parse_search_query('first_seen>2015-05-18') == [
@@ -177,6 +196,7 @@ class ParseSearchQueryTest(TestCase):
         invalid_queries = [
             'first_seen:hello',
             'first_seen:123',
+            'first_seen:2018-01-01T00:01ZZ'
         ]
         for invalid_query in invalid_queries:
             with self.assertRaises(
