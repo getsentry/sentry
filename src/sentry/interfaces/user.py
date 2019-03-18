@@ -11,7 +11,7 @@ __all__ = ('User', )
 
 import six
 
-from sentry.interfaces.base import Interface, prune_empty_keys
+from sentry.interfaces.base import Interface, prune_empty_keys, RUST_RENORMALIZED_DEFAULT
 from sentry.interfaces.geo import Geo
 from sentry.utils.safe import trim, trim_dict
 from sentry.web.helpers import render_to_string
@@ -41,7 +41,23 @@ class User(Interface):
     display_score = 2020
 
     @classmethod
-    def to_python(cls, data):
+    def to_python(cls, data, rust_renormalized=RUST_RENORMALIZED_DEFAULT):
+        if rust_renormalized:
+            data = data.copy()
+            for key in (
+                'id',
+                'email',
+                'username',
+                'ip_address',
+                'name',
+                'geo',
+                'data',
+            ):
+                data.setdefault(key, None)
+            if data['geo'] is not None:
+                data['geo'] = Geo.to_python(data['geo'])
+            return cls(**data)
+
         data = data.copy()
 
         ident = data.pop('id', None)

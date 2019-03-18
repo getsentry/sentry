@@ -15,7 +15,7 @@ import six
 
 from django.conf import settings
 
-from sentry.interfaces.base import Interface, InterfaceValidationError, prune_empty_keys
+from sentry.interfaces.base import Interface, InterfaceValidationError, prune_empty_keys, RUST_RENORMALIZED_DEFAULT
 from sentry.interfaces.schemas import validate_and_default_interface
 from sentry.interfaces.stacktrace import Stacktrace, slim_frame_data
 from sentry.utils import json
@@ -137,7 +137,21 @@ class Mechanism(Interface):
     """
 
     @classmethod
-    def to_python(cls, data):
+    def to_python(cls, data, rust_renormalized=RUST_RENORMALIZED_DEFAULT):
+        if rust_renormalized:
+            for key in (
+                'type',
+                'synthetic',
+                'description',
+                'help_link',
+                'handled',
+                'data',
+                'meta',
+            ):
+                data.setdefault(key, None)
+
+            return cls(**data)
+
         data = upgrade_legacy_mechanism(data)
         is_valid, errors = validate_and_default_interface(data, cls.path)
         if not is_valid:
@@ -268,44 +282,50 @@ class SingleException(Interface):
     grouping_variants = ['system', 'app']
 
     @classmethod
-    def to_python(cls, data, slim_frames=True):
-        is_valid, errors = validate_and_default_interface(data, cls.path)
-        if not is_valid:
-            raise InterfaceValidationError("Invalid exception")
+    def to_python(cls, data, slim_frames=True, rust_renormalized=RUST_RENORMALIZED_DEFAULT):
+        if not rust_renormalized:
+            is_valid, errors = validate_and_default_interface(data, cls.path)
+            if not is_valid:
+                raise InterfaceValidationError("Invalid exception")
 
-        if not (data.get('type') or data.get('value')):
-            raise InterfaceValidationError("No 'type' or 'value' present")
+            if not (data.get('type') or data.get('value')):
+                raise InterfaceValidationError("No 'type' or 'value' present")
 
         if get_path(data, 'stacktrace', 'frames', filter=True):
             stacktrace = Stacktrace.to_python(
                 data['stacktrace'],
                 slim_frames=slim_frames,
+                rust_renormalized=rust_renormalized
             )
         else:
             stacktrace = None
 
         if get_path(data, 'raw_stacktrace', 'frames', filter=True):
             raw_stacktrace = Stacktrace.to_python(
-                data['raw_stacktrace'], slim_frames=slim_frames, raw=True
+                data['raw_stacktrace'], slim_frames=slim_frames, raw=True,
+                rust_renormalized=rust_renormalized
             )
         else:
             raw_stacktrace = None
 
         type = data.get('type')
         value = data.get('value')
-        if isinstance(value, six.string_types):
-            if type is None:
-                m = _type_value_re.match(value)
-                if m:
-                    type = m.group(1)
-                    value = m.group(2).strip()
-        elif value is not None:
-            value = json.dumps(value)
 
-        value = trim(value, 4096)
+        if not rust_renormalized:
+            if isinstance(value, six.string_types):
+                if type is None:
+                    m = _type_value_re.match(value)
+                    if m:
+                        type = m.group(1)
+                        value = m.group(2).strip()
+            elif value is not None:
+                value = json.dumps(value)
+
+            value = trim(value, 4096)
 
         if data.get('mechanism'):
-            mechanism = Mechanism.to_python(data['mechanism'])
+            mechanism = Mechanism.to_python(data['mechanism'],
+                                            rust_renormalized=rust_renormalized)
         else:
             mechanism = None
 
@@ -439,31 +459,41 @@ class Exception(Interface):
         return len(self.exceptions())
 
     @classmethod
-    def to_python(cls, data):
-        if data and 'values' not in data and 'exc_omitted' not in data:
-            data = {"values": [data]}
+    def to_python(cls, data, rust_renormalized=RUST_RENORMALIZED_DEFAULT):
+        if not rust_renormalized:
+            if data and 'values' not in data and 'exc_omitted' not in data:
+                data = {"values": [data]}
 
         values = get_path(data, 'values', default=[])
-        if not isinstance(values, list):
-            raise InterfaceValidationError("Invalid value for 'values'")
+
+        if not rust_renormalized:
+            if not isinstance(values, list):
+                raise InterfaceValidationError("Invalid value for 'values'")
 
         kwargs = {
             'values': [
-                v and SingleException.to_python(v, slim_frames=False)
+                v and SingleException.to_python(
+                    v, slim_frames=False, rust_renormalized=rust_renormalized)
                 for v in values
             ],
         }
 
-        if data.get('exc_omitted'):
-            if len(data['exc_omitted']) != 2:
-                raise InterfaceValidationError("Invalid value for 'exc_omitted'")
-            kwargs['exc_omitted'] = data['exc_omitted']
+        if not rust_renormalized:
+            if data.get('exc_omitted'):
+                if len(data['exc_omitted']) != 2:
+                    raise InterfaceValidationError("Invalid value for 'exc_omitted'")
+                kwargs['exc_omitted'] = data['exc_omitted']
+            else:
+                kwargs['exc_omitted'] = None
         else:
-            kwargs['exc_omitted'] = None
+            kwargs.setdefault('exc_omitted', None)
 
         instance = cls(**kwargs)
-        # we want to wait to slim things til we've reconciled in_app
-        slim_exception_data(instance)
+
+        if not rust_renormalized:
+            # we want to wait to slim things til we've reconciled in_app
+            slim_exception_data(instance)
+
         return instance
 
     # TODO(ja): Fix all following methods when to_python is refactored. All

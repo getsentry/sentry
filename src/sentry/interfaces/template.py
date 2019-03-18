@@ -9,7 +9,7 @@ from __future__ import absolute_import
 
 __all__ = ('Template', )
 
-from sentry.interfaces.base import Interface, InterfaceValidationError
+from sentry.interfaces.base import Interface, InterfaceValidationError, RUST_RENORMALIZED_DEFAULT
 from sentry.interfaces.schemas import validate_and_default_interface
 from sentry.interfaces.stacktrace import get_context
 from sentry.utils.safe import trim
@@ -42,7 +42,19 @@ class Template(Interface):
     score = 1100
 
     @classmethod
-    def to_python(cls, data):
+    def to_python(cls, data, rust_renormalized=RUST_RENORMALIZED_DEFAULT):
+        if rust_renormalized:
+            for key in (
+                'abs_path',
+                'filename',
+                'context_line',
+                'lineno',
+                'pre_context',
+                'post_context',
+            ):
+                data.setdefault(key, None)
+            return cls(**data)
+
         is_valid, errors = validate_and_default_interface(data, cls.path)
         if not is_valid:
             raise InterfaceValidationError("Invalid template")

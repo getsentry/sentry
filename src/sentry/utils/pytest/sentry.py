@@ -1,5 +1,6 @@
 from __future__ import absolute_import
 
+import pytest
 import mock
 import os
 
@@ -262,3 +263,11 @@ def pytest_runtest_teardown(item):
         model.objects.clear_local_cache()
 
     Hub.main.bind_client(None)
+
+
+@pytest.fixture(autouse=True)
+def _mock_skip_to_python(monkeypatch, request):
+    from sentry.interfaces.base import RUST_RENORMALIZED_DEFAULT
+    monkeypatch.setattr(
+        'sentry.models.event._should_skip_to_python',
+        lambda _: RUST_RENORMALIZED_DEFAULT)

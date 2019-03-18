@@ -5,7 +5,7 @@ import uuid
 
 __all__ = ('DebugMeta', )
 
-from sentry.interfaces.base import Interface, InterfaceValidationError, prune_empty_keys
+from sentry.interfaces.base import Interface, InterfaceValidationError, prune_empty_keys, RUST_RENORMALIZED_DEFAULT
 
 from symbolic import parse_addr, normalize_debug_id
 
@@ -105,16 +105,20 @@ class DebugMeta(Interface):
     external_type = 'debugmeta'
 
     @classmethod
-    def to_python(cls, data):
+    def to_python(cls, data, rust_renormalized=RUST_RENORMALIZED_DEFAULT):
         is_debug_build = data.get('is_debug_build', None)
-        if is_debug_build is not None and not isinstance(is_debug_build, bool):
-            raise InterfaceValidationError('Invalid value for "is_debug_build"')
 
-        images = []
-        for x in data.get('images', None) or ():
-            if x is None:
-                continue
-            images.append(cls.normalize_image(x))
+        if rust_renormalized:
+            images = data.get('images', None) or []
+        else:
+            if is_debug_build is not None and not isinstance(is_debug_build, bool):
+                raise InterfaceValidationError('Invalid value for "is_debug_build"')
+
+            images = []
+            for x in data.get('images', None) or ():
+                if x is None:
+                    continue
+                images.append(cls.normalize_image(x))
 
         return cls(
             images=images,

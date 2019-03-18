@@ -434,8 +434,7 @@ class Factories(object):
             }
 
         if normalize:
-            manager = EventManager(CanonicalKeyDict(kwargs['data']),
-                                   for_store=False)
+            manager = EventManager(CanonicalKeyDict(kwargs['data']))
             manager.normalize()
             kwargs['data'] = manager.get_data()
             kwargs['data'].update(manager.materialize_metadata())

@@ -198,7 +198,7 @@ class SentryRemoteTest(TestCase):
         assert instance.message == 'hello'
         assert instance.data['logentry'] == {'formatted': 'hello'}
         assert instance.title == instance.data['title'] == 'hello'
-        assert instance.location is instance.data['location'] is None
+        assert instance.location is instance.data.get('location', None) is None
 
         assert tagstore.get_tag_key(self.project.id, None, 'foo') is not None
         assert tagstore.get_tag_value(self.project.id, None, 'foo', 'bar') is not None
