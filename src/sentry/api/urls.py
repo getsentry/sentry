@@ -212,6 +212,7 @@ from .endpoints.user_social_identity_details import UserSocialIdentityDetailsEnd
 from .endpoints.user_subscriptions import UserSubscriptionsEndpoint
 from .endpoints.event_file_committers import EventFileCommittersEndpoint
 from .endpoints.setup_wizard import SetupWizard
+from .endpoints.grouping_configs import GroupingConfigsEndpoint
 
 
 urlpatterns = patterns(
@@ -1260,6 +1261,12 @@ urlpatterns = patterns(
         r'^sentry-app-installations/(?P<uuid>[^\/]+)/authorizations/$',
         SentryAppAuthorizationsEndpoint.as_view(),
         name='sentry-api-0-sentry-app-authorizations'
+    ),
+
+    # Grouping configs
+    url(
+        r'^grouping-configs/$', GroupingConfigsEndpoint.as_view(),
+        name='sentry-api-0-grouping-configs'
     ),
 
     # Internal

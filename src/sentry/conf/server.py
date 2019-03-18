@@ -821,6 +821,8 @@ SENTRY_FEATURES = {
     'organizations:invite-members': True,
     # Turns on grouping info.
     'organizations:grouping-info': False,
+    # Lets organizations manage grouping configs
+    'organizations:set-grouping-config': False,
 
     # DEPRECATED: pending removal.
     'organizations:js-loader': False,

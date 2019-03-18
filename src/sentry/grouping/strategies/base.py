@@ -203,6 +203,13 @@ class StrategyConfiguration(object):
             hint='grouping algorithm does not consider this value',
         )
 
+    def as_dict(self):
+        return {
+            'id': self.id,
+            'strategies': sorted(self.strategies),
+            'delegates': sorted(self.delegates),
+        }
+
 
 # A noop config that is passed by default
 NOTHING_CONFIG = StrategyConfiguration('nothing', {})
