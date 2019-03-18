@@ -117,7 +117,7 @@ class Breadcrumbs(Interface):
         def _convert(x):
             return {
                 'type': x['type'],
-                'timestamp': to_datetime(x['timestamp']),
+                'timestamp': x['timestamp'] and to_datetime(x['timestamp']),
                 'level': x.get('level', 'info'),
                 'message': x.get('message'),
                 'category': x.get('category'),
