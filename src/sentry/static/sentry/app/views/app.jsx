@@ -16,6 +16,7 @@ import AssistantHelper from 'app/components/assistant/helper';
 import ConfigStore from 'app/stores/configStore';
 import ErrorBoundary from 'app/components/errorBoundary';
 import GlobalModal from 'app/components/globalModal';
+import HookStore from 'app/stores/hookStore';
 import Indicators from 'app/components/indicators';
 import InstallWizard from 'app/views/installWizard';
 import LoadingIndicator from 'app/components/loadingIndicator';
@@ -131,6 +132,11 @@ const App = createReactClass({
       Cookies.set('session_expired', 1);
       window.location.reload();
     });
+
+    const user = ConfigStore.get('user');
+    if (user) {
+      HookStore.get('analytics:init-user').map(cb => cb(user));
+    }
   },
 
   componentDidMount() {

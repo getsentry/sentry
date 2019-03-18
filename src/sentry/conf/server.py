@@ -1402,6 +1402,10 @@ SENTRY_DEVSERVICES = {
             'REDIS_DB': '1',
         },
     },
+    'bigtable': {
+        'image': 'mattrobenolt/cbtemulator:0.36.0',
+        'ports': {'8086/tcp': 8086},
+    },
 }
 
 # Max file size for avatar photo uploads

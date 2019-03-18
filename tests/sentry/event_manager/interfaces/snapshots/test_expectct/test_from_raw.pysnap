@@ -1,3 +1,8 @@
+---
+created: '2019-03-14T17:12:35.467202Z'
+creator: sentry
+source: tests/sentry/event_manager/interfaces/test_expectct.py
+---
 errors: null
 to_json:
   date_time: '2014-04-06T13:00:50Z'
@@ -5,10 +10,15 @@ to_json:
   hostname: www.example.com
   port: 443
   scts:
-  - {serialized_sct: ABCD==, source: embedded, status: invalid, version: 1}
-  served_certificate_chain: ['-----BEGIN CERTIFICATE-----
+  - serialized_sct: ABCD==
+    source: embedded
+    status: invalid
+    version: 1
+  served_certificate_chain:
+  - '-----BEGIN CERTIFICATE-----
 
-      -----END CERTIFICATE-----']
-  validated_certificate_chain: ['-----BEGIN CERTIFICATE-----
+    -----END CERTIFICATE-----'
+  validated_certificate_chain:
+  - '-----BEGIN CERTIFICATE-----
 
-      -----END CERTIFICATE-----']
+    -----END CERTIFICATE-----'

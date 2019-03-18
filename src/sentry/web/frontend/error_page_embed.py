@@ -123,6 +123,9 @@ class ErrorPageEmbedView(View):
             return self._smart_response(
                 request, {'eventId': 'Missing or invalid parameter.'}, status=400)
 
+        # XXX(dcramer): enforce case insensitivty by coercing this to a lowercase string
+        event_id = event_id.lower()
+
         key = self._get_project_key(request)
         if not key:
             return self._smart_response(

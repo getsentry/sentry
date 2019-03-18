@@ -296,6 +296,9 @@ const appConfig = {
     },
   },
   devtool: IS_PRODUCTION ? 'source-map' : 'cheap-module-eval-source-map',
+  watchOptions: {
+    ignored: ['node_modules'],
+  },
 };
 
 /**
