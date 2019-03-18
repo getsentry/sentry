@@ -541,7 +541,10 @@ class SnubaEvent(EventCommon):
     def next_event_id(self, environments=[]):
         from sentry.utils import snuba
 
-        conditions = [['event_id', '!=', self.id]]
+        conditions = [
+            ["timestamp", ">=", self.timestamp],
+            [["timestamp", ">", self.timestamp], ["event_id", ">", self.event_id]]
+        ]
 
         if len(environments) > 0:
             conditions.append(['environment', 'IN', environments])
