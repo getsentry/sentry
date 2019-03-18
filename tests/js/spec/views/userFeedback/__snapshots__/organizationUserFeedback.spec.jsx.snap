@@ -836,7 +836,6 @@ exports[`OrganizationUserFeedback renders 1`] = `
                                     closeOnSelect={true}
                                     emptyHidesInput={true}
                                     emptyMessage="You have no projects"
-                                    inputActions={[Function]}
                                     inputProps={
                                       Object {
                                         "style": Object {
@@ -880,7 +879,6 @@ exports[`OrganizationUserFeedback renders 1`] = `
                                       closeOnSelect={true}
                                       emptyHidesInput={true}
                                       emptyMessage="You have no projects"
-                                      inputActions={[Function]}
                                       inputProps={
                                         Object {
                                           "style": Object {
