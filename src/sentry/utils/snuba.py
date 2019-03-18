@@ -298,11 +298,53 @@ def transform_aliases_and_query(**kwargs):
     conditions = kwargs['conditions'] or []
     filter_keys = kwargs['filter_keys']
 
+    def parse_selected_column_condition(column):
+        new_column = [column[0]]
+        new_condition = []
+
+        if column[0] == 'if':
+            if_condition = column[1][0]
+            new_if_condition = []
+
+            if isinstance(if_condition, list) and if_condition[0] == 'in':
+                new_if_condition.append(if_condition[0])
+                in_clause = if_condition[1]
+
+                # ["in", [<column name> , <str literal e.g. "tuple">, <list>]]
+                if in_clause[1] != 'tuple' or not isinstance(in_clause[2], list):
+                    # This is an invalid query, raise something
+                    raise
+                else:
+                    new_if_condition.append([
+                        get_snuba_column_name(in_clause[0]),
+                        in_clause[1],
+                        in_clause[2],
+                    ])
+                new_condition.append(new_if_condition)
+            else:
+                # raise invalid query or something
+                raise
+
+            # column[1][1] and column[1][2] can be string literals OR a snuba column name
+            # TODO make `get_snuba_column_name` aware of literals
+            # for now, only treat the success condition as snuba column
+            new_condition.append(get_snuba_column_name(column[1][1]))
+            new_condition.append(column[1][2])
+        else:
+            # what should we raise if we fail to parse conditions
+            raise
+
+        new_column.append(new_condition)
+        new_column.append(column[2])
+        return new_column
+
     for (idx, col) in enumerate(selected_columns):
         if isinstance(col, list):
-            # e.g. ['if', condition, '<name>']
-            # also ['in', ['<col>', 'tuple', ["<value>"]]]
-
+            # e.g. ['if', <if_condition>, '<alias>']
+            # where if_condition is [<condition>, <column name, if true>, <string literal, if false>]
+            # and condition can be [<op>, column name?, string]
+            # op currently only supports ['in', [<column name>, "tuple", string[]]]
+            col = parse_selected_column_condition(col)
             selected_columns[idx] = col
             translated_columns[col[2]] = col[2]
             derived_columns.add(col[2])

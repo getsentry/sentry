@@ -154,20 +154,20 @@ class OrganizationDiscoverQueryTest(APITestCase, SnubaTestCase):
                             [
                                 'in',
                                 [
-                                    'tags[sentry:release]',
+                                    'release',
                                     'tuple',
                                     ["'foo'"],
                                 ],
                             ],
-                            'tags[sentry:release]',
+                            'release',
                             "'other'",
                         ],
-                        '__release',
+                        'release',
                     ],
                 ],
                 'start': (datetime.now() - timedelta(seconds=10)).strftime('%Y-%m-%dT%H:%M:%S'),
                 'end': (datetime.now()).strftime('%Y-%m-%dT%H:%M:%S'),
-                'groupby': ['time', '__release'],
+                'groupby': ['time', 'release'],
                 'rollup': 86400,
                 'limit': 1000,
                 'orderby': '-time',
@@ -177,9 +177,12 @@ class OrganizationDiscoverQueryTest(APITestCase, SnubaTestCase):
         assert response.status_code == 200, response.content
         assert len(response.data['data']) == 2
         assert response.data['data'][0]['count'] == 2
-        assert response.data['data'][0]['__release'] == 'other'
+
+        # note this "release" key represents the alias for the column condition
+        # and is also used in `groupby`, it is NOT the release tag
+        assert response.data['data'][0]['release'] == 'other'
         assert response.data['data'][1]['count'] == 1
-        assert response.data['data'][1]['__release'] == 'foo'
+        assert response.data['data'][1]['release'] == 'foo'
 
     def test_invalid_range_value(self):
         with self.feature('organizations:discover'):

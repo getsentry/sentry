@@ -11,11 +11,7 @@ import createQueryBuilder from 'app/views/organizationDiscover/queryBuilder';
 const createReleaseFieldCondition = releases => [
   [
     'if',
-    [
-      ['in', ['tags[sentry:release]', 'tuple', releases.map(r => `'${r}'`)]],
-      'tags[sentry:release]',
-      "'other'",
-    ],
+    [['in', ['release', 'tuple', releases.map(r => `'${r}'`)]], 'release', "'other'"],
     'release',
   ],
 ];

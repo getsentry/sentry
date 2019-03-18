@@ -193,8 +193,8 @@ describe('DiscoverQuery', function() {
             [
               'if',
               [
-                ['in', ['tags[sentry:release]', 'tuple', [`'${release.version}'`]]],
-                'tags[sentry:release]',
+                ['in', ['release', 'tuple', [`'${release.version}'`]]],
+                'release',
                 "'other'",
               ],
               'release',

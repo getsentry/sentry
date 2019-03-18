@@ -136,8 +136,6 @@ class DiscoverQuerySerializer(serializers.Serializer):
         return attrs
 
     def get_array_field(self, field):
-        if not isinstance(field, six.string_types):
-            return None
         pattern = r"^(error|stack)\..+"
         return re.search(pattern, field)
 
