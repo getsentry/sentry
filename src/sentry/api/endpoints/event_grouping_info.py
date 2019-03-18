@@ -32,7 +32,7 @@ class EventGroupingInfoEndpoint(Endpoint):
         Event.objects.bind_nodes([event], 'data')
 
         rv = {}
-        config_name = request.GET.get('config_name') or None
+        config_name = request.GET.get('config') or None
 
         # We always fetch the stored hashes here.  The reason for this is
         # that we want to show in the UI if the forced grouping algorithm

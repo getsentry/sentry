@@ -149,6 +149,12 @@ class EventCommon(object):
         # further.
         return self.data.get('metadata') or {}
 
+    def get_grouping_config(self):
+        """Returns the event grouping config."""
+        from sentry.grouping.api import get_grouping_config_dict_for_project
+        return self.data.get('grouping_config') \
+            or get_grouping_config_dict_for_project(self.project)
+
     def get_hashes(self, force_config=None):
         """
         Returns the calculated hashes for the event.  This uses the stored
@@ -172,7 +178,24 @@ class EventCommon(object):
         grouping components for each variant in a dictionary.
         """
         from sentry.grouping.api import get_grouping_variants_for_event
-        config = force_config or self.data.get('grouping_config')
+
+        # Forcing configs has two separate modes.  One is where just the
+        # config ID is given in which case it's merged with the stored or
+        # default config dictionary
+        if force_config is not None:
+            if isinstance(force_config, six.string_types):
+                stored_config = self.get_grouping_config()
+                config = dict(stored_config)
+                config['id'] = force_config
+            else:
+                config = force_config
+
+        # Otherwise we just use the same grouping config as stored.  if
+        # this is None the `get_grouping_variants_for_event` will fill in
+        # the default.
+        else:
+            config = self.data.get('grouping_config')
+
         return get_grouping_variants_for_event(self, config)
 
     def get_primary_hash(self):
