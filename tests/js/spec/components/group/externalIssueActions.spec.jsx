@@ -1,7 +1,9 @@
 import React from 'react';
 import {mount} from 'enzyme';
 
-import ExternalIssueActions from 'app/components/group/externalIssueActions';
+import ExternalIssueActions, {
+  SentryAppExternalIssueActions,
+} from 'app/components/group/externalIssueActions';
 
 describe('ExternalIssueActions', function() {
   const group = TestStubs.Group();
@@ -25,6 +27,7 @@ describe('ExternalIssueActions', function() {
         url: '/groups/1/integrations/1/?action=create',
         body: {createIssueConfig: []},
       });
+
       it('opens when clicking text', function() {
         wrapper.find('IntegrationLink a').simulate('click');
         expect(
@@ -78,6 +81,112 @@ describe('ExternalIssueActions', function() {
         wrapper.find('OpenCloseIcon').simulate('click');
         expect(wrapper.find('IntegrationLink a').text()).toEqual('Link GitHub Issue');
       });
+    });
+  });
+});
+
+describe('SentryAppExternalIssueActions', () => {
+  let group;
+  let component;
+  let install;
+  let externalIssue;
+  let wrapper;
+
+  beforeEach(() => {
+    group = TestStubs.Group();
+    component = TestStubs.SentryAppComponent();
+    install = TestStubs.SentryAppInstallation();
+    externalIssue = TestStubs.PlatformExternalIssue({
+      groupId: group.id,
+      serviceType: component.sentryApp.slug,
+    });
+  });
+
+  describe('without an external issue linked', () => {
+    beforeEach(() => {
+      wrapper = mount(
+        <SentryAppExternalIssueActions
+          group={group}
+          sentryAppInstallation={install}
+          sentryAppComponent={component}
+        />,
+        TestStubs.routerContext()
+      );
+    });
+
+    it('renders a link to open the modal', () => {
+      expect(wrapper.find('IntegrationLink a').text()).toEqual(
+        `Link ${component.sentryApp.name} Issue`
+      );
+    });
+
+    it('opens the modal', () => {
+      wrapper.find('IntegrationLink a').simulate('click');
+      expect(
+        wrapper
+          .find('Modal')
+          .first()
+          .prop('show')
+      ).toEqual(true);
+    });
+
+    it('renders the Create Issue form fields, based on schema', () => {
+      wrapper.find('IntegrationLink a').simulate('click');
+      wrapper
+        .find('Modal NavTabs li.create a')
+        .first()
+        .simulate('click'); // Create
+
+      component.schema.create.required_fields.forEach(field => {
+        expect(wrapper.exists(`SentryAppExternalIssueForm #${field.name}`)).toBe(true);
+      });
+
+      (component.schema.create.optional_fields || []).forEach(field => {
+        expect(wrapper.exists(`SentryAppExternalIssueForm #${field.name}`)).toBe(true);
+      });
+    });
+
+    it('renders the Link Issue form fields, based on schema', () => {
+      wrapper.find('IntegrationLink a').simulate('click');
+      wrapper
+        .find('Modal NavTabs li.link a')
+        .first()
+        .simulate('click'); // Link
+
+      component.schema.link.required_fields.forEach(field => {
+        expect(wrapper.exists(`SentryAppExternalIssueForm #${field.name}`)).toBe(true);
+      });
+
+      (component.schema.link.optional_fields || []).forEach(field => {
+        expect(wrapper.exists(`SentryAppExternalIssueForm #${field.name}`)).toBe(true);
+      });
+    });
+  });
+
+  describe('with an external issue linked', () => {
+    beforeEach(() => {
+      wrapper = mount(
+        <SentryAppExternalIssueActions
+          group={group}
+          sentryAppComponent={component}
+          sentryAppInstallation={install}
+          externalIssue={externalIssue}
+        />,
+        TestStubs.routerContext()
+      );
+    });
+
+    it('renders a link to the external issue', () => {
+      expect(wrapper.find('IntegrationLink a').text()).toEqual(externalIssue.displayName);
+    });
+
+    it('links to the issue', () => {
+      expect(
+        wrapper
+          .find('IntegrationLink')
+          .first()
+          .prop('href')
+      ).toEqual(externalIssue.webUrl);
     });
   });
 });
