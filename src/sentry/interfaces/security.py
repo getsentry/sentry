@@ -15,7 +15,7 @@ __all__ = ('Csp', 'Hpkp', 'ExpectCT', 'ExpectStaple')
 
 from six.moves.urllib.parse import urlsplit, urlunsplit
 
-from sentry.interfaces.base import Interface, InterfaceValidationError
+from sentry.interfaces.base import Interface, InterfaceValidationError, RUST_RENORMALIZED_DEFAULT
 from sentry.interfaces.schemas import validate_and_default_interface, INPUT_SCHEMAS
 from sentry.utils import json
 from sentry.utils.cache import memoize
@@ -100,7 +100,8 @@ class SecurityReport(Interface):
         raise NotImplementedError
 
     @classmethod
-    def to_python(cls, data):
+    def to_python(cls, data, rust_renormalized=RUST_RENORMALIZED_DEFAULT):
+        # TODO(markus): semaphore does not validate security interfaces yet
         is_valid, errors = validate_and_default_interface(data, cls.path)
         if not is_valid:
             raise InterfaceValidationError("Invalid interface data")

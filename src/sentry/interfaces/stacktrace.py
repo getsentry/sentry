@@ -19,7 +19,7 @@ from django.utils.translation import ugettext as _
 from six.moves.urllib.parse import urlparse
 
 from sentry.app import env
-from sentry.interfaces.base import Interface, InterfaceValidationError, prune_empty_keys
+from sentry.interfaces.base import Interface, InterfaceValidationError, prune_empty_keys, RUST_RENORMALIZED_DEFAULT
 from sentry.interfaces.schemas import validate_and_default_interface
 from sentry.models import UserOption
 from sentry.utils.safe import trim, trim_dict
@@ -214,7 +214,33 @@ class Frame(Interface):
     grouping_variants = ['system', 'app']
 
     @classmethod
-    def to_python(cls, data, raw=False):
+    def to_python(cls, data, raw=False, rust_renormalized=RUST_RENORMALIZED_DEFAULT):
+        if rust_renormalized:
+            for key in (
+                'abs_path',
+                'colno',
+                'context_line',
+                'data',
+                'errors',
+                'filename',
+                'function',
+                'image_addr',
+                'in_app',
+                'instruction_addr',
+                'lineno',
+                'module',
+                'package',
+                'platform',
+                'post_context',
+                'pre_context',
+                'symbol',
+                'symbol_addr',
+                'trust',
+                'vars',
+            ):
+                data.setdefault(key, None)
+            return cls(**data)
+
         is_valid, errors = validate_and_default_interface(data, cls.path)
         if not is_valid:
             raise InterfaceValidationError("Invalid stack frame data.")
@@ -577,7 +603,24 @@ class Stacktrace(Interface):
         return iter(self.frames)
 
     @classmethod
-    def to_python(cls, data, slim_frames=True, raw=False):
+    def to_python(cls, data, slim_frames=True, raw=False,
+                  rust_renormalized=RUST_RENORMALIZED_DEFAULT):
+        if rust_renormalized:
+            data = dict(data)
+            frame_list = []
+            for f in data.get('frames') or []:
+                # XXX(dcramer): handle PHP sending an empty array for a frame
+                frame_list.append(
+                    Frame.to_python(
+                        f or {},
+                        raw=raw,
+                        rust_renormalized=rust_renormalized))
+
+            data['frames'] = frame_list
+            data.setdefault('registers', None)
+            data.setdefault('frames_omitted', None)
+            return cls(**data)
+
         is_valid, errors = validate_and_default_interface(data, cls.path)
         if not is_valid:
             raise InterfaceValidationError("Invalid stack frame data.")
@@ -595,7 +638,11 @@ class Stacktrace(Interface):
             if f is None:
                 continue
             # XXX(dcramer): handle PHP sending an empty array for a frame
-            frame_list.append(Frame.to_python(f or {}, raw=raw))
+            frame_list.append(
+                Frame.to_python(
+                    f or {},
+                    raw=raw,
+                    rust_renormalized=rust_renormalized))
 
         kwargs = {
             'frames': frame_list,
