@@ -52,7 +52,6 @@ const Container = styled('div')`
 const Content = styled('div')`
   display: flex;
   flex-shrink: 1;
-  padding-right: ${space(1)};
   overflow: hidden;
   align-items: center;
   height: 100%;
@@ -71,7 +70,7 @@ const Checkbox = styled(CheckboxFancy)`
 
 const CheckboxWrapper = styled('div')`
   margin: -${space(1)}; /* pushes the click box to be flush with the edge of the menu */
-  padding: 0 ${space(2)} 0 ${space(4)};
+  padding: 0 ${space(1.25)} 0 ${space(1)};
   height: 100%;
   display: flex;
   justify-content: flex-end;

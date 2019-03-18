@@ -1,11 +1,13 @@
 import PropTypes from 'prop-types';
 import React from 'react';
 import styled from 'react-emotion';
+import {Link} from 'react-router';
 
 import {sortArray} from 'app/utils';
 import {t} from 'app/locale';
 import Button from 'app/components/button';
 import InlineSvg from 'app/components/inlineSvg';
+import BookmarkStar from 'app/components/bookmarkStar';
 import DropdownAutoComplete from 'app/components/dropdownAutoComplete';
 import GlobalSelectionHeaderRow from 'app/components/globalSelectionHeaderRow';
 import Highlight from 'app/components/highlight';
@@ -187,14 +189,6 @@ class ProjectSelector extends React.Component {
         noResultsMessage={t('No projects found')}
         virtualizedHeight={theme.headerSelectorRowHeight}
         emptyHidesInput
-        inputActions={() => (
-          <div>
-            <ManageButton to={`/settings/${org.slug}/projects/`} size="xsmall">
-              <StyledSettingsIcon src="icon-settings" />
-              {t('Manage')}
-            </ManageButton>
-          </div>
-        )}
         menuFooter={renderProps => {
           const renderedFooter =
             typeof menuFooter === 'function' ? menuFooter(renderProps) : menuFooter;
@@ -251,7 +245,8 @@ class ProjectSelector extends React.Component {
 
 class ProjectSelectorItem extends React.PureComponent {
   static propTypes = {
-    project: SentryTypes.Project,
+    project: SentryTypes.Project.isRequired,
+    organization: SentryTypes.Organization.isRequired,
     multi: PropTypes.bool,
     inputValue: PropTypes.string,
     isChecked: PropTypes.bool,
@@ -269,32 +264,62 @@ class ProjectSelectorItem extends React.PureComponent {
   };
 
   render() {
-    const {project, multi, inputValue, isChecked} = this.props;
+    const {project, multi, inputValue, isChecked, organization} = this.props;
 
     return (
-      <GlobalSelectionHeaderRow
-        checked={isChecked}
-        onCheckClick={this.handleClick}
-        multi={multi}
-      >
-        <BadgeWrapper multi={multi}>
-          <IdBadgeMenuItem
-            project={project}
-            avatarSize={16}
-            displayName={<Highlight text={inputValue}>{project.slug}</Highlight>}
-            avatarProps={{consistentWidth: true}}
-          />
-        </BadgeWrapper>
-        {project.isBookmarked && <BookmarkIcon src="icon-star-small-filled" />}
-      </GlobalSelectionHeaderRow>
+      <BadgeAndActionsWrapper>
+        <GlobalSelectionHeaderRow
+          checked={isChecked}
+          onCheckClick={this.handleClick}
+          multi={multi}
+        >
+          <BadgeWrapper multi={multi}>
+            <IdBadgeMenuItem
+              project={project}
+              avatarSize={16}
+              displayName={<Highlight text={inputValue}>{project.slug}</Highlight>}
+              avatarProps={{consistentWidth: true}}
+            />
+          </BadgeWrapper>
+          <Actions>
+            {multi && (
+              <SettingsIconLink
+                to={`/settings/${organization.slug}/${project.slug}/`}
+                onClick={e => e.stopPropagation()}
+              >
+                <SettingsIcon src="icon-settings" />
+              </SettingsIconLink>
+            )}
+            <BookmarkIcon project={project} organization={organization} />
+          </Actions>
+        </GlobalSelectionHeaderRow>
+      </BadgeAndActionsWrapper>
     );
   }
 }
 
-const BookmarkIcon = styled(InlineSvg)`
-  margin-left: ${space(0.5)};
-  color: ${p => p.theme.yellowOrange};
-  margin-top: -2px; /* trivial alignment bump */
+const Actions = styled('div')`
+  opacity: 0;
+  transition: 0.5s opacity ease-out;
+  display: flex;
+  margin-right: ${space(0.25)};
+  align-items: center;
+`;
+
+const BadgeAndActionsWrapper = styled('div')`
+  &:hover ${Actions} {
+    opacity: 1;
+  }
+`;
+
+const BookmarkIcon = styled(BookmarkStar)`
+  padding: ${space(1)} ${space(1)} ${space(1)} ${space(0.5)};
+  margin-right: ${space(0.25)};
+  box-sizing: content-box;
+  display: block;
+  width: 16px;
+  height: 16px;
+  margin-top: -${space(0.25)}; /* trivial alignment bump */
 `;
 
 const CreateProjectButton = styled(Button)`
@@ -305,9 +330,11 @@ const CreateProjectButton = styled(Button)`
 
 const BadgeWrapper = styled('div')`
   display: flex;
+  flex: 1;
   ${p => !p.multi && 'flex: 1'};
   white-space: nowrap;
   overflow: hidden;
+  align-items: space-between;
 `;
 
 const IdBadgeMenuItem = styled(IdBadge)`
@@ -315,27 +342,22 @@ const IdBadgeMenuItem = styled(IdBadge)`
   overflow: hidden;
 `;
 
-const StyledSettingsIcon = styled(InlineSvg)`
+const SettingsIconLink = styled(Link)`
+  color: ${p => p.theme.gray2};
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: ${space(1)} ${space(0.5)} ${space(1)} ${space(1)};
   margin-right: ${space(0.25)};
+
+  &:hover {
+    color: ${p => p.theme.gray4};
+  }
 `;
 
-const ManageButton = styled(Button)`
-  display: block;
-  margin: 0 ${space(2)};
-  box-shadow: none;
-  border: 0;
-  background: ${p => p.theme.offWhite2};
-  color: ${p => p.theme.gray3};
-  transition: 0.2s transform;
-
-  &:hover,
-  &:active,
-  &:focus {
-    box-shadow: none;
-    border: 0;
-    background: ${p => p.theme.gray1};
-    color: #000;
-  }
+const SettingsIcon = styled(InlineSvg)`
+  height: 16px;
+  width: 16px;
 `;
 
 export default ProjectSelector;
