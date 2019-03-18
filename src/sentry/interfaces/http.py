@@ -18,7 +18,7 @@ from django.utils.translation import ugettext as _
 from django.utils.http import urlencode
 from six.moves.urllib.parse import parse_qsl, urlsplit, urlunsplit
 
-from sentry.interfaces.base import Interface, InterfaceValidationError, prune_empty_keys
+from sentry.interfaces.base import Interface, InterfaceValidationError, prune_empty_keys, RUST_RENORMALIZED_DEFAULT
 from sentry.interfaces.schemas import validate_and_default_interface
 from sentry.utils import json
 from sentry.utils.strings import to_unicode
@@ -124,7 +124,22 @@ class Http(Interface):
     FORM_TYPE = 'application/x-www-form-urlencoded'
 
     @classmethod
-    def to_python(cls, data):
+    def to_python(cls, data, rust_renormalized=RUST_RENORMALIZED_DEFAULT):
+        if rust_renormalized:
+            data.setdefault('query_string', [])
+            for key in (
+                "method",
+                "url",
+                "fragment",
+                "cookies",
+                "headers",
+                "data",
+                "env",
+                "inferred_content_type",
+            ):
+                data.setdefault(key, None)
+            return cls(**data)
+
         is_valid, errors = validate_and_default_interface(data, cls.path)
         if not is_valid:
             raise InterfaceValidationError("Invalid interface data")

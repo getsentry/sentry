@@ -5,7 +5,7 @@ __all__ = ('Sdk', )
 from distutils.version import LooseVersion
 from django.conf import settings
 
-from sentry.interfaces.base import Interface, InterfaceValidationError, prune_empty_keys
+from sentry.interfaces.base import Interface, InterfaceValidationError, prune_empty_keys, RUST_RENORMALIZED_DEFAULT
 from sentry.utils.safe import trim
 
 
@@ -50,7 +50,18 @@ class Sdk(Interface):
     """
 
     @classmethod
-    def to_python(cls, data):
+    def to_python(cls, data, rust_renormalized=RUST_RENORMALIZED_DEFAULT):
+        if rust_renormalized:
+            for key in (
+                'name',
+                'version',
+                'integrations',
+                'packages',
+            ):
+                data.setdefault(key, None)
+
+            return cls(**data)
+
         name = data.get('name')
         version = data.get('version')
 

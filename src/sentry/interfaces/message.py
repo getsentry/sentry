@@ -14,7 +14,7 @@ import six
 
 from django.conf import settings
 
-from sentry.interfaces.base import Interface, InterfaceValidationError, prune_empty_keys
+from sentry.interfaces.base import Interface, InterfaceValidationError, prune_empty_keys, RUST_RENORMALIZED_DEFAULT
 from sentry.utils import json
 from sentry.utils.safe import trim
 
@@ -48,7 +48,16 @@ class Message(Interface):
     external_type = 'message'
 
     @classmethod
-    def to_python(cls, data):
+    def to_python(cls, data, rust_renormalized=RUST_RENORMALIZED_DEFAULT):
+        if rust_renormalized:
+            for key in (
+                'message',
+                'formatted',
+                'params',
+            ):
+                data.setdefault(key, None)
+            return cls(**data)
+
         formatted = stringify(data.get('formatted'))
         message = stringify(data.get('message'))
         if formatted is None and message is None:

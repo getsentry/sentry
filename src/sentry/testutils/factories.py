@@ -434,12 +434,18 @@ class Factories(object):
             }
 
         if normalize:
-            manager = EventManager(CanonicalKeyDict(kwargs['data']),
-                                   for_store=False)
+            manager = EventManager(CanonicalKeyDict(kwargs['data']))
             manager.normalize()
             kwargs['data'] = manager.get_data()
             kwargs['data'].update(manager.materialize_metadata())
             kwargs['message'] = manager.get_search_message()
+
+        # This is needed so that create_event saves the event in nodestore
+        # under the correct key. This is usually dont in EventManager.save()
+        kwargs['data'].setdefault(
+            'node_id',
+            Event.generate_node_id(kwargs['project'].id, event_id)
+        )
 
         event = Event(event_id=event_id, group=group, **kwargs)
         EventMapping.objects.create(

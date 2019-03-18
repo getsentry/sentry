@@ -1,13 +1,14 @@
 from __future__ import absolute_import
 
-from collections import Mapping, OrderedDict
+import os
+
+from collections import OrderedDict
 import logging
 import six
 
 from django.conf import settings
 from django.utils.translation import ugettext as _
 
-from sentry.models.eventerror import EventError
 from sentry.utils.canonical import get_canonical_name
 from sentry.utils.html import escape
 from sentry.utils.imports import import_string
@@ -17,6 +18,14 @@ from sentry.utils.decorators import classproperty
 
 logger = logging.getLogger("sentry.events")
 interface_logger = logging.getLogger("sentry.interfaces")
+
+# This flag is only effectively used for the testsuite. In production the
+# return value of `sentry.models.event._should_skip_to_python` is explicitly
+# passed to interfaces.
+RUST_RENORMALIZED_DEFAULT = os.environ.get(
+    "SENTRY_TEST_USE_RUST_INTERFACE_RENORMALIZATION",
+    "false"
+).lower() in ("true", "1")
 
 
 def get_interface(name):
@@ -34,7 +43,7 @@ def get_interface(name):
     return interface
 
 
-def get_interfaces(data):
+def get_interfaces(data, rust_renormalized=RUST_RENORMALIZED_DEFAULT):
     result = []
     for key, data in six.iteritems(data):
         # Skip invalid interfaces that were nulled out during normalization
@@ -46,7 +55,9 @@ def get_interfaces(data):
         except ValueError:
             continue
 
-        value = safe_execute(cls.to_python, data, _with_transaction=False)
+        value = safe_execute(cls.to_python, data,
+                             rust_renormalized=rust_renormalized,
+                             _with_transaction=False)
         if not value:
             continue
 
@@ -128,7 +139,7 @@ class Interface(object):
             self._data[name] = value
 
     @classmethod
-    def to_python(cls, data):
+    def to_python(cls, data, rust_renormalized=RUST_RENORMALIZED_DEFAULT):
         """Creates a python interface object from the given raw data.
 
         This function can assume fully normalized and valid data. It can create
@@ -136,59 +147,6 @@ class Interface(object):
         validation.
         """
         return cls(**data) if data is not None else None
-
-    @classmethod
-    def _normalize(cls, data, meta):
-        """Custom interface normalization. ``data`` is guaranteed to be a
-        non-empty mapping. Return ``None`` for invalid data.
-        """
-        return cls.to_python(data).to_json()
-
-    @classmethod
-    def normalize(cls, data, meta):
-        """Normalizes the given raw data removing or replacing all invalid
-        attributes. If the interface is unprocessable, ``None`` is returned
-        instead.
-
-        Errors are written to the ``meta`` container. Use ``Meta.enter(key)`` to
-        obtain an instance.
-
-        TEMPORARY: The transitional default behavior is to call to_python and
-        catch exceptions into meta data. To migrate, override ``_normalize``.
-        """
-
-        # Gracefully skip empty data. We treat ``None`` and empty objects the
-        # same as missing data. If there are meta errors attached already, they
-        # will remain in meta.
-        if not data:
-            return None
-
-        # Interface data is required to be a JSON object. Places where the
-        # protocol permits lists must be casted to a values wrapper first.
-        if not isinstance(data, Mapping):
-            meta.add_error(EventError.INVALID_DATA, data, {
-                'reason': 'expected %s' % (cls.__name__,),
-            })
-            return None
-
-        try:
-            data = cls._normalize(data, meta=meta)
-        except Exception as e:
-            # XXX: InterfaceValidationErrors can be thrown in the transitional
-            # phase while to_python is being used for normalization. All other
-            # exceptions indicate a programming error and need to be reported.
-            if not isinstance(e, InterfaceValidationError):
-                interface_logger.error('Discarded invalid value for interface: %s (%r)',
-                                       cls.path, data, exc_info=True)
-
-            meta.add_error(EventError.INVALID_DATA, data, {
-                'reason': six.text_type(e)
-            })
-            return None
-
-        # As with input data, empty interface data is coerced to None after
-        # normalization.
-        return data or None
 
     def get_api_context(self, is_public=False):
         return self.to_json()
