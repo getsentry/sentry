@@ -69,6 +69,10 @@ from sentry.grouping.strategies.utils import replace_enclosed_string, split_func
             'unsigned int (anonymous namespace)::operator<<(std::__1::basic_ostream<char, std::__1::char_traits<char> >&, v8::internal::MaybeObjectBrief const&)',
             '(anonymous namespace)::operator<<',
         ],
+        [
+            'unsigned int mynamespace::MyClass::operator()(std::__1::basic_ostream<char, std::__1::char_traits<char> >&, v8::internal::MaybeObjectBrief const&)',
+            'mynamespace::MyClass::operator()',
+        ],
     ]
 )
 def test_isolate_native_function_v1(input, output):

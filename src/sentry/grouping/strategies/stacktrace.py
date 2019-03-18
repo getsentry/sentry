@@ -152,7 +152,8 @@ def isolate_native_function_v1(function):
     # `split_func_tokens` or `replace_enclosed_string`.
     function = function \
         .replace('operator<<', u'operator⟨⟨') \
-        .replace('operator<', u'operator⟨')
+        .replace('operator<', u'operator⟨') \
+        .replace('operator()', u'operator◯')
 
     # Remove the arguments if there is one.
     def process_args(value, start):
@@ -174,7 +175,7 @@ def isolate_native_function_v1(function):
     # The last token is the function name.
     tokens = split_func_tokens(function)
     if tokens:
-        return tokens[-1].replace(u'⟨', '<')
+        return tokens[-1].replace(u'⟨', '<').replace(u'◯', '()')
 
     # This really should never happen
     return original_function
