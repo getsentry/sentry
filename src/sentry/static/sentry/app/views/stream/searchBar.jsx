@@ -1,6 +1,8 @@
 import PropTypes from 'prop-types';
 import React from 'react';
 
+import {RECENT_SEARCH_TYPES} from 'app/constants';
+import {saveRecentSearch} from 'app/actionCreators/savedSearches';
 import {t} from 'app/locale';
 import SmartSearchBar from 'app/components/smartSearchBar';
 import withApi from 'app/utils/withApi';
@@ -50,10 +52,12 @@ const SEARCH_ITEMS = [
 
 class SearchBar extends React.Component {
   static propTypes = {
-    api: PropTypes.object,
+    ...SmartSearchBar.propTypes,
+
+    api: PropTypes.object.isRequired,
     orgId: PropTypes.string.isRequired,
     tagValueLoader: PropTypes.func.isRequired,
-    supportedTags: PropTypes.object.isRequired,
+    onSearch: PropTypes.func.isRequired,
   };
 
   /**
@@ -71,13 +75,33 @@ class SearchBar extends React.Component {
     );
   };
 
+  handleSearch = query => {
+    const {onSearch, api, orgId} = this.props;
+
+    onSearch(query);
+
+    // Do not save empty string queries (i.e. if they clear search)
+    if (query) {
+      // Ignore errors if it fails to save
+      saveRecentSearch(api, orgId, RECENT_SEARCH_TYPES.ISSUE, query);
+    }
+  };
+
   render() {
+    const {
+      api, // eslint-disable-line no-unused-vars
+      tagValueLoader, // eslint-disable-line no-unused-vars
+      onSearch, // eslint-disable-line no-unused-vars
+      ...props
+    } = this.props;
+
     return (
       <SmartSearchBar
         onGetTagValues={this.getTagValues}
         defaultSearchItems={SEARCH_ITEMS}
         maxSearchItems={5}
-        {...this.props}
+        onSearch={this.handleSearch}
+        {...props}
       />
     );
   }

@@ -19,9 +19,7 @@ describe('SearchBar', function() {
       context: {organization: {id: '123'}},
     };
 
-    tagValuePromise = new Promise(function(resolve, reject) {
-      return resolve([]);
-    });
+    tagValuePromise = Promise.resolve([]);
   });
 
   afterEach(function() {
@@ -44,6 +42,7 @@ describe('SearchBar', function() {
         query: 'url:"fu"',
         tagValueLoader: loader,
         supportedTags,
+        onSearch: jest.fn(),
       };
       const searchBar = mount(<SearchBar {...props} />, options);
       clickInput(searchBar);
@@ -65,6 +64,7 @@ describe('SearchBar', function() {
         query: 'url:"http://example.com"',
         tagValueLoader: loader,
         supportedTags,
+        onSearch: jest.fn(),
       };
 
       const searchBar = mount(<SearchBar {...props} />, options);
@@ -87,11 +87,55 @@ describe('SearchBar', function() {
         query: 'timesSeen:',
         tagValueLoader: loader,
         supportedTags,
+        onSearch: jest.fn(),
       };
       const searchBar = mount(<SearchBar {...props} />, options);
       clickInput(searchBar);
       jest.advanceTimersByTime(301);
       expect(loader).not.toHaveBeenCalled();
     });
+  });
+
+  it('saves search query as a recent search', async function() {
+    jest.useFakeTimers();
+    const saveRecentSearch = MockApiClient.addMockResponse({
+      url: '/organizations/123/recent-searches/',
+      method: 'POST',
+      body: {},
+    });
+    const loader = (key, value) => {
+      expect(key).toEqual('url');
+      expect(value).toEqual('fu');
+      return tagValuePromise;
+    };
+    const onSearch = jest.fn();
+    const props = {
+      orgId: '123',
+      query: 'url:"fu"',
+      onSearch,
+      tagValueLoader: loader,
+      supportedTags,
+    };
+    const searchBar = mount(<SearchBar {...props} />, options);
+    clickInput(searchBar);
+    jest.advanceTimersByTime(301);
+    expect(searchBar.find('SearchDropdown').prop('searchSubstring')).toEqual('"fu"');
+    expect(searchBar.find('SearchDropdown').prop('items')).toEqual([]);
+
+    jest.useRealTimers();
+    searchBar.find('form').simulate('submit');
+    expect(onSearch).toHaveBeenCalledWith('url:"fu"');
+
+    await tick();
+    searchBar.update();
+    expect(saveRecentSearch).toHaveBeenCalledWith(
+      expect.anything(),
+      expect.objectContaining({
+        query: {
+          query: 'url:"fu"',
+          type: 0,
+        },
+      })
+    );
   });
 });
