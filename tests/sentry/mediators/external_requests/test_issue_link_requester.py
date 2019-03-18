@@ -66,12 +66,18 @@ class TestIssueLinkRequester(TestCase):
         request = responses.calls[0].request
         assert request.headers['Sentry-App-Signature']
         data = {
-            'title': 'An Issue',
-            'description': 'a bug was found',
-            'assignee': 'user-1',
+            'fields': {
+                'title': 'An Issue',
+                'description': 'a bug was found',
+                'assignee': 'user-1',
+            },
             'issueId': self.group.id,
             'installationId': self.install.uuid,
             'webUrl': self.group.get_absolute_url(),
+            'project': {
+                'id': self.project.id,
+                'slug': self.project.slug,
+            }
         }
         payload = json.loads(request.body)
         assert payload == data
