@@ -164,11 +164,12 @@ class ProjectDebugFile(Model):
     cpu_name = models.CharField(max_length=40)
     project = FlexibleForeignKey('sentry.Project', null=True)
     debug_id = models.CharField(max_length=64, db_column='uuid')
+    code_id = models.CharField(max_length=64, null=True)
     data = JSONField(null=True)
     objects = ProjectDebugFileManager()
 
     class Meta:
-        index_together = (('project', 'debug_id'), )
+        index_together = (('project', 'debug_id'), ('project', 'code_id'))
         db_table = 'sentry_projectdsymfile'
         app_label = 'sentry'
 
@@ -422,6 +423,7 @@ def create_dif_from_id(project, meta, fileobj=None, file=None):
     dif = ProjectDebugFile.objects.create(
         file=file,
         debug_id=meta.debug_id,
+        code_id=meta.code_id,
         cpu_name=meta.arch,
         object_name=object_name,
         project=project,
