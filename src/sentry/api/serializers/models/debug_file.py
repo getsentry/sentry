@@ -13,6 +13,7 @@ class DebugFileSerializer(Serializer):
             'id': six.text_type(obj.id),
             'uuid': obj.debug_id[:36],
             'debugId': obj.debug_id,
+            'codeId': obj.code_id,
             'cpuName': obj.cpu_name,
             'objectName': obj.object_name,
             'symbolType': obj.file_format,
