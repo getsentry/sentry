@@ -87,7 +87,6 @@ class GroupTest(TestCase):
         assert group.get_latest_event().event_id == '3'
         assert group.get_oldest_event().event_id == '0'
 
-
     def test_is_ignored_with_expired_snooze(self):
         group = self.create_group(
             status=GroupStatus.IGNORED,
