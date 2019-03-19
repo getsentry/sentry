@@ -1,6 +1,5 @@
 from __future__ import absolute_import
 
-from six.moves.urllib.parse import urlparse, urlencode, urlunparse
 from sentry.mediators import Mediator, Param
 from sentry.mediators.external_requests import SelectRequester
 
@@ -13,23 +12,6 @@ class Preparer(Mediator):
     def call(self):
         if self.component.type == 'issue-link':
             return self._prepare_issue_link()
-        if self.component.type == 'stacktrace-link':
-            return self._prepare_stacktrace_link()
-
-    def _prepare_stacktrace_link(self):
-        schema = self.component.schema
-        uri = schema.get('uri')
-
-        urlparts = list(urlparse(self.install.sentry_app.webhook_url))
-        urlparts[2] = uri
-
-        query = {'installationId': self.install.uuid}
-
-        if self.project:
-            query['projectSlug'] = self.project.slug
-
-        urlparts[4] = urlencode(query)
-        schema.update({'url': urlunparse(urlparts)})
 
     def _prepare_issue_link(self):
         schema = self.component.schema.copy()
