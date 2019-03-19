@@ -11,6 +11,7 @@ import logging
 import math
 import re
 import warnings
+from enum import Enum
 
 from datetime import datetime, timedelta
 from django.core.urlresolvers import reverse
@@ -74,6 +75,40 @@ def get_group_with_redirect(id, queryset=None):
             return queryset.get(id=qs), True
         except Group.DoesNotExist:
             raise error  # raise original `DoesNotExist`
+
+
+class EventOrdering(Enum):
+    LATEST = ['-timestamp', '-event_id']
+    OLDEST = ['timestamp', 'event_id']
+
+
+def get_oldest_or_latest_event_for_environments(
+        ordering, environments=[], issue_id=None, project_id=None):
+    from sentry.utils import snuba
+    from sentry.models import SnubaEvent
+
+    conditions = []
+
+    if len(environments) > 0:
+        conditions.append(['environment', 'IN', environments])
+
+    result = snuba.raw_query(
+        start=datetime.utcfromtimestamp(0),
+        end=datetime.utcnow(),
+        selected_columns=SnubaEvent.selected_columns,
+        conditions=conditions,
+        filter_keys={
+            'issue': [issue_id],
+            'project_id': [project_id],
+        },
+        orderby=ordering.value,
+        limit=1,
+    )
+
+    if 'error' not in result and len(result['data']) == 1:
+        return SnubaEvent(result['data'][0])
+
+    return None
 
 
 class GroupManager(BaseManager):
@@ -378,37 +413,17 @@ class Group(Model):
         return self._latest_event
 
     def get_latest_event_for_environments(self, environments=[]):
-        from sentry.utils import snuba
-        from sentry.models import SnubaEvent
-
         use_snuba = options.get('snuba.events-queries.enabled')
 
         # Fetch without environment if Snuba is not enabled
         if not use_snuba:
             return self.get_latest_event()
 
-        conditions = []
-
-        if len(environments) > 0:
-            conditions.append(['environment', 'IN', environments])
-
-        result = snuba.raw_query(
-            start=datetime.utcfromtimestamp(0),
-            end=datetime.utcnow(),
-            selected_columns=SnubaEvent.selected_columns,
-            conditions=conditions,
-            filter_keys={
-                'issue': [self.id],
-                'project_id': [self.project_id],
-            },
-            orderby=['-timestamp', '-event_id'],
-            limit=1,
-        )
-
-        if 'error' not in result and len(result['data']) == 1:
-            return SnubaEvent(result['data'][0])
-
-        return None
+        return get_oldest_or_latest_event_for_environments(
+            EventOrdering.LATEST,
+            environments=environments,
+            issue_id=self.id,
+            project_id=self.project_id)
 
     def get_oldest_event(self):
         from sentry.models import Event
@@ -427,37 +442,17 @@ class Group(Model):
         return self._oldest_event
 
     def get_oldest_event_for_environments(self, environments=[]):
-        from sentry.utils import snuba
-        from sentry.models import SnubaEvent
-
         use_snuba = options.get('snuba.events-queries.enabled')
 
         # Fetch without environment if Snuba is not enabled
         if not use_snuba:
             return self.get_oldest_event()
 
-        conditions = []
-
-        if len(environments) > 0:
-            conditions.append(['environment', 'IN', environments])
-
-        result = snuba.raw_query(
-            start=datetime.utcfromtimestamp(0),
-            end=datetime.utcnow(),
-            selected_columns=SnubaEvent.selected_columns,
-            conditions=conditions,
-            filter_keys={
-                'issue': [self.id],
-                'project_id': [self.project_id],
-            },
-            orderby=['timestamp', 'event_id'],
-            limit=1,
-        )
-
-        if 'error' not in result and len(result['data']) == 1:
-            return SnubaEvent(result['data'][0])
-
-        return None
+        return get_oldest_or_latest_event_for_environments(
+            EventOrdering.OLDEST,
+            environments=environments,
+            issue_id=self.id,
+            project_id=self.project_id)
 
     def get_first_release(self):
         if self.first_release_id is None:
