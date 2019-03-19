@@ -1,4 +1,5 @@
 import PropTypes from 'prop-types';
+import SentryTypes from 'app/sentryTypes';
 import React from 'react';
 import _ from 'lodash';
 import classNames from 'classnames';
@@ -36,6 +37,7 @@ const Frame = createReactClass({
     isOnlyFrame: PropTypes.bool,
     timesRepeated: PropTypes.number,
     registers: PropTypes.objectOf(PropTypes.string.isRequired),
+    group: SentryTypes.Group,
   },
 
   getDefaultProps() {
@@ -231,6 +233,7 @@ const Frame = createReactClass({
 
   renderContext() {
     const data = this.props.data;
+    const group = this.props.group;
     let context = '';
     const {isExpanded} = this.state;
 
@@ -261,7 +264,13 @@ const Frame = createReactClass({
           {data.context &&
             contextLines.map((line, index) => {
               return (
-                <ContextLine key={index} line={line} isActive={data.lineNo === line[0]} />
+                <ContextLine
+                  key={index}
+                  line={line}
+                  isActive={data.lineNo === line[0]}
+                  filename={data.filename}
+                  group={group}
+                />
               );
             })}
 
