@@ -71,9 +71,10 @@ def test_event_hash_variant(insta_snapshot, config_name, test_name, log):
     with open(os.path.join(_fixture_path, test_name + '.json')) as f:
         input = json.load(f)
 
-    mgr = EventManager(data=input, grouping_config={
+    grouping_config = {
         'id': config_name,
-    })
+    }
+    mgr = EventManager(data=input, grouping_config=grouping_config)
     mgr.normalize()
     data = mgr.get_data()
     evt = Event(data=data, platform=data['platform'])
@@ -86,5 +87,7 @@ def test_event_hash_variant(insta_snapshot, config_name, test_name, log):
         dump_variant(value, rv, 1)
     output = '\n'.join(rv)
     log(repr(evt.get_hashes()))
+
+    assert evt.get_grouping_config() == grouping_config
 
     insta_snapshot(output)
