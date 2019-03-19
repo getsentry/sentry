@@ -78,6 +78,9 @@ def up(project, exclude):
     if 'bigtable' not in settings.SENTRY_NODESTORE:
         exclude |= {'bigtable'}
 
+    if 'memcached' not in settings.CACHES.get('default', {}).get('BACKEND'):
+        exclude |= {'memcached'}
+
     if 'kafka' in settings.SENTRY_EVENTSTREAM:
         pass
     elif 'snuba' in settings.SENTRY_EVENTSTREAM:
