@@ -189,6 +189,13 @@ class ProjectSelector extends React.Component {
         noResultsMessage={t('No projects found')}
         virtualizedHeight={theme.headerSelectorRowHeight}
         emptyHidesInput
+        inputActions={() => (
+          <div>
+            <AddButton to={`/organizations/${org.slug}/projects/new`} size="xsmall">
+              <StyledAddIcon src="icon-circle-add" /> Add
+            </AddButton>
+          </div>
+        )}
         menuFooter={renderProps => {
           const renderedFooter =
             typeof menuFooter === 'function' ? menuFooter(renderProps) : menuFooter;
@@ -322,6 +329,19 @@ const CreateProjectButton = styled(Button)`
   margin: ${space(0.5)} 0;
 `;
 
+const AddButton = styled(Button)`
+  display: block;
+  margin: 0 ${space(1)};
+  box-shadow: none;
+  color: ${p => p.theme.gray2};
+  font-size: ${p => p.theme.fontSizeSmall};
+
+  &:hover {
+    border: 1px solid ${p => p.theme.gray2};
+    color: ${p => p.theme.gray3};
+  }
+`;
+
 const BadgeWrapper = styled('div')`
   display: flex;
   flex: 1;
@@ -349,6 +369,10 @@ const SettingsIconLink = styled(Link)`
   &:hover {
     color: ${p => p.theme.gray4};
   }
+`;
+
+const StyledAddIcon = styled(InlineSvg)`
+  margin-right: ${space(0.5)};
 `;
 
 const SettingsIcon = styled(InlineSvg)`
