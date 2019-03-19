@@ -58,11 +58,13 @@ class TeamSelect extends React.Component {
   };
 
   handleAddTeam = option => {
-    this.props.onAddTeam(option.value);
+    const team = this.state.teams.find(tm => tm.slug === option.value);
+    this.props.onAddTeam(team);
   };
 
   handleRemove = value => {
-    this.props.onRemoveTeam(value);
+    const team = this.state.teams.find(tm => tm.slug === value);
+    this.props.onRemoveTeam(team);
   };
 
   renderTeamAddDropDown() {

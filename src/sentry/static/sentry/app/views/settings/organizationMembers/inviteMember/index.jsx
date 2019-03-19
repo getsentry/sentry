@@ -195,17 +195,17 @@ const InviteMember = createReactClass({
       });
   },
 
-  handleAddTeam(slug) {
+  handleAddTeam(team) {
     const {selectedTeams} = this.state;
-    if (!selectedTeams.has(slug)) {
-      selectedTeams.add(slug);
+    if (!selectedTeams.has(team.slug)) {
+      selectedTeams.add(team.slug);
     }
     this.setState({selectedTeams});
   },
 
-  handleRemoveTeam(slug) {
+  handleRemoveTeam(team) {
     const {selectedTeams} = this.state;
-    selectedTeams.delete(slug);
+    selectedTeams.delete(team.slug);
 
     this.setState({selectedTeams});
   },

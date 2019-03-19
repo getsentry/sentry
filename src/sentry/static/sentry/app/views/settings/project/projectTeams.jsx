@@ -16,10 +16,7 @@ import space from 'app/styles/space';
 class ProjectTeams extends AsyncView {
   getEndpoints() {
     const {orgId, projectId} = this.props.params;
-    return [
-      ['projectTeams', `/projects/${orgId}/${projectId}/teams/`],
-      ['allTeams', `/organizations/${orgId}/teams/`],
-    ];
+    return [['projectTeams', `/projects/${orgId}/${projectId}/teams/`]];
   }
 
   canCreateTeam = () => {
@@ -30,13 +27,12 @@ class ProjectTeams extends AsyncView {
     );
   };
 
-  handleRemove = teamSlug => {
+  handleRemove = team => {
     if (this.state.loading) {
       return;
     }
 
     const {orgId, projectId} = this.props.params;
-    const team = this.state.allTeams.find(tm => tm.slug === teamSlug);
 
     removeTeamFromProject(this.api, orgId, projectId, team.slug)
       .then(() => this.handleRemovedTeam(team))
@@ -64,12 +60,10 @@ class ProjectTeams extends AsyncView {
     });
   };
 
-  handleAdd = teamSlug => {
+  handleAdd = team => {
     if (this.state.loading) {
       return;
     }
-
-    const team = this.state.allTeams.find(tm => tm.slug === teamSlug);
     const {orgId, projectId} = this.props.params;
 
     addTeamToProject(this.api, orgId, projectId, team).then(
