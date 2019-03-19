@@ -15,7 +15,7 @@ class DebugFileSerializer(Serializer):
             'debugId': obj.debug_id,
             'cpuName': obj.cpu_name,
             'objectName': obj.object_name,
-            'symbolType': obj.dif_type,
+            'symbolType': obj.file_format,
             'headers': obj.file.headers,
             'size': obj.file.size,
             'sha1': obj.file.checksum,
