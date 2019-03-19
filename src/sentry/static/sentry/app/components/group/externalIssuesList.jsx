@@ -50,7 +50,8 @@ class ExternalIssueList extends AsyncComponent {
   }
 
   componentWillUnmount() {
-    this.unsubscribables.forEach(u => u.unsubscribe());
+    super.componentWillUnmount();
+    this.unsubscribables.forEach(unsubscribe => unsubscribe());
   }
 
   onSentryAppInstallationChange = sentryAppInstallations => {
