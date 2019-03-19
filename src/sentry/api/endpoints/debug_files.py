@@ -11,6 +11,7 @@ from rest_framework.response import Response
 
 from sentry import ratelimits
 
+from sentry.api.authentication import SystemKeyAuthentication
 from sentry.api.base import DocSection
 from sentry.api.bases.project import ProjectEndpoint, ProjectReleasePermission
 from sentry.api.content_negotiation import ConditionalContentNegotiation
@@ -40,6 +41,73 @@ def upload_from_request(request, project):
     return Response(serialize(files, request.user), status=201)
 
 
+def download(debug_file_id, project):
+
+    debug_file = ProjectDebugFile.objects.filter(id=debug_file_id).first()
+
+    if debug_file is None:
+        raise Http404
+
+    try:
+        fp = debug_file.file.getfile()
+        response = StreamingHttpResponse(
+            iter(lambda: fp.read(4096), b''),
+            content_type='application/octet-stream'
+        )
+        response['Content-Length'] = debug_file.file.size
+        response['Content-Disposition'] = 'attachment; filename="%s%s"' % (posixpath.basename(
+            debug_file.debug_id
+        ), debug_file.file_extension)
+        return response
+    except IOError:
+        raise Http404
+
+
+class SymbolicatorFilesEndpoint(ProjectEndpoint):
+    doc_section = DocSection.PROJECTS
+    permission_classes = ()
+    authentication_classes = (SystemKeyAuthentication, )
+
+    def get(self, request, project):
+        """
+        List a Project's Debug Information Files
+        ````````````````````````````````````````
+
+        Retrieve a list of debug information files for a given project.
+
+        :pparam string organization_slug: the slug of the organization the
+                                          file belongs to.
+        :pparam string project_slug: the slug of the project to list the
+                                     DIFs of.
+        :qparam string id: If set, the specified DIF will be sent in the response.
+        :qparam string debug_id: Filter listing by debug ID
+        :auth: required
+        """
+        download_requested = request.GET.get('id') is not None
+        if download_requested:
+            return download(request.GET.get('id'), project)
+
+        queryset = ProjectDebugFile.objects.filter(
+            project=project,
+        ).select_related('file')
+
+        debug_id = request.GET.get('debug_id')
+
+        # TODO(markus): Use Code ID
+        assert debug_id
+
+        queryset = queryset.filter(debug_id=debug_id)
+
+        return self.paginate(
+            request=request,
+            queryset=queryset,
+            order_by='-id',
+            paginator_cls=OffsetPaginator,
+            default_per_page=20,
+            on_results=lambda x: serialize(x, request.user),
+        )
+
+
 class DebugFilesEndpoint(ProjectEndpoint):
     doc_section = DocSection.PROJECTS
     permission_classes = (ProjectReleasePermission, )
@@ -63,24 +131,7 @@ class DebugFilesEndpoint(ProjectEndpoint):
                 }, status=403
             )
 
-        debug_file = ProjectDebugFile.objects.filter(id=debug_file_id).first()
-
-        if debug_file is None:
-            raise Http404
-
-        try:
-            fp = debug_file.file.getfile()
-            response = StreamingHttpResponse(
-                iter(lambda: fp.read(4096), b''),
-                content_type='application/octet-stream'
-            )
-            response['Content-Length'] = debug_file.file.size
-            response['Content-Disposition'] = 'attachment; filename="%s%s"' % (posixpath.basename(
-                debug_file.debug_id
-            ), debug_file.file_extension)
-            return response
-        except IOError:
-            raise Http404
+        return download(debug_file_id, project)
 
     def get(self, request, project):
         """

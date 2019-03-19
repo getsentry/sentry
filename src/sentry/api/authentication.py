@@ -8,6 +8,7 @@ from rest_framework.exceptions import AuthenticationFailed
 from sentry.models import ApiApplication, ApiKey, ApiToken, ProjectKey, Relay
 from sentry.relay.utils import get_header_relay_id, get_header_relay_signature
 from sentry.utils.sdk import configure_scope
+from sentry import options
 
 import semaphore
 
@@ -167,3 +168,19 @@ class DSNAuthentication(StandardAuthentication):
             scope.set_tag("api_project_key", key.id)
 
         return (AnonymousUser(), key)
+
+
+class SystemKeyAuthentication(StandardAuthentication):
+    token_name = b'system'
+
+    def authenticate_credentials(self, token):
+        correct_token = options.get('system.secret-key')
+        assert correct_token, "Sentry should have never been able to start without a secret key configured"
+
+        if token != correct_token:
+            raise AuthenticationFailed('Invalid token')
+
+        with configure_scope() as scope:
+            scope.set_tag("api_token_type", self.token_name)
+
+        return (AnonymousUser(), None)

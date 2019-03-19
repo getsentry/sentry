@@ -176,7 +176,7 @@ from .endpoints.prompts_activity import PromptsActivityEndpoint
 from .endpoints.filechange import CommitFileChangeEndpoint
 from .endpoints.release_deploys import ReleaseDeploysEndpoint
 from .endpoints.debug_files import DebugFilesEndpoint, DifAssembleEndpoint, \
-    UnknownDebugFilesEndpoint, AssociateDSymFilesEndpoint
+    UnknownDebugFilesEndpoint, AssociateDSymFilesEndpoint, SymbolicatorFilesEndpoint
 from .endpoints.sentry_apps import SentryAppsEndpoint
 from .endpoints.sentry_app_components import SentryAppComponentsEndpoint, \
     OrganizationSentryAppComponentsEndpoint
@@ -880,6 +880,11 @@ urlpatterns = patterns(
         r'^projects/(?P<organization_slug>[^\/]+)/(?P<project_slug>[^\/]+)/files/dsyms/$',
         DebugFilesEndpoint.as_view(),
         name='sentry-api-0-dsym-files'
+    ),
+    url(
+        r'^projects/(?P<organization_slug>[^\/]+)/(?P<project_slug>[^\/]+)/files/symbolicator/$',
+        SymbolicatorFilesEndpoint.as_view(),
+        name='sentry-api-0-symbolicator-files'
     ),
     url(
         r'^projects/(?P<organization_slug>[^\/]+)/(?P<project_slug>[^\/]+)/files/difs/assemble/$',
