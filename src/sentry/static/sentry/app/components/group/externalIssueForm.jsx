@@ -201,6 +201,23 @@ export class SentryAppExternalIssueForm extends React.Component {
     this.props.onSubmitSuccess(issue);
   };
 
+  getFieldDefault(field) {
+    const {group, sentryAppInstallation} = this.props;
+    if (field.type == 'textarea') {
+      field.maxRows = 10;
+      field.autosize = true;
+    }
+    switch (field.default) {
+      case 'issue.title':
+        return group.title;
+      case 'issue.description':
+        return `Sentry Issue: [${group.shortId}](${group.permalink}?referrer=${sentryAppInstallation
+          .sentryApp.name})`;
+      default:
+        return '';
+    }
+  }
+
   render() {
     const {sentryAppInstallation} = this.props;
     const config = this.props.config[this.props.action];
@@ -224,6 +241,9 @@ export class SentryAppExternalIssueForm extends React.Component {
       >
         {requiredFields.map(field => {
           field.choices = field.choices || [];
+          if (['text', 'textarea'].includes(field.type) && field.default) {
+            field.defaultValue = this.getFieldDefault(field);
+          }
 
           return (
             <FieldFromConfig

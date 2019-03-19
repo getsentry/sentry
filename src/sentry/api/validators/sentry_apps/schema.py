@@ -41,6 +41,7 @@ SCHEMA = {
                     'anyOf': [
                         {'$ref': '#/definitions/select'},
                         {'$ref': '#/definitions/text'},
+                        {'$ref': '#/definitions/textarea'},
                     ],
                 },
             ],
@@ -81,6 +82,23 @@ SCHEMA = {
                 'type': {
                     'type': 'string',
                     'enum': ['text'],
+                },
+                'label': {
+                    'type': 'string',
+                },
+                'name': {
+                    'type': 'string',
+                },
+            },
+            'required': ['type', 'label', 'name'],
+        },
+
+        'textarea': {
+            'type': 'object',
+            'properties': {
+                'type': {
+                    'type': 'string',
+                    'enum': ['textarea'],
                 },
                 'label': {
                     'type': 'string',
