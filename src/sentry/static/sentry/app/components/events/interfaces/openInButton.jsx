@@ -4,6 +4,7 @@ import SentryTypes from 'app/sentryTypes';
 import Button from 'app/components/button';
 import qs from 'query-string';
 import styled from 'react-emotion';
+import {t} from 'app/locale';
 
 import withApi from 'app/utils/withApi';
 import withLatestContext from 'app/utils/withLatestContext';
@@ -68,7 +69,7 @@ class OpenInButton extends React.Component {
     return (
       <StyledButtonContainer>
         <StyledButton href={url} size="small" priority="primary">
-          {`Debug In ${components[0].sentryApp.name}`}
+          {t(`Debug In ${components[0].sentryApp.name}`)}
         </StyledButton>
       </StyledButtonContainer>
     );
