@@ -222,6 +222,9 @@ class Browser(object):
                     **cookie)
             )
         else:
+            # XXX(dcramer): chromedriver (of certain versions) is complaining about this being
+            # an invalid kwarg
+            del cookie['secure']
             self.driver.add_cookie(cookie)
 
 
@@ -277,6 +280,7 @@ def browser(request, percy, live_server):
     if driver_type == 'chrome':
         options = webdriver.ChromeOptions()
         options.add_argument('headless')
+        options.add_argument('no-sandbox')
         options.add_argument('disable-gpu')
         options.add_argument(u'window-size={}'.format(window_size))
         chrome_path = request.config.getoption('chrome_path')
