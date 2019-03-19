@@ -53,37 +53,16 @@ RECURSION_COMPARISON_FIELDS = [
 ]
 
 
-def is_url_v1(filename):
-    return filename.startswith(('file:', 'http:', 'https:', 'applewebdata:'))
-
-
-def is_url_frame_v1(frame):
-    if not frame.abs_path:
+def abs_path_is_url_v1(abs_path):
+    if not abs_path:
         return False
     # URLs can be generated such that they are:
     #   blob:http://example.com/7f7aaadf-a006-4217-9ed5-5fbf8585c6c0
     # https://developer.mozilla.org/en-US/docs/Web/API/URL/createObjectURL
-    if frame.abs_path.startswith('blob:'):
+    if abs_path.startswith('blob:'):
         return True
-    return is_url_v1(frame.abs_path)
-
-
-def is_unhashable_module_v1(frame, platform):
-    # Fix for the case where module is a partial copy of the URL
-    # and should not be hashed
-    if (platform == 'javascript' and '/' in frame.module
-            and frame.abs_path and frame.abs_path.endswith(frame.module)):
-        return True
-    elif platform == 'java' and '$$Lambda$' in frame.module:
-        return True
-    return False
-
-
-def is_unhashable_function_v1(frame):
-    # TODO(dcramer): lambda$ is Java specific
-    # TODO(dcramer): [Anonymous is PHP specific (used for things like SQL
-    # queries and JSON data)
-    return frame.function.startswith(('lambda$', '[Anonymous'))
+    return abs_path.startswith((
+        'blob:', 'file:', 'http:', 'https:', 'applewebdata:'))
 
 
 def is_recursion_v1(frame1, frame2):
@@ -110,26 +89,77 @@ def remove_module_outliers_v1(module, platform):
     return module, None
 
 
-def remove_filename_outliers_v1(filename, platform):
+def get_filename_component_v1(abs_path, filename, platform):
     """
     Attempt to normalize filenames by removing common platform outliers.
 
     - Sometimes filename paths contain build numbers
     """
+    if filename is None:
+        return GroupingComponent(id='filename')
+
     # Only use the platform independent basename for grouping and
     # lowercase it
     filename = _basename_re.split(filename)[-1].lower()
+    filename_component = GroupingComponent(
+        id='filename',
+        values=[filename],
+    )
 
-    removed = []
-    if platform == 'java':
+    if abs_path_is_url_v1(abs_path):
+        filename_component.update(
+            contributes=False,
+            hint='ignored because frame points to a URL',
+        )
+    elif filename == '<anonymous>':
+        filename_component.update(
+            contributes=False,
+            hint='anonymous filename discarded'
+        )
+    elif filename == '[native code]':
+        filename_component.update(
+            contributes=False,
+            hint='native code indicated by filename'
+        )
+    elif platform == 'java':
         new_filename = _java_assist_enhancer_re.sub(r'\1<auto>', filename)
         if new_filename != filename:
-            removed.append('javassist parts')
-            filename = new_filename
+            filename_component.update(
+                values=[new_filename],
+                hint='cleaned javassist parts'
+            )
 
-    if removed:
-        return filename, 'removed %s' % ' and '.join(removed)
-    return filename, None
+    return filename_component
+
+
+def get_module_component_v1(abs_path, module, platform):
+    if module is None:
+        return GroupingComponent(id='module')
+
+    module_component = GroupingComponent(
+        id='module',
+        values=[module]
+    )
+
+    if platform == 'javascript' and '/' in module and abs_path and abs_path.endswith(module):
+        module_component.update(
+            contributes=False,
+            hint='ignored bad javascript module',
+        )
+    elif platform == 'java' and '$$Lambda$' in module:
+        module_component.update(
+            contributes=False,
+            hint='ignored java lambda',
+        )
+    else:
+        module_name, module_hint = \
+            remove_module_outliers_v1(module, platform)
+        module_component.update(
+            values=[module_name],
+            hint=module_hint
+        )
+
+    return module_component
 
 
 def isolate_native_function_v1(function):
@@ -181,7 +211,7 @@ def isolate_native_function_v1(function):
     return original_function
 
 
-def remove_function_outliers_v1(function, platform):
+def get_function_component_v1(function, platform):
     """
     Attempt to normalize functions by removing common platform outliers.
 
@@ -189,19 +219,51 @@ def remove_function_outliers_v1(function, platform):
       such as in erb and the active_support library.
     - Block functions have metadata that we don't care about.
     """
+    if not function:
+        return GroupingComponent(id='function')
+
+    function_component = GroupingComponent(
+        id='function',
+        values=[function],
+    )
+
     if platform == 'ruby':
         if function.startswith('block '):
-            return 'block', 'ruby block'
-        new_function = _ruby_anon_func.sub('_<anon>', function)
-        if new_function != function:
-            return new_function, 'trimmed integer suffix'
+            function_component.update(
+                values=['block'],
+                hint='ruby block'
+            )
+        else:
+            new_function = _ruby_anon_func.sub('_<anon>', function)
+            if new_function != function:
+                function_component.update(
+                    values=[new_function],
+                    hint='removed integer suffix'
+                )
 
-    if platform in ('objc', 'cocoa', 'native'):
+    elif platform == 'php':
+        if function.startswith('[Anonymous'):
+            function_component.update(
+                contributes=False,
+                hint='ignored anonymous function'
+            )
+
+    elif platform == 'java':
+        if function.startswith('lambda$'):
+            function_component.update(
+                contributes=False,
+                hint='ignored lambda function'
+            )
+
+    elif platform in ('objc', 'cocoa', 'native'):
         new_function = isolate_native_function_v1(function)
         if new_function != function:
-            return new_function, 'isolated function'
+            function_component.update(
+                values=[new_function],
+                hint='isolated function'
+            )
 
-    return function, None
+    return function_component
 
 
 @strategy(
@@ -219,74 +281,21 @@ def frame_v1(frame, event, **meta):
     # Safari throws [native code] frames in for calls like ``forEach``
     # whereas Chrome ignores these. Let's remove it from the hashing algo
     # so that they're more likely to group together
-    filename_component = GroupingComponent(id='filename')
-    if frame.filename == '<anonymous>':
-        filename_component.update(
-            contributes=False,
-            values=[frame.filename],
-            hint='anonymous filename discarded'
-        )
-    elif frame.filename == '[native code]':
-        contributes = False
-        hint = 'native code indicated by filename'
-    elif frame.filename:
-        hashable_filename, hashable_filename_hint = \
-            remove_filename_outliers_v1(frame.filename, platform)
-        if is_url_frame_v1(frame):
-            filename_component.update(
-                contributes=False,
-                values=[hashable_filename],
-                hint='ignored because frame points to a URL',
-            )
-        else:
-            filename_component.update(
-                values=[hashable_filename],
-                hint=hashable_filename_hint
-            )
+    filename_component = get_filename_component_v1(
+        frame.abs_path, frame.filename, platform)
 
     # if we have a module we use that for grouping.  This will always
-    # take precedence over the filename, even if the module is
-    # considered unhashable.
-    module_component = GroupingComponent(id='module')
-    if frame.module:
-        if is_unhashable_module_v1(frame, platform):
-            module_component.update(
-                values=[GroupingComponent(
-                    id='salt',
-                    values=['<module>'],
-                    hint='normalized generated module name'
-                )],
-                hint='ignored module',
-            )
-        else:
-            module_name, module_hint = \
-                remove_module_outliers_v1(frame.module, platform)
-            module_component.update(
-                values=[module_name],
-                hint=module_hint
-            )
-        if filename_component.contributes:
-            filename_component.update(
-                contributes=False,
-                hint='module takes precedence'
-            )
+    # take precedence over the filename if it contributes
+    module_component = get_module_component_v1(
+        frame.abs_path, frame.module, platform)
+    if module_component.contributes and filename_component.contributes:
+        filename_component.update(
+            contributes=False,
+            hint='module takes precedence'
+        )
 
-    function_component = GroupingComponent(id='function')
-
-    if frame.function:
-        function, function_hint = remove_function_outliers_v1(
-            frame.function, platform)
-        if is_unhashable_function_v1(frame):
-            function_component.update(
-                values=[function],
-                contributes=False,
-                hint='normalized lambda function name ignored'
-            )
-        else:
-            function_component.update(
-                values=[function],
-                hint=function_hint
-            )
+    function_component = get_function_component_v1(
+        frame.function, platform)
 
     return GroupingComponent(
         id='frame',
