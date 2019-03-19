@@ -15,6 +15,7 @@ import IdBadge from 'app/components/idBadge';
 import SentryTypes from 'app/sentryTypes';
 import space from 'app/styles/space';
 import theme from 'app/utils/theme';
+import Tooltip from 'app/components/tooltip';
 
 class ProjectSelector extends React.Component {
   static propTypes = {
@@ -190,11 +191,11 @@ class ProjectSelector extends React.Component {
         virtualizedHeight={theme.headerSelectorRowHeight}
         emptyHidesInput
         inputActions={() => (
-          <div>
+          <Tooltip title="Add a project">
             <AddButton to={`/organizations/${org.slug}/projects/new`} size="xsmall">
-              <StyledAddIcon src="icon-circle-add" /> Add
+              <StyledAddIcon src="icon-circle-add" />
             </AddButton>
-          </div>
+          </Tooltip>
         )}
         menuFooter={renderProps => {
           const renderedFooter =
@@ -329,15 +330,13 @@ const CreateProjectButton = styled(Button)`
   margin: ${space(0.5)} 0;
 `;
 
-const AddButton = styled(Button)`
+const AddButton = styled(Link)`
   display: block;
   margin: 0 ${space(1)};
-  box-shadow: none;
   color: ${p => p.theme.gray2};
-  font-size: ${p => p.theme.fontSizeSmall};
+  font-size: ${p => p.theme.fontSizeMedium};
 
   &:hover {
-    border: 1px solid ${p => p.theme.gray2};
     color: ${p => p.theme.gray3};
   }
 `;
