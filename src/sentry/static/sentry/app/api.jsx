@@ -236,12 +236,17 @@ export class Client {
 
   requestPromise(path, {includeAllArgs, ...options} = {}) {
     return new Promise((resolve, reject) => {
+      // Create an error object here before we make any async calls so
+      // that we have a helpful stacktrace if it errors
+      const error = new Error('API Request Failed');
+
       this.request(path, {
         ...options,
         success: (data, ...args) => {
           includeAllArgs ? resolve([data, ...args]) : resolve(data);
         },
-        error: (error, ...args) => {
+        error: (resp, ...args) => {
+          error.resp = resp;
           reject(error);
         },
       });
