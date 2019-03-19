@@ -281,17 +281,17 @@ class ProjectSelectorItem extends React.PureComponent {
               avatarProps={{consistentWidth: true}}
             />
           </BadgeWrapper>
-          <Actions>
-            {multi && (
+          {multi && (
+            <Actions>
               <SettingsIconLink
                 to={`/settings/${organization.slug}/${project.slug}/`}
                 onClick={e => e.stopPropagation()}
               >
                 <SettingsIcon src="icon-settings" />
               </SettingsIconLink>
-            )}
-            <BookmarkIcon project={project} organization={organization} />
-          </Actions>
+              <BookmarkIcon project={project} organization={organization} />
+            </Actions>
+          )}
         </GlobalSelectionHeaderRow>
       </BadgeAndActionsWrapper>
     );
@@ -299,23 +299,17 @@ class ProjectSelectorItem extends React.PureComponent {
 }
 
 const Actions = styled('div')`
-  opacity: 0;
-  transition: 0.5s opacity ease-out;
   display: flex;
   margin-right: ${space(0.25)};
   align-items: center;
-`;
-
-const BadgeAndActionsWrapper = styled('div')`
-  &:hover ${Actions} {
-    opacity: 1;
-  }
 `;
 
 const BookmarkIcon = styled(BookmarkStar)`
   padding: ${space(1)} ${space(1)} ${space(1)} ${space(0.5)};
   margin-right: ${space(0.25)};
   box-sizing: content-box;
+  opacity: ${p => (p.project.isBookmarked ? 1 : 0)};
+  transition: 0.5s opacity ease-out;
   display: block;
   width: 16px;
   height: 16px;
@@ -349,6 +343,8 @@ const SettingsIconLink = styled(Link)`
   justify-content: space-between;
   padding: ${space(1)} ${space(0.5)} ${space(1)} ${space(1)};
   margin-right: ${space(0.25)};
+  opacity: 0;
+  transition: 0.5s opacity ease-out;
 
   &:hover {
     color: ${p => p.theme.gray4};
@@ -358,6 +354,12 @@ const SettingsIconLink = styled(Link)`
 const SettingsIcon = styled(InlineSvg)`
   height: 16px;
   width: 16px;
+`;
+
+const BadgeAndActionsWrapper = styled('div')`
+  &:hover ${BookmarkIcon}, &:hover ${SettingsIconLink} {
+    opacity: 1;
+  }
 `;
 
 export default ProjectSelector;

@@ -32,6 +32,7 @@ import SentryTypes from 'app/sentryTypes';
 import TimeRangeSelector from 'app/components/organizations/timeRangeSelector';
 import Tooltip from 'app/components/tooltip';
 import withGlobalSelection from 'app/utils/withGlobalSelection';
+import withProjects from 'app/utils/withProjects';
 import ConfigStore from 'app/stores/configStore';
 import {getStateFromQuery} from './utils';
 
@@ -200,6 +201,17 @@ class GlobalSelectionHeader extends React.Component {
       return true;
     }
 
+    //update if any projects are starred or reordered
+    if (
+      this.props.projects &&
+      nextProps.projects &&
+      !isEqual(
+        this.props.projects.map(p => [p.slug, p.isBookmarked]),
+        nextProps.projects.map(p => [p.slug, p.isBookmarked])
+      )
+    )
+      return true;
+
     return false;
   }
 
@@ -307,15 +319,15 @@ class GlobalSelectionHeader extends React.Component {
 
   getProjects = () => {
     const {isSuperuser} = ConfigStore.get('user');
+    const {projects} = this.props;
 
     if (isSuperuser) {
-      return this.props.projects || this.props.organization.projects;
+      return projects.length ? projects : this.props.organization.projects;
     }
 
-    return (
-      this.props.projects ||
-      this.props.organization.projects.filter(project => project.isMember)
-    );
+    return projects.length
+      ? this.props.projects
+      : this.props.organization.projects.filter(project => project.isMember);
   };
 
   getFirstProject = () => {
@@ -412,7 +424,7 @@ class GlobalSelectionHeader extends React.Component {
   }
 }
 
-export default withRouter(withGlobalSelection(GlobalSelectionHeader));
+export default withProjects(withRouter(withGlobalSelection(GlobalSelectionHeader)));
 
 const BackButtonWrapper = styled('div')`
   display: flex;

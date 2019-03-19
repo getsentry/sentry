@@ -18,25 +18,15 @@ class BookmarkStar extends React.Component {
     className: PropTypes.string,
   };
 
-  constructor(props) {
-    super(props);
-
-    this.state = {
-      isBookmarked: this.props.project.isBookmarked,
-    };
-  }
-
   toggleProjectBookmark = event => {
     const {project, organization, api} = this.props;
 
-    this.setState({isBookmarked: !this.state.isBookmarked}, () => {
-      update(api, {
-        orgId: organization.slug,
-        projectId: project.slug,
-        data: {isBookmarked: this.state.isBookmarked},
-      }).catch(() => {
-        addErrorMessage(t('Unable to toggle bookmark for %s', project.slug));
-      });
+    update(api, {
+      orgId: organization.slug,
+      projectId: project.slug,
+      data: {isBookmarked: !project.isBookmarked},
+    }).catch(() => {
+      addErrorMessage(t('Unable to toggle bookmark for %s', project.slug));
     });
 
     //needed to dismiss tooltip
@@ -47,13 +37,14 @@ class BookmarkStar extends React.Component {
   };
 
   render() {
-    const {className} = this.props;
-    const {isBookmarked} = this.state;
+    const {className, project} = this.props;
 
     return (
-      <Tooltip title={isBookmarked ? 'Remove from bookmarks' : 'Add to bookmarks'}>
+      <Tooltip
+        title={project.isBookmarked ? 'Remove from bookmarks' : 'Add to bookmarks'}
+      >
         <Star
-          isBookmarked={isBookmarked}
+          isBookmarked={project.isBookmarked}
           src="icon-star-small-filled"
           onClick={this.toggleProjectBookmark}
           className={className}
@@ -64,10 +55,10 @@ class BookmarkStar extends React.Component {
 }
 
 const Star = styled(InlineSvg)`
-  color: ${p => (p.isBookmarked ? p.theme.yellowOrange : p.theme.gray2)};
+  color: ${p => (p.isBookmarked ? p.theme.yellowOrange : p.theme.gray1)};
 
   &:hover {
-    color: ${p => (p.isBookmarked ? p.theme.yellowOrangeLight : p.theme.gray1)};
+    color: ${p => (p.isBookmarked ? p.theme.yellowOrangeLight : p.theme.gray2)};
   }
 `;
 
