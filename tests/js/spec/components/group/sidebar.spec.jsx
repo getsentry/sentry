@@ -69,7 +69,7 @@ describe('GroupSidebar', function() {
     it('renders', function() {
       expect(wrapper.find('SuggestedOwners')).toHaveLength(1);
       expect(wrapper.find('GroupReleaseStats')).toHaveLength(1);
-      expect(wrapper.find('ExternalIssueList')).toHaveLength(1);
+      expect(wrapper.find('withApi(ExternalIssueList)')).toHaveLength(1);
       expect(wrapper.find('[data-test-id="group-tag"]')).toHaveLength(5);
     });
   });

@@ -358,6 +358,11 @@ if (USE_HOT_MODULE_RELOAD) {
     // If below is false, will reload on errors
     hotOnly: true,
     port: WEBPACK_DEV_PORT,
+    stats: 'errors-only',
+    overlay: true,
+    watchOptions: {
+      ignored: ['node_modules'],
+    },
   };
 
   // Required, without this we get this on updates:

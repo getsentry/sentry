@@ -1,9 +1,0 @@
-default:
-  hash: '826f66ef602835f68030c04c634df320'
-  component:
-    default*
-      template*
-        filename*
-          u'foo.html'
-        context-line*
-          u'hello world'

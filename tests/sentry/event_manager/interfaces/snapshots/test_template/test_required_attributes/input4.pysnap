@@ -1,0 +1,13 @@
+---
+created: '2019-03-14T17:12:36.713418Z'
+creator: sentry
+source: tests/sentry/event_manager/interfaces/test_template.py
+---
+api_context: null
+errors:
+- name: template.context_line
+  reason: expected a string
+  type: invalid_data
+  value: 42
+to_json: null
+to_string: null

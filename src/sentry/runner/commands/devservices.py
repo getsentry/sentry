@@ -23,6 +23,17 @@ def get_or_create(client, thing, name):
         return getattr(client, thing + 's').create(name)
 
 
+def ensure_interface(ports):
+    # If there is no interface specified, make sure the
+    # default interface is 127.0.0.1
+    rv = {}
+    for k, v in ports.items():
+        if not isinstance(v, tuple):
+            v = ('127.0.0.1', v)
+        rv[k] = v
+    return rv
+
+
 class SetType(click.ParamType):
     name = 'set'
 
@@ -63,6 +74,10 @@ def up(project, exclude):
     # services are run if they're not needed.
     if not exclude:
         exclude = set()
+
+    if 'bigtable' not in settings.SENTRY_NODESTORE:
+        exclude |= {'bigtable'}
+
     if 'kafka' in settings.SENTRY_EVENTSTREAM:
         pass
     elif 'snuba' in settings.SENTRY_EVENTSTREAM:
@@ -85,6 +100,7 @@ def up(project, exclude):
         options.setdefault('ports', {})
         options.setdefault('environment', {})
         options.setdefault('restart_policy', {'Name': 'on-failure'})
+        options['ports'] = ensure_interface(options['ports'])
         containers[name] = options
 
     pulled = set()

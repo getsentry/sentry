@@ -34,7 +34,7 @@ class DjangoNodeStorage(NodeStorage):
     def delete_multi(self, id_list):
         Node.objects.filter(id__in=id_list).delete()
 
-    def set(self, id, data):
+    def set(self, id, data, ttl=None):
         create_or_update(
             Node,
             id=id,

@@ -15,7 +15,7 @@ class DebugMetaInterface extends React.Component {
 
   getImageDetail(img, evt) {
     // in particular proguard images do not have a name, skip them
-    if (img.name === null || img.type === 'proguard') {
+    if (img === null || img.name === null || img.type === 'proguard') {
       return null;
     }
 

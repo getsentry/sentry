@@ -188,7 +188,6 @@ class SentryAppInstallationsBaseEndpoint(Endpoint):
             organization = organizations.get(slug=organization_slug)
         except Organization.DoesNotExist:
             raise Http404
-
         self.check_object_permissions(request, organization)
 
         kwargs['organization'] = organization
@@ -199,6 +198,14 @@ class SentryAppInstallationPermission(SentryPermission):
     scope_map = {
         'GET': ('org:read', 'org:integrations', 'org:write', 'org:admin'),
         'DELETE': ('org:integrations', 'org:write', 'org:admin'),
+        # NOTE(mn): The only POST endpoint right now is to create External
+        # Issues, which uses this baseclass since it's nested under an
+        # installation.
+        #
+        # The scopes below really only make sense for that endpoint. Any other
+        # nested endpoints will probably need different scopes - figure out how
+        # to deal with that when it happens.
+        'POST': ('org:integrations', 'event:write', 'event:admin'),
     }
 
     def has_object_permission(self, request, view, installation):

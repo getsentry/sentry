@@ -13,7 +13,7 @@ __all__ = ('Breadcrumbs', )
 import six
 
 from sentry.constants import LOG_LEVELS_MAP
-from sentry.interfaces.base import Interface, InterfaceValidationError, prune_empty_keys
+from sentry.interfaces.base import Interface, InterfaceValidationError, prune_empty_keys, RUST_RENORMALIZED_DEFAULT
 from sentry.utils.safe import get_path, trim
 from sentry.utils.dates import to_timestamp, to_datetime, parse_timestamp
 
@@ -37,18 +37,19 @@ class Breadcrumbs(Interface):
     score = 800
 
     @classmethod
-    def to_python(cls, data):
+    def to_python(cls, data, rust_renormalized=RUST_RENORMALIZED_DEFAULT):
         values = []
         for index, crumb in enumerate(get_path(data, 'values', filter=True, default=())):
             # TODO(ja): Handle already invalid and None breadcrumbs
 
             try:
-                values.append(cls.normalize_crumb(crumb))
+                values.append(cls.normalize_crumb(crumb, rust_renormalized=rust_renormalized))
             except Exception:
                 # TODO(dcramer): we dont want to discard the entirety of data
                 # when one breadcrumb errors, but it'd be nice if we could still
                 # record an error
-                pass
+                if rust_renormalized:
+                    raise
 
         return cls(values=values)
 
@@ -68,7 +69,27 @@ class Breadcrumbs(Interface):
         })
 
     @classmethod
-    def normalize_crumb(cls, crumb):
+    def normalize_crumb(cls, crumb, rust_renormalized):
+        if rust_renormalized:
+            crumb = dict(crumb)
+            ts = parse_timestamp(crumb.get('timestamp'))
+            if ts:
+                crumb['timestamp'] = to_timestamp(ts)
+            else:
+                crumb['timestamp'] = None
+
+            for key in (
+                'type',
+                'level',
+                'message',
+                'category',
+                'event_id',
+                'data',
+            ):
+                crumb.setdefault(key, None)
+
+            return crumb
+
         ty = crumb.get('type') or 'default'
         level = crumb.get('level')
         if not isinstance(level, six.string_types) or \
@@ -117,7 +138,7 @@ class Breadcrumbs(Interface):
         def _convert(x):
             return {
                 'type': x['type'],
-                'timestamp': to_datetime(x['timestamp']),
+                'timestamp': x['timestamp'] and to_datetime(x['timestamp']),
                 'level': x.get('level', 'info'),
                 'message': x.get('message'),
                 'category': x.get('category'),

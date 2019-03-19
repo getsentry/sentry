@@ -31,7 +31,12 @@ const UserBadge = ({
           {displayName ||
             userFromPropsOrMember.name ||
             userFromPropsOrMember.email ||
-            userFromPropsOrMember.ipAddress}
+            userFromPropsOrMember.ipAddress ||
+            /**
+             * Because this can be used to render EventUser models, or User *interface*
+             * objects from serialized Event models. we try both ipAddress and ip_address.
+             */
+            userFromPropsOrMember.ip_address}
         </StyledName>
         {!hideEmail && (
           <StyledEmail>{displayEmail || userFromPropsOrMember.email}</StyledEmail>

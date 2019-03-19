@@ -826,6 +826,17 @@ class SnubaSearchTest(SnubaTestCase):
         )
         assert set(results) == set([self.group1, self.group2])
 
+        # Test with `Z` utc marker, should be equivalent
+        results = self.make_query(
+            date_from=self.event1.datetime,
+            date_to=self.event2.datetime + timedelta(minutes=1),
+            search_filter_query='timestamp:>=%s timestamp:<=%s' % (
+                date_to_query_format(self.event1.datetime) + 'Z',
+                date_to_query_format(self.event2.datetime + timedelta(minutes=1)) + 'Z',
+            )
+        )
+        assert set(results) == set([self.group1, self.group2])
+
     @pytest.mark.xfail(
         not settings.SENTRY_TAGSTORE.startswith('sentry.tagstore.v2'),
         reason='unsupported on legacy backend due to insufficient index',
@@ -1389,6 +1400,65 @@ class SnubaSearchTest(SnubaTestCase):
             search_filter_query='environment:production !has:server',
         )
         assert set(results) == set([no_tag_event.group])
+
+    def test_null_promoted_tags(self):
+        tag_event = self.store_event(
+            data={
+                'fingerprint': ['hello-there'],
+                'event_id': 'f' * 32,
+                'message': 'something',
+                'environment': 'production',
+                'tags': {
+                    'logger': 'csp',
+                },
+                'timestamp': self.base_datetime.isoformat()[:19],
+                'stacktrace': {
+                    'frames': [{
+                        'module': 'group1'
+                    }]
+                },
+            },
+            project_id=self.project.id,
+        )
+        no_tag_event = self.store_event(
+            data={
+                'fingerprint': ['hello-there-2'],
+                'event_id': '5' * 32,
+                'message': 'something',
+                'environment': 'production',
+                'timestamp': self.base_datetime.isoformat()[:19],
+                'stacktrace': {
+                    'frames': [{
+                        'module': 'group2'
+                    }]
+                },
+            },
+            project_id=self.project.id,
+        )
+        results = self.make_query(
+            search_filter_query='environment:production !logger:*sp',
+        )
+        assert set(results) == set([self.group1, no_tag_event.group])
+        results = self.make_query(
+            search_filter_query='environment:production logger:*sp',
+        )
+        assert set(results) == set([tag_event.group])
+        results = self.make_query(
+            search_filter_query='environment:production !logger:csp',
+        )
+        assert set(results) == set([self.group1, no_tag_event.group])
+        results = self.make_query(
+            search_filter_query='environment:production logger:csp',
+        )
+        assert set(results) == set([tag_event.group])
+        results = self.make_query(
+            search_filter_query='environment:production has:logger',
+        )
+        assert set(results) == set([tag_event.group])
+        results = self.make_query(
+            search_filter_query='environment:production !has:logger',
+        )
+        assert set(results) == set([self.group1, no_tag_event.group])
 
     def test_all_fields_do_not_error(self):
         # Just a sanity check to make sure that all fields can be succesfully

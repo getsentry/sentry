@@ -54,9 +54,8 @@ class IssueLinkRequester(Mediator):
         return self._make_request()
 
     def _build_url(self):
-        domain = urlparse(self.sentry_app.webhook_url).netloc
-        url = u'https://{}{}'.format(domain, self.uri)
-        return url
+        urlparts = urlparse(self.sentry_app.webhook_url)
+        return u'{}://{}{}'.format(urlparts.scheme, urlparts.netloc, self.uri)
 
     def _make_request(self):
         req = safe_urlopen(
@@ -101,13 +100,18 @@ class IssueLinkRequester(Mediator):
 
     @memoize
     def body(self):
-        body = {}
+        body = {'fields': {}}
         for name, value in six.iteritems(self.fields):
-            body[name] = value
+            body['fields'][name] = value
 
         body['issueId'] = self.group.id
         body['installationId'] = self.install.uuid
         body['webUrl'] = self.group.get_absolute_url()
+        project = self.group.project
+        body['project'] = {
+            'slug': project.slug,
+            'id': project.id,
+        }
         return json.dumps(body)
 
     @memoize
