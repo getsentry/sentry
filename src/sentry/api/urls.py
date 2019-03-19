@@ -93,6 +93,7 @@ from .endpoints.organization_index import OrganizationIndexEndpoint
 from .endpoints.organization_plugins import OrganizationPluginsEndpoint
 from .endpoints.organization_processingissues import OrganizationProcessingIssuesEndpoint
 from .endpoints.organization_projects import OrganizationProjectsEndpoint
+from .endpoints.organization_recent_searches import OrganizationRecentSearchesEndpoint
 from .endpoints.organization_releases import OrganizationReleasesEndpoint
 from .endpoints.organization_release_details import OrganizationReleaseDetailsEndpoint
 from .endpoints.organization_release_files import OrganizationReleaseFilesEndpoint
@@ -584,6 +585,11 @@ urlpatterns = patterns(
     url(
         r'^organizations/(?P<organization_slug>[^\/]+)/monitors/$',
         OrganizationMonitorsEndpoint.as_view(),
+    ),
+    url(
+        r'^organizations/(?P<organization_slug>[^\/]+)/recent-searches/$',
+        OrganizationRecentSearchesEndpoint.as_view(),
+        name='sentry-api-0-organization-recent-searches'
     ),
     url(
         r'^organizations/(?P<organization_slug>[^\/]+)/searches/$',
