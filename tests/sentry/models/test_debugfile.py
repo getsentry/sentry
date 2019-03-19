@@ -158,8 +158,8 @@ class CreateDebugFileTest(APITestCase):
     def create_dif(self, **kwargs):
         args = {
             'project': self.project,
-            'dif_type': 'macho',
-            'cpu_name': 'x86_64',
+            'file_format': 'macho',
+            'arch': 'x86_64',
             'debug_id': '67e9247c-814e-392b-a027-dbde6748fcbf',
             'data': {'features': ['debug']},
             'basename': 'crash.dsym',
@@ -350,7 +350,7 @@ class SymCacheTest(TestCase):
 
         symcaches = ProjectDebugFile.difcache.get_symcaches(self.project, [debug_id])
         assert debug_id in symcaches
-        assert symcaches[debug_id].id == debug_id
+        assert symcaches[debug_id].debug_id == debug_id
 
     def test_miss_symcache_without_feature(self):
         debug_id = '67e9247c-814e-392b-a027-dbde6748fcbf'
@@ -375,12 +375,12 @@ class SymCacheTest(TestCase):
         self.create_dif_from_path(
             path=os.path.join(os.path.dirname(__file__), 'fixtures', 'crash.dsym'),
             debug_id=debug_id,
-            dif_type='macho',  # XXX: Needed for legacy compatibility check
+            file_format='macho',  # XXX: Needed for legacy compatibility check
         )
 
         symcaches = ProjectDebugFile.difcache.get_symcaches(self.project, [debug_id])
         assert debug_id in symcaches
-        assert symcaches[debug_id].id == debug_id
+        assert symcaches[debug_id].debug_id == debug_id
 
     def test_create_symcache_with_feature(self):
         debug_id = '67e9247c-814e-392b-a027-dbde6748fcbf'
@@ -392,14 +392,14 @@ class SymCacheTest(TestCase):
 
         symcaches = ProjectDebugFile.difcache.get_symcaches(self.project, [debug_id])
         assert debug_id in symcaches
-        assert symcaches[debug_id].id == debug_id
+        assert symcaches[debug_id].debug_id == debug_id
 
     def test_skip_symcache_without_feature(self):
         debug_id = '1ddb3423-950a-3646-b17b-d4360e6acfc9'
         self.create_dif_from_path(
             path=os.path.join(os.path.dirname(__file__), 'fixtures', 'crash'),
             debug_id=debug_id,
-            dif_type='macho',
+            file_format='macho',
         )
 
         symcaches = ProjectDebugFile.difcache.get_symcaches(self.project, [debug_id])
@@ -429,8 +429,8 @@ class SymCacheTest(TestCase):
 
         symcaches = ProjectDebugFile.difcache.get_symcaches(self.project, [debug_id])
         assert debug_id in symcaches
-        assert symcaches[debug_id].id == debug_id
-        assert symcaches[debug_id].is_latest_file_format
+        assert symcaches[debug_id].debug_id == debug_id
+        assert symcaches[debug_id].is_latest_version
         assert not ProjectSymCacheFile.objects.filter(id=old_cache.id, version=1).exists()
 
     def test_get_symcache_on_referenced(self):
@@ -552,7 +552,7 @@ class CfiCacheTest(TestCase):
         self.create_dif_from_path(
             path=os.path.join(os.path.dirname(__file__), 'fixtures', 'crash.dsym'),
             debug_id=debug_id,
-            dif_type='macho',
+            file_format='macho',
         )
 
         symcaches = ProjectDebugFile.difcache.get_cficaches(self.project, [debug_id])
@@ -583,7 +583,7 @@ class CfiCacheTest(TestCase):
 
         cficaches = ProjectDebugFile.difcache.get_cficaches(self.project, [debug_id])
         assert debug_id in cficaches
-        assert cficaches[debug_id].is_latest_file_format
+        assert cficaches[debug_id].is_latest_version
         assert not ProjectCfiCacheFile.objects.filter(id=old_cache.id, version=0).exists()
 
     def test_get_cficache_on_referenced(self):

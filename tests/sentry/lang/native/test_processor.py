@@ -2,10 +2,10 @@ from __future__ import absolute_import
 
 from mock import patch
 
-from sentry.testutils import TestCase
 from sentry.lang.native.plugin import NativeStacktraceProcessor
 from sentry.lang.native.symbolizer import Symbolizer
 from sentry.stacktraces import process_stacktraces
+from sentry.testutils import TestCase
 
 OBJECT_NAME = (
     "/var/containers/Bundle/Application/B33C37A8-F933-4B6B-9FFA-152282BFDF13/"
@@ -158,12 +158,14 @@ class BasicResolvingFileTest(TestCase):
             },
             "contexts": {
                 "device": {
+                    "type": "device",
                     "model_id": "N102AP",
                     "model": "iPod7,1",
                     "arch": "arm64",
                     "family": "iPod"
                 },
                 "os": {
+                    "type": "os",
                     "version": "9.3.2",
                     "rooted": False,
                     "build": "13F69",

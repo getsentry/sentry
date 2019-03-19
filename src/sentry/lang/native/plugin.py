@@ -113,7 +113,7 @@ class NativeStacktraceProcessor(StacktraceProcessor):
         processable_frame.data = {
             'instruction_addr': instr_addr,
             'obj': obj,
-            'debug_id': obj.id if obj is not None else None,
+            'debug_id': obj.debug_id if obj is not None else None,
             'symbolserver_match': None,
         }
 
@@ -125,7 +125,7 @@ class NativeStacktraceProcessor(StacktraceProcessor):
                     # the address for the cache key to be within the image
                     # the same way as we do it in the symbolizer.
                     rebase_addr(instr_addr, obj),
-                    obj.id,
+                    obj.debug_id,
                     obj.arch,
                     obj.size,
                 )
@@ -162,13 +162,13 @@ class NativeStacktraceProcessor(StacktraceProcessor):
             # uuid.  If we encounter things with an age appended or
             # similar we need to skip.
             try:
-                uuid.UUID(obj.id)
+                uuid.UUID(obj.debug_id)
             except (ValueError, TypeError):
                 continue
 
             to_lookup.append(
                 {
-                    'object_uuid': obj.id,
+                    'object_uuid': obj.debug_id,
                     'object_name': obj.name or '<unknown>',
                     'addr': '0x%x' % rebase_addr(pf.data['instruction_addr'], obj)
                 }
