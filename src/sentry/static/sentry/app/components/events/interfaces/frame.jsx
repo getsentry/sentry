@@ -261,12 +261,7 @@ const Frame = createReactClass({
           {data.context &&
             contextLines.map((line, index) => {
               return (
-                <ContextLine
-                  key={index}
-                  line={line}
-                  isActive={data.lineNo === line[0]}
-                  filename={data.filename}
-                />
+                <ContextLine key={index} line={line} isActive={data.lineNo === line[0]} />
               );
             })}
 
