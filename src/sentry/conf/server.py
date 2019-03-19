@@ -1410,6 +1410,10 @@ SENTRY_DEVSERVICES = {
         'image': 'mattrobenolt/cbtemulator:0.36.0',
         'ports': {'8086/tcp': 8086},
     },
+    'memcached': {
+        'image': 'memcached:1.5-alpine',
+        'ports': {'11211/tcp': 11211},
+    },
 }
 
 # Max file size for avatar photo uploads
