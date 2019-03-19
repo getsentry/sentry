@@ -87,3 +87,43 @@ class TestPreparerIssueLink(TestCase):
             project=self.project,
             uri='/sentry/baz',
         ) in run.mock_calls
+
+
+class TestPreparerStacktraceLink(TestCase):
+    def setUp(self):
+        super(TestPreparerStacktraceLink, self).setUp()
+
+        self.sentry_app = self.create_sentry_app(
+            schema={
+                'elements': [{
+                    'type': 'stacktrace-link',
+                    'uri': '/redirection',
+                }]
+            }
+        )
+
+        self.install = self.create_sentry_app_installation(
+            slug=self.sentry_app.slug,
+        )
+
+        self.component = self.sentry_app.components.first()
+        self.project = self.install.organization.project_set.first()
+
+        self.preparer = Preparer(
+            component=self.component,
+            install=self.install,
+            project=self.project,
+        )
+
+    def test_prepares_components_url(self):
+        self.component.schema = {
+            'uri': '/redirection'
+        }
+
+        self.preparer.call()
+
+        assert self.component.schema['url'] == \
+            u'https://example.com/redirection?installationId={}&projectSlug={}'.format(
+                self.install.uuid,
+                self.project.slug,
+        )

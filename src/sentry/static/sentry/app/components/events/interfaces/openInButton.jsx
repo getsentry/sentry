@@ -2,7 +2,6 @@ import PropTypes from 'prop-types';
 import React from 'react';
 import SentryTypes from 'app/sentryTypes';
 import Button from 'app/components/button';
-import parseurl from 'parseurl';
 import qs from 'query-string';
 import styled from 'react-emotion';
 
@@ -24,8 +23,6 @@ class OpenInButton extends React.Component {
       loading: false,
       error: false,
       components: [],
-      sentryApps: [],
-      installs: [],
     };
   }
 
@@ -41,7 +38,6 @@ class OpenInButton extends React.Component {
       )
       .then(data => {
         if (data.length) {
-          this.fetchInstallations();
           this.setState({components: data});
         }
       })
@@ -50,61 +46,21 @@ class OpenInButton extends React.Component {
       });
   }
 
-  fetchInstallations() {
-    const {api, organization} = this.props;
-    api
-      .requestPromise(`/organizations/${organization.slug}/sentry-app-installations/`)
-      .then(data => {
-        if (data.length) {
-          this.fetchSentryApps();
-          this.setState({installs: data});
-        }
-      })
-      .catch(error => {
-        return;
-      });
-  }
-
-  fetchSentryApps() {
-    const {api, organization} = this.props;
-    api
-      .requestPromise(`/organizations/${organization.slug}/sentry-apps/`)
-      .then(data => {
-        this.setState({sentryApps: data});
-      })
-      .catch(error => {
-        return;
-      });
-  }
-
-  getInstallApp(component) {
-    const appId = component.sentryApp.uuid;
-    const sentryApp = this.state.sentryApps.filter(a => a.uuid == appId)[0];
-    const install = this.state.installs.filter(i => i.app.uuid == appId)[0];
-    return {sentryApp, install};
-  }
-
   getUrl() {
-    const components = this.state.components.filter(c => c.type == 'stacktrace-link');
-    const {filename, lineNo, project} = this.props;
+    const {components} = this.state;
+    const {filename, lineNo} = this.props;
 
-    const {sentryApp, install} = this.getInstallApp(components[0]);
-    const {host, protocol} = parseurl({url: sentryApp.webhookUrl});
-    const urlBase = `${protocol}//${host}`;
     const queryParams = {
       lineNo,
       filename,
-      projectSlug: project.slug,
-      installationId: install.id,
     };
     const query = qs.stringify(queryParams);
-    const uri = components[0].schema.uri;
-    return `${urlBase}${uri}?${query}`;
+    return components[0].schema.url + '&' + query;
   }
 
   render() {
-    const {components, installs, sentryApps} = this.state;
-    if (!components.length || !installs.length || !sentryApps.length) {
+    const {components} = this.state;
+    if (!components.length) {
       return null;
     }
 
@@ -119,6 +75,7 @@ class OpenInButton extends React.Component {
   }
 }
 
+export {OpenInButton};
 const OpenInButtonComponent = withLatestContext(OpenInButton);
 export default withApi(OpenInButtonComponent);
 
