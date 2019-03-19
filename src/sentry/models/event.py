@@ -42,8 +42,7 @@ from sentry.utils.strings import truncatechars
 from sentry.utils.sdk import configure_scope
 
 
-def _should_skip_to_python(event_data):
-    event_id = event_data.get("event_id")
+def _should_skip_to_python(event_id):
     if not event_id:
         return False
 
@@ -56,7 +55,7 @@ def _should_skip_to_python(event_data):
 
 class EventDict(CanonicalKeyDict):
     def __init__(self, data, **kwargs):
-        rust_renormalized = _should_skip_to_python(data)
+        rust_renormalized = _should_skip_to_python(data.get('event_id'))
         if rust_renormalized:
             normalizer = StoreNormalizer(is_renormalize=True)
             data = normalizer.normalize_event(dict(data))
@@ -110,7 +109,7 @@ class EventCommon(object):
         self._project_cache = project
 
     def get_interfaces(self):
-        was_renormalized = _should_skip_to_python(self.data)
+        was_renormalized = _should_skip_to_python(self.event_id)
 
         return CanonicalKeyView(get_interfaces(self.data, rust_renormalized=was_renormalized))
 
