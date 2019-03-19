@@ -802,10 +802,14 @@ SENTRY_FEATURES = {
     'organizations:discover': False,
     # Enable attaching arbitrary files to events.
     'organizations:event-attachments': False,
-    # Enable multi project selection
-    'organizations:global-views': False,
     # Enable the events stream interface.
     'organizations:events': False,
+    # Enable multi project selection
+    'organizations:global-views': False,
+    # Turns on grouping info.
+    'organizations:grouping-info': False,
+    # Lets organizations manage grouping configs
+    'organizations:set-grouping-config': False,
     # Enable integration functionality to create and link groups to issues on
     # external services.
     'organizations:integrations-issue-basic': False,
@@ -815,14 +819,14 @@ SENTRY_FEATURES = {
     # Special feature flag primarily used on the sentry.io SAAS product for
     # easily enabling features while in early development.
     'organizations:internal-catchall': False,
-    # Enable organizations to create and utilize Sentry Apps.
-    'organizations:sentry-apps': False,
     # Enable inviting members to organizations.
     'organizations:invite-members': True,
-    # Turns on grouping info.
-    'organizations:grouping-info': False,
-    # Lets organizations manage grouping configs
-    'organizations:set-grouping-config': False,
+    # Enable org-wide saved searches and user pinned search
+    'organizations:org-saved-searches': False,
+    # Enable user recent searches
+    'organizations:recent-searches': False,
+    # Enable organizations to create and utilize Sentry Apps.
+    'organizations:sentry-apps': False,
 
     # DEPRECATED: pending removal.
     'organizations:js-loader': False,
