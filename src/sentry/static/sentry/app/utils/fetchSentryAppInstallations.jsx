@@ -16,7 +16,8 @@ const fetchSentryAppInstallations = orgSlug => {
     api
       .requestPromise(installsUri)
       .then(installs => installs.map(setSentryApp))
-      .then(updateInstallStore);
+      .then(updateInstallStore)
+      .catch(e => {});
   }
 
   function setSentryApp(install) {
@@ -31,7 +32,8 @@ const fetchSentryAppInstallations = orgSlug => {
   api
     .requestPromise(sentryAppsUri)
     .then(updateSentryAppStore)
-    .then(fetchInstalls);
+    .then(fetchInstalls)
+    .catch(e => {});
 };
 
 export default fetchSentryAppInstallations;
