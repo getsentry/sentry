@@ -54,7 +54,7 @@ class GroupEventsLatestTest(APITestCase, SnubaTestCase):
 
     def test_environment(self):
         options.set('snuba.events-queries.enabled', True)
-        url = u'/api/0/issues/{}/events/oldest/'.format(self.group.id)
+        url = u'/api/0/issues/{}/events/latest/'.format(self.group.id)
         response = self.client.get(url, format='json', data={'environment': ['production']})
 
         assert response.status_code == 200
