@@ -107,7 +107,7 @@ def devserver(reload, watchers, workers, browser_reload, styleguide, prefix, env
 
     daemons = []
 
-    if watchers and not browser_reload:
+    if watchers:
         daemons += settings.SENTRY_WATCHERS
 
     # For javascript dev, if browser reload and watchers, then:
@@ -121,8 +121,15 @@ def devserver(reload, watchers, workers, browser_reload, styleguide, prefix, env
         os.environ['SENTRY_DEVSERVER_PORT'] = '%s' % new_port
         port = new_port
 
-        daemons += [
-            ('jsproxy', ['yarn', 'dev-proxy']), ('webpack', ['yarn', 'dev-server'])
+        # Replace the webpack watcher with the drop-in webpack-dev-server
+        webpack_config = next(w for w in daemons if w[0] == 'webpack')[1]
+        webpack_config[0] = os.path.join(
+            *os.path.split(webpack_config[0])[0:-1] + ('webpack-dev-server', )
+        )
+
+        daemons = [w for w in daemons if w[0] != 'webpack'] + [
+            ('webpack', webpack_config),
+            ('jsproxy', ['yarn', 'dev-proxy'])
         ]
 
     if workers:
