@@ -5,7 +5,7 @@ import six
 import logging
 
 from collections import namedtuple
-from symbolic import parse_addr, arch_from_macho, arch_is_known
+from symbolic import parse_addr
 
 from sentry.interfaces.contexts import DeviceContextType
 from sentry.utils.safe import get_path
@@ -61,23 +61,7 @@ def cpu_name_from_data(data):
     if device and device.get('arch'):
         return device['arch']
 
-    # TODO: kill this here.  we want to not support that going forward
-    unique_cpu_name = None
-    for img in get_path(data, 'debug_meta', 'images', filter=True, default=()):
-        if img.get('arch') and arch_is_known(img['arch']):
-            cpu_name = img['arch']
-        elif img.get('cpu_type') is not None \
-                and img.get('cpu_subtype') is not None:
-            cpu_name = arch_from_macho(img['cpu_type'], img['cpu_subtype'])
-        else:
-            cpu_name = None
-        if unique_cpu_name is None:
-            unique_cpu_name = cpu_name
-        elif unique_cpu_name != cpu_name:
-            unique_cpu_name = None
-            break
-
-    return unique_cpu_name
+    return None
 
 
 def rebase_addr(instr_addr, obj):

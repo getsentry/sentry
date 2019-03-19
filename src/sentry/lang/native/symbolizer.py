@@ -63,7 +63,7 @@ class SymbolicationFailed(Exception):
         self.image_name = None
         self.image_path = None
         if obj is not None:
-            self.image_uuid = six.text_type(obj.id)
+            self.image_uuid = six.text_type(obj.debug_id)
             if obj.name:
                 self.image_path = obj.name
                 self.image_name = image_name(obj.name)
@@ -222,13 +222,13 @@ class Symbolizer(object):
         return obj.name and _sim_platform_re.search(obj.name) is not None
 
     def _symbolize_app_frame(self, instruction_addr, obj, sdk_info=None, trust=None):
-        symcache = self.symcaches.get(obj.id)
+        symcache = self.symcaches.get(obj.debug_id)
         if symcache is None:
             # In case we know what error happened on symcache conversion
             # we can report it to the user now.
-            if obj.id in self.symcaches_conversion_errors:
+            if obj.debug_id in self.symcaches_conversion_errors:
                 raise SymbolicationFailed(
-                    message=self.symcaches_conversion_errors[obj.id],
+                    message=self.symcaches_conversion_errors[obj.debug_id],
                     type=EventError.NATIVE_BAD_DSYM,
                     obj=obj
                 )

@@ -1294,8 +1294,7 @@ class RealResolvingIntegrationTest(TestCase):
         frames = bt.frames
 
         assert frames[0].function == 'main'
-        # NOTE: Breakpad symbols only contain entire paths
-        assert frames[0].filename == 'c:\\projects\\breakpad-tools\\windows\\crash\\main.cpp'
+        assert frames[0].filename == 'main.cpp'
         assert frames[0].abs_path == 'c:\\projects\\breakpad-tools\\windows\\crash\\main.cpp'
         assert frames[0].lineno == 35
 
