@@ -143,7 +143,7 @@ matrix:
 
     # XXX(markus): Remove after rust interfaces are done
     - python: 2.7
-      env: TEST_SUITE=acceptance SENTRY_TEST_USE_RUST_INTERFACE_RENORMALIZATION=1
+      env: TEST_SUITE=acceptance SENTRY_TEST_USE_RUST_INTERFACE_RENORMALIZATION=1 PERCY_ENABLE=0
       services:
         - memcached
         - redis-server
