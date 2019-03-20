@@ -1,9 +1,13 @@
 from __future__ import absolute_import
 
-from datetime import timedelta
+from datetime import (
+    datetime,
+    timedelta,
+)
 
 from django.utils import timezone
 from exam import fixture
+from freezegun import freeze_time
 
 from sentry.api.serializers import serialize
 from sentry.models.recentsearch import RecentSearch
@@ -88,3 +92,45 @@ class RecentSearchesListTest(APITestCase):
             )
             assert response.status_code == 400
             assert response.data['detail'].startswith(expected_error)
+
+
+class RecentSearchesCreateTest(APITestCase):
+    endpoint = 'sentry-api-0-organization-recent-searches'
+    method = 'post'
+
+    @fixture
+    def organization(self):
+        return self.create_organization()
+
+    @fixture
+    def user(self):
+        user = self.create_user('test@test.com')
+        self.create_team(members=[user], organization=self.organization)
+        return user
+
+    def test(self):
+        self.login_as(self.user)
+        search_type = 1
+        query = 'something'
+        the_date = datetime(2019, 1, 1, 1, 1, 1)
+        with freeze_time(the_date):
+            response = self.get_response(self.organization.slug, type=search_type, query=query)
+            assert response.status_code == 201
+            assert RecentSearch.objects.filter(
+                organization=self.organization,
+                user=self.user,
+                type=search_type,
+                query=query,
+                last_seen=the_date,
+            ).exists()
+        the_date = datetime(2019, 1, 1, 2, 2, 2)
+        with freeze_time(the_date):
+            response = self.get_response(self.organization.slug, type=search_type, query=query)
+            assert response.status_code == 204, response.content
+            assert RecentSearch.objects.filter(
+                organization=self.organization,
+                user=self.user,
+                type=search_type,
+                query=query,
+                last_seen=the_date,
+            ).exists()
