@@ -1,6 +1,6 @@
 from __future__ import absolute_import
 
-from sentry.grouping.strategies.base import StrategyConfiguration
+from sentry.grouping.strategies.base import create_strategy_configuration
 
 
 # The latest version of the default config that should be used
@@ -14,10 +14,9 @@ CONFIGURATIONS = {}
 
 
 def register_strategy_config(id, **kwargs):
-    rv = StrategyConfiguration(id, **kwargs)
-    cls = id.split(':', 1)[0]
-    if cls not in CLASSES:
-        CLASSES.append(cls)
+    rv = create_strategy_configuration(id, **kwargs)
+    if rv.config_class not in CLASSES:
+        CLASSES.append(rv.config_class)
     CONFIGURATIONS[rv.id] = rv
     return rv
 

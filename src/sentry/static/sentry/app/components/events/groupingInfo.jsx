@@ -3,6 +3,9 @@ import PropTypes from 'prop-types';
 import styled from 'react-emotion';
 import {isObject} from 'lodash';
 import AsyncComponent from 'app/components/asyncComponent';
+import DropdownAutoComplete from 'app/components/dropdownAutoComplete';
+import DropdownButton from 'app/components/dropdownButton';
+import Tooltip from 'app/components/tooltip';
 
 import EventDataSection from 'app/components/events/eventDataSection';
 import SentryTypes from 'app/sentryTypes';
@@ -22,7 +25,6 @@ const GroupVariantList = styled('ul')`
 const GroupVariantListItem = styled(({contributes, ...props}) => <li {...props} />)`
   padding: 15px 0 20px 0;
   margin-top: 15px;
-  border-top: 1px solid ${p => p.theme.borderLighter};
   ${p => (p.contributes ? '' : 'color:' + p.theme.gray6)};
 `;
 
@@ -34,7 +36,6 @@ const GroupVariantTitle = styled('h5')`
 `;
 
 const GroupingComponentBox = styled('div')`
-  border-top: 1px solid ${p => p.theme.borderLighter};
   padding: 10px 0 0 0;
   margin-top: -10px;
 `;
@@ -138,22 +139,27 @@ class GroupVariant extends React.Component {
 
   renderVariantDetails() {
     const {variant} = this.props;
-    const data = [['Algorithm', variant.type]];
+    const data = [['Type', variant.type]];
     let component = null;
 
     if (variant.hash !== null) {
       data.push(['Hash', variant.hash]);
     }
     if (variant.hashMismatch) {
-      data.push(['Hash mismatch', 'hashing algorithm changed after event generation']);
+      data.push([
+        'Hash mismatch',
+        'hashing algorithm produced a hash that does not match the event',
+      ]);
     }
 
     switch (variant.type) {
       case 'component':
         component = variant.component;
+        data.push(['Grouping Config', variant.config.id]);
         break;
       case 'custom-fingerprint':
         data.push(['Fingerprint values', variant.values]);
+        data.push(['Grouping Config', variant.config.id]);
         break;
       case 'salted-component':
         data.push(['Fingerprint values', variant.values]);
@@ -196,6 +202,48 @@ class GroupVariant extends React.Component {
   }
 }
 
+class GroupingConfigSelect extends AsyncComponent {
+  static propTypes = {
+    eventConfigId: PropTypes.string,
+    configId: PropTypes.string,
+  };
+
+  getEndpoints() {
+    return [['data', '/grouping-configs/']];
+  }
+
+  renderBody() {
+    const {configId, eventConfigId, ...props} = this.props;
+    props.value = configId;
+
+    function renderIdLabel(id) {
+      return <code>{eventConfigId === id ? <strong>{id}</strong> : id}</code>;
+    }
+
+    return (
+      <DropdownAutoComplete
+        {...props}
+        alignMenu="left"
+        selectedItem={configId}
+        items={this.state.data.map(item => {
+          return {
+            value: item.id,
+            label: renderIdLabel(item.id),
+          };
+        })}
+      >
+        {({isOpen}) => (
+          <Tooltip title="Click here to experiment with other grouping configs">
+            <DropdownButton isOpen={isOpen} size="small" style={{fontWeight: 'inherit'}}>
+              {renderIdLabel(configId)}
+            </DropdownButton>
+          </Tooltip>
+        )}
+      </DropdownAutoComplete>
+    );
+  }
+}
+
 class EventGroupingInfo extends AsyncComponent {
   static propTypes = {
     api: PropTypes.object,
@@ -204,23 +252,33 @@ class EventGroupingInfo extends AsyncComponent {
   };
 
   getEndpoints() {
-    return [['groupInfo', `/events/${this.props.event.id}/grouping-info/`]];
+    let path = `/events/${this.props.event.id}/grouping-info/`;
+    if (this.state && this.state.configOverride) {
+      path = `${path}?config=${this.state.configOverride}`;
+    }
+    return [['groupInfo', path]];
   }
 
   getInitialState() {
     return {
       isOpen: false,
+      configOverride: null,
       ...super.getInitialState(),
     };
   }
 
   toggle = () => {
-    this.setState({isOpen: !this.state.isOpen});
+    if (this.state.isOpen) {
+      this.setState({
+        isOpen: false,
+        configOverride: null,
+      });
+    } else {
+      this.setState({
+        isOpen: true,
+      });
+    }
   };
-
-  getEndpoint() {
-    return `/events/${this.props.event.id}/grouping-info/`;
-  }
 
   renderGroupInfoSummary() {
     if (this.state.groupInfo === null) {
@@ -253,8 +311,29 @@ class EventGroupingInfo extends AsyncComponent {
       return a.description.toLowerCase().localeCompare(b.description.toLowerCase());
     });
 
+    const eventConfigId = this.props.event.groupingConfig.id;
+    let configId = this.state.configOverride || null;
+    if (configId === null) {
+      configId = eventConfigId;
+    }
+
     return (
       <GroupVariantList>
+        <div style={{float: 'right'}}>
+          <GroupingConfigSelect
+            name="groupingConfig"
+            eventConfigId={eventConfigId}
+            configId={configId}
+            onSelect={selection => {
+              this.setState(
+                {
+                  configOverride: selection.value,
+                },
+                () => this.reloadData()
+              );
+            }}
+          />
+        </div>
         {variants.map(variant => <GroupVariant variant={variant} key={variant.key} />)}
       </GroupVariantList>
     );

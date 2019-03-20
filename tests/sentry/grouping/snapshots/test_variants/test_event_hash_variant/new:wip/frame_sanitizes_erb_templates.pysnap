@@ -1,5 +1,5 @@
 ---
-created: '2019-03-15T11:58:33.034297Z'
+created: '2019-03-19T22:59:40.922214Z'
 creator: sentry
 source: tests/sentry/grouping/test_variants.py
 ---
@@ -11,7 +11,7 @@ app:
         frame (non app frame)
           filename*
             u'foo.html.erb'
-          function* (trimmed integer suffix)
+          function* (removed integer suffix)
             u'_foo_html_erb__<anon>_<anon>'
 --------------------------------------------------------------------------
 system:
@@ -22,5 +22,5 @@ system:
         frame*
           filename*
             u'foo.html.erb'
-          function* (trimmed integer suffix)
+          function* (removed integer suffix)
             u'_foo_html_erb__<anon>_<anon>'

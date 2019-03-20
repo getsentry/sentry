@@ -96,6 +96,7 @@ class ProjectAdminSerializer(ProjectMemberSerializer):
     storeCrashReports = serializers.BooleanField(required=False)
     relayPiiConfig = serializers.CharField(required=False)
     scrubIPAddresses = serializers.BooleanField(required=False)
+    groupingConfig = serializers.CharField(required=False)
     scrapeJavaScript = serializers.BooleanField(required=False)
     allowedDomains = ListField(child=OriginField(), required=False)
     resolveAge = serializers.IntegerField(required=False)
@@ -347,6 +348,9 @@ class ProjectDetailsEndpoint(ProjectEndpoint):
         if result.get('scrubIPAddresses') is not None:
             if project.update_option('sentry:scrub_ip_address', result['scrubIPAddresses']):
                 changed_proj_settings['sentry:scrub_ip_address'] = result['scrubIPAddresses']
+        if result.get('groupingConfig') is not None:
+            if project.update_option('sentry:grouping_config', result['groupingConfig']):
+                changed_proj_settings['sentry:grouping_config'] = result['groupingConfig']
         if result.get('securityToken') is not None:
             if project.update_option('sentry:token', result['securityToken']):
                 changed_proj_settings['sentry:token'] = result['securityToken']
@@ -443,6 +447,11 @@ class ProjectDetailsEndpoint(ProjectEndpoint):
                 project.update_option(
                     'sentry:scrub_ip_address',
                     bool(options['sentry:scrub_ip_address']),
+                )
+            if 'sentry:grouping_config' in options:
+                project.update_option(
+                    'sentry:grouping_config',
+                    options['sentry:grouping_config'],
                 )
             if 'mail:subject_prefix' in options:
                 project.update_option(

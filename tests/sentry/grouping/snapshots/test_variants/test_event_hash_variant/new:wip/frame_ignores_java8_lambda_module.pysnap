@@ -1,5 +1,5 @@
 ---
-created: '2019-03-15T11:58:32.934180Z'
+created: '2019-03-19T22:59:40.767479Z'
 creator: sentry
 source: tests/sentry/grouping/test_variants.py
 ---
@@ -9,20 +9,18 @@ app:
     app (stacktrace of system takes precedence)
       stacktrace
         frame (non app frame)
-          module* (ignored module)
-            salt* (normalized generated module name)
-              '<module>'
+          module (ignored java lambda)
+            u'foo.bar.Baz$$Lambda$40/1673859467'
           function*
             u'call'
 --------------------------------------------------------------------------
 system:
-  hash: '5fd1358271b3a3dba3287e135029688d'
+  hash: '53b9e9679a8ea25880376080b76f98ad'
   component:
     system*
       stacktrace*
         frame*
-          module* (ignored module)
-            salt* (normalized generated module name)
-              '<module>'
+          module (ignored java lambda)
+            u'foo.bar.Baz$$Lambda$40/1673859467'
           function*
             u'call'

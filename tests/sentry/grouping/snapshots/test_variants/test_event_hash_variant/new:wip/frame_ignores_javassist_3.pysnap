@@ -1,5 +1,5 @@
 ---
-created: '2019-03-15T11:58:32.958103Z'
+created: '2019-03-19T22:59:40.810787Z'
 creator: sentry
 source: tests/sentry/grouping/test_variants.py
 ---
@@ -9,7 +9,7 @@ app:
     app (stacktrace of system takes precedence)
       stacktrace
         frame (non app frame)
-          filename* (removed javassist parts)
+          filename* (cleaned javassist parts)
             u'entriesresource_$$_javassist<auto>.java'
           function*
             u'fn'
@@ -20,7 +20,7 @@ system:
     system*
       stacktrace*
         frame*
-          filename* (removed javassist parts)
+          filename* (cleaned javassist parts)
             u'entriesresource_$$_javassist<auto>.java'
           function*
             u'fn'

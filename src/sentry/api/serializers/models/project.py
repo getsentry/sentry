@@ -20,6 +20,7 @@ from sentry.models import (
     EnvironmentProject, Project, ProjectAvatar, ProjectBookmark, ProjectOption, ProjectPlatform,
     ProjectStatus, ProjectTeam, Release, ReleaseProjectEnvironment, Deploy, UserOption, DEFAULT_SUBJECT_TEMPLATE
 )
+from sentry.grouping.strategies.configurations import DEFAULT_CONFIG as DEFAULT_GROUPING_CONFIG
 from sentry.utils.data_filters import FilterTypes
 from sentry.utils.db import is_postgres
 
@@ -423,6 +424,7 @@ class DetailedProjectSerializer(ProjectWithTeamSerializer):
             'sentry:token_header',
             'sentry:verify_ssl',
             'sentry:scrub_ip_address',
+            'sentry:grouping_config',
             'sentry:relay_pii_config',
             'feedback:branding',
             'digests:mail:minimum_delay',
@@ -540,6 +542,7 @@ class DetailedProjectSerializer(ProjectWithTeamSerializer):
                 'verifySSL': bool(attrs['options'].get('sentry:verify_ssl', False)),
                 'scrubIPAddresses': bool(attrs['options'].get('sentry:scrub_ip_address', False)),
                 'scrapeJavaScript': bool(attrs['options'].get('sentry:scrape_javascript', True)),
+                'groupingConfig': attrs['options'].get('sentry:grouping_config') or DEFAULT_GROUPING_CONFIG,
                 'organization':
                 attrs['org'],
                 'plugins':

@@ -13,16 +13,60 @@ from sentry.grouping.utils import DEFAULT_FINGERPRINT_VALUES, hash_from_values
 HASH_RE = re.compile(r'^[0-9a-f]{32}$')
 
 
-def get_calculated_grouping_variants_for_event(event, config_name=None):
-    """Given an event this returns a dictionary of the matching grouping
-    variants.  Checksum and fingerprinting logic are not handled by this
-    function which is handled by `get_grouping_variants_for_event`.
+class ConfigNotFoundException(LookupError):
+    pass
+
+
+def get_grouping_config_dict_for_project(project, silent=True):
+    """Fetches all the information necessary for grouping from the project
+    settings.  The return value of this is persisted with the event on
+    ingestion so that the grouping algorithm can be re-run later.
+
+    This is called early on in normalization so that everything that is needed
+    to group the project is pulled into the event.
     """
+    config_id = project.get_option('sentry:grouping_config')
+    if config_id is None:
+        config_id = DEFAULT_CONFIG
+    else:
+        try:
+            CONFIGURATIONS[config_id]
+        except KeyError:
+            if not silent:
+                raise ConfigNotFoundException(config_id)
+            config_id = DEFAULT_CONFIG
+
+    # At a later point we might want to store additional information here
+    # such as frames that mark the end of a stacktrace and more.
+    return {
+        'id': config_id,
+    }
+
+
+def get_default_grouping_config_dict():
+    """Returns the default grouping config."""
+    return {
+        'id': DEFAULT_CONFIG,
+    }
+
+
+def load_grouping_config(config_dict=None):
+    """Loads the given grouping config."""
+    if config_dict is None:
+        config_dict = get_default_grouping_config_dict()
+    elif 'id' not in config_dict:
+        raise ValueError('Malformed configuration dictionary')
+    config_dict = dict(config_dict)
+    config_id = config_dict.pop('id')
+    if config_id not in CONFIGURATIONS:
+        raise ConfigNotFoundException(config_id)
+    return CONFIGURATIONS[config_id](**config_dict)
+
+
+def _get_calculated_grouping_variants_for_event(event, config):
     winning_strategy = None
     precedence_hint = None
     per_variant_components = {}
-
-    config = CONFIGURATIONS[config_name or DEFAULT_CONFIG]
 
     for strategy in config.iter_strategies():
         rv = strategy.get_grouping_component_variants(event, config=config)
@@ -56,7 +100,7 @@ def get_calculated_grouping_variants_for_event(event, config_name=None):
     return rv
 
 
-def get_grouping_variants_for_event(event, config_name=None):
+def get_grouping_variants_for_event(event, config=None):
     """Returns a dict of all grouping variants for this event."""
     # If a checksum is set the only variant that comes back from this
     # event is the checksum variant.
@@ -84,18 +128,19 @@ def get_grouping_variants_for_event(event, config_name=None):
 
     # At this point we need to calculate the default event values.  If the
     # fingerprint is salted we will wrap it.
-    components = get_calculated_grouping_variants_for_event(event, config_name)
+    config = load_grouping_config(config)
+    components = _get_calculated_grouping_variants_for_event(event, config)
     rv = {}
 
     # If the fingerprints are unsalted, we can return them right away.
     if defaults_referenced == 1 and len(fingerprint) == 1:
         for (key, component) in six.iteritems(components):
-            rv[key] = ComponentVariant(component)
+            rv[key] = ComponentVariant(component, config)
 
     # Otherwise we need to salt each of the components.
     else:
         for (key, component) in six.iteritems(components):
-            rv[key] = SaltedComponentVariant(fingerprint, component)
+            rv[key] = SaltedComponentVariant(fingerprint, component, config)
 
     # Ensure we have a fallback hash if nothing else works out
     if not any(x.contributes for x in six.itervalues(rv)):

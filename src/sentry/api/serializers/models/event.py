@@ -264,6 +264,7 @@ class EventSerializer(Serializer):
             'dateReceived': received,
             'errors': errors,
             'fingerprints': obj.get_hashes(),
+            'groupingConfig': obj.get_grouping_config(),
             '_meta': {
                 'entries': attrs['_meta']['entries'],
                 'message': message_meta,

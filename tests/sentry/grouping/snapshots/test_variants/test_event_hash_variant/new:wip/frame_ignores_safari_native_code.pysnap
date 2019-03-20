@@ -1,25 +1,26 @@
 ---
-created: '2019-03-15T18:36:59.770189Z'
+created: '2019-03-19T22:59:40.852252Z'
 creator: sentry
 source: tests/sentry/grouping/test_variants.py
 ---
 app:
   hash: None
   component:
-    app
+    app (stacktrace of system takes precedence)
       stacktrace
         frame (non app frame)
+          filename (native code indicated by filename)
+            u'[native code]'
           function*
             u'forEach'
 --------------------------------------------------------------------------
-fallback:
-  hash: 'd41d8cd98f00b204e9800998ecf8427e'
---------------------------------------------------------------------------
 system:
-  hash: None
+  hash: '30eb5001914d29dd8461898b5b8094fe'
   component:
-    system
-      stacktrace
-        frame (native code indicated by filename)
+    system*
+      stacktrace*
+        frame*
+          filename (native code indicated by filename)
+            u'[native code]'
           function*
             u'forEach'

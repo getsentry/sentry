@@ -110,6 +110,16 @@ export const fields = {
     saveMessageAlertType: 'warning',
   },
 
+  groupingConfig: {
+    name: 'groupingConfig',
+    type: 'array',
+    label: t('Grouping Config'),
+    choices: ({groupingConfigs}) => {
+      return groupingConfigs.map(({id}) => [id.toString(), <code key={id}>{id}</code>]);
+    },
+    help: t('Sets the grouping algorithm to be used for new events.'),
+  },
+
   dataScrubber: {
     name: 'dataScrubber',
     type: 'boolean',

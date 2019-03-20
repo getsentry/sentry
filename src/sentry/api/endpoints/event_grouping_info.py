@@ -7,6 +7,7 @@ from django.http import HttpResponse
 from sentry.api.base import Endpoint
 from sentry.api.bases.group import GroupPermission
 from sentry.api.exceptions import ResourceDoesNotExist
+from sentry.grouping.api import ConfigNotFoundException
 from sentry.models import Event
 from sentry.utils import json
 
@@ -31,9 +32,19 @@ class EventGroupingInfoEndpoint(Endpoint):
         Event.objects.bind_nodes([event], 'data')
 
         rv = {}
+        config_name = request.GET.get('config') or None
+
+        # We always fetch the stored hashes here.  The reason for this is
+        # that we want to show in the UI if the forced grouping algorithm
+        # produced hashes that would normally also appear in the event.
         hashes = event.get_hashes()
 
-        for (key, variant) in six.iteritems(event.get_grouping_variants()):
+        try:
+            variants = event.get_grouping_variants(config_name)
+        except ConfigNotFoundException:
+            raise ResourceDoesNotExist(detail='Unknown grouping config')
+
+        for (key, variant) in six.iteritems(variants):
             d = variant.as_dict()
             # Since the hashes are generated on the fly and might no
             # longer match the stored ones we indicate if the hash

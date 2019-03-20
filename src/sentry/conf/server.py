@@ -808,6 +808,8 @@ SENTRY_FEATURES = {
     'organizations:global-views': False,
     # Turns on grouping info.
     'organizations:grouping-info': False,
+    # Lets organizations manage grouping configs
+    'organizations:set-grouping-config': False,
     # Enable integration functionality to create and link groups to issues on
     # external services.
     'organizations:integrations-issue-basic': False,

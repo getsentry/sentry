@@ -69,8 +69,9 @@ class ComponentVariant(BaseVariant):
     """
     type = 'component'
 
-    def __init__(self, component):
+    def __init__(self, component, config):
         self.component = component
+        self.config = config
 
     @property
     def description(self):
@@ -86,6 +87,7 @@ class ComponentVariant(BaseVariant):
     def _get_metadata_as_dict(self):
         return {
             'component': self.component.as_dict(),
+            'config': self.config.as_dict(),
         }
 
 
@@ -109,21 +111,17 @@ class CustomFingerprintVariant(BaseVariant):
         }
 
 
-class SaltedComponentVariant(BaseVariant):
+class SaltedComponentVariant(ComponentVariant):
     """A salted version of a component."""
     type = 'salted-component'
 
-    def __init__(self, values, component):
+    def __init__(self, values, component, config):
+        ComponentVariant.__init__(self, component, config)
         self.values = values
-        self.component = component
 
     @property
     def description(self):
         return 'modified ' + self.component.description
-
-    @property
-    def contributes(self):
-        return self.component.contributes
 
     def get_hash(self):
         if not self.component.contributes:
@@ -137,7 +135,6 @@ class SaltedComponentVariant(BaseVariant):
         return hash_from_values(final_values)
 
     def _get_metadata_as_dict(self):
-        return {
-            'values': self.values,
-            'component': self.component.as_dict(),
-        }
+        rv = ComponentVariant._get_metadata_as_dict(self)
+        rv['values'] = self.values
+        return rv
