@@ -1,15 +1,38 @@
 from __future__ import absolute_import
 
-from django.utils import six
+from django.utils import (
+    six,
+    timezone,
+)
+from rest_framework import serializers
 from rest_framework.response import Response
 
-from sentry.api.bases.organization import OrganizationEndpoint
+from sentry.api.bases.organization import (
+    OrganizationEndpoint,
+    OrganizationPermission,
+)
 from sentry.api.serializers import serialize
-from sentry.models.recentsearch import RecentSearch
+from sentry.models.recentsearch import (
+    RecentSearch,
+    remove_excess_recent_searches,
+)
 from sentry.models.search_common import SearchType
 
 
+class RecentSearchSerializer(serializers.Serializer):
+    type = serializers.IntegerField(required=True)
+    query = serializers.CharField(required=True)
+
+
+class OrganizationRecentSearchPermission(OrganizationPermission):
+    scope_map = {
+        'GET': ['org:read', 'org:write', 'org:admin'],
+        'POST': ['org:read', 'org:write', 'org:admin'],
+    }
+
+
 class OrganizationRecentSearchesEndpoint(OrganizationEndpoint):
+    permission_classes = (OrganizationRecentSearchPermission, )
 
     def get(self, request, organization):
         """
@@ -43,3 +66,23 @@ class OrganizationRecentSearchesEndpoint(OrganizationEndpoint):
         ).order_by('-last_seen')[:limit])
 
         return Response(serialize(recent_searches, request.user))
+
+    def post(self, request, organization):
+        serializer = RecentSearchSerializer(data=request.DATA)
+
+        if serializer.is_valid():
+            result = serializer.object
+
+            created = RecentSearch.objects.create_or_update(
+                organization=organization,
+                user=request.user,
+                type=result['type'],
+                query=result['query'],
+                values={'last_seen': timezone.now()}
+            )[1]
+            if created:
+                remove_excess_recent_searches(organization, request.user, result['type'])
+            status = 201 if created else 204
+
+            return Response('', status=status)
+        return Response(serializer.errors, status=400)
