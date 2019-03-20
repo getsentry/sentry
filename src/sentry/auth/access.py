@@ -238,21 +238,29 @@ def from_request(request, organization=None, scopes=None):
         return from_sentry_app(request.user, organization=organization)
 
     if is_active_superuser(request):
-        # we special case superuser so that if they're a member of the org
-        # they must still follow SSO checks, but they gain global access
-        try:
-            member = OrganizationMember.objects.get(
-                user=request.user,
-                organization=organization,
-            )
-        except OrganizationMember.DoesNotExist:
-            requires_sso, sso_is_valid = False, True
-        else:
-            requires_sso, sso_is_valid = _sso_params(member)
-
         team_list = ()
-
         project_list = ()
+        requires_sso = False
+        sso_is_valid = True
+        permissions = frozenset()
+
+        # The system user is not an actual user (especially no model), so skip
+        # all database queries.
+        if not getattr(request.user, 'is_system', False):
+            try:
+                # we special case superuser so that if they're a member of the org
+                # they must still follow SSO checks, but they gain global access
+                member = OrganizationMember.objects.get(
+                    user=request.user,
+                    organization=organization,
+                )
+            except OrganizationMember.DoesNotExist:
+                pass
+            else:
+                requires_sso, sso_is_valid = _sso_params(member)
+
+            permissions = UserPermission.for_user(request.user.id)
+
         return Access(
             scopes=scopes if scopes is not None else settings.SENTRY_SCOPES,
             is_active=True,
@@ -262,7 +270,7 @@ def from_request(request, organization=None, scopes=None):
             sso_is_valid=sso_is_valid,
             requires_sso=requires_sso,
             has_global_access=True,
-            permissions=UserPermission.for_user(request.user.id),
+            permissions=permissions,
         )
 
     if hasattr(request, 'auth') and not request.user.is_authenticated():

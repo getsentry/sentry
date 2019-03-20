@@ -53,6 +53,9 @@ UNSET = object()
 
 
 def is_active_superuser(request):
+    if getattr(request.user, 'is_system', False):
+        return True
+
     su = getattr(request, 'superuser', None) or Superuser(request)
     return su.is_active
 
