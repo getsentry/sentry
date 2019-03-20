@@ -16,10 +16,11 @@ class CrashContent extends React.Component {
     newestFirst: PropTypes.bool.isRequired,
     exception: PropTypes.object,
     stacktrace: PropTypes.object,
+    group: SentryTypes.Group,
   };
 
   renderException = () => {
-    const {event, stackView, stackType, newestFirst, exception} = this.props;
+    const {event, stackView, stackType, newestFirst, exception, group} = this.props;
     return stackView === 'raw' ? (
       <RawExceptionContent
         eventId={event.id}
@@ -31,6 +32,7 @@ class CrashContent extends React.Component {
       <ExceptionContent
         type={stackType}
         view={stackView}
+        group={group}
         values={exception.values}
         platform={event.platform}
         newestFirst={newestFirst}
@@ -39,7 +41,7 @@ class CrashContent extends React.Component {
   };
 
   renderStacktrace = () => {
-    const {event, stackView, newestFirst, stacktrace} = this.props;
+    const {event, stackView, newestFirst, stacktrace, group} = this.props;
     return stackView === 'raw' ? (
       <pre className="traceback plain">
         {rawStacktraceContent(stacktrace, event.platform)}
@@ -51,6 +53,7 @@ class CrashContent extends React.Component {
         includeSystemFrames={stackView === 'full'}
         platform={event.platform}
         newestFirst={newestFirst}
+        group={group}
       />
     );
   };

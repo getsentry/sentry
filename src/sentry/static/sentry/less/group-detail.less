@@ -1669,7 +1669,6 @@ div.traceback > ul {
 
   .expandable {
     height: 0;
-    overflow: hidden;
     position: relative;
 
     .icon-plus {
@@ -1686,6 +1685,7 @@ div.traceback > ul {
 
     .ws {
       display: none;
+      overflow: hidden;
     }
 
     &:hover {
@@ -1697,12 +1697,12 @@ div.traceback > ul {
 
   .expanded {
     .expandable {
-      overflow: none;
       height: auto;
     }
 
     .ws {
       display: inline;
+      overflow: none;
     }
   }
 
