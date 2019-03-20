@@ -1,35 +1,52 @@
 from __future__ import absolute_import
 
 import six
-import pytest
 
-from datetime import datetime
+from datetime import timedelta
+from django.utils import timezone
 from django.core.urlresolvers import reverse
 
-from sentry.models import UserReport
-from sentry.testutils import APITestCase
+from sentry.models import UserReport, Group
+from sentry.testutils import APITestCase, SnubaTestCase
 
 
-class EventDetailsTest(APITestCase):
+class EventDetailsTest(APITestCase, SnubaTestCase):
+    def setUp(self):
+        super(EventDetailsTest, self).setUp()
+        self.project = self.create_project()
+        self.min_ago = (timezone.now() - timedelta(minutes=1)).isoformat()[:19]
+        self.two_min_ago = (timezone.now() - timedelta(minutes=2)).isoformat()[:19]
+        self.three_min_ago = (timezone.now() - timedelta(minutes=3)).isoformat()[:19]
+
     def test_simple(self):
         self.login_as(user=self.user)
 
-        group = self.create_group()
-        prev_event = self.create_event(
-            event_id='a',
-            group=group,
-            datetime=datetime(2013, 8, 13, 3, 8, 24),
+        prev_event = self.store_event(
+            data={
+                'event_id': 'a' * 32,
+                'timestamp': self.three_min_ago,
+                'fingerprint': ['group-1'],
+            },
+            project_id=self.project.id
         )
-        cur_event = self.create_event(
-            event_id='b',
-            group=group,
-            datetime=datetime(2013, 8, 13, 3, 8, 25),
+        cur_event = self.store_event(
+            data={
+                'event_id': 'b' * 32,
+                'timestamp': self.two_min_ago,
+                'fingerprint': ['group-1'],
+            },
+            project_id=self.project.id
         )
-        next_event = self.create_event(
-            event_id='c',
-            group=group,
-            datetime=datetime(2013, 8, 13, 3, 8, 26),
+        next_event = self.store_event(
+            data={
+                'event_id': 'c' * 32,
+                'timestamp': self.min_ago,
+                'fingerprint': ['group-1'],
+            },
+            project_id=self.project.id
         )
+
+        group = Group.objects.first()
 
         url = reverse(
             'sentry-api-0-event-details', kwargs={
@@ -76,34 +93,19 @@ class EventDetailsTest(APITestCase):
     def test_identical_datetime(self):
         self.login_as(user=self.user)
 
-        group = self.create_group()
-        created = datetime(2013, 8, 13, 3, 8, 24)
         events = []
-        events.append(self.create_event(
-            event_id='a',
-            group=group,
-            datetime=created,
-        ))
-        events.append(self.create_event(
-            event_id='b',
-            group=group,
-            datetime=created,
-        ))
-        events.append(self.create_event(
-            event_id='c',
-            group=group,
-            datetime=created,
-        ))
-        events.append(self.create_event(
-            event_id='d',
-            group=group,
-            datetime=created,
-        ))
-        events.append(self.create_event(
-            event_id='e',
-            group=group,
-            datetime=created,
-        ))
+
+        for eid in 'abcde':
+            events.append(self.store_event(
+                data={
+                    'event_id': eid * 32,
+                    'timestamp': self.min_ago,
+                    'fingerprint': ['group-1'],
+                },
+                project_id=self.project.id
+            ))
+
+            group = Group.objects.first()
 
         # First event, no prev
         url = reverse(
@@ -183,22 +185,32 @@ class EventDetailsTest(APITestCase):
     def test_timestamps_out_of_order(self):
         self.login_as(user=self.user)
 
-        group = self.create_group()
-        cur_event = self.create_event(
-            event_id='b',
-            group=group,
-            datetime=datetime(2013, 8, 13, 3, 8, 25),
+        cur_event = self.store_event(
+            data={
+                'event_id': 'b' * 32,
+                'timestamp': self.two_min_ago,
+                'fingerprint': ['group-1'],
+            },
+            project_id=self.project.id
         )
-        next_event = self.create_event(
-            event_id='c',
-            group=group,
-            datetime=datetime(2013, 8, 13, 3, 8, 26),
+        next_event = self.store_event(
+            data={
+                'event_id': 'c' * 32,
+                'timestamp': self.min_ago,
+                'fingerprint': ['group-1'],
+            },
+            project_id=self.project.id
         )
-        prev_event = self.create_event(
-            event_id='a',
-            group=group,
-            datetime=datetime(2013, 8, 13, 3, 8, 24),
+        prev_event = self.store_event(
+            data={
+                'event_id': 'a' * 32,
+                'timestamp': self.three_min_ago,
+                'fingerprint': ['group-1'],
+            },
+            project_id=self.project.id
         )
+
+        group = Group.objects.first()
 
         url = reverse(
             'sentry-api-0-event-details', kwargs={
@@ -245,12 +257,15 @@ class EventDetailsTest(APITestCase):
     def test_user_report(self):
         self.login_as(user=self.user)
 
-        group = self.create_group()
-        cur_event = self.create_event(
-            event_id='a',
-            group=group,
-            datetime=datetime(2013, 8, 13, 3, 8, 24),
+        cur_event = self.store_event(
+            data={
+                'event_id': 'a' * 32,
+                'timestamp': self.min_ago,
+            },
+            project_id=self.project.id
         )
+
+        group = Group.objects.first()
 
         user_report = UserReport.objects.create(
             event_id=cur_event.event_id,
@@ -271,32 +286,38 @@ class EventDetailsTest(APITestCase):
         assert response.data['id'] == six.text_type(cur_event.id)
         assert response.data['userReport']['id'] == six.text_type(user_report.id)
 
-    @pytest.mark.xfail
     def test_event_ordering(self):
         # Test that a real "prev" event that happened at an earlier time is not
         # masked by multiple subsequent events in the same second.
         self.login_as(user=self.user)
 
-        group = self.create_group()
-
-        before = self.create_event(
-            event_id='a',
-            group=group,
-            datetime=datetime(2013, 8, 13, 3, 8, 23),
+        before = self.store_event(
+            data={
+                'event_id': 'a' * 32,
+                'timestamp': self.two_min_ago,
+                'fingerprint': ['group-1'],
+            },
+            project_id=self.project.id
         )
 
-        event = self.create_event(
-            event_id='b',
-            group=group,
-            datetime=datetime(2013, 8, 13, 3, 8, 24),
+        event = self.store_event(
+            data={
+                'event_id': 'b' * 32,
+                'timestamp': self.min_ago,
+                'fingerprint': ['group-1'],
+            },
+            project_id=self.project.id
         )
 
         # Masking events: same time as event, but higher ids
-        for eid in 'cdefg':
-            self.create_event(
-                event_id=eid,
-                group=group,
-                datetime=datetime(2013, 8, 13, 3, 8, 24),
+        for eid in 'cdef':
+            self.store_event(
+                data={
+                    'event_id': eid * 32,
+                    'timestamp': self.min_ago,
+                    'fingerprint': ['group-1'],
+                },
+                project_id=self.project.id
             )
 
         url = reverse(
