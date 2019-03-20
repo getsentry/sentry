@@ -287,6 +287,13 @@ class EventCommon(object):
 
         return self._environment_cache
 
+    def get_minimal_user(self):
+        """
+        A minimal 'User' interface object that gives us enough information
+        to render a user badge.
+        """
+        return self.get_interface('user')
+
     def as_dict(self):
         """Returns the data in normalized form for external consumers."""
         # We use a OrderedDict to keep elements ordered for a potential JSON serializer
@@ -449,27 +456,17 @@ class SnubaEvent(EventCommon):
             return sorted(zip(keys, values))
         return []
 
-    def get_interface(self, name):
-        """
-        Override of interface getter that lets us return some interfaces
-        directly from Snuba data.
-        """
-        if name in ['user']:
-            from sentry.interfaces.user import User
-            # This is a fake version of the User interface constructed
-            # from just the data we have in Snuba.
-            snuba_user = {
-                'id': self.user_id,
-                'email': self.email,
-                'username': self.username,
-                'ip_address': self.ip_address,
-            }
-            if any(v is not None for v in snuba_user.values()):
-                return User.to_python(snuba_user)
-        return self.interfaces.get(name)
-
     def get_event_type(self):
         return self.__dict__.get('type', 'default')
+
+    def get_minimal_user(self):
+        from sentry.interfaces.user import User
+        return User.to_python({
+            'id': self.user_id,
+            'email': self.email,
+            'username': self.username,
+            'ip_address': self.ip_address,
+        })
 
     # These should all have been normalized to the correct values on
     # the way in to snuba, so we should be able to just use them as is.
