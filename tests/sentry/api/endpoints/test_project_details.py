@@ -227,6 +227,7 @@ class ProjectUpdateTest(APITestCase):
             'sentry:relay_pii_config': '{"applications": {"freeform": []}}',
             'sentry:csp_ignored_sources_defaults': False,
             'sentry:csp_ignored_sources': 'foo\nbar',
+            'sentry:grouping_config': 'some-config',
             'filters:blacklisted_ips': '127.0.0.1\n198.51.100.0',
             'filters:releases': '1.*\n2.1.*',
             'filters:error_messages': 'TypeError*\n*: integer division by modulo or zero',
@@ -268,6 +269,9 @@ class ProjectUpdateTest(APITestCase):
         assert project.get_option(
             'sentry:relay_pii_config',
             '') == options['sentry:relay_pii_config']
+        assert project.get_option(
+            'sentry:grouping_config',
+            '') == options['sentry:grouping_config']
         assert AuditLogEntry.objects.filter(
             organization=project.organization,
             event=AuditLogEntryEvent.PROJECT_EDIT,

@@ -84,10 +84,16 @@ def up(project, exclude):
     if 'kafka' in settings.SENTRY_EVENTSTREAM:
         pass
     elif 'snuba' in settings.SENTRY_EVENTSTREAM:
-        click.secho('! Skipping kafka and zookeeper since your eventstream backend does not require it', err=True, fg='cyan')
+        click.secho(
+            '! Skipping kafka and zookeeper since your eventstream backend does not require it',
+            err=True,
+            fg='cyan')
         exclude |= {'kafka', 'zookeeper'}
     else:
-        click.secho('! Skipping kafka, zookeeper, snuba, and clickhouse since your eventstream backend does not require it', err=True, fg='cyan')
+        click.secho(
+            '! Skipping kafka, zookeeper, snuba, and clickhouse since your eventstream backend does not require it',
+            err=True,
+            fg='cyan')
         exclude |= {'kafka', 'zookeeper', 'snuba', 'clickhouse'}
 
     get_or_create(client, 'network', project)
@@ -160,7 +166,9 @@ def down(project, service):
 def rm(project, service):
     "Delete all services and associated data."
 
-    click.confirm('Are you sure you want to continue?\nThis will delete all of your Sentry related data!', abort=True)
+    click.confirm(
+        'Are you sure you want to continue?\nThis will delete all of your Sentry related data!',
+        abort=True)
 
     import docker
     client = get_docker_client()

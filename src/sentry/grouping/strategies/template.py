@@ -10,7 +10,7 @@ from sentry.grouping.strategies.base import strategy
     variants=['default'],
     score=1100,
 )
-def message_v1(template, **meta):
+def template_v1(template, **meta):
     filename_component = GroupingComponent(id='filename')
     if template.filename is not None:
         filename_component.update(values=[template.filename])

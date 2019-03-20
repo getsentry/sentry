@@ -36,6 +36,9 @@ def dump_variant(variant, lines=None, indent=0):
         if isinstance(value, GroupingComponent):
             lines.append('%s%s:' % ('  ' * indent, key))
             _dump_component(value, indent + 1)
+        elif key == 'config':
+            # We do not want to dump the config
+            continue
         else:
             lines.append('%s%s: %r' % ('  ' * indent, key, value))
 
@@ -68,18 +71,23 @@ def test_event_hash_variant(insta_snapshot, config_name, test_name, log):
     with open(os.path.join(_fixture_path, test_name + '.json')) as f:
         input = json.load(f)
 
-    mgr = EventManager(data=input)
+    grouping_config = {
+        'id': config_name,
+    }
+    mgr = EventManager(data=input, grouping_config=grouping_config)
     mgr.normalize()
     data = mgr.get_data()
     evt = Event(data=data, platform=data['platform'])
 
     rv = []
-    for (key, value) in sorted(evt.get_grouping_variants(force_config=config_name).items()):
+    for (key, value) in sorted(evt.get_grouping_variants().items()):
         if rv:
             rv.append('-' * 74)
         rv.append('%s:' % key)
         dump_variant(value, rv, 1)
     output = '\n'.join(rv)
     log(repr(evt.get_hashes()))
+
+    assert evt.get_grouping_config() == grouping_config
 
     insta_snapshot(output)

@@ -13,6 +13,7 @@ jest.mock('jquery');
 describe('projectGeneralSettings', function() {
   const org = TestStubs.Organization();
   const project = TestStubs.ProjectDetails();
+  const groupingConfigs = TestStubs.GroupingConfigs();
   let routerContext;
   let putMock;
 
@@ -30,6 +31,11 @@ describe('projectGeneralSettings', function() {
     ]);
 
     MockApiClient.clearMockResponses();
+    MockApiClient.addMockResponse({
+      url: `/grouping-configs/`,
+      method: 'GET',
+      body: groupingConfigs,
+    });
     MockApiClient.addMockResponse({
       url: `/projects/${org.slug}/${project.slug}/`,
       method: 'GET',
