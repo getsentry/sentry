@@ -112,4 +112,24 @@ describe('OpenInButton', function() {
       expect(response).not.toHaveBeenCalled();
     });
   });
+
+  describe('without organization prop passed', function() {
+    it('does not make api request', async function() {
+      const response = Client.addMockResponse({
+        method: 'GET',
+        url: `/organizations/${org.slug}/sentry-app-components/?filter=stacktrace-link&projectId=${group
+          .project.id}`,
+        body: [],
+      });
+      const wrapper = mount(
+        <OpenInButton api={api} filename={filename} lineNo={lineNo} />,
+        TestStubs.routerContext()
+      );
+      await tick();
+      wrapper.update();
+      expect(wrapper.state().components).toEqual([]);
+      expect(wrapper.find('Button').exists()).toEqual(false);
+      expect(response).not.toHaveBeenCalled();
+    });
+  });
 });
