@@ -5,7 +5,6 @@ import six
 from sentry import roles
 from sentry.app import quotas
 from sentry.api.serializers import Serializer, register, serialize
-from sentry.auth import access
 from sentry.constants import LEGACY_RATE_LIMIT_OPTIONS
 from sentry.models import (
     ApiKey, Organization, OrganizationAccessRequest, OrganizationAvatar, OrganizationOnboardingTask,
@@ -116,24 +115,30 @@ class OnboardingTasksSerializer(Serializer):
 
 
 class DetailedOrganizationSerializer(OrganizationSerializer):
-    def serialize(self, obj, attrs, user):
+    def get_attrs(self, item_list, user, **kwargs):
+        return super(DetailedOrganizationSerializer, self).get_attrs(item_list, user)
+
+    def serialize(self, obj, attrs, user, access):
         from sentry import experiments
-        from sentry.app import env
         from sentry.api.serializers.models.project import ProjectSummarySerializer
         from sentry.api.serializers.models.team import TeamSerializer
 
-        team_list = sorted(Team.objects.filter(
+        member_teams = [team.id for team in access.teams]
+        other_teams = list(Team.objects.filter(
             organization=obj,
             status=TeamStatus.VISIBLE,
-        ), key=lambda x: x.slug)
+        ).exclude(id__in=member_teams))
+        team_list = sorted(other_teams + list(access.teams), key=lambda x: x.slug)
 
         for team in team_list:
             team._organization_cache = obj
 
-        project_list = sorted(Project.objects.filter(
+        member_projects = [project.id for project in access.projects]
+        other_projects = list(Project.objects.filter(
             organization=obj,
             status=ProjectStatus.VISIBLE,
-        ), key=lambda x: x.slug)
+        ).exclude(id__in=member_projects))
+        project_list = sorted(other_projects + list(access.projects), key=lambda x: x.slug)
 
         for project in project_list:
             project._organization_cache = obj
@@ -190,10 +195,7 @@ class DetailedOrganizationSerializer(OrganizationSerializer):
         })
         context['teams'] = serialize(team_list, user, TeamSerializer())
         context['projects'] = serialize(project_list, user, ProjectSummarySerializer())
-        if env.request:
-            context['access'] = access.from_request(env.request, obj).scopes
-        else:
-            context['access'] = access.from_user(user, obj).scopes
+        context['access'] = access.scopes
         context['pendingAccessRequests'] = OrganizationAccessRequest.objects.filter(
             team__organization=obj,
         ).count()
