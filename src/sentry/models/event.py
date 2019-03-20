@@ -32,7 +32,7 @@ from sentry.db.models import (
     NodeField,
     sane_repr
 )
-from sentry.db.models.manager import EventManager
+from sentry.db.models.manager import EventManager, SnubaEventManager
 from sentry.interfaces.base import get_interfaces
 from sentry.utils import metrics
 from sentry.utils.cache import memoize
@@ -438,6 +438,8 @@ class SnubaEvent(EventCommon):
         'ip_address',
         'email',
     ]
+
+    objects = SnubaEventManager()
 
     __repr__ = sane_repr('project_id', 'group_id')
 
