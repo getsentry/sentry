@@ -32,7 +32,7 @@ from sentry.db.models import (
     NodeField,
     sane_repr
 )
-from sentry.db.models.manager import EventManager
+from sentry.db.models.manager import EventManager, SnubaEventManager
 from sentry.interfaces.base import get_interfaces
 from sentry.utils import metrics
 from sentry.utils.cache import memoize
@@ -439,6 +439,8 @@ class SnubaEvent(EventCommon):
         'email',
     ]
 
+    objects = SnubaEventManager()
+
     __repr__ = sane_repr('project_id', 'group_id')
 
     @classmethod
@@ -538,13 +540,63 @@ class SnubaEvent(EventCommon):
         # have to reference the row id anyway.
         return self.event_id
 
-    @property
-    def next_event(self):
-        return None
+    def next_event_id(self, environments=[]):
+        from sentry.utils import snuba
 
-    @property
-    def prev_event(self):
-        return None
+        conditions = [
+            ['timestamp', '>=', self.timestamp],
+            [['timestamp', '>', self.timestamp], ['event_id', '>', self.event_id]]
+        ]
+
+        if len(environments) > 0:
+            conditions.append(['environment', 'IN', environments])
+
+        result = snuba.raw_query(
+            start=self.datetime,  # gte current event
+            end=datetime.utcnow(),  # will be clamped to project retention
+            selected_columns=['event_id'],
+            conditions=conditions,
+            filter_keys={
+                'project_id': [self.project_id],
+                'issue': [self.group_id],
+            },
+            orderby=['timestamp', 'event_id'],
+            limit=1
+        )
+
+        if 'error' in result or len(result['data']) == 0:
+            return None
+
+        return six.text_type(result['data'][0]['event_id'])
+
+    def prev_event_id(self, environments=None):
+        from sentry.utils import snuba
+
+        conditions = [
+            ['timestamp', '<=', self.timestamp],
+            [['timestamp', '<', self.timestamp], ['event_id', '<', self.event_id]]
+        ]
+
+        if len(environments) > 0:
+            conditions.append(['environment', 'IN', environments])
+
+        result = snuba.raw_query(
+            start=datetime.utcfromtimestamp(0),  # will be clamped to project retention
+            end=self.datetime,  # lte current event
+            selected_columns=['event_id'],
+            conditions=conditions,
+            filter_keys={
+                'project_id': [self.project_id],
+                'issue': [self.group_id],
+            },
+            orderby=['-timestamp', '-event_id'],
+            limit=1
+        )
+
+        if 'error' in result or len(result['data']) == 0:
+            return None
+
+        return six.text_type(result['data'][0]['event_id'])
 
     def save(self):
         raise NotImplementedError
@@ -603,8 +655,7 @@ class Event(EventCommon, Model):
     # get the next/prev events. Given that timestamps only have 1-second
     # granularity, this will be inaccurate if there are more than 5 events
     # in a given second.
-    @property
-    def next_event(self):
+    def next_event_id(self, environments=None):
         events = self.__class__.objects.filter(
             datetime__gte=self.datetime,
             group_id=self.group_id,
@@ -613,10 +664,9 @@ class Event(EventCommon, Model):
         events = [e for e in events if e.datetime == self.datetime and e.id > self.id or
                   e.datetime > self.datetime]
         events.sort(key=EVENT_ORDERING_KEY)
-        return events[0] if events else None
+        return six.text_type(events[0].event_id) if events else None
 
-    @property
-    def prev_event(self):
+    def prev_event_id(self, environments=None):
         events = self.__class__.objects.filter(
             datetime__lte=self.datetime,
             group_id=self.group_id,
@@ -625,7 +675,7 @@ class Event(EventCommon, Model):
         events = [e for e in events if e.datetime == self.datetime and e.id < self.id or
                   e.datetime < self.datetime]
         events.sort(key=EVENT_ORDERING_KEY, reverse=True)
-        return events[0] if events else None
+        return six.text_type(events[0].event_id) if events else None
 
 
 class EventSubjectTemplate(string.Template):
