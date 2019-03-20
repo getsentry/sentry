@@ -14,7 +14,7 @@ from sentry.api.base import DocSection, EnvironmentMixin
 from sentry.api.bases import GroupEndpoint
 from sentry.api.exceptions import ResourceDoesNotExist
 from sentry.api.helpers.environments import get_environments
-from sentry.api.serializers import serialize
+from sentry.api.serializers import serialize, SimpleEventSerializer
 from sentry.api.paginator import DateTimePaginator, GenericOffsetPaginator
 from sentry.api.utils import get_date_range_from_params
 from sentry.models import Event, Group, SnubaEvent
@@ -106,10 +106,11 @@ class GroupEventsEndpoint(GroupEndpoint, EnvironmentMixin):
             referrer='api.group-events',
         )
 
+        serializer = SimpleEventSerializer()
         return self.paginate(
             request=request,
             on_results=lambda results: serialize(
-                [SnubaEvent(row) for row in results], request.user),
+                [SnubaEvent(row) for row in results], request.user, serializer),
             paginator=GenericOffsetPaginator(data_fn=data_fn)
         )
 
