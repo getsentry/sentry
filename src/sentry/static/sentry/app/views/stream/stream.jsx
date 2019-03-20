@@ -20,7 +20,7 @@ import ApiMixin from 'app/mixins/apiMixin';
 import ConfigStore from 'app/stores/configStore';
 import EnvironmentStore from 'app/stores/environmentStore';
 import ErrorRobot from 'app/components/errorRobot';
-import {fetchSavedSearches} from 'app/actionCreators/savedSearches';
+import {fetchProjectSavedSearches} from 'app/actionCreators/savedSearches';
 import {fetchTagValues} from 'app/actionCreators/tags';
 import GroupStore from 'app/stores/groupStore';
 import LoadingError from 'app/components/loadingError';
@@ -179,7 +179,7 @@ const Stream = createReactClass({
     const {orgId, projectId} = this.props.params;
     const {searchId} = this.state;
 
-    fetchSavedSearches(this.api, orgId, projectId).then(
+    fetchProjectSavedSearches(this.api, orgId, projectId).then(
       data => {
         const newState = {
           isDefaultSearch: false,
