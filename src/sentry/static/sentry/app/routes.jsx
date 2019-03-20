@@ -3,15 +3,8 @@ import React from 'react';
 
 import App from 'app/views/app';
 import CreateProject from 'app/views/onboarding/createProject';
-import ProjectGroupDetails from 'app/views/groupDetails/project/index';
-import ProjectGroupEvents from 'app/views/groupDetails/project/groupEvents';
-import ProjectGroupEventDetails from 'app/views/groupDetails/project/groupEventDetails';
-import ProjectGroupMergedView from 'app/views/groupDetails/shared/groupMerged';
-import ProjectGroupSimilarView from 'app/views/groupDetails/shared/groupSimilar';
-import ProjectGroupTagValues from 'app/views/groupDetails/project/groupTagValues';
-import ProjectGroupTags from 'app/views/groupDetails/project/groupTags';
-import ProjectGroupUserFeedback from 'app/views/groupDetails/project/groupUserFeedback';
 import HookStore from 'app/stores/hookStore';
+import HookOrDefault from 'app/components/hookOrDefault';
 import LazyLoad from 'app/components/lazyLoad';
 import MyIssuesAssignedToMe from 'app/views/myIssues/assignedToMe';
 import MyIssuesBookmarked from 'app/views/myIssues/bookmarked';
@@ -30,21 +23,29 @@ import OrganizationRoot from 'app/views/organizationRoot';
 import OrganizationStats from 'app/views/organizationStats';
 import OrganizationStreamContainer from 'app/views/organizationStream/container';
 import OrganizationStreamOverview from 'app/views/organizationStream/overview';
-import ProjectEnvironments from 'app/views/projectEnvironments';
-import ProjectEventRedirect from 'app/views/projectEventRedirect';
-import ProjectTags from 'app/views/projectTags';
 import ProjectChooser from 'app/views/projectChooser';
 import ProjectDataForwarding from 'app/views/projectDataForwarding';
 import ProjectDebugFiles from 'app/views/projectDebugFiles';
 import ProjectDetails from 'app/views/projectDetails';
 import ProjectDocsContext from 'app/views/projectInstall/docsContext';
+import ProjectEnvironments from 'app/views/projectEnvironments';
+import ProjectEventRedirect from 'app/views/projectEventRedirect';
 import ProjectGettingStarted from 'app/views/projectInstall/gettingStarted';
+import ProjectGroupDetails from 'app/views/groupDetails/project/index';
+import ProjectGroupEventDetails from 'app/views/groupDetails/project/groupEventDetails';
+import ProjectGroupEvents from 'app/views/groupDetails/project/groupEvents';
+import ProjectGroupMergedView from 'app/views/groupDetails/shared/groupMerged';
+import ProjectGroupSimilarView from 'app/views/groupDetails/shared/groupSimilar';
+import ProjectGroupTagValues from 'app/views/groupDetails/project/groupTagValues';
+import ProjectGroupTags from 'app/views/groupDetails/project/groupTags';
+import ProjectGroupUserFeedback from 'app/views/groupDetails/project/groupUserFeedback';
 import ProjectInstallOverview from 'app/views/projectInstall/overview';
 import ProjectInstallPlatform from 'app/views/projectInstall/platform';
+import ProjectPluginDetails from 'app/views/projectPluginDetails';
+import ProjectPlugins from 'app/views/projectPlugins';
 import ProjectSavedSearches from 'app/views/projectSavedSearches';
 import ProjectSettings from 'app/views/projectSettings';
-import ProjectPlugins from 'app/views/projectPlugins';
-import ProjectPluginDetails from 'app/views/projectPluginDetails';
+import ProjectTags from 'app/views/projectTags';
 import RouteNotFound from 'app/views/routeNotFound';
 import SettingsProjectProvider from 'app/views/settings/components/settingsProjectProvider';
 import SettingsWrapper from 'app/views/settings/components/settingsWrapper';
@@ -66,32 +67,14 @@ function appendTrailingSlash(nextState, replace) {
  */
 const lazyLoad = cb => m => cb(null, m.default);
 
+const hook = name => HookStore.get(name).map(cb => cb());
+
+const OrganizationMembersView = HookOrDefault({
+  hookName: 'component:org-members-view',
+  defaultComponent: OrganizationMembers,
+});
+
 function routes() {
-  const hooksRoutes = [];
-  HookStore.get('routes').forEach(cb => {
-    hooksRoutes.push(cb());
-  });
-
-  const hooksAdminRoutes = [];
-  HookStore.get('routes:admin').forEach(cb => {
-    hooksAdminRoutes.push(cb());
-  });
-
-  const hooksOrgRoutes = [];
-  HookStore.get('routes:organization').forEach(cb => {
-    hooksOrgRoutes.push(cb());
-  });
-
-  const hooksRootOrgRoutes = [];
-  HookStore.get('routes:organization-root').forEach(cb => {
-    hooksRootOrgRoutes.push(cb());
-  });
-
-  const hooksSurveyRoute = [];
-  HookStore.get('routes:onboarding-survey').forEach(cb => {
-    hooksSurveyRoute.push(cb());
-  });
-
   const accountSettingsRoutes = (
     <React.Fragment>
       <IndexRedirect to="details/" />
@@ -475,13 +458,7 @@ function routes() {
       />
 
       <Route path="members/" name="Members">
-        <IndexRoute
-          component={
-            HookStore.get('component:org-members-view').length
-              ? HookStore.get('component:org-members-view')[0]()
-              : OrganizationMembers
-          }
-        />
+        <IndexRoute component={OrganizationMembersView} />
 
         <Route
           path="new/"
@@ -684,9 +661,8 @@ function routes() {
             import(/* webpackChunkName: "AdminUsers" */ 'app/views/admin/adminUsers')}
           component={errorHandler(LazyLoad)}
         />
-        {hooksAdminRoutes}
+        {hook('routes:admin')}
       </Route>
-
       <Redirect from="/share/group/:shareId/" to="/share/issue/:shareId/" />
       <Route
         path="/share/issue/:shareId/"
@@ -694,20 +670,17 @@ function routes() {
           import(/* webpackChunkName: "SharedGroupDetails" */ './views/sharedGroupDetails')}
         component={errorHandler(LazyLoad)}
       />
-
       <Route path="/organizations/new/" component={errorHandler(OrganizationCreate)} />
-
       <Route path="/onboarding/:orgId/" component={errorHandler(OrganizationContext)}>
         <Route path="" component={errorHandler(OnboardingWizard)}>
           <IndexRoute component={errorHandler(CreateProject)} />
-          {hooksSurveyRoute}
+          {hook('routes:onboarding-survey')}
           <Route
             path=":projectId/configure/(:platform)"
             component={errorHandler(OnboardingConfigure)}
           />
         </Route>
       </Route>
-
       <Route component={errorHandler(OrganizationDetails)}>
         <Route path="/settings/" name="Settings" component={SettingsWrapper}>
           <IndexRoute
@@ -735,7 +708,7 @@ function routes() {
                   lazyLoad(cb)
                 )}
             >
-              {hooksOrgRoutes}
+              {hook('routes:organization')}
               {orgSettingsRoutes}
             </Route>
 
@@ -765,11 +738,10 @@ function routes() {
           </Route>
         </Route>
       </Route>
-
       <Route path="/:orgId/" component={errorHandler(OrganizationDetails)}>
         <Route component={errorHandler(OrganizationRoot)}>
           <IndexRoute component={errorHandler(OrganizationDashboard)} />
-          {hooksRootOrgRoutes}
+          {hook('routes:organization-root')}
           <Route
             path="/organizations/:orgId/projects/"
             component={errorHandler(OrganizationDashboard)}
@@ -1000,7 +972,7 @@ function routes() {
           />
           <Route path="/organizations/:orgId/" component={OrganizationHomeContainer}>
             <Redirect from="projects/" to="/:orgId/" />
-            {hooksOrgRoutes}
+            {hook('routes:organization')}
             <Redirect path="teams/" to="/settings/:orgId/teams/" />
             <Redirect path="teams/your-teams/" to="/settings/:orgId/teams/" />
             <Redirect path="teams/all-teams/" to="/settings/:orgId/teams/" />
@@ -1260,9 +1232,7 @@ function routes() {
           <Route path="events/:eventId/" component={errorHandler(ProjectEventRedirect)} />
         </Route>
       </Route>
-
-      {hooksRoutes}
-
+      {hook('routes')}
       <Route
         path="*"
         component={errorHandler(RouteNotFound)}
