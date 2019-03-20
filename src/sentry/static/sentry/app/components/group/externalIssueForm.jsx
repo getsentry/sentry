@@ -4,7 +4,7 @@ import PropTypes from 'prop-types';
 import queryString from 'query-string';
 import {debounce} from 'lodash';
 
-import {addSuccessMessage} from 'app/actionCreators/indicator';
+import {addSuccessMessage, addErrorMessage} from 'app/actionCreators/indicator';
 import AsyncComponent from 'app/components/asyncComponent';
 import FieldFromConfig from 'app/views/settings/components/forms/fieldFromConfig';
 import Form from 'app/views/settings/components/forms/form';
@@ -201,6 +201,11 @@ export class SentryAppExternalIssueForm extends React.Component {
     this.props.onSubmitSuccess(issue);
   };
 
+  onSubmitError = () => {
+    const appName = this.props.sentryAppInstallation.sentryApp.name;
+    addErrorMessage(t(`Unable to ${this.props.action} ${appName} issue.`));
+  };
+
   getFieldDefault(field) {
     const {group, sentryAppInstallation} = this.props;
     if (field.type == 'textarea') {
@@ -233,6 +238,7 @@ export class SentryAppExternalIssueForm extends React.Component {
         apiEndpoint={`/sentry-app-installations/${sentryAppInstallation.uuid}/external-issues/`}
         apiMethod="POST"
         onSubmitSuccess={this.onSubmitSuccess}
+        onSubmitError={this.onSubmitError}
         initialData={{
           action: this.props.action,
           groupId: this.props.group.id,
