@@ -300,21 +300,19 @@ class OrganizationMemberDetail extends AsyncView {
                   disabled={this.showResetButton()}
                   title={this.getTooltip()}
                 >
-                  <span>
-                    <Confirm
-                      disabled={!this.showResetButton()}
-                      message={tct(
-                        'Are you sure you want to disable all two-factor authentication methods for [name]?',
-                        {name: member.name ? member.name : 'this member'}
-                      )}
-                      onConfirm={this.handle2faReset}
-                      data-test-id="reset-2fa-confirm"
-                    >
-                      <Button data-test-id="reset-2fa" priority="danger">
-                        {t('Reset two-factor authentication')}
-                      </Button>
-                    </Confirm>
-                  </span>
+                  <Confirm
+                    disabled={!this.showResetButton()}
+                    message={tct(
+                      'Are you sure you want to disable all two-factor authentication methods for [name]?',
+                      {name: member.name ? member.name : 'this member'}
+                    )}
+                    onConfirm={this.handle2faReset}
+                    data-test-id="reset-2fa-confirm"
+                  >
+                    <Button data-test-id="reset-2fa" priority="danger">
+                      {t('Reset two-factor authentication')}
+                    </Button>
+                  </Confirm>
                 </Tooltip>
               </Field>
             </PanelBody>

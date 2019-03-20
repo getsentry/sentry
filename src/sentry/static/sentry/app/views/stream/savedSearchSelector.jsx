@@ -122,18 +122,16 @@ const SaveSearchButton = withApi(
             title="You must select issues from a single project to create new saved searches"
             disabled={!disabled}
           >
-            <span>
-              <Button
-                title={tooltip || buttonTitle}
-                size="xsmall"
-                priority="default"
-                disabled={disabled}
-                onClick={this.onToggle.bind(this)}
-                style={style}
-              >
-                {children}
-              </Button>
-            </span>
+            <Button
+              title={tooltip || buttonTitle}
+              size="xsmall"
+              priority="default"
+              disabled={disabled}
+              onClick={this.onToggle.bind(this)}
+              style={style}
+            >
+              {children}
+            </Button>
           </Tooltip>
           <Modal
             show={this.state.isModalOpen}
@@ -287,16 +285,14 @@ const SavedSearchSelector = withApi(
                 title="You must select issues from a single project to manage saved searches"
                 disabled={hasProject}
               >
-                <span>
-                  <Button
-                    size="xsmall"
-                    priority="default"
-                    to={`/${orgId}/${projectId}/settings/saved-searches/`}
-                    disabled={!hasProject}
-                  >
-                    {t('Manage')}
-                  </Button>
-                </span>
+                <Button
+                  size="xsmall"
+                  priority="default"
+                  to={`/${orgId}/${projectId}/settings/saved-searches/`}
+                  disabled={!hasProject}
+                >
+                  {t('Manage')}
+                </Button>
               </Tooltip>
             </ButtonBar>
           </StyledDropdownLink>

@@ -75,9 +75,7 @@ const SeenInfo = createReactClass({
         {date ? (
           <dd key={1}>
             <Tooltip title={this.getTooltipTitle()} tooltipOptions={{html: true}}>
-              <span>
-                <TimeSince className="dotted-underline" date={date} />
-              </span>
+              <TimeSince className="dotted-underline" date={date} />
             </Tooltip>
             <br />
             <small>
@@ -87,9 +85,7 @@ const SeenInfo = createReactClass({
         ) : dateGlobal && environment === '' ? (
           <dd key={1}>
             <Tooltip title={this.getTooltipTitle()} tooltipOptions={{html: true}}>
-              <span>
-                <TimeSince date={dateGlobal} />
-              </span>
+              <TimeSince date={dateGlobal} />
             </Tooltip>
             <br />
             <small>

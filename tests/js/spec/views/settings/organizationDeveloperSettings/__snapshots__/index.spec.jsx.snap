@@ -713,40 +713,45 @@ exports[`Organization Developer Settings with published apps trash button is dis
                                       <Tooltip
                                         title="Published apps cannot be removed."
                                       >
-                                        <span
+                                        <Button
                                           className="tip"
+                                          disabled={true}
+                                          icon="icon-trash"
+                                          size="small"
                                           title="Published apps cannot be removed."
                                         >
-                                          <Button
-                                            disabled={true}
-                                            icon="icon-trash"
-                                            size="small"
+                                          <Tooltip
+                                            title="Published apps cannot be removed."
                                           >
                                             <StyledButton
                                               aria-disabled={true}
+                                              className="tip tip"
                                               disabled={true}
                                               href={null}
                                               onClick={[Function]}
                                               role="button"
                                               size="small"
+                                              title="Published apps cannot be removed."
                                               to={null}
                                             >
                                               <Component
                                                 aria-disabled={true}
-                                                className="css-1ujzp8g-StyledButton-getColors eqrebog0"
+                                                className="tip tip css-1ujzp8g-StyledButton-getColors eqrebog0"
                                                 href={null}
                                                 onClick={[Function]}
                                                 role="button"
                                                 size="small"
+                                                title="Published apps cannot be removed."
                                                 to={null}
                                               >
                                                 <button
                                                   aria-disabled={true}
-                                                  className="css-1ujzp8g-StyledButton-getColors eqrebog0"
+                                                  className="tip tip css-1ujzp8g-StyledButton-getColors eqrebog0"
                                                   href={null}
                                                   onClick={[Function]}
                                                   role="button"
                                                   size="small"
+                                                  title="Published apps cannot be removed."
                                                   to={null}
                                                 >
                                                   <ButtonLabel
@@ -810,8 +815,8 @@ exports[`Organization Developer Settings with published apps trash button is dis
                                                 </button>
                                               </Component>
                                             </StyledButton>
-                                          </Button>
-                                        </span>
+                                          </Tooltip>
+                                        </Button>
                                       </Tooltip>
                                     </div>
                                   </Base>

@@ -95,21 +95,19 @@ export default class ProjectTags extends AsyncView {
                               : t('You do not have permission to remove tags.')
                           }
                         >
-                          <span>
-                            <LinkWithConfirmation
-                              title={'Remove tag?'}
-                              message={'Are you sure you want to remove this tag?'}
-                              onConfirm={() => this.onDelete(key, idx)}
+                          <LinkWithConfirmation
+                            title={'Remove tag?'}
+                            message={'Are you sure you want to remove this tag?'}
+                            onConfirm={() => this.onDelete(key, idx)}
+                            disabled={!enabled}
+                          >
+                            <Button
+                              size="xsmall"
+                              icon="icon-trash"
+                              data-test-id="delete"
                               disabled={!enabled}
-                            >
-                              <Button
-                                size="xsmall"
-                                icon="icon-trash"
-                                data-test-id="delete"
-                                disabled={!enabled}
-                              />
-                            </LinkWithConfirmation>
-                          </span>
+                            />
+                          </LinkWithConfirmation>
                         </Tooltip>
                       </Flex>
                     </PanelItem>
