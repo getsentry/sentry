@@ -37,6 +37,7 @@ class QuotaTest(TestCase):
         )
         assert self.backend.get_key_quota(key) == (60, 5)
 
+    def test_get_key_quota_empty(self):
         key = ProjectKey.objects.create(
             project=self.project, rate_limit_window=None, rate_limit_count=None
         )

@@ -13,6 +13,7 @@ from django.conf import settings
 
 from sentry import options
 from sentry.utils.services import Service
+from sentry.utils.cache import default_cache
 
 
 class RateLimit(object):
@@ -72,9 +73,19 @@ class Quota(Service):
     def get_key_quota(self, key):
         from sentry import features
 
-        if features.has('projects:rate-limits', key.project):
-            return key.rate_limit
-        return (0, 0)
+        # XXX(epurkhiser): Avoid excessive feature manager checks (which can be
+        # expensive depending on feature handlers) for project rate limits.
+        # This happens on /store.
+        cache_key = u'project:{}:rate-limits'.format(key.project.id)
+
+        rate_limit = default_cache.get(cache_key)
+        if rate_limit is None:
+            has_rate_limits = features.has('projects:rate-limits', key.project)
+            rate_limit = key.rate_limit if has_rate_limits else (0, 0)
+
+            default_cache.set(cache_key, rate_limit, 600)
+
+        return rate_limit
 
     def get_project_quota(self, project):
         from sentry.models import Organization, OrganizationOption
