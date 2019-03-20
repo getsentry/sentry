@@ -10,16 +10,16 @@ from sentry.grouping.strategies.base import strategy
     variants=['!system', 'app'],
 )
 def single_exception_v1(exception, config, **meta):
-    type_component = GroupingComponent(
-        id='type',
-        values=[exception.type] if exception.type else [],
-    )
-
     if exception.stacktrace is not None:
         stacktrace_component = config.get_grouping_component(
             exception.stacktrace, **meta)
     else:
         stacktrace_component = GroupingComponent(id='stacktrace')
+
+    type_component = GroupingComponent(
+        id='type',
+        values=[exception.type] if exception.type else [],
+    )
 
     return GroupingComponent(
         id='exception',
@@ -43,10 +43,9 @@ def chained_exception_v1(chained_exception, config, **meta):
     if len(exceptions) == 1:
         return config.get_grouping_component(exceptions[0], **meta)
 
-    values = []
-    for exception in exceptions:
-        values.append(config.get_grouping_component(exception, **meta))
-
+    # Case 2: produce a component for each chained exception
+    values = [config.get_grouping_component(exception, **meta)
+              for exception in exceptions]
     return GroupingComponent(
         id='chained-exception',
         values=values,

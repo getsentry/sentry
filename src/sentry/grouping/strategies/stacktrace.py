@@ -56,11 +56,6 @@ RECURSION_COMPARISON_FIELDS = [
 def abs_path_is_url_v1(abs_path):
     if not abs_path:
         return False
-    # URLs can be generated such that they are:
-    #   blob:http://example.com/7f7aaadf-a006-4217-9ed5-5fbf8585c6c0
-    # https://developer.mozilla.org/en-US/docs/Web/API/URL/createObjectURL
-    if abs_path.startswith('blob:'):
-        return True
     return abs_path.startswith((
         'blob:', 'file:', 'http:', 'https:', 'applewebdata:'))
 
@@ -74,26 +69,9 @@ def is_recursion_v1(frame1, frame2):
     return True
 
 
-def remove_module_outliers_v1(module, platform):
-    """Remove things that augment the module but really should not."""
-    if platform == 'java':
-        if module[:35] == 'sun.reflect.GeneratedMethodAccessor':
-            return 'sun.reflect.GeneratedMethodAccessor', 'removed reflection marker'
-        old_module = module
-        module = _java_reflect_enhancer_re.sub(r'\1<auto>', module)
-        module = _java_cglib_enhancer_re.sub(r'\1<auto>', module)
-        module = _java_assist_enhancer_re.sub(r'\1<auto>', module)
-        module = _clojure_enhancer_re.sub(r'\1<auto>', module)
-        if old_module != module:
-            return module, 'removed codegen marker'
-    return module, None
-
-
 def get_filename_component_v1(abs_path, filename, platform):
-    """
-    Attempt to normalize filenames by removing common platform outliers.
-
-    - Sometimes filename paths contain build numbers
+    """Attempt to normalize filenames by detecing special filenames and by
+    using the basename only.
     """
     if filename is None:
         return GroupingComponent(id='filename')
@@ -133,6 +111,9 @@ def get_filename_component_v1(abs_path, filename, platform):
 
 
 def get_module_component_v1(abs_path, module, platform):
+    """Given an absolute path, module and platform returns the module component
+    with some necessary cleaning performed.
+    """
     if module is None:
         return GroupingComponent(id='module')
 
@@ -146,18 +127,28 @@ def get_module_component_v1(abs_path, module, platform):
             contributes=False,
             hint='ignored bad javascript module',
         )
-    elif platform == 'java' and '$$Lambda$' in module:
-        module_component.update(
-            contributes=False,
-            hint='ignored java lambda',
-        )
-    else:
-        module_name, module_hint = \
-            remove_module_outliers_v1(module, platform)
-        module_component.update(
-            values=[module_name],
-            hint=module_hint
-        )
+    elif platform == 'java':
+        if '$$Lambda$' in module:
+            module_component.update(
+                contributes=False,
+                hint='ignored java lambda',
+            )
+        if module[:35] == 'sun.reflect.GeneratedMethodAccessor':
+            module_component.update(
+                values=['sun.reflect.GeneratedMethodAccessor'],
+                hint='removed reflection marker',
+            )
+        else:
+            old_module = module
+            module = _java_reflect_enhancer_re.sub(r'\1<auto>', module)
+            module = _java_cglib_enhancer_re.sub(r'\1<auto>', module)
+            module = _java_assist_enhancer_re.sub(r'\1<auto>', module)
+            module = _clojure_enhancer_re.sub(r'\1<auto>', module)
+            if module != old_module:
+                module_component.update(
+                    values=[module],
+                    hint='removed codegen marker'
+                )
 
     return module_component
 
@@ -274,10 +265,6 @@ def get_function_component_v1(function, platform):
 def frame_v1(frame, event, **meta):
     platform = frame.platform or event.platform
 
-    # In certain situations we want to disregard the entire frame.
-    contributes = None
-    hint = None
-
     # Safari throws [native code] frames in for calls like ``forEach``
     # whereas Chrome ignores these. Let's remove it from the hashing algo
     # so that they're more likely to group together
@@ -304,8 +291,6 @@ def frame_v1(frame, event, **meta):
             filename_component,
             function_component,
         ],
-        contributes=contributes,
-        hint=hint,
     )
 
 
