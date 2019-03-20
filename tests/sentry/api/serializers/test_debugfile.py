@@ -17,6 +17,7 @@ class DebugFileSerializerTest(TestCase):
 
         dif = self.create_dif_file(
             debug_id='dfb8e43a-f242-3d73-a453-aeb6a777ef75',
+            code_id='DFB8E43AF2423D73A453AEB6A777EF75',
             object_name='baz.dSYM',
             cpu_name='x86_64',
             file=file,
@@ -30,6 +31,7 @@ class DebugFileSerializerTest(TestCase):
         assert result == {
             'uuid': 'dfb8e43a-f242-3d73-a453-aeb6a777ef75',
             'debugId': 'dfb8e43a-f242-3d73-a453-aeb6a777ef75',
+            'codeId': 'DFB8E43AF2423D73A453AEB6A777EF75',
             'cpuName': 'x86_64',
             'objectName': 'baz.dSYM',
             'symbolType': 'macho',
@@ -49,6 +51,7 @@ class DebugFileSerializerTest(TestCase):
 
         dif = self.create_dif_file(
             debug_id='dfb8e43a-f242-3d73-a453-aeb6a777ef75-feedface',
+            code_id='DFB8E43AF2423D73A453AEB6A777EF75feedface',
             object_name='baz.dSYM',
             cpu_name='x86_64',
             file=file,
@@ -62,6 +65,7 @@ class DebugFileSerializerTest(TestCase):
         assert result == {
             'uuid': 'dfb8e43a-f242-3d73-a453-aeb6a777ef75',
             'debugId': 'dfb8e43a-f242-3d73-a453-aeb6a777ef75-feedface',
+            'codeId': 'DFB8E43AF2423D73A453AEB6A777EF75feedface',
             'cpuName': 'x86_64',
             'objectName': 'baz.dSYM',
             'symbolType': 'macho',

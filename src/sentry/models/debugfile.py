@@ -164,11 +164,12 @@ class ProjectDebugFile(Model):
     cpu_name = models.CharField(max_length=40)
     project = FlexibleForeignKey('sentry.Project', null=True)
     debug_id = models.CharField(max_length=64, db_column='uuid')
+    code_id = models.CharField(max_length=64, null=True)
     data = JSONField(null=True)
     objects = ProjectDebugFileManager()
 
     class Meta:
-        index_together = (('project', 'debug_id'), )
+        index_together = (('project', 'debug_id'), ('project', 'code_id'))
         db_table = 'sentry_projectdsymfile'
         app_label = 'sentry'
 
@@ -370,21 +371,19 @@ def clean_redundant_difs(project, debug_id):
             all_features.update(dif.features)
 
 
-def create_dif_from_id(project, file_format, arch, debug_id, data,
-                       basename, fileobj=None, file=None):
+def create_dif_from_id(project, meta, fileobj=None, file=None):
     """This creates a mach dsym file or proguard mapping from the given
     debug id and open file object to a debug file.  This will not verify the
-    debug id(intentionally so).  Use `create_files_from_dif_zip` for doing
-    everything.
+    debug id (intentionally so).  Use `detect_dif_from_path` to do that.
     """
-    if file_format == 'proguard':
+    if meta.file_format == 'proguard':
         object_name = 'proguard-mapping'
-    elif file_format in ('macho', 'elf'):
-        object_name = basename
-    elif file_format == 'breakpad':
-        object_name = basename[:-4] if basename.endswith('.sym') else basename
+    elif meta.file_format in ('macho', 'elf'):
+        object_name = meta.name
+    elif meta.file_format == 'breakpad':
+        object_name = meta.name[:-4] if meta.name.endswith('.sym') else meta.name
     else:
-        raise TypeError('unknown dif type %r' % (file_format, ))
+        raise TypeError('unknown dif type %r' % (meta.file_format, ))
 
     if file is not None:
         checksum = file.checksum
@@ -402,7 +401,7 @@ def create_dif_from_id(project, file_format, arch, debug_id, data,
 
     dif = ProjectDebugFile.objects \
         .select_related('file') \
-        .filter(project=project, debug_id=debug_id, file__checksum=checksum, data__isnull=False) \
+        .filter(project=project, debug_id=meta.debug_id, file__checksum=checksum, data__isnull=False) \
         .order_by('-id') \
         .first()
 
@@ -411,35 +410,36 @@ def create_dif_from_id(project, file_format, arch, debug_id, data,
 
     if file is None:
         file = File.objects.create(
-            name=debug_id,
+            name=meta.debug_id,
             type='project.dif',
-            headers={'Content-Type': DIF_MIMETYPES[file_format]},
+            headers={'Content-Type': DIF_MIMETYPES[meta.file_format]},
         )
         file.putfile(fileobj)
     else:
         file.type = 'project.dif'
-        file.headers['Content-Type'] = DIF_MIMETYPES[file_format]
+        file.headers['Content-Type'] = DIF_MIMETYPES[meta.file_format]
         file.save()
 
     dif = ProjectDebugFile.objects.create(
         file=file,
-        debug_id=debug_id,
-        cpu_name=arch,
+        debug_id=meta.debug_id,
+        code_id=meta.code_id,
+        cpu_name=meta.arch,
         object_name=object_name,
         project=project,
-        data=data,
+        data=meta.data,
     )
 
     # The DIF we've just created might actually be removed here again. But since
     # this can happen at any time in near or distant future, we don't care and
     # assume a successful upload. The DIF will be reported to the uploader and
     # reprocessing can start.
-    clean_redundant_difs(project, debug_id)
+    clean_redundant_difs(project, meta.debug_id)
 
     resolve_processing_issue(
         project=project,
         scope='native',
-        object='dsym:%s' % debug_id,
+        object='dsym:%s' % meta.debug_id,
     )
 
     return dif, True
@@ -458,7 +458,42 @@ def _analyze_progard_filename(filename):
         pass
 
 
-def detect_dif_from_path(path):
+class DifMeta(object):
+    def __init__(self, file_format, arch, debug_id, path, code_id=None, name=None, data=None):
+        self.file_format = file_format
+        self.arch = arch
+        self.debug_id = debug_id
+        self.code_id = code_id
+        self.path = path
+        self.data = data
+
+        if name is not None:
+            self.name = os.path.basename(name)
+        elif path is not None:
+            self.name = os.path.basename(path)
+
+    @classmethod
+    def from_object(cls, obj, path, name=None):
+        return cls(
+            file_format=obj.file_format,
+            arch=obj.arch,
+            debug_id=obj.debug_id,
+            code_id=obj.code_id,
+            path=path,
+            # TODO: Extract the object name from the object
+            name=name,
+            data={
+                'type': obj.kind,
+                'features': list(obj.features),
+            },
+        )
+
+    @property
+    def basename(self):
+        return os.path.basename(self.path)
+
+
+def detect_dif_from_path(path, name=None):
     """This detects which kind of dif(Debug Information File) the path
     provided is. It returns an array since an Archive can contain more than
     one Object.
@@ -468,12 +503,14 @@ def detect_dif_from_path(path):
     proguard_id = _analyze_progard_filename(path)
     if proguard_id is not None:
         data = {'features': ['mapping']}
-        return [(
-            'proguard',   # file format
-            'any',        # architecture
-            proguard_id,  # debug id
-            path,         # basepath
-            data,         # extra data
+        return [DifMeta(
+            file_format='proguard',
+            arch='any',
+            debug_id=proguard_id,
+            code_id=None,
+            path=path,
+            name=name,
+            data=data,
         )]
 
     # native debug information files (MachO, ELF or Breakpad)
@@ -487,28 +524,18 @@ def detect_dif_from_path(path):
     else:
         objs = []
         for obj in archive.iter_objects():
-            data = {
-                'type': obj.kind,
-                'features': list(obj.features),
-            }
-            objs.append((obj.file_format, obj.arch, obj.debug_id, path, data))
+            objs.append(DifMeta.from_object(obj, path, name=name))
         return objs
 
 
-def create_debug_file_from_dif(to_create, project, overwrite_filename=None):
+def create_debug_file_from_dif(to_create, project):
     """Create a ProjectDebugFile from a dif (Debug Information File) and
     return an array of created objects.
     """
     rv = []
-    for file_format, arch, debug_id, filename, data in to_create:
-        with open(filename, 'rb') as f:
-            result_filename = os.path.basename(filename)
-            if overwrite_filename is not None:
-                result_filename = overwrite_filename
-            dif, created = create_dif_from_id(
-                project, file_format, arch, debug_id, data,
-                result_filename, fileobj=f
-            )
+    for meta in to_create:
+        with open(meta.path, 'rb') as f:
+            dif, created = create_dif_from_id(project, meta, fileobj=f)
             if created:
                 rv.append(dif)
     return rv

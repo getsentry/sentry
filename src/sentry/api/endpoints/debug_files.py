@@ -8,6 +8,7 @@ import posixpath
 from django.db import transaction
 from django.db.models import Q
 from rest_framework.response import Response
+from symbolic import normalize_debug_id, SymbolicError
 
 from sentry import ratelimits
 
@@ -104,8 +105,17 @@ class DebugFilesEndpoint(ProjectEndpoint):
         ).select_related('file')
 
         if query:
+            if len(query) <= 45:
+                # If this query contains a debug identifier, normalize it to
+                # allow for more lenient queries (e.g. supporting Breakpad ids).
+                try:
+                    query = normalize_debug_id(query.strip())
+                except SymbolicError:
+                    pass
+
             q = Q(object_name__icontains=query) \
                 | Q(debug_id__icontains=query) \
+                | Q(code_id__icontains=query) \
                 | Q(cpu_name__icontains=query) \
                 | Q(file__headers__icontains=query)
 

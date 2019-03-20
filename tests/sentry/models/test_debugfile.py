@@ -12,7 +12,7 @@ from symbolic import SYMCACHE_LATEST_VERSION
 
 from sentry.testutils import APITestCase, TestCase
 from sentry.models import debugfile, File, ProjectDebugFile, ProjectSymCacheFile, \
-    ProjectCfiCacheFile
+    ProjectCfiCacheFile, DifMeta
 
 # This is obviously a freely generated UUID and not the checksum UUID.
 # This is permissible if users want to send different UUIDs
@@ -155,18 +155,18 @@ class CreateDebugFileTest(APITestCase):
     def file_path(self):
         return os.path.join(os.path.dirname(__file__), 'fixtures', 'crash.dsym')
 
-    def create_dif(self, **kwargs):
+    def create_dif(self, fileobj=None, file=None, **kwargs):
         args = {
-            'project': self.project,
             'file_format': 'macho',
             'arch': 'x86_64',
             'debug_id': '67e9247c-814e-392b-a027-dbde6748fcbf',
             'data': {'features': ['debug']},
-            'basename': 'crash.dsym',
+            'path': 'crash.dsym',
         }
 
         args.update(kwargs)
-        return debugfile.create_dif_from_id(**args)
+        return debugfile.create_dif_from_id(
+            self.project, DifMeta(**args), fileobj=fileobj, file=file)
 
     def test_create_dif_from_file(self):
         file = self.create_file(name='crash.dsym',
