@@ -1,15 +1,10 @@
 from __future__ import absolute_import, print_function
 
-import logging
-
 from django.conf import settings
 from django.utils.crypto import constant_time_compare
-from hashlib import sha1
 from uuid import uuid4
 
 from sentry import options
-
-logger = logging.getLogger('sentry.auth')
 
 
 class SystemUser(object):
@@ -60,8 +55,7 @@ def is_internal_ip(request):
 def get_system_token():
     token = options.get('sentry:system-token')
     if not token:
-        token = sha1(uuid4().bytes).hexdigest()
-        logger.info('auth.generated-system-token', extra={'system-token': token})
+        token = uuid4().hex
         options.set('sentry:system-token', token)
     return token
 
@@ -80,9 +74,7 @@ class SystemToken(object):
     def from_request(cls, request, token):
         """Returns a system token if this is a valid system request."""
         system_token = get_system_token()
-        if system_token \
-                and constant_time_compare(system_token, token) \
-                and is_internal_ip(request):
+        if constant_time_compare(system_token, token) and is_internal_ip(request):
             return cls()
         return None
 
