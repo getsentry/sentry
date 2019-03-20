@@ -3,13 +3,14 @@ from south.utils import datetime_utils as datetime
 from south.db import db
 from south.v2 import SchemaMigration
 from django.db import models
+from sentry.utils.db import is_postgres
 
 
 class Migration(SchemaMigration):
 
     # Flag to indicate if this migration is too risky
     # to run online and needs to be coordinated for offline
-    is_dangerous = True
+    is_dangerous = False
 
     def forwards(self, orm):
         # Adding field 'ProjectDebugFile.code_id'
@@ -18,7 +19,16 @@ class Migration(SchemaMigration):
                       keep_default=False)
 
         # Adding index on 'ProjectDebugFile', fields ['project', 'code_id']
-        db.create_index('sentry_projectdsymfile', ['project_id', 'code_id'])
+        if is_postgres():
+            db.commit_transaction()
+            db.execute(
+                "CREATE INDEX CONCURRENTLY {} ON sentry_projectdsymfile (project_id, code_id)".format(
+                    db.create_index_name('sentry_projectdsymfile', ['project_id', 'code_id'])
+                )
+            )
+            db.start_transaction()
+        else:
+            db.create_index('sentry_projectdsymfile', ['project_id', 'code_id'])
 
     def backwards(self, orm):
         # Removing index on 'ProjectDebugFile', fields ['project', 'code_id']
