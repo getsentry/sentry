@@ -4,9 +4,8 @@ import pytz
 import logging
 from datetime import datetime
 
-from sentry import metrics
 from sentry.models import Event
-from sentry.utils import json
+from sentry.utils import json, metrics
 
 
 logger = logging.getLogger(__name__)
