@@ -247,12 +247,18 @@ def get_function_component_v1(function, platform):
             )
 
     elif platform in ('objc', 'cocoa', 'native'):
-        new_function = isolate_native_function_v1(function)
-        if new_function != function:
+        if function in ('<redacted>', '<unknown>'):
             function_component.update(
-                values=[new_function],
-                hint='isolated function'
+                contributes=False,
+                hint='ignored unknown function'
             )
+        else:
+            new_function = isolate_native_function_v1(function)
+            if new_function != function:
+                function_component.update(
+                    values=[new_function],
+                    hint='isolated function'
+                )
 
     return function_component
 
