@@ -106,7 +106,7 @@ describe('OrganizationTeamProjects', function() {
     stars.first().simulate('click');
     expect(
       wrapper
-        .find('BookmarkStar')
+        .find('Star')
         .first()
         .prop('isBookmarked')
     ).toBeTruthy();

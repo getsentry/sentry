@@ -20,16 +20,6 @@ const ProjectItem = createReactClass({
 
   mixins: [ApiMixin],
 
-  getInitialState() {
-    return {
-      isBookmarked: this.props.project.isBookmarked,
-    };
-  },
-
-  handleToggleBookmark(isBookmarked) {
-    this.setState({isBookmarked});
-  },
-
   render() {
     const {project, organization} = this.props;
 
@@ -37,12 +27,7 @@ const ProjectItem = createReactClass({
 
     return (
       <Container key={project.id}>
-        <BookmarkLink
-          organization={organization}
-          project={project}
-          isBookmarked={this.state.isBookmarked}
-          onToggle={this.handleToggleBookmark}
-        />
+        <BookmarkLink organization={organization} project={project} />
         <Link
           to={
             hasNewRoutes

@@ -400,8 +400,6 @@ exports[`OrganizationProjects Should render the projects in the store 1`] = `
                                     className="css-9ku3o0-Container enngb6z0"
                                   >
                                     <BookmarkLink
-                                      isBookmarked={false}
-                                      onToggle={[Function]}
                                       organization={
                                         Object {
                                           "access": Array [
@@ -445,8 +443,6 @@ exports[`OrganizationProjects Should render the projects in the store 1`] = `
                                     >
                                       <withApi(BookmarkStar)
                                         className="css-10z01iz-BookmarkLink enngb6z1"
-                                        isBookmarked={false}
-                                        onToggle={[Function]}
                                         organization={
                                           Object {
                                             "access": Array [
@@ -491,8 +487,6 @@ exports[`OrganizationProjects Should render the projects in the store 1`] = `
                                         <BookmarkStar
                                           api={Client {}}
                                           className="css-10z01iz-BookmarkLink enngb6z1"
-                                          isBookmarked={false}
-                                          onToggle={[Function]}
                                           organization={
                                             Object {
                                               "access": Array [
@@ -535,6 +529,7 @@ exports[`OrganizationProjects Should render the projects in the store 1`] = `
                                           }
                                         >
                                           <Tooltip
+                                            isBookmarked={false}
                                             title="Add to bookmarks"
                                           >
                                             <Star

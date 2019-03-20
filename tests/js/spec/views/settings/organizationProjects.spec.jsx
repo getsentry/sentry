@@ -52,7 +52,7 @@ describe('OrganizationProjects', function() {
     expect(projectsPutMock).toHaveBeenCalledTimes(0);
 
     wrapper.find('BookmarkStar').simulate('click');
-    expect(wrapper.find('BookmarkStar').prop('isBookmarked')).toBeTruthy();
+    expect(wrapper.find('Star').prop('isBookmarked')).toBeTruthy();
     expect(projectsPutMock).toHaveBeenCalledTimes(1);
   });
 

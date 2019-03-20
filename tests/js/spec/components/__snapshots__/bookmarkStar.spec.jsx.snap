@@ -87,6 +87,7 @@ exports[`BookmarkStar renders 1`] = `
     }
   >
     <Tooltip
+      isBookmarked={false}
       title="Add to bookmarks"
     >
       <Star
