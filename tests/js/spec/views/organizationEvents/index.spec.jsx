@@ -6,13 +6,14 @@ import {mount} from 'enzyme';
 import {setActiveOrganization} from 'app/actionCreators/organizations';
 import GlobalSelectionStore from 'app/stores/globalSelectionStore';
 import OrganizationEventsContainer from 'app/views/organizationEvents';
+import ProjectsStore from 'app/stores/projectsStore';
 
 describe('OrganizationEvents', function() {
   let wrapper;
   const environments = ['production', 'staging'];
   const {organization, router, routerContext} = initializeOrg({
     projects: [
-      {isMember: true, environments},
+      {isMember: true, environments, isBookmarked: true},
       {isMember: true, slug: 'new-project', id: 3, environments},
     ],
     organization: {
@@ -39,6 +40,7 @@ describe('OrganizationEvents', function() {
   describe('Header', function() {
     beforeEach(function() {
       GlobalSelectionStore.reset();
+      ProjectsStore.loadInitialData(organization.projects);
 
       router.location = {
         pathname: '/organizations/org-slug/events/',

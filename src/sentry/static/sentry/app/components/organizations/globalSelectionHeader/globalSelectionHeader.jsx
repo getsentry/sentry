@@ -319,15 +319,14 @@ class GlobalSelectionHeader extends React.Component {
 
   getProjects = () => {
     const {isSuperuser} = ConfigStore.get('user');
-    const {projects} = this.props;
+    const {projects, organization} = this.props;
+    const unfilteredProjects = projects || organization.projects;
 
     if (isSuperuser) {
-      return projects.length ? projects : this.props.organization.projects;
+      return unfilteredProjects;
     }
 
-    return projects.length
-      ? this.props.projects
-      : this.props.organization.projects.filter(project => project.isMember);
+    return unfilteredProjects.filter(project => project.isMember);
   };
 
   getFirstProject = () => {
