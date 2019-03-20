@@ -111,7 +111,7 @@ def devserver(reload, watchers, workers, browser_reload, styleguide, prefix, env
         daemons += settings.SENTRY_WATCHERS
 
     # When using browser_reload we proxy all requests through webpacks
-    # devserver on the configured port. The backend is serverd on port+1 and is
+    # devserver on the configured port. The backend is served on port+1 and is
     # proxied via the webpack configuration.
     if watchers and browser_reload:
         proxy_port = port
