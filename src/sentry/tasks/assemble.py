@@ -1,6 +1,5 @@
 from __future__ import absolute_import, print_function
 
-import os
 import logging
 
 from sentry.api.serializers import serialize
@@ -39,7 +38,7 @@ def assemble_dif(project_id, name, checksum, chunks, **kwargs):
             # We only permit split difs to hit this endpoint.  The
             # client is required to split them up first or we error.
             try:
-                result = debugfile.detect_dif_from_path(temp_file.name)
+                result = debugfile.detect_dif_from_path(temp_file.name, name=name)
             except BadDif as e:
                 set_assemble_status(project, checksum, ChunkFileState.ERROR,
                                     detail=e.args[0])
@@ -52,11 +51,7 @@ def assemble_dif(project_id, name, checksum, chunks, **kwargs):
                                     % len(result))
                 return
 
-            file_format, arch, file_id, filename, data = result[0]
-            dif, created = debugfile.create_dif_from_id(
-                project, file_format, arch, file_id, data,
-                os.path.basename(name),
-                file=file)
+            dif, created = debugfile.create_dif_from_id(project, result[0], file=file)
             indicate_success = True
             delete_file = False
 

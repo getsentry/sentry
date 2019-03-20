@@ -1241,6 +1241,7 @@ class RealResolvingIntegrationTest(TestCase):
             cpu_name='x86',
             project=self.project,
             debug_id='3249d99d-0c40-4931-8610-f4e4fb0b6936-1',
+            code_id='5AB380779000',
         )
 
         self.login_as(user=self.user)
