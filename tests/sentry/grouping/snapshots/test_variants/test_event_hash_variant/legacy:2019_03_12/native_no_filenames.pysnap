@@ -1,5 +1,5 @@
 ---
-created: '2019-03-15T10:52:06.260025Z'
+created: '2019-03-20T23:12:41.265357Z'
 creator: sentry
 source: tests/sentry/grouping/test_variants.py
 ---
@@ -45,6 +45,12 @@ app:
           frame (non app frame)
             function (function name is used only if module or filename are available)
               u'sentry::hub::Hub::with_active::{{closure}}'
+          frame (non app frame)
+            function (function name is used only if module or filename are available)
+              u'<unknown>'
+          frame (non app frame)
+            function (function name is used only if module or filename are available)
+              u'<redacted>'
         type*
           u'log_demo'
         value*
@@ -92,6 +98,12 @@ system:
           frame
             function (function name is used only if module or filename are available)
               u'sentry::hub::Hub::with_active::{{closure}}'
+          frame
+            function (function name is used only if module or filename are available)
+              u'<unknown>'
+          frame
+            function (function name is used only if module or filename are available)
+              u'<redacted>'
         type*
           u'log_demo'
         value*
