@@ -70,11 +70,7 @@ class GroupEventDetails extends React.Component {
         });
       });
 
-    const features = new Set(organization.features);
-
-    if (features.has('sentry-apps')) {
-      fetchSentryAppInstallations(orgSlug);
-    }
+    fetchSentryAppInstallations(orgSlug);
   };
 
   render() {

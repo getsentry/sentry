@@ -71,11 +71,6 @@ class ExternalIssueList extends AsyncComponent {
   //
   fetchSentryAppData() {
     const {api, orgId, group, project} = this.props;
-    const features = new Set(project.organization.features);
-
-    if (!features.has('sentry-apps')) {
-      return;
-    }
 
     api
       .requestPromise(
