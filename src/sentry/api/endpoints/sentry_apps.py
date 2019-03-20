@@ -39,6 +39,7 @@ class SentryAppsEndpoint(SentryAppsBaseEndpoint):
                 is_alertable=result.get('isAlertable'),
                 schema=result.get('schema'),
                 overview=result.get('overview'),
+                request=request,
             )
 
             return Response(serialize(sentry_app), status=201)

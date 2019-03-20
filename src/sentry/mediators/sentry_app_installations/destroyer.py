@@ -2,13 +2,15 @@ from __future__ import absolute_import
 
 from sentry.mediators import Mediator, Param
 from sentry.mediators import service_hooks
-from sentry.models import ServiceHook
+from sentry.models import AuditLogEntryEvent, ServiceHook
 from sentry.mediators.sentry_app_installations.installation_notifier import InstallationNotifier
+from sentry.utils.audit import create_audit_entry
 
 
 class Destroyer(Mediator):
     install = Param('sentry.models.SentryAppInstallation')
     user = Param('sentry.models.User')
+    request = Param('rest_framework.request.Request', required=False)
 
     def call(self):
         self._destroy_authorization()
@@ -40,3 +42,15 @@ class Destroyer(Mediator):
             action='deleted',
         )
         self.install.delete()
+
+    def audit(self):
+        if self.request:
+            create_audit_entry(
+                request=self.request,
+                organization=self.install.organization,
+                target_object=self.install.organization.id,
+                event=AuditLogEntryEvent.SENTRY_APP_UNINSTALL,
+                data={
+                    'sentry_app': self.install.sentry_app.name,
+                },
+            )

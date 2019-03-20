@@ -79,6 +79,12 @@ class AuditLogEntryEvent(object):
     INTEGRATION_EDIT = 111
     INTEGRATION_REMOVE = 112
 
+    SENTRY_APP_ADD = 113
+    # SENTRY_APP_EDIT = 114
+    SENTRY_APP_REMOVE = 115
+    SENTRY_APP_INSTALL = 116
+    SENTRY_APP_UNINSTALL = 117
+
     MONITOR_ADD = 120
     MONITOR_EDIT = 121
     MONITOR_REMOVE = 122
@@ -148,6 +154,10 @@ class AuditLogEntry(Model):
             (AuditLogEntryEvent.INTEGRATION_ADD, 'integration.add'),
             (AuditLogEntryEvent.INTEGRATION_EDIT, 'integration.edit'),
             (AuditLogEntryEvent.INTEGRATION_REMOVE, 'integration.remove'),
+            (AuditLogEntryEvent.SENTRY_APP_ADD, 'sentry-app.add'),
+            (AuditLogEntryEvent.SENTRY_APP_REMOVE, 'sentry-app.remove'),
+            (AuditLogEntryEvent.SENTRY_APP_INSTALL, 'sentry-app.install'),
+            (AuditLogEntryEvent.SENTRY_APP_UNINSTALL, 'sentry-app.uninstall'),
 
             (AuditLogEntryEvent.SET_ONDEMAND, 'ondemand.edit'),
             (AuditLogEntryEvent.TRIAL_STARTED, 'trial.started'),
@@ -315,5 +325,14 @@ class AuditLogEntry(Model):
         elif self.event == AuditLogEntryEvent.INTEGRATION_REMOVE:
             return 'disabled integration %s from project %s' % (
                 self.data['integration'], self.data['project'])
+
+        elif self.event == AuditLogEntryEvent.SENTRY_APP_ADD:
+            return 'created sentry app %s' % (self.data['sentry_app'])
+        elif self.event == AuditLogEntryEvent.SENTRY_APP_REMOVE:
+            return 'removed sentry app %s' % (self.data['sentry_app'])
+        elif self.event == AuditLogEntryEvent.SENTRY_APP_INSTALL:
+            return 'installed sentry app %s' % (self.data['sentry_app'])
+        elif self.event == AuditLogEntryEvent.SENTRY_APP_UNINSTALL:
+            return 'uninstalled sentry app %s' % (self.data['sentry_app'])
 
         return ''
