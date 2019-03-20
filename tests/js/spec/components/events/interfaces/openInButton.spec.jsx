@@ -9,7 +9,7 @@ describe('OpenInButton', function() {
   const api = new Client();
   const filename = '/sentry/app.py';
   const lineNo = 123;
-  const org = TestStubs.Organization();
+  const org = TestStubs.Organization({features: ['sentry-apps']});
   const group = TestStubs.Group();
   const install = TestStubs.SentryAppInstallation();
 
