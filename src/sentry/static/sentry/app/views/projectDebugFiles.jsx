@@ -134,7 +134,9 @@ class ProjectDebugSymbols extends AsyncComponent {
               {features &&
                 features.map(feature => (
                   <Tooltip key={feature} title={getFeatureTooltip(feature)}>
-                    <Tag inline>{feature}</Tag>
+                    <span>
+                      <Tag inline>{feature}</Tag>
+                    </span>
                   </Tooltip>
                 ))}
             </DebugSymbolDetails>
