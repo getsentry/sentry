@@ -13604,10 +13604,10 @@ typedarray@^0.0.6:
   resolved "https://registry.yarnpkg.com/typedarray/-/typedarray-0.0.6.tgz#867ac74e3864187b1d3d47d996a78ec5c8830777"
   integrity sha1-hnrHTjhkGHsdPUfZlqeOxciDB3c=
 
-u2f-api@0.2.3:
-  version "0.2.3"
-  resolved "https://registry.yarnpkg.com/u2f-api/-/u2f-api-0.2.3.tgz#e489d9aa5ee929a4e5c47a173c72e227c09e7485"
-  integrity sha512-w4JhZWQLWcHkVDTFAGKBjpNDB+NAXWwS40fkmAuNPb4EBkQN7ulRr4sXxHZpvY/VKT2ZDTKPpwFmckM1yqHK6A==
+u2f-api@1.0.10:
+  version "1.0.10"
+  resolved "https://registry.yarnpkg.com/u2f-api/-/u2f-api-1.0.10.tgz#38d898a72daa6362040b27e37c8286d96cb8d320"
+  integrity sha512-0Zh+IqM2l6xaA/IUJDT9WwoEM6nwPx6ive4flVVYEfzzgXIrKFRaenieItsEkbXIgOZEw13nO3o3oLtSDOyesA==
 
 ua-parser-js@^0.7.18, ua-parser-js@^0.7.9:
   version "0.7.18"
