@@ -37,7 +37,7 @@ class OpenInButton extends React.Component {
     const hasSentryApps =
       hasOrganization && new Set(organization.features).has('sentry-apps');
 
-    if (hasSentryApps && group && group.project) {
+    if (hasSentryApps && group && group.project && group.project.id) {
       api
         .requestPromise(
           `/organizations/${organization.slug}/sentry-app-components/?filter=stacktrace-link&projectId=${group
