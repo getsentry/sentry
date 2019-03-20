@@ -313,6 +313,7 @@ class OrganizationDetailsEndpoint(OrganizationEndpoint):
             organization,
             request.user,
             org_serializers.DetailedOrganizationSerializer(),
+            access=request.access,
         )
         return self.respond(context)
 
@@ -380,6 +381,7 @@ class OrganizationDetailsEndpoint(OrganizationEndpoint):
                     organization,
                     request.user,
                     org_serializers.DetailedOrganizationSerializer(),
+                    access=request.access,
                 )
             )
         return self.respond(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
@@ -450,5 +452,6 @@ class OrganizationDetailsEndpoint(OrganizationEndpoint):
             organization,
             request.user,
             org_serializers.DetailedOrganizationSerializer(),
+            access=request.access,
         )
         return self.respond(context, status=202)

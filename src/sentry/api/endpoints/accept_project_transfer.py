@@ -67,7 +67,12 @@ class AcceptProjectTransferEndpoint(Endpoint):
         )
 
         return Response({
-            'organizations': serialize(list(organizations), request.user, DetailedOrganizationSerializer()),
+            'organizations': serialize(
+                list(organizations),
+                request.user,
+                DetailedOrganizationSerializer(),
+                access=request.access
+            ),
             'project': {
                 'slug': project.slug,
                 'id': project.id,
