@@ -36,7 +36,7 @@ export function saveRecentSearch(api, orgId, type, query) {
   const promise = api
     .requestPromise(url, {
       method: 'POST',
-      query: {
+      data: {
         query,
         type,
       },

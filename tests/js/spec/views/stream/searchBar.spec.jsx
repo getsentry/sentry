@@ -131,7 +131,7 @@ describe('SearchBar', function() {
     expect(saveRecentSearch).toHaveBeenCalledWith(
       expect.anything(),
       expect.objectContaining({
-        query: {
+        data: {
           query: 'url:"fu"',
           type: 0,
         },
