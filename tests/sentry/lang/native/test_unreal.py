@@ -68,6 +68,17 @@ class UnrealIntegrationTest(TestCase):
             assert 'YetAnother' == event['stacktrace']['frames'][2]['package']
             assert 'YetAnother' == event['stacktrace']['frames'][2]['package']
 
+    def test_merge_unreal_context_event_pcallstack_no_threads(self):
+        event = {}
+        unreal_context = {
+            'runtime_properties': {
+                'portable_call_stack': '0x00000000fc440000 + ffffffff PackageA 0x000000003fb70000 + e23831 PackageA 0x000000003fb70000 + 495d7b PackageA 0x000000003fb70000 + 1cbb89',
+                'threads': [],
+            }
+        }
+        merge_unreal_context_event(unreal_context, event, self.project)
+        assert event.get('threads') is None
+
     def test_merge_unreal_context_event_without_user(self):
         expected_message = 'user comments'
         context = {
