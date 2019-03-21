@@ -1,5 +1,5 @@
 ---
-created: '2019-03-21T11:57:01.095945Z'
+created: '2019-03-21T13:58:25.694809Z'
 creator: sentry
 source: tests/sentry/lang/native/test_minidump.py
 ---
@@ -13,91 +13,125 @@ contexts:
     version: 10.0.14393
 debug_meta:
   images:
-  - id: 3249d99d-0c40-4931-8610-f4e4fb0b6936-1
+  - code_file: C:\projects\breakpad-tools\windows\Release\crash.exe
+    code_id: 5AB380779000
+    debug_file: C:\projects\breakpad-tools\windows\Release\crash.pdb
+    debug_id: 3249d99d-0c40-4931-8610-f4e4fb0b6936-1
     image_addr: '0x2a0000'
     image_size: 36864
-    name: C:\projects\breakpad-tools\windows\Release\crash.exe
-    type: symbolic
-  - id: 9c2a902b-6fdf-40ad-8308-588a41d572a0-1
+    type: pe
+  - code_file: C:\Windows\System32\dbghelp.dll
+    code_id: 57898E12145000
+    debug_file: dbghelp.pdb
+    debug_id: 9c2a902b-6fdf-40ad-8308-588a41d572a0-1
     image_addr: '0x70850000'
     image_size: 1331200
-    name: C:\Windows\System32\dbghelp.dll
-    type: symbolic
-  - id: bf5257f7-8c26-43dd-9bb7-901625e1136a-1
+    type: pe
+  - code_file: C:\Windows\System32\msvcp140.dll
+    code_id: 589ABC846c000
+    debug_file: msvcp140.i386.pdb
+    debug_id: bf5257f7-8c26-43dd-9bb7-901625e1136a-1
     image_addr: '0x709a0000'
     image_size: 442368
-    name: C:\Windows\System32\msvcp140.dll
-    type: symbolic
-  - id: 8daf7773-372f-460a-af38-944e193f7e33-1
+    type: pe
+  - code_file: C:\Windows\System32\apphelp.dll
+    code_id: 57898EEB92000
+    debug_file: apphelp.pdb
+    debug_id: 8daf7773-372f-460a-af38-944e193f7e33-1
     image_addr: '0x70a10000'
     image_size: 598016
-    name: C:\Windows\System32\apphelp.dll
-    type: symbolic
-  - id: aec7ef2f-df4b-4642-a471-4c3e5fe8760a-1
+    type: pe
+  - code_file: C:\Windows\System32\dbgcore.dll
+    code_id: 57898DAB25000
+    debug_file: dbgcore.pdb
+    debug_id: aec7ef2f-df4b-4642-a471-4c3e5fe8760a-1
     image_addr: '0x70b70000'
     image_size: 151552
-    name: C:\Windows\System32\dbgcore.dll
-    type: symbolic
-  - id: 0ed80a50-ecda-472b-86a4-eb6c833f8e1b-1
+    type: pe
+  - code_file: C:\Windows\System32\VCRUNTIME140.dll
+    code_id: 589ABC7714000
+    debug_file: vcruntime140.i386.pdb
+    debug_id: 0ed80a50-ecda-472b-86a4-eb6c833f8e1b-1
     image_addr: '0x70c60000'
     image_size: 81920
-    name: C:\Windows\System32\VCRUNTIME140.dll
-    type: symbolic
-  - id: 147c51fb-7ca1-408f-85b5-285f2ad6f9c5-1
+    type: pe
+  - code_file: C:\Windows\System32\CRYPTBASE.dll
+    code_id: 57899141a000
+    debug_file: cryptbase.pdb
+    debug_id: 147c51fb-7ca1-408f-85b5-285f2ad6f9c5-1
     image_addr: '0x73ba0000'
     image_size: 40960
-    name: C:\Windows\System32\CRYPTBASE.dll
-    type: symbolic
-  - id: 51e432b1-0450-4b19-8ed1-6d4335f9f543-1
+    type: pe
+  - code_file: C:\Windows\System32\sspicli.dll
+    code_id: 59BF30E31f000
+    debug_file: wsspicli.pdb
+    debug_id: 51e432b1-0450-4b19-8ed1-6d4335f9f543-1
     image_addr: '0x73bb0000'
     image_size: 126976
-    name: C:\Windows\System32\sspicli.dll
-    type: symbolic
-  - id: 0c799483-b549-417d-8433-4331852031fe-1
+    type: pe
+  - code_file: C:\Windows\System32\advapi32.dll
+    code_id: 5A49BB7677000
+    debug_file: advapi32.pdb
+    debug_id: 0c799483-b549-417d-8433-4331852031fe-1
     image_addr: '0x73c70000'
     image_size: 487424
-    name: C:\Windows\System32\advapi32.dll
-    type: symbolic
-  - id: 6f6409b3-d520-43c7-9b2f-62e00bfe761c-1
+    type: pe
+  - code_file: C:\Windows\System32\msvcrt.dll
+    code_id: 57899155be000
+    debug_file: msvcrt.pdb
+    debug_id: 6f6409b3-d520-43c7-9b2f-62e00bfe761c-1
     image_addr: '0x73cf0000'
     image_size: 778240
-    name: C:\Windows\System32\msvcrt.dll
-    type: symbolic
-  - id: 6f6a05dd-0a80-478b-a419-9b88703bf75b-1
+    type: pe
+  - code_file: C:\Windows\System32\sechost.dll
+    code_id: 598942C741000
+    debug_file: sechost.pdb
+    debug_id: 6f6a05dd-0a80-478b-a419-9b88703bf75b-1
     image_addr: '0x74450000'
     image_size: 266240
-    name: C:\Windows\System32\sechost.dll
-    type: symbolic
-  - id: d3474559-96f7-47d6-bf43-c176b2171e68-1
+    type: pe
+  - code_file: C:\Windows\System32\kernel32.dll
+    code_id: 590285E9e0000
+    debug_file: wkernel32.pdb
+    debug_id: d3474559-96f7-47d6-bf43-c176b2171e68-1
     image_addr: '0x75050000'
     image_size: 917504
-    name: C:\Windows\System32\kernel32.dll
-    type: symbolic
-  - id: 287b19c3-9209-4a2b-bb8f-bcc37f411b11-1
+    type: pe
+  - code_file: C:\Windows\System32\bcryptPrimitives.dll
+    code_id: 59B0DF8F5a000
+    debug_file: bcryptprimitives.pdb
+    debug_id: 287b19c3-9209-4a2b-bb8f-bcc37f411b11-1
     image_addr: '0x75130000'
     image_size: 368640
-    name: C:\Windows\System32\bcryptPrimitives.dll
-    type: symbolic
-  - id: ae131c67-27a7-4fa1-9916-b5a4aef41190-1
+    type: pe
+  - code_file: C:\Windows\System32\rpcrt4.dll
+    code_id: 5A49BB75c1000
+    debug_file: wrpcrt4.pdb
+    debug_id: ae131c67-27a7-4fa1-9916-b5a4aef41190-1
     image_addr: '0x75810000'
     image_size: 790528
-    name: C:\Windows\System32\rpcrt4.dll
-    type: symbolic
-  - id: 6bedcbce-0a3a-40e9-8040-81c2c8c6cc2f-1
+    type: pe
+  - code_file: C:\Windows\System32\ucrtbase.dll
+    code_id: 59BF2B5Ae0000
+    debug_file: ucrtbase.pdb
+    debug_id: 6bedcbce-0a3a-40e9-8040-81c2c8c6cc2f-1
     image_addr: '0x758f0000'
     image_size: 917504
-    name: C:\Windows\System32\ucrtbase.dll
-    type: symbolic
-  - id: 8462294a-c645-402d-ac82-a4e95f61ddf9-1
+    type: pe
+  - code_file: C:\Windows\System32\KERNELBASE.dll
+    code_id: 59BF2BCF1a1000
+    debug_file: wkernelbase.pdb
+    debug_id: 8462294a-c645-402d-ac82-a4e95f61ddf9-1
     image_addr: '0x76db0000'
     image_size: 1708032
-    name: C:\Windows\System32\KERNELBASE.dll
-    type: symbolic
-  - id: 971f98e5-ce60-41ff-b2d7-235bbeb34578-1
+    type: pe
+  - code_file: C:\Windows\System32\ntdll.dll
+    code_id: 59B0D8F3183000
+    debug_file: wntdll.pdb
+    debug_id: 971f98e5-ce60-41ff-b2d7-235bbeb34578-1
     image_addr: '0x77170000'
     image_size: 1585152
-    name: C:\Windows\System32\ntdll.dll
-    type: symbolic
+    type: pe
 exception:
   mechanism:
     handled: false
@@ -105,52 +139,40 @@ exception:
     type: minidump
   stacktrace:
     frames:
-    - function: <unknown>
-      instruction_addr: '0x771d0f44'
+    - instruction_addr: '0x771d0f44'
       package: C:\Windows\System32\ntdll.dll
       trust: fp
-    - function: <unknown>
-      instruction_addr: '0x771d0f79'
+    - instruction_addr: '0x771d0f79'
       package: C:\Windows\System32\ntdll.dll
       trust: fp
-    - function: <unknown>
-      instruction_addr: '0x750662c4'
+    - instruction_addr: '0x750662c4'
       package: C:\Windows\System32\kernel32.dll
       trust: fp
-    - function: <unknown>
-      instruction_addr: '0x2a2d97'
+    - instruction_addr: '0x2a2d97'
       package: C:\projects\breakpad-tools\windows\Release\crash.exe
       trust: scan
-    - function: <unknown>
-      instruction_addr: '0x2a3435'
+    - instruction_addr: '0x2a3435'
       package: C:\projects\breakpad-tools\windows\Release\crash.exe
       trust: scan
-    - function: <unknown>
-      instruction_addr: '0x7584e9c0'
+    - instruction_addr: '0x7584e9c0'
       package: C:\Windows\System32\rpcrt4.dll
       trust: scan
-    - function: <unknown>
-      instruction_addr: '0x75810000'
+    - instruction_addr: '0x75810000'
       package: null
       trust: scan
-    - function: <unknown>
-      instruction_addr: '0x70b7ae40'
+    - instruction_addr: '0x70b7ae40'
       package: C:\Windows\System32\dbgcore.dll
       trust: scan
-    - function: <unknown>
-      instruction_addr: '0x70850000'
+    - instruction_addr: '0x70850000'
       package: null
       trust: scan
-    - function: <unknown>
-      instruction_addr: '0x7584e9c0'
+    - instruction_addr: '0x7584e9c0'
       package: C:\Windows\System32\rpcrt4.dll
       trust: scan
-    - function: <unknown>
-      instruction_addr: '0x2a28d0'
+    - instruction_addr: '0x2a28d0'
       package: C:\projects\breakpad-tools\windows\Release\crash.exe
       trust: fp
-    - function: <unknown>
-      instruction_addr: '0x2a2a3d'
+    - instruction_addr: '0x2a2a3d'
       package: C:\projects\breakpad-tools\windows\Release\crash.exe
       trust: context
     registers:
@@ -177,20 +199,16 @@ threads:
   id: 3580
   stacktrace:
     frames:
-    - function: <unknown>
-      instruction_addr: '0x771d0f44'
+    - instruction_addr: '0x771d0f44'
       package: C:\Windows\System32\ntdll.dll
       trust: fp
-    - function: <unknown>
-      instruction_addr: '0x771d0f79'
+    - instruction_addr: '0x771d0f79'
       package: C:\Windows\System32\ntdll.dll
       trust: fp
-    - function: <unknown>
-      instruction_addr: '0x750662c4'
+    - instruction_addr: '0x750662c4'
       package: C:\Windows\System32\kernel32.dll
       trust: fp
-    - function: <unknown>
-      instruction_addr: '0x771e016c'
+    - instruction_addr: '0x771e016c'
       package: C:\Windows\System32\ntdll.dll
       trust: context
     registers:
@@ -208,20 +226,16 @@ threads:
   id: 2600
   stacktrace:
     frames:
-    - function: <unknown>
-      instruction_addr: '0x771d0f44'
+    - instruction_addr: '0x771d0f44'
       package: C:\Windows\System32\ntdll.dll
       trust: fp
-    - function: <unknown>
-      instruction_addr: '0x771d0f79'
+    - instruction_addr: '0x771d0f79'
       package: C:\Windows\System32\ntdll.dll
       trust: fp
-    - function: <unknown>
-      instruction_addr: '0x750662c4'
+    - instruction_addr: '0x750662c4'
       package: C:\Windows\System32\kernel32.dll
       trust: fp
-    - function: <unknown>
-      instruction_addr: '0x771e016c'
+    - instruction_addr: '0x771e016c'
       package: C:\Windows\System32\ntdll.dll
       trust: context
     registers:
@@ -239,8 +253,7 @@ threads:
   id: 2920
   stacktrace:
     frames:
-    - function: <unknown>
-      instruction_addr: '0x771df3dc'
+    - instruction_addr: '0x771df3dc'
       package: C:\Windows\System32\ntdll.dll
       trust: context
     registers:

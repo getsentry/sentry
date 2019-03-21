@@ -68,8 +68,7 @@ class ThreadRef(object):
 
         return module, {
             'instruction_addr': '0x%x' % addr,
-            'function': '<unknown>',  # Required by interface
-            'package': module.name if module else None,
+            'package': module.code_file if module else None,
             'trust': trust,
         }
 
