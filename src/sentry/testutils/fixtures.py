@@ -2,6 +2,7 @@ from __future__ import absolute_import, print_function, unicode_literals
 
 from sentry.models import Activity, OrganizationMember, OrganizationMemberTeam
 
+import pytest
 from django.utils.functional import cached_property
 from sentry.testutils.factories import Factories
 
@@ -201,3 +202,7 @@ class Fixtures(object):
 
     def create_userreport(self, *args, **kwargs):
         return Factories.create_userreport(*args, **kwargs)
+
+    @pytest.fixture(autouse=True)
+    def _init_insta_snapshot(self, insta_snapshot):
+        self.insta_snapshot = insta_snapshot
