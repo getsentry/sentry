@@ -1,13 +1,13 @@
 ---
-created: '2019-03-16T14:31:51.956347Z'
+created: '2019-03-21T00:08:18.464103Z'
 creator: sentry
 source: tests/sentry/grouping/test_variants.py
 ---
 app:
-  hash: 'fed4f6eb500e04f59e97d31e8743ec8f'
+  hash: None
   component:
-    app*
-      exception*
+    app (exception of system takes precedence)
+      exception
         stacktrace
           frame (non app frame)
             function* (isolated function)
@@ -15,11 +15,11 @@ app:
           frame (non app frame)
             function* (isolated function)
               u'Scaleform::GFx::AS3::IMEManager::DispatchEvent'
-        type*
+        type (ignored because exception is synthetic)
           u'log_demo'
 --------------------------------------------------------------------------
 system:
-  hash: 'd6125002ce075cab3755011dddefe9e1'
+  hash: '9b78cced1eefcd0c655a0a3d8ce2cdd2'
   component:
     system*
       exception*
@@ -30,5 +30,5 @@ system:
           frame*
             function* (isolated function)
               u'Scaleform::GFx::AS3::IMEManager::DispatchEvent'
-        type*
+        type (ignored because exception is synthetic)
           u'log_demo'
