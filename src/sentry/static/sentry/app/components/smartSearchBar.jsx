@@ -457,7 +457,7 @@ class SmartSearchBar extends React.Component {
         case 'firstSeen':
         case 'lastSeen':
         case 'event.timestamp':
-          out.className = 'icon-history';
+          out.className = 'icon-av_timer';
           break;
         default:
           out.className = 'icon-tag';
