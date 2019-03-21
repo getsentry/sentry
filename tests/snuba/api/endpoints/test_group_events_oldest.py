@@ -41,13 +41,6 @@ class GroupEventsOldestTest(APITestCase, SnubaTestCase):
 
         self.group = Group.objects.first()
 
-    def test_simple(self):
-        url = u'/api/0/issues/{}/events/oldest/'.format(self.group.id)
-        response = self.client.get(url, format='json')
-
-        assert response.status_code == 200
-        assert response.data['id'] == six.text_type(self.event1.id)
-
     def test_snuba_no_environment(self):
         options.set('snuba.events-queries.enabled', True)
         url = u'/api/0/issues/{}/events/oldest/'.format(self.group.id)
