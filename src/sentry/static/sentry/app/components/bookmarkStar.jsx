@@ -56,7 +56,7 @@ class BookmarkStar extends React.Component {
     return (
       <Tooltip
         isBookmarked={isBookmarked}
-        title={isBookmarked ? 'Remove from bookmarks' : 'Add to bookmarks'}
+        title={isBookmarked ? t('Remove from bookmarks') : t('Add to bookmarks')}
       >
         <Star
           isBookmarked={isBookmarked}
