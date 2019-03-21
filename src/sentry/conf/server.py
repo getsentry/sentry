@@ -808,6 +808,8 @@ SENTRY_FEATURES = {
     'organizations:global-views': False,
     # Turns on grouping info.
     'organizations:grouping-info': False,
+    # Lets organizations manage grouping configs
+    'organizations:set-grouping-config': False,
     # Enable integration functionality to create and link groups to issues on
     # external services.
     'organizations:integrations-issue-basic': False,
@@ -1409,6 +1411,10 @@ SENTRY_DEVSERVICES = {
     'bigtable': {
         'image': 'mattrobenolt/cbtemulator:0.36.0',
         'ports': {'8086/tcp': 8086},
+    },
+    'memcached': {
+        'image': 'memcached:1.5-alpine',
+        'ports': {'11211/tcp': 11211},
     },
 }
 

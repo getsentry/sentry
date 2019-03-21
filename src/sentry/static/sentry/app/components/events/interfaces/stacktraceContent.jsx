@@ -1,4 +1,5 @@
 import PropTypes from 'prop-types';
+import SentryTypes from 'app/sentryTypes';
 import React from 'react';
 import createReactClass from 'create-react-class';
 //import GroupEventDataSection from "../eventDataSection";
@@ -15,6 +16,7 @@ const StacktraceContent = createReactClass({
     expandFirstFrame: PropTypes.bool,
     platform: PropTypes.string,
     newestFirst: PropTypes.bool,
+    group: SentryTypes.Group,
   },
 
   mixins: [OrganizationState],
@@ -95,6 +97,7 @@ const StacktraceContent = createReactClass({
             prevFrame={prevFrame}
             platform={this.props.platform}
             timesRepeated={nRepeats}
+            group={this.props.group}
           />
         );
       }

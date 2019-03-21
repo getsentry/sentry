@@ -5,7 +5,7 @@ import logging
 from datetime import datetime
 
 from sentry.models import Event
-from sentry.utils import json
+from sentry.utils import json, metrics
 
 
 logger = logging.getLogger(__name__)
@@ -94,6 +94,8 @@ def get_task_kwargs_for_message(value):
     can be applied to a post-processing task, or ``None`` if no task should be
     dispatched.
     """
+
+    metrics.timing('evenstream.events.size.data', len(value))
     payload = json.loads(value)
 
     try:

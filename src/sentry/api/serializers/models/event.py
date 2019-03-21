@@ -264,6 +264,7 @@ class EventSerializer(Serializer):
             'dateReceived': received,
             'errors': errors,
             'fingerprints': obj.get_hashes(),
+            'groupingConfig': obj.get_grouping_config(),
             '_meta': {
                 'entries': attrs['_meta']['entries'],
                 'message': message_meta,
@@ -334,9 +335,7 @@ class SimpleEventSerializer(EventSerializer):
             if query:
                 tag['query'] = query
 
-        user = obj.get_interface('user')
-        if user is not None:
-            user = user.get_api_context()
+        user = obj.get_minimal_user()
 
         return {
             'id': six.text_type(obj.id),
@@ -349,7 +348,7 @@ class SimpleEventSerializer(EventSerializer):
             'title': obj.title,
             'location': obj.location,
             'culprit': obj.culprit,
-            'user': user,
+            'user': user and user.get_api_context(),
             'tags': tags,
             'platform': obj.platform,
             'dateCreated': obj.datetime,

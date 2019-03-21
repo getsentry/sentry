@@ -15,10 +15,13 @@ const {env} = process;
 const IS_PRODUCTION = env.NODE_ENV === 'production';
 const IS_TEST = env.NODE_ENV === 'test' || env.TEST_SUITE;
 const IS_STORYBOOK = env.STORYBOOK_BUILD === '1';
-const WEBPACK_DEV_PORT = env.WEBPACK_DEV_PORT;
-const SENTRY_DEVSERVER_PORT = env.SENTRY_DEVSERVER_PORT;
-const USE_HOT_MODULE_RELOAD = !IS_PRODUCTION && WEBPACK_DEV_PORT && SENTRY_DEVSERVER_PORT;
 const WEBPACK_MODE = IS_PRODUCTION ? 'production' : 'development';
+
+// HMR proxying
+const SENTRY_BACKEND_PORT = env.SENTRY_BACKEND_PORT;
+const SENTRY_WEBPACK_PROXY_PORT = env.SENTRY_WEBPACK_PROXY_PORT;
+const USE_HOT_MODULE_RELOAD =
+  !IS_PRODUCTION && SENTRY_BACKEND_PORT && SENTRY_WEBPACK_PROXY_PORT;
 
 // this is set by setup.py sdist
 const staticPrefix = path.join(__dirname, 'src/sentry/static/sentry');
@@ -357,17 +360,22 @@ if (USE_HOT_MODULE_RELOAD) {
     hot: true,
     // If below is false, will reload on errors
     hotOnly: true,
-    port: WEBPACK_DEV_PORT,
+    port: SENTRY_WEBPACK_PROXY_PORT,
     stats: 'errors-only',
     overlay: true,
     watchOptions: {
       ignored: ['node_modules'],
     },
+    publicPath: '/_webpack',
+    proxy: {
+      '!/_webpack': `http://localhost:${SENTRY_BACKEND_PORT}/`,
+    },
+    before: app =>
+      app.use((req, res, next) => {
+        req.url = req.url.replace(/^\/_static\/[^\/]+\/sentry\/dist/, '/_webpack');
+        next();
+      }),
   };
-
-  // Required, without this we get this on updates:
-  // [HMR] Update failed: SyntaxError: Unexpected token < in JSON at position 12
-  appConfig.output.publicPath = `http://localhost:${WEBPACK_DEV_PORT}/`;
 }
 
 const minificationPlugins = [

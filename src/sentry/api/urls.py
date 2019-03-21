@@ -93,6 +93,7 @@ from .endpoints.organization_index import OrganizationIndexEndpoint
 from .endpoints.organization_plugins import OrganizationPluginsEndpoint
 from .endpoints.organization_processingissues import OrganizationProcessingIssuesEndpoint
 from .endpoints.organization_projects import OrganizationProjectsEndpoint
+from .endpoints.organization_recent_searches import OrganizationRecentSearchesEndpoint
 from .endpoints.organization_releases import OrganizationReleasesEndpoint
 from .endpoints.organization_release_details import OrganizationReleaseDetailsEndpoint
 from .endpoints.organization_release_files import OrganizationReleaseFilesEndpoint
@@ -212,6 +213,7 @@ from .endpoints.user_social_identity_details import UserSocialIdentityDetailsEnd
 from .endpoints.user_subscriptions import UserSubscriptionsEndpoint
 from .endpoints.event_file_committers import EventFileCommittersEndpoint
 from .endpoints.setup_wizard import SetupWizard
+from .endpoints.grouping_configs import GroupingConfigsEndpoint
 
 
 urlpatterns = patterns(
@@ -584,6 +586,11 @@ urlpatterns = patterns(
     url(
         r'^organizations/(?P<organization_slug>[^\/]+)/monitors/$',
         OrganizationMonitorsEndpoint.as_view(),
+    ),
+    url(
+        r'^organizations/(?P<organization_slug>[^\/]+)/recent-searches/$',
+        OrganizationRecentSearchesEndpoint.as_view(),
+        name='sentry-api-0-organization-recent-searches'
     ),
     url(
         r'^organizations/(?P<organization_slug>[^\/]+)/searches/$',
@@ -1260,6 +1267,12 @@ urlpatterns = patterns(
         r'^sentry-app-installations/(?P<uuid>[^\/]+)/authorizations/$',
         SentryAppAuthorizationsEndpoint.as_view(),
         name='sentry-api-0-sentry-app-authorizations'
+    ),
+
+    # Grouping configs
+    url(
+        r'^grouping-configs/$', GroupingConfigsEndpoint.as_view(),
+        name='sentry-api-0-grouping-configs'
     ),
 
     # Internal

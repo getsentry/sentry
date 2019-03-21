@@ -32,7 +32,7 @@ from sentry.db.models import (
     NodeField,
     sane_repr
 )
-from sentry.db.models.manager import EventManager
+from sentry.db.models.manager import EventManager, SnubaEventManager
 from sentry.interfaces.base import get_interfaces
 from sentry.utils import metrics
 from sentry.utils.cache import memoize
@@ -42,8 +42,7 @@ from sentry.utils.strings import truncatechars
 from sentry.utils.sdk import configure_scope
 
 
-def _should_skip_to_python(event_data):
-    event_id = event_data.get("event_id")
+def _should_skip_to_python(event_id):
     if not event_id:
         return False
 
@@ -56,7 +55,7 @@ def _should_skip_to_python(event_data):
 
 class EventDict(CanonicalKeyDict):
     def __init__(self, data, **kwargs):
-        rust_renormalized = _should_skip_to_python(data)
+        rust_renormalized = _should_skip_to_python(data.get('event_id'))
         if rust_renormalized:
             normalizer = StoreNormalizer(is_renormalize=True)
             data = normalizer.normalize_event(dict(data))
@@ -110,7 +109,7 @@ class EventCommon(object):
         self._project_cache = project
 
     def get_interfaces(self):
-        was_renormalized = _should_skip_to_python(self.data)
+        was_renormalized = _should_skip_to_python(self.event_id)
 
         return CanonicalKeyView(get_interfaces(self.data, rust_renormalized=was_renormalized))
 
@@ -149,18 +148,28 @@ class EventCommon(object):
         # further.
         return self.data.get('metadata') or {}
 
-    def get_hashes(self):
+    def get_grouping_config(self):
+        """Returns the event grouping config."""
+        from sentry.grouping.api import get_grouping_config_dict_for_project
+        return self.data.get('grouping_config') \
+            or get_grouping_config_dict_for_project(self.project)
+
+    def get_hashes(self, force_config=None):
         """
         Returns the calculated hashes for the event.  This uses the stored
         information if available.  Grouping hashes will take into account
         fingerprinting and checksums.
         """
         # If we have hashes stored in the data we use them, otherwise we
-        # fall back to generating new ones from the data
-        hashes = self.data.get('hashes')
-        if hashes is not None:
-            return hashes
-        return filter(None, [x.get_hash() for x in self.get_grouping_variants().values()])
+        # fall back to generating new ones from the data.  We can only use
+        # this if we do not force a dfferent config.
+        if force_config is None:
+            hashes = self.data.get('hashes')
+            if hashes is not None:
+                return hashes
+
+        return filter(None, [
+            x.get_hash() for x in self.get_grouping_variants(force_config).values()])
 
     def get_grouping_variants(self, force_config=None):
         """
@@ -168,7 +177,25 @@ class EventCommon(object):
         grouping components for each variant in a dictionary.
         """
         from sentry.grouping.api import get_grouping_variants_for_event
-        return get_grouping_variants_for_event(self, config_name=force_config)
+
+        # Forcing configs has two separate modes.  One is where just the
+        # config ID is given in which case it's merged with the stored or
+        # default config dictionary
+        if force_config is not None:
+            if isinstance(force_config, six.string_types):
+                stored_config = self.get_grouping_config()
+                config = dict(stored_config)
+                config['id'] = force_config
+            else:
+                config = force_config
+
+        # Otherwise we just use the same grouping config as stored.  if
+        # this is None the `get_grouping_variants_for_event` will fill in
+        # the default.
+        else:
+            config = self.data.get('grouping_config')
+
+        return get_grouping_variants_for_event(self, config)
 
     def get_primary_hash(self):
         # TODO: This *might* need to be protected from an IndexError?
@@ -288,6 +315,13 @@ class EventCommon(object):
 
         return self._environment_cache
 
+    def get_minimal_user(self):
+        """
+        A minimal 'User' interface object that gives us enough information
+        to render a user badge.
+        """
+        return self.get_interface('user')
+
     def as_dict(self):
         """Returns the data in normalized form for external consumers."""
         # We use a OrderedDict to keep elements ordered for a potential JSON serializer
@@ -405,6 +439,8 @@ class SnubaEvent(EventCommon):
         'email',
     ]
 
+    objects = SnubaEventManager()
+
     __repr__ = sane_repr('project_id', 'group_id')
 
     @classmethod
@@ -450,27 +486,17 @@ class SnubaEvent(EventCommon):
             return sorted(zip(keys, values))
         return []
 
-    def get_interface(self, name):
-        """
-        Override of interface getter that lets us return some interfaces
-        directly from Snuba data.
-        """
-        if name in ['user']:
-            from sentry.interfaces.user import User
-            # This is a fake version of the User interface constructed
-            # from just the data we have in Snuba.
-            snuba_user = {
-                'id': self.user_id,
-                'email': self.email,
-                'username': self.username,
-                'ip_address': self.ip_address,
-            }
-            if any(v is not None for v in snuba_user.values()):
-                return User.to_python(snuba_user)
-        return self.interfaces.get(name)
-
     def get_event_type(self):
         return self.__dict__.get('type', 'default')
+
+    def get_minimal_user(self):
+        from sentry.interfaces.user import User
+        return User.to_python({
+            'id': self.user_id,
+            'email': self.email,
+            'username': self.username,
+            'ip_address': self.ip_address,
+        })
 
     # These should all have been normalized to the correct values on
     # the way in to snuba, so we should be able to just use them as is.
@@ -514,13 +540,63 @@ class SnubaEvent(EventCommon):
         # have to reference the row id anyway.
         return self.event_id
 
-    @property
-    def next_event(self):
-        return None
+    def next_event_id(self, environments=[]):
+        from sentry.utils import snuba
 
-    @property
-    def prev_event(self):
-        return None
+        conditions = [
+            ['timestamp', '>=', self.timestamp],
+            [['timestamp', '>', self.timestamp], ['event_id', '>', self.event_id]]
+        ]
+
+        if len(environments) > 0:
+            conditions.append(['environment', 'IN', environments])
+
+        result = snuba.raw_query(
+            start=self.datetime,  # gte current event
+            end=datetime.utcnow(),  # will be clamped to project retention
+            selected_columns=['event_id'],
+            conditions=conditions,
+            filter_keys={
+                'project_id': [self.project_id],
+                'issue': [self.group_id],
+            },
+            orderby=['timestamp', 'event_id'],
+            limit=1
+        )
+
+        if 'error' in result or len(result['data']) == 0:
+            return None
+
+        return six.text_type(result['data'][0]['event_id'])
+
+    def prev_event_id(self, environments=None):
+        from sentry.utils import snuba
+
+        conditions = [
+            ['timestamp', '<=', self.timestamp],
+            [['timestamp', '<', self.timestamp], ['event_id', '<', self.event_id]]
+        ]
+
+        if len(environments) > 0:
+            conditions.append(['environment', 'IN', environments])
+
+        result = snuba.raw_query(
+            start=datetime.utcfromtimestamp(0),  # will be clamped to project retention
+            end=self.datetime,  # lte current event
+            selected_columns=['event_id'],
+            conditions=conditions,
+            filter_keys={
+                'project_id': [self.project_id],
+                'issue': [self.group_id],
+            },
+            orderby=['-timestamp', '-event_id'],
+            limit=1
+        )
+
+        if 'error' in result or len(result['data']) == 0:
+            return None
+
+        return six.text_type(result['data'][0]['event_id'])
 
     def save(self):
         raise NotImplementedError
@@ -579,8 +655,7 @@ class Event(EventCommon, Model):
     # get the next/prev events. Given that timestamps only have 1-second
     # granularity, this will be inaccurate if there are more than 5 events
     # in a given second.
-    @property
-    def next_event(self):
+    def next_event_id(self, environments=None):
         events = self.__class__.objects.filter(
             datetime__gte=self.datetime,
             group_id=self.group_id,
@@ -589,10 +664,9 @@ class Event(EventCommon, Model):
         events = [e for e in events if e.datetime == self.datetime and e.id > self.id or
                   e.datetime > self.datetime]
         events.sort(key=EVENT_ORDERING_KEY)
-        return events[0] if events else None
+        return six.text_type(events[0].event_id) if events else None
 
-    @property
-    def prev_event(self):
+    def prev_event_id(self, environments=None):
         events = self.__class__.objects.filter(
             datetime__lte=self.datetime,
             group_id=self.group_id,
@@ -601,7 +675,7 @@ class Event(EventCommon, Model):
         events = [e for e in events if e.datetime == self.datetime and e.id < self.id or
                   e.datetime < self.datetime]
         events.sort(key=EVENT_ORDERING_KEY, reverse=True)
-        return events[0] if events else None
+        return six.text_type(events[0].event_id) if events else None
 
 
 class EventSubjectTemplate(string.Template):

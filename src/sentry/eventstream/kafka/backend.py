@@ -10,7 +10,7 @@ from django.utils.functional import cached_property
 from sentry.eventstream.kafka.consumer import SynchronizedConsumer
 from sentry.eventstream.kafka.protocol import get_task_kwargs_for_message
 from sentry.eventstream.snuba import SnubaProtocolEventStream
-from sentry.utils import json, kafka
+from sentry.utils import json, kafka, metrics
 
 
 logger = logging.getLogger(__name__)
@@ -187,9 +187,12 @@ class KafkaEventStream(SnubaProtocolEventStream):
                 i = i + 1
                 owned_partition_offsets[key] = message.offset() + 1
 
-                task_kwargs = get_task_kwargs_for_message(message.value())
+                with metrics.timer('eventstream.duration', instance='get_task_kwargs_for_message'):
+                    task_kwargs = get_task_kwargs_for_message(message.value())
+
                 if task_kwargs is not None:
-                    self._dispatch_post_process_group_task(**task_kwargs)
+                    with metrics.timer('eventstream.duration', instance='dispatch_post_process_group_task'):
+                        self._dispatch_post_process_group_task(**task_kwargs)
 
                 if i % commit_batch_size == 0:
                     commit_offsets()

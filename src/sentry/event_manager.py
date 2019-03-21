@@ -20,6 +20,7 @@ from sentry import buffer, eventtypes, eventstream, features, tagstore, tsdb, fi
 from sentry.constants import (
     LOG_LEVELS, LOG_LEVELS_MAP, VALID_PLATFORMS, MAX_TAG_VALUE_LENGTH,
 )
+from sentry.grouping.api import get_grouping_config_dict_for_project
 from sentry.coreapi import (
     APIError,
     APIForbidden,
@@ -338,6 +339,7 @@ class EventManager(object):
         data,
         version='5',
         project=None,
+        grouping_config=None,
         client_ip=None,
         user_agent=None,
         auth=None,
@@ -348,6 +350,9 @@ class EventManager(object):
         self._data = _decode_event(data, content_encoding=content_encoding)
         self.version = version
         self._project = project
+        if grouping_config is None and project is not None:
+            grouping_config = get_grouping_config_dict_for_project(self._project)
+        self._grouping_config = grouping_config
         self._client_ip = client_ip
         self._user_agent = user_agent
         self._auth = auth
@@ -435,6 +440,7 @@ class EventManager(object):
             client_ip=self._client_ip,
             client=self._auth.client if self._auth else None,
             key_id=six.text_type(self._key.id) if self._key else None,
+            grouping_config=self._grouping_config,
             protocol_version=six.text_type(self.version) if self.version is not None else None,
             stacktrace_frames_hard_limit=settings.SENTRY_STACKTRACE_FRAMES_HARD_LIMIT,
             max_stacktrace_frames=settings.SENTRY_MAX_STACKTRACE_FRAMES,
@@ -626,7 +632,6 @@ class EventManager(object):
 
         transaction_name = data.get('transaction')
         logger_name = data.get('logger')
-        fingerprint = data.get('fingerprint') or ['{{ default }}']
         release = data.get('release')
         dist = data.get('dist')
         environment = data.get('environment')
@@ -702,9 +707,12 @@ class EventManager(object):
             if iface.ephemeral:
                 data.pop(iface.path, None)
 
-        # Put the actual fingerprint back
-        data['fingerprint'] = fingerprint
-
+        # The active grouping config was put into the event in the
+        # normalize step before.  We now also make sure that the
+        # fingerprint was set to `'{{ default }}' just in case someone
+        # removed it from the payload.  The call to get_hashes will then
+        # look at `grouping_config` to pick the right paramters.
+        data['fingerprint'] = data.get('fingerprint') or ['{{ default }}']
         hashes = event.get_hashes()
         data['hashes'] = hashes
 

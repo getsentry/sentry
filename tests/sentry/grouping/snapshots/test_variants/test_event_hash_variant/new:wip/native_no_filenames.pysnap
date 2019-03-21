@@ -1,5 +1,5 @@
 ---
-created: '2019-03-15T18:37:00.151249Z'
+created: '2019-03-20T23:12:41.922036Z'
 creator: sentry
 source: tests/sentry/grouping/test_variants.py
 ---
@@ -45,6 +45,12 @@ app:
           frame (non app frame)
             function*
               u'sentry::hub::Hub::with_active::{{closure}}'
+          frame (non app frame)
+            function (ignored unknown function)
+              u'<unknown>'
+          frame (non app frame)
+            function (ignored unknown function)
+              u'<redacted>'
         type*
           u'log_demo'
 --------------------------------------------------------------------------
@@ -90,5 +96,11 @@ system:
           frame*
             function*
               u'sentry::hub::Hub::with_active::{{closure}}'
+          frame
+            function (ignored unknown function)
+              u'<unknown>'
+          frame
+            function (ignored unknown function)
+              u'<redacted>'
         type*
           u'log_demo'

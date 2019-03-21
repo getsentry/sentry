@@ -49,7 +49,10 @@ class ProjectGeneralSettings extends AsyncView {
 
   getEndpoints() {
     const {orgId, projectId} = this.props.params;
-    return [['data', `/projects/${orgId}/${projectId}/`]];
+    return [
+      ['data', `/projects/${orgId}/${projectId}/`],
+      ['groupingConfigs', `/grouping-configs/`],
+    ];
   }
 
   handleTransferFieldChange = (id, value) => {
@@ -225,7 +228,7 @@ class ProjectGeneralSettings extends AsyncView {
     const endpoint = `/projects/${orgId}/${projectId}/`;
     const access = new Set(organization.access);
     const jsonFormProps = {
-      additionalFieldProps: {organization},
+      additionalFieldProps: {organization, groupingConfigs: this.state.groupingConfigs},
       features: new Set(organization.features),
       access,
       disabled: !access.has('project:write'),
@@ -272,6 +275,23 @@ class ProjectGeneralSettings extends AsyncView {
             title={t('Event Settings')}
             fields={[fields.resolveAge]}
           />
+
+          {jsonFormProps.features.has('set-grouping-config') && (
+            <JsonForm
+              {...jsonFormProps}
+              title={t('Grouping Settings')}
+              fields={[fields.groupingConfig]}
+              renderHeader={() => (
+                <PanelAlert type="warning">
+                  <TextBlock noMargin>
+                    {t(
+                      'This is an experimental feature. Changing the value here will only apply to future events and is likely to cause events to create different groups than before.'
+                    )}
+                  </TextBlock>
+                </PanelAlert>
+              )}
+            />
+          )}
 
           <JsonForm
             {...jsonFormProps}

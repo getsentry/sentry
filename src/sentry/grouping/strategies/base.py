@@ -68,8 +68,6 @@ class Strategy(object):
         # function always access its metadata and directly forward it to
         # subcomponents without having to filter out strategy.
         kwargs['strategy'] = self
-        if kwargs.get('config') is None:
-            kwargs['config'] = NOTHING_CONFIG
         return func(*args, **kwargs)
 
     def __call__(self, *args, **kwargs):
@@ -82,7 +80,7 @@ class Strategy(object):
         self.variant_processor_func = func
         return func
 
-    def get_grouping_component(self, event, variant, config=None):
+    def get_grouping_component(self, event, variant, config):
         """Given a specific variant this calculates the grouping component.
         """
         args = []
@@ -93,7 +91,7 @@ class Strategy(object):
             args.append(iface)
         return self(event=event, variant=variant, config=config, *args)
 
-    def get_grouping_component_variants(self, event, config=None):
+    def get_grouping_component_variants(self, event, config):
         """This returns a dictionary of all components by variant that this
         strategy can produce.
         """
@@ -159,28 +157,16 @@ class Strategy(object):
 
 
 class StrategyConfiguration(object):
+    id = None
+    config_class = None
+    strategies = {}
+    delegates = {}
+    changelog = None
 
-    def __init__(self, id, strategies, delegates=None, changelog=None):
-        self.id = id
-        self.strategies = {}
-        self.delegates = {}
-        self.changelog = inspect.cleandoc(changelog or '')
-
-        for strategy_id in strategies:
-            strategy = lookup_strategy(strategy_id)
-            if strategy.score is None:
-                raise RuntimeError('Unscored strategy %s added to %s' %
-                                   (strategy_id, id))
-            self.strategies[strategy_id] = strategy
-
-        for strategy_id in delegates or ():
-            strategy = lookup_strategy(strategy_id)
-            for interface in strategy.interfaces:
-                if interface in self.delegates:
-                    raise RuntimeError('duplicate interface match for '
-                                       'delegate %r (conflict on %r)' %
-                                       (self.id, interface))
-                self.delegates[interface] = strategy
+    def __init__(self, options=None):
+        if options is None:
+            options = {}
+        self.options = options
 
     def __repr__(self):
         return '<%s %r>' % (
@@ -206,6 +192,39 @@ class StrategyConfiguration(object):
             hint='grouping algorithm does not consider this value',
         )
 
+    def as_dict(self):
+        return {
+            'id': self.id,
+            'options': self.options,
+            'strategies': sorted(self.strategies),
+            'delegates': sorted(x.id for x in self.delegates.values()),
+        }
 
-# A noop config that is passed by default
-NOTHING_CONFIG = StrategyConfiguration('nothing', {})
+
+def create_strategy_configuration(id, strategies=None, delegates=None, changelog=None):
+    class NewStrategyConfiguration(StrategyConfiguration):
+        pass
+    NewStrategyConfiguration.id = id
+    NewStrategyConfiguration.config_class = id.split(':', 1)[0]
+    NewStrategyConfiguration.strategies = {}
+    NewStrategyConfiguration.delegates = {}
+
+    for strategy_id in strategies or {}:
+        strategy = lookup_strategy(strategy_id)
+        if strategy.score is None:
+            raise RuntimeError('Unscored strategy %s added to %s' %
+                               (strategy_id, id))
+        NewStrategyConfiguration.strategies[strategy_id] = strategy
+
+    for strategy_id in delegates or ():
+        strategy = lookup_strategy(strategy_id)
+        for interface in strategy.interfaces:
+            if interface in NewStrategyConfiguration.delegates:
+                raise RuntimeError('duplicate interface match for '
+                                   'delegate %r (conflict on %r)' %
+                                   (id, interface))
+            NewStrategyConfiguration.delegates[interface] = strategy
+
+    NewStrategyConfiguration.changelog = inspect.cleandoc(changelog or '')
+    NewStrategyConfiguration.__name__ = 'StrategyConfiguration(%s)' % id
+    return NewStrategyConfiguration
