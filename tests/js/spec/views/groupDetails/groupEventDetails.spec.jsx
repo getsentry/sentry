@@ -1,5 +1,6 @@
 import React from 'react';
 import {mount} from 'enzyme';
+import {browserHistory} from 'react-router';
 
 import {initializeOrg} from 'app-test/helpers/initializeOrg';
 import GroupEventDetails from 'app/views/groupDetails/shared/groupEventDetails';
@@ -24,6 +25,7 @@ describe('groupEventDetails', () => {
       dateCreated: '2019-03-20T00:00:00.000Z',
       errors: [],
       entries: [],
+      tags: [{key: 'environment', value: 'dev'}],
     });
 
     MockApiClient.addMockResponse({
@@ -75,6 +77,57 @@ describe('groupEventDetails', () => {
       url: `/organizations/${org.slug}/sentry-app-installations/`,
       body: [],
     });
+  });
+
+  afterEach(function() {
+    MockApiClient.clearMockResponses();
+    browserHistory.replace.mockClear();
+  });
+
+  it('redirects on switching to an invalid environment selection for event', async function() {
+    MockApiClient.addMockResponse({
+      url: `/projects/${org.slug}/${project.slug}/events/1/`,
+      body: event,
+    });
+    const wrapper = mount(
+      <GroupEventDetails
+        group={group}
+        project={project}
+        organization={org}
+        environments={[{id: '1', name: 'dev', displayName: 'Dev'}]}
+        params={{orgId: org.slug, groupId: group.id, eventId: '1'}}
+      />,
+      routerContext
+    );
+    await tick();
+    expect(browserHistory.replace).not.toHaveBeenCalled();
+    wrapper.setProps({environments: [{id: '1', name: 'prod', displayName: 'Prod'}]});
+    await tick();
+
+    expect(browserHistory.replace).toHaveBeenCalled();
+  });
+
+  it('does not redirect when switching to a valid environment selection for event', async function() {
+    MockApiClient.addMockResponse({
+      url: `/projects/${org.slug}/${project.slug}/events/1/`,
+      body: event,
+    });
+    const wrapper = mount(
+      <GroupEventDetails
+        group={group}
+        project={project}
+        organization={org}
+        environments={[{id: '1', name: 'dev', displayName: 'Dev'}]}
+        params={{orgId: org.slug, group: group.id, eventId: '1'}}
+      />,
+      routerContext
+    );
+    await tick();
+    expect(browserHistory.replace).not.toHaveBeenCalled();
+    wrapper.setProps({environments: []});
+    await tick();
+
+    expect(browserHistory.replace).not.toHaveBeenCalled();
   });
 
   it("doesn't load Sentry Apps without being flagged in", () => {
