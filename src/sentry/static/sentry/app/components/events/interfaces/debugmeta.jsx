@@ -15,7 +15,7 @@ class DebugMetaInterface extends React.Component {
 
   getImageDetail(img) {
     // in particular proguard images do not have a code file, skip them
-    if (img == null || img.code_file == null || img.type === 'proguard') {
+    if (img === null || img.code_file === null || img.type === 'proguard') {
       return null;
     }
 
@@ -26,36 +26,33 @@ class DebugMetaInterface extends React.Component {
       return null;
     }
 
-    let version = img.debug_id || '<none>';
+    const version = img.debug_id || '<none>';
     return [code_file, version];
   }
 
   render() {
     const data = this.props.data;
-    const images = data.images
-      .map(img => this.getImageDetail(img))
-      .filter(img => img); // removes null values
 
-    let result = null;
-
-    if (images.length > 0) {
-      result = (
-        <div>
-          <EventDataSection
-            group={this.props.group}
-            event={this.props.event}
-            type="packages"
-            title={t('Images Loaded')}
-          >
-            <ClippedBox>
-              <KeyValueList data={images} isSorted={false} />
-            </ClippedBox>
-          </EventDataSection>
-        </div>
-      );
+    // skip null values indicating invalid debug images
+    const images = data.images.map(img => this.getImageDetail(img)).filter(img => img);
+    if (images.length === 0) {
+      return null;
     }
 
-    return result;
+    return (
+      <div>
+        <EventDataSection
+          group={this.props.group}
+          event={this.props.event}
+          type="packages"
+          title={t('Images Loaded')}
+        >
+          <ClippedBox>
+            <KeyValueList data={images} isSorted={false} />
+          </ClippedBox>
+        </EventDataSection>
+      </div>
+    );
   }
 }
 
