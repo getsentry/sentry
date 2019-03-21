@@ -8,6 +8,7 @@ describe('SearchBar', function() {
   let options;
   let tagValuePromise;
   let supportedTags;
+  let recentSearchMock;
   const clickInput = searchBar => searchBar.find('input[name="query"]').simulate('click');
 
   beforeEach(function() {
@@ -20,6 +21,11 @@ describe('SearchBar', function() {
     };
 
     tagValuePromise = Promise.resolve([]);
+
+    recentSearchMock = MockApiClient.addMockResponse({
+      url: '/organizations/123/recent-searches/',
+      body: [],
+    });
   });
 
   afterEach(function() {
@@ -29,6 +35,10 @@ describe('SearchBar', function() {
   describe('updateAutoCompleteItems()', function() {
     beforeAll(function() {
       jest.useFakeTimers();
+    });
+
+    afterAll(function() {
+      jest.useRealTimers();
     });
 
     it('sets state with complete tag', function() {
@@ -96,46 +106,94 @@ describe('SearchBar', function() {
     });
   });
 
-  it('saves search query as a recent search', async function() {
-    jest.useFakeTimers();
-    const saveRecentSearch = MockApiClient.addMockResponse({
-      url: '/organizations/123/recent-searches/',
-      method: 'POST',
-      body: {},
+  describe('Recent Searches', function() {
+    it('saves search query as a recent search', async function() {
+      jest.useFakeTimers();
+      const saveRecentSearch = MockApiClient.addMockResponse({
+        url: '/organizations/123/recent-searches/',
+        method: 'POST',
+        body: {},
+      });
+      const loader = (key, value) => {
+        expect(key).toEqual('url');
+        expect(value).toEqual('fu');
+        return tagValuePromise;
+      };
+      const onSearch = jest.fn();
+      const props = {
+        orgId: '123',
+        query: 'url:"fu"',
+        onSearch,
+        tagValueLoader: loader,
+        supportedTags,
+      };
+      const searchBar = mount(<SearchBar {...props} />, options);
+      clickInput(searchBar);
+      jest.advanceTimersByTime(301);
+      expect(searchBar.find('SearchDropdown').prop('searchSubstring')).toEqual('"fu"');
+      expect(searchBar.find('SearchDropdown').prop('items')).toEqual([]);
+
+      jest.useRealTimers();
+      searchBar.find('form').simulate('submit');
+      expect(onSearch).toHaveBeenCalledWith('url:"fu"');
+
+      await tick();
+      searchBar.update();
+      expect(saveRecentSearch).toHaveBeenCalledWith(
+        expect.anything(),
+        expect.objectContaining({
+          data: {
+            query: 'url:"fu"',
+            type: 0,
+          },
+        })
+      );
     });
-    const loader = (key, value) => {
-      expect(key).toEqual('url');
-      expect(value).toEqual('fu');
-      return tagValuePromise;
-    };
-    const onSearch = jest.fn();
-    const props = {
-      orgId: '123',
-      query: 'url:"fu"',
-      onSearch,
-      tagValueLoader: loader,
-      supportedTags,
-    };
-    const searchBar = mount(<SearchBar {...props} />, options);
-    clickInput(searchBar);
-    jest.advanceTimersByTime(301);
-    expect(searchBar.find('SearchDropdown').prop('searchSubstring')).toEqual('"fu"');
-    expect(searchBar.find('SearchDropdown').prop('items')).toEqual([]);
+    it('does not query for recent searches if `displayRecentSearches` is `false`', async function() {
+      const props = {
+        orgId: '123',
+        query: 'timesSeen:',
+        tagValueLoader: () => {},
+        recentSearchType: 0,
+        displayRecentSearches: false,
+        supportedTags,
+      };
+      jest.useRealTimers();
+      const wrapper = mount(<SearchBar {...props} />, options);
 
-    jest.useRealTimers();
-    searchBar.find('form').simulate('submit');
-    expect(onSearch).toHaveBeenCalledWith('url:"fu"');
+      wrapper.find('input').simulate('change', {target: {value: 'is:'}});
 
-    await tick();
-    searchBar.update();
-    expect(saveRecentSearch).toHaveBeenCalledWith(
-      expect.anything(),
-      expect.objectContaining({
-        data: {
-          query: 'url:"fu"',
-          type: 0,
-        },
-      })
-    );
+      await tick();
+      wrapper.update();
+
+      expect(recentSearchMock).not.toHaveBeenCalled();
+    });
+
+    it('queries for recent searches if `displayRecentSearches` is `true`', async function() {
+      const props = {
+        orgId: '123',
+        query: 'timesSeen:',
+        tagValueLoader: () => {},
+        recentSearchType: 0,
+        displayRecentSearches: true,
+        supportedTags,
+      };
+      jest.useRealTimers();
+      const wrapper = mount(<SearchBar {...props} />, options);
+
+      wrapper.find('input').simulate('change', {target: {value: 'is:'}});
+      await tick();
+      wrapper.update();
+
+      expect(recentSearchMock).toHaveBeenCalledWith(
+        expect.anything(),
+        expect.objectContaining({
+          query: {
+            query: 'is:',
+            type: 0,
+          },
+        })
+      );
+    });
   });
 });
