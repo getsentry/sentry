@@ -83,38 +83,32 @@ describe('BookmarkStar', function() {
     );
   });
 
-  it('can star and unstar without a store', function() {
+  it('takes a manual isBookmarked prop', function() {
     wrapper = mount(
       <BookmarkStar
         organization={TestStubs.Organization()}
-        project={TestStubs.Project({isBookmarked: false})}
+        project={TestStubs.Project()}
+        isBookmarked={true}
       />,
       TestStubs.routerContext()
     );
 
-    expect(
-      wrapper
-        .find('Star')
-        .first()
-        .prop('isBookmarked')
-    ).toBe(false);
-
-    wrapper.simulate('click');
+    const star = wrapper.find('BookmarkStar');
 
     expect(
-      wrapper
+      star
         .find('Star')
         .first()
         .prop('isBookmarked')
     ).toBe(true);
 
-    wrapper.simulate('click');
+    star.simulate('click');
 
     expect(
-      wrapper
+      star
         .find('Star')
         .first()
         .prop('isBookmarked')
-    ).toBe(false);
+    ).toBe(true);
   });
 });
