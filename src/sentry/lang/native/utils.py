@@ -79,3 +79,15 @@ def sdk_info_to_sdk_id(sdk_info):
     if build is not None:
         rv = '%s_%s' % (rv, build)
     return rv
+
+
+def signal_from_data(data):
+    exceptions = get_path(data, 'exception', 'values', filter=True)
+    signal = get_path(exceptions, 0, 'mechanism', 'meta', 'signal', 'number')
+    if signal is not None:
+        return int(signal)
+
+
+def to_snake_case(value):
+    s1 = re.sub('(.)([A-Z][a-z]+)', r'\1_\2', value)
+    return re.sub('([a-z0-9])([A-Z])', r'\1_\2', s1).lower()

@@ -43,6 +43,11 @@ class RetryProcessing(Exception):
     pass
 
 
+class SymbolicatorRetry(Exception):
+    def __init__(self, retry_after=None):
+        self.retry_after = retry_after
+
+
 def should_process(data):
     """Quick check if processing is needed at all."""
     from sentry.plugins import plugins
@@ -146,7 +151,23 @@ def preprocess_event_from_reprocessing(
     )
 
 
-def _do_process_event(cache_key, start_time, event_id, process_task, data=None):
+@instrumented_task(
+    name='sentry.tasks.store.retry_process_event',
+    queue='events.process_event',  # XXX(markus): Change to new queue
+    time_limit=(60 * 5) + 5,
+    soft_time_limit=60 * 5,
+)
+def retry_process_event(process_task_name, kwargs, **_kwargs):
+    """
+    The only purpose of this task is be enqueued with some ETA set. This is
+    essentially an implementation of ETAs on top of Celery's existing ETAs, but
+    with the intent of having separate workers wait for those ETAs.
+    """
+    globals()[process_task_name].delay(**kwargs)
+
+
+def _do_process_event(cache_key, start_time, event_id, process_task,
+                      data=None):
     from sentry.plugins import plugins
 
     if data is None:
@@ -182,11 +203,32 @@ def _do_process_event(cache_key, start_time, event_id, process_task, data=None):
                 data = enhanced
                 has_changed = True
 
-    # Stacktrace based event processors.
-    new_data = process_stacktraces(data)
-    if new_data is not None:
-        has_changed = True
-        data = new_data
+    try:
+        # Stacktrace based event processors.
+        new_data = process_stacktraces(data)
+        if new_data is not None:
+            has_changed = True
+            data = new_data
+    except SymbolicatorRetry as e:
+        if (time() - start_time) > 3600:
+            raise RuntimeError('Event spent one hour in processing')
+
+        metrics.incr('events.symbolicator-retry', tags={
+        })
+
+        retry_process_event.apply_async(
+            args=(),
+            kwargs={
+                'process_task_name': process_task.__name__,
+                'kwargs': {
+                    'cache_key': cache_key,
+                    'event_id': event_id,
+                    'start_time': start_time,
+                }
+            },
+            countdown=e.retry_after
+        )
+        return
 
     # TODO(dcramer): ideally we would know if data changed by default
     # Default event processors.
@@ -239,7 +281,8 @@ def _do_process_event(cache_key, start_time, event_id, process_task, data=None):
     soft_time_limit=60,
 )
 def process_event(cache_key, start_time=None, event_id=None, **kwargs):
-    return _do_process_event(cache_key, start_time, event_id, process_event)
+    return _do_process_event(cache_key=cache_key, start_time=start_time,
+                             event_id=event_id, process_task=process_event)
 
 
 @instrumented_task(
@@ -249,8 +292,9 @@ def process_event(cache_key, start_time=None, event_id=None, **kwargs):
     soft_time_limit=60,
 )
 def process_event_from_reprocessing(cache_key, start_time=None, event_id=None, **kwargs):
-    return _do_process_event(cache_key, start_time, event_id,
-                             process_event_from_reprocessing)
+    return _do_process_event(cache_key=cache_key, start_time=start_time,
+                             event_id=event_id,
+                             process_task=process_event_from_reprocessing)
 
 
 def delete_raw_event(project_id, event_id, allow_hint_clear=False):

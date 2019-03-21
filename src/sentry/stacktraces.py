@@ -338,7 +338,7 @@ def get_stacktrace_processing_task(infos, processors):
         processable_frame.cache_value = frame_cache.get(cache_key)
 
     return StacktraceProcessingTask(
-        processable_stacktraces=by_stacktrace_info, processors=by_processor
+        processable_stacktraces=by_stacktrace_info, processors=by_processor,
     )
 
 
@@ -368,6 +368,7 @@ def process_stacktraces(data, make_processors=None):
 
     # Build a new processing task
     processing_task = get_stacktrace_processing_task(infos, processors)
+
     try:
 
         # Preprocess step

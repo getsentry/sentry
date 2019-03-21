@@ -7,13 +7,15 @@ import posixpath
 from symbolic import parse_addr, find_best_instruction, arch_get_ip_reg_name, \
     ObjectLookup
 
-from sentry import options
+from sentry import options, features
+from sentry.coreapi import cache_key_for_event
 from sentry.plugins import Plugin2
 from sentry.lang.native.cfi import reprocess_minidump_with_cfi
 from sentry.lang.native.minidump import is_minidump_event
-from sentry.lang.native.symbolizer import Symbolizer, SymbolicationFailed
+from sentry.lang.native.symbolizer import USER_FIXABLE_ERRORS, FATAL_ERRORS, Symbolizer, SymbolicationFailed
+from sentry.lang.native.symbolicator import run_symbolicator
 from sentry.lang.native.utils import get_sdk_from_event, cpu_name_from_data, \
-    rebase_addr
+    rebase_addr, signal_from_data, to_snake_case
 from sentry.lang.native.systemsymbols import lookup_system_symbols
 from sentry.utils import metrics
 from sentry.utils.safe import get_path
@@ -23,6 +25,10 @@ from sentry.reprocessing import report_processing_issue
 logger = logging.getLogger(__name__)
 
 FRAME_CACHE_VERSION = 6
+
+SYMBOLICATOR_FRAME_ATTRS = ("instruction_addr", "package", "lang", "symbol",
+                            "function", "symbol_addr", "filename", "lineno",
+                            "line_addr")
 
 
 class NativeStacktraceProcessor(StacktraceProcessor):
@@ -34,8 +40,13 @@ class NativeStacktraceProcessor(StacktraceProcessor):
         StacktraceProcessor.__init__(self, *args, **kwargs)
 
         self.arch = cpu_name_from_data(self.data)
+        self.signal = signal_from_data(self.data)
+
         self.sym = None
         self.difs_referenced = set()
+
+        self.use_symbolicator = features.has('projects:symbolicator',
+                                             project=self.project)
 
         images = get_path(self.data, 'debug_meta', 'images', default=(),
                           filter=self._is_valid_image)
@@ -84,10 +95,7 @@ class NativeStacktraceProcessor(StacktraceProcessor):
             # The signal is useful information for symbolic in some situations
             # to disambiugate the first frame.  If we can get this information
             # from the mechanism we want to pass it onwards.
-            exceptions = get_path(self.data, 'exception', 'values', filter=True)
-            signal = get_path(exceptions, 0, 'mechanism', 'meta', 'signal', 'number')
-            if signal is not None:
-                signal = int(signal)
+            signal = self.signal
 
             registers = processable_frame.stacktrace_info.stacktrace.get('registers')
             if registers:
@@ -118,6 +126,8 @@ class NativeStacktraceProcessor(StacktraceProcessor):
             'obj': obj,
             'debug_id': obj.debug_id if obj is not None else None,
             'symbolserver_match': None,
+            'symbolicator_match': None,
+            'symbolicator_errors': []
         }
 
         if obj is not None:
@@ -151,6 +161,76 @@ class NativeStacktraceProcessor(StacktraceProcessor):
 
         if options.get('symbolserver.enabled'):
             self.fetch_system_symbols(processing_task)
+
+        if self.use_symbolicator:
+            self.run_symbolicator(processing_task)
+
+    def run_symbolicator(self, processing_task):
+        images = list(get_path(self.data, 'debug_meta', 'images', filter=True))
+        if not images:
+            return
+
+        stacktraces = []
+        processable_frames = []
+        for stacktrace_info, pf_list in processing_task.iter_processable_stacktraces():
+            registers = stacktrace_info.stacktrace.get('registers') or {}
+
+            pf_list = [
+                pf for pf in reversed(pf_list)
+                if pf.processor == self  # This condition is copied from iter_processable_frames
+            ]
+
+            frames = [
+                {'instruction_addr': pf['instruction_addr'],
+                 'trust': pf.get('trust')}
+                for pf in pf_list
+            ]
+
+            stacktraces.append({
+                'registers': registers,
+                'frames': frames
+            })
+
+            processable_frames.append(pf_list)
+
+        request_id = cache_key_for_event(self.data)
+
+        rv = run_symbolicator(stacktraces=stacktraces, modules=images,
+                              project=self.project, arch=self.arch,
+                              signal=self.signal,
+                              request_id=request_id)
+        if not rv:
+            return
+
+        assert len(stacktraces) == len(rv['stacktraces'])
+
+        for pf_list, symbolicated_stacktrace in zip(
+            processable_frames,
+            rv.get('stacktraces') or ()
+        ):
+            for symbolicated_frame in symbolicated_stacktrace.get('frames') or ():
+                pf = pf_list[symbolicated_frame['original_index']]
+                if pf.data['symbolicator_match'] is None:
+                    pf.data['symbolicator_match'] = []
+                pf.data['symbolicator_match'].append(symbolicated_frame)
+
+        # XXX(markus): Symbolicator does not associate errors with frames or
+        # debug images. Just dump them all at once into the event.
+        for error in rv.get('errors') or ():
+            ty = to_snake_case(error['type']) if error.get('type') else None
+            if ty is not None and (ty not in FATAL_ERRORS or ty not in USER_FIXABLE_ERRORS):
+                continue
+
+            report_processing_issue(
+                self.data,
+                scope='native',
+                type=ty,
+                data={"message": error.get('data') or None, "type": ty}
+            )
+
+            errors = self.data.setdefault('errors', [])
+
+            errors.append(error)
 
     def fetch_system_symbols(self, processing_task):
         to_lookup = []
@@ -218,6 +298,7 @@ class NativeStacktraceProcessor(StacktraceProcessor):
                     instruction_addr,
                     self.sdk_info,
                     symbolserver_match=processable_frame.data['symbolserver_match'],
+                    symbolicator_match=processable_frame.data.get('symbolicator_match'),
                     trust=raw_frame.get('trust'),
                 )
                 if not symbolicated_frames:

@@ -233,7 +233,7 @@ class BaseTestCase(Fixtures, Exam):
                     key,
                     secret,
                     protocol,
-                ),
+                )
             )
         return resp
 
