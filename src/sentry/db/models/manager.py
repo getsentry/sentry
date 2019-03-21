@@ -317,7 +317,7 @@ class BaseManager(Manager):
         return self._queryset_class(self.model, using=self._db)
 
 
-class SnubaEventManager(BaseManager):
+class SnubaEventManager:
     def from_event_id(self, id_or_event_id, project_id):
         """
         Get a SnubaEvent by either its id primary key or its hex event_id.
