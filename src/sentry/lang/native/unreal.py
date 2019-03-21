@@ -53,7 +53,6 @@ def merge_apple_crash_report(apple_crash_report, event):
             'crashed': crashed,
             'stacktrace': {
                 'frames': [{
-                    'function': '<unknown>',  # Required by the interface
                     'instruction_addr': frame.get('instruction_addr'),
                     'package': frame.get('module'),
                     'lineno': frame.get('lineno'),
@@ -75,12 +74,12 @@ def merge_apple_crash_report(apple_crash_report, event):
 
     # Extract referenced (not all loaded) images
     images = [{
-        'type': 'symbolic',
-        'id': module.get('uuid'),
+        'type': 'macho',
+        'code_file': module.get('path'),
+        'debug_id': module.get('uuid'),
         'image_addr': module.get('addr'),
         'image_size': module.get('size'),
         'arch': module.get('arch'),
-        'name': module.get('path'),
     } for module in apple_crash_report.get('binary_images')]
     event.setdefault('debug_meta', {})['images'] = images
 
@@ -146,8 +145,8 @@ def merge_unreal_context_event(unreal_context, event, project):
                 # i.e: 0x0000000080db0000
                 # The image address should be used instead with the offset:
                 it = next(
-                    (item for item in images if item.get("name") is not None and re.search(
-                        my_regex, item.get("name"), re.IGNORECASE)), {})
+                    (image for image in images if image.get('code_file') is not None and re.search(
+                        my_regex, image.get('code_file'), re.IGNORECASE)), {})
 
                 image_addr = it.get('image_addr')
                 if image_addr:

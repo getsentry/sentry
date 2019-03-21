@@ -23,6 +23,17 @@ MINIDUMP_OS_TYPES = {
     'Windows NT': 'Windows',
 }
 
+# Mapping of well-known minidump OS constants to image file formats
+MINIDUMP_IMAGE_TYPES = {
+    'Windows': 'pe',
+    'Windows NT': 'pe',
+    'iOS': 'macho',
+    'Mac OS X': 'macho',
+    'Linux': 'elf',
+    'Solaris': 'elf',
+    'Android': 'elf',
+}
+
 
 def is_minidump_event(data):
     exceptions = get_path(data, 'exception', 'values', filter=True)
@@ -96,12 +107,14 @@ def merge_process_state_event(data, state, cfi=None):
 
     # Extract referenced (not all loaded) images
     images = [{
-        'type': 'symbolic',
-        'id': id_from_breakpad(module.id),
+        'type': MINIDUMP_IMAGE_TYPES.get(info.os_name, 'symbolic'),
+        'code_id': module.code_id,
+        'code_file': module.code_file,
+        'debug_id': id_from_breakpad(module.debug_id),
+        'debug_file': module.debug_file,
         'image_addr': '0x%x' % module.addr,
         'image_size': module.size,
-        'name': module.name,
-    } for module in state.modules() if is_valid_module_id(module.id)]
+    } for module in state.modules() if module.debug_id]
     data.setdefault('debug_meta', {})['images'] = images
 
 
@@ -161,14 +174,9 @@ def merge_attached_breadcrumbs(mpack_breadcrumbs, data):
     data['breadcrumbs'] = data['breadcrumbs'][-cap:]
 
 
-def is_valid_module_id(id):
-    return id is not None and id != '000000000000000000000000000000000'
-
-
 def frames_from_minidump_thread(thread):
     return [{
         'instruction_addr': '0x%x' % frame.return_address,
-        'function': '<unknown>',  # Required by interface
-        'package': frame.module.name if frame.module else None,
+        'package': frame.module.code_file if frame.module else None,
         'trust': frame.trust,
     } for frame in reversed(list(thread.frames()))]

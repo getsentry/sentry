@@ -14,19 +14,16 @@ from sentry.testutils import TestCase
 
 RAW_STACKTRACE = [
     {
-        'function': '<unknown>',
         'instruction_addr': '0x7f51401e4800',
         'package': u'/lib/x86_64-linux-gnu/libc-2.23.so',
         'trust': 'scan',
     },
     {
-        'function': '<unknown>',
         'instruction_addr': '0x7f514025002e',
         'package': u'/lib/x86_64-linux-gnu/libc-2.23.so',
         'trust': 'scan',
     },
     {
-        'function': '<unknown>',
         'instruction_addr': '0x401d72',
         'package': u'/work/linux/build/crash',
         'trust': 'context',
@@ -35,79 +32,66 @@ RAW_STACKTRACE = [
 
 CFI_STACKTRACE = [
     {
-        'function': '<unknown>',
         'instruction_addr': '0x401dc0',
         'package': u'/work/linux/build/crash',
         'trust': 'scan'
     },
     {
-        'function': '<unknown>',
         'instruction_addr': '0x7f5140cdc000',
         'package': None,
         'trust': 'scan'
     },
     {
-        'function': '<unknown>',
         'instruction_addr': '0x400040',
         'package': u'/work/linux/build/crash',
         'trust': 'scan'
     },
     {
-        'function': '<unknown>',
         'instruction_addr': '0x7fff5aef1000',
         'package': None,
         'trust': 'scan'
     },
     {
-        'function': '<unknown>',
         'instruction_addr': '0x7fff5ae4ac88',
         'package': None,
         'trust': 'cfi'
     },
     {
-        'function': '<unknown>',
         'instruction_addr': '0x401de9',
         'package': u'/work/linux/build/crash',
         'trust': 'scan'
     },
     {
-        'function': '<unknown>',
         'instruction_addr': '0x401dc0',
         'package': u'/work/linux/build/crash',
         'trust': 'scan'
     },
     {
-        'function': '<unknown>',
         'instruction_addr': '0x414ca0',
         'package': u'/work/linux/build/crash',
         'trust': 'scan'
     },
     {
-        'function': '<unknown>',
         'instruction_addr': '0x401c70',
         'package': u'/work/linux/build/crash',
         'trust': 'scan'
     },
     {
-        'function': '<unknown>',
         'instruction_addr': '0x401dc0',
         'package': u'/work/linux/build/crash',
         'trust': 'scan'
     },
     {
-        'function': '<unknown>',
         'instruction_addr': '0x401c70',
         'package': u'/work/linux/build/crash',
         'trust': 'scan'
     },
     {
-        'function': '<unknown>',
         'instruction_addr': '0x7f514017d830',
         'package': u'/lib/x86_64-linux-gnu/libc-2.23.so',
         'trust': 'cfi'
     },
     {
-        'function': '<unknown>',
         'instruction_addr': '0x401d72',
         'package': u'/work/linux/build/crash',
         'trust': 'context',
