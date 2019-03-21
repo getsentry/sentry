@@ -1,7 +1,6 @@
 from __future__ import absolute_import
 import os
 import zipfile
-import uuid
 
 from six import BytesIO
 from django.core.urlresolvers import reverse
@@ -11,6 +10,9 @@ from sentry.testutils import TestCase
 from sentry.lang.native.minidump import MINIDUMP_ATTACHMENT_TYPE
 from sentry.lang.native.unreal import process_unreal_crash, unreal_attachment_type, merge_unreal_context_event, merge_unreal_logs_event, merge_apple_crash_report
 from sentry.models import Event, EventAttachment, UserReport
+
+
+MOCK_EVENT_ID = '12852a74acc943a790c8f1cd23907caa'
 
 
 def get_unreal_crash_file():
@@ -47,7 +49,7 @@ class MockFile(TestCase):
 class UnrealIntegrationTest(TestCase):
     def test_merge_unreal_context_event(self):
         with open(get_unreal_crash_file(), 'rb') as f:
-            event = {}
+            event = {'event_id': MOCK_EVENT_ID}
             user_id = 'ebff51ef3c4878627823eebd9ff40eb4|2e7d369327054a448be6c8d3601213cb|C52DC39D-DAF3-5E36-A8D3-BF5F53A5D38F'
             unreal_crash = process_unreal_crash(f.read(), user_id, 'Production', event)
             merge_unreal_context_event(unreal_crash.get_context(), event, self.project)
@@ -60,11 +62,11 @@ class UnrealIntegrationTest(TestCase):
                 'user_description': expected_message
             }
         }
-        event = {}
+        event = {'event_id': MOCK_EVENT_ID}
         merge_unreal_context_event(context, event, self.project)
 
         user_report = UserReport.objects.get(
-            event_id=event['event_id'],
+            event_id=MOCK_EVENT_ID,
             project=self.project,
         )
         assert user_report.comments == expected_message
@@ -80,7 +82,7 @@ class UnrealIntegrationTest(TestCase):
                 'user_description': expected_message
             }
         }
-        event = {}
+        event = {'event_id': MOCK_EVENT_ID}
         merge_unreal_context_event(context, event, self.project)
 
         user_report = UserReport.objects.get(
@@ -98,13 +100,11 @@ class UnrealIntegrationTest(TestCase):
                 'username': expected_username,
             }
         }
-        event = {
-            'event_id': uuid.uuid4().hex
-        }
+        event = {'event_id': MOCK_EVENT_ID}
         merge_unreal_context_event(context, event, self.project)
         try:
             user_report = UserReport.objects.get(
-                event_id=event['event_id'],
+                event_id=MOCK_EVENT_ID,
                 project=self.project,
             )
         except UserReport.DoesNotExist:
@@ -115,7 +115,7 @@ class UnrealIntegrationTest(TestCase):
 
     def test_merge_unreal_logs_event(self):
         with open(get_unreal_crash_file(), 'rb') as f:
-            event = {}
+            event = {'event_id': MOCK_EVENT_ID}
             unreal_crash = process_unreal_crash(f.read(), None, None, event)
             merge_unreal_logs_event(unreal_crash.get_logs(), event)
             breadcrumbs = event['breadcrumbs']['values']
@@ -129,7 +129,7 @@ class UnrealIntegrationTest(TestCase):
 
     def test_merge_apple_crash_report(self):
         with open(get_unreal_crash_apple_file(), 'rb') as f:
-            event = {}
+            event = {'event_id': MOCK_EVENT_ID}
             unreal_crash = process_unreal_crash(f.read(), None, None, event)
             merge_apple_crash_report(unreal_crash.get_apple_crash_report(), event)
             self.insta_snapshot(event)
