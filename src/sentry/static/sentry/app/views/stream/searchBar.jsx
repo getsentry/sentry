@@ -30,7 +30,7 @@ const SEARCH_ITEMS = [
     title: t('Time or Count'),
     desc: t('Time or Count related search'),
     example: 'firstSeen, lastSeen, event.timestamp, timesSeen',
-    className: 'icon-history',
+    className: 'icon-av_timer',
     value: '',
     type: 'default',
   },
