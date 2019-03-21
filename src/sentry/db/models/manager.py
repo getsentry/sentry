@@ -340,6 +340,8 @@ class SnubaEventManager(BaseManager):
 
             id_or_event_id = event.event_id
 
+            project_id = event.project_id
+
         return SnubaEvent.get_event(project_id, id_or_event_id)
 
 

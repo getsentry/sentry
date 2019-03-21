@@ -50,12 +50,16 @@ class GroupEventsLatestTest(APITestCase, SnubaTestCase):
 
     def test_snuba_no_environment(self):
         options.set('snuba.events-queries.enabled', True)
-        self.test_simple()
+        url = u'/api/0/issues/{}/events/latest/'.format(self.group.id)
+        response = self.client.get(url, format='json')
 
-    def test_environment(self):
+        assert response.status_code == 200
+        assert response.data['id'] == six.text_type(self.event2.event_id)
+
+    def test_snuba_environment(self):
         options.set('snuba.events-queries.enabled', True)
         url = u'/api/0/issues/{}/events/latest/'.format(self.group.id)
         response = self.client.get(url, format='json', data={'environment': ['production']})
 
         assert response.status_code == 200
-        assert response.data['id'] == six.text_type(self.event2.id)
+        assert response.data['id'] == six.text_type(self.event2.event_id)
