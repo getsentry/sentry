@@ -7,9 +7,11 @@ import createReactClass from 'create-react-class';
 import styled from 'react-emotion';
 
 import {NEGATION_OPERATOR, SEARCH_WILDCARD} from 'app/constants';
+import {saveRecentSearch} from 'app/actionCreators/savedSearches';
 import {t} from 'app/locale';
 import MemberListStore from 'app/stores/memberListStore';
 import SearchDropdown from 'app/views/stream/searchDropdown';
+import withApi from 'app/utils/withApi';
 import withOrganization from 'app/utils/withOrganization';
 
 export function addSpace(query = '') {
@@ -29,6 +31,10 @@ export function removeSpace(query = '') {
 }
 class SmartSearchBar extends React.Component {
   static propTypes = {
+    api: PropTypes.object,
+
+    orgId: PropTypes.string,
+
     // Class name for search dropdown
     dropdownClassName: PropTypes.string,
 
@@ -56,6 +62,11 @@ class SmartSearchBar extends React.Component {
     // Maximum number of search items to display
     // or a falsey value for no maximum
     maxSearchItems: PropTypes.number,
+
+    /**
+     * If this is defined, attempt to save search term scoped to the user and the current org
+     */
+    recentSearchType: PropTypes.number,
 
     // Callback that returns a promise of an array of strings
     onGetTagValues: PropTypes.func,
@@ -142,9 +153,19 @@ class SmartSearchBar extends React.Component {
   };
 
   onSubmit = evt => {
+    const {onSearch, api, orgId, recentSearchType} = this.props;
+
     evt.preventDefault();
     this.blur();
-    this.props.onSearch(removeSpace(this.state.query));
+    const query = removeSpace(this.state.query);
+    onSearch(query);
+
+    // Only save recent search query if we have a recentSearchType (also 0 is a valid value)
+    // Do not save empty string queries (i.e. if they clear search)
+    if (typeof recentSearchType !== 'undefined' && query) {
+      saveRecentSearch(api, orgId, recentSearchType, query);
+      // Ignore errors if it fails to save
+    }
   };
 
   clearSearch = () => {
@@ -531,32 +552,34 @@ class SmartSearchBar extends React.Component {
   }
 }
 
-const SmartSearchBarContainer = withOrganization(
-  createReactClass({
-    displayName: 'SmartSearchBarContainer',
+const SmartSearchBarContainer = withApi(
+  withOrganization(
+    createReactClass({
+      displayName: 'SmartSearchBarContainer',
 
-    mixins: [Reflux.listenTo(MemberListStore, 'onMemberListStoreChange')],
+      mixins: [Reflux.listenTo(MemberListStore, 'onMemberListStoreChange')],
 
-    getInitialState() {
-      return {
-        members: MemberListStore.getAll(),
-      };
-    },
+      getInitialState() {
+        return {
+          members: MemberListStore.getAll(),
+        };
+      },
 
-    onMemberListStoreChange(members) {
-      this.setState(
-        {
-          members,
-        },
-        this.updateAutoCompleteItems
-      );
-    },
+      onMemberListStoreChange(members) {
+        this.setState(
+          {
+            members,
+          },
+          this.updateAutoCompleteItems
+        );
+      },
 
-    render() {
-      // SmartSearchBar doesn't use members, but we forward it to cause a re-render.
-      return <SmartSearchBar {...this.props} members={this.state.members} />;
-    },
-  })
+      render() {
+        // SmartSearchBar doesn't use members, but we forward it to cause a re-render.
+        return <SmartSearchBar {...this.props} members={this.state.members} />;
+      },
+    })
+  )
 );
 
 const DropdownWrapper = styled('div')`
