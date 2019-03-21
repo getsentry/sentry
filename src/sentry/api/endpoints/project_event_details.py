@@ -41,8 +41,7 @@ class ProjectEventDetailsEndpoint(ProjectEndpoint):
         :auth: required
         """
 
-        use_snuba = request.GET.get('enable_snuba') == '1' and \
-            options.get('snuba.events-queries.enabled')
+        use_snuba = options.get('snuba.events-queries.enabled')
 
         if not use_snuba:
             return self.get_legacy(request, project, event_id)

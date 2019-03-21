@@ -5,14 +5,13 @@ import six
 from datetime import timedelta
 from django.utils import timezone
 
-from sentry import options
 from sentry.models import Group
-from sentry.testutils import APITestCase, SnubaTestCase
+from sentry.testutils import APITestCase
 
 
-class GroupEventsLatestTest(APITestCase, SnubaTestCase):
+class GroupEventsOldestTest(APITestCase):
     def setUp(self):
-        super(GroupEventsLatestTest, self).setUp()
+        super(GroupEventsOldestTest, self).setUp()
         self.login_as(user=self.user)
 
         project = self.create_project()
@@ -41,18 +40,9 @@ class GroupEventsLatestTest(APITestCase, SnubaTestCase):
 
         self.group = Group.objects.first()
 
-    def test_snuba_no_environment(self):
-        options.set('snuba.events-queries.enabled', True)
-        url = u'/api/0/issues/{}/events/latest/'.format(self.group.id)
+    def test_simple(self):
+        url = u'/api/0/issues/{}/events/oldest/'.format(self.group.id)
         response = self.client.get(url, format='json')
 
         assert response.status_code == 200
-        assert response.data['id'] == six.text_type(self.event2.event_id)
-
-    def test_snuba_environment(self):
-        options.set('snuba.events-queries.enabled', True)
-        url = u'/api/0/issues/{}/events/latest/'.format(self.group.id)
-        response = self.client.get(url, format='json', data={'environment': ['production']})
-
-        assert response.status_code == 200
-        assert response.data['id'] == six.text_type(self.event2.event_id)
+        assert response.data['id'] == six.text_type(self.event1.id)
