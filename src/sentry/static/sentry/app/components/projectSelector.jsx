@@ -16,6 +16,7 @@ import SentryTypes from 'app/sentryTypes';
 import space from 'app/styles/space';
 import theme from 'app/utils/theme';
 import Tooltip from 'app/components/tooltip';
+import withProjects from 'app/utils/withProjects';
 
 class ProjectSelector extends React.Component {
   static propTypes = {
@@ -289,17 +290,15 @@ class ProjectSelectorItem extends React.PureComponent {
               avatarProps={{consistentWidth: true}}
             />
           </BadgeWrapper>
-          {multi && (
-            <Actions>
-              <SettingsIconLink
-                to={`/settings/${organization.slug}/${project.slug}/`}
-                onClick={e => e.stopPropagation()}
-              >
-                <SettingsIcon src="icon-settings" />
-              </SettingsIconLink>
-              <BookmarkIcon project={project} organization={organization} />
-            </Actions>
-          )}
+          <Actions>
+            <SettingsIconLink
+              to={`/settings/${organization.slug}/${project.slug}/`}
+              onClick={e => e.stopPropagation()}
+            >
+              <SettingsIcon src="icon-settings" />
+            </SettingsIconLink>
+            <BookmarkIcon project={project} organization={organization} />
+          </Actions>
         </GlobalSelectionHeaderRow>
       </BadgeAndActionsWrapper>
     );
@@ -385,4 +384,4 @@ const BadgeAndActionsWrapper = styled('div')`
   }
 `;
 
-export default ProjectSelector;
+export default withProjects(ProjectSelector);

@@ -417,7 +417,7 @@ export default class OrganizationDiscover extends React.Component {
 
         <DiscoverGlobalSelectionHeader
           organization={organization}
-          projects={currentQuery.projects}
+          project={currentQuery.projects}
           hasCustomRouting={true}
           relative={currentQuery.range}
           start={start}

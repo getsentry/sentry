@@ -18,25 +18,16 @@ class BookmarkStar extends React.Component {
     project: SentryTypes.Project.isRequired,
   };
 
-  constructor(props, context) {
-    super(props, context);
-
-    this.state = {
-      isBookmarked: this.props.project.isBookmarked,
-    };
-  }
-
   toggleProjectBookmark = event => {
     const {project, organization, api} = this.props;
+    const {isBookmarked} = project;
 
-    this.setState({isBookmarked: !this.state.isBookmarked}, () => {
-      update(api, {
-        orgId: organization.slug,
-        projectId: project.slug,
-        data: {isBookmarked: this.state.isBookmarked},
-      }).catch(() => {
-        addErrorMessage(t('Unable to toggle bookmark for %s', project.slug));
-      });
+    update(api, {
+      orgId: organization.slug,
+      projectId: project.slug,
+      data: {isBookmarked: !isBookmarked},
+    }).catch(() => {
+      addErrorMessage(t('Unable to toggle bookmark for %s', project.slug));
     });
 
     //needed to dismiss tooltip
@@ -47,8 +38,8 @@ class BookmarkStar extends React.Component {
   };
 
   render() {
-    const {className} = this.props;
-    const {isBookmarked} = this.state;
+    const {className, project} = this.props;
+    const {isBookmarked} = project;
 
     return (
       <Tooltip
