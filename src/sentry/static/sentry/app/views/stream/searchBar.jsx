@@ -58,8 +58,6 @@ const SEARCH_ITEMS = [
   },
 ];
 
-const MAX_RECENT_SEARCHES = 3;
-
 class SearchBar extends React.Component {
   static propTypes = {
     ...SmartSearchBar.propTypes,
@@ -98,7 +96,7 @@ class SearchBar extends React.Component {
     this.setState({
       defaultSearchItems: [
         ...(resp &&
-          resp.slice(0, MAX_RECENT_SEARCHES).map(query => ({
+          resp.map(query => ({
             desc: query,
             value: query,
             className: 'icon-clock',

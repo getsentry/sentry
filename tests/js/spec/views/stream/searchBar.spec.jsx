@@ -190,6 +190,7 @@ describe('SearchBar', function() {
         expect.objectContaining({
           query: {
             query: 'is:',
+            limit: 3,
             type: 0,
           },
         })
