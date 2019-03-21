@@ -6,6 +6,7 @@ from datetime import timedelta
 from django.utils import timezone
 from django.core.urlresolvers import reverse
 
+from sentry import options
 from sentry.models import UserReport, Group
 from sentry.testutils import APITestCase, SnubaTestCase
 
@@ -17,10 +18,9 @@ class EventDetailsTest(APITestCase, SnubaTestCase):
         self.min_ago = (timezone.now() - timedelta(minutes=1)).isoformat()[:19]
         self.two_min_ago = (timezone.now() - timedelta(minutes=2)).isoformat()[:19]
         self.three_min_ago = (timezone.now() - timedelta(minutes=3)).isoformat()[:19]
-
-    def test_simple(self):
         self.login_as(user=self.user)
 
+    def test_simple(self):
         prev_event = self.store_event(
             data={
                 'event_id': 'a' * 32,
@@ -56,7 +56,9 @@ class EventDetailsTest(APITestCase, SnubaTestCase):
         response = self.client.get(url, format='json')
 
         assert response.status_code == 200, response.content
-        assert response.data['id'] == six.text_type(cur_event.id)
+        assert response.data['id'] == six.text_type(
+            cur_event.id) or six.text_type(
+            cur_event.event_id)
         assert response.data['nextEventID'] == six.text_type(next_event.event_id)
         assert response.data['previousEventID'] == six.text_type(prev_event.event_id)
         assert response.data['groupID'] == six.text_type(group.id)
@@ -70,7 +72,9 @@ class EventDetailsTest(APITestCase, SnubaTestCase):
         response = self.client.get(url, format='json')
 
         assert response.status_code == 200, response.content
-        assert response.data['id'] == six.text_type(prev_event.id)
+        assert response.data['id'] == six.text_type(
+            prev_event.id) or six.text_type(
+            prev_event.event_id)
         assert response.data['nextEventID'] == six.text_type(cur_event.event_id)
         assert response.data['previousEventID'] is None
         assert response.data['groupID'] == six.text_type(group.id)
@@ -84,15 +88,15 @@ class EventDetailsTest(APITestCase, SnubaTestCase):
         response = self.client.get(url, format='json')
 
         assert response.status_code == 200, response.content
-        assert response.data['id'] == six.text_type(next_event.id)
+        assert response.data['id'] == six.text_type(
+            next_event.id) or six.text_type(
+            next_event.event_id)
         assert response.data['nextEventID'] is None
         assert response.data['previousEventID'] == six.text_type(cur_event.event_id)
         assert response.data['groupID'] == six.text_type(group.id)
         assert not response.data['userReport']
 
     def test_identical_datetime(self):
-        self.login_as(user=self.user)
-
         events = []
 
         for eid in 'abcde':
@@ -116,7 +120,9 @@ class EventDetailsTest(APITestCase, SnubaTestCase):
         response = self.client.get(url, format='json')
 
         assert response.status_code == 200, response.content
-        assert response.data['id'] == six.text_type(events[0].id)
+        assert response.data['id'] == six.text_type(
+            events[0].id) or six.text_type(
+            events[0].event_id)
         assert response.data['nextEventID'] == six.text_type(events[1].event_id)
         assert response.data['previousEventID'] is None
         assert response.data['groupID'] == six.text_type(group.id)
@@ -131,7 +137,9 @@ class EventDetailsTest(APITestCase, SnubaTestCase):
         response = self.client.get(url, format='json')
 
         assert response.status_code == 200, response.content
-        assert response.data['id'] == six.text_type(events[1].id)
+        assert response.data['id'] == six.text_type(
+            events[1].id) or six.text_type(
+            events[1].event_id)
         assert response.data['nextEventID'] == six.text_type(events[2].event_id)
         assert response.data['previousEventID'] == six.text_type(events[0].event_id)
         assert response.data['groupID'] == six.text_type(group.id)
@@ -146,7 +154,9 @@ class EventDetailsTest(APITestCase, SnubaTestCase):
         response = self.client.get(url, format='json')
 
         assert response.status_code == 200, response.content
-        assert response.data['id'] == six.text_type(events[2].id)
+        assert response.data['id'] == six.text_type(
+            events[2].id) or six.text_type(
+            events[2].event_id)
         assert response.data['nextEventID'] == six.text_type(events[3].event_id)
         assert response.data['previousEventID'] == six.text_type(events[1].event_id)
         assert response.data['groupID'] == six.text_type(group.id)
@@ -161,7 +171,9 @@ class EventDetailsTest(APITestCase, SnubaTestCase):
         response = self.client.get(url, format='json')
 
         assert response.status_code == 200, response.content
-        assert response.data['id'] == six.text_type(events[3].id)
+        assert response.data['id'] == six.text_type(
+            events[3].id) or six.text_type(
+            events[3].event_id)
         assert response.data['nextEventID'] == six.text_type(events[4].event_id)
         assert response.data['previousEventID'] == six.text_type(events[2].event_id)
         assert response.data['groupID'] == six.text_type(group.id)
@@ -176,15 +188,15 @@ class EventDetailsTest(APITestCase, SnubaTestCase):
         response = self.client.get(url, format='json')
 
         assert response.status_code == 200, response.content
-        assert response.data['id'] == six.text_type(events[4].id)
+        assert response.data['id'] == six.text_type(
+            events[4].id) or six.text_type(
+            events[4].event_id)
         assert response.data['nextEventID'] is None
         assert response.data['previousEventID'] == six.text_type(events[3].event_id)
         assert response.data['groupID'] == six.text_type(group.id)
         assert not response.data['userReport']
 
     def test_timestamps_out_of_order(self):
-        self.login_as(user=self.user)
-
         cur_event = self.store_event(
             data={
                 'event_id': 'b' * 32,
@@ -220,7 +232,9 @@ class EventDetailsTest(APITestCase, SnubaTestCase):
         response = self.client.get(url, format='json')
 
         assert response.status_code == 200, response.content
-        assert response.data['id'] == six.text_type(cur_event.id)
+        assert response.data['id'] == six.text_type(
+            cur_event.id) or six.text_type(
+            cur_event.event_id)
         assert response.data['nextEventID'] == six.text_type(next_event.event_id)
         assert response.data['previousEventID'] == six.text_type(prev_event.event_id)
         assert response.data['groupID'] == six.text_type(group.id)
@@ -234,7 +248,9 @@ class EventDetailsTest(APITestCase, SnubaTestCase):
         response = self.client.get(url, format='json')
 
         assert response.status_code == 200, response.content
-        assert response.data['id'] == six.text_type(prev_event.id)
+        assert response.data['id'] == six.text_type(
+            prev_event.id) or six.text_type(
+            prev_event.event_id)
         assert response.data['nextEventID'] == six.text_type(cur_event.event_id)
         assert response.data['previousEventID'] is None
         assert response.data['groupID'] == six.text_type(group.id)
@@ -248,14 +264,15 @@ class EventDetailsTest(APITestCase, SnubaTestCase):
         response = self.client.get(url, format='json')
 
         assert response.status_code == 200, response.content
-        assert response.data['id'] == six.text_type(next_event.id)
+        assert response.data['id'] == six.text_type(
+            next_event.id) or six.text_type(
+            next_event.event_id)
         assert response.data['nextEventID'] is None
         assert response.data['previousEventID'] == six.text_type(cur_event.event_id)
         assert response.data['groupID'] == six.text_type(group.id)
         assert not response.data['userReport']
 
     def test_user_report(self):
-        self.login_as(user=self.user)
 
         cur_event = self.store_event(
             data={
@@ -283,14 +300,14 @@ class EventDetailsTest(APITestCase, SnubaTestCase):
         response = self.client.get(url, format='json')
 
         assert response.status_code == 200, response.content
-        assert response.data['id'] == six.text_type(cur_event.id)
+        assert response.data['id'] == six.text_type(
+            cur_event.id) or six.text_type(
+            cur_event.event_id)
         assert response.data['userReport']['id'] == six.text_type(user_report.id)
 
     def test_event_ordering(self):
         # Test that a real "prev" event that happened at an earlier time is not
         # masked by multiple subsequent events in the same second.
-        self.login_as(user=self.user)
-
         before = self.store_event(
             data={
                 'event_id': 'a' * 32,
@@ -328,5 +345,13 @@ class EventDetailsTest(APITestCase, SnubaTestCase):
         response = self.client.get(url, format='json')
 
         assert response.status_code == 200, response.content
-        assert response.data['id'] == six.text_type(event.id)
+        assert response.data['id'] == six.text_type(event.id) or six.text_type(event.event_id)
         assert response.data['previousEventID'] == six.text_type(before.event_id)
+
+    def test_snuba(self):
+        options.set('snuba.events-queries.enabled', True)
+        self.test_simple()
+        self.test_identical_datetime()
+        self.test_timestamps_out_of_order()
+        self.test_event_ordering()
+        self.test_user_report()

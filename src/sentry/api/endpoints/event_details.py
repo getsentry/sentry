@@ -2,11 +2,12 @@ from __future__ import absolute_import
 
 from rest_framework.response import Response
 
+from sentry import options
 from sentry.api.base import Endpoint
 from sentry.api.bases.group import GroupPermission
 from sentry.api.exceptions import ResourceDoesNotExist
 from sentry.api.serializers import DetailedEventSerializer, serialize
-from sentry.models import Event
+from sentry.models import Event, SnubaEvent
 
 
 class EventDetailsEndpoint(Endpoint):
@@ -21,6 +22,26 @@ class EventDetailsEndpoint(Endpoint):
         is the event as it appears in the Sentry database and not the event
         ID that is reported by the client upon submission.
         """
+        use_snuba = options.get('snuba.events-queries.enabled')
+
+        if not use_snuba:
+            return self.get_legacy(request, event_id)
+
+        event = SnubaEvent.objects.from_event_id(event_id, project_id=None)
+
+        if event is None:
+            raise ResourceDoesNotExist
+
+        self.check_object_permissions(request, event.group)
+
+        data = serialize(event, request.user, DetailedEventSerializer())
+
+        data['nextEventID'] = event.next_event_id()
+        data['previousEventID'] = event.prev_event_id()
+
+        return Response(data)
+
+    def get_legacy(self, request, event_id):
         event = Event.objects.from_event_id(event_id, project_id=None)
         if event is None:
             raise ResourceDoesNotExist

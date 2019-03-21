@@ -569,7 +569,7 @@ class SnubaEvent(EventCommon):
 
         return six.text_type(result['data'][0]['event_id'])
 
-    def prev_event_id(self, environments=None):
+    def prev_event_id(self, environments=[]):
         from sentry.utils import snuba
 
         conditions = [
