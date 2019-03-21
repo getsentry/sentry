@@ -1,7 +1,5 @@
-import React from 'react';
-
 import {extractMultilineFields} from 'app/utils';
-import {t, tct} from 'app/locale';
+import {t} from 'app/locale';
 import slugify from 'app/utils/slugify';
 
 // Export route to make these forms searchable by label/help
@@ -31,14 +29,8 @@ const formGroups = [
         type: 'string',
         required: true,
 
-        label: t('Legacy Name'),
-        help: tct(
-          '[Deprecated] In the future, only [Name] will be used to identify your organization',
-          {
-            Deprecated: <strong>DEPRECATED</strong>,
-            Name: <strong>Name</strong>,
-          }
-        ),
+        label: t('Display Name'),
+        help: t('This is the name that users will see for the organization'),
       },
       {
         name: 'isEarlyAdopter',
