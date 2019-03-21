@@ -229,6 +229,25 @@ class PostProcessGroupTest(TestCase):
 
         assert not mock_process_service_hook.delay.mock_calls
 
+    @patch('sentry.tasks.sentry_apps.process_resource_change_bound.delay')
+    def test_processes_resource_change_task_on_new_group(self, delay):
+        group = self.create_group(project=self.project)
+        event = self.create_event(group=group)
+
+        post_process_group(
+            event=event,
+            is_new=True,
+            is_regression=False,
+            is_sample=False,
+            is_new_group_environment=False,
+        )
+
+        delay.assert_called_once_with(
+            action='created',
+            sender='Group',
+            instance_id=group.id,
+        )
+
 
 class IndexEventTagsTest(TestCase):
     def test_simple(self):

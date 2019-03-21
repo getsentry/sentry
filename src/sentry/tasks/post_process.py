@@ -18,6 +18,7 @@ from sentry.utils import snuba
 from sentry.utils.cache import cache
 from sentry.plugins import plugins
 from sentry.signals import event_processed
+from sentry.tasks.sentry_apps import process_resource_change_bound
 from sentry.tasks.base import instrumented_task
 from sentry.utils import metrics
 from sentry.utils.redis import redis_clusters
@@ -140,6 +141,13 @@ def post_process_group(event, is_new, is_regression, is_sample, is_new_group_env
                             servicehook_id=servicehook_id,
                             event=event,
                         )
+
+        if is_new:
+            process_resource_change_bound.delay(
+                action='created',
+                sender='Group',
+                instance_id=event.group_id,
+            )
 
         for plugin in plugins.for_project(event.project):
             plugin_post_process_group(

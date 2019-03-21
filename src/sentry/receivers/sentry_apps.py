@@ -1,9 +1,6 @@
 from __future__ import absolute_import
 
-from django.db.models.signals import post_save
-from django.dispatch import receiver
-
-from sentry.models import Group, GroupAssignee, Organization
+from sentry.models import GroupAssignee, Organization
 from sentry.signals import (
     issue_ignored,
     issue_assigned,
@@ -11,25 +8,7 @@ from sentry.signals import (
     issue_resolved_in_release,
     resolved_with_commit,
 )
-from sentry.tasks.sentry_apps import (
-    process_resource_change_bound,
-    workflow_notification,
-)
-
-
-@receiver(post_save, sender=Group, weak=False)
-def issue_saved(sender, instance, created, **kwargs):
-    issue = instance
-
-    # We only send webhooks for creation right now.
-    if not created:
-        return
-
-    process_resource_change_bound.delay(
-        action='created',
-        sender=sender.__name__,
-        instance_id=issue.id,
-    )
+from sentry.tasks.sentry_apps import workflow_notification
 
 
 @issue_assigned.connect(weak=False)
