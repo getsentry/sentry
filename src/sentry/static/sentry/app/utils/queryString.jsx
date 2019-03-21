@@ -1,3 +1,5 @@
+import queryString from 'query-string';
+import parseurl from 'parseurl';
 // remove leading and trailing whitespace and remove double spaces
 export function formatQueryString(qs) {
   return qs.trim().replace(/\s+/g, ' ');
@@ -33,9 +35,28 @@ export function getQueryStringWithoutEnvironment(qs) {
   return formatQueryString(qs.replace(/(?:^|\s)environment:[^\s]*/g, ''));
 }
 
+export function addQueryParamsToExistingUrl(origUrl, queryParams) {
+  const url = parseurl({url: origUrl});
+  if (!url) {
+    return '';
+  }
+
+  let query;
+  if (url.query) {
+    // Order the query params alphabetically.
+    // Otherwise ``queryString`` orders them randomly and it's impossible to test.
+    const params = JSON.parse(JSON.stringify(queryParams));
+    query = {...queryString.parse(url.query), ...params};
+  } else {
+    query = queryParams;
+  }
+  return `${url.protocol}//${url.host}${url.pathname}?${queryString.stringify(query)}`;
+}
+
 export default {
   formatQueryString,
   getQueryEnvironment,
   getQueryStringWithEnvironment,
   getQueryStringWithoutEnvironment,
+  addQueryParamsToExistingUrl,
 };

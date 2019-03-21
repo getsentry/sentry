@@ -1,6 +1,7 @@
 import React from 'react';
 import {mount} from 'enzyme';
 
+import {addQueryParamsToExistingUrl} from 'app/utils/queryString';
 import {SentryAppExternalIssueForm} from 'app/components/group/externalIssueForm';
 
 describe('SentryAppExternalIssueForm', () => {
@@ -83,11 +84,17 @@ describe('SentryAppExternalIssueForm', () => {
     });
 
     it('renders prepopulated defaults', () => {
-      expect(wrapper.find('Input #a').prop('value')).toEqual(`${group.title}`);
-      const description = `Sentry Issue: [${group.shortId}](${group.permalink}?referrer=${sentryApp.name})`;
+      const issueTitleField = 'Input #a';
+      const issueDescriptionField = 'TextArea #c';
+      const url = addQueryParamsToExistingUrl(group.permalink, {
+        referrer: sentryApp.name,
+      });
+      const description = `Sentry Issue: [${group.shortId}](${url})`;
+
+      expect(wrapper.find(issueTitleField).prop('value')).toEqual(`${group.title}`);
       expect(
         wrapper
-          .find('TextArea #c')
+          .find(issueDescriptionField)
           .first()
           .prop('value')
       ).toEqual(description);

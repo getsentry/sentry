@@ -5,6 +5,7 @@ import queryString from 'query-string';
 import {debounce} from 'lodash';
 
 import {addSuccessMessage, addErrorMessage} from 'app/actionCreators/indicator';
+import {addQueryParamsToExistingUrl} from 'app/utils/queryString';
 import AsyncComponent from 'app/components/asyncComponent';
 import FieldFromConfig from 'app/views/settings/components/forms/fieldFromConfig';
 import Form from 'app/views/settings/components/forms/form';
@@ -207,7 +208,7 @@ export class SentryAppExternalIssueForm extends React.Component {
   };
 
   getFieldDefault(field) {
-    const {group, sentryAppInstallation} = this.props;
+    const {group} = this.props;
     if (field.type == 'textarea') {
       field.maxRows = 10;
       field.autosize = true;
@@ -216,8 +217,9 @@ export class SentryAppExternalIssueForm extends React.Component {
       case 'issue.title':
         return group.title;
       case 'issue.description':
-        return `Sentry Issue: [${group.shortId}](${group.permalink}?referrer=${sentryAppInstallation
-          .sentryApp.name})`;
+        const queryParams = {referrer: this.props.sentryAppInstallation.sentryApp.name};
+        const url = addQueryParamsToExistingUrl(group.permalink, queryParams);
+        return `Sentry Issue: [${group.shortId}](${url})`;
       default:
         return '';
     }

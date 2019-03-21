@@ -1,7 +1,7 @@
 import React from 'react';
 import {Client} from 'app/api';
 import {mount} from 'enzyme';
-import qs from 'query-string';
+import {addQueryParamsToExistingUrl} from 'app/utils/queryString';
 
 import {OpenInButton} from 'app/components/events/interfaces/openInButton';
 
@@ -56,14 +56,15 @@ describe('OpenInButton', function() {
         `http://localhost:5000/redirection?installationId=${install.uuid}&projectSlug=${group
           .project.slug}`
       );
-      const base = `http://localhost:5000/redirection?installationId=${install.uuid}&projectSlug=${group
-        .project.slug}`;
+      const baseUrl = `http://localhost:5000/redirection`;
       const queryParams = {
+        installationId: install.uuid,
+        projectSlug: group.project.slug,
         lineNo,
         filename,
       };
-      const query = qs.stringify(queryParams);
-      expect(wrapper.find('Button').prop('href')).toEqual(base + '&' + query);
+      const url = addQueryParamsToExistingUrl(baseUrl, queryParams);
+      expect(wrapper.find('Button').prop('href')).toEqual(url);
       expect(wrapper.find('Button').text()).toEqual('Debug In Foo');
     });
   });
