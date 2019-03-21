@@ -39,7 +39,7 @@ const Container = styled('div')`
   justify-content: space-between;
   font-size: 14px;
   font-weight: 400;
-  padding-left: ${space(1)};
+  padding-left: ${space(0.5)};
   height: ${p => p.theme.headerSelectorRowHeight}px;
   flex-shrink: 0;
 
@@ -69,7 +69,7 @@ const Checkbox = styled(CheckboxFancy)`
 `;
 
 const CheckboxWrapper = styled('div')`
-  margin: -${space(1)}; /* pushes the click box to be flush with the edge of the menu */
+  margin: 0 -${space(0.5)} 0 0; /* pushes the click box to be flush with the edge of the menu */
   padding: 0 ${space(1.25)} 0 ${space(1)};
   height: 100%;
   display: flex;

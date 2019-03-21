@@ -895,7 +895,7 @@ exports[`OrganizationUserFeedback renders 1`] = `
                                         Object {
                                           "style": Object {
                                             "padding": 8,
-                                            "paddingLeft": 14,
+                                            "paddingLeft": 10,
                                           },
                                         }
                                       }
@@ -907,7 +907,7 @@ exports[`OrganizationUserFeedback renders 1`] = `
                                       onSelect={[Function]}
                                       rootClassName="css-h5t9nh-rootContainerStyles"
                                       searchPlaceholder="Filter projects"
-                                      virtualizedHeight={40}
+                                      virtualizedHeight={44}
                                       zIndex={1001}
                                     >
                                       <DropdownAutoCompleteMenu
@@ -922,7 +922,7 @@ exports[`OrganizationUserFeedback renders 1`] = `
                                           Object {
                                             "style": Object {
                                               "padding": 8,
-                                              "paddingLeft": 14,
+                                              "paddingLeft": 10,
                                             },
                                           }
                                         }
@@ -934,7 +934,7 @@ exports[`OrganizationUserFeedback renders 1`] = `
                                         onSelect={[Function]}
                                         rootClassName="css-h5t9nh-rootContainerStyles"
                                         searchPlaceholder="Filter projects"
-                                        virtualizedHeight={40}
+                                        virtualizedHeight={44}
                                         zIndex={1001}
                                       >
                                         <AutoComplete
@@ -947,7 +947,7 @@ exports[`OrganizationUserFeedback renders 1`] = `
                                           resetInputOnClose={true}
                                           shouldSelectWithEnter={true}
                                           shouldSelectWithTab={false}
-                                          virtualizedHeight={40}
+                                          virtualizedHeight={44}
                                           zIndex={1001}
                                         >
                                           <DropdownMenu
@@ -1331,7 +1331,7 @@ exports[`OrganizationUserFeedback renders 1`] = `
                                   onSelect={[Function]}
                                   rootClassName="css-1utm1zz-rootClassName"
                                   searchPlaceholder="Filter environments"
-                                  virtualizedHeight={40}
+                                  virtualizedHeight={44}
                                   zIndex={1001}
                                 >
                                   <DropdownAutoComplete
@@ -1364,7 +1364,7 @@ exports[`OrganizationUserFeedback renders 1`] = `
                                     onSelect={[Function]}
                                     rootClassName="css-1utm1zz-rootClassName"
                                     searchPlaceholder="Filter environments"
-                                    virtualizedHeight={40}
+                                    virtualizedHeight={44}
                                     zIndex={1001}
                                   >
                                     <DropdownAutoCompleteMenu
@@ -1396,7 +1396,7 @@ exports[`OrganizationUserFeedback renders 1`] = `
                                       onSelect={[Function]}
                                       rootClassName="css-1utm1zz-rootClassName"
                                       searchPlaceholder="Filter environments"
-                                      virtualizedHeight={40}
+                                      virtualizedHeight={44}
                                       zIndex={1001}
                                     >
                                       <AutoComplete
@@ -1409,7 +1409,7 @@ exports[`OrganizationUserFeedback renders 1`] = `
                                         resetInputOnClose={true}
                                         shouldSelectWithEnter={true}
                                         shouldSelectWithTab={false}
-                                        virtualizedHeight={40}
+                                        virtualizedHeight={44}
                                         zIndex={1001}
                                       >
                                         <DropdownMenu

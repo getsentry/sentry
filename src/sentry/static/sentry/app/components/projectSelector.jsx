@@ -184,7 +184,7 @@ class ProjectSelector extends React.Component {
         maxHeight={500}
         zIndex={theme.zIndex.dropdown}
         css={{marginTop: 6}}
-        inputProps={{style: {padding: 8, paddingLeft: 14}}}
+        inputProps={{style: {padding: 8, paddingLeft: 10}}}
         rootClassName={rootClassName}
         className={className}
         emptyMessage={t('You have no projects')}
@@ -283,43 +283,34 @@ class ProjectSelectorItem extends React.PureComponent {
           multi={multi}
         >
           <BadgeWrapper multi={multi}>
-            <IdBadgeMenuItem
+            <IdBadge
               project={project}
               avatarSize={16}
               displayName={<Highlight text={inputValue}>{project.slug}</Highlight>}
               avatarProps={{consistentWidth: true}}
             />
-          </BadgeWrapper>
-          <Actions>
-            <SettingsIconLink
-              to={`/settings/${organization.slug}/${project.slug}/`}
-              onClick={e => e.stopPropagation()}
-            >
-              <SettingsIcon src="icon-settings" />
-            </SettingsIconLink>
             <BookmarkIcon project={project} organization={organization} />
-          </Actions>
+          </BadgeWrapper>
+          <SettingsIconLink
+            to={`/settings/${organization.slug}/${project.slug}/`}
+            onClick={e => e.stopPropagation()}
+          >
+            <SettingsIcon src="icon-settings" />
+          </SettingsIconLink>
         </GlobalSelectionHeaderRow>
       </BadgeAndActionsWrapper>
     );
   }
 }
 
-const Actions = styled('div')`
-  display: flex;
-  margin-right: ${space(0.25)};
-  align-items: center;
-`;
-
 const BookmarkIcon = styled(BookmarkStar)`
   padding: ${space(1)} ${space(1)} ${space(1)} ${space(0.5)};
-  margin-right: ${space(0.25)};
   box-sizing: content-box;
-  opacity: ${p => (p.project.isBookmarked ? 1 : 0)};
+  opacity: ${p => (p.project.isBookmarked ? 1 : 0.33)};
   transition: 0.5s opacity ease-out;
   display: block;
-  width: 16px;
-  height: 16px;
+  width: 14px;
+  height: 14px;
   margin-top: -${space(0.25)}; /* trivial alignment bump */
 `;
 
@@ -349,19 +340,13 @@ const BadgeWrapper = styled('div')`
   align-items: space-between;
 `;
 
-const IdBadgeMenuItem = styled(IdBadge)`
-  flex: 1;
-  overflow: hidden;
-`;
-
 const SettingsIconLink = styled(Link)`
   color: ${p => p.theme.gray2};
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: ${space(1)} ${space(0.5)} ${space(1)} ${space(1)};
-  margin-right: ${space(0.25)};
-  opacity: 0;
+  padding: ${space(1)} ${space(0.25)} ${space(1)} ${space(1)};
+  opacity: 0.33;
   transition: 0.5s opacity ease-out;
 
   &:hover {
