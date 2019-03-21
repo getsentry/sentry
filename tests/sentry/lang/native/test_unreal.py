@@ -48,25 +48,10 @@ class UnrealIntegrationTest(TestCase):
     def test_merge_unreal_context_event(self):
         with open(get_unreal_crash_file(), 'rb') as f:
             event = {}
-            unreal_crash = process_unreal_crash(
-                f.read(),
-                'ebff51ef3c4878627823eebd9ff40eb4|2e7d369327054a448be6c8d3601213cb|C52DC39D-DAF3-5E36-A8D3-BF5F53A5D38F',
-                'Production',
-                event)
+            user_id = 'ebff51ef3c4878627823eebd9ff40eb4|2e7d369327054a448be6c8d3601213cb|C52DC39D-DAF3-5E36-A8D3-BF5F53A5D38F'
+            unreal_crash = process_unreal_crash(f.read(), user_id, 'Production', event)
             merge_unreal_context_event(unreal_crash.get_context(), event, self.project)
-            assert event['environment'] == 'Production'
-            assert event['tags']['machine_id'] == 'C52DC39D-DAF3-5E36-A8D3-BF5F53A5D38F'
-            assert event['tags']['epic_account_id'] == '2e7d369327054a448be6c8d3601213cb'
-            assert event['user']['id'] == 'ebff51ef3c4878627823eebd9ff40eb4'
-            assert event['message'] == 'Access violation - code c0000005 (first/second chance not available)'
-            assert event['user']['username'] == 'bruno'
-            assert event['contexts']['device']['memory_size'] == 6896832512
-            assert event['contexts']['os']['name'] == 'Windows 10'
-            assert event['contexts']['gpu']['name'] == 'Parallels Display Adapter (WDDM)'
-            assert len(event['stacktrace']['frames']) == 20
-            assert 'ntdll' == event['stacktrace']['frames'][0]['package']
-            assert 'YetAnother' == event['stacktrace']['frames'][2]['package']
-            assert 'YetAnother' == event['stacktrace']['frames'][2]['package']
+            self.insta_snapshot(event)
 
     def test_merge_unreal_context_event_without_user(self):
         expected_message = 'user comments'
@@ -147,24 +132,7 @@ class UnrealIntegrationTest(TestCase):
             event = {}
             unreal_crash = process_unreal_crash(f.read(), None, None, event)
             merge_apple_crash_report(unreal_crash.get_apple_crash_report(), event)
-            assert event['platform'] == 'native'
-            assert event['timestamp'] == '2019-01-09T17:44:22Z'
-            assert event['level'] == 'fatal'
-            assert event['contexts']['os']['raw_description'] == 'Mac OS X 10.14.0 (18A391)'
-            assert event['contexts']['device']['model'] == 'MacBookPro14,3'
-            assert len(event['threads']) == 55
-            assert event['threads'][5]['crashed']
-            assert event['threads'][5]['id'] == 5
-            assert event['threads'][5]['stacktrace']['frames'][0]['instruction_addr'] == '0x7fff61c7f425'
-            assert event['threads'][5]['stacktrace']['frames'][0]['package'] == 'libsystem_pthread.dylib'
-            assert event['threads'][5]['stacktrace']['registers']['r14'] == '0x1'
-            assert len(event['debug_meta']['images']) == 272
-            assert event['debug_meta']['images'][0]['type'] == 'symbolic'
-            assert event['debug_meta']['images'][0]['id'] == '2d903291-397d-3d14-bfca-52c7fb8c5e00'
-            assert event['debug_meta']['images'][0]['image_addr'] == '0x10864e000'
-            assert event['debug_meta']['images'][0]['image_size'] == 108797951
-            assert event['debug_meta']['images'][0]['arch'] == 'x86_64'
-            assert event['debug_meta']['images'][0]['name'] == '/Users/bruno/Documents/Unreal Projects/YetAnotherMac/MacNoEditor/YetAnotherMac.app/Contents/MacOS/YetAnotherMac'
+            self.insta_snapshot(event)
 
     def upload_symbols(self):
         url = reverse(

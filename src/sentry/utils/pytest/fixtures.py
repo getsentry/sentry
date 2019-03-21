@@ -268,10 +268,7 @@ def log():
 
 @pytest.fixture
 def insta_snapshot(request, log):
-    calls = []
-
     def inner(output, reference_file=None, subname=None):
-        calls.append(1)
         if reference_file is None:
             name = request.node.name
             for c in ('::', '-', '[', ']'):
@@ -323,4 +320,3 @@ def insta_snapshot(request, log):
             assert refval == output
 
     yield inner
-    assert calls, "Test is loading insta_snapshot but is not using it. This is likely a bug"
