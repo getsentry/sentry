@@ -8,7 +8,7 @@ import re
 import uuid
 
 _portable_callstack_regexp = re.compile(
-    r'((?P<package>[\w]+) )?(?P<baseaddr>0x[\da-fA-F]+) \+ (?P<offset>[\da-fA-F]+)')
+    r'((?P<package>[\w]+) )(?P<baseaddr>0x[\da-fA-F]+) \+ (?P<offset>[\da-fA-F]+)')
 
 
 def process_unreal_crash(payload, user_id, environment, event):
@@ -136,7 +136,6 @@ def merge_unreal_context_event(unreal_context, event, project):
         portable_callstack = runtime_prop.pop('portable_call_stack', None)
         if portable_callstack is not None:
             frames = []
-
             images = get_path(event, 'debug_meta', 'images', filter=True, default=())
             for match in _portable_callstack_regexp.finditer(portable_callstack):
                 baseaddr = int(match.group('baseaddr'), 16)
