@@ -49,7 +49,8 @@ export const INTERFACES = {
 
 class EventEntries extends React.Component {
   static propTypes = {
-    organization: SentryTypes.Organization.isRequired,
+    // organization is not provided in the shared issue view
+    organization: SentryTypes.Organization,
     group: SentryTypes.Group.isRequired,
     event: SentryTypes.Event.isRequired,
     orgId: PropTypes.string.isRequired,
