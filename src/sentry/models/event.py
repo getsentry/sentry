@@ -54,17 +54,27 @@ def _should_skip_to_python(event_id):
 
 
 class EventDict(CanonicalKeyDict):
-    def __init__(self, data, **kwargs):
-        rust_renormalized = _should_skip_to_python(data.get('event_id'))
-        if rust_renormalized:
-            normalizer = StoreNormalizer(is_renormalize=True)
-            data = normalizer.normalize_event(dict(data))
+    """
+    Creating an instance of this dictionary will send the event through basic
+    (Rust-based) type/schema validation called "re-normalization".
 
-        metrics.incr('rust.renormalized',
-                     tags={'value': rust_renormalized})
+    This is used as a wrapper type for `Event.data` such that creating an event
+    object (or loading it from the DB) will ensure the data fits the type
+    schema.
+    """
 
-        with configure_scope() as scope:
-            scope.set_tag("rust.renormalized", rust_renormalized)
+    def __init__(self, data, skip_renormalization=False, **kwargs):
+        if not skip_renormalization and not isinstance(data, EventDict):
+            rust_renormalized = _should_skip_to_python(data.get('event_id'))
+            if rust_renormalized:
+                normalizer = StoreNormalizer(is_renormalize=True)
+                data = normalizer.normalize_event(dict(data))
+
+            metrics.incr('rust.renormalized',
+                         tags={'value': rust_renormalized})
+
+            with configure_scope() as scope:
+                scope.set_tag("rust.renormalized", rust_renormalized)
 
         CanonicalKeyDict.__init__(self, data, **kwargs)
 
