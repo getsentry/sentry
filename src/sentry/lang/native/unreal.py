@@ -8,7 +8,7 @@ import re
 import uuid
 
 _portable_callstack_regexp = re.compile(
-    r'((?P<package>[\w]+) )(?P<baseaddr>0x[\da-fA-F]+) \+ (?P<offset>[\da-fA-F]+)')
+    r'(?P<package>[\w]+) (?P<baseaddr>0x[\da-fA-F]+) \+ (?P<offset>[\da-fA-F]+)')
 
 
 def process_unreal_crash(payload, user_id, environment, event):
