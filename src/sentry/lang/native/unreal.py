@@ -5,7 +5,6 @@ from sentry.models import UserReport
 from sentry.utils.safe import set_path, setdefault_path, get_path
 
 import re
-import uuid
 
 _portable_callstack_regexp = re.compile(
     r'(?P<package>[\w]+) (?P<baseaddr>0x[\da-fA-F]+) \+ (?P<offset>[\da-fA-F]+)')
@@ -15,8 +14,6 @@ def process_unreal_crash(payload, user_id, environment, event):
     """Initial processing of the event from the Unreal Crash Reporter data.
     Processes the raw bytes of the unreal crash by returning a Unreal4Crash"""
 
-    event_id = uuid.uuid4().hex
-    event['event_id'] = event_id
     event['environment'] = environment
 
     if user_id:
@@ -118,14 +115,13 @@ def merge_unreal_context_event(unreal_context, event, project):
 
     user_desc = runtime_prop.pop('user_description', None)
     if user_desc is not None:
-        event_id = event.setdefault('event_id', uuid.uuid4().hex)
         feedback_user = 'unknown'
         if username is not None:
             feedback_user = username
 
         UserReport.objects.create(
             project=project,
-            event_id=event_id,
+            event_id=event['event_id'],
             name=feedback_user,
             email='',
             comments=user_desc,
