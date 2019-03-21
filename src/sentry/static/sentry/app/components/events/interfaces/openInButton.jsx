@@ -34,10 +34,10 @@ class OpenInButton extends React.Component {
   fetchIssueLinkComponents() {
     const {api, organization, group} = this.props;
     const hasOrganization = !!organization;
-    const features = new Set(organization.features);
-    const hasSentryApps = hasOrganization && features.has('sentry-apps');
+    const hasSentryApps =
+      hasOrganization && new Set(organization.features).has('sentry-apps');
 
-    if (hasSentryApps && group && group.project) {
+    if (hasSentryApps && group && group.project && group.project.id) {
       api
         .requestPromise(
           `/organizations/${organization.slug}/sentry-app-components/?filter=stacktrace-link&projectId=${group
