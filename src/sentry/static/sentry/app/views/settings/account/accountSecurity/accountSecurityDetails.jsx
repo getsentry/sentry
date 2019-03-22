@@ -137,11 +137,9 @@ class AccountSecurityDetails extends AsyncView {
                 )}
                 disabled={!deleteDisabled}
               >
-                <span>
-                  <RemoveConfirm onConfirm={this.handleRemove} disabled={deleteDisabled}>
-                    <Button priority="danger">{authenticator.removeButton}</Button>
-                  </RemoveConfirm>
-                </span>
+                <RemoveConfirm onConfirm={this.handleRemove} disabled={deleteDisabled}>
+                  <Button priority="danger">{authenticator.removeButton}</Button>
+                </RemoveConfirm>
               </Tooltip>
             )
           }
