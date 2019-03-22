@@ -59,10 +59,17 @@ class OrganizationRecentSearchesEndpoint(OrganizationEndpoint):
                 status=400,
             )
 
+        query_kwargs = {
+            'organization': organization,
+            'user': request.user,
+            'type': search_type,
+        }
+
+        if 'query' in request.GET:
+            query_kwargs['query__icontains'] = request.GET['query']
+
         recent_searches = list(RecentSearch.objects.filter(
-            organization=organization,
-            user=request.user,
-            type=search_type,
+            **query_kwargs
         ).order_by('-last_seen')[:limit])
 
         return Response(serialize(recent_searches, request.user))

@@ -22,9 +22,12 @@ class RecentSearchesListTest(APITestCase):
     def user(self):
         return self.create_user('test@test.com')
 
-    def check_results(self, expected, search_type):
+    def check_results(self, expected, search_type, query=None):
         self.login_as(user=self.user)
-        response = self.get_valid_response(self.organization.slug, type=search_type.value)
+        kwargs = {}
+        if query:
+            kwargs['query'] = query
+        response = self.get_valid_response(self.organization.slug, type=search_type.value, **kwargs)
         assert response.data == serialize(expected)
 
     def test_simple(self):
@@ -92,6 +95,39 @@ class RecentSearchesListTest(APITestCase):
             )
             assert response.status_code == 400
             assert response.data['detail'].startswith(expected_error)
+
+    def test_query(self):
+        issue_recent_searches = [
+            RecentSearch.objects.create(
+                organization=self.organization,
+                user=self.user,
+                type=SearchType.ISSUE.value,
+                query='some test',
+                last_seen=timezone.now().replace(microsecond=0),
+                date_added=timezone.now().replace(microsecond=0),
+            ),
+            RecentSearch.objects.create(
+                organization=self.organization,
+                user=self.user,
+                type=SearchType.ISSUE.value,
+                query='older query',
+                last_seen=timezone.now().replace(microsecond=0) - timedelta(minutes=30),
+                date_added=timezone.now().replace(microsecond=0) - timedelta(minutes=30),
+            ),
+            RecentSearch.objects.create(
+                organization=self.organization,
+                user=self.user,
+                type=SearchType.ISSUE.value,
+                query='oldest query',
+                last_seen=timezone.now().replace(microsecond=0) - timedelta(hours=1),
+                date_added=timezone.now().replace(microsecond=0) - timedelta(hours=1),
+            ),
+        ]
+        self.check_results(
+            issue_recent_searches[1:],
+            search_type=SearchType.ISSUE,
+            query='lde'
+        )
 
 
 class RecentSearchesCreateTest(APITestCase):
