@@ -31,19 +31,17 @@ export default class AddIntegrationButton extends React.Component {
         disabled={provider.canAdd}
         title={`Integration cannot be added on Sentry. Enable this integration via the ${provider.name} instance.`}
       >
-        <span>
-          <AddIntegration provider={provider} onInstall={onAddIntegration}>
-            {onClick => (
-              <Button
-                disabled={!provider.canAdd}
-                {...buttonProps}
-                onClick={() => onClick()}
-              >
-                {label}
-              </Button>
-            )}
-          </AddIntegration>
-        </span>
+        <AddIntegration provider={provider} onInstall={onAddIntegration}>
+          {onClick => (
+            <Button
+              disabled={!provider.canAdd}
+              {...buttonProps}
+              onClick={() => onClick()}
+            >
+              {label}
+            </Button>
+          )}
+        </AddIntegration>
       </Tooltip>
     );
   }

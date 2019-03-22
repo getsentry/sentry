@@ -169,9 +169,7 @@ class IntegrationDetailsModal extends React.Component {
                     title={t('You must be an Owner, Manager or Admin to install this.')}
                     disabled={hasAccess}
                   >
-                    <span>
-                      <AddButton disabled={disabled || !hasAccess} />
-                    </span>
+                    <AddButton disabled={disabled || !hasAccess} />
                   </Tooltip>
                 )}
               </Access>

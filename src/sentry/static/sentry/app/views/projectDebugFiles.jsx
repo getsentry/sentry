@@ -163,21 +163,19 @@ class ProjectDebugSymbols extends AsyncComponent {
                   disabled={hasAccess}
                   title={t('You do not have permission to delete debug files.')}
                 >
-                  <span>
-                    <Confirm
-                      title={t('Delete')}
-                      message={t('Are you sure you wish to delete this file?')}
-                      onConfirm={() => this.onDelete(dsym.id)}
+                  <Confirm
+                    title={t('Delete')}
+                    message={t('Are you sure you wish to delete this file?')}
+                    onConfirm={() => this.onDelete(dsym.id)}
+                    disabled={!hasAccess}
+                  >
+                    <Button
+                      priority="danger"
+                      icon="icon-trash"
+                      size="xsmall"
                       disabled={!hasAccess}
-                    >
-                      <Button
-                        priority="danger"
-                        icon="icon-trash"
-                        size="xsmall"
-                        disabled={!hasAccess}
-                      />
-                    </Confirm>
-                  </span>
+                    />
+                  </Confirm>
                 </Tooltip>
               )}
             </Access>

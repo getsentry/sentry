@@ -161,16 +161,14 @@ class AccountSecurity extends AsyncView {
                             )}
                             disabled={!deleteDisabled}
                           >
-                            <span>
-                              <RemoveConfirm
-                                onConfirm={() => onDisable(auth)}
-                                disabled={deleteDisabled}
-                              >
-                                <Button css={{marginLeft: 6}} size="small">
-                                  <span className="icon icon-trash" />
-                                </Button>
-                              </RemoveConfirm>
-                            </span>
+                            <RemoveConfirm
+                              onConfirm={() => onDisable(auth)}
+                              disabled={deleteDisabled}
+                            >
+                              <Button css={{marginLeft: 6}} size="small">
+                                <span className="icon icon-trash" />
+                              </Button>
+                            </RemoveConfirm>
                           </Tooltip>
                         )}
 

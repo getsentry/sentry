@@ -12,11 +12,9 @@ const BetaTag = () => (
       placement: 'right',
     }}
   >
-    <span>
-      <StyledTag priority="beta" size="small">
-        beta
-      </StyledTag>
-    </span>
+    <StyledTag priority="beta" size="small">
+      beta
+    </StyledTag>
   </Tooltip>
 );
 

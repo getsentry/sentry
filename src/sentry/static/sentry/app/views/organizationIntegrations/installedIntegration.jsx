@@ -133,16 +133,14 @@ export default class InstalledIntegration extends React.Component {
                   tooltipOptions={{placement: 'left'}}
                   title="Integration not configurable"
                 >
-                  <span>
-                    <StyledButton
-                      borderless
-                      icon="icon-settings"
-                      disabled={!this.hasConfiguration() || !hasAccess}
-                      to={`/settings/${orgId}/integrations/${provider.key}/${integration.id}/`}
-                    >
-                      Configure
-                    </StyledButton>
-                  </span>
+                  <StyledButton
+                    borderless
+                    icon="icon-settings"
+                    disabled={!this.hasConfiguration() || !hasAccess}
+                    to={`/settings/${orgId}/integrations/${provider.key}/${integration.id}/`}
+                  >
+                    Configure
+                  </StyledButton>
                 </Tooltip>
               )}
             </Box>

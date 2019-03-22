@@ -114,9 +114,7 @@ export default class SentryApplicationRow extends React.PureComponent {
                 this.renderRemoveApp(app)
               ) : (
                 <Tooltip title={t('Published apps cannot be removed.')}>
-                  <span>
-                    <Button disabled={true} size="small" icon="icon-trash" />
-                  </span>
+                  <Button disabled={true} size="small" icon="icon-trash" />
                 </Tooltip>
               )}
             </Box>
