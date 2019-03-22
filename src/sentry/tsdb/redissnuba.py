@@ -2,6 +2,8 @@ from __future__ import absolute_import
 
 import inspect
 import six
+from threading import Thread
+from six.moves.queue import Queue
 
 from sentry.tsdb.base import BaseTSDB
 from sentry.tsdb.dummy import DummyTSDB
@@ -50,6 +52,10 @@ method_specifications = {
     'flush': (WRITE, dont_do_this),
 }
 
+async_methods = {
+    'incr', 'incr_multi',
+}
+
 assert set(method_specifications) == BaseTSDB.__read_methods__ | BaseTSDB.__write_methods__, \
     'all read and write methods must have a specification defined'
 
@@ -75,6 +81,11 @@ def make_method(key):
     def method(self, *a, **kw):
         callargs = inspect.getcallargs(getattr(BaseTSDB, key), self, *a, **kw)
         backend = selector_func(key, callargs)
+        if backend == 'redis' and key in async_methods:
+            if not self._started:
+                self._start()
+            self.q.put((backend, key, a, kw))
+            return
         return getattr(self.backends[backend], key)(*a, **kw)
     return method
 
@@ -98,4 +109,22 @@ class RedisSnubaTSDB(BaseTSDB):
             'redis': RedisTSDB(**options.pop('redis', {})),
             'snuba': SnubaTSDB(**options.pop('snuba', {})),
         }
+        self._started = False
         super(RedisSnubaTSDB, self).__init__(**options)
+
+    def _start(self):
+        self.q = q = Queue()
+
+        def worker():
+            while True:
+                backend, method, args, kwargs = q.get()
+                try:
+                    getattr(self.backends[backend], method)(*args, **kwargs)
+                finally:
+                    q.task_done()
+
+        t = Thread(target=worker)
+        t.setDaemon(True)
+        t.start()
+
+        self._started = True
