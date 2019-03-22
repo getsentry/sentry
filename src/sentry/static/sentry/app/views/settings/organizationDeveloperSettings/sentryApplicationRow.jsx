@@ -119,9 +119,7 @@ export default class SentryApplicationRow extends React.PureComponent {
                         <Tooltip
                           title={t('Owner permissions are required for this action.')}
                         >
-                          <span>
-                            <Button disabled={true} size="small" icon="icon-trash" />
-                          </span>
+                          <Button disabled size="small" icon="icon-trash" />
                         </Tooltip>
                       )}
                       {hasAccess && this.renderRemoveApp(app)}
@@ -130,7 +128,7 @@ export default class SentryApplicationRow extends React.PureComponent {
                 </Access>
               ) : (
                 <Tooltip title={t('Published apps cannot be removed.')}>
-                  <Button disabled={true} size="small" icon="icon-trash" />
+                  <Button disabled size="small" icon="icon-trash" />
                 </Tooltip>
               )}
             </Box>

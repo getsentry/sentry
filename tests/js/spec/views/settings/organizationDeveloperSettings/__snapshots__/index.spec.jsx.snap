@@ -2169,40 +2169,45 @@ exports[`Organization Developer Settings without Owner permissions trash button 
                                             <Tooltip
                                               title="Owner permissions are required for this action."
                                             >
-                                              <span
+                                              <Button
                                                 className="tip"
+                                                disabled={true}
+                                                icon="icon-trash"
+                                                size="small"
                                                 title="Owner permissions are required for this action."
                                               >
-                                                <Button
-                                                  disabled={true}
-                                                  icon="icon-trash"
-                                                  size="small"
+                                                <Tooltip
+                                                  title="Owner permissions are required for this action."
                                                 >
                                                   <StyledButton
                                                     aria-disabled={true}
+                                                    className="tip tip"
                                                     disabled={true}
                                                     href={null}
                                                     onClick={[Function]}
                                                     role="button"
                                                     size="small"
+                                                    title="Owner permissions are required for this action."
                                                     to={null}
                                                   >
                                                     <Component
                                                       aria-disabled={true}
-                                                      className="css-1ujzp8g-StyledButton-getColors eqrebog0"
+                                                      className="tip tip css-1ujzp8g-StyledButton-getColors eqrebog0"
                                                       href={null}
                                                       onClick={[Function]}
                                                       role="button"
                                                       size="small"
+                                                      title="Owner permissions are required for this action."
                                                       to={null}
                                                     >
                                                       <button
                                                         aria-disabled={true}
-                                                        className="css-1ujzp8g-StyledButton-getColors eqrebog0"
+                                                        className="tip tip css-1ujzp8g-StyledButton-getColors eqrebog0"
                                                         href={null}
                                                         onClick={[Function]}
                                                         role="button"
                                                         size="small"
+                                                        title="Owner permissions are required for this action."
                                                         to={null}
                                                       >
                                                         <ButtonLabel
@@ -2266,8 +2271,8 @@ exports[`Organization Developer Settings without Owner permissions trash button 
                                                       </button>
                                                     </Component>
                                                   </StyledButton>
-                                                </Button>
-                                              </span>
+                                                </Tooltip>
+                                              </Button>
                                             </Tooltip>
                                           </Access>
                                         </AccessContainer>
