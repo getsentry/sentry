@@ -88,6 +88,7 @@ describe('ExternalIssueActions', function() {
 describe('SentryAppExternalIssueActions', () => {
   let group;
   let component;
+  let sentryApp;
   let install;
   let externalIssue;
   let wrapper;
@@ -95,7 +96,8 @@ describe('SentryAppExternalIssueActions', () => {
   beforeEach(() => {
     group = TestStubs.Group();
     component = TestStubs.SentryAppComponent();
-    install = TestStubs.SentryAppInstallation();
+    sentryApp = TestStubs.SentryApp();
+    install = TestStubs.SentryAppInstallation({sentryApp});
     externalIssue = TestStubs.PlatformExternalIssue({
       groupId: group.id,
       serviceType: component.sentryApp.slug,

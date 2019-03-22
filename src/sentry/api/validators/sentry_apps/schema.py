@@ -36,14 +36,13 @@ SCHEMA = {
         'fieldset': {
             'type': 'array',
             'minItems': 1,
-            'items': [
-                {
-                    'anyOf': [
-                        {'$ref': '#/definitions/select'},
-                        {'$ref': '#/definitions/text'},
-                    ],
-                },
-            ],
+            'items': {
+                'anyOf': [
+                    {'$ref': '#/definitions/select'},
+                    {'$ref': '#/definitions/text'},
+                    {'$ref': '#/definitions/textarea'},
+                ],
+            },
         },
 
         # Form Components
@@ -87,6 +86,31 @@ SCHEMA = {
                 },
                 'name': {
                     'type': 'string',
+                },
+                'default': {
+                    'type': 'string',
+                    'enum': ['issue.title', 'issue.description'],
+                },
+            },
+            'required': ['type', 'label', 'name'],
+        },
+
+        'textarea': {
+            'type': 'object',
+            'properties': {
+                'type': {
+                    'type': 'string',
+                    'enum': ['textarea'],
+                },
+                'label': {
+                    'type': 'string',
+                },
+                'name': {
+                    'type': 'string',
+                },
+                'default': {
+                    'type': 'string',
+                    'enum': ['issue.title', 'issue.description'],
                 },
             },
             'required': ['type', 'label', 'name'],
