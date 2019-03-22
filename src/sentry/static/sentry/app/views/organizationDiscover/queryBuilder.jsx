@@ -118,7 +118,7 @@ export default function createQueryBuilder(initial = {}, organization) {
     const hasAbsolute = start && end;
     const daterange = {
       ...(hasAbsolute && {start, end}),
-      ...(range || (!hasAbsolute && {range: DEFAULT_STATS_PERIOD})),
+      ...(range ? {range} : !hasAbsolute && {range: DEFAULT_STATS_PERIOD}),
     };
 
     // Default to all fields if there are none selected, and no aggregation is
