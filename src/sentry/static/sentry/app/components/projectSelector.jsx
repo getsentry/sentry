@@ -391,7 +391,7 @@ const SettingsIcon = styled(InlineSvg)`
 `;
 
 const BadgeAndActionsWrapper = styled('div')`
-  animation: ${p => (p.bookmarkHasChanged ? `1s ${alertHighlight('default')}` : 'none')};
+  animation: ${p => (p.bookmarkHasChanged ? `1s ${alertHighlight('info')}` : 'none')};
   z-index: ${p => (p.bookmarkHasChanged ? 1 : 'inherit')};
   position: relative;
   border-style: solid;
