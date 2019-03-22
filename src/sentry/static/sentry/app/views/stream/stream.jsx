@@ -426,7 +426,9 @@ const Stream = createReactClass({
   },
 
   resumePolling() {
-    if (!this.state.pageLinks) return;
+    if (!this.state.pageLinks) {
+      return;
+    }
 
     // Only resume polling if we're on the first page of results
     const links = parseLinkHeader(this.state.pageLinks);
@@ -539,7 +541,9 @@ const Stream = createReactClass({
    * Returns true if all results in the current query are visible/on this page
    */
   allResultsVisible() {
-    if (!this.state.pageLinks) return false;
+    if (!this.state.pageLinks) {
+      return false;
+    }
 
     const links = parseLinkHeader(this.state.pageLinks);
     return links && !links.previous.results && !links.next.results;
@@ -668,7 +672,9 @@ const Stream = createReactClass({
     }
     const params = this.props.params;
     const classes = ['stream-row'];
-    if (this.state.isSidebarVisible) classes.push('show-sidebar');
+    if (this.state.isSidebarVisible) {
+      classes.push('show-sidebar');
+    }
     const {orgId, projectId} = this.props.params;
     const {organization} = this.context;
 

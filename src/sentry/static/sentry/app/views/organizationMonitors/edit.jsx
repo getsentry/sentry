@@ -25,8 +25,9 @@ export default class EditMonitor extends AsyncView {
   };
 
   getTitle() {
-    if (this.state.monitor)
+    if (this.state.monitor) {
       return `${this.state.monitor.name} - Monitors - ${this.props.params.orgId}`;
+    }
     return `Monitors - ${this.props.params.orgId}`;
   }
 

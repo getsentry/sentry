@@ -81,7 +81,9 @@ export default class AddIntegration extends React.Component {
       return;
     }
 
-    if (!data) return;
+    if (!data) {
+      return;
+    }
 
     this.props.onInstall(data);
     IndicatorStore.addSuccess(t(`${this.props.provider.name} added`));

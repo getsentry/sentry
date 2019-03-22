@@ -95,14 +95,18 @@ const GroupReleaseChart = createReactClass({
 
     const group = this.props.group;
     const stats = group.stats[this.props.statsPeriod];
-    if (!stats || !stats.length) return null;
+    if (!stats || !stats.length) {
+      return null;
+    }
 
     const {releasePoints, envPoints} = this.state;
 
     const points = stats.map(point => {
       const rData = releasePoints[point[0]] || 0;
       let eData = (envPoints[point[0]] || 0) - rData;
-      if (eData < 0) eData = 0;
+      if (eData < 0) {
+        eData = 0;
+      }
       const remaining = point[1] - rData - eData;
       return {
         x: point[0],

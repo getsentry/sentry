@@ -37,7 +37,9 @@ const Hook = createReactClass({
     const {name, ...props} = this.props;
 
     // Make sure that the incoming hook update matches this component's hook name
-    if (hookName !== name) return;
+    if (hookName !== name) {
+      return;
+    }
 
     this.setState(state => ({
       hooks: hooks.map(cb => cb(props)),
@@ -47,7 +49,9 @@ const Hook = createReactClass({
   render() {
     const {children} = this.props;
 
-    if (!this.state.hooks || !this.state.hooks.length) return null;
+    if (!this.state.hooks || !this.state.hooks.length) {
+      return null;
+    }
 
     if (typeof children === 'function') {
       return children({hooks: this.state.hooks});

@@ -24,7 +24,9 @@ class SplitDiff extends React.Component {
     const {className, type, base, target} = this.props;
     const diffFn = diffFnMap[type];
 
-    if (typeof diffFn !== 'function') return null;
+    if (typeof diffFn !== 'function') {
+      return null;
+    }
 
     const baseLines = base.split('\n');
     const targetLines = target.split('\n');

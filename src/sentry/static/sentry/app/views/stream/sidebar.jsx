@@ -54,8 +54,11 @@ const StreamSidebar = createReactClass({
 
   onSelectTag(tag, value) {
     const newQuery = {...this.state.queryObj};
-    if (value) newQuery[tag.key] = value;
-    else delete newQuery[tag.key];
+    if (value) {
+      newQuery[tag.key] = value;
+    } else {
+      delete newQuery[tag.key];
+    }
 
     this.setState(
       {

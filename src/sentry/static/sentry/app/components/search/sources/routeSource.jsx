@@ -63,8 +63,9 @@ class RouteSource extends React.Component {
     if (
       prevProps.project === this.props.project &&
       prevProps.organization === this.props.organization
-    )
+    ) {
       return;
+    }
 
     this.createSearch();
   }

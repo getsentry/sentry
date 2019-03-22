@@ -1,7 +1,9 @@
 import styled from 'react-emotion';
 
 const getBackgroundColor = p => {
-  if (p.color) return `background: ${p.color};`;
+  if (p.color) {
+    return `background: ${p.color};`;
+  }
 
   return `background: ${p.status === 'error'
     ? p.theme.error

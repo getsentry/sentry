@@ -47,7 +47,9 @@ class SelectAsyncControl extends React.Component {
   }
 
   componentWillUnmount() {
-    if (!this.api) return;
+    if (!this.api) {
+      return;
+    }
     this.api.clear();
     this.api = null;
   }
@@ -56,7 +58,9 @@ class SelectAsyncControl extends React.Component {
     const {url, onQuery} = this.props;
     const {query} = this.state;
 
-    if (!this.api) return null;
+    if (!this.api) {
+      return null;
+    }
 
     return this.api
       .requestPromise(url, {

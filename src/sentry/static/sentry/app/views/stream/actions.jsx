@@ -98,7 +98,9 @@ const getLabel = (numIssues, allInQuerySelected) => {
 };
 
 const ExtraDescription = ({all, query, queryCount}) => {
-  if (!all) return null;
+  if (!all) {
+    return null;
+  }
 
   if (query) {
     return (

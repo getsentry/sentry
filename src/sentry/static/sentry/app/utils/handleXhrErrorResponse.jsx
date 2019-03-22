@@ -2,8 +2,12 @@ import * as Sentry from '@sentry/browser';
 
 export default function handleXhrErrorResponse(message) {
   return resp => {
-    if (!resp) return;
-    if (!resp.responseJSON) return;
+    if (!resp) {
+      return;
+    }
+    if (!resp.responseJSON) {
+      return;
+    }
 
     const {responseJSON} = resp;
 
@@ -18,7 +22,9 @@ export default function handleXhrErrorResponse(message) {
     }
 
     // Ignore sudo-required errors
-    if (responseJSON.detail.code === 'sudo-required') return;
+    if (responseJSON.detail.code === 'sudo-required') {
+      return;
+    }
 
     if (typeof responseJSON.detail.message === 'string') {
       Sentry.withScope(scope => {

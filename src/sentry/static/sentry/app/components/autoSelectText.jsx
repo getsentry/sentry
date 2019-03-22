@@ -18,7 +18,9 @@ class AutoSelectText extends React.Component {
   };
 
   selectText = () => {
-    if (!this.el) return;
+    if (!this.el) {
+      return;
+    }
 
     selectText(this.el);
   };

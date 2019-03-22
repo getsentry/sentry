@@ -140,7 +140,9 @@ const RuleEditor = createReactClass({
 
   hasError(field) {
     const {error} = this.state;
-    if (!error) return false;
+    if (!error) {
+      return false;
+    }
     return !!error[field];
   },
 
@@ -200,7 +202,9 @@ const RuleEditor = createReactClass({
       ...activeEnvs.map(env => [env.name, env.displayName]),
     ];
 
-    if (!this.state.rule) return <LoadingIndicator />;
+    if (!this.state.rule) {
+      return <LoadingIndicator />;
+    }
 
     const {rule, loading, error} = this.state;
     const {actionMatch, actions, conditions, frequency, name} = rule;

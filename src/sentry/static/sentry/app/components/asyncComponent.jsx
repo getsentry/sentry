@@ -276,7 +276,9 @@ export default class AsyncComponent extends React.Component {
    */
   getEndpoints() {
     const endpoint = this.getEndpoint();
-    if (!endpoint) return [];
+    if (!endpoint) {
+      return [];
+    }
     return [['data', endpoint, this.getEndpointParams()]];
   }
 

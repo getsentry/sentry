@@ -222,7 +222,9 @@ class ProjectFiltersSettings extends AsyncComponent {
     const {orgId, projectId} = params;
     const {project} = this.state;
 
-    if (!project) return null;
+    if (!project) {
+      return null;
+    }
     const projectEndpoint = `/projects/${orgId}/${projectId}/`;
     const filtersEndpoint = `${projectEndpoint}filters/`;
 

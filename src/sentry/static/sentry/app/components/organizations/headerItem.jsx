@@ -100,7 +100,9 @@ class HeaderItem extends React.Component {
 }
 
 const getColor = p => {
-  if (p.locked) return p.theme.gray2;
+  if (p.locked) {
+    return p.theme.gray2;
+  }
   return p.isOpen || p.hasSelected ? p.theme.gray4 : p.theme.gray2;
 };
 

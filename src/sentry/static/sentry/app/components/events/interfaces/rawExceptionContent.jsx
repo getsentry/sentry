@@ -83,9 +83,11 @@ class RawExceptionContent extends React.Component {
           exc
         );
       if (this.isNative()) {
-        if (this.state.loading) content = <LoadingIndicator />;
-        else if (this.state.error) content = <LoadingError onRetry={this.fetchData} />;
-        else if (!this.state.loading && this.state.crashReport != '') {
+        if (this.state.loading) {
+          content = <LoadingIndicator />;
+        } else if (this.state.error) {
+          content = <LoadingError onRetry={this.fetchData} />;
+        } else if (!this.state.loading && this.state.crashReport != '') {
           content = <ClippedBox clipHeight={250}>{this.state.crashReport}</ClippedBox>;
           downloadButton = (
             <a

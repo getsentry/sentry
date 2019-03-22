@@ -29,7 +29,9 @@ const NewProject = createReactClass({
             <DocumentTitle title={'Sentry'} />
             <CreateProject
               getDocsUrl={({slug, projectSlug, platform}) => {
-                if (platform === 'other') platform = '';
+                if (platform === 'other') {
+                  platform = '';
+                }
                 return `/${slug}/${projectSlug}/getting-started/${platform}`;
               }}
             />
