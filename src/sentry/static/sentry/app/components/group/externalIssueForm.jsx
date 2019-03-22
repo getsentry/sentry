@@ -267,6 +267,9 @@ export class SentryAppExternalIssueForm extends React.Component {
 
         {optionalFields.map(field => {
           field.choices = field.choices || [];
+          if (['text', 'textarea'].includes(field.type) && field.default) {
+            field.defaultValue = this.getFieldDefault(field);
+          }
 
           return (
             <FieldFromConfig
