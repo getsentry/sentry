@@ -54,7 +54,9 @@ class Client {
 
   wrapCallback(id, error) {
     return (...args) => {
-      if (this.hasProjectBeenRenamed(...args)) return;
+      if (this.hasProjectBeenRenamed(...args)) {
+        return;
+      }
       respond(Client.mockAsync, error, ...args);
     };
   }

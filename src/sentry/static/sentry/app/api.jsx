@@ -76,7 +76,9 @@ export class Client {
 
     // XXX(billy): This actually will never happen because we can't intercept the 302
     // jQuery ajax will follow the redirect by default...
-    if (code !== PROJECT_MOVED) return false;
+    if (code !== PROJECT_MOVED) {
+      return false;
+    }
 
     const slug = response?.responseJSON?.detail?.extra?.slug;
 
@@ -98,7 +100,9 @@ export class Client {
       if (req && req.alive) {
         // Check if API response is a 302 -- means project slug was renamed and user
         // needs to be redirected
-        if (this.hasProjectBeenRenamed(...args)) return;
+        if (this.hasProjectBeenRenamed(...args)) {
+          return;
+        }
 
         // Call success callback
         return func.apply(req, args);
@@ -126,17 +130,23 @@ export class Client {
         retryRequest: () => {
           return this.requestPromise(path, requestOptions)
             .then((...args) => {
-              if (typeof requestOptions.success !== 'function') return;
+              if (typeof requestOptions.success !== 'function') {
+                return;
+              }
 
               requestOptions.success(...args);
             })
             .catch((...args) => {
-              if (typeof requestOptions.error !== 'function') return;
+              if (typeof requestOptions.error !== 'function') {
+                return;
+              }
               requestOptions.error(...args);
             });
         },
         onClose: () => {
-          if (typeof requestOptions.error !== 'function') return;
+          if (typeof requestOptions.error !== 'function') {
+            return;
+          }
           // If modal was closed, then forward the original response
           requestOptions.error(response);
         },
@@ -146,7 +156,9 @@ export class Client {
 
     // Call normal error callback
     const errorCb = this.wrapCallback(id, requestOptions.error);
-    if (typeof errorCb !== 'function') return;
+    if (typeof errorCb !== 'function') {
+      return;
+    }
     errorCb(response, ...responseArgs);
   }
 

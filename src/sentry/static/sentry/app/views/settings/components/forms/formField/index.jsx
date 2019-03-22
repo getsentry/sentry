@@ -138,7 +138,9 @@ class ControlState extends React.Component {
           {() => {
             const error = model.getError(name);
 
-            if (!error) return null;
+            if (!error) {
+              return null;
+            }
 
             return (
               <ControlStateWrapper>
@@ -271,9 +273,13 @@ class FormField extends React.Component {
     if (ref && !this.input) {
       const hash = this.context.location && this.context.location.hash;
 
-      if (!hash) return;
+      if (!hash) {
+        return;
+      }
 
-      if (hash !== `#${this.props.name}`) return;
+      if (hash !== `#${this.props.name}`) {
+        return;
+      }
 
       // Not all form fields have this (e.g. Select fields)
       if (typeof ref.focus === 'function') {
@@ -391,7 +397,9 @@ class FormField extends React.Component {
                   {() => {
                     const error = this.getError();
                     const shouldShowErrorMessage = error && !hideErrorMessage;
-                    if (!shouldShowErrorMessage) return null;
+                    if (!shouldShowErrorMessage) {
+                      return null;
+                    }
                     return <FormFieldErrorReason>{error}</FormFieldErrorReason>;
                   }}
                 </Observer>
@@ -433,7 +441,9 @@ class FormField extends React.Component {
             {() => {
               const showFieldSave = model.getFieldState(name, 'showSave');
 
-              if (!showFieldSave) return null;
+              if (!showFieldSave) {
+                return null;
+              }
 
               return (
                 <PanelAlert type={saveMessageAlertType}>
@@ -466,7 +476,9 @@ class FormField extends React.Component {
 
     // This field has no properties that require observation to compute their
     // value, this field is static and will not be re-rendered.
-    if (observedProps.length === 0) return makeField();
+    if (observedProps.length === 0) {
+      return makeField();
+    }
 
     const reducer = (a, [prop, fn]) => ({...a, [prop]: fn()});
     const observedPropsFn = () => makeField(observedProps.reduce(reducer, {}));

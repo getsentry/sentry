@@ -144,8 +144,11 @@ export default class ProjectServiceHooks extends AsyncView {
 
   renderBody() {
     let body;
-    if (this.state.hookList.length > 0) body = this.renderResults();
-    else body = this.renderEmpty();
+    if (this.state.hookList.length > 0) {
+      body = this.renderResults();
+    } else {
+      body = this.renderEmpty();
+    }
 
     const {orgId, projectId} = this.props.params;
     const access = new Set(this.context.organization.access);

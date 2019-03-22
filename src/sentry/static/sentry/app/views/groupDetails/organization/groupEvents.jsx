@@ -131,13 +131,17 @@ const GroupEvents = createReactClass({
   renderBody() {
     let body;
 
-    if (this.state.loading) body = <LoadingIndicator />;
-    else if (this.state.error)
+    if (this.state.loading) {
+      body = <LoadingIndicator />;
+    } else if (this.state.error) {
       body = <LoadingError message={this.state.error} onRetry={this.fetchData} />;
-    else if (this.state.eventList.length > 0) body = this.renderResults();
-    else if (this.state.query && this.state.query !== '')
+    } else if (this.state.eventList.length > 0) {
+      body = this.renderResults();
+    } else if (this.state.query && this.state.query !== '') {
       body = this.renderNoQueryResults();
-    else body = this.renderEmpty();
+    } else {
+      body = this.renderEmpty();
+    }
 
     return body;
   },

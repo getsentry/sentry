@@ -51,7 +51,7 @@ class ProjectGeneralSettings extends AsyncView {
     const {orgId, projectId} = this.props.params;
     return [
       ['data', `/projects/${orgId}/${projectId}/`],
-      ['groupingConfigs', `/grouping-configs/`],
+      ['groupingConfigs', '/grouping-configs/'],
     ];
   }
 
@@ -62,7 +62,9 @@ class ProjectGeneralSettings extends AsyncView {
   handleRemoveProject = () => {
     const {orgId} = this.props.params;
     const project = this.state.data;
-    if (!project) return;
+    if (!project) {
+      return;
+    }
 
     removeProject(this.api, orgId, project).then(() => {
       // Need to hard reload because lots of components do not listen to Projects Store
@@ -73,8 +75,12 @@ class ProjectGeneralSettings extends AsyncView {
   handleTransferProject = () => {
     const {orgId} = this.props.params;
     const project = this.state.data;
-    if (!project) return;
-    if (!this._form.email) return;
+    if (!project) {
+      return;
+    }
+    if (!this._form.email) {
+      return;
+    }
 
     transferProject(this.api, orgId, project, this._form.email).then(() => {
       // Need to hard reload because lots of components do not listen to Projects Store
@@ -356,10 +362,14 @@ class ProjectGeneralSettings extends AsyncView {
 const ProjectGeneralSettingsContainer = createReactClass({
   mixins: [Reflux.listenTo(ProjectsStore, 'onProjectsUpdate')],
   onProjectsUpdate(projects) {
-    if (!this.changedSlug) return;
+    if (!this.changedSlug) {
+      return;
+    }
     const project = ProjectsStore.getBySlug(this.changedSlug);
 
-    if (!project) return;
+    if (!project) {
+      return;
+    }
 
     browserHistory.replace(
       recreateRoute('', {

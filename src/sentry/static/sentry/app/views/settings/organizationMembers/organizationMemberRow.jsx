@@ -51,7 +51,9 @@ export default class OrganizationMemberRow extends React.PureComponent {
   handleRemove = e => {
     const {onRemove} = this.props;
 
-    if (typeof onRemove !== 'function') return;
+    if (typeof onRemove !== 'function') {
+      return;
+    }
 
     this.setState({busy: true});
     onRemove(this.props.member, e);
@@ -60,7 +62,9 @@ export default class OrganizationMemberRow extends React.PureComponent {
   handleLeave = e => {
     const {onLeave} = this.props;
 
-    if (typeof onLeave !== 'function') return;
+    if (typeof onLeave !== 'function') {
+      return;
+    }
 
     this.setState({busy: true});
     onLeave(this.props.member, e);
@@ -69,7 +73,9 @@ export default class OrganizationMemberRow extends React.PureComponent {
   handleSendInvite = e => {
     const {onSendInvite} = this.props;
 
-    if (typeof onSendInvite !== 'function') return;
+    if (typeof onSendInvite !== 'function') {
+      return;
+    }
 
     onSendInvite(this.props.member, e);
   };

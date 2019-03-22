@@ -79,7 +79,9 @@ const ProjectContext = createReactClass({
   },
 
   componentWillReceiveProps(nextProps) {
-    if (nextProps.projectId === this.props.projectId) return;
+    if (nextProps.projectId === this.props.projectId) {
+      return;
+    }
 
     if (!nextProps.skipReload) {
       this.remountComponent();
@@ -104,9 +106,13 @@ const ProjectContext = createReactClass({
       prevState.project !== this.state.project ||
       prevState.organization !== this.state.organization
     ) {
-      if (!this.docTitle) return;
+      if (!this.docTitle) {
+        return;
+      }
       const docTitle = this.docTitleRef.docTitle;
-      if (docTitle) docTitle.forceUpdate();
+      if (docTitle) {
+        docTitle.forceUpdate();
+      }
     }
   },
 
@@ -115,13 +121,19 @@ const ProjectContext = createReactClass({
   },
 
   getTitle() {
-    if (this.state.project) return this.state.project.slug;
+    if (this.state.project) {
+      return this.state.project.slug;
+    }
     return 'Sentry';
   },
 
   onProjectChange(projectIds) {
-    if (!this.state.project) return;
-    if (!projectIds.has(this.state.project.id)) return;
+    if (!this.state.project) {
+      return;
+    }
+    if (!projectIds.has(this.state.project.id)) {
+      return;
+    }
 
     this.setState({
       project: {...ProjectsStore.getById(this.state.project.id)},

@@ -89,7 +89,9 @@ class ProjectSelector extends React.Component {
     const {onMultiSelect} = this.props;
     const {slug} = project;
     // Don't update state if this is a controlled component
-    if (this.isControlled()) return;
+    if (this.isControlled()) {
+      return;
+    }
 
     this.setState(state => {
       const selectedProjects = new Map(state.selectedProjects.entries());
@@ -200,7 +202,9 @@ class ProjectSelector extends React.Component {
             typeof menuFooter === 'function' ? menuFooter(renderProps) : menuFooter;
           const showCreateProjectButton = !hasProjects && hasProjectWrite;
 
-          if (!renderedFooter && !showCreateProjectButton) return null;
+          if (!renderedFooter && !showCreateProjectButton) {
+            return null;
+          }
 
           return (
             <React.Fragment>

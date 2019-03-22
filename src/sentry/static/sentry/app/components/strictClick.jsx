@@ -51,7 +51,9 @@ class StrictClick extends React.PureComponent {
 
   render() {
     // Bail out early if there is no onClick handler
-    if (!this.props.onClick) return this.props.children;
+    if (!this.props.onClick) {
+      return this.props.children;
+    }
 
     return React.cloneElement(this.props.children, {
       onMouseDown: this.handleMouseDown,

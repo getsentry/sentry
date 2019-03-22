@@ -228,7 +228,9 @@ export default class AccountNotificationFineTuning extends AsyncView {
   // Return a sorted list of user's verified emails
   getEmailChoices() {
     const {emails} = this.state;
-    if (!emails) return [];
+    if (!emails) {
+      return [];
+    }
 
     return emails.filter(({isVerified}) => isVerified).sort((a, b) => {
       // Sort by primary -> email

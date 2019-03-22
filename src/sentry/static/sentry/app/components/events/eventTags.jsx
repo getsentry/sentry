@@ -27,7 +27,9 @@ class EventTags extends React.Component {
   render() {
     const tags = this.props.event.tags;
 
-    if (_.isEmpty(tags)) return null;
+    if (_.isEmpty(tags)) {
+      return null;
+    }
 
     const {event, group, organization, orgId, projectId} = this.props;
 

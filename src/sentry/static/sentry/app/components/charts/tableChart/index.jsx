@@ -219,7 +219,9 @@ export const TableChart = styled(
 
     // TODO(billy): memoize?
     getTotals(rows) {
-      if (!rows) return [];
+      if (!rows) {
+        return [];
+      }
 
       const {getValue, dataStartIndex} = this.props;
 
@@ -257,7 +259,9 @@ export const TableChart = styled(
         columnTotalLabel,
       } = this.props;
 
-      if (!data) return [];
+      if (!data) {
+        return [];
+      }
 
       const totalRow = showColumnTotal
         ? [

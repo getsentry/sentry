@@ -13,7 +13,9 @@ class AccountSecurityWrapper extends AsyncComponent {
   }
 
   handleDisable = auth => {
-    if (!auth || !auth.authId) return;
+    if (!auth || !auth.authId) {
+      return;
+    }
 
     this.setState(
       {

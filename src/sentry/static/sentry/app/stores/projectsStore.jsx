@@ -33,7 +33,9 @@ const ProjectsStore = Reflux.createStore({
     const prevProject = this.getBySlug(prevSlug);
 
     // This shouldn't happen
-    if (!prevProject) return;
+    if (!prevProject) {
+      return;
+    }
 
     const newProject = {
       ...prevProject,
@@ -103,7 +105,9 @@ const ProjectsStore = Reflux.createStore({
 
   onRemoveTeam(teamSlug, projectSlug) {
     const project = this.getBySlug(projectSlug);
-    if (!project) return;
+    if (!project) {
+      return;
+    }
 
     this.removeTeamFromProject(teamSlug, project);
     this.trigger(new Set([project.id]));
@@ -113,7 +117,9 @@ const ProjectsStore = Reflux.createStore({
     const project = this.getBySlug(projectSlug);
 
     // Don't do anything if we can't find a project
-    if (!project) return;
+    if (!project) {
+      return;
+    }
 
     this.itemsById = {
       ...this.itemsById,
@@ -150,8 +156,12 @@ const ProjectsStore = Reflux.createStore({
 
   getAll() {
     return Object.values(this.itemsById).sort((a, b) => {
-      if (a.slug > b.slug) return 1;
-      if (a.slug < b.slug) return -1;
+      if (a.slug > b.slug) {
+        return 1;
+      }
+      if (a.slug < b.slug) {
+        return -1;
+      }
       return 0;
     });
   },

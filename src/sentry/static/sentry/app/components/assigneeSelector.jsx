@@ -48,14 +48,18 @@ const AssigneeSelectorComponent = createReactClass({
   statics: {
     putSessionUserFirst(members) {
       // If session user is in the filtered list of members, put them at the top
-      if (!members) return [];
+      if (!members) {
+        return [];
+      }
 
       const sessionUser = ConfigStore.get('user');
       const sessionUserIndex = members.findIndex(
         member => sessionUser && member.id === sessionUser.id
       );
 
-      if (sessionUserIndex === -1) return members;
+      if (sessionUserIndex === -1) {
+        return members;
+      }
 
       return [members[sessionUserIndex]]
         .concat(members.slice(0, sessionUserIndex))
@@ -253,7 +257,9 @@ const AssigneeSelectorComponent = createReactClass({
             zIndex={2}
             onOpen={e => {
               // This can be called multiple times and does not always have `event`
-              if (!e) return;
+              if (!e) {
+                return;
+              }
               e.stopPropagation();
             }}
             busy={memberList === null}

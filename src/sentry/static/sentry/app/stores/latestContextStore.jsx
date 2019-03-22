@@ -49,10 +49,16 @@ const LatestContextStore = Reflux.createStore({
 
   onUpdateOrganization(org) {
     // Don't do anything if base/target orgs are falsey
-    if (!this.state.organization) return;
-    if (!org) return;
+    if (!this.state.organization) {
+      return;
+    }
+    if (!org) {
+      return;
+    }
     // Check to make sure current active org is what has been updated
-    if (org.slug !== this.state.organization.slug) return;
+    if (org.slug !== this.state.organization.slug) {
+      return;
+    }
 
     this.state = {
       ...this.state,

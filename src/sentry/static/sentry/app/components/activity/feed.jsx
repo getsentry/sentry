@@ -86,9 +86,11 @@ class ActivityFeed extends React.Component {
   renderResults() {
     let body;
 
-    if (this.state.loading) body = this.renderLoading();
-    else if (this.state.error) body = <LoadingError onRetry={this.fetchData} />;
-    else if (this.state.itemList.length > 0) {
+    if (this.state.loading) {
+      body = this.renderLoading();
+    } else if (this.state.error) {
+      body = <LoadingError onRetry={this.fetchData} />;
+    } else if (this.state.itemList.length > 0) {
       body = (
         <div className="activity-container">
           <ul className="activity">
@@ -113,7 +115,9 @@ class ActivityFeed extends React.Component {
           </ul>
         </div>
       );
-    } else body = this.renderEmpty();
+    } else {
+      body = this.renderEmpty();
+    }
 
     return body;
   }

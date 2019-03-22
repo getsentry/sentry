@@ -13,7 +13,9 @@ const AlertStore = Reflux.createStore({
 
   onAddAlert(alert) {
     const alertAlreadyExists = this.alerts.some(a => a.id == alert.id);
-    if (alertAlreadyExists && alert.noDuplicates) return;
+    if (alertAlreadyExists && alert.noDuplicates) {
+      return;
+    }
 
     if (defined(alert.id)) {
       let expirations = localStorage.getItem('alerts:muted');

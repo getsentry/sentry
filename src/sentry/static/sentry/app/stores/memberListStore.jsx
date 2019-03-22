@@ -16,7 +16,9 @@ const MemberListStore = Reflux.createStore({
   },
 
   getById(id) {
-    if (!this.items) return null;
+    if (!this.items) {
+      return null;
+    }
 
     id = '' + id;
     for (let i = 0; i < this.items.length; i++) {
@@ -28,7 +30,9 @@ const MemberListStore = Reflux.createStore({
   },
 
   getByEmail(email) {
-    if (!this.items) return null;
+    if (!this.items) {
+      return null;
+    }
 
     email = email.toLowerCase();
     for (let i = 0; i < this.items.length; i++) {

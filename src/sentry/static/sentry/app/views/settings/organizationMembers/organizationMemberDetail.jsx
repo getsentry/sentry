@@ -156,7 +156,9 @@ class OrganizationMemberDetail extends AsyncView {
     const {require2FA} = this.getOrganization();
     const {user} = member;
 
-    if (!user || !user.authenticators || require2FA) return false;
+    if (!user || !user.authenticators || require2FA) {
+      return false;
+    }
     const hasAuth = user.authenticators.length >= 1;
     return hasAuth && user.canReset2fa;
   };
@@ -166,12 +168,22 @@ class OrganizationMemberDetail extends AsyncView {
     const {require2FA} = this.getOrganization();
     const {user} = member;
 
-    if (!user) return '';
+    if (!user) {
+      return '';
+    }
 
-    if (!user.authenticators) return NO_PERMISSION;
-    if (!user.authenticators.length) return NOT_ENROLLED;
-    if (!user.canReset2fa) return MULTIPLE_ORGS;
-    if (require2FA) return TWO_FACTOR_REQUIRED;
+    if (!user.authenticators) {
+      return NO_PERMISSION;
+    }
+    if (!user.authenticators.length) {
+      return NOT_ENROLLED;
+    }
+    if (!user.canReset2fa) {
+      return MULTIPLE_ORGS;
+    }
+    if (require2FA) {
+      return TWO_FACTOR_REQUIRED;
+    }
 
     return '';
   };
@@ -181,7 +193,9 @@ class OrganizationMemberDetail extends AsyncView {
     const organization = this.getOrganization();
     const access = organization.access;
 
-    if (!member) return <NotFound />;
+    if (!member) {
+      return <NotFound />;
+    }
 
     const inviteLink = member.invite_link;
     const canEdit = access.includes('org:write');

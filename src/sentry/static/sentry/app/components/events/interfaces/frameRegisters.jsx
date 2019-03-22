@@ -28,7 +28,9 @@ export class RegisterValue extends React.Component {
   formatValue = value => {
     try {
       const parsed = typeof value === 'string' ? parseInt(value, 16) : value;
-      if (isNaN(parsed)) return value;
+      if (isNaN(parsed)) {
+        return value;
+      }
 
       switch (this.state.view) {
         case 1:

@@ -106,13 +106,19 @@ const ReleaseCommits = createReactClass({
   },
 
   render() {
-    if (this.state.loading) return <LoadingIndicator />;
+    if (this.state.loading) {
+      return <LoadingIndicator />;
+    }
 
-    if (this.state.error) return <LoadingError />;
+    if (this.state.error) {
+      return <LoadingError />;
+    }
 
     const {commitList, activeRepo} = this.state;
 
-    if (!commitList.length) return <this.emptyState />;
+    if (!commitList.length) {
+      return <this.emptyState />;
+    }
     const commitsByRepository = this.getCommitsByRepository();
     return (
       <div>

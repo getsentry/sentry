@@ -58,7 +58,9 @@ export default function getConfiguration({project}) {
           title: t('Processing Issues'),
           // eslint-disable-next-line no-shadow
           badge: ({project}) => {
-            if (project.processingIssues <= 0) return null;
+            if (project.processingIssues <= 0) {
+              return null;
+            }
             return project.processingIssues > 99 ? '99+' : project.processingIssues;
           },
         },

@@ -127,8 +127,12 @@ const ProjectCardContainer = createReactClass({
     const {project} = this.props;
 
     // Don't update state if we already have stats
-    if (!itemsBySlug[project.slug]) return;
-    if (itemsBySlug[project.slug] === this.state.projectDetails) return;
+    if (!itemsBySlug[project.slug]) {
+      return;
+    }
+    if (itemsBySlug[project.slug] === this.state.projectDetails) {
+      return;
+    }
 
     this.setState({
       projectDetails: itemsBySlug[project.slug],

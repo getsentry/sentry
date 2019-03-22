@@ -14,7 +14,9 @@ const OrganizationRateLimitsContainer = createReactClass({
   mixins: [OrganizationState],
 
   render() {
-    if (!this.context.organization) return null;
+    if (!this.context.organization) {
+      return null;
+    }
 
     return (
       <OrganizationRateLimits {...this.props} organization={this.context.organization} />

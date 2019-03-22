@@ -73,7 +73,9 @@ const OrganizationTeamsContainer = createReactClass({
   },
 
   render() {
-    if (!this.context.organization) return null;
+    if (!this.context.organization) {
+      return null;
+    }
 
     const access = this.getAccess();
     const features = this.getFeatures();

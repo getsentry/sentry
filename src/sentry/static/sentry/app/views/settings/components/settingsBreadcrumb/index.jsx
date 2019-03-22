@@ -39,7 +39,9 @@ class SettingsBreadcrumb extends React.Component {
   };
 
   componentDidUpdate(prevProps) {
-    if (this.props.routes === prevProps.routes) return;
+    if (this.props.routes === prevProps.routes) {
+      return;
+    }
     SettingsBreadcrumbActions.trimMappings(this.props.routes);
   }
 
@@ -49,7 +51,9 @@ class SettingsBreadcrumb extends React.Component {
     return (
       <Breadcrumbs>
         {routes.map((route, i) => {
-          if (!route.name) return null;
+          if (!route.name) {
+            return null;
+          }
           const pathTitle = pathMap[getRouteStringFromRoutes(routes.slice(0, i + 1))];
           const isLast = i === lastRouteIndex;
           const createMenu = MENUS[route.name];

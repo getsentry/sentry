@@ -254,9 +254,13 @@ class EventContextSummary extends React.Component {
     // Add defined contexts in the declared order, until we reach the limit
     // defined by MAX_CONTEXTS.
     let contexts = KNOWN_CONTEXTS.map(({key, Component, ...props}) => {
-      if (contextCount >= MAX_CONTEXTS) return null;
+      if (contextCount >= MAX_CONTEXTS) {
+        return null;
+      }
       const data = evt.contexts[key] || evt[key];
-      if (objectIsEmpty(data)) return null;
+      if (objectIsEmpty(data)) {
+        return null;
+      }
       contextCount += 1;
       return <Component key={key} data={data} {...props} />;
     });
@@ -270,8 +274,12 @@ class EventContextSummary extends React.Component {
       // Add contents in the declared order until we have at least MIN_CONTEXTS
       // contexts in our list.
       contexts = KNOWN_CONTEXTS.map(({key, Component, ...props}, index) => {
-        if (contexts[index]) return contexts[index];
-        if (contextCount >= MIN_CONTEXTS) return null;
+        if (contexts[index]) {
+          return contexts[index];
+        }
+        if (contextCount >= MIN_CONTEXTS) {
+          return null;
+        }
         contextCount += 1;
         return <Component key={key} data={{}} {...props} />;
       });

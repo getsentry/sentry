@@ -67,7 +67,9 @@ class EventEntries extends React.Component {
   componentDidMount() {
     const {event} = this.props;
 
-    if (!event || !event.errors || !(event.errors.length > 0)) return;
+    if (!event || !event.errors || !(event.errors.length > 0)) {
+      return;
+    }
     const errors = event.errors;
     const errorTypes = errors.map(errorEntries => errorEntries.type);
     const errorMessages = errors.map(errorEntries => errorEntries.message);

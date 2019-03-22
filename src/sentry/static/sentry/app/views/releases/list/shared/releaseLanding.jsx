@@ -85,7 +85,9 @@ const ReleaseLanding = withApi(
       const {organization, project} = this.context;
 
       const title = cards[stepId].title;
-      if (stepId >= cards.length - 1) return;
+      if (stepId >= cards.length - 1) {
+        return;
+      }
       this.setState(state => ({
         stepId: state.stepId + 1,
       }));

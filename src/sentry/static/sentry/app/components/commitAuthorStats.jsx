@@ -77,9 +77,13 @@ class CommitAuthorStats extends React.Component {
   }
 
   render() {
-    if (this.state.loading) return <LoadingIndicator />;
+    if (this.state.loading) {
+      return <LoadingIndicator />;
+    }
 
-    if (this.state.error) return <LoadingError />;
+    if (this.state.error) {
+      return <LoadingError />;
+    }
 
     const {commitList} = this.state;
 

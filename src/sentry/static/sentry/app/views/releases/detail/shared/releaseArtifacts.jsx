@@ -104,9 +104,11 @@ class ReleaseArtifacts extends React.Component {
   }
 
   render() {
-    if (this.state.loading) return <LoadingIndicator />;
-    else if (this.state.error) return <LoadingError onRetry={this.fetchData} />;
-    else if (this.state.fileList.length === 0)
+    if (this.state.loading) {
+      return <LoadingIndicator />;
+    } else if (this.state.error) {
+      return <LoadingError onRetry={this.fetchData} />;
+    } else if (this.state.fileList.length === 0) {
       return (
         <Panel>
           <EmptyStateWarning>
@@ -114,6 +116,7 @@ class ReleaseArtifacts extends React.Component {
           </EmptyStateWarning>
         </Panel>
       );
+    }
 
     const access = new Set(this.props.organization.access);
 

@@ -27,8 +27,12 @@ class RouteError extends React.Component {
     const {disableLogSentry, disableReport, routes} = this.props;
     const {organization, project} = this.context;
 
-    if (disableLogSentry) return;
-    if (!error) return;
+    if (disableLogSentry) {
+      return;
+    }
+    if (!error) {
+      return;
+    }
 
     const route = getRouteStringFromRoutes(routes);
     if (route) {

@@ -83,10 +83,14 @@ const NoteInput = createReactClass({
 
     // We can't support this when editing an existing Note since it'll
     // clobber the other storages
-    if (this.state.updating) return;
+    if (this.state.updating) {
+      return;
+    }
 
     // Nothing changed
-    if (this.state.value === nextState.value) return;
+    if (this.state.value === nextState.value) {
+      return;
+    }
 
     try {
       localStorage.setItem(

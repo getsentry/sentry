@@ -12,7 +12,9 @@ class TeamAvatar extends React.Component {
 
   render() {
     const {team, ...props} = this.props;
-    if (!team) return null;
+    if (!team) {
+      return null;
+    }
     const slug = (team && team.slug) || '';
     const title = explodeSlug(slug);
     const tooltip = `#${title}`;

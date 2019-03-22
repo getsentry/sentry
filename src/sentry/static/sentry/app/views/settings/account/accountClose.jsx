@@ -71,7 +71,9 @@ class AccountClose extends AsyncView {
     const checked = event.target.checked;
 
     // Can't unselect an org where you are the single owner
-    if (isSingle) return;
+    if (isSingle) {
+      return;
+    }
 
     this.setState(state => {
       const set = state.orgsToRemove || new Set(this.getSingleOwners());

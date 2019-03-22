@@ -30,7 +30,9 @@ class ShareUrlContainer extends React.Component {
 
   // Select URL when its container is clicked
   handleCopyClick = () => {
-    if (!this.urlRef) return;
+    if (!this.urlRef) {
+      return;
+    }
     selectText(ReactDOM.findDOMNode(this.urlRef));
   };
 

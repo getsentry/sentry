@@ -78,7 +78,9 @@ class Search extends React.Component {
   }
 
   handleSelect = (item, state) => {
-    if (!item) return;
+    if (!item) {
+      return;
+    }
 
     analytics(`${this.props.entryPoint}.select`, {query: state && state.inputValue});
 
@@ -91,7 +93,9 @@ class Search extends React.Component {
       return;
     }
 
-    if (!to) return;
+    if (!to) {
+      return;
+    }
 
     if (to.startsWith('http')) {
       const open = window.open();
@@ -114,7 +118,9 @@ class Search extends React.Component {
   };
 
   saveQueryMetrics = debounce(query => {
-    if (!query) return;
+    if (!query) {
+      return;
+    }
     analytics(`${this.props.entryPoint}.query`, {query});
   }, 200);
 

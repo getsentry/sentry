@@ -23,7 +23,9 @@ const safeLinkPattern = /^(https?:|mailto:)/i;
 
 Renderer.prototype.link = function(href, title, text) {
   // For a bad link, just return the plain text href
-  if (this.options.sanitize && !isSafeHref(href, safeLinkPattern)) return href;
+  if (this.options.sanitize && !isSafeHref(href, safeLinkPattern)) {
+    return href;
+  }
 
   let out = '<a href="' + href + '"';
   if (title) {
@@ -38,7 +40,9 @@ const safeImagePattern = /^https?:\/\/./i;
 
 Renderer.prototype.image = function(href, title, text) {
   // For a bad image, return an empty string
-  if (this.options.sanitize && !isSafeHref(href, safeImagePattern)) return '';
+  if (this.options.sanitize && !isSafeHref(href, safeImagePattern)) {
+    return '';
+  }
 
   let out = '<img src="' + href + '" alt="' + text + '"';
   if (title) {

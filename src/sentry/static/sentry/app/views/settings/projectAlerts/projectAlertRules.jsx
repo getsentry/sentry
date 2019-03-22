@@ -65,7 +65,9 @@ const RuleRow = withApi(
     }
 
     onDelete = () => {
-      if (this.state.loading) return;
+      if (this.state.loading) {
+        return;
+      }
 
       const loadingIndicator = addLoadingMessage();
       const {api, orgId, projectId, data} = this.props;

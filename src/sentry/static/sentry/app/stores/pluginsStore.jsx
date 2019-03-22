@@ -71,7 +71,9 @@ const PluginsStore = Reflux.createStore({
   },
 
   onUpdate(id, updateObj) {
-    if (!this.plugins) return;
+    if (!this.plugins) {
+      return;
+    }
 
     const plugin = this.plugins.get(id);
     const newPlugin = {
@@ -90,7 +92,9 @@ const PluginsStore = Reflux.createStore({
 
   onUpdateError(id, updateObj, err) {
     const origPlugin = this.updating.get(id);
-    if (!origPlugin) return;
+    if (!origPlugin) {
+      return;
+    }
 
     this.plugins.set(id, origPlugin);
     this.updating.delete(id);

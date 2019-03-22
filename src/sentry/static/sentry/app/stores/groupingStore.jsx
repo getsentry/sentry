@@ -181,7 +181,9 @@ const GroupingStore = Reflux.createStore({
 
     // Don't do anything if item is busy
     const state = this.mergeState.has(id) && this.mergeState.get(id);
-    if (state && state.busy === true) return;
+    if (state && state.busy === true) {
+      return;
+    }
 
     if (this.mergeList.has(id)) {
       this.mergeList.delete(id);
@@ -205,7 +207,9 @@ const GroupingStore = Reflux.createStore({
     // Uncheck an item to unmerge
     const state = this.unmergeState.get(fingerprint);
 
-    if (state && state.busy === true) return;
+    if (state && state.busy === true) {
+      return;
+    }
 
     if (this.unmergeList.has(fingerprint)) {
       this.unmergeList.delete(fingerprint);

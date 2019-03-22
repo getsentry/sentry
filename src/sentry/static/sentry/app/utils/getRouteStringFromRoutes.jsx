@@ -7,7 +7,9 @@
  * @return String Returns a route path
  */
 export default function getRouteStringFromRoutes(routes) {
-  if (!Array.isArray(routes)) return '';
+  if (!Array.isArray(routes)) {
+    return '';
+  }
 
   // Strip the first route (path: '/') since the subsequent children routes
   // are all absolute paths

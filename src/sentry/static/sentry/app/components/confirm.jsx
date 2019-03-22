@@ -101,7 +101,9 @@ class Confirm extends React.PureComponent {
 
   handleToggle = e => {
     const {disabled, bypass} = this.props;
-    if (disabled) return;
+    if (disabled) {
+      return;
+    }
 
     if (bypass) {
       this.props.onConfirm();

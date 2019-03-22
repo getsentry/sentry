@@ -11,7 +11,9 @@ class SentryAppAvatar extends React.Component {
 
   render() {
     const {sentryApp, ...props} = this.props;
-    if (!sentryApp) return null;
+    if (!sentryApp) {
+      return null;
+    }
 
     return (
       <BaseAvatar

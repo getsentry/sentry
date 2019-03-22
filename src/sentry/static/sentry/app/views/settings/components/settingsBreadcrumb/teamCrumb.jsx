@@ -22,7 +22,9 @@ class TeamCrumb extends React.Component {
     const team = teams.find(({slug}) => slug === params.teamId);
     const hasMenu = teams.length > 1;
 
-    if (!team) return null;
+    if (!team) {
+      return null;
+    }
 
     return (
       <BreadcrumbDropdown

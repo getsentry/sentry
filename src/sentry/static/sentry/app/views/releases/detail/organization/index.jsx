@@ -76,8 +76,12 @@ class OrganizationReleaseDetails extends AsyncView {
 
     const query = pick(location.query, Object.values(URL_PARAM));
 
-    if (this.state.loading) return <LoadingIndicator />;
-    if (this.state.error) return <LoadingError onRetry={this.fetchData} />;
+    if (this.state.loading) {
+      return <LoadingIndicator />;
+    }
+    if (this.state.error) {
+      return <LoadingError onRetry={this.fetchData} />;
+    }
 
     return (
       <PageContent>

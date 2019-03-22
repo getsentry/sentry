@@ -54,7 +54,9 @@ class HookStats extends AsyncComponent {
   renderBody() {
     let emptyStats = true;
     const stats = this.state.stats.map(p => {
-      if (p.total) emptyStats = false;
+      if (p.total) {
+        emptyStats = false;
+      }
       return {
         x: p.ts,
         y: [p.total],

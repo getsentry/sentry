@@ -167,7 +167,9 @@ const CompactIssue = createReactClass({
       status: 'ignored',
     };
 
-    if (duration) data.ignoreDuration = duration;
+    if (duration) {
+      data.ignoreDuration = duration;
+    }
 
     this.onUpdate(data);
   },

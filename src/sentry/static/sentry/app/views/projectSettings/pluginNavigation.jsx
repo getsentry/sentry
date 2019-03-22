@@ -17,10 +17,14 @@ const PluginNavigation = createReactClass({
   render() {
     const {urlRoot, plugins} = this.props;
 
-    if (!plugins || !plugins.plugins) return null;
+    if (!plugins || !plugins.plugins) {
+      return null;
+    }
     const enabledPlugins = plugins.plugins.filter(p => p.enabled && p.hasConfiguration);
 
-    if (!enabledPlugins.length) return null;
+    if (!enabledPlugins.length) {
+      return null;
+    }
 
     return (
       <div>

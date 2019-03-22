@@ -83,7 +83,9 @@ class AccountSecurityDetails extends AsyncView {
   handleRemove = device => {
     const {authenticator} = this.state;
 
-    if (!authenticator || !authenticator.authId) return;
+    if (!authenticator || !authenticator.authId) {
+      return;
+    }
     const isRemovingU2fDevice = !!device;
     const deviceId = isRemovingU2fDevice ? `${device.key_handle}/` : '';
 

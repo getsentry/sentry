@@ -109,8 +109,11 @@ const ProjectReleaseDetails = createReactClass({
   },
 
   render() {
-    if (this.state.loading) return <LoadingIndicator />;
-    else if (this.state.error) return <LoadingError onRetry={this.fetchData} />;
+    if (this.state.loading) {
+      return <LoadingIndicator />;
+    } else if (this.state.error) {
+      return <LoadingError onRetry={this.fetchData} />;
+    }
 
     const release = this.state.release;
     const {orgId, projectId} = this.props.params;

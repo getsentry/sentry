@@ -55,7 +55,9 @@ const IssueList = createReactClass({
   componentWillReceiveProps(nextProps) {
     const location = this.props.location;
     const nextLocation = nextProps.location;
-    if (!location) return;
+    if (!location) {
+      return;
+    }
 
     if (
       location.pathname != nextLocation.pathname ||
@@ -100,11 +102,15 @@ const IssueList = createReactClass({
     let body;
     const {noBorder, noMargin} = this.props;
 
-    if (this.state.loading) body = this.renderLoading();
-    else if (this.state.error) body = this.renderError();
-    else if (this.state.issueIds.length > 0) {
+    if (this.state.loading) {
+      body = this.renderLoading();
+    } else if (this.state.error) {
+      body = this.renderError();
+    } else if (this.state.issueIds.length > 0) {
       const panelStyle = noBorder ? {border: 0, borderRadius: 0} : {};
-      if (noMargin) panelStyle.marginBottom = 0;
+      if (noMargin) {
+        panelStyle.marginBottom = 0;
+      }
 
       body = (
         <Panel style={panelStyle}>
@@ -123,7 +129,9 @@ const IssueList = createReactClass({
           </PanelBody>
         </Panel>
       );
-    } else body = (this.props.renderEmpty || this.renderEmpty)();
+    } else {
+      body = (this.props.renderEmpty || this.renderEmpty)();
+    }
 
     return body;
   },
@@ -148,7 +156,9 @@ const IssueList = createReactClass({
     const {emptyText} = this.props;
     const {noBorder, noMargin} = this.props;
     const panelStyle = noBorder ? {border: 0, borderRadius: 0} : {};
-    if (noMargin) panelStyle.marginBottom = 0;
+    if (noMargin) {
+      panelStyle.marginBottom = 0;
+    }
 
     return (
       <Panel style={panelStyle}>

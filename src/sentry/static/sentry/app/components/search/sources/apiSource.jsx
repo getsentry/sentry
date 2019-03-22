@@ -124,7 +124,9 @@ async function createIntegrationResults(integrationsPromise, orgId) {
 
 async function createShortIdLookupResult(shortIdLookupPromise) {
   const shortIdLookup = await shortIdLookupPromise;
-  if (!shortIdLookup) return null;
+  if (!shortIdLookup) {
+    return null;
+  }
 
   const issue = shortIdLookup && shortIdLookup.group;
   return {
@@ -142,7 +144,9 @@ async function createShortIdLookupResult(shortIdLookupPromise) {
 
 async function createEventIdLookupResult(eventIdLookupPromise) {
   const eventIdLookup = await eventIdLookupPromise;
-  if (!eventIdLookup) return null;
+  if (!eventIdLookup) {
+    return null;
+  }
 
   const event = eventIdLookup && eventIdLookup.event;
   return {
@@ -192,7 +196,9 @@ class ApiSource extends React.Component {
 
     this.api = new Client();
 
-    if (typeof props.query !== 'undefined') this.doSearch(props.query);
+    if (typeof props.query !== 'undefined') {
+      this.doSearch(props.query);
+    }
   }
 
   componentWillReceiveProps(nextProps) {
@@ -252,13 +258,17 @@ class ApiSource extends React.Component {
     );
 
     const directRequests = directUrls.map(url => {
-      if (!url) return Promise.resolve(null);
+      if (!url) {
+        return Promise.resolve(null);
+      }
 
       return this.api.requestPromise(url).then(
         resp => resp,
         err => {
           // No need to log 404 errors
-          if (err && err.status === 404) return null;
+          if (err && err.status === 404) {
+            return null;
+          }
           this.handleRequestError(err, {orgId, url});
           return null;
         }
@@ -355,7 +365,9 @@ class ApiSource extends React.Component {
       createEventIdLookupResult(eventIdLookup),
     ])).filter(result => !!result);
 
-    if (!directResults.length) return [];
+    if (!directResults.length) {
+      return [];
+    }
 
     return directResults;
   }

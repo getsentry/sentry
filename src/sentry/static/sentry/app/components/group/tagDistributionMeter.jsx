@@ -162,9 +162,13 @@ const TagDistributionMeter = createReactClass({
   },
 
   renderBody() {
-    if (this.state.loading || this.state.error) return null;
+    if (this.state.loading || this.state.error) {
+      return null;
+    }
 
-    if (!this.props.totalValues) return <p>{t('No recent data.')}</p>;
+    if (!this.props.totalValues) {
+      return <p>{t('No recent data.')}</p>;
+    }
 
     return this.renderSegments();
   },

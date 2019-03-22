@@ -37,7 +37,9 @@ function HookOrDefault({hookName, defaultComponent, params}) {
 
     handleHooks(hookNameFromStore, hooks) {
       // Make sure that the incoming hook update matches this component's hook name
-      if (hookName !== hookNameFromStore) return;
+      if (hookName !== hookNameFromStore) {
+        return;
+      }
 
       this.setState(state => ({
         hooks,

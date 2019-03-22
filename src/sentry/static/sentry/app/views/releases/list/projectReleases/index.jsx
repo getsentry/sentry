@@ -98,7 +98,9 @@ const ProjectReleases = createReactClass({
 
   onSearch(query) {
     const targetQueryParams = {};
-    if (query !== '') targetQueryParams.query = query;
+    if (query !== '') {
+      targetQueryParams.query = query;
+    }
 
     const {orgId, projectId} = this.props.params;
     browserHistory.push({
@@ -152,9 +154,11 @@ const ProjectReleases = createReactClass({
     let body;
     const {params} = this.props;
 
-    if (this.state.loading) body = this.renderLoading();
-    else if (this.state.error) body = <LoadingError onRetry={this.fetchData} />;
-    else if (this.state.releaseList.length > 0)
+    if (this.state.loading) {
+      body = this.renderLoading();
+    } else if (this.state.error) {
+      body = <LoadingError onRetry={this.fetchData} />;
+    } else if (this.state.releaseList.length > 0) {
       body = (
         <div>
           <ReleaseProgress project={this.context.project} />
@@ -165,9 +169,11 @@ const ProjectReleases = createReactClass({
           />
         </div>
       );
-    else if (this.state.query && this.state.query !== DEFAULT_QUERY)
+    } else if (this.state.query && this.state.query !== DEFAULT_QUERY) {
       body = this.renderNoQueryResults();
-    else body = this.renderEmpty();
+    } else {
+      body = this.renderEmpty();
+    }
 
     return body;
   },

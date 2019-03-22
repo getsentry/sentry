@@ -112,7 +112,9 @@ class FormModel {
     this.fields.replace(initialData || {});
     this.initialData = this.fields.toJSON() || {};
 
-    if (noResetSnapshots) return;
+    if (noResetSnapshots) {
+      return;
+    }
 
     this.snapshots = [new Map(this.fields)];
   }
@@ -300,8 +302,12 @@ class FormModel {
     // Update field state to "show save" if save on blur is disabled for this field
     // (only if contents of field differs from initial value)
     const saveOnBlurFieldOverride = this.getDescriptor(id, 'saveOnBlur');
-    if (typeof saveOnBlurFieldOverride === 'undefined' || saveOnBlurFieldOverride) return;
-    if (this.getFieldState(id, 'showSave') === isValueChanged) return;
+    if (typeof saveOnBlurFieldOverride === 'undefined' || saveOnBlurFieldOverride) {
+      return;
+    }
+    if (this.getFieldState(id, 'showSave') === isValueChanged) {
+      return;
+    }
 
     this.setFieldState(id, 'showSave', isValueChanged);
   }
@@ -311,9 +317,13 @@ class FormModel {
     const isValueChanged = value !== this.initialData[id];
     const shouldShowReturnButton = this.getDescriptor(id, 'showReturnButton');
 
-    if (!shouldShowReturnButton) return;
+    if (!shouldShowReturnButton) {
+      return;
+    }
     // Only update state if state has changed
-    if (this.getFieldState(id, 'showReturnButton') === isValueChanged) return;
+    if (this.getFieldState(id, 'showReturnButton') === isValueChanged) {
+      return;
+    }
 
     this.setFieldState(id, 'showReturnButton', isValueChanged);
   }
@@ -324,7 +334,9 @@ class FormModel {
   @action
   undo() {
     // Always have initial data snapshot
-    if (this.snapshots.length < 2) return null;
+    if (this.snapshots.length < 2) {
+      return null;
+    }
 
     this.snapshots.shift();
     this.fields.replace(this.snapshots[0]);
@@ -338,7 +350,9 @@ class FormModel {
   @action
   saveForm() {
     this.validateForm();
-    if (this.isError) return null;
+    if (this.isError) {
+      return null;
+    }
     let saveSnapshot = this.createSnapshot();
 
     const request = this.doApiRequest({
@@ -383,7 +397,9 @@ class FormModel {
     const oldValue = this.initialData[id];
     const savePromise = this.saveFieldRequest(id, currentValue);
 
-    if (!savePromise) return null;
+    if (!savePromise) {
+      return null;
+    }
 
     return savePromise
       .then(resp => {
@@ -424,12 +440,18 @@ class FormModel {
 
     // Don't save if field hasn't changed
     // Don't need to check for error state since initialData wouldn't have updated since last error
-    if (currentValue === initialValue || (currentValue === '' && !defined(initialValue)))
+    if (
+      currentValue === initialValue ||
+      (currentValue === '' && !defined(initialValue))
+    ) {
       return null;
+    }
 
     // Check for error first
     this.validateField(id);
-    if (!this.isValidField(id)) return null;
+    if (!this.isValidField(id)) {
+      return null;
+    }
 
     // shallow clone fields
     let saveSnapshot = this.createSnapshot();
@@ -514,7 +536,9 @@ class FormModel {
   @action
   handleBlurField(id, currentValue) {
     // Nothing to do if `saveOnBlur` is not on
-    if (!this.options.saveOnBlur) return null;
+    if (!this.options.saveOnBlur) {
+      return null;
+    }
 
     // Fields can individually set `saveOnBlur` to `false` (note this is ignored when `undefined`)
     const saveOnBlurFieldOverride = this.getDescriptor(id, 'saveOnBlur');
@@ -532,7 +556,9 @@ class FormModel {
   handleSaveField(id, currentValue) {
     const savePromise = this.saveField(id, currentValue);
 
-    if (!savePromise) return null;
+    if (!savePromise) {
+      return null;
+    }
 
     return savePromise.then(() => {
       this.setFieldState(id, 'showSave', false);
@@ -594,7 +620,9 @@ class FormModel {
 
   @action
   handleErrorResponse({responseJSON: resp} = {}) {
-    if (!resp) return;
+    if (!resp) {
+      return;
+    }
 
     // Show resp msg from API endpoint if possible
     Object.keys(resp).forEach(id => {

@@ -105,7 +105,7 @@ class GlobalSelectionHeader extends React.Component {
 
     const hasSentry10 = new Set(this.props.organization.features).has('sentry10');
 
-    if (hasSentry10)
+    if (hasSentry10) {
       AlertActions.addAlert({
         message:
           'Hi! You are seeing some new changes to Sentry which we are rolling out. Click to read more.',
@@ -116,6 +116,7 @@ class GlobalSelectionHeader extends React.Component {
         noDuplicates: true,
         id: 'visibility-changes-alert-message',
       });
+    }
 
     const hasMultipleProjectFeature = this.hasMultipleProjectSelection();
 

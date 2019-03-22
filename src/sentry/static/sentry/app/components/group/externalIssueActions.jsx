@@ -199,7 +199,7 @@ export class SentryAppExternalIssueActions extends React.Component {
 
     let url = '#';
     let icon = 'icon-generic-box';
-    let displayName = tct(`Link [name] Issue`, {name: sentryAppComponent.sentryApp.name});
+    let displayName = tct('Link [name] Issue', {name: sentryAppComponent.sentryApp.name});
 
     if (externalIssue) {
       url = externalIssue.webUrl;

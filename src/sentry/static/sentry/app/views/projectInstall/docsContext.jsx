@@ -43,8 +43,11 @@ const ProjectDocsContext = createReactClass({
   },
 
   render() {
-    if (this.state.loading) return <LoadingIndicator />;
-    else if (this.state.error) return <LoadingError onRetry={this.fetchData} />;
+    if (this.state.loading) {
+      return <LoadingIndicator />;
+    } else if (this.state.error) {
+      return <LoadingError onRetry={this.fetchData} />;
+    }
 
     const data = this.state.data;
     return React.cloneElement(this.props.children, {

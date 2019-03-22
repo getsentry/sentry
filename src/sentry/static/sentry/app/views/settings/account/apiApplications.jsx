@@ -39,7 +39,9 @@ const ApiApplicationRow = createReactClass({
   },
 
   handleRemove() {
-    if (this.state.loading) return;
+    if (this.state.loading) {
+      return;
+    }
 
     const app = this.props.app;
 
@@ -74,7 +76,9 @@ const ApiApplicationRow = createReactClass({
     const app = this.props.app;
 
     let btnClassName = 'btn btn-default';
-    if (this.state.loading) btnClassName += ' disabled';
+    if (this.state.loading) {
+      btnClassName += ' disabled';
+    }
 
     return (
       <PanelItem justify="space-between" px={2} py={2}>

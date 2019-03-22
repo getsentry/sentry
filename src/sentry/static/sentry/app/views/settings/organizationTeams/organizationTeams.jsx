@@ -35,7 +35,9 @@ class OrganizationTeams extends React.Component {
     } = this.props;
     const org = organization;
 
-    if (!organization) return null;
+    if (!organization) {
+      return null;
+    }
 
     const canCreateTeams = getOrganizationState(organization)
       .getAccess()

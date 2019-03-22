@@ -30,7 +30,9 @@ const ProjectTable = ({projectMap, projectTotals, orgTotal, organization}) => {
   return projectTotals.sort((a, b) => b.received - a.received).map((item, index) => {
     const project = projectMap[item.id];
 
-    if (!project) return null;
+    if (!project) {
+      return null;
+    }
 
     const projectLink = hasSentry10
       ? `/settings/${organization.slug}/projects/${project.slug}/`

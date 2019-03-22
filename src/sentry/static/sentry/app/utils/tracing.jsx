@@ -26,11 +26,15 @@ export function getRoute() {
 }
 
 export function getTransactionId() {
-  if (!transactionId) startTransaction();
+  if (!transactionId) {
+    startTransaction();
+  }
   return transactionId;
 }
 
 export function getSpanId() {
-  if (!spanId) startTransaction();
+  if (!spanId) {
+    startTransaction();
+  }
   return spanId;
 }

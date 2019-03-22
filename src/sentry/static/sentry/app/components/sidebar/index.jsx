@@ -46,7 +46,9 @@ class Sidebar extends React.Component {
       showPanel: false,
     };
 
-    if (!window.matchMedia) return;
+    if (!window.matchMedia) {
+      return;
+    }
     // TODO(billy): We should consider moving this into a component
     this.mq = window.matchMedia(`(max-width: ${theme.breakpoints[0]})`);
     this.mq.addListener(this.handleMediaQueryChange);
@@ -83,7 +85,9 @@ class Sidebar extends React.Component {
       this.hidePanel();
     }
 
-    if (collapsed === nextProps.collapsed) return;
+    if (collapsed === nextProps.collapsed) {
+      return;
+    }
 
     this.doCollapse(nextProps.collapsed);
   }
@@ -150,7 +154,9 @@ class Sidebar extends React.Component {
 
   // Hide slideout panel
   hidePanel = () => {
-    if (!this.state.sidePanel && this.state.currentPanel === '') return;
+    if (!this.state.sidePanel && this.state.currentPanel === '') {
+      return;
+    }
 
     this.setState({
       showPanel: false,
@@ -195,8 +201,11 @@ class Sidebar extends React.Component {
   };
 
   togglePanel = (panel, e) => {
-    if (this.state.currentPanel === panel) this.hidePanel();
-    else this.showPanel(panel);
+    if (this.state.currentPanel === panel) {
+      this.hidePanel();
+    } else {
+      this.showPanel(panel);
+    }
   };
 
   documentClickHandler = evt => {
@@ -508,7 +517,9 @@ const SidebarContainer = withRouter(
     },
 
     onPreferenceChange(store) {
-      if (store.collapsed === this.state.collapsed) return;
+      if (store.collapsed === this.state.collapsed) {
+        return;
+      }
 
       this.setState({
         collapsed: store.collapsed,

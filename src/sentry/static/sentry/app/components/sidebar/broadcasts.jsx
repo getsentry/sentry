@@ -103,7 +103,9 @@ class Broadcasts extends React.Component {
 
   markSeen = () => {
     const unseenBroadcastIds = this.unseenIds;
-    if (unseenBroadcastIds.length === 0) return;
+    if (unseenBroadcastIds.length === 0) {
+      return;
+    }
 
     markBroadcastsAsSeen(this.props.api, unseenBroadcastIds).then(data => {
       this.setState(state => ({

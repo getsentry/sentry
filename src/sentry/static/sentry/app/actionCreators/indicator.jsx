@@ -82,11 +82,15 @@ const prettyFormString = (val, model, fieldName) => {
  */
 
 export function saveOnBlurUndoMessage(change, model, fieldName) {
-  if (!model) return;
+  if (!model) {
+    return;
+  }
 
   const label = model.getDescriptor(fieldName, 'label');
 
-  if (!label) return;
+  if (!label) {
+    return;
+  }
 
   const prettifyValue = val => prettyFormString(val, model, fieldName);
 
@@ -110,14 +114,20 @@ export function saveOnBlurUndoMessage(change, model, fieldName) {
       model,
       id: fieldName,
       undo: () => {
-        if (!model || !fieldName) return;
+        if (!model || !fieldName) {
+          return;
+        }
 
         const oldValue = model.getValue(fieldName);
         const didUndo = model.undo();
         const newValue = model.getValue(fieldName);
 
-        if (!didUndo) return;
-        if (!label) return;
+        if (!didUndo) {
+          return;
+        }
+        if (!label) {
+          return;
+        }
 
         // `saveField` can return null if it can't save
         const saveResult = model.saveField(fieldName, newValue);

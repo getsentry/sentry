@@ -81,7 +81,9 @@ const IndicatorStore = Reflux.createStore({
 
   // Remove a single indicator
   remove(indicator) {
-    if (!indicator) return;
+    if (!indicator) {
+      return;
+    }
 
     this.items = this.items.filter(item => {
       return item !== indicator;

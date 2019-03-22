@@ -215,7 +215,9 @@ const ProjectEnvironments = createReactClass({
    */
   renderSystemRows() {
     // Not available in "Hidden" tab
-    if (this.state.isHidden) return null;
+    if (this.state.isHidden) {
+      return null;
+    }
     const {project} = this.state;
 
     const isAllEnvironmentsDefault = project && project.defaultEnvironment === null;
@@ -239,7 +241,9 @@ const ProjectEnvironments = createReactClass({
   // Renders current default environment IF it is not a valid environment
   renderInvalidDefaultEnvironment() {
     // Not available in "Hidden" tab
-    if (this.state.isHidden) return null;
+    if (this.state.isHidden) {
+      return null;
+    }
     const {environments, project} = this.state;
     // Default environment that is not a valid environment
     const isAllEnvironmentsDefault = project && project.defaultEnvironment === null;
@@ -250,7 +254,9 @@ const ProjectEnvironments = createReactClass({
       !isAllEnvironmentsDefault &&
       !environments.find(({name}) => name === project.defaultEnvironment);
 
-    if (!hasOtherDefaultEnvironment) return null;
+    if (!hasOtherDefaultEnvironment) {
+      return null;
+    }
 
     return (
       <EnvironmentRow

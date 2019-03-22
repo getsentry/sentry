@@ -108,7 +108,9 @@ export default class ChoiceMapper extends React.Component {
         .map(o => Object.values(o).find(v => v === null))
         .includes(null);
 
-      if (allowEmpty || validValues) onBlur();
+      if (allowEmpty || validValues) {
+        onBlur();
+      }
     };
 
     const addRow = data => {
@@ -158,7 +160,9 @@ export default class ChoiceMapper extends React.Component {
 
     // The field will be set to inline when there is no value set for the
     // field, just show the dropdown.
-    if (!valueIsEmpty) return <Box>{dropdown}</Box>;
+    if (!valueIsEmpty) {
+      return <Box>{dropdown}</Box>;
+    }
 
     return (
       <React.Fragment>

@@ -31,7 +31,9 @@ class Divider extends React.Component {
   };
   render() {
     const {isHover, isLast} = this.props;
-    if (isLast) return null;
+    if (isLast) {
+      return null;
+    }
 
     return (
       <StyledDivider isHover={isHover}>
