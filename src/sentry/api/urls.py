@@ -90,6 +90,7 @@ from .endpoints.organization_member_team_details import OrganizationMemberTeamDe
 from .endpoints.organization_monitors import OrganizationMonitorsEndpoint
 from .endpoints.organization_onboarding_tasks import OrganizationOnboardingTaskEndpoint
 from .endpoints.organization_index import OrganizationIndexEndpoint
+from .endpoints.organization_pinned_searches import OrganizationPinnedSearchEndpoint
 from .endpoints.organization_plugins import OrganizationPluginsEndpoint
 from .endpoints.organization_processingissues import OrganizationProcessingIssuesEndpoint
 from .endpoints.organization_projects import OrganizationProjectsEndpoint
@@ -586,6 +587,11 @@ urlpatterns = patterns(
     url(
         r'^organizations/(?P<organization_slug>[^\/]+)/monitors/$',
         OrganizationMonitorsEndpoint.as_view(),
+    ),
+    url(
+        r'^organizations/(?P<organization_slug>[^\/]+)/pinned-searches/$',
+        OrganizationPinnedSearchEndpoint.as_view(),
+        name='sentry-api-0-organization-pinned-searches'
     ),
     url(
         r'^organizations/(?P<organization_slug>[^\/]+)/recent-searches/$',

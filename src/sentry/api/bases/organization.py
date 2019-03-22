@@ -128,6 +128,13 @@ class OrganizationUserReportsPermission(OrganizationPermission):
     }
 
 
+class OrganizationPinnedSearchPermission(OrganizationPermission):
+    scope_map = {
+        'PUT': ['org:read', 'org:write', 'org:admin'],
+        'DELETE': ['org:read', 'org:write', 'org:admin'],
+    }
+
+
 class OrganizationEndpoint(Endpoint):
     permission_classes = (OrganizationPermission, )
 
