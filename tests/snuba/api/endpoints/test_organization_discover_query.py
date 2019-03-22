@@ -147,7 +147,7 @@ class OrganizationDiscoverQueryTest(APITestCase, SnubaTestCase):
             response = self.client.post(url, {
                 'projects': [self.project.id],
                 'aggregations': [['count()', None, 'count']],
-                'condition_fields': [
+                'conditionFields': [
                     [
                         'if',
                         [
