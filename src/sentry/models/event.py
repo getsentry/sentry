@@ -550,7 +550,7 @@ class SnubaEvent(EventCommon):
         # have to reference the row id anyway.
         return self.event_id
 
-    def next_event_id(self, environments=[]):
+    def next_event_id(self, environments=None):
         from sentry.utils import snuba
 
         conditions = [
@@ -558,7 +558,7 @@ class SnubaEvent(EventCommon):
             [['timestamp', '>', self.timestamp], ['event_id', '>', self.event_id]]
         ]
 
-        if len(environments) > 0:
+        if environments:
             conditions.append(['environment', 'IN', environments])
 
         result = snuba.raw_query(
@@ -587,7 +587,7 @@ class SnubaEvent(EventCommon):
             [['timestamp', '<', self.timestamp], ['event_id', '<', self.event_id]]
         ]
 
-        if len(environments) > 0:
+        if environments:
             conditions.append(['environment', 'IN', environments])
 
         result = snuba.raw_query(
