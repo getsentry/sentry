@@ -38,12 +38,12 @@ export const fadeOut = keyframes`
   }
 `;
 
-export const pulse = keyframes`
+export const pulse = size => keyframes`
   0% {
     transform: scale(1,1);
   }
   50% {
-    transform: scale(1.15, 1.15);
+    transform: scale(${size}, ${size});
   }
   100% {
     transform: scale(1, 1);

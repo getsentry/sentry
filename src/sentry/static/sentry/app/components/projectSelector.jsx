@@ -339,7 +339,7 @@ const StyledBookmarkStar = styled(BookmarkStar)`
   width: 14px;
   height: 14px;
   margin-top: -${space(0.25)}; /* trivial alignment bump */
-  animation: ${p => (p.bookmarkHasChanged ? `0.5s ${pulse}` : 'none')};
+  animation: ${p => (p.bookmarkHasChanged ? `0.5s ${pulse(1.4)}` : 'none')};
 `;
 
 const CreateProjectButton = styled(Button)`
@@ -391,7 +391,7 @@ const SettingsIcon = styled(InlineSvg)`
 `;
 
 const BadgeAndActionsWrapper = styled('div')`
-  animation: ${p => (p.bookmarkHasChanged ? `1s ${alertHighlight('info')}` : 'none')};
+  animation: ${p => (p.bookmarkHasChanged ? `1s ${alertHighlight('default')}` : 'none')};
   z-index: ${p => (p.bookmarkHasChanged ? 1 : 'inherit')};
   position: relative;
   border-style: solid;
