@@ -2,10 +2,9 @@ import {t} from 'app/locale';
 
 const pathPrefix = '/settings/:orgId/projects/:projectId';
 
-export default function getConfiguration({project}) {
+export default function getConfiguration({project, organization}) {
   const plugins = ((project && project.plugins) || []).filter(plugin => plugin.enabled);
-
-  return [
+  const navigationItems = [
     {
       name: t('Project'),
       items: [
@@ -116,4 +115,13 @@ export default function getConfiguration({project}) {
       ],
     },
   ];
+
+  // Remove saved-searches if the org is on org-level saved searches
+  if (organization.features && organization.features.includes('org-saved-searches')) {
+    navigationItems[0].items = navigationItems[0].items.filter(
+      item => item.path.includes('saved-searches') === false
+    );
+  }
+
+  return navigationItems;
 }
