@@ -1,14 +1,16 @@
 from __future__ import absolute_import
 
+from sentry.models import Project
 from sentry.filters.web_crawlers import WebCrawlersFilter
-from sentry.testutils import TestCase
+from unittest import TestCase
 
 
 class WebCrawlersFilterTest(TestCase):
     filter_cls = WebCrawlersFilter
 
     def apply_filter(self, data):
-        return self.filter_cls(self.project).test(data)
+        project = Project()
+        return self.filter_cls(project).test(data)
 
     def get_mock_data(self, user_agent):
         return {
@@ -50,3 +52,7 @@ class WebCrawlersFilterTest(TestCase):
             'Mozilla/5.0 (Linux; Android 6.0.1; Calypso AppCrawler Build/MMB30Y; wv) AppleWebKit/537.36 (KHTML, like Gecko) Version/4.0 Chrome/53.0.2785.124 Mobile Safari/537.36'
         )
         assert self.apply_filter(data)
+
+    def test_filters_google_apis(self):
+        data = self.get_mock_data('APIs-Google')
+        assert not self.apply_filter(data)

@@ -16,8 +16,8 @@ CRAWLERS = re.compile(
             r'AdsBot',
             # Google Adsense
             r'Mediapartners',
-            # Google+ and Google web search
-            r'Google',
+            # Google+ and Google web search, but not apis-google
+            r'(?<!APIs-)Google',
             # Bing search
             r'BingBot',
             r'BingPreview',
