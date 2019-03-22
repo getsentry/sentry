@@ -5,10 +5,10 @@ from sentry.testutils import TestCase
 from .util import invalid_schema, validate_component
 
 
-class TestTextSchemaValidation(TestCase):
+class TestTextareaSchemaValidation(TestCase):
     def setUp(self):
         self.schema = {
-            'type': 'text',
+            'type': 'textarea',
             'name': 'title',
             'label': 'Title',
         }

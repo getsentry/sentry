@@ -40,16 +40,11 @@ export function addQueryParamsToExistingUrl(origUrl, queryParams) {
   if (!url) {
     return '';
   }
+  // Order the query params alphabetically.
+  // Otherwise ``queryString`` orders them randomly and it's impossible to test.
+  const params = JSON.parse(JSON.stringify(queryParams));
+  const query = url.query ? {...queryString.parse(url.query), ...params} : params;
 
-  let query;
-  if (url.query) {
-    // Order the query params alphabetically.
-    // Otherwise ``queryString`` orders them randomly and it's impossible to test.
-    const params = JSON.parse(JSON.stringify(queryParams));
-    query = {...queryString.parse(url.query), ...params};
-  } else {
-    query = queryParams;
-  }
   return `${url.protocol}//${url.host}${url.pathname}?${queryString.stringify(query)}`;
 }
 
