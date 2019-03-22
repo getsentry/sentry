@@ -534,50 +534,41 @@ exports[`OrganizationProjects Should render the projects in the store 1`] = `
                                             }
                                           }
                                         >
-                                          <Tooltip
+                                          <Star
+                                            className="css-10z01iz-BookmarkLink enngb6z1"
                                             isBookmarked={false}
-                                            title="Add to bookmarks"
+                                            onClick={[Function]}
+                                            src="icon-star-small-filled"
                                           >
-                                            <Star
-                                              className="tip css-10z01iz-BookmarkLink enngb6z1"
+                                            <InlineSvg
+                                              className="enngb6z1 css-1j5sthu-Star-BookmarkLink e1urz3930"
                                               isBookmarked={false}
                                               onClick={[Function]}
                                               src="icon-star-small-filled"
-                                              title="Add to bookmarks"
                                             >
-                                              <InlineSvg
-                                                className="tip enngb6z1 css-1j5sthu-Star-BookmarkLink e1urz3930"
+                                              <StyledSvg
+                                                className="enngb6z1 css-1j5sthu-Star-BookmarkLink e1urz3930"
+                                                height="1em"
                                                 isBookmarked={false}
                                                 onClick={[Function]}
-                                                src="icon-star-small-filled"
-                                                title="Add to bookmarks"
+                                                viewBox={Object {}}
+                                                width="1em"
                                               >
-                                                <StyledSvg
-                                                  className="tip enngb6z1 css-1j5sthu-Star-BookmarkLink e1urz3930"
+                                                <svg
+                                                  className="enngb6z1 e1urz3930 css-85qks9-StyledSvg-Star-BookmarkLink e2idor0"
                                                   height="1em"
-                                                  isBookmarked={false}
                                                   onClick={[Function]}
-                                                  title="Add to bookmarks"
                                                   viewBox={Object {}}
                                                   width="1em"
                                                 >
-                                                  <svg
-                                                    className="tip enngb6z1 e1urz3930 css-85qks9-StyledSvg-Star-BookmarkLink e2idor0"
-                                                    height="1em"
-                                                    onClick={[Function]}
-                                                    title="Add to bookmarks"
-                                                    viewBox={Object {}}
-                                                    width="1em"
-                                                  >
-                                                    <use
-                                                      href="#test"
-                                                      xlinkHref="#test"
-                                                    />
-                                                  </svg>
-                                                </StyledSvg>
-                                              </InlineSvg>
-                                            </Star>
-                                          </Tooltip>
+                                                  <use
+                                                    href="#test"
+                                                    xlinkHref="#test"
+                                                  />
+                                                </svg>
+                                              </StyledSvg>
+                                            </InlineSvg>
+                                          </Star>
                                         </BookmarkStar>
                                       </withApi(BookmarkStar)>
                                     </BookmarkLink>

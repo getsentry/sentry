@@ -7,7 +7,6 @@ import {defined} from 'app/utils';
 import InlineSvg from 'app/components/inlineSvg';
 import SentryTypes from 'app/sentryTypes';
 import {t} from 'app/locale';
-import Tooltip from 'app/components/tooltip';
 import {update} from 'app/actionCreators/projects';
 import withApi from 'app/utils/withApi';
 
@@ -54,17 +53,12 @@ class BookmarkStar extends React.Component {
     const isBookmarked = this.isBookmarked();
 
     return (
-      <Tooltip
+      <Star
         isBookmarked={isBookmarked}
-        title={isBookmarked ? t('Remove from bookmarks') : t('Add to bookmarks')}
-      >
-        <Star
-          isBookmarked={isBookmarked}
-          src="icon-star-small-filled"
-          onClick={this.toggleProjectBookmark}
-          className={className}
-        />
-      </Tooltip>
+        src="icon-star-small-filled"
+        onClick={this.toggleProjectBookmark}
+        className={className}
+      />
     );
   }
 }

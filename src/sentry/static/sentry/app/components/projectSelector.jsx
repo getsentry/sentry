@@ -5,6 +5,7 @@ import {Link} from 'react-router';
 
 import {sortArray} from 'app/utils';
 import {t} from 'app/locale';
+import {alertHighlight, pulse} from 'app/styles/animations';
 import Button from 'app/components/button';
 import InlineSvg from 'app/components/inlineSvg';
 import BookmarkStar from 'app/components/bookmarkStar';
@@ -262,6 +263,21 @@ class ProjectSelectorItem extends React.PureComponent {
     onMultiSelect: PropTypes.func,
   };
 
+  constructor(props) {
+    super(props);
+    this.state = {
+      bookmarkHasChanged: false,
+    };
+  }
+
+  componentWillReceiveProps(nextProps) {
+    if (nextProps.project.isBookmarked !== this.props.project.isBookmarked) {
+      this.setState({
+        bookmarkHasChanged: true,
+      });
+    }
+  }
+
   handleMultiSelect = e => {
     const {project, onMultiSelect} = this.props;
     onMultiSelect(project, e);
@@ -272,11 +288,18 @@ class ProjectSelectorItem extends React.PureComponent {
     this.handleMultiSelect(e);
   };
 
+  clearAnimation = () => {
+    this.setState({bookmarkHasChanged: false});
+  };
+
   render() {
     const {project, multi, inputValue, isChecked, organization} = this.props;
 
     return (
-      <BadgeAndActionsWrapper>
+      <BadgeAndActionsWrapper
+        bookmarkHasChanged={this.state.bookmarkHasChanged}
+        onAnimationEnd={this.clearAnimation}
+      >
         <GlobalSelectionHeaderRow
           checked={isChecked}
           onCheckClick={this.handleClick}
@@ -289,8 +312,12 @@ class ProjectSelectorItem extends React.PureComponent {
               displayName={<Highlight text={inputValue}>{project.slug}</Highlight>}
               avatarProps={{consistentWidth: true}}
             />
-            <BookmarkIcon project={project} organization={organization} />
           </BadgeWrapper>
+          <StyledBookmarkStar
+            project={project}
+            organization={organization}
+            bookmarkHasChanged={this.state.bookmarkHasChanged}
+          />
           <SettingsIconLink
             to={`/settings/${organization.slug}/${project.slug}/`}
             onClick={e => e.stopPropagation()}
@@ -303,8 +330,8 @@ class ProjectSelectorItem extends React.PureComponent {
   }
 }
 
-const BookmarkIcon = styled(BookmarkStar)`
-  padding: ${space(1)} ${space(1)} ${space(1)} ${space(0.5)};
+const StyledBookmarkStar = styled(BookmarkStar)`
+  padding: ${space(1)} ${space(0.5)};
   box-sizing: content-box;
   opacity: ${p => (p.project.isBookmarked ? 1 : 0.33)};
   transition: 0.5s opacity ease-out;
@@ -312,6 +339,7 @@ const BookmarkIcon = styled(BookmarkStar)`
   width: 14px;
   height: 14px;
   margin-top: -${space(0.25)}; /* trivial alignment bump */
+  animation: ${p => (p.bookmarkHasChanged ? `0.5s ${pulse}` : 'none')};
 `;
 
 const CreateProjectButton = styled(Button)`
@@ -364,7 +392,16 @@ const SettingsIcon = styled(InlineSvg)`
 `;
 
 const BadgeAndActionsWrapper = styled('div')`
-  &:hover ${BookmarkIcon}, &:hover ${SettingsIconLink} {
+  animation: ${p => (p.bookmarkHasChanged ? `1s ${alertHighlight('default')}` : 'none')};
+  z-index: ${p => (p.bookmarkHasChanged ? 1 : 'inherit')};
+  position: relative;
+  border-style: solid;
+  border-width: 1px 0;
+  border-color: transparent;
+  margin: 1px -10px;
+  padding: 0 10px;
+
+  &:hover ${StyledBookmarkStar}, &:hover ${SettingsIconLink} {
     opacity: 1;
   }
 `;

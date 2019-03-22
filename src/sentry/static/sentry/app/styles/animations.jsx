@@ -1,5 +1,7 @@
 import {keyframes} from 'react-emotion';
 
+import theme from 'app/utils/theme';
+
 export const growIn = keyframes`
   0% {
     transform: scale(0);
@@ -104,5 +106,18 @@ export const highlight = color => keyframes`
 
   25% {
     background: ${color};
+  }
+`;
+
+export const alertHighlight = priority => keyframes`
+  0%,
+  100% {
+    background: rgba(255, 255, 255, 0);
+    border-color: transparent;
+  }
+
+  25% {
+    background: ${theme.alert[priority].backgroundLight};
+    border-color: ${theme.alert[priority].border};
   }
 `;

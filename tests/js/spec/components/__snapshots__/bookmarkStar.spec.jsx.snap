@@ -86,50 +86,40 @@ exports[`BookmarkStar renders 1`] = `
       }
     }
   >
-    <Tooltip
+    <Star
       isBookmarked={false}
-      title="Add to bookmarks"
+      onClick={[Function]}
+      src="icon-star-small-filled"
     >
-      <Star
-        className="tip"
+      <InlineSvg
+        className="css-fl9x15-Star e1urz3930"
         isBookmarked={false}
         onClick={[Function]}
         src="icon-star-small-filled"
-        title="Add to bookmarks"
       >
-        <InlineSvg
-          className="tip css-fl9x15-Star e1urz3930"
+        <StyledSvg
+          className="css-fl9x15-Star e1urz3930"
+          height="1em"
           isBookmarked={false}
           onClick={[Function]}
-          src="icon-star-small-filled"
-          title="Add to bookmarks"
+          viewBox={Object {}}
+          width="1em"
         >
-          <StyledSvg
-            className="tip css-fl9x15-Star e1urz3930"
+          <svg
+            className="e1urz3930 css-1b9wx8m-StyledSvg-Star e2idor0"
             height="1em"
-            isBookmarked={false}
             onClick={[Function]}
-            title="Add to bookmarks"
             viewBox={Object {}}
             width="1em"
           >
-            <svg
-              className="tip e1urz3930 css-1b9wx8m-StyledSvg-Star e2idor0"
-              height="1em"
-              onClick={[Function]}
-              title="Add to bookmarks"
-              viewBox={Object {}}
-              width="1em"
-            >
-              <use
-                href="#test"
-                xlinkHref="#test"
-              />
-            </svg>
-          </StyledSvg>
-        </InlineSvg>
-      </Star>
-    </Tooltip>
+            <use
+              href="#test"
+              xlinkHref="#test"
+            />
+          </svg>
+        </StyledSvg>
+      </InlineSvg>
+    </Star>
   </BookmarkStar>
 </withApi(BookmarkStar)>
 `;
