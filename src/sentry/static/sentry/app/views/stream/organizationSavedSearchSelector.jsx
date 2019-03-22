@@ -6,6 +6,7 @@ import {t} from 'app/locale';
 import MenuItem from 'app/components/menuItem';
 import DropdownLink from 'app/components/dropdownLink';
 import QueryCount from 'app/components/queryCount';
+import InlineSvg from 'app/components/inlineSvg';
 import space from 'app/styles/space';
 
 export default class OrganizationSavedSearchSelector extends React.Component {
@@ -40,6 +41,7 @@ export default class OrganizationSavedSearchSelector extends React.Component {
 
     return savedSearchList.map(search => (
       <StyledMenuItem onSelect={() => onSavedSearchSelect(search)} key={search.id}>
+        {search.isPinned && <InlineSvg src={'icon-pin'} />}
         <span>
           <strong>{search.name}</strong>
         </span>
