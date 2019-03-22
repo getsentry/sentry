@@ -6,7 +6,9 @@ import styled from 'react-emotion';
 import InlineSvg from 'app/components/inlineSvg';
 
 const getMarginLeft = p => {
-  if (!p.inline) return '';
+  if (!p.inline) {
+    return '';
+  }
   return `margin-left: ${p.size == 'small' ? '0.25em' : '0.5em'};`;
 };
 

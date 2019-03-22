@@ -65,7 +65,9 @@ const OrganizationGeneralSettings = createReactClass({
 
   handleRemoveOrganization() {
     const {data} = this.state || {};
-    if (!data) return;
+    if (!data) {
+      return;
+    }
 
     addLoadingMessage();
     removeAndRedirectToRemainingOrganization(this.api, {

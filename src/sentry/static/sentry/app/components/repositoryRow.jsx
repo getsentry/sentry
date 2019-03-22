@@ -44,7 +44,9 @@ class RepositoryRow extends React.Component {
     const {api, orgId, repository, onRepositoryChange} = this.props;
     cancelDeleteRepository(api, orgId, repository.id).then(
       data => {
-        if (onRepositoryChange) onRepositoryChange(data);
+        if (onRepositoryChange) {
+          onRepositoryChange(data);
+        }
       },
       () => {}
     );
@@ -54,7 +56,9 @@ class RepositoryRow extends React.Component {
     const {api, orgId, repository, onRepositoryChange} = this.props;
     deleteRepository(api, orgId, repository.id).then(
       data => {
-        if (onRepositoryChange) onRepositoryChange(data);
+        if (onRepositoryChange) {
+          onRepositoryChange(data);
+        }
       },
       () => {}
     );

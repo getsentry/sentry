@@ -8,7 +8,9 @@ const DEFAULT = {
 
 export default function DataZoom(props) {
   // `props` can be boolean, if so return default
-  if (!props || !Array.isArray(props)) return [DEFAULT];
+  if (!props || !Array.isArray(props)) {
+    return [DEFAULT];
+  }
 
   return props;
 }

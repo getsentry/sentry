@@ -48,7 +48,9 @@ class StreamTagFilter extends React.Component {
   }
 
   componentWillUnmount() {
-    if (!this.api) return;
+    if (!this.api) {
+      return;
+    }
     this.api.clear();
   }
 
@@ -98,7 +100,9 @@ class StreamTagFilter extends React.Component {
   }, 150);
 
   handleOpenMenu = () => {
-    if (this.props.tag.predefined) return;
+    if (this.props.tag.predefined) {
+      return;
+    }
 
     this.setState(
       {

@@ -187,7 +187,9 @@ class AutoComplete extends React.Component {
   };
 
   handleItemClick = ({onClick, item, index} = {}, e) => {
-    if (this.blurTimer) clearTimeout(this.blurTimer);
+    if (this.blurTimer) {
+      clearTimeout(this.blurTimer);
+    }
     this.setState({highlightedIndex: index});
     this.handleSelect(item, e);
     callIfFunction(onClick, item, e);
@@ -240,7 +242,9 @@ class AutoComplete extends React.Component {
 
     callIfFunction(onOpen, ...args);
 
-    if (disabled || this.isControlled()) return;
+    if (disabled || this.isControlled()) {
+      return;
+    }
 
     this.resetHighlightState();
     this.setState({
@@ -258,7 +262,9 @@ class AutoComplete extends React.Component {
 
     callIfFunction(onClose, ...args);
 
-    if (this.isControlled()) return;
+    if (this.isControlled()) {
+      return;
+    }
 
     this.setState(state => {
       return {

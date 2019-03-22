@@ -22,7 +22,9 @@ class Filter extends React.Component {
     const selected = this.props.options.filter(item => {
       return item[0] === (this.props.value || '');
     })[0];
-    if (selected) return this.props.name + ': ' + selected[1];
+    if (selected) {
+      return this.props.name + ': ' + selected[1];
+    }
     return this.props.name + ': ' + 'Any';
   };
 
@@ -119,7 +121,9 @@ class SortBy extends React.Component {
   };
 
   render() {
-    if (this.props.options.length === 0) return null;
+    if (this.props.options.length === 0) {
+      return null;
+    }
 
     return (
       <div className="sort-options">

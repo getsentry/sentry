@@ -50,12 +50,16 @@ const Incidents = createReactClass({
     } = this.props;
 
     const {status} = this.state;
-    if (!status) return null;
+    if (!status) {
+      return null;
+    }
 
     const active = currentPanel === 'statusupdate';
     const isEmpty = !status.incidents || status.incidents.length === 0;
 
-    if (isEmpty) return null;
+    if (isEmpty) {
+      return null;
+    }
 
     return (
       <React.Fragment>

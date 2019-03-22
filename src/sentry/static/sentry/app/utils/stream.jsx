@@ -51,12 +51,16 @@ export function objToQuery(queryObj) {
   const tags = _.omit(queryObj, '__text');
 
   const parts = _.map(tags, (value, tagKey) => {
-    if (value.indexOf(' ') > -1) value = `"${value}"`;
+    if (value.indexOf(' ') > -1) {
+      value = `"${value}"`;
+    }
 
     return `${tagKey}:${value}`;
   });
 
-  if (queryObj.__text) parts.push(queryObj.__text);
+  if (queryObj.__text) {
+    parts.push(queryObj.__text);
+  }
 
   return parts.join(' ');
 }

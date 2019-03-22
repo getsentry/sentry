@@ -61,7 +61,9 @@ const StacktraceContent = createReactClass({
 
     let lastFrameIdx = null;
     data.frames.forEach((frame, frameIdx) => {
-      if (frame.inApp) lastFrameIdx = frameIdx;
+      if (frame.inApp) {
+        lastFrameIdx = frameIdx;
+      }
     });
     if (lastFrameIdx === null) {
       lastFrameIdx = data.frames.length - 1;

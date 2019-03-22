@@ -23,12 +23,16 @@ class SearchDropdown extends React.PureComponent {
 
   renderDescription = item => {
     const searchSubstring = this.props.searchSubstring;
-    if (!searchSubstring) return item.desc;
+    if (!searchSubstring) {
+      return item.desc;
+    }
 
     const text = item.desc;
     const idx = text.toLowerCase().indexOf(searchSubstring.toLowerCase());
 
-    if (idx === -1) return item.desc;
+    if (idx === -1) {
+      return item.desc;
+    }
 
     return (
       <span>

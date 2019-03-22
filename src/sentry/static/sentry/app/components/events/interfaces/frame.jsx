@@ -95,8 +95,11 @@ const Frame = createReactClass({
       <strong>${sourceMapText}</strong><br/>`;
 
     // mapUrl not always present; e.g. uploaded source maps
-    if (data.mapUrl) out += `${_.escape(data.mapUrl)}<br/>`;
-    else out += `${_.escape(data.map)}<br/>`;
+    if (data.mapUrl) {
+      out += `${_.escape(data.mapUrl)}<br/>`;
+    } else {
+      out += `${_.escape(data.map)}<br/>`;
+    }
 
     out += '</div>';
 
@@ -348,7 +351,9 @@ const Frame = createReactClass({
   renderLeadHint() {
     if (this.leadsToApp() && !this.state.isExpanded) {
       return <span className="leads-to-app-hint">{'Called from: '}</span>;
-    } else return null;
+    } else {
+      return null;
+    }
   },
 
   renderRepeats() {
@@ -364,7 +369,9 @@ const Frame = createReactClass({
           </RepeatedContent>
         </RepeatedFrames>
       );
-    } else return null;
+    } else {
+      return null;
+    }
   },
 
   renderDefaultLine() {

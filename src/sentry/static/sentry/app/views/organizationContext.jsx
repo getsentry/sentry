@@ -169,12 +169,16 @@ const OrganizationContext = createReactClass({
   },
 
   getTitle() {
-    if (this.state.organization) return this.state.organization.name;
+    if (this.state.organization) {
+      return this.state.organization.name;
+    }
     return 'Sentry';
   },
 
   renderSidebar() {
-    if (!this.props.includeSidebar) return null;
+    if (!this.props.includeSidebar) {
+      return null;
+    }
 
     return <Sidebar {...this.props} organization={this.state.organization} />;
   },

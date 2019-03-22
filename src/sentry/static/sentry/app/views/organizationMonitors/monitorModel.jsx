@@ -4,7 +4,9 @@ export default class MonitorModel extends FormModel {
   getTransformedData() {
     return Object.entries(this.fields.toJSON()).reduce((data, [k, v]) => {
       if (k.indexOf('config.') === 0) {
-        if (!data.config) data.config = {};
+        if (!data.config) {
+          data.config = {};
+        }
         if (k === 'config.schedule.frequency' || k === 'config.schedule.interval') {
           if (!Array.isArray(data.config.schedule)) {
             data.config.schedule = [null, null];
@@ -26,7 +28,9 @@ export default class MonitorModel extends FormModel {
   }
 
   getTransformedValue(id) {
-    if (id.indexOf('config') === 0) return this.getValue(id);
+    if (id.indexOf('config') === 0) {
+      return this.getValue(id);
+    }
     return super.getTransformedValue(id);
   }
 }

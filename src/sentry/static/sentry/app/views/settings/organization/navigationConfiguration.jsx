@@ -30,8 +30,12 @@ const organizationNavigation = [
         title: t('Members'),
         // eslint-disable-next-line no-shadow
         badge: ({organization, access, features}) => {
-          if (!access.has('org:write')) return null;
-          if (organization.pendingAccessRequests <= 0) return null;
+          if (!access.has('org:write')) {
+            return null;
+          }
+          if (organization.pendingAccessRequests <= 0) {
+            return null;
+          }
 
           return `${organization.pendingAccessRequests}`;
         },

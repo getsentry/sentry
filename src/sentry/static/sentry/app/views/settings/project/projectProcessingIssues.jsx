@@ -193,15 +193,19 @@ const ProjectProcessingIssues = createReactClass({
 
   renderDebugTable() {
     let body;
-    if (this.state.loading) body = this.renderLoading();
-    else if (this.state.error) body = <LoadingError onRetry={this.fetchData} />;
-    else if (
+    if (this.state.loading) {
+      body = this.renderLoading();
+    } else if (this.state.error) {
+      body = <LoadingError onRetry={this.fetchData} />;
+    } else if (
       this.state.processingIssues.hasIssues ||
       this.state.processingIssues.resolveableIssues ||
       this.state.processingIssues.issuesProcessing
-    )
+    ) {
       body = this.renderResults();
-    else body = this.renderEmpty();
+    } else {
+      body = this.renderEmpty();
+    }
 
     return body;
   },

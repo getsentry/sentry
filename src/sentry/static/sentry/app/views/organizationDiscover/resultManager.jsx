@@ -96,7 +96,9 @@ export default function createResultManager(queryBuilder) {
    * @returns {Void}
    */
   function updatePageLinks(pageLinks) {
-    if (!pageLinks) return;
+    if (!pageLinks) {
+      return;
+    }
     const links = parseLinkHeader(pageLinks);
     data.baseQuery.next = links.next.results ? links.next.cursor : null;
     data.baseQuery.previous = links.previous.results ? links.previous.cursor : null;

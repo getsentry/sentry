@@ -355,7 +355,9 @@ class SmartSearchBar extends React.Component {
 
       const tag = supportedTags[tagName];
 
-      if (!tag) return undefined;
+      if (!tag) {
+        return undefined;
+      }
 
       // Ignore the environment tag if the feature is active and excludeEnvironment = true
       if (this.props.excludeEnvironment && tagName === 'environment') {
@@ -422,7 +424,9 @@ class SmartSearchBar extends React.Component {
     const state = this.state;
     const searchItems = state.searchItems;
 
-    if (!searchItems.length) return;
+    if (!searchItems.length) {
+      return;
+    }
 
     if (evt.key === 'ArrowDown' || evt.key === 'ArrowUp') {
       evt.preventDefault();

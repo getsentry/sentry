@@ -112,14 +112,18 @@ const App = createReactClass({
       const pageAllowsAnon = /^\/share\//.test(window.location.pathname);
 
       // Ignore error unless it is a 401
-      if (!jqXHR || jqXHR.status !== 401 || pageAllowsAnon) return;
+      if (!jqXHR || jqXHR.status !== 401 || pageAllowsAnon) {
+        return;
+      }
 
       const code = jqXHR?.responseJSON?.detail?.code;
       const extra = jqXHR?.responseJSON?.detail?.extra;
 
       // 401s can also mean sudo is required or it's a request that is allowed to fail
       // Ignore if these are the cases
-      if (code === 'sudo-required' || code === 'ignore') return;
+      if (code === 'sudo-required' || code === 'ignore') {
+        return;
+      }
 
       // If user must login via SSO, redirect to org login page
       if (code === 'sso-required') {
@@ -162,9 +166,15 @@ const App = createReactClass({
 
   onConfigStoreChange(config) {
     const newState = {};
-    if (config.needsUpgrade !== undefined) newState.needsUpgrade = config.needsUpgrade;
-    if (config.user !== undefined) newState.user = config.user;
-    if (Object.keys(newState).length > 0) this.setState(newState);
+    if (config.needsUpgrade !== undefined) {
+      newState.needsUpgrade = config.needsUpgrade;
+    }
+    if (config.user !== undefined) {
+      newState.user = config.user;
+    }
+    if (Object.keys(newState).length > 0) {
+      this.setState(newState);
+    }
   },
 
   @keydown('meta+shift+p', 'meta+k')
@@ -186,8 +196,12 @@ const App = createReactClass({
   },
 
   handleGlobalModalClose() {
-    if (!this.mainContainerRef) return;
-    if (typeof this.mainContainerRef.focus !== 'function') return;
+    if (!this.mainContainerRef) {
+      return;
+    }
+    if (typeof this.mainContainerRef.focus !== 'function') {
+      return;
+    }
 
     // Focus the main container to get hotkeys to keep working after modal closes
     this.mainContainerRef.focus();

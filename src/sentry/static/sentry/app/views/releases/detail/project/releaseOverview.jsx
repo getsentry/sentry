@@ -167,9 +167,13 @@ const ReleaseOverview = createReactClass({
     const {release} = this.context;
     const lastCommit = release.lastCommit;
 
-    if (this.state.loading) return <LoadingIndicator />;
+    if (this.state.loading) {
+      return <LoadingIndicator />;
+    }
 
-    if (this.state.error) return <LoadingError />;
+    if (this.state.error) {
+      return <LoadingError />;
+    }
 
     const {fileList, projects, hasRepos} = this.state;
 

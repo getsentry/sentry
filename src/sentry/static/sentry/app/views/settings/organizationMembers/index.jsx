@@ -251,12 +251,13 @@ class OrganizationMembersView extends AsyncView {
       </Button>
     );
 
-    if (canAddMembers)
+    if (canAddMembers) {
       action = (
         <GuideAnchor target="member_add" type="invisible">
           {action}
         </GuideAnchor>
       );
+    }
 
     return (
       <div>

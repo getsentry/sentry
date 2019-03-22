@@ -49,7 +49,9 @@ const SuggestedOwners = createReactClass({
   },
 
   fetchData(event) {
-    if (!event) return;
+    if (!event) {
+      return;
+    }
     const org = this.getOrganization();
     const project = this.props.project;
 

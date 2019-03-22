@@ -41,9 +41,13 @@ export function loadSearchMap() {
         const mod = context(key);
 
         // Since we're dynamically importing an entire directly, there could be malformed modules defined?
-        if (!mod) return null;
+        if (!mod) {
+          return null;
+        }
         // Only look for module that have `route` exported
-        if (!mod.route) return null;
+        if (!mod.route) {
+          return null;
+        }
 
         return createSearchMap({
           // `formGroups` can be a default export or a named export :<

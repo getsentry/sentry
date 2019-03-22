@@ -23,8 +23,9 @@ class DeviceContextType extends React.Component {
     }
 
     let memory = `Total: ${formatBytes(memory_size)} / Free: ${formatBytes(free_memory)}`;
-    if (Number.isInteger(usable_memory) && usable_memory > 0)
+    if (Number.isInteger(usable_memory) && usable_memory > 0) {
       memory += ` / Usable: ${formatBytes(usable_memory)}`;
+    }
 
     return memory;
   };
@@ -35,21 +36,25 @@ class DeviceContextType extends React.Component {
     external_storage_size,
     external_free_storage
   ) => {
-    if (!Number.isInteger(storage_size) || storage_size <= 0) return null;
+    if (!Number.isInteger(storage_size) || storage_size <= 0) {
+      return null;
+    }
 
     let storage = `Total: ${formatBytes(storage_size)}`;
-    if (Number.isInteger(free_storage) && free_storage > 0)
+    if (Number.isInteger(free_storage) && free_storage > 0) {
       storage += ` / Free: ${formatBytes(free_storage)}`;
+    }
 
     if (
       Number.isInteger(external_storage_size) &&
       external_storage_size > 0 &&
       Number.isInteger(external_free_storage) &&
       external_free_storage > 0
-    )
+    ) {
       storage += ` (External Total: ${formatBytes(
         external_storage_size
       )} / Free: ${formatBytes(external_free_storage)})`;
+    }
 
     return storage;
   };

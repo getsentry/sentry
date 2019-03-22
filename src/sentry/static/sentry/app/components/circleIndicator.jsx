@@ -3,7 +3,9 @@ import PropTypes from 'prop-types';
 import styled from 'react-emotion';
 
 const getBackgroundColor = p => {
-  if (p.color) return `background: ${p.color};`;
+  if (p.color) {
+    return `background: ${p.color};`;
+  }
 
   return `background: ${p.enabled ? p.theme.success : p.theme.error};`;
 };

@@ -52,7 +52,9 @@ class DeletionPending extends Component {
   }
 
   onRestore = () => {
-    if (this.state.submitInProgress) return;
+    if (this.state.submitInProgress) {
+      return;
+    }
     this.setState({submitInProgress: true});
     this.api.request(`/organizations/${this.props.organization.slug}/`, {
       method: 'PUT',
@@ -127,12 +129,13 @@ class OrganizationDetailsBody extends Component {
   render() {
     const {organization} = this.context;
 
-    if (organization && organization.status)
+    if (organization && organization.status) {
       if (organization.status.id === 'pending_deletion') {
         return <DeletionPending organization={organization} />;
       } else if (organization.status.id === 'deletion_in_progress') {
         return <DeletionInProgress organization={organization} />;
       }
+    }
     return (
       <React.Fragment>
         {organization && <InstallPromptBanner organization={organization} />}
