@@ -18,7 +18,7 @@
     "@babel/preset-env": "^7.0.0",
     "@babel/preset-react": "^7.0.0",
     "@babel/runtime": "^7.0.0",
-    "@sentry/browser": "5.0.0-beta1",
+    "@sentry/browser": "5.0.0-rc.0",
     "algoliasearch": "^3.32.0",
     "babel-core": "^7.0.0-bridge.0",
     "babel-loader": "^8.0.0",
