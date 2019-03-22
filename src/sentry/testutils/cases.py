@@ -442,8 +442,9 @@ class APITestCase(BaseTestCase, BaseAPITestCase):
         )
 
     def get_valid_response(self, *args, **params):
+        status_code = params.pop('status_code', 200)
         resp = self.get_response(*args, **params)
-        assert resp.status_code == 200, resp.content
+        assert resp.status_code == status_code, resp.content
         return resp
 
 
