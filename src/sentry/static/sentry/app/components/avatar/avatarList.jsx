@@ -21,6 +21,7 @@ export default class AvatarList extends React.Component {
     avatarSize: 28,
     maxVisibleAvatars: 5,
     typeMembers: 'users',
+    tooltipOptions: {},
   };
 
   render() {
@@ -32,8 +33,14 @@ export default class AvatarList extends React.Component {
       renderTooltip,
       typeMembers,
     } = this.props;
+
     const visibleUsers = users.slice(0, maxVisibleAvatars);
     const numCollapsedUsers = users.length - visibleUsers.length;
+
+    if (!tooltipOptions.placement) {
+      tooltipOptions.placement = 'top auto';
+    }
+
     return (
       <Flex direction="row-reverse">
         {!!numCollapsedUsers && (
