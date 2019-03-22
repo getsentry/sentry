@@ -195,7 +195,7 @@ class ProjectSelector extends React.Component {
         inputActions={() => (
           <Tooltip title="Add a project">
             <AddButton to={`/organizations/${org.slug}/projects/new`} size="xsmall">
-              <StyledAddIcon src="icon-circle-add" />
+              <StyledAddIcon src="icon-circle-add" /> project
             </AddButton>
           </Tooltip>
         )}
@@ -348,11 +348,10 @@ const CreateProjectButton = styled(Button)`
   margin: ${space(0.5)} 0;
 `;
 
-const AddButton = styled(Link)`
+const AddButton = styled(Button)`
   display: block;
   margin: 0 ${space(1)};
   color: ${p => p.theme.gray2};
-  font-size: ${p => p.theme.fontSizeMedium};
 
   &:hover {
     color: ${p => p.theme.gray3};
@@ -392,7 +391,7 @@ const SettingsIcon = styled(InlineSvg)`
 `;
 
 const BadgeAndActionsWrapper = styled('div')`
-  animation: ${p => (p.bookmarkHasChanged ? `1s ${alertHighlight('default')}` : 'none')};
+  animation: ${p => (p.bookmarkHasChanged ? `1s ${alertHighlight('info')}` : 'none')};
   z-index: ${p => (p.bookmarkHasChanged ? 1 : 'inherit')};
   position: relative;
   border-style: solid;
