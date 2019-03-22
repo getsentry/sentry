@@ -58,10 +58,16 @@ class ContextChunk extends React.Component {
   }
 
   syncPlugin = () => {
-    const sourcePlugin = getSourcePlugin(
-      this.props.group.pluginContexts,
-      this.props.type
-    );
+    const {group, type, alias} = this.props;
+
+    // Search using `alias` first because old plugins rely on it and type is set to "default"
+    // e.g. sessionstack
+    const sourcePlugin =
+      type === 'default'
+        ? getSourcePlugin(group.pluginContexts, alias) ||
+          getSourcePlugin(group.pluginContexts, type)
+        : getSourcePlugin(group.pluginContexts, type);
+
     if (!sourcePlugin) {
       this.setState({
         pluginLoading: false,
@@ -111,7 +117,10 @@ class ContextChunk extends React.Component {
     const group = this.props.group;
     const evt = this.props.event;
     const {type, alias, value} = this.props;
-    const Component = getContextComponent(type);
+    const Component =
+      type === 'default'
+        ? getContextComponent(alias) || getContextComponent(type)
+        : getContextComponent(type);
 
     // this can happen if the component does not exist
     if (!Component) {
