@@ -561,6 +561,9 @@ class CspReportTest(TestCase):
         resp = self._postCspWithHeader(input)
         assert resp.status_code in (400, 403), resp.content
 
+    def test_invalid_report(self):
+        self.assertReportRejected('')
+
     def test_chrome_blocked_asset(self):
         self.assertReportCreated(*get_fixtures('chrome_blocked_asset'))
 
