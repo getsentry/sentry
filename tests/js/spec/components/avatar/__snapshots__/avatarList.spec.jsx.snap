@@ -4,6 +4,11 @@ exports[`AvatarList renders with collapsed avatar count if > 5 users 1`] = `
 <AvatarList
   avatarSize={28}
   maxVisibleAvatars={5}
+  tooltipOptions={
+    Object {
+      "placement": "top auto",
+    }
+  }
   typeMembers="users"
   users={
     Array [
@@ -133,6 +138,11 @@ exports[`AvatarList renders with collapsed avatar count if > 5 users 1`] = `
           hasTooltip={true}
           key="1-foo@example.com"
           size={28}
+          tooltipOptions={
+            Object {
+              "placement": "top auto",
+            }
+          }
           user={
             Object {
               "email": "foo@example.com",
@@ -154,6 +164,11 @@ exports[`AvatarList renders with collapsed avatar count if > 5 users 1`] = `
             className="css-ptswrs-StyledAvatar-Circle e1axh4r50"
             hasTooltip={true}
             size={28}
+            tooltipOptions={
+              Object {
+                "placement": "top auto",
+              }
+            }
             user={
               Object {
                 "email": "foo@example.com",
@@ -176,6 +191,11 @@ exports[`AvatarList renders with collapsed avatar count if > 5 users 1`] = `
               gravatar={false}
               hasTooltip={true}
               size={28}
+              tooltipOptions={
+                Object {
+                  "placement": "top auto",
+                }
+              }
               user={
                 Object {
                   "email": "foo@example.com",
@@ -203,12 +223,22 @@ exports[`AvatarList renders with collapsed avatar count if > 5 users 1`] = `
                 style={Object {}}
                 title="Foo Bar"
                 tooltip="Foo Bar (foo@example.com)"
+                tooltipOptions={
+                  Object {
+                    "placement": "top auto",
+                  }
+                }
                 type="letter_avatar"
                 uploadPath="avatar"
               >
                 <Tooltip
                   disabled={false}
                   title="Foo Bar (foo@example.com)"
+                  tooltipOptions={
+                    Object {
+                      "placement": "top auto",
+                    }
+                  }
                 >
                   <StyledBaseAvatar
                     className="tip avatar css-ptswrs-StyledAvatar-Circle e1axh4r50"
@@ -282,6 +312,11 @@ exports[`AvatarList renders with collapsed avatar count if > 5 users 1`] = `
           hasTooltip={true}
           key="2-foo@example.com"
           size={28}
+          tooltipOptions={
+            Object {
+              "placement": "top auto",
+            }
+          }
           user={
             Object {
               "email": "foo@example.com",
@@ -303,6 +338,11 @@ exports[`AvatarList renders with collapsed avatar count if > 5 users 1`] = `
             className="css-ptswrs-StyledAvatar-Circle e1axh4r50"
             hasTooltip={true}
             size={28}
+            tooltipOptions={
+              Object {
+                "placement": "top auto",
+              }
+            }
             user={
               Object {
                 "email": "foo@example.com",
@@ -325,6 +365,11 @@ exports[`AvatarList renders with collapsed avatar count if > 5 users 1`] = `
               gravatar={false}
               hasTooltip={true}
               size={28}
+              tooltipOptions={
+                Object {
+                  "placement": "top auto",
+                }
+              }
               user={
                 Object {
                   "email": "foo@example.com",
@@ -352,12 +397,22 @@ exports[`AvatarList renders with collapsed avatar count if > 5 users 1`] = `
                 style={Object {}}
                 title="Foo Bar"
                 tooltip="Foo Bar (foo@example.com)"
+                tooltipOptions={
+                  Object {
+                    "placement": "top auto",
+                  }
+                }
                 type="letter_avatar"
                 uploadPath="avatar"
               >
                 <Tooltip
                   disabled={false}
                   title="Foo Bar (foo@example.com)"
+                  tooltipOptions={
+                    Object {
+                      "placement": "top auto",
+                    }
+                  }
                 >
                   <StyledBaseAvatar
                     className="tip avatar css-ptswrs-StyledAvatar-Circle e1axh4r50"
@@ -431,6 +486,11 @@ exports[`AvatarList renders with collapsed avatar count if > 5 users 1`] = `
           hasTooltip={true}
           key="3-foo@example.com"
           size={28}
+          tooltipOptions={
+            Object {
+              "placement": "top auto",
+            }
+          }
           user={
             Object {
               "email": "foo@example.com",
@@ -452,6 +512,11 @@ exports[`AvatarList renders with collapsed avatar count if > 5 users 1`] = `
             className="css-ptswrs-StyledAvatar-Circle e1axh4r50"
             hasTooltip={true}
             size={28}
+            tooltipOptions={
+              Object {
+                "placement": "top auto",
+              }
+            }
             user={
               Object {
                 "email": "foo@example.com",
@@ -474,6 +539,11 @@ exports[`AvatarList renders with collapsed avatar count if > 5 users 1`] = `
               gravatar={false}
               hasTooltip={true}
               size={28}
+              tooltipOptions={
+                Object {
+                  "placement": "top auto",
+                }
+              }
               user={
                 Object {
                   "email": "foo@example.com",
@@ -501,12 +571,22 @@ exports[`AvatarList renders with collapsed avatar count if > 5 users 1`] = `
                 style={Object {}}
                 title="Foo Bar"
                 tooltip="Foo Bar (foo@example.com)"
+                tooltipOptions={
+                  Object {
+                    "placement": "top auto",
+                  }
+                }
                 type="letter_avatar"
                 uploadPath="avatar"
               >
                 <Tooltip
                   disabled={false}
                   title="Foo Bar (foo@example.com)"
+                  tooltipOptions={
+                    Object {
+                      "placement": "top auto",
+                    }
+                  }
                 >
                   <StyledBaseAvatar
                     className="tip avatar css-ptswrs-StyledAvatar-Circle e1axh4r50"
@@ -580,6 +660,11 @@ exports[`AvatarList renders with collapsed avatar count if > 5 users 1`] = `
           hasTooltip={true}
           key="4-foo@example.com"
           size={28}
+          tooltipOptions={
+            Object {
+              "placement": "top auto",
+            }
+          }
           user={
             Object {
               "email": "foo@example.com",
@@ -601,6 +686,11 @@ exports[`AvatarList renders with collapsed avatar count if > 5 users 1`] = `
             className="css-ptswrs-StyledAvatar-Circle e1axh4r50"
             hasTooltip={true}
             size={28}
+            tooltipOptions={
+              Object {
+                "placement": "top auto",
+              }
+            }
             user={
               Object {
                 "email": "foo@example.com",
@@ -623,6 +713,11 @@ exports[`AvatarList renders with collapsed avatar count if > 5 users 1`] = `
               gravatar={false}
               hasTooltip={true}
               size={28}
+              tooltipOptions={
+                Object {
+                  "placement": "top auto",
+                }
+              }
               user={
                 Object {
                   "email": "foo@example.com",
@@ -650,12 +745,22 @@ exports[`AvatarList renders with collapsed avatar count if > 5 users 1`] = `
                 style={Object {}}
                 title="Foo Bar"
                 tooltip="Foo Bar (foo@example.com)"
+                tooltipOptions={
+                  Object {
+                    "placement": "top auto",
+                  }
+                }
                 type="letter_avatar"
                 uploadPath="avatar"
               >
                 <Tooltip
                   disabled={false}
                   title="Foo Bar (foo@example.com)"
+                  tooltipOptions={
+                    Object {
+                      "placement": "top auto",
+                    }
+                  }
                 >
                   <StyledBaseAvatar
                     className="tip avatar css-ptswrs-StyledAvatar-Circle e1axh4r50"
@@ -729,6 +834,11 @@ exports[`AvatarList renders with collapsed avatar count if > 5 users 1`] = `
           hasTooltip={true}
           key="5-foo@example.com"
           size={28}
+          tooltipOptions={
+            Object {
+              "placement": "top auto",
+            }
+          }
           user={
             Object {
               "email": "foo@example.com",
@@ -750,6 +860,11 @@ exports[`AvatarList renders with collapsed avatar count if > 5 users 1`] = `
             className="css-ptswrs-StyledAvatar-Circle e1axh4r50"
             hasTooltip={true}
             size={28}
+            tooltipOptions={
+              Object {
+                "placement": "top auto",
+              }
+            }
             user={
               Object {
                 "email": "foo@example.com",
@@ -772,6 +887,11 @@ exports[`AvatarList renders with collapsed avatar count if > 5 users 1`] = `
               gravatar={false}
               hasTooltip={true}
               size={28}
+              tooltipOptions={
+                Object {
+                  "placement": "top auto",
+                }
+              }
               user={
                 Object {
                   "email": "foo@example.com",
@@ -799,12 +919,22 @@ exports[`AvatarList renders with collapsed avatar count if > 5 users 1`] = `
                 style={Object {}}
                 title="Foo Bar"
                 tooltip="Foo Bar (foo@example.com)"
+                tooltipOptions={
+                  Object {
+                    "placement": "top auto",
+                  }
+                }
                 type="letter_avatar"
                 uploadPath="avatar"
               >
                 <Tooltip
                   disabled={false}
                   title="Foo Bar (foo@example.com)"
+                  tooltipOptions={
+                    Object {
+                      "placement": "top auto",
+                    }
+                  }
                 >
                   <StyledBaseAvatar
                     className="tip avatar css-ptswrs-StyledAvatar-Circle e1axh4r50"
@@ -884,6 +1014,11 @@ exports[`AvatarList renders with user avatars 1`] = `
 <AvatarList
   avatarSize={28}
   maxVisibleAvatars={5}
+  tooltipOptions={
+    Object {
+      "placement": "top auto",
+    }
+  }
   typeMembers="users"
   users={
     Array [
@@ -933,6 +1068,11 @@ exports[`AvatarList renders with user avatars 1`] = `
           hasTooltip={true}
           key="1-foo@example.com"
           size={28}
+          tooltipOptions={
+            Object {
+              "placement": "top auto",
+            }
+          }
           user={
             Object {
               "email": "foo@example.com",
@@ -954,6 +1094,11 @@ exports[`AvatarList renders with user avatars 1`] = `
             className="css-ptswrs-StyledAvatar-Circle e1axh4r50"
             hasTooltip={true}
             size={28}
+            tooltipOptions={
+              Object {
+                "placement": "top auto",
+              }
+            }
             user={
               Object {
                 "email": "foo@example.com",
@@ -976,6 +1121,11 @@ exports[`AvatarList renders with user avatars 1`] = `
               gravatar={false}
               hasTooltip={true}
               size={28}
+              tooltipOptions={
+                Object {
+                  "placement": "top auto",
+                }
+              }
               user={
                 Object {
                   "email": "foo@example.com",
@@ -1003,12 +1153,22 @@ exports[`AvatarList renders with user avatars 1`] = `
                 style={Object {}}
                 title="Foo Bar"
                 tooltip="Foo Bar (foo@example.com)"
+                tooltipOptions={
+                  Object {
+                    "placement": "top auto",
+                  }
+                }
                 type="letter_avatar"
                 uploadPath="avatar"
               >
                 <Tooltip
                   disabled={false}
                   title="Foo Bar (foo@example.com)"
+                  tooltipOptions={
+                    Object {
+                      "placement": "top auto",
+                    }
+                  }
                 >
                   <StyledBaseAvatar
                     className="tip avatar css-ptswrs-StyledAvatar-Circle e1axh4r50"
@@ -1082,6 +1242,11 @@ exports[`AvatarList renders with user avatars 1`] = `
           hasTooltip={true}
           key="2-foo@example.com"
           size={28}
+          tooltipOptions={
+            Object {
+              "placement": "top auto",
+            }
+          }
           user={
             Object {
               "email": "foo@example.com",
@@ -1103,6 +1268,11 @@ exports[`AvatarList renders with user avatars 1`] = `
             className="css-ptswrs-StyledAvatar-Circle e1axh4r50"
             hasTooltip={true}
             size={28}
+            tooltipOptions={
+              Object {
+                "placement": "top auto",
+              }
+            }
             user={
               Object {
                 "email": "foo@example.com",
@@ -1125,6 +1295,11 @@ exports[`AvatarList renders with user avatars 1`] = `
               gravatar={false}
               hasTooltip={true}
               size={28}
+              tooltipOptions={
+                Object {
+                  "placement": "top auto",
+                }
+              }
               user={
                 Object {
                   "email": "foo@example.com",
@@ -1152,12 +1327,22 @@ exports[`AvatarList renders with user avatars 1`] = `
                 style={Object {}}
                 title="Foo Bar"
                 tooltip="Foo Bar (foo@example.com)"
+                tooltipOptions={
+                  Object {
+                    "placement": "top auto",
+                  }
+                }
                 type="letter_avatar"
                 uploadPath="avatar"
               >
                 <Tooltip
                   disabled={false}
                   title="Foo Bar (foo@example.com)"
+                  tooltipOptions={
+                    Object {
+                      "placement": "top auto",
+                    }
+                  }
                 >
                   <StyledBaseAvatar
                     className="tip avatar css-ptswrs-StyledAvatar-Circle e1axh4r50"
