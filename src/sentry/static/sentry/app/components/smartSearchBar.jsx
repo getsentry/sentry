@@ -11,8 +11,11 @@ import {NEGATION_OPERATOR, SEARCH_WILDCARD} from 'app/constants';
 import {defined} from 'app/utils';
 import {fetchRecentSearches, saveRecentSearch} from 'app/actionCreators/savedSearches';
 import {t} from 'app/locale';
+import Button from 'app/components/button';
+import InlineSvg from 'app/components/inlineSvg';
 import MemberListStore from 'app/stores/memberListStore';
 import SearchDropdown from 'app/views/stream/searchDropdown';
+import space from 'app/styles/space';
 import withApi from 'app/utils/withApi';
 import withOrganization from 'app/utils/withOrganization';
 
@@ -494,6 +497,17 @@ class SmartSearchBar extends React.Component {
     });
   };
 
+  onTogglePinSearch = evt => {
+    evt.preventDefault();
+    evt.stopPropagation();
+
+    if (this.props.pinnedSearch) {
+      unpinSearch();
+    } else {
+      pinSearch(this.props.api, this.state.query);
+    }
+  };
+
   onKeyDown = evt => {
     const state = this.state;
     const searchItems = state.searchItems;
@@ -617,11 +631,21 @@ class SmartSearchBar extends React.Component {
             />
             <span className="icon-search" />
             {this.state.query !== '' && (
-              <div>
+              <React.Fragment>
+                {this.props.allowPin && (
+                  <PinButton
+                    isPinned={!!this.props.pinnedSearch}
+                    borderless
+                    size="zero"
+                    onClick={this.onTogglePinnedSearch}
+                  >
+                    <PinIcon src="icon-star" />
+                  </PinButton>
+                )}
                 <a className="search-clear-form" onClick={this.clearSearch}>
                   <span className="icon-circle-cross" />
                 </a>
-              </div>
+              </React.Fragment>
             )}
           </div>
 
@@ -671,6 +695,28 @@ const SmartSearchBarContainer = withApi(
     })
   )
 );
+
+const PinButton = styled(Button)`
+  margin-right: ${space(0.5)};
+  position: absolute;
+  right: 26px;
+  top: 10px;
+`;
+
+const PinIcon = styled(InlineSvg)`
+  color: ${p => (p.isPinned ? 'yellow' : 'gray')};
+  &:hover {
+    color: yellow;
+  }
+`;
+
+const SearchActions = styled('div')`
+  display: flex;
+  align-items: center;
+  position: absolute;
+  right: 10px;
+  top: 8px;
+`;
 
 const DropdownWrapper = styled('div')`
   display: ${p => (p.visible ? 'block' : 'none')};

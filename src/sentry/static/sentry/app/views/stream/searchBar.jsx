@@ -153,6 +153,7 @@ class SearchBar extends React.Component {
         recentSearchType={SEARCH_TYPES.ISSUE}
         displayRecentSearches={this.hasRecentSearches()}
         onSavedRecentSearch={this.handleSavedRecentSearch}
+        allowPin
         {...props}
       />
     );
