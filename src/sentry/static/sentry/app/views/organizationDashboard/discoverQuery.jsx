@@ -92,7 +92,7 @@ class DiscoverQuery extends React.Component {
         const newQuery = {
           ...query,
           fields: [],
-          condition_fields:
+          conditionFields:
             this.props.releases &&
             createReleaseFieldCondition(this.props.releases.map(({version}) => version)),
         };

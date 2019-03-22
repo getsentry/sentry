@@ -189,7 +189,7 @@ describe('DiscoverQuery', function() {
       expect.objectContaining({
         data: expect.objectContaining({
           aggregations: [['count()', null, 'Events']],
-          condition_fields: [
+          conditionFields: [
             [
               'if',
               [
