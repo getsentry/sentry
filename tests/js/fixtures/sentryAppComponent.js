@@ -11,7 +11,7 @@ export function SentryAppComponent(params = {}) {
             type: 'select',
             name: 'numbers',
             label: 'Numbers',
-            options: [{label: 'one', value: 1}, {label: 'two', value: 2, default: true}],
+            options: [['one', 1], ['two', 2]],
           },
         ],
       },
