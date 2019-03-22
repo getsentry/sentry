@@ -309,7 +309,7 @@ class OrganizationDiscoverQueryEndpoint(OrganizationEndpoint):
         has_aggregations = len(serialized.get('aggregations')) > 0
 
         selected_columns = serialized.get(
-            'conditionFields') or [] if has_aggregations else serialized.get('fields')
+            'conditionFields', []) + [] if has_aggregations else serialized.get('fields', [])
 
         projects_map = {}
         for project in projects:
