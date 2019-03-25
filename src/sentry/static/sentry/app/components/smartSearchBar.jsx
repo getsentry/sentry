@@ -183,7 +183,7 @@ class SmartSearchBar extends React.Component {
           onSavedRecentSearch(query);
         }
       } catch (err) {
-        // Ignore errors if it fails to save
+        // Silently capture errors if it fails to save
         Sentry.captureException(err);
       }
     }
@@ -287,7 +287,7 @@ class SmartSearchBar extends React.Component {
    * Returns array of tag values that substring match `query`; invokes `callback`
    * with results
    */
-  getPredefinedTagValues = async function(tag, query) {
+  getPredefinedTagValues = function(tag, query) {
     return tag.values.filter(value => value.indexOf(query) > -1);
   };
 
