@@ -6,6 +6,7 @@ from collections import Iterable
 
 from sentry.mediators import Mediator, Param
 from sentry.mediators.param import if_param
+from sentry.mediators.service_hooks.creator import expand_events
 
 
 class Updater(Mediator):
@@ -21,6 +22,7 @@ class Updater(Mediator):
         self._update_actor()
         self._update_events()
         self._update_url()
+        self.service_hook.save()
         return self.service_hook
 
     @if_param('application')
@@ -33,7 +35,7 @@ class Updater(Mediator):
 
     @if_param('events')
     def _update_events(self):
-        self.service_hook.events = self.events
+        self.service_hook.events = expand_events(self.events)
 
     @if_param('url')
     def _update_url(self):
