@@ -175,14 +175,17 @@ class OrganizationDiscoverQueryTest(APITestCase, SnubaTestCase):
             })
 
         assert response.status_code == 200, response.content
-        assert len(response.data['data']) == 2
-        assert response.data['data'][0]['count'] == 2
 
-        # note this "release" key represents the alias for the column condition
-        # and is also used in `groupby`, it is NOT the release tag
-        assert response.data['data'][0]['release'] == 'other'
-        assert response.data['data'][1]['count'] == 1
-        assert response.data['data'][1]['release'] == 'foo'
+        # rollup is by one day and diff of start/end is 10 seconds, so we only have one day
+        assert len(response.data['data']) == 2
+
+        for data in response.data['data']:
+            # note this "release" key represents the alias for the column condition
+            # and is also used in `groupby`, it is NOT the release tag
+            if data['release'] == 'foo':
+                assert data['count'] == 1
+            elif data['release'] == 'other':
+                assert data['count'] == 2
 
     def test_invalid_range_value(self):
         with self.feature('organizations:discover'):
