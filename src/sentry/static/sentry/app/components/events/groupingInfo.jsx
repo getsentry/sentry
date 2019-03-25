@@ -159,10 +159,10 @@ class GroupVariant extends React.Component {
         break;
       case 'custom-fingerprint':
         data.push(['Fingerprint values', variant.values]);
-        data.push(['Grouping Config', variant.config.id]);
         break;
       case 'salted-component':
         data.push(['Fingerprint values', variant.values]);
+        data.push(['Grouping Config', variant.config.id]);
         component = variant.component;
         break;
       default:
