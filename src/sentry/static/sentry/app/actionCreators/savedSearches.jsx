@@ -99,7 +99,7 @@ const getPinSearchUrl = orgId => `/organizations/${orgId}/pinned-searches/`;
 export function pinSearch(api, orgId, query, type) {
   const url = getPinSearchUrl(orgId);
   const promise = api.requestPromise(url, {
-    method: 'POST',
+    method: 'PUT',
     data: {
       query,
       type,

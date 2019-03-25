@@ -255,7 +255,7 @@ describe('SearchBar', function() {
       expect(pinSearch).toHaveBeenLastCalledWith(
         expect.anything(),
         expect.objectContaining({
-          method: 'POST',
+          method: 'PUT',
           data: {
             query: 'url:"fu" ',
             type: 0,
