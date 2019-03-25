@@ -407,3 +407,54 @@ class Project(Model):
 
     def get_lock_key(self):
         return 'project_token:%s' % self.id
+
+    def copy_settings_from(self, project_id):
+        """
+        Copies project level settings of the inputted project
+        - General Settings
+        - ProjectTeams
+        - Alerts Settings and Rules
+        - EnvironmentProjects
+        - ProjectOwnership Rules and settings
+        - Project Inbound Data Filters
+
+        Returns True if the settings have successfully been copied over
+        Returns False otherwise
+        """
+        from sentry.models import (
+            EnvironmentProject, ProjectOption, ProjectOwnership, Rule
+        )
+        model_list = [EnvironmentProject, ProjectOwnership, ProjectTeam, Rule]
+
+        project = Project.objects.get(id=project_id)
+        try:
+            with transaction.atomic():
+                for model in model_list:
+                    # remove all previous project settings
+                    model.objects.filter(
+                        project_id=self.id,
+                    ).delete()
+
+                    # add settings from other project to self
+                    for setting in model.objects.filter(
+                        project_id=project_id
+                    ):
+                        setting.pk = None
+                        setting.project_id = self.id
+                        setting.save()
+
+                options = ProjectOption.objects.get_all_values(project=project)
+                for key, value in six.iteritems(options):
+                    self.update_option(key, value)
+
+        except IntegrityError as e:
+            logging.exception(
+                'Error occurred during copy project settings.',
+                extra={
+                    'error': e.message,
+                    'project_to': self.id,
+                    'project_from': project_id,
+                }
+            )
+            return False
+        return True
