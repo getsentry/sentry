@@ -1,9 +1,12 @@
 import PropTypes from 'prop-types';
 import React from 'react';
 
-import SavedSearchSelector from 'app/views/stream/savedSearchSelector';
-import SearchBar from 'app/views/stream/searchBar';
-import SortOptions from 'app/views/stream/sortOptions';
+import Feature from 'app/components/acl/feature';
+
+import SearchBar from './searchBar';
+import SortOptions from './sortOptions';
+import SavedSearchSelector from './savedSearchSelector';
+import OrganizationSavedSearchSelector from './organizationSavedSearchSelector';
 
 class StreamFilters extends React.Component {
   static propTypes = {
@@ -68,18 +71,30 @@ class StreamFilters extends React.Component {
       <div className="stream-header">
         <div className="row">
           <div className="col-sm-5">
-            <SavedSearchSelector
-              access={access}
-              orgId={orgId}
-              projectId={projectId}
-              searchId={searchId}
-              queryCount={queryCount}
-              queryMaxCount={queryMaxCount}
-              query={query}
-              onSavedSearchCreate={onSavedSearchCreate}
-              onSavedSearchSelect={onSavedSearchSelect}
-              savedSearchList={savedSearchList}
-            />
+            <Feature
+              features={['org-saved-searches']}
+              renderDisabled={() => (
+                <SavedSearchSelector
+                  access={access}
+                  orgId={orgId}
+                  projectId={projectId}
+                  searchId={searchId}
+                  queryCount={queryCount}
+                  queryMaxCount={queryMaxCount}
+                  query={query}
+                  onSavedSearchCreate={onSavedSearchCreate}
+                  onSavedSearchSelect={onSavedSearchSelect}
+                  savedSearchList={savedSearchList}
+                />
+              )}
+            >
+              <OrganizationSavedSearchSelector
+                savedSearchList={savedSearchList}
+                onSavedSearchSelect={onSavedSearchSelect}
+                queryCount={queryCount}
+                queryMaxCount={queryMaxCount}
+              />
+            </Feature>
           </div>
           <div className="col-sm-7">
             <div className="search-container">

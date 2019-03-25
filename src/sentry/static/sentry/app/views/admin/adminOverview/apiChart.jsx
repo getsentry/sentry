@@ -118,8 +118,11 @@ export default createReactClass({
   },
 
   render() {
-    if (this.state.loading) return <LoadingIndicator />;
-    else if (this.state.error) return <LoadingError onRetry={this.fetchData} />;
+    if (this.state.loading) {
+      return <LoadingIndicator />;
+    } else if (this.state.error) {
+      return <LoadingError onRetry={this.fetchData} />;
+    }
     return (
       <StackedBarChart
         series={this.getChartSeries()}

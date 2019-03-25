@@ -1,10 +1,10 @@
 ---
-created: '2019-03-15T18:37:00.151249Z'
+created: '2019-03-21T00:08:18.476445Z'
 creator: sentry
 source: tests/sentry/grouping/test_variants.py
 ---
 app:
-  hash: '0069ba38208554530eed55f7647f7c5c'
+  hash: '418120a66f7031923031f5c52aca0724'
   component:
     app*
       exception*
@@ -45,11 +45,17 @@ app:
           frame (non app frame)
             function*
               u'sentry::hub::Hub::with_active::{{closure}}'
-        type*
+          frame (non app frame)
+            function (ignored unknown function)
+              u'<unknown>'
+          frame (non app frame)
+            function (ignored unknown function)
+              u'<redacted>'
+        type (ignored because exception is synthetic)
           u'log_demo'
 --------------------------------------------------------------------------
 system:
-  hash: '30f71d6ff287238ce1541e21e633a8c5'
+  hash: '06f8f02638bc75df5a5c88712055ee5f'
   component:
     system*
       exception*
@@ -90,5 +96,11 @@ system:
           frame*
             function*
               u'sentry::hub::Hub::with_active::{{closure}}'
-        type*
+          frame
+            function (ignored unknown function)
+              u'<unknown>'
+          frame
+            function (ignored unknown function)
+              u'<redacted>'
+        type (ignored because exception is synthetic)
           u'log_demo'

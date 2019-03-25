@@ -51,7 +51,9 @@ const KeyRow = createReactClass({
   },
 
   handleRemove() {
-    if (this.state.loading) return;
+    if (this.state.loading) {
+      return;
+    }
 
     const loadingIndicator = addLoadingMessage(t('Saving changes..'));
     const {orgId, projectId, data} = this.props;
@@ -74,7 +76,9 @@ const KeyRow = createReactClass({
   },
 
   handleUpdate(params, cb) {
-    if (this.state.loading) return;
+    if (this.state.loading) {
+      return;
+    }
     const loadingIndicator = addLoadingMessage(t('Saving changes..'));
     const {orgId, projectId, data} = this.props;
     this.api.request(`/projects/${orgId}/${projectId}/keys/${data.id}/`, {

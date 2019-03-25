@@ -4,8 +4,8 @@ import pytz
 import logging
 from datetime import datetime
 
-from sentry.models import Event
-from sentry.utils import json
+from sentry.models import Event, EventDict
+from sentry.utils import json, metrics
 
 
 logger = logging.getLogger(__name__)
@@ -27,6 +27,12 @@ def basic_protocol_handler(unsupported_operations):
             event_data['datetime'],
             "%Y-%m-%dT%H:%M:%S.%fZ",
         ).replace(tzinfo=pytz.utc)
+
+        # This data is already normalized as we're currently in the
+        # ingestion pipeline and the event was in store
+        # normalization just a few seconds ago. Running it through
+        # Rust (re)normalization here again would be too slow.
+        event_data['data'] = EventDict(event_data['data'], skip_renormalization=True)
 
         kwargs = {
             'event': Event(**{
@@ -94,6 +100,8 @@ def get_task_kwargs_for_message(value):
     can be applied to a post-processing task, or ``None`` if no task should be
     dispatched.
     """
+
+    metrics.timing('evenstream.events.size.data', len(value))
     payload = json.loads(value)
 
     try:

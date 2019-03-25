@@ -83,7 +83,9 @@ class AccountSecurityDetails extends AsyncView {
   handleRemove = device => {
     const {authenticator} = this.state;
 
-    if (!authenticator || !authenticator.authId) return;
+    if (!authenticator || !authenticator.authId) {
+      return;
+    }
     const isRemovingU2fDevice = !!device;
     const deviceId = isRemovingU2fDevice ? `${device.key_handle}/` : '';
 
@@ -137,11 +139,9 @@ class AccountSecurityDetails extends AsyncView {
                 )}
                 disabled={!deleteDisabled}
               >
-                <span>
-                  <RemoveConfirm onConfirm={this.handleRemove} disabled={deleteDisabled}>
-                    <Button priority="danger">{authenticator.removeButton}</Button>
-                  </RemoveConfirm>
-                </span>
+                <RemoveConfirm onConfirm={this.handleRemove} disabled={deleteDisabled}>
+                  <Button priority="danger">{authenticator.removeButton}</Button>
+                </RemoveConfirm>
               </Tooltip>
             )
           }

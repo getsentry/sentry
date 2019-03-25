@@ -22,7 +22,9 @@ class OrganizationCrumb extends React.Component {
   render() {
     const {organizations, organization, params, routes, route, ...props} = this.props;
 
-    if (!organization) return null;
+    if (!organization) {
+      return null;
+    }
 
     const hasMenu = organizations.length > 1;
 

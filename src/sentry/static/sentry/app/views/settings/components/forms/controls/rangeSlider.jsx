@@ -107,7 +107,9 @@ class RangeSlider extends React.Component {
 
   handleBlur = e => {
     const {onBlur} = this.props;
-    if (typeof onBlur !== 'function') return;
+    if (typeof onBlur !== 'function') {
+      return;
+    }
 
     onBlur(e);
   };

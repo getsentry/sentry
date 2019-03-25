@@ -51,8 +51,12 @@ class ProjectCrumb extends React.Component {
       ...props
     } = this.props;
 
-    if (!latestOrganization) return null;
-    if (!projects) return null;
+    if (!latestOrganization) {
+      return null;
+    }
+    if (!projects) {
+      return null;
+    }
 
     const hasMenu = projects && projects.length > 1;
 

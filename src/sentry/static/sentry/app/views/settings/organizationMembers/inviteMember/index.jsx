@@ -179,7 +179,9 @@ const InviteMember = createReactClass({
   submit() {
     const {email} = this.state;
     const emails = this.splitEmails(email);
-    if (!emails.length) return;
+    if (!emails.length) {
+      return;
+    }
     this.setState({busy: true});
     Promise.all(emails.map(this.inviteUser))
       .then(() => this.redirectToMemberPage())

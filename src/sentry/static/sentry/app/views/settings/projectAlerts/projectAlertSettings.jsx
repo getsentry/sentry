@@ -41,7 +41,9 @@ export default class ProjectAlertSettings extends AsyncView {
   handleEnablePlugin = plugin => {
     this.setState({
       pluginList: this.state.pluginList.map(p => {
-        if (p.id !== plugin.id) return p;
+        if (p.id !== plugin.id) {
+          return p;
+        }
         return {
           ...plugin,
           enabled: true,
@@ -53,7 +55,9 @@ export default class ProjectAlertSettings extends AsyncView {
   handleDisablePlugin = plugin => {
     this.setState({
       pluginList: this.state.pluginList.map(p => {
-        if (p.id !== plugin.id) return p;
+        if (p.id !== plugin.id) {
+          return p;
+        }
         return {
           ...plugin,
           enabled: false,

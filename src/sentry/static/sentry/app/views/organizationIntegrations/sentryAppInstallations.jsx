@@ -1,8 +1,6 @@
 import PropTypes from 'prop-types';
 import React from 'react';
 import {groupBy} from 'lodash';
-import parseurl from 'parseurl';
-import qs from 'query-string';
 import {addErrorMessage, addSuccessMessage} from 'app/actionCreators/indicator';
 import SentryApplicationRow from 'app/views/settings/organizationDeveloperSettings/sentryApplicationRow';
 import {t} from 'app/locale';
@@ -10,6 +8,7 @@ import {
   installSentryApp,
   uninstallSentryApp,
 } from 'app/actionCreators/sentryAppInstallations';
+import {addQueryParamsToExistingUrl} from 'app/utils/queryString';
 import {openSentryAppPermissionModal} from 'app/actionCreators/modal';
 import withApi from 'app/utils/withApi';
 
@@ -37,16 +36,8 @@ class SentryAppInstallations extends React.Component {
       addSuccessMessage(t(`${app.slug} successfully installed.`));
       this.setState({installs: [install, ...installs]});
     } else {
-      const url = parseurl({url: app.redirectUrl});
-      // Order the query params alphabetically.
-      // Otherwise ``qs`` orders them randomly and it's impossible to test.
-      const installQuery = JSON.parse(
-        JSON.stringify({installationId: install.uuid, code: install.code})
-      );
-      const query = {...qs.parse(url.query), ...installQuery};
-      const redirectUrl = `${url.protocol}//${url.host}${url.pathname}?${qs.stringify(
-        query
-      )}`;
+      const queryParams = {installationId: install.uuid, code: install.code};
+      const redirectUrl = addQueryParamsToExistingUrl(app.redirectUrl, queryParams);
       window.location.assign(redirectUrl);
     }
   };

@@ -61,7 +61,9 @@ class TextCopyInput extends React.Component {
 
   // Select text when copy button is clicked
   handleCopyClick = e => {
-    if (!this.textRef.current) return;
+    if (!this.textRef.current) {
+      return;
+    }
 
     const {onCopy} = this.props;
 
@@ -73,7 +75,9 @@ class TextCopyInput extends React.Component {
   };
 
   handleSelectText = () => {
-    if (!this.textRef.current) return;
+    if (!this.textRef.current) {
+      return;
+    }
 
     // We use findDOMNode here because `this.textRef` is not a dom node,
     // it's a ref to AutoSelectText

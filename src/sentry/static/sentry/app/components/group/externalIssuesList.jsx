@@ -2,6 +2,7 @@ import React from 'react';
 import PropTypes from 'prop-types';
 
 import withApi from 'app/utils/withApi';
+import withOrganization from 'app/utils/withOrganization';
 import AsyncComponent from 'app/components/asyncComponent';
 import ExternalIssueActions, {
   SentryAppExternalIssueActions,
@@ -20,6 +21,7 @@ class ExternalIssueList extends AsyncComponent {
     api: PropTypes.object.isRequired,
     group: SentryTypes.Group.isRequired,
     project: SentryTypes.Project.isRequired,
+    organization: SentryTypes.Organization.isRequired,
     orgId: PropTypes.string,
   };
 
@@ -70,33 +72,36 @@ class ExternalIssueList extends AsyncComponent {
   // control over those services.
   //
   fetchSentryAppData() {
-    const {api, orgId, group, project} = this.props;
-    const features = new Set(project.organization.features);
+    const {api, orgId, group, project, organization} = this.props;
 
-    if (!features.has('sentry-apps')) {
-      return;
+    if (project && project.id && organization) {
+      const features = new Set(organization.features);
+
+      if (!features.has('sentry-apps')) {
+        return;
+      }
+
+      api
+        .requestPromise(
+          `/organizations/${orgId}/sentry-app-components/?filter=issue-link&projectId=${project.id}`
+        )
+        .then(data => {
+          this.setState({components: data});
+        })
+        .catch(error => {
+          return;
+        });
+
+      api
+        .requestPromise(`/groups/${group.id}/external-issues/`)
+        .then(data => {
+          ExternalIssueStore.load(data);
+          this.setState({externalIssues: data});
+        })
+        .catch(error => {
+          return;
+        });
     }
-
-    api
-      .requestPromise(
-        `/organizations/${orgId}/sentry-app-components/?filter=issue-link&projectId=${project.id}`
-      )
-      .then(data => {
-        this.setState({components: data});
-      })
-      .catch(error => {
-        return;
-      });
-
-    api
-      .requestPromise(`/groups/${group.id}/external-issues/`)
-      .then(data => {
-        ExternalIssueStore.load(data);
-        this.setState({externalIssues: data});
-      })
-      .catch(error => {
-        return;
-      });
   }
 
   renderIntegrationIssues(integrations = []) {
@@ -209,4 +214,4 @@ class ExternalIssueList extends AsyncComponent {
   }
 }
 
-export default withApi(ExternalIssueList);
+export default withOrganization(withApi(ExternalIssueList));

@@ -84,8 +84,11 @@ const TeamDetails = createReactClass({
     const {params, routes, children} = this.props;
     const team = this.state.team;
 
-    if (this.state.loading) return <LoadingIndicator />;
-    else if (!team || this.state.error) return <LoadingError onRetry={this.fetchData} />;
+    if (this.state.loading) {
+      return <LoadingIndicator />;
+    } else if (!team || this.state.error) {
+      return <LoadingError onRetry={this.fetchData} />;
+    }
 
     const routePrefix = recreateRoute('', {routes, params, stepBack: -1}); //`/organizations/${orgId}/teams/${teamId}`;
 

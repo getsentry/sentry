@@ -80,11 +80,27 @@
               "package": "sentry",
               "in_app": false,
               "instruction_addr": "0x109225f53"
+            },
+            {
+              "function": "<unknown>",
+              "package": "sentry",
+              "in_app": false,
+              "instruction_addr": "0x109225c53"
+            },
+            {
+              "function": "<redacted>",
+              "package": "something",
+              "in_app": false,
+              "instruction_addr": "0x00123"
             }
           ]
         },
         "type": "log_demo",
-        "value": "Holy shit everything is on fire!"
+        "value": "Holy shit everything is on fire!",
+        "mechanism": {
+          "type": "minidump",
+          "synthetic": true
+        }
       }
     ]
   },

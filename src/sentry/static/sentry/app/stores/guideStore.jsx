@@ -118,7 +118,9 @@ const GuideStore = Reflux.createStore({
   },
 
   updatePrevGuide(bestGuide) {
-    if (!bestGuide) return;
+    if (!bestGuide) {
+      return;
+    }
 
     if (!this.state.prevGuide || this.state.prevGuide.id !== bestGuide.id) {
       this.recordCue(bestGuide.id, bestGuide.cue);

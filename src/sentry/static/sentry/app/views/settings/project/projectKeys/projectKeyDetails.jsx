@@ -88,7 +88,9 @@ const KeyStats = createReactClass({
       success: data => {
         let emptyStats = true;
         const stats = data.map(p => {
-          if (p.total) emptyStats = false;
+          if (p.total) {
+            emptyStats = false;
+          }
           return {
             x: p.ts,
             y: [p.accepted, p.dropped],
@@ -128,13 +130,15 @@ const KeyStats = createReactClass({
   },
 
   render() {
-    if (this.state.loading)
+    if (this.state.loading) {
       return (
         <div className="box">
           <LoadingIndicator />
         </div>
       );
-    else if (this.state.error) return <LoadingError onRetry={this.fetchData} />;
+    } else if (this.state.error) {
+      return <LoadingError onRetry={this.fetchData} />;
+    }
 
     return (
       <Panel>
@@ -303,7 +307,9 @@ const KeySettings = createReactClass({
   },
 
   handleRemove(e) {
-    if (this.state.loading) return;
+    if (this.state.loading) {
+      return;
+    }
 
     const loadingIndicator = addLoadingMessage(t('Saving changes..'));
     const {keyId, orgId, projectId} = this.props.params;

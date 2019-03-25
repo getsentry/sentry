@@ -768,8 +768,8 @@ class UnrealView(StoreView):
                                            project.organization, actor=request.user)
 
         attachments = []
+        event = {'event_id': uuid.uuid4().hex}
         try:
-            event = {}
             unreal = process_unreal_crash(request.body, request.GET.get(
                 'UserID'), request.GET.get('AppEnvironment'), event)
             process_state = unreal.process_minidump()

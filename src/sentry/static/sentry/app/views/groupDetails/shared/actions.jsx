@@ -121,7 +121,9 @@ const GroupDetailsActions = createReactClass({
   },
 
   getShareUrl(shareId, absolute) {
-    if (!shareId) return '';
+    if (!shareId) {
+      return '';
+    }
 
     const path = `/share/issue/${shareId}/`;
     if (!absolute) {

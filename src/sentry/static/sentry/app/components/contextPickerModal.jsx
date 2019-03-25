@@ -173,7 +173,9 @@ class ContextPickerModal extends React.Component {
   };
 
   focusProjectSelector = () => {
-    if (!this.projectSelect || this.state.loading) return;
+    if (!this.projectSelect || this.state.loading) {
+      return;
+    }
 
     ReactDOM.findDOMNode(this.projectSelect)
       .querySelector('input')
@@ -181,7 +183,9 @@ class ContextPickerModal extends React.Component {
   };
 
   focusOrganizationSelector = () => {
-    if (!this.orgSelect || this.state.loading) return;
+    if (!this.orgSelect || this.state.loading) {
+      return;
+    }
 
     ReactDOM.findDOMNode(this.orgSelect)
       .querySelector('input')
@@ -190,7 +194,9 @@ class ContextPickerModal extends React.Component {
 
   handleSelectOrganization = ({value}) => {
     // Don't do anything if org value doesn't actually change
-    if (this.state.selectedOrganization === value) return;
+    if (this.state.selectedOrganization === value) {
+      return;
+    }
 
     // If we do not need to select a project, we can early return after selecting an org
     // No need to fetch org details
@@ -211,7 +217,9 @@ class ContextPickerModal extends React.Component {
   handleSelectProject = ({value}) => {
     const {latestContext} = this.props;
 
-    if (!value || !latestContext.organization) return;
+    if (!value || !latestContext.organization) {
+      return;
+    }
 
     this.navigateIfFinish([latestContext.organization], [{slug: value}]);
   };
@@ -224,7 +232,9 @@ class ContextPickerModal extends React.Component {
 
     const projects = latestContext.organization && latestContext.organization.projects;
 
-    if (!shouldShowPicker) return null;
+    if (!shouldShowPicker) {
+      return null;
+    }
 
     const shouldShowProjectSelector =
       latestContext.organization && needProject && projects;
@@ -244,7 +254,9 @@ class ContextPickerModal extends React.Component {
               <StyledSelectControl
                 innerRef={ref => {
                   this.orgSelect = ref;
-                  if (shouldShowProjectSelector) return;
+                  if (shouldShowProjectSelector) {
+                    return;
+                  }
                   this.focusOrganizationSelector();
                 }}
                 placeholder="Select an Organization"

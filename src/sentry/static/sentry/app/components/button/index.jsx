@@ -56,16 +56,22 @@ class Button extends React.Component {
     const {disabled, busy, onClick} = this.props;
 
     // Don't allow clicks when disabled or busy
-    if (disabled || busy) return;
+    if (disabled || busy) {
+      return;
+    }
 
-    if (typeof onClick !== 'function') return;
+    if (typeof onClick !== 'function') {
+      return;
+    }
 
     onClick(...args);
   };
 
   getUrl = prop => {
     const {disabled} = this.props;
-    if (disabled) return null;
+    if (disabled) {
+      return null;
+    }
     return prop;
   };
 

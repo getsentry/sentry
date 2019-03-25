@@ -52,7 +52,9 @@ export default createReactClass({
 
   fetchData(event) {
     // TODO(dcramer): this API request happens twice, and we need a store for it
-    if (!event) return;
+    if (!event) {
+      return;
+    }
     this.api.request(
       `/projects/${this.props.orgId}/${this.props
         .projectId}/events/${event.id}/committers/`,

@@ -27,7 +27,9 @@ class CreateSampleEvent extends React.Component {
     const {organization} = this.context;
     const project = organization.projects.find(proj => proj.slug === projectId);
 
-    if (!project) return;
+    if (!project) {
+      return;
+    }
 
     const data = {
       org_id: parseInt(organization.id, 10),

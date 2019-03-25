@@ -57,7 +57,9 @@ export default class MonitorStats extends AsyncComponent {
   renderBody() {
     let emptyStats = true;
     const stats = this.state.stats.map(p => {
-      if (p.ok || p.error) emptyStats = false;
+      if (p.ok || p.error) {
+        emptyStats = false;
+      }
       return {
         x: p.ts,
         y: [p.error, p.ok],

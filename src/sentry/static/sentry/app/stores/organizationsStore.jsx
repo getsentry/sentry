@@ -20,7 +20,9 @@ const OrganizationsStore = Reflux.createStore({
   },
 
   onChangeSlug(prev, next) {
-    if (prev.slug === next.slug) return;
+    if (prev.slug === next.slug) {
+      return;
+    }
 
     this.remove(prev.slug);
     this.add(next);

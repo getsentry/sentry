@@ -25,8 +25,9 @@ class EventsTableRow extends React.Component {
     // all events will have this and most of this logic could go
     switch (event.type) {
       case 'error':
-        if (event.metadata.type && event.metadata.value)
+        if (event.metadata.type && event.metadata.value) {
           return `${event.metadata.type}: ${event.metadata.value}`;
+        }
         return event.metadata.type || event.metadata.value || event.metadata.title;
       case 'csp':
         return event.metadata.message;

@@ -67,7 +67,9 @@ const getFuseMatches = ({value, indices}) => {
  */
 const highlightFuseMatches = (matchObj, Marker = 'mark') => {
   return getFuseMatches(matchObj).map(({highlight, text}, index) => {
-    if (!text) return null;
+    if (!text) {
+      return null;
+    }
     if (highlight) {
       return <Marker key={index}>{text}</Marker>;
     }

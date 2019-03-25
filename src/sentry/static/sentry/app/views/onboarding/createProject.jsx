@@ -90,7 +90,9 @@ const CreateProject = createReactClass({
     const {projectName, platform, team, inFlight} = this.state;
 
     //prevent double-trigger
-    if (inFlight) return;
+    if (inFlight) {
+      return;
+    }
     this.setState({inFlight: true});
 
     if (!projectName) {
