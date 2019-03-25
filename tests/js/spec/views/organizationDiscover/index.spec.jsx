@@ -7,6 +7,7 @@ import GlobalSelectionStore from 'app/stores/globalSelectionStore';
 import OrganizationDiscoverContainerWithStore, {
   OrganizationDiscoverContainer,
 } from 'app/views/organizationDiscover';
+import ProjectsStore from 'app/stores/projectsStore';
 
 describe('OrganizationDiscoverContainer', function() {
   beforeEach(function() {
@@ -52,6 +53,8 @@ describe('OrganizationDiscoverContainer', function() {
     });
 
     it('sets active projects from global selection', async function() {
+      ProjectsStore.loadInitialData(organization.projects);
+
       GlobalSelectionStore.reset({
         projects: [1],
         environments: [],

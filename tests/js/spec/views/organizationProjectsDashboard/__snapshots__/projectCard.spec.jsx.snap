@@ -128,7 +128,7 @@ exports[`ProjectCard renders 1`] = `
                 >
                   <IdBadge
                     avatarSize={24}
-                    className="css-1gy4gs4-StyledIdBadge ei886av6"
+                    className="css-1gy4gs4-StyledIdBadge ei886av5"
                     displayName={
                       <span>
                         project-slug
@@ -167,7 +167,7 @@ exports[`ProjectCard renders 1`] = `
                       >
                         <ProjectBadge
                           avatarSize={24}
-                          className="css-1gy4gs4-StyledIdBadge ei886av6"
+                          className="css-1gy4gs4-StyledIdBadge ei886av5"
                           displayName={
                             <span>
                               project-slug
@@ -202,7 +202,7 @@ exports[`ProjectCard renders 1`] = `
                           <BaseBadge
                             avatarProps={Object {}}
                             avatarSize={24}
-                            className="css-1gy4gs4-StyledIdBadge ei886av6"
+                            className="css-1gy4gs4-StyledIdBadge ei886av5"
                             displayName={
                               <span>
                                 project-slug
@@ -235,14 +235,14 @@ exports[`ProjectCard renders 1`] = `
                           >
                             <Flex
                               align="center"
-                              className="css-1gy4gs4-StyledIdBadge ei886av6"
+                              className="css-1gy4gs4-StyledIdBadge ei886av5"
                             >
                               <Base
                                 align="center"
-                                className="ei886av6 css-v2wlq8-StyledIdBadge"
+                                className="ei886av5 css-v2wlq8-StyledIdBadge"
                               >
                                 <div
-                                  className="ei886av6 css-v2wlq8-StyledIdBadge"
+                                  className="ei886av5 css-v2wlq8-StyledIdBadge"
                                   is={null}
                                 >
                                   <StyledAvatar
@@ -423,22 +423,149 @@ exports[`ProjectCard renders 1`] = `
                     </InlineErrorBoundary>
                   </IdBadge>
                 </StyledIdBadge>
-                <Tooltip
-                  title="Add to bookmarks"
+                <withApi(BookmarkStar)
+                  organization={
+                    Object {
+                      "access": Array [
+                        "org:read",
+                        "org:write",
+                        "org:admin",
+                        "org:integrations",
+                        "project:read",
+                        "project:write",
+                        "project:admin",
+                        "team:read",
+                        "team:write",
+                        "team:admin",
+                      ],
+                      "features": Array [],
+                      "id": "3",
+                      "name": "Organization Name",
+                      "onboardingTasks": Array [],
+                      "projects": Array [],
+                      "scrapeJavaScript": true,
+                      "slug": "org-slug",
+                      "status": Object {
+                        "id": "active",
+                        "name": "active",
+                      },
+                      "teams": Array [],
+                    }
+                  }
+                  project={
+                    Object {
+                      "environments": Array [],
+                      "hasAccess": true,
+                      "id": "2",
+                      "isBookmarked": false,
+                      "isMember": true,
+                      "name": "Project Name",
+                      "platform": "javascript",
+                      "slug": "project-slug",
+                      "stats": Array [
+                        Array [
+                          1525042800,
+                          1,
+                        ],
+                        Array [
+                          1525046400,
+                          2,
+                        ],
+                      ],
+                      "teams": Array [],
+                    }
+                  }
                 >
-                  <Star
-                    active={false}
-                    className="tip project-select-bookmark icon icon-star-solid"
-                    onClick={[Function]}
-                    title="Add to bookmarks"
+                  <BookmarkStar
+                    api={Client {}}
+                    organization={
+                      Object {
+                        "access": Array [
+                          "org:read",
+                          "org:write",
+                          "org:admin",
+                          "org:integrations",
+                          "project:read",
+                          "project:write",
+                          "project:admin",
+                          "team:read",
+                          "team:write",
+                          "team:admin",
+                        ],
+                        "features": Array [],
+                        "id": "3",
+                        "name": "Organization Name",
+                        "onboardingTasks": Array [],
+                        "projects": Array [],
+                        "scrapeJavaScript": true,
+                        "slug": "org-slug",
+                        "status": Object {
+                          "id": "active",
+                          "name": "active",
+                        },
+                        "teams": Array [],
+                      }
+                    }
+                    project={
+                      Object {
+                        "environments": Array [],
+                        "hasAccess": true,
+                        "id": "2",
+                        "isBookmarked": false,
+                        "isMember": true,
+                        "name": "Project Name",
+                        "platform": "javascript",
+                        "slug": "project-slug",
+                        "stats": Array [
+                          Array [
+                            1525042800,
+                            1,
+                          ],
+                          Array [
+                            1525046400,
+                            2,
+                          ],
+                        ],
+                        "teams": Array [],
+                      }
+                    }
                   >
-                    <a
-                      className="tip project-select-bookmark icon icon-star-solid css-1gdf7jd-Star ei886av4"
+                    <Star
+                      isBookmarked={false}
                       onClick={[Function]}
-                      title="Add to bookmarks"
-                    />
-                  </Star>
-                </Tooltip>
+                      src="icon-star-small-filled"
+                    >
+                      <InlineSvg
+                        className="css-fl9x15-Star e1urz3930"
+                        isBookmarked={false}
+                        onClick={[Function]}
+                        src="icon-star-small-filled"
+                      >
+                        <StyledSvg
+                          className="css-fl9x15-Star e1urz3930"
+                          height="1em"
+                          isBookmarked={false}
+                          onClick={[Function]}
+                          viewBox={Object {}}
+                          width="1em"
+                        >
+                          <svg
+                            className="e1urz3930 css-1b9wx8m-StyledSvg-Star e2idor0"
+                            height="1em"
+                            onClick={[Function]}
+                            viewBox={Object {}}
+                            width="1em"
+                          >
+                            <use
+                              href="#test"
+                              xlinkHref="#test"
+                            />
+                          </svg>
+                        </StyledSvg>
+                      </InlineSvg>
+                    </Star>
+                  </BookmarkStar>
+                </withApi(BookmarkStar)>
               </div>
             </StyledProjectCardHeader>
             <ChartContainer>

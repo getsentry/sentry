@@ -6,15 +6,13 @@ import Reflux from 'reflux';
 import createReactClass from 'create-react-class';
 import styled from 'react-emotion';
 
+import BookmarkStar from 'app/components/bookmarkStar';
 import {Client} from 'app/api';
-import {addErrorMessage} from 'app/actionCreators/indicator';
-import {t} from 'app/locale';
-import {update, loadStatsForProject} from 'app/actionCreators/projects';
+import {loadStatsForProject} from 'app/actionCreators/projects';
 import IdBadge from 'app/components/idBadge';
 import Link from 'app/components/link';
 import ProjectsStatsStore from 'app/stores/projectsStatsStore';
 import SentryTypes from 'app/sentryTypes';
-import Tooltip from 'app/components/tooltip';
 import space from 'app/styles/space';
 import withOrganization from 'app/utils/withOrganization';
 
@@ -41,29 +39,11 @@ class ProjectCard extends React.Component {
     });
   }
 
-  toggleProjectBookmark = () => {
-    const {project, params} = this.props;
-
-    update(this.api, {
-      orgId: params.orgId,
-      projectId: project.slug,
-      data: {
-        isBookmarked: !project.isBookmarked,
-      },
-    }).catch(() => {
-      addErrorMessage(t('Unable to toggle bookmark for %s', project.slug));
-    });
-  };
-
   render() {
     const {organization, project, hasProjectAccess, params} = this.props;
-    const {id, firstEvent, isBookmarked, stats, slug} = project;
+    const {id, firstEvent, stats, slug} = project;
 
     const hasSentry10 = new Set(organization.features).has('sentry10');
-
-    const bookmarkText = isBookmarked
-      ? t('Remove from bookmarks')
-      : t('Add to bookmarks');
 
     return (
       <ProjectCardWrapper data-test-id={slug} width={['100%', '50%', '33%', '25%']}>
@@ -89,13 +69,7 @@ class ProjectCard extends React.Component {
                   )
                 }
               />
-              <Tooltip title={bookmarkText}>
-                <Star
-                  active={isBookmarked}
-                  className="project-select-bookmark icon icon-star-solid"
-                  onClick={this.toggleProjectBookmark}
-                />
-              </Tooltip>
+              <BookmarkStar organization={organization} project={project} />
             </StyledProjectCardHeader>
             <ChartContainer>
               <Chart stats={stats} noEvents={!firstEvent} />
@@ -175,15 +149,6 @@ const StyledProjectCard = styled.div`
   border: 1px solid ${p => p.theme.borderDark};
   border-radius: ${p => p.theme.borderRadius};
   box-shadow: ${p => p.theme.dropShadowLight};
-`;
-
-const Star = styled.a`
-  color: ${p => (p.active ? p.theme.yellowOrange : p.theme.gray6)};
-  margin-left: ${space(1)};
-  &:hover {
-    color: ${p => p.theme.yellowOrange};
-    opacity: 0.6;
-  }
 `;
 
 const LoadingCard = styled('div')`

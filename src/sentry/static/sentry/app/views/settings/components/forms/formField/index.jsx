@@ -50,7 +50,7 @@ const FormFieldErrorReason = styled.div`
 
 const FormFieldError = styled.div`
   color: ${p => p.theme.redDark};
-  animation: ${pulse} 1s ease infinite;
+  animation: ${p => pulse(1.15)} 1s ease infinite;
 `;
 
 const FormFieldIsSaved = styled.div`

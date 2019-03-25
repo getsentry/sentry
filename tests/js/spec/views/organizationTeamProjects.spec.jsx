@@ -101,14 +101,15 @@ describe('OrganizationTeamProjects', function() {
     await tick();
     wrapper.update();
 
-    let star = wrapper.find('.icon-star-outline');
-    expect(star).toHaveLength(2);
-    star.first().simulate('click');
-
-    star = wrapper.find('.icon-star-outline');
-    expect(star).toHaveLength(1);
-    star = wrapper.find('.icon-star-solid');
-    expect(star).toHaveLength(1);
+    const stars = wrapper.find('BookmarkStar');
+    expect(stars).toHaveLength(2);
+    stars.first().simulate('click');
+    expect(
+      wrapper
+        .find('Star')
+        .first()
+        .prop('isBookmarked')
+    ).toBeTruthy();
 
     expect(putMock).toHaveBeenCalledTimes(1);
   });
