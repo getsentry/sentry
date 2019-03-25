@@ -8,27 +8,41 @@ exports[`Stream render() displays the group list 1`] = `
     className="stream-content"
   >
     <StreamFilters
-      access={
-        Set {
-          "org:read",
-          "org:write",
-          "org:admin",
-          "org:integrations",
-          "project:read",
-          "project:write",
-          "project:admin",
-          "team:read",
-          "team:write",
-          "team:admin",
-        }
-      }
       isSearchDisabled={false}
       onSavedSearchCreate={[Function]}
+      onSavedSearchDelete={[Function]}
       onSavedSearchSelect={[Function]}
       onSearch={[Function]}
       onSidebarToggle={[Function]}
       onSortChange={[Function]}
-      orgId="org-slug"
+      organiation={
+        Object {
+          "access": Array [
+            "org:read",
+            "org:write",
+            "org:admin",
+            "org:integrations",
+            "project:read",
+            "project:write",
+            "project:admin",
+            "team:read",
+            "team:write",
+            "team:admin",
+          ],
+          "features": Array [],
+          "id": "1337",
+          "name": "Organization Name",
+          "onboardingTasks": Array [],
+          "projects": Array [],
+          "scrapeJavaScript": true,
+          "slug": "org-slug",
+          "status": Object {
+            "id": "active",
+            "name": "active",
+          },
+          "teams": Array [],
+        }
+      }
       projectId="project-slug"
       query="is:unresolved"
       queryCount={0}
@@ -307,27 +321,41 @@ exports[`Stream toggles environment select all environments 1`] = `
     className="stream-content"
   >
     <StreamFilters
-      access={
-        Set {
-          "org:read",
-          "org:write",
-          "org:admin",
-          "org:integrations",
-          "project:read",
-          "project:write",
-          "project:admin",
-          "team:read",
-          "team:write",
-          "team:admin",
-        }
-      }
       isSearchDisabled={false}
       onSavedSearchCreate={[Function]}
+      onSavedSearchDelete={[Function]}
       onSavedSearchSelect={[Function]}
       onSearch={[Function]}
       onSidebarToggle={[Function]}
       onSortChange={[Function]}
-      orgId="org-slug"
+      organiation={
+        Object {
+          "access": Array [
+            "org:read",
+            "org:write",
+            "org:admin",
+            "org:integrations",
+            "project:read",
+            "project:write",
+            "project:admin",
+            "team:read",
+            "team:write",
+            "team:admin",
+          ],
+          "features": Array [],
+          "id": "1337",
+          "name": "Organization Name",
+          "onboardingTasks": Array [],
+          "projects": Array [],
+          "scrapeJavaScript": true,
+          "slug": "org-slug",
+          "status": Object {
+            "id": "active",
+            "name": "active",
+          },
+          "teams": Array [],
+        }
+      }
       projectId="project-slug"
       query="is:unresolved"
       queryCount={0}

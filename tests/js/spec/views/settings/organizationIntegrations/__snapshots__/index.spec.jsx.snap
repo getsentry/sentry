@@ -1666,6 +1666,7 @@ exports[`OrganizationIntegrations render() with installed integrations Displays 
                                               }
                                               onConfirm={[Function]}
                                               priority="danger"
+                                              stopPropagation={false}
                                             >
                                               <StyledButton
                                                 borderless={true}
@@ -3109,6 +3110,7 @@ exports[`OrganizationIntegrations render() with installed integrations Displays 
                                               }
                                               onConfirm={[Function]}
                                               priority="danger"
+                                              stopPropagation={false}
                                             >
                                               <StyledButton
                                                 borderless={true}
