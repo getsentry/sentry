@@ -472,6 +472,62 @@ class SnubaSearchTest(SnubaTestCase):
         )
         assert set(results) == set([])
 
+    def test_search_filter_query_with_custom_priority_tag(self):
+        priority = 'high'
+        self.store_event(
+            data={
+                'fingerprint': ['put-me-in-group2'],
+                'timestamp': (self.group2.first_seen + timedelta(days=1)).isoformat()[:19],
+                'stacktrace': {
+                    'frames': [{
+                        'module': 'group2'
+                    }]
+                },
+                'message': 'group2',
+                'tags': {
+                    'priority': priority,
+                },
+            },
+            project_id=self.project.id,
+        )
+
+        results = self.make_query(
+            search_filter_query='priority:%s' % priority,
+            tags={'priority': priority},
+        )
+
+        assert set(results) == set([self.group2])
+
+    def test_search_filter_query_with_custom_priority_tag_and_priority_sort(self):
+        priority = 'high'
+        for dt in [
+                self.group2.first_seen + timedelta(days=1),
+                self.group2.first_seen + timedelta(days=2)]:
+            self.store_event(
+                data={
+                    'fingerprint': ['put-me-in-group2'],
+                    'timestamp': dt.isoformat()[:19],
+                    'stacktrace': {
+                        'frames': [{
+                            'module': 'group2'
+                        }]
+                    },
+                    'message': 'group2',
+                    'tags': {
+                        'priority': priority,
+                    },
+                },
+                project_id=self.project.id,
+            )
+        results = self.make_query(
+            search_filter_query='priority:%s' % priority,
+            tags={'priority': priority},
+            sort_by='priority',
+        )
+        # HELP(lb): I dont think this is testing what I want it to.
+        # I just want to ensure that the priority sort still works with the priority tag.
+        assert set(results) == set([self.group2])
+
     def test_project(self):
         results = self.make_query([self.create_project(name='other')])
         assert set(results) == set([])
