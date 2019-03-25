@@ -148,6 +148,20 @@ class UpdateSentryAppDetailsTest(SentryAppDetailsTest):
         assert response.data['webhookUrl'] == 'https://newurl.com'
 
     @with_feature('organizations:sentry-apps')
+    def test_cannot_update_name_with_non_unique_slug(self):
+        self.login_as(user=self.user)
+        response = self.client.put(
+            self.url,
+            data={
+                'name': 'test',
+            },
+            format='json',
+        )
+        assert response.status_code == 400
+        assert response.data == \
+            {"name": ["Name test is already taken, please use another."]}
+
+    @with_feature('organizations:sentry-apps')
     def test_cannot_update_events_without_permissions(self):
         self.login_as(user=self.user)
         url = reverse('sentry-api-0-sentry-app-details', args=[self.unpublished_app.slug])

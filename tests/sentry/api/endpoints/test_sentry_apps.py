@@ -131,6 +131,15 @@ class PostSentryAppsTest(SentryAppsTest):
         assert six.viewitems(expected) <= six.viewitems(json.loads(response.content))
 
     @with_feature('organizations:sentry-apps')
+    def test_non_unique_app_slug(self):
+        self.login_as(user=self.user)
+        self.create_sentry_app(name='MyApp')
+        response = self._post()
+        assert response.status_code == 422
+        assert response.data == \
+            {"name": ["Name MyApp is already taken, please use another."]}
+
+    @with_feature('organizations:sentry-apps')
     def test_cannot_create_app_without_correct_permissions(self):
         self.login_as(user=self.user)
         kwargs = {'scopes': ('project:read',)}

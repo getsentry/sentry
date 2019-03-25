@@ -26,6 +26,9 @@ class ParanoidManager(BaseManager):
         return ParanoidQuerySet(self.model, using=self._db).filter(
             date_deleted__isnull=True)
 
+    def with_deleted(self):
+        return ParanoidQuerySet(self.model, using=self._db).all()
+
 
 class ParanoidModel(Model):
     class Meta:
