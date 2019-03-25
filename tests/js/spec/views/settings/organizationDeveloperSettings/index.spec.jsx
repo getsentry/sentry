@@ -84,4 +84,21 @@ describe('Organization Developer Settings', function() {
       expect(wrapper.find('[icon="icon-trash"]').prop('disabled')).toEqual(true);
     });
   });
+
+  describe('without Owner permissions', () => {
+    const newOrg = TestStubs.Organization({access: ['org:read']});
+    Client.addMockResponse({
+      url: `/organizations/${newOrg.slug}/sentry-apps/`,
+      body: [sentryApp],
+    });
+    const wrapper = mount(
+      <OrganizationDeveloperSettings params={{orgId: newOrg.slug}} />,
+      TestStubs.routerContext([{organization: newOrg}])
+    );
+
+    it('trash button is disabled', () => {
+      expect(wrapper).toMatchSnapshot();
+      expect(wrapper.find('[icon="icon-trash"]').prop('disabled')).toEqual(true);
+    });
+  });
 });
