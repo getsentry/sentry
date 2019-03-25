@@ -646,7 +646,7 @@ const OrganizationStream = createReactClass({
     const projects = this.getGlobalSearchProjects();
 
     if (selectedProject) {
-      hasReleases = this.getFeatures().has('releases');
+      hasReleases = new Set(selectedProject.features).has('releases');
       latestRelease = selectedProject.latestRelease;
       projectId = selectedProject.slug;
     } else if (projects.length == 1) {
