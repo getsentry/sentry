@@ -463,4 +463,5 @@ class Project(Model, PendingDeletionMixin):
             return False
         return True
 
+
 pre_delete.connect(delete_pending_deletion_option, sender=Project, weak=False)
