@@ -8,6 +8,7 @@ import {getUtcToLocalDateObject} from 'app/utils/dates';
 import {mockRouterPush} from 'app-test/helpers/mockRouterPush';
 import {mount} from 'enzyme';
 import OrganizationEventsContainer from 'app/views/organizationEvents';
+import ProjectsStore from 'app/stores/projectsStore';
 
 jest.mock('app/utils/withLatestContext');
 
@@ -275,7 +276,10 @@ describe('OrganizationEventsContainer', function() {
   let eventsMetaMock;
 
   const {organization, router, routerContext} = initializeOrg({
-    projects: [{isMember: true}, {isMember: true, slug: 'new-project', id: 3}],
+    projects: [
+      {isMember: true, isBookmarked: true},
+      {isMember: true, slug: 'new-project', id: 3},
+    ],
     organization: {
       features: ['events', 'internal-catchall'],
     },
@@ -370,6 +374,8 @@ describe('OrganizationEventsContainer', function() {
   });
 
   it('updates when changing projects', async function() {
+    ProjectsStore.loadInitialData(organization.projects);
+
     expect(wrapper.find('MultipleProjectSelector').prop('value')).toEqual([]);
 
     wrapper.find('MultipleProjectSelector HeaderItem').simulate('click');

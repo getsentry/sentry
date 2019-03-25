@@ -201,6 +201,17 @@ class GlobalSelectionHeader extends React.Component {
       return true;
     }
 
+    //update if any projects are starred or reordered
+    if (
+      this.props.projects &&
+      nextProps.projects &&
+      !isEqual(
+        this.props.projects.map(p => [p.slug, p.isBookmarked]),
+        nextProps.projects.map(p => [p.slug, p.isBookmarked])
+      )
+    )
+      return true;
+
     return false;
   }
 
@@ -308,15 +319,14 @@ class GlobalSelectionHeader extends React.Component {
 
   getProjects = () => {
     const {isSuperuser} = ConfigStore.get('user');
+    const {projects, organization} = this.props;
+    const unfilteredProjects = projects || organization.projects;
 
     if (isSuperuser) {
-      return this.props.projects || this.props.organization.projects;
+      return unfilteredProjects;
     }
 
-    return (
-      this.props.projects ||
-      this.props.organization.projects.filter(project => project.isMember)
-    );
+    return unfilteredProjects.filter(project => project.isMember);
   };
 
   getFirstProject = () => {
