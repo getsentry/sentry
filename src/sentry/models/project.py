@@ -448,7 +448,7 @@ class Project(Model):
                     self.update_option(key, value)
 
         except IntegrityError as e:
-            logging.info(
+            logging.exception(
                 'Error occurred during copy project settings.',
                 extra={
                     'error': e.message,
