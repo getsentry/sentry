@@ -7,6 +7,7 @@ import {sortArray} from 'app/utils';
 import {t} from 'app/locale';
 import {alertHighlight, pulse} from 'app/styles/animations';
 import Button from 'app/components/button';
+import ConfigStore from 'app/stores/configStore';
 import InlineSvg from 'app/components/inlineSvg';
 import BookmarkStar from 'app/components/bookmarkStar';
 import DropdownAutoComplete from 'app/components/dropdownAutoComplete';
@@ -80,10 +81,14 @@ class ProjectSelector extends React.Component {
 
   getProjects() {
     const {organization, projects} = this.props;
-    const projectList =
-      projects || organization.projects.filter(project => project.isMember);
+    const {isSuperuser} = ConfigStore.get('user');
 
-    return sortArray(projectList, project => {
+    const unfilteredProjects = projects || organization.projects;
+    const filteredProjects = isSuperuser
+      ? unfilteredProjects
+      : unfilteredProjects.filter(project => project.isMember);
+
+    return sortArray(filteredProjects, project => {
       return [!project.isBookmarked, project.name];
     });
   }
