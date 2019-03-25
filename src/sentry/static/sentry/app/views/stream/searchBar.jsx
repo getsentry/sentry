@@ -82,6 +82,11 @@ class SearchBar extends React.Component {
     return organization && organization.features.includes('recent-searches');
   };
 
+  hasOrgSavedSearches = () => {
+    const {organization} = this.props;
+    return organization && organization.features.includes('org-saved-searches');
+  };
+
   fetchData = async () => {
     if (!this.hasRecentSearches()) {
       this.setState({
@@ -150,7 +155,8 @@ class SearchBar extends React.Component {
         onGetTagValues={this.getTagValues}
         defaultSearchItems={this.state.defaultSearchItems}
         maxSearchItems={5}
-        recentSearchType={SEARCH_TYPES.ISSUE}
+        hasPinnedSearch={this.hasOrgSavedSearches()}
+        savedSearchType={SEARCH_TYPES.ISSUE}
         displayRecentSearches={this.hasRecentSearches()}
         onSavedRecentSearch={this.handleSavedRecentSearch}
         allowPin
