@@ -18,7 +18,6 @@ import IdBadge from 'app/components/idBadge';
 import SentryTypes from 'app/sentryTypes';
 import space from 'app/styles/space';
 import theme from 'app/utils/theme';
-import Tooltip from 'app/components/tooltip';
 import withProjects from 'app/utils/withProjects';
 
 class ProjectSelector extends React.Component {
@@ -210,13 +209,12 @@ class ProjectSelector extends React.Component {
         noResultsMessage={t('No projects found')}
         virtualizedHeight={theme.headerSelectorRowHeight}
         emptyHidesInput
-        inputActions={() => (
-          <Tooltip title="Add a project">
+        inputActions={() =>
+          hasProjectWrite && (
             <AddButton to={`/organizations/${org.slug}/projects/new`} size="xsmall">
-              <StyledAddIcon src="icon-circle-add" /> project
+              <StyledAddIcon src="icon-circle-add" /> {t('Project')}
             </AddButton>
-          </Tooltip>
-        )}
+          )}
         menuFooter={renderProps => {
           const renderedFooter =
             typeof menuFooter === 'function' ? menuFooter(renderProps) : menuFooter;
@@ -290,12 +288,16 @@ class ProjectSelectorItem extends React.PureComponent {
     };
   }
 
-  componentWillReceiveProps(nextProps) {
+  componentDidUpdate(nextProps) {
     if (nextProps.project.isBookmarked !== this.props.project.isBookmarked) {
-      this.setState({
-        bookmarkHasChanged: true,
-      });
+      this.setBookmarkHasChanged();
     }
+  }
+
+  setBookmarkHasChanged() {
+    this.setState({
+      bookmarkHasChanged: true,
+    });
   }
 
   handleMultiSelect = e => {
