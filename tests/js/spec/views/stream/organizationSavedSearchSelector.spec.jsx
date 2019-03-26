@@ -6,7 +6,7 @@ import OrganizationSavedSearchSelector from 'app/views/stream/organizationSavedS
 describe('OrganizationSavedSearchSelector', function() {
   let wrapper, onSelect, onDelete, organization, savedSearchList;
   beforeEach(function() {
-    organization = TestStubs.Organization();
+    organization = TestStubs.Organization({access: ['org:write']});
     onSelect = jest.fn();
     onDelete = jest.fn();
     savedSearchList = [
@@ -132,6 +132,16 @@ describe('OrganizationSavedSearchSelector', function() {
         .simulate('click');
 
       expect(wrapper.find('ModalDialog')).toHaveLength(1);
+    });
+
+    it('hides save search button if no access', function() {
+      const orgWithoutAccess = TestStubs.Organization({access: ['org:read']});
+
+      wrapper.setProps({organization: orgWithoutAccess});
+
+      const button = wrapper.find('button');
+
+      expect(button).toHaveLength(0);
     });
   });
 });

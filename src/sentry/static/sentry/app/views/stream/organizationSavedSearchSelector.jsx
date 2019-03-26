@@ -95,10 +95,16 @@ export default class OrganizationSavedSearchSelector extends React.Component {
           }
         >
           {this.renderList()}
-          <StyledMenuItem divider={true} />
-          <ButtonBar>
-            <SaveSearchButton query={query} organization={organization} />
-          </ButtonBar>
+          <Access
+            organization={organization}
+            access={['org:write']}
+            renderNoAccessMessage={false}
+          >
+            <StyledMenuItem divider={true} />
+            <ButtonBar>
+              <SaveSearchButton query={query} organization={organization} />
+            </ButtonBar>
+          </Access>
         </StyledDropdownLink>
       </Container>
     );
