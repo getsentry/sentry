@@ -733,6 +733,7 @@ exports[`projectAlertRules renders 1`] = `
                                       message="Are you sure you want to remove this rule?"
                                       onConfirm={[Function]}
                                       priority="primary"
+                                      stopPropagation={false}
                                     >
                                       <Button
                                         disabled={false}

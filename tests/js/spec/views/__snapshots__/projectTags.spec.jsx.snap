@@ -464,6 +464,7 @@ exports[`ProjectTags renders 1`] = `
                                         message="Are you sure you want to remove this tag?"
                                         onConfirm={[Function]}
                                         priority="primary"
+                                        stopPropagation={false}
                                       >
                                         <a
                                           className=""
@@ -692,6 +693,7 @@ exports[`ProjectTags renders 1`] = `
                                         message="Are you sure you want to remove this tag?"
                                         onConfirm={[Function]}
                                         priority="primary"
+                                        stopPropagation={false}
                                       >
                                         <a
                                           className=""
@@ -920,6 +922,7 @@ exports[`ProjectTags renders 1`] = `
                                         message="Are you sure you want to remove this tag?"
                                         onConfirm={[Function]}
                                         priority="primary"
+                                        stopPropagation={false}
                                       >
                                         <a
                                           className=""
@@ -1149,6 +1152,7 @@ exports[`ProjectTags renders 1`] = `
                                         message="Are you sure you want to remove this tag?"
                                         onConfirm={[Function]}
                                         priority="primary"
+                                        stopPropagation={false}
                                       >
                                         <a
                                           className="tip disabled"
@@ -1383,6 +1387,7 @@ exports[`ProjectTags renders 1`] = `
                                         message="Are you sure you want to remove this tag?"
                                         onConfirm={[Function]}
                                         priority="primary"
+                                        stopPropagation={false}
                                       >
                                         <a
                                           className="tip disabled"

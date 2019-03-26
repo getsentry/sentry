@@ -506,6 +506,7 @@ exports[`OrganizationApiKeysList renders 1`] = `
                               message="Are you sure you want to remove this API key?"
                               onConfirm={[Function]}
                               priority="primary"
+                              stopPropagation={false}
                             >
                               <a
                                 className="btn btn-default btn-sm"

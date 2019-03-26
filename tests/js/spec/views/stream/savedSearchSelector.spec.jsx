@@ -7,7 +7,7 @@ describe('SavedSearchSelector', function() {
   let wrapper;
   let props;
 
-  let orgId;
+  let organization;
   let projectId;
   let savedSearchList;
   const onCreate = jest.fn();
@@ -15,7 +15,7 @@ describe('SavedSearchSelector', function() {
 
   beforeEach(function() {
     projectId = 'test-project';
-    orgId = 'test-org';
+    organization = TestStubs.Organization({slug: 'test-org'});
     savedSearchList = [
       {
         id: '789',
@@ -35,7 +35,7 @@ describe('SavedSearchSelector', function() {
 
     props = {
       projectId,
-      orgId,
+      organization,
       savedSearchList,
       access,
       onSavedSearchCreate: onCreate,

@@ -9,6 +9,7 @@ import IndicatorStore from 'app/stores/indicatorStore';
 import DropdownLink from 'app/components/dropdownLink';
 import QueryCount from 'app/components/queryCount';
 import MenuItem from 'app/components/menuItem';
+import SentryTypes from 'app/sentryTypes';
 import Tooltip from 'app/components/tooltip';
 import Tag from 'app/views/settings/components/tag';
 import {BooleanField, FormState, TextField} from 'app/components/forms';
@@ -18,9 +19,8 @@ import space from 'app/styles/space';
 const SaveSearchButton = withApi(
   class SaveSearchButton extends React.Component {
     static propTypes = {
-      orgId: PropTypes.string.isRequired,
+      organization: SentryTypes.Organization.isRequired,
       projectId: PropTypes.string,
-      access: PropTypes.object.isRequired,
       api: PropTypes.object.isRequired,
       query: PropTypes.string.isRequired,
       disabled: PropTypes.bool,
@@ -85,8 +85,8 @@ const SaveSearchButton = withApi(
         },
         () => {
           const loadingIndicator = IndicatorStore.add(t('Saving changes..'));
-          const {orgId, projectId} = this.props;
-          api.request(`/projects/${orgId}/${projectId}/searches/`, {
+          const {organization, projectId} = this.props;
+          api.request(`/projects/${organization.slug}/${projectId}/searches/`, {
             method: 'POST',
             data: this.state.formData,
             success: data => {
@@ -115,7 +115,8 @@ const SaveSearchButton = withApi(
 
     render() {
       const isSaving = this.state.state === FormState.SAVING;
-      const {tooltip, buttonTitle, style, children, disabled} = this.props;
+      const {tooltip, buttonTitle, style, children, disabled, organization} = this.props;
+      const access = new Set(organization.access);
       return (
         <React.Fragment>
           <Tooltip
@@ -175,7 +176,7 @@ const SaveSearchButton = withApi(
                   label={t('Make this the default view for myself.')}
                   onChange={this.onFieldChange.bind(this, 'isUserDefault')}
                 />
-                {this.props.access.has('project:write') && (
+                {access.has('project:write') && (
                   <BooleanField
                     key="isDefault"
                     name="is-default"
@@ -209,10 +210,9 @@ const SaveSearchButton = withApi(
 const SavedSearchSelector = withApi(
   class SavedSearchSelector extends React.Component {
     static propTypes = {
-      orgId: PropTypes.string.isRequired,
+      organization: SentryTypes.Organization.isRequired,
       projectId: PropTypes.string,
       searchId: PropTypes.string,
-      access: PropTypes.object.isRequired,
       query: PropTypes.string,
       savedSearchList: PropTypes.array.isRequired,
       queryCount: PropTypes.number,
@@ -236,7 +236,7 @@ const SavedSearchSelector = withApi(
 
     render() {
       const {
-        orgId,
+        organization,
         projectId,
         queryCount,
         queryMaxCount,
@@ -288,7 +288,7 @@ const SavedSearchSelector = withApi(
                 <Button
                   size="xsmall"
                   priority="default"
-                  to={`/${orgId}/${projectId}/settings/saved-searches/`}
+                  to={`/${organization.slug}/${projectId}/settings/saved-searches/`}
                   disabled={!hasProject}
                 >
                   {t('Manage')}

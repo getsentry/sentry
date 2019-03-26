@@ -73,4 +73,25 @@ describe('Confirm', function() {
     expect(mock).toHaveBeenCalled();
     expect(mock.mock.calls).toHaveLength(1);
   });
+
+  it('can stop propagation on the event', function() {
+    const mock = jest.fn();
+    const wrapper = mount(
+      <Confirm message="Are you sure?" onConfirm={mock} stopPropagation>
+        <button>Confirm?</button>
+      </Confirm>,
+      TestStubs.routerContext()
+    );
+
+    expect(mock).not.toHaveBeenCalled();
+
+    const event = {
+      stopPropagation: jest.fn(),
+    };
+
+    wrapper.find('button').simulate('click', event);
+    wrapper.update();
+
+    expect(event.stopPropagation).toHaveBeenCalledTimes(1);
+  });
 });

@@ -27,6 +27,9 @@ class Confirm extends React.PureComponent {
     onConfirming: PropTypes.func,
     onCancel: PropTypes.func,
     header: PropTypes.node,
+
+    // Stop event propgation when opening the confirm modal
+    stopPropagation: PropTypes.bool,
   };
 
   static defaultProps = {
@@ -34,6 +37,7 @@ class Confirm extends React.PureComponent {
     disableConfirmButton: false,
     cancelText: t('Cancel'),
     confirmText: t('Confirm'),
+    stopPropagation: false,
   };
 
   static getDerivedStateFromProps(props, state) {
@@ -103,6 +107,10 @@ class Confirm extends React.PureComponent {
     const {disabled, bypass} = this.props;
     if (disabled) {
       return;
+    }
+
+    if (e && this.props.stopPropagation) {
+      e.stopPropagation();
     }
 
     if (bypass) {
