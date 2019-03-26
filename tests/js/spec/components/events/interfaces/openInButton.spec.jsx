@@ -56,7 +56,7 @@ describe('OpenInButton', function() {
         `http://localhost:5000/redirection?installationId=${install.uuid}&projectSlug=${group
           .project.slug}`
       );
-      const baseUrl = `http://localhost:5000/redirection`;
+      const baseUrl = 'http://localhost:5000/redirection';
       const queryParams = {
         installationId: install.uuid,
         projectSlug: group.project.slug,
