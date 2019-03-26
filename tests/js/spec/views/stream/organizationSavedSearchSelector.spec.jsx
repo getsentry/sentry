@@ -31,6 +31,7 @@ describe('OrganizationSavedSearchSelector', function() {
         savedSearchList={savedSearchList}
         onSavedSearchSelect={onSelect}
         onSavedSearchDelete={onDelete}
+        query={'is:unresolved assigned:lyn@sentry.io'}
       />,
       TestStubs.routerContext()
     );
@@ -118,6 +119,19 @@ describe('OrganizationSavedSearchSelector', function() {
 
       wrapper.find('Modal Button[priority="primary"]').simulate('click');
       expect(onDelete).toHaveBeenCalledWith(savedSearchList[1]);
+    });
+  });
+
+  describe('saves a search', function() {
+    it('clicking save search opens modal', function() {
+      wrapper.find('DropdownLink').simulate('click');
+      expect(wrapper.find('ModalDialog')).toHaveLength(0);
+      wrapper
+        .find('button')
+        .at(0)
+        .simulate('click');
+
+      expect(wrapper.find('ModalDialog')).toHaveLength(1);
     });
   });
 });
