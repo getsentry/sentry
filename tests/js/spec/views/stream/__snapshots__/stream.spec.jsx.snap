@@ -15,7 +15,7 @@ exports[`Stream render() displays the group list 1`] = `
       onSearch={[Function]}
       onSidebarToggle={[Function]}
       onSortChange={[Function]}
-      organiation={
+      organization={
         Object {
           "access": Array [
             "org:read",
@@ -328,7 +328,7 @@ exports[`Stream toggles environment select all environments 1`] = `
       onSearch={[Function]}
       onSidebarToggle={[Function]}
       onSortChange={[Function]}
-      organiation={
+      organization={
         Object {
           "access": Array [
             "org:read",
