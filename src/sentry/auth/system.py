@@ -1,46 +1,12 @@
 from __future__ import absolute_import, print_function
 
 from django.conf import settings
+from django.contrib.auth.models import AnonymousUser
 from django.utils.crypto import constant_time_compare
 from uuid import uuid4
 
 from sentry import options
-
-
-class SystemUser(object):
-    """
-    Singleton user representing a system that is part of Sentry.
-
-    The system user is a superuser that is not tied to an organization or real
-    user account. Unlike other superusers but similar to ``AnonymousUser``, it
-    has ``is_anonymous`` set.
-    """
-
-    id = -1  # Allow database queries
-
-    username = '<system>'
-    is_staff = True
-    is_active = True
-    is_superuser = True
-    is_system = True
-
-    def __str__(self):
-        return 'SystemUser'
-
-    def __eq__(self, other):
-        return isinstance(other, self.__class__)
-
-    def __ne__(self, other):
-        return not self.__eq__(other)
-
-    def __hash__(self):
-        return 1  # singleton
-
-    def is_anonymous(self):
-        return True
-
-    def is_authenticated(self):
-        return True
+from sentry.utils.cache import memoize
 
 
 def is_internal_ip(request):
@@ -62,13 +28,17 @@ def get_system_token():
 
 class SystemToken(object):
     """
-    API token that gives superuser access to the system user.
+    API token authenticating the system user.
+
+    The system token has all authorization scopes, but the underlying SystemUser
+    does not have permission to access any endpoints. It can be white listed
+    using ``SystemPermission``.
     """
 
     id = '<system>'
     token = '<system.secret-key>'
-    user = SystemUser()
     application = None
+    organization_id = None
 
     @classmethod
     def from_request(cls, request, token):
@@ -90,6 +60,13 @@ class SystemToken(object):
     def is_expired(self):
         False
 
+    @memoize
+    def user(self):
+        user = AnonymousUser()
+        user.is_active = True
+        user.is_superuser = True
+        return user
+
     def get_allowed_origins(self):
         return []
 
@@ -108,3 +85,7 @@ class SystemToken(object):
 
     def refresh(self, expires_at=None):
         pass
+
+
+def is_system_auth(auth):
+    return isinstance(auth, SystemToken)

@@ -9,6 +9,7 @@ from django.utils.functional import cached_property
 
 from sentry import roles
 from sentry.auth.superuser import is_active_superuser
+from sentry.auth.system import is_system_auth
 from sentry.models import (
     AuthIdentity, AuthProvider, OrganizationMember, Project, SentryApp, UserPermission
 )
@@ -215,6 +216,25 @@ class OrganizationlessAccess(BaseAccess):
             self.permissions = permissions
 
 
+class SystemAccess(BaseAccess):
+    is_active = True
+
+    def has_permission(self, permission):
+        return True
+
+    def has_scope(self, scope):
+        return True
+
+    def has_team_access(self, team):
+        return True
+
+    def has_project_access(self, project):
+        return True
+
+    def has_project_membership(self, project):
+        return True
+
+
 class NoAccess(BaseAccess):
     requires_sso = False
     sso_is_valid = True
@@ -238,29 +258,21 @@ def from_request(request, organization=None, scopes=None):
         return from_sentry_app(request.user, organization=organization)
 
     if is_active_superuser(request):
+        # we special case superuser so that if they're a member of the org
+        # they must still follow SSO checks, but they gain global access
+        try:
+            member = OrganizationMember.objects.get(
+                user=request.user,
+                organization=organization,
+            )
+        except OrganizationMember.DoesNotExist:
+            requires_sso, sso_is_valid = False, True
+        else:
+            requires_sso, sso_is_valid = _sso_params(member)
+
         team_list = ()
+
         project_list = ()
-        requires_sso = False
-        sso_is_valid = True
-        permissions = frozenset()
-
-        # The system user is not an actual user (especially no model), so skip
-        # all database queries.
-        if not getattr(request.user, 'is_system', False):
-            try:
-                # we special case superuser so that if they're a member of the org
-                # they must still follow SSO checks, but they gain global access
-                member = OrganizationMember.objects.get(
-                    user=request.user,
-                    organization=organization,
-                )
-            except OrganizationMember.DoesNotExist:
-                pass
-            else:
-                requires_sso, sso_is_valid = _sso_params(member)
-
-            permissions = UserPermission.for_user(request.user.id)
-
         return Access(
             scopes=scopes if scopes is not None else settings.SENTRY_SCOPES,
             is_active=True,
@@ -270,7 +282,7 @@ def from_request(request, organization=None, scopes=None):
             sso_is_valid=sso_is_valid,
             requires_sso=requires_sso,
             has_global_access=True,
-            permissions=permissions,
+            permissions=UserPermission.for_user(request.user.id),
         )
 
     if hasattr(request, 'auth') and not request.user.is_authenticated():
@@ -356,8 +368,13 @@ def from_member(member, scopes=None):
     )
 
 
-def from_auth(auth, scopes=None):
-    return OrganizationGlobalAccess(auth.organization, scopes=scopes)
+def from_auth(auth, organization):
+    if is_system_auth(auth):
+        return SystemAccess()
+    if auth.organization_id == organization.id:
+        return OrganizationGlobalAccess(auth.organization)
+    else:
+        return DEFAULT
 
 
 DEFAULT = NoAccess()
