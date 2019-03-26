@@ -7,6 +7,7 @@ import {sortArray} from 'app/utils';
 import {t} from 'app/locale';
 import {alertHighlight, pulse} from 'app/styles/animations';
 import Button from 'app/components/button';
+import ConfigStore from 'app/stores/configStore';
 import InlineSvg from 'app/components/inlineSvg';
 import BookmarkStar from 'app/components/bookmarkStar';
 import DropdownAutoComplete from 'app/components/dropdownAutoComplete';
@@ -26,6 +27,11 @@ class ProjectSelector extends React.Component {
     projectId: PropTypes.string,
     organization: PropTypes.object.isRequired,
     projects: PropTypes.arrayOf(
+      PropTypes.oneOfType([PropTypes.string, SentryTypes.Project])
+    ),
+
+    // used by multiProjectSelector
+    multiProjects: PropTypes.arrayOf(
       PropTypes.oneOfType([PropTypes.string, SentryTypes.Project])
     ),
 
@@ -79,11 +85,20 @@ class ProjectSelector extends React.Component {
   }
 
   getProjects() {
-    const {organization, projects} = this.props;
-    const projectList =
-      projects || organization.projects.filter(project => project.isMember);
+    const {organization, projects, multiProjects} = this.props;
 
-    return sortArray(projectList, project => {
+    if (multiProjects) {
+      return multiProjects;
+    }
+
+    const {isSuperuser} = ConfigStore.get('user');
+    const unfilteredProjects = projects || organization.projects;
+
+    const filteredProjects = isSuperuser
+      ? unfilteredProjects
+      : unfilteredProjects.filter(project => project.isMember);
+
+    return sortArray(filteredProjects, project => {
       return [!project.isBookmarked, project.name];
     });
   }
