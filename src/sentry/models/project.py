@@ -257,16 +257,22 @@ class Project(Model, PendingDeletionMixin):
     def get_full_name(self):
         return self.slug
 
+    def get_member_alert_settings(self, user_option):
+        """
+        Returns a list of users who have alert notifications explicitly
+        enabled/disabled.
+        :param user_option: alert option key, typically 'mail:alert'
+        :return: A dictionary in format {<user_id>: <int_alert_value>}
+        """
+        from sentry.models import UserOption
+        return {o.user_id: int(o.value) for o in UserOption.objects.filter(
+            project=self,
+            key=user_option,
+        )}
+
     def get_notification_recipients(self, user_option):
         from sentry.models import UserOption
-        alert_settings = dict(
-            (o.user_id, int(o.value))
-            for o in UserOption.objects.filter(
-                project=self,
-                key=user_option,
-            )
-        )
-
+        alert_settings = self.get_member_alert_settings(user_option)
         disabled = set(u for u, v in six.iteritems(alert_settings) if v == 0)
 
         member_set = set(
