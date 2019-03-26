@@ -425,8 +425,11 @@ class SmartSearchBar extends React.Component {
       const fetchTagValuesFn = tag.predefined
         ? this.getPredefinedTagValues
         : this.getTagValues;
-      const tagValues = await fetchTagValuesFn(tag, preparedQuery);
-      const recentSearches = await this.getRecentSearches();
+
+      const [tagValues, recentSearches] = await Promise.all([
+        fetchTagValuesFn(tag, preparedQuery),
+        this.getRecentSearches(),
+      ]);
 
       this.updateAutoCompleteState(tagValues, recentSearches, tag.key);
       return;
