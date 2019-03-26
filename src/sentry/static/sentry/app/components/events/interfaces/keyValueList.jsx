@@ -28,6 +28,8 @@ class KeyValueList extends React.Component {
       data = [];
     } else if (!(data instanceof Array)) {
       data = Object.keys(data).map(key => [key, data[key]]);
+    } else {
+      data = data.filter(kv => kv !== null);
     }
 
     data = this.props.isSorted ? _.sortBy(data, [([key]) => key]) : data;
