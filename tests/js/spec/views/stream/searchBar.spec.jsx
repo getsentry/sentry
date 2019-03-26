@@ -281,7 +281,7 @@ describe('SearchBar', function() {
         expect.anything(),
         expect.objectContaining({
           method: 'DELETE',
-          query: {
+          data: {
             type: 0,
           },
         })

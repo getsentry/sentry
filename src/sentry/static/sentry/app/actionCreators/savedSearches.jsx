@@ -115,7 +115,7 @@ export function unpinSearch(api, orgId, type) {
   const url = getPinSearchUrl(orgId);
   const promise = api.requestPromise(url, {
     method: 'DELETE',
-    query: {
+    data: {
       type,
     },
   });
