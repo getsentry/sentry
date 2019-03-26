@@ -8,7 +8,7 @@ import getDisplayName from 'app/utils/getDisplayName';
  */
 const withOrganization = WrappedComponent =>
   class extends React.Component {
-    static displayName = `withOrganizations(${getDisplayName(WrappedComponent)})`;
+    static displayName = `withOrganization(${getDisplayName(WrappedComponent)})`;
     static contextTypes = {
       organization: SentryTypes.Organization,
     };
