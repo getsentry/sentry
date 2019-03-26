@@ -264,7 +264,7 @@ exports[`OrganizationUserFeedback renders 1`] = `
             renderDisabled={[Function]}
             requireAll={true}
           >
-            <withRouter(withGlobalSelection(GlobalSelectionHeader))
+            <withProjects(withRouter(withGlobalSelection(GlobalSelectionHeader)))
               organization={
                 Object {
                   "access": Array [
@@ -307,12 +307,7 @@ exports[`OrganizationUserFeedback renders 1`] = `
                 }
               }
             >
-              <withGlobalSelection(GlobalSelectionHeader)
-                location={
-                  Object {
-                    "query": Object {},
-                  }
-                }
+              <withRouter(withGlobalSelection(GlobalSelectionHeader))
                 organization={
                   Object {
                     "access": Array [
@@ -354,110 +349,9 @@ exports[`OrganizationUserFeedback renders 1`] = `
                     "teams": Array [],
                   }
                 }
-                params={
-                  Object {
-                    "orgId": "org-slug",
-                  }
-                }
-                router={
-                  Object {
-                    "createHref": [MockFunction] {
-                      "calls": Array [
-                        Array [
-                          Object {
-                            "pathname": undefined,
-                            "query": Object {},
-                          },
-                        ],
-                        Array [
-                          Object {
-                            "pathname": undefined,
-                            "query": Object {
-                              "status": "",
-                            },
-                          },
-                        ],
-                        Array [
-                          "/organizations/org-slug/projects/project-slug/events/12345678901234567890123456789012/",
-                        ],
-                        Array [
-                          "/org-slug/project-slug/",
-                        ],
-                        Array [
-                          "/org-slug/project-slug/issues/1/activity/",
-                        ],
-                        Array [
-                          "/organizations/org-slug/issues/1/events/1/",
-                        ],
-                      ],
-                      "results": Array [
-                        Object {
-                          "type": "return",
-                          "value": undefined,
-                        },
-                        Object {
-                          "type": "return",
-                          "value": undefined,
-                        },
-                        Object {
-                          "type": "return",
-                          "value": undefined,
-                        },
-                        Object {
-                          "type": "return",
-                          "value": undefined,
-                        },
-                        Object {
-                          "type": "return",
-                          "value": undefined,
-                        },
-                        Object {
-                          "type": "return",
-                          "value": undefined,
-                        },
-                      ],
-                    },
-                    "go": [MockFunction],
-                    "goBack": [MockFunction],
-                    "goForward": [MockFunction],
-                    "isActive": [MockFunction],
-                    "listen": [MockFunction],
-                    "location": Object {
-                      "query": Object {},
-                    },
-                    "params": Object {
-                      "orgId": "org-slug",
-                    },
-                    "push": [MockFunction] {
-                      "calls": Array [
-                        Array [
-                          Object {
-                            "pathname": undefined,
-                            "query": Object {
-                              "environment": Array [],
-                              "project": Array [
-                                2,
-                              ],
-                              "statsPeriod": "14d",
-                              "utc": "true",
-                            },
-                          },
-                        ],
-                      ],
-                      "results": Array [
-                        Object {
-                          "type": "return",
-                          "value": undefined,
-                        },
-                      ],
-                    },
-                    "replace": [MockFunction],
-                    "setRouteLeaveHook": [MockFunction],
-                  }
-                }
+                projects={Array []}
               >
-                <GlobalSelectionHeader
-                  hasCustomRouting={false}
+                <withGlobalSelection(GlobalSelectionHeader)
                   location={
                     Object {
                       "query": Object {},
@@ -509,7 +403,7 @@ exports[`OrganizationUserFeedback renders 1`] = `
                       "orgId": "org-slug",
                     }
                   }
-                  resetParamsOnChange={Array []}
+                  projects={Array []}
                   router={
                     Object {
                       "createHref": [MockFunction] {
@@ -586,9 +480,7 @@ exports[`OrganizationUserFeedback renders 1`] = `
                               "pathname": undefined,
                               "query": Object {
                                 "environment": Array [],
-                                "project": Array [
-                                  2,
-                                ],
+                                "project": Array [],
                                 "statsPeriod": "14d",
                                 "utc": "true",
                               },
@@ -606,100 +498,186 @@ exports[`OrganizationUserFeedback renders 1`] = `
                       "setRouteLeaveHook": [MockFunction],
                     }
                   }
-                  selection={
-                    Object {
-                      "datetime": Object {
-                        "end": null,
-                        "period": "14d",
-                        "start": null,
-                        "utc": true,
-                      },
-                      "environments": Array [],
-                      "projects": Array [],
-                    }
-                  }
-                  showDateSelector={true}
-                  showEnvironmentSelector={true}
                 >
-                  <Header>
-                    <Base
-                      className="css-14hw0r3-Header e10yv9i90"
-                    >
-                      <div
+                  <GlobalSelectionHeader
+                    hasCustomRouting={false}
+                    location={
+                      Object {
+                        "query": Object {},
+                      }
+                    }
+                    organization={
+                      Object {
+                        "access": Array [
+                          "org:read",
+                          "org:write",
+                          "org:admin",
+                          "org:integrations",
+                          "project:read",
+                          "project:write",
+                          "project:admin",
+                          "team:read",
+                          "team:write",
+                          "team:admin",
+                        ],
+                        "features": Array [
+                          "sentry10",
+                        ],
+                        "id": "3",
+                        "name": "Organization Name",
+                        "onboardingTasks": Array [],
+                        "projects": Array [
+                          Object {
+                            "environments": Array [],
+                            "hasAccess": true,
+                            "id": "2",
+                            "isBookmarked": false,
+                            "isMember": true,
+                            "name": "Project Name",
+                            "slug": "project-slug",
+                            "teams": Array [],
+                          },
+                        ],
+                        "scrapeJavaScript": true,
+                        "slug": "org-slug",
+                        "status": Object {
+                          "id": "active",
+                          "name": "active",
+                        },
+                        "teams": Array [],
+                      }
+                    }
+                    params={
+                      Object {
+                        "orgId": "org-slug",
+                      }
+                    }
+                    projects={Array []}
+                    resetParamsOnChange={Array []}
+                    router={
+                      Object {
+                        "createHref": [MockFunction] {
+                          "calls": Array [
+                            Array [
+                              Object {
+                                "pathname": undefined,
+                                "query": Object {},
+                              },
+                            ],
+                            Array [
+                              Object {
+                                "pathname": undefined,
+                                "query": Object {
+                                  "status": "",
+                                },
+                              },
+                            ],
+                            Array [
+                              "/organizations/org-slug/projects/project-slug/events/12345678901234567890123456789012/",
+                            ],
+                            Array [
+                              "/org-slug/project-slug/",
+                            ],
+                            Array [
+                              "/org-slug/project-slug/issues/1/activity/",
+                            ],
+                            Array [
+                              "/organizations/org-slug/issues/1/events/1/",
+                            ],
+                          ],
+                          "results": Array [
+                            Object {
+                              "type": "return",
+                              "value": undefined,
+                            },
+                            Object {
+                              "type": "return",
+                              "value": undefined,
+                            },
+                            Object {
+                              "type": "return",
+                              "value": undefined,
+                            },
+                            Object {
+                              "type": "return",
+                              "value": undefined,
+                            },
+                            Object {
+                              "type": "return",
+                              "value": undefined,
+                            },
+                            Object {
+                              "type": "return",
+                              "value": undefined,
+                            },
+                          ],
+                        },
+                        "go": [MockFunction],
+                        "goBack": [MockFunction],
+                        "goForward": [MockFunction],
+                        "isActive": [MockFunction],
+                        "listen": [MockFunction],
+                        "location": Object {
+                          "query": Object {},
+                        },
+                        "params": Object {
+                          "orgId": "org-slug",
+                        },
+                        "push": [MockFunction] {
+                          "calls": Array [
+                            Array [
+                              Object {
+                                "pathname": undefined,
+                                "query": Object {
+                                  "environment": Array [],
+                                  "project": Array [],
+                                  "statsPeriod": "14d",
+                                  "utc": "true",
+                                },
+                              },
+                            ],
+                          ],
+                          "results": Array [
+                            Object {
+                              "type": "return",
+                              "value": undefined,
+                            },
+                          ],
+                        },
+                        "replace": [MockFunction],
+                        "setRouteLeaveHook": [MockFunction],
+                      }
+                    }
+                    selection={
+                      Object {
+                        "datetime": Object {
+                          "end": null,
+                          "period": "14d",
+                          "start": null,
+                          "utc": true,
+                        },
+                        "environments": Array [],
+                        "projects": Array [],
+                      }
+                    }
+                    showDateSelector={true}
+                    showEnvironmentSelector={true}
+                  >
+                    <Header>
+                      <Base
                         className="css-14hw0r3-Header e10yv9i90"
-                        is={null}
                       >
-                        <HeaderItemPosition>
-                          <div
-                            className="css-5udiwc-HeaderItemPosition e165b9e40"
-                          >
-                            <MultipleProjectSelector
-                              multi={false}
-                              onChange={[Function]}
-                              onUpdate={[Function]}
-                              organization={
-                                Object {
-                                  "access": Array [
-                                    "org:read",
-                                    "org:write",
-                                    "org:admin",
-                                    "org:integrations",
-                                    "project:read",
-                                    "project:write",
-                                    "project:admin",
-                                    "team:read",
-                                    "team:write",
-                                    "team:admin",
-                                  ],
-                                  "features": Array [
-                                    "sentry10",
-                                  ],
-                                  "id": "3",
-                                  "name": "Organization Name",
-                                  "onboardingTasks": Array [],
-                                  "projects": Array [
-                                    Object {
-                                      "environments": Array [],
-                                      "hasAccess": true,
-                                      "id": "2",
-                                      "isBookmarked": false,
-                                      "isMember": true,
-                                      "name": "Project Name",
-                                      "slug": "project-slug",
-                                      "teams": Array [],
-                                    },
-                                  ],
-                                  "scrapeJavaScript": true,
-                                  "slug": "org-slug",
-                                  "status": Object {
-                                    "id": "active",
-                                    "name": "active",
-                                  },
-                                  "teams": Array [],
-                                }
-                              }
-                              projects={
-                                Array [
-                                  Object {
-                                    "environments": Array [],
-                                    "hasAccess": true,
-                                    "id": "2",
-                                    "isBookmarked": false,
-                                    "isMember": true,
-                                    "name": "Project Name",
-                                    "slug": "project-slug",
-                                    "teams": Array [],
-                                  },
-                                ]
-                              }
-                              value={Array []}
+                        <div
+                          className="css-14hw0r3-Header e10yv9i90"
+                          is={null}
+                        >
+                          <HeaderItemPosition>
+                            <div
+                              className="css-5udiwc-HeaderItemPosition e165b9e40"
                             >
-                              <StyledProjectSelector
+                              <MultipleProjectSelector
                                 multi={false}
                                 onChange={[Function]}
-                                onClose={[Function]}
-                                onMultiSelect={[Function]}
-                                onSelect={[Function]}
                                 onUpdate={[Function]}
                                 organization={
                                   Object {
@@ -742,27 +720,12 @@ exports[`OrganizationUserFeedback renders 1`] = `
                                     "teams": Array [],
                                   }
                                 }
-                                projects={
-                                  Array [
-                                    Object {
-                                      "environments": Array [],
-                                      "hasAccess": true,
-                                      "id": "2",
-                                      "isBookmarked": false,
-                                      "isMember": true,
-                                      "name": "Project Name",
-                                      "slug": "project-slug",
-                                      "teams": Array [],
-                                    },
-                                  ]
-                                }
-                                rootClassName="css-h5t9nh-rootContainerStyles"
-                                selectedProjects={Array []}
+                                projects={Array []}
                                 value={Array []}
                               >
-                                <withProjects(ProjectSelector)
-                                  className="css-iw79rr-StyledProjectSelector ewlipse0"
+                                <StyledProjectSelector
                                   multi={false}
+                                  multiProjects={Array []}
                                   onChange={[Function]}
                                   onClose={[Function]}
                                   onMultiSelect={[Function]}
@@ -809,27 +772,15 @@ exports[`OrganizationUserFeedback renders 1`] = `
                                       "teams": Array [],
                                     }
                                   }
-                                  projects={
-                                    Array [
-                                      Object {
-                                        "environments": Array [],
-                                        "hasAccess": true,
-                                        "id": "2",
-                                        "isBookmarked": false,
-                                        "isMember": true,
-                                        "name": "Project Name",
-                                        "slug": "project-slug",
-                                        "teams": Array [],
-                                      },
-                                    ]
-                                  }
+                                  projects={Array []}
                                   rootClassName="css-h5t9nh-rootContainerStyles"
                                   selectedProjects={Array []}
                                   value={Array []}
                                 >
-                                  <ProjectSelector
+                                  <withProjects(ProjectSelector)
                                     className="css-iw79rr-StyledProjectSelector ewlipse0"
                                     multi={false}
+                                    multiProjects={Array []}
                                     onChange={[Function]}
                                     onClose={[Function]}
                                     onMultiSelect={[Function]}
@@ -876,42 +827,70 @@ exports[`OrganizationUserFeedback renders 1`] = `
                                         "teams": Array [],
                                       }
                                     }
-                                    projectId={null}
                                     projects={Array []}
                                     rootClassName="css-h5t9nh-rootContainerStyles"
                                     selectedProjects={Array []}
                                     value={Array []}
                                   >
-                                    <DropdownAutoComplete
-                                      alignMenu="left"
-                                      allowActorToggle={true}
-                                      blendCorner={false}
-                                      className="ewlipse0 css-11ijjr3-StyledProjectSelector"
-                                      closeOnSelect={true}
-                                      emptyHidesInput={true}
-                                      emptyMessage="You have no projects"
-                                      inputActions={[Function]}
-                                      inputProps={
+                                    <ProjectSelector
+                                      className="css-iw79rr-StyledProjectSelector ewlipse0"
+                                      multi={false}
+                                      multiProjects={Array []}
+                                      onChange={[Function]}
+                                      onClose={[Function]}
+                                      onMultiSelect={[Function]}
+                                      onSelect={[Function]}
+                                      onUpdate={[Function]}
+                                      organization={
                                         Object {
-                                          "style": Object {
-                                            "padding": 8,
-                                            "paddingLeft": 10,
+                                          "access": Array [
+                                            "org:read",
+                                            "org:write",
+                                            "org:admin",
+                                            "org:integrations",
+                                            "project:read",
+                                            "project:write",
+                                            "project:admin",
+                                            "team:read",
+                                            "team:write",
+                                            "team:admin",
+                                          ],
+                                          "features": Array [
+                                            "sentry10",
+                                          ],
+                                          "id": "3",
+                                          "name": "Organization Name",
+                                          "onboardingTasks": Array [],
+                                          "projects": Array [
+                                            Object {
+                                              "environments": Array [],
+                                              "hasAccess": true,
+                                              "id": "2",
+                                              "isBookmarked": false,
+                                              "isMember": true,
+                                              "name": "Project Name",
+                                              "slug": "project-slug",
+                                              "teams": Array [],
+                                            },
+                                          ],
+                                          "scrapeJavaScript": true,
+                                          "slug": "org-slug",
+                                          "status": Object {
+                                            "id": "active",
+                                            "name": "active",
                                           },
+                                          "teams": Array [],
                                         }
                                       }
-                                      items={Array []}
-                                      maxHeight={500}
-                                      menuFooter={[Function]}
-                                      noResultsMessage="No projects found"
-                                      onClose={[Function]}
-                                      onSelect={[Function]}
+                                      projectId={null}
+                                      projects={Array []}
                                       rootClassName="css-h5t9nh-rootContainerStyles"
-                                      searchPlaceholder="Filter projects"
-                                      virtualizedHeight={44}
-                                      zIndex={1001}
+                                      selectedProjects={Array []}
+                                      value={Array []}
                                     >
-                                      <DropdownAutoCompleteMenu
+                                      <DropdownAutoComplete
                                         alignMenu="left"
+                                        allowActorToggle={true}
                                         blendCorner={false}
                                         className="ewlipse0 css-11ijjr3-StyledProjectSelector"
                                         closeOnSelect={true}
@@ -937,6 +916,495 @@ exports[`OrganizationUserFeedback renders 1`] = `
                                         virtualizedHeight={44}
                                         zIndex={1001}
                                       >
+                                        <DropdownAutoCompleteMenu
+                                          alignMenu="left"
+                                          blendCorner={false}
+                                          className="ewlipse0 css-11ijjr3-StyledProjectSelector"
+                                          closeOnSelect={true}
+                                          emptyHidesInput={true}
+                                          emptyMessage="You have no projects"
+                                          inputActions={[Function]}
+                                          inputProps={
+                                            Object {
+                                              "style": Object {
+                                                "padding": 8,
+                                                "paddingLeft": 10,
+                                              },
+                                            }
+                                          }
+                                          items={Array []}
+                                          maxHeight={500}
+                                          menuFooter={[Function]}
+                                          noResultsMessage="No projects found"
+                                          onClose={[Function]}
+                                          onSelect={[Function]}
+                                          rootClassName="css-h5t9nh-rootContainerStyles"
+                                          searchPlaceholder="Filter projects"
+                                          virtualizedHeight={44}
+                                          zIndex={1001}
+                                        >
+                                          <AutoComplete
+                                            closeOnSelect={true}
+                                            disabled={false}
+                                            inputIsActor={false}
+                                            itemToString={[Function]}
+                                            onClose={[Function]}
+                                            onSelect={[Function]}
+                                            resetInputOnClose={true}
+                                            shouldSelectWithEnter={true}
+                                            shouldSelectWithTab={false}
+                                            virtualizedHeight={44}
+                                            zIndex={1001}
+                                          >
+                                            <DropdownMenu
+                                              closeOnEscape={true}
+                                              isOpen={false}
+                                              keepMenuOpen={false}
+                                              onClickOutside={[Function]}
+                                            >
+                                              <AutoCompleteRoot
+                                                className="css-h5t9nh-rootContainerStyles"
+                                              >
+                                                <Component
+                                                  className="css-1ppsre-AutoCompleteRoot-rootContainerStyles ejumqxq0"
+                                                >
+                                                  <div
+                                                    className="css-1ppsre-AutoCompleteRoot-rootContainerStyles ejumqxq0"
+                                                  >
+                                                    <Actor
+                                                      innerRef={[Function]}
+                                                      isOpen={false}
+                                                      onClick={[Function]}
+                                                      onKeyDown={[Function]}
+                                                      onMouseEnter={[Function]}
+                                                      onMouseLeave={[Function]}
+                                                      role="button"
+                                                      style={
+                                                        Object {
+                                                          "outline": "none",
+                                                        }
+                                                      }
+                                                      tabIndex={-1}
+                                                    >
+                                                      <div
+                                                        className="css-17fe80j-Actor e53us8t0"
+                                                        onClick={[Function]}
+                                                        onKeyDown={[Function]}
+                                                        onMouseEnter={[Function]}
+                                                        onMouseLeave={[Function]}
+                                                        role="button"
+                                                        style={
+                                                          Object {
+                                                            "outline": "none",
+                                                          }
+                                                        }
+                                                        tabIndex={-1}
+                                                      >
+                                                        <StyledHeaderItem
+                                                          active={false}
+                                                          allowClear={false}
+                                                          hasChanges={false}
+                                                          hasSelected={false}
+                                                          icon={
+                                                            <StyledInlineSvg
+                                                              src="icon-project"
+                                                            />
+                                                          }
+                                                          isOpen={false}
+                                                          onClear={[Function]}
+                                                          onClick={[Function]}
+                                                          onKeyDown={[Function]}
+                                                          onMouseEnter={[Function]}
+                                                          onMouseLeave={[Function]}
+                                                          onSubmit={[Function]}
+                                                          style={
+                                                            Object {
+                                                              "outline": "none",
+                                                            }
+                                                          }
+                                                          tabIndex={-1}
+                                                        >
+                                                          <ForwardRef
+                                                            active={false}
+                                                            allowClear={false}
+                                                            className="css-12jjx2u-StyledHeaderItem ewlipse1"
+                                                            hasChanges={false}
+                                                            hasSelected={false}
+                                                            icon={
+                                                              <StyledInlineSvg
+                                                                src="icon-project"
+                                                              />
+                                                            }
+                                                            isOpen={false}
+                                                            onClear={[Function]}
+                                                            onClick={[Function]}
+                                                            onKeyDown={[Function]}
+                                                            onMouseEnter={[Function]}
+                                                            onMouseLeave={[Function]}
+                                                            onSubmit={[Function]}
+                                                            style={
+                                                              Object {
+                                                                "outline": "none",
+                                                              }
+                                                            }
+                                                            tabIndex={-1}
+                                                          >
+                                                            <HeaderItem
+                                                              active={false}
+                                                              allowClear={false}
+                                                              className="css-12jjx2u-StyledHeaderItem ewlipse1"
+                                                              hasChanges={false}
+                                                              hasSelected={false}
+                                                              icon={
+                                                                <StyledInlineSvg
+                                                                  src="icon-project"
+                                                                />
+                                                              }
+                                                              innerRef={null}
+                                                              isOpen={false}
+                                                              onClear={[Function]}
+                                                              onClick={[Function]}
+                                                              onKeyDown={[Function]}
+                                                              onMouseEnter={[Function]}
+                                                              onMouseLeave={[Function]}
+                                                              onSubmit={[Function]}
+                                                              style={
+                                                                Object {
+                                                                  "outline": "none",
+                                                                }
+                                                              }
+                                                              tabIndex={-1}
+                                                            >
+                                                              <StyledHeaderItem
+                                                                active={false}
+                                                                className="css-12jjx2u-StyledHeaderItem ewlipse1"
+                                                                hasSelected={false}
+                                                                innerRef={null}
+                                                                isOpen={false}
+                                                                onClick={[Function]}
+                                                                onKeyDown={[Function]}
+                                                                onMouseEnter={[Function]}
+                                                                onMouseLeave={[Function]}
+                                                                style={
+                                                                  Object {
+                                                                    "outline": "none",
+                                                                  }
+                                                                }
+                                                                tabIndex={-1}
+                                                              >
+                                                                <div
+                                                                  className="ewlipse1 css-11wumjj-StyledHeaderItem-StyledHeaderItem enk2k7v0"
+                                                                  onClick={[Function]}
+                                                                  onKeyDown={[Function]}
+                                                                  onMouseEnter={[Function]}
+                                                                  onMouseLeave={[Function]}
+                                                                  style={
+                                                                    Object {
+                                                                      "outline": "none",
+                                                                    }
+                                                                  }
+                                                                  tabIndex={-1}
+                                                                >
+                                                                  <IconContainer
+                                                                    hasSelected={false}
+                                                                  >
+                                                                    <span
+                                                                      className="css-1g4tz50-IconContainer enk2k7v2"
+                                                                    >
+                                                                      <StyledInlineSvg
+                                                                        src="icon-project"
+                                                                      >
+                                                                        <InlineSvg
+                                                                          className="css-1ibtmti-StyledInlineSvg ewlipse2"
+                                                                          src="icon-project"
+                                                                        >
+                                                                          <StyledSvg
+                                                                            className="css-1ibtmti-StyledInlineSvg ewlipse2"
+                                                                            height="1em"
+                                                                            viewBox={Object {}}
+                                                                            width="1em"
+                                                                          >
+                                                                            <svg
+                                                                              className="ewlipse2 css-1ux8cow-StyledSvg-StyledInlineSvg e2idor0"
+                                                                              height="1em"
+                                                                              viewBox={Object {}}
+                                                                              width="1em"
+                                                                            >
+                                                                              <use
+                                                                                href="#test"
+                                                                                xlinkHref="#test"
+                                                                              />
+                                                                            </svg>
+                                                                          </StyledSvg>
+                                                                        </InlineSvg>
+                                                                      </StyledInlineSvg>
+                                                                    </span>
+                                                                  </IconContainer>
+                                                                  <Content>
+                                                                    <div
+                                                                      className="css-1yquznf-Content enk2k7v1"
+                                                                    >
+                                                                      All Projects
+                                                                    </div>
+                                                                  </Content>
+                                                                  <StyledChevron
+                                                                    hasChanges={false}
+                                                                    isOpen={false}
+                                                                    onClick={[Function]}
+                                                                  >
+                                                                    <div
+                                                                      className="css-ft4nwy-StyledChevron enk2k7v4"
+                                                                      onClick={[Function]}
+                                                                    >
+                                                                      <InlineSvg
+                                                                        src="icon-chevron-down"
+                                                                      >
+                                                                        <StyledSvg
+                                                                          height="1em"
+                                                                          viewBox={Object {}}
+                                                                          width="1em"
+                                                                        >
+                                                                          <svg
+                                                                            className="css-ryh69w-StyledSvg e2idor0"
+                                                                            height="1em"
+                                                                            viewBox={Object {}}
+                                                                            width="1em"
+                                                                          >
+                                                                            <use
+                                                                              href="#test"
+                                                                              xlinkHref="#test"
+                                                                            />
+                                                                          </svg>
+                                                                        </StyledSvg>
+                                                                      </InlineSvg>
+                                                                    </div>
+                                                                  </StyledChevron>
+                                                                </div>
+                                                              </StyledHeaderItem>
+                                                            </HeaderItem>
+                                                          </ForwardRef>
+                                                        </StyledHeaderItem>
+                                                      </div>
+                                                    </Actor>
+                                                  </div>
+                                                </Component>
+                                              </AutoCompleteRoot>
+                                            </DropdownMenu>
+                                          </AutoComplete>
+                                        </DropdownAutoCompleteMenu>
+                                      </DropdownAutoComplete>
+                                    </ProjectSelector>
+                                  </withProjects(ProjectSelector)>
+                                </StyledProjectSelector>
+                              </MultipleProjectSelector>
+                            </div>
+                          </HeaderItemPosition>
+                          <HeaderSeparator>
+                            <Base
+                              className="css-zkrb0n-HeaderSeparator elp5f3l0"
+                            >
+                              <div
+                                className="css-zkrb0n-HeaderSeparator elp5f3l0"
+                                is={null}
+                              />
+                            </Base>
+                          </HeaderSeparator>
+                          <HeaderItemPosition>
+                            <div
+                              className="css-5udiwc-HeaderItemPosition e165b9e40"
+                            >
+                              <withApi(MultipleEnvironmentSelector)
+                                onChange={[Function]}
+                                onUpdate={[Function]}
+                                organization={
+                                  Object {
+                                    "access": Array [
+                                      "org:read",
+                                      "org:write",
+                                      "org:admin",
+                                      "org:integrations",
+                                      "project:read",
+                                      "project:write",
+                                      "project:admin",
+                                      "team:read",
+                                      "team:write",
+                                      "team:admin",
+                                    ],
+                                    "features": Array [
+                                      "sentry10",
+                                    ],
+                                    "id": "3",
+                                    "name": "Organization Name",
+                                    "onboardingTasks": Array [],
+                                    "projects": Array [
+                                      Object {
+                                        "environments": Array [],
+                                        "hasAccess": true,
+                                        "id": "2",
+                                        "isBookmarked": false,
+                                        "isMember": true,
+                                        "name": "Project Name",
+                                        "slug": "project-slug",
+                                        "teams": Array [],
+                                      },
+                                    ],
+                                    "scrapeJavaScript": true,
+                                    "slug": "org-slug",
+                                    "status": Object {
+                                      "id": "active",
+                                      "name": "active",
+                                    },
+                                    "teams": Array [],
+                                  }
+                                }
+                                selectedProjects={Array []}
+                                value={Array []}
+                              >
+                                <MultipleEnvironmentSelector
+                                  api={Client {}}
+                                  onChange={[Function]}
+                                  onUpdate={[Function]}
+                                  organization={
+                                    Object {
+                                      "access": Array [
+                                        "org:read",
+                                        "org:write",
+                                        "org:admin",
+                                        "org:integrations",
+                                        "project:read",
+                                        "project:write",
+                                        "project:admin",
+                                        "team:read",
+                                        "team:write",
+                                        "team:admin",
+                                      ],
+                                      "features": Array [
+                                        "sentry10",
+                                      ],
+                                      "id": "3",
+                                      "name": "Organization Name",
+                                      "onboardingTasks": Array [],
+                                      "projects": Array [
+                                        Object {
+                                          "environments": Array [],
+                                          "hasAccess": true,
+                                          "id": "2",
+                                          "isBookmarked": false,
+                                          "isMember": true,
+                                          "name": "Project Name",
+                                          "slug": "project-slug",
+                                          "teams": Array [],
+                                        },
+                                      ],
+                                      "scrapeJavaScript": true,
+                                      "slug": "org-slug",
+                                      "status": Object {
+                                        "id": "active",
+                                        "name": "active",
+                                      },
+                                      "teams": Array [],
+                                    }
+                                  }
+                                  selectedProjects={Array []}
+                                  value={Array []}
+                                >
+                                  <StyledDropdownAutoComplete
+                                    alignMenu="left"
+                                    allowActorToggle={true}
+                                    blendCorner={false}
+                                    closeOnSelect={true}
+                                    emptyHidesInput={true}
+                                    emptyMessage="You have no environments"
+                                    inputProps={
+                                      Object {
+                                        "style": Object {
+                                          "padding": 8,
+                                          "paddingLeft": 14,
+                                        },
+                                      }
+                                    }
+                                    items={Array []}
+                                    maxHeight={500}
+                                    menuProps={
+                                      Object {
+                                        "style": Object {
+                                          "position": "relative",
+                                        },
+                                      }
+                                    }
+                                    noResultsMessage="No environments found"
+                                    onClose={[Function]}
+                                    onSelect={[Function]}
+                                    rootClassName="css-1utm1zz-rootClassName"
+                                    searchPlaceholder="Filter environments"
+                                    virtualizedHeight={44}
+                                    zIndex={1001}
+                                  >
+                                    <DropdownAutoComplete
+                                      alignMenu="left"
+                                      allowActorToggle={true}
+                                      blendCorner={false}
+                                      className="css-qn89t6-StyledDropdownAutoComplete e1gsuvme2"
+                                      closeOnSelect={true}
+                                      emptyHidesInput={true}
+                                      emptyMessage="You have no environments"
+                                      inputProps={
+                                        Object {
+                                          "style": Object {
+                                            "padding": 8,
+                                            "paddingLeft": 14,
+                                          },
+                                        }
+                                      }
+                                      items={Array []}
+                                      maxHeight={500}
+                                      menuProps={
+                                        Object {
+                                          "style": Object {
+                                            "position": "relative",
+                                          },
+                                        }
+                                      }
+                                      noResultsMessage="No environments found"
+                                      onClose={[Function]}
+                                      onSelect={[Function]}
+                                      rootClassName="css-1utm1zz-rootClassName"
+                                      searchPlaceholder="Filter environments"
+                                      virtualizedHeight={44}
+                                      zIndex={1001}
+                                    >
+                                      <DropdownAutoCompleteMenu
+                                        alignMenu="left"
+                                        blendCorner={false}
+                                        className="css-qn89t6-StyledDropdownAutoComplete e1gsuvme2"
+                                        closeOnSelect={true}
+                                        emptyHidesInput={true}
+                                        emptyMessage="You have no environments"
+                                        inputProps={
+                                          Object {
+                                            "style": Object {
+                                              "padding": 8,
+                                              "paddingLeft": 14,
+                                            },
+                                          }
+                                        }
+                                        items={Array []}
+                                        maxHeight={500}
+                                        menuProps={
+                                          Object {
+                                            "style": Object {
+                                              "position": "relative",
+                                            },
+                                          }
+                                        }
+                                        noResultsMessage="No environments found"
+                                        onClose={[Function]}
+                                        onSelect={[Function]}
+                                        rootClassName="css-1utm1zz-rootClassName"
+                                        searchPlaceholder="Filter environments"
+                                        virtualizedHeight={44}
+                                        zIndex={1001}
+                                      >
                                         <AutoComplete
                                           closeOnSelect={true}
                                           disabled={false}
@@ -957,13 +1425,13 @@ exports[`OrganizationUserFeedback renders 1`] = `
                                             onClickOutside={[Function]}
                                           >
                                             <AutoCompleteRoot
-                                              className="css-h5t9nh-rootContainerStyles"
+                                              className="css-1utm1zz-rootClassName"
                                             >
                                               <Component
-                                                className="css-1ppsre-AutoCompleteRoot-rootContainerStyles ejumqxq0"
+                                                className="css-qocd3e-AutoCompleteRoot-rootClassName ejumqxq0"
                                               >
                                                 <div
-                                                  className="css-1ppsre-AutoCompleteRoot-rootContainerStyles ejumqxq0"
+                                                  className="css-qocd3e-AutoCompleteRoot-rootClassName ejumqxq0"
                                                 >
                                                   <Actor
                                                     innerRef={[Function]}
@@ -995,15 +1463,14 @@ exports[`OrganizationUserFeedback renders 1`] = `
                                                       tabIndex={-1}
                                                     >
                                                       <StyledHeaderItem
-                                                        active={false}
-                                                        allowClear={false}
                                                         hasChanges={false}
                                                         hasSelected={false}
                                                         icon={
                                                           <StyledInlineSvg
-                                                            src="icon-project"
+                                                            src="icon-window"
                                                           />
                                                         }
+                                                        innerRef={[Function]}
                                                         isOpen={false}
                                                         onClear={[Function]}
                                                         onClick={[Function]}
@@ -1019,14 +1486,12 @@ exports[`OrganizationUserFeedback renders 1`] = `
                                                         tabIndex={-1}
                                                       >
                                                         <ForwardRef
-                                                          active={false}
-                                                          allowClear={false}
-                                                          className="css-12jjx2u-StyledHeaderItem ewlipse1"
+                                                          className="css-22y332-StyledHeaderItem e1gsuvme0"
                                                           hasChanges={false}
                                                           hasSelected={false}
                                                           icon={
                                                             <StyledInlineSvg
-                                                              src="icon-project"
+                                                              src="icon-window"
                                                             />
                                                           }
                                                           isOpen={false}
@@ -1044,17 +1509,16 @@ exports[`OrganizationUserFeedback renders 1`] = `
                                                           tabIndex={-1}
                                                         >
                                                           <HeaderItem
-                                                            active={false}
-                                                            allowClear={false}
-                                                            className="css-12jjx2u-StyledHeaderItem ewlipse1"
+                                                            allowClear={true}
+                                                            className="css-22y332-StyledHeaderItem e1gsuvme0"
                                                             hasChanges={false}
                                                             hasSelected={false}
                                                             icon={
                                                               <StyledInlineSvg
-                                                                src="icon-project"
+                                                                src="icon-window"
                                                               />
                                                             }
-                                                            innerRef={null}
+                                                            innerRef={[Function]}
                                                             isOpen={false}
                                                             onClear={[Function]}
                                                             onClick={[Function]}
@@ -1070,10 +1534,9 @@ exports[`OrganizationUserFeedback renders 1`] = `
                                                             tabIndex={-1}
                                                           >
                                                             <StyledHeaderItem
-                                                              active={false}
-                                                              className="css-12jjx2u-StyledHeaderItem ewlipse1"
+                                                              className="css-22y332-StyledHeaderItem e1gsuvme0"
                                                               hasSelected={false}
-                                                              innerRef={null}
+                                                              innerRef={[Function]}
                                                               isOpen={false}
                                                               onClick={[Function]}
                                                               onKeyDown={[Function]}
@@ -1087,7 +1550,7 @@ exports[`OrganizationUserFeedback renders 1`] = `
                                                               tabIndex={-1}
                                                             >
                                                               <div
-                                                                className="ewlipse1 css-11wumjj-StyledHeaderItem-StyledHeaderItem enk2k7v0"
+                                                                className="e1gsuvme0 css-1v6igws-StyledHeaderItem-StyledHeaderItem enk2k7v0"
                                                                 onClick={[Function]}
                                                                 onKeyDown={[Function]}
                                                                 onMouseEnter={[Function]}
@@ -1106,20 +1569,20 @@ exports[`OrganizationUserFeedback renders 1`] = `
                                                                     className="css-1g4tz50-IconContainer enk2k7v2"
                                                                   >
                                                                     <StyledInlineSvg
-                                                                      src="icon-project"
+                                                                      src="icon-window"
                                                                     >
                                                                       <InlineSvg
-                                                                        className="css-1ibtmti-StyledInlineSvg ewlipse2"
-                                                                        src="icon-project"
+                                                                        className="css-1ctth4-StyledInlineSvg e1gsuvme1"
+                                                                        src="icon-window"
                                                                       >
                                                                         <StyledSvg
-                                                                          className="css-1ibtmti-StyledInlineSvg ewlipse2"
+                                                                          className="css-1ctth4-StyledInlineSvg e1gsuvme1"
                                                                           height="1em"
                                                                           viewBox={Object {}}
                                                                           width="1em"
                                                                         >
                                                                           <svg
-                                                                            className="ewlipse2 css-1ux8cow-StyledSvg-StyledInlineSvg e2idor0"
+                                                                            className="e1gsuvme1 css-1vh2z4q-StyledSvg-StyledInlineSvg e2idor0"
                                                                             height="1em"
                                                                             viewBox={Object {}}
                                                                             width="1em"
@@ -1138,7 +1601,7 @@ exports[`OrganizationUserFeedback renders 1`] = `
                                                                   <div
                                                                     className="css-1yquznf-Content enk2k7v1"
                                                                   >
-                                                                    All Projects
+                                                                    All Environments
                                                                   </div>
                                                                 </Content>
                                                                 <StyledChevron
@@ -1187,75 +1650,28 @@ exports[`OrganizationUserFeedback renders 1`] = `
                                         </AutoComplete>
                                       </DropdownAutoCompleteMenu>
                                     </DropdownAutoComplete>
-                                  </ProjectSelector>
-                                </withProjects(ProjectSelector)>
-                              </StyledProjectSelector>
-                            </MultipleProjectSelector>
-                          </div>
-                        </HeaderItemPosition>
-                        <HeaderSeparator>
-                          <Base
-                            className="css-zkrb0n-HeaderSeparator elp5f3l0"
-                          >
-                            <div
+                                  </StyledDropdownAutoComplete>
+                                </MultipleEnvironmentSelector>
+                              </withApi(MultipleEnvironmentSelector)>
+                            </div>
+                          </HeaderItemPosition>
+                          <HeaderSeparator>
+                            <Base
                               className="css-zkrb0n-HeaderSeparator elp5f3l0"
-                              is={null}
-                            />
-                          </Base>
-                        </HeaderSeparator>
-                        <HeaderItemPosition>
-                          <div
-                            className="css-5udiwc-HeaderItemPosition e165b9e40"
-                          >
-                            <withApi(MultipleEnvironmentSelector)
-                              onChange={[Function]}
-                              onUpdate={[Function]}
-                              organization={
-                                Object {
-                                  "access": Array [
-                                    "org:read",
-                                    "org:write",
-                                    "org:admin",
-                                    "org:integrations",
-                                    "project:read",
-                                    "project:write",
-                                    "project:admin",
-                                    "team:read",
-                                    "team:write",
-                                    "team:admin",
-                                  ],
-                                  "features": Array [
-                                    "sentry10",
-                                  ],
-                                  "id": "3",
-                                  "name": "Organization Name",
-                                  "onboardingTasks": Array [],
-                                  "projects": Array [
-                                    Object {
-                                      "environments": Array [],
-                                      "hasAccess": true,
-                                      "id": "2",
-                                      "isBookmarked": false,
-                                      "isMember": true,
-                                      "name": "Project Name",
-                                      "slug": "project-slug",
-                                      "teams": Array [],
-                                    },
-                                  ],
-                                  "scrapeJavaScript": true,
-                                  "slug": "org-slug",
-                                  "status": Object {
-                                    "id": "active",
-                                    "name": "active",
-                                  },
-                                  "teams": Array [],
-                                }
-                              }
-                              selectedProjects={Array []}
-                              value={Array []}
                             >
-                              <MultipleEnvironmentSelector
-                                api={Client {}}
+                              <div
+                                className="css-zkrb0n-HeaderSeparator elp5f3l0"
+                                is={null}
+                              />
+                            </Base>
+                          </HeaderSeparator>
+                          <HeaderItemPosition>
+                            <div
+                              className="css-5udiwc-HeaderItemPosition e165b9e40"
+                            >
+                              <TimeRangeSelector
+                                end={null}
+                                key="period:14d-start:null-end:null-utc:true"
                                 onChange={[Function]}
                                 onUpdate={[Function]}
                                 organization={
@@ -1299,460 +1715,25 @@ exports[`OrganizationUserFeedback renders 1`] = `
                                     "teams": Array [],
                                   }
                                 }
-                                selectedProjects={Array []}
-                                value={Array []}
+                                relative="14d"
+                                showAbsolute={true}
+                                showRelative={true}
+                                start={null}
+                                utc={true}
                               >
-                                <StyledDropdownAutoComplete
-                                  alignMenu="left"
-                                  allowActorToggle={true}
-                                  blendCorner={false}
-                                  closeOnSelect={true}
-                                  emptyHidesInput={true}
-                                  emptyMessage="You have no environments"
-                                  inputProps={
-                                    Object {
-                                      "style": Object {
-                                        "padding": 8,
-                                        "paddingLeft": 14,
-                                      },
-                                    }
-                                  }
-                                  items={Array []}
-                                  maxHeight={500}
-                                  menuProps={
-                                    Object {
-                                      "style": Object {
-                                        "position": "relative",
-                                      },
-                                    }
-                                  }
-                                  noResultsMessage="No environments found"
+                                <DropdownMenu
+                                  closeOnEscape={true}
+                                  isOpen={false}
+                                  keepMenuOpen={true}
                                   onClose={[Function]}
-                                  onSelect={[Function]}
-                                  rootClassName="css-1utm1zz-rootClassName"
-                                  searchPlaceholder="Filter environments"
-                                  virtualizedHeight={44}
-                                  zIndex={1001}
+                                  onOpen={[Function]}
                                 >
-                                  <DropdownAutoComplete
-                                    alignMenu="left"
-                                    allowActorToggle={true}
-                                    blendCorner={false}
-                                    className="css-qn89t6-StyledDropdownAutoComplete e1gsuvme2"
-                                    closeOnSelect={true}
-                                    emptyHidesInput={true}
-                                    emptyMessage="You have no environments"
-                                    inputProps={
-                                      Object {
-                                        "style": Object {
-                                          "padding": 8,
-                                          "paddingLeft": 14,
-                                        },
-                                      }
-                                    }
-                                    items={Array []}
-                                    maxHeight={500}
-                                    menuProps={
-                                      Object {
-                                        "style": Object {
-                                          "position": "relative",
-                                        },
-                                      }
-                                    }
-                                    noResultsMessage="No environments found"
-                                    onClose={[Function]}
-                                    onSelect={[Function]}
-                                    rootClassName="css-1utm1zz-rootClassName"
-                                    searchPlaceholder="Filter environments"
-                                    virtualizedHeight={44}
-                                    zIndex={1001}
-                                  >
-                                    <DropdownAutoCompleteMenu
-                                      alignMenu="left"
-                                      blendCorner={false}
-                                      className="css-qn89t6-StyledDropdownAutoComplete e1gsuvme2"
-                                      closeOnSelect={true}
-                                      emptyHidesInput={true}
-                                      emptyMessage="You have no environments"
-                                      inputProps={
-                                        Object {
-                                          "style": Object {
-                                            "padding": 8,
-                                            "paddingLeft": 14,
-                                          },
-                                        }
-                                      }
-                                      items={Array []}
-                                      maxHeight={500}
-                                      menuProps={
-                                        Object {
-                                          "style": Object {
-                                            "position": "relative",
-                                          },
-                                        }
-                                      }
-                                      noResultsMessage="No environments found"
-                                      onClose={[Function]}
-                                      onSelect={[Function]}
-                                      rootClassName="css-1utm1zz-rootClassName"
-                                      searchPlaceholder="Filter environments"
-                                      virtualizedHeight={44}
-                                      zIndex={1001}
+                                  <TimeRangeRoot>
+                                    <div
+                                      className="css-1lz3nth-TimeRangeRoot e1u8612l0"
                                     >
-                                      <AutoComplete
-                                        closeOnSelect={true}
-                                        disabled={false}
-                                        inputIsActor={false}
-                                        itemToString={[Function]}
-                                        onClose={[Function]}
-                                        onSelect={[Function]}
-                                        resetInputOnClose={true}
-                                        shouldSelectWithEnter={true}
-                                        shouldSelectWithTab={false}
-                                        virtualizedHeight={44}
-                                        zIndex={1001}
-                                      >
-                                        <DropdownMenu
-                                          closeOnEscape={true}
-                                          isOpen={false}
-                                          keepMenuOpen={false}
-                                          onClickOutside={[Function]}
-                                        >
-                                          <AutoCompleteRoot
-                                            className="css-1utm1zz-rootClassName"
-                                          >
-                                            <Component
-                                              className="css-qocd3e-AutoCompleteRoot-rootClassName ejumqxq0"
-                                            >
-                                              <div
-                                                className="css-qocd3e-AutoCompleteRoot-rootClassName ejumqxq0"
-                                              >
-                                                <Actor
-                                                  innerRef={[Function]}
-                                                  isOpen={false}
-                                                  onClick={[Function]}
-                                                  onKeyDown={[Function]}
-                                                  onMouseEnter={[Function]}
-                                                  onMouseLeave={[Function]}
-                                                  role="button"
-                                                  style={
-                                                    Object {
-                                                      "outline": "none",
-                                                    }
-                                                  }
-                                                  tabIndex={-1}
-                                                >
-                                                  <div
-                                                    className="css-17fe80j-Actor e53us8t0"
-                                                    onClick={[Function]}
-                                                    onKeyDown={[Function]}
-                                                    onMouseEnter={[Function]}
-                                                    onMouseLeave={[Function]}
-                                                    role="button"
-                                                    style={
-                                                      Object {
-                                                        "outline": "none",
-                                                      }
-                                                    }
-                                                    tabIndex={-1}
-                                                  >
-                                                    <StyledHeaderItem
-                                                      hasChanges={false}
-                                                      hasSelected={false}
-                                                      icon={
-                                                        <StyledInlineSvg
-                                                          src="icon-window"
-                                                        />
-                                                      }
-                                                      innerRef={[Function]}
-                                                      isOpen={false}
-                                                      onClear={[Function]}
-                                                      onClick={[Function]}
-                                                      onKeyDown={[Function]}
-                                                      onMouseEnter={[Function]}
-                                                      onMouseLeave={[Function]}
-                                                      onSubmit={[Function]}
-                                                      style={
-                                                        Object {
-                                                          "outline": "none",
-                                                        }
-                                                      }
-                                                      tabIndex={-1}
-                                                    >
-                                                      <ForwardRef
-                                                        className="css-22y332-StyledHeaderItem e1gsuvme0"
-                                                        hasChanges={false}
-                                                        hasSelected={false}
-                                                        icon={
-                                                          <StyledInlineSvg
-                                                            src="icon-window"
-                                                          />
-                                                        }
-                                                        isOpen={false}
-                                                        onClear={[Function]}
-                                                        onClick={[Function]}
-                                                        onKeyDown={[Function]}
-                                                        onMouseEnter={[Function]}
-                                                        onMouseLeave={[Function]}
-                                                        onSubmit={[Function]}
-                                                        style={
-                                                          Object {
-                                                            "outline": "none",
-                                                          }
-                                                        }
-                                                        tabIndex={-1}
-                                                      >
-                                                        <HeaderItem
-                                                          allowClear={true}
-                                                          className="css-22y332-StyledHeaderItem e1gsuvme0"
-                                                          hasChanges={false}
-                                                          hasSelected={false}
-                                                          icon={
-                                                            <StyledInlineSvg
-                                                              src="icon-window"
-                                                            />
-                                                          }
-                                                          innerRef={[Function]}
-                                                          isOpen={false}
-                                                          onClear={[Function]}
-                                                          onClick={[Function]}
-                                                          onKeyDown={[Function]}
-                                                          onMouseEnter={[Function]}
-                                                          onMouseLeave={[Function]}
-                                                          onSubmit={[Function]}
-                                                          style={
-                                                            Object {
-                                                              "outline": "none",
-                                                            }
-                                                          }
-                                                          tabIndex={-1}
-                                                        >
-                                                          <StyledHeaderItem
-                                                            className="css-22y332-StyledHeaderItem e1gsuvme0"
-                                                            hasSelected={false}
-                                                            innerRef={[Function]}
-                                                            isOpen={false}
-                                                            onClick={[Function]}
-                                                            onKeyDown={[Function]}
-                                                            onMouseEnter={[Function]}
-                                                            onMouseLeave={[Function]}
-                                                            style={
-                                                              Object {
-                                                                "outline": "none",
-                                                              }
-                                                            }
-                                                            tabIndex={-1}
-                                                          >
-                                                            <div
-                                                              className="e1gsuvme0 css-1v6igws-StyledHeaderItem-StyledHeaderItem enk2k7v0"
-                                                              onClick={[Function]}
-                                                              onKeyDown={[Function]}
-                                                              onMouseEnter={[Function]}
-                                                              onMouseLeave={[Function]}
-                                                              style={
-                                                                Object {
-                                                                  "outline": "none",
-                                                                }
-                                                              }
-                                                              tabIndex={-1}
-                                                            >
-                                                              <IconContainer
-                                                                hasSelected={false}
-                                                              >
-                                                                <span
-                                                                  className="css-1g4tz50-IconContainer enk2k7v2"
-                                                                >
-                                                                  <StyledInlineSvg
-                                                                    src="icon-window"
-                                                                  >
-                                                                    <InlineSvg
-                                                                      className="css-1ctth4-StyledInlineSvg e1gsuvme1"
-                                                                      src="icon-window"
-                                                                    >
-                                                                      <StyledSvg
-                                                                        className="css-1ctth4-StyledInlineSvg e1gsuvme1"
-                                                                        height="1em"
-                                                                        viewBox={Object {}}
-                                                                        width="1em"
-                                                                      >
-                                                                        <svg
-                                                                          className="e1gsuvme1 css-1vh2z4q-StyledSvg-StyledInlineSvg e2idor0"
-                                                                          height="1em"
-                                                                          viewBox={Object {}}
-                                                                          width="1em"
-                                                                        >
-                                                                          <use
-                                                                            href="#test"
-                                                                            xlinkHref="#test"
-                                                                          />
-                                                                        </svg>
-                                                                      </StyledSvg>
-                                                                    </InlineSvg>
-                                                                  </StyledInlineSvg>
-                                                                </span>
-                                                              </IconContainer>
-                                                              <Content>
-                                                                <div
-                                                                  className="css-1yquznf-Content enk2k7v1"
-                                                                >
-                                                                  All Environments
-                                                                </div>
-                                                              </Content>
-                                                              <StyledChevron
-                                                                hasChanges={false}
-                                                                isOpen={false}
-                                                                onClick={[Function]}
-                                                              >
-                                                                <div
-                                                                  className="css-ft4nwy-StyledChevron enk2k7v4"
-                                                                  onClick={[Function]}
-                                                                >
-                                                                  <InlineSvg
-                                                                    src="icon-chevron-down"
-                                                                  >
-                                                                    <StyledSvg
-                                                                      height="1em"
-                                                                      viewBox={Object {}}
-                                                                      width="1em"
-                                                                    >
-                                                                      <svg
-                                                                        className="css-ryh69w-StyledSvg e2idor0"
-                                                                        height="1em"
-                                                                        viewBox={Object {}}
-                                                                        width="1em"
-                                                                      >
-                                                                        <use
-                                                                          href="#test"
-                                                                          xlinkHref="#test"
-                                                                        />
-                                                                      </svg>
-                                                                    </StyledSvg>
-                                                                  </InlineSvg>
-                                                                </div>
-                                                              </StyledChevron>
-                                                            </div>
-                                                          </StyledHeaderItem>
-                                                        </HeaderItem>
-                                                      </ForwardRef>
-                                                    </StyledHeaderItem>
-                                                  </div>
-                                                </Actor>
-                                              </div>
-                                            </Component>
-                                          </AutoCompleteRoot>
-                                        </DropdownMenu>
-                                      </AutoComplete>
-                                    </DropdownAutoCompleteMenu>
-                                  </DropdownAutoComplete>
-                                </StyledDropdownAutoComplete>
-                              </MultipleEnvironmentSelector>
-                            </withApi(MultipleEnvironmentSelector)>
-                          </div>
-                        </HeaderItemPosition>
-                        <HeaderSeparator>
-                          <Base
-                            className="css-zkrb0n-HeaderSeparator elp5f3l0"
-                          >
-                            <div
-                              className="css-zkrb0n-HeaderSeparator elp5f3l0"
-                              is={null}
-                            />
-                          </Base>
-                        </HeaderSeparator>
-                        <HeaderItemPosition>
-                          <div
-                            className="css-5udiwc-HeaderItemPosition e165b9e40"
-                          >
-                            <TimeRangeSelector
-                              end={null}
-                              key="period:14d-start:null-end:null-utc:true"
-                              onChange={[Function]}
-                              onUpdate={[Function]}
-                              organization={
-                                Object {
-                                  "access": Array [
-                                    "org:read",
-                                    "org:write",
-                                    "org:admin",
-                                    "org:integrations",
-                                    "project:read",
-                                    "project:write",
-                                    "project:admin",
-                                    "team:read",
-                                    "team:write",
-                                    "team:admin",
-                                  ],
-                                  "features": Array [
-                                    "sentry10",
-                                  ],
-                                  "id": "3",
-                                  "name": "Organization Name",
-                                  "onboardingTasks": Array [],
-                                  "projects": Array [
-                                    Object {
-                                      "environments": Array [],
-                                      "hasAccess": true,
-                                      "id": "2",
-                                      "isBookmarked": false,
-                                      "isMember": true,
-                                      "name": "Project Name",
-                                      "slug": "project-slug",
-                                      "teams": Array [],
-                                    },
-                                  ],
-                                  "scrapeJavaScript": true,
-                                  "slug": "org-slug",
-                                  "status": Object {
-                                    "id": "active",
-                                    "name": "active",
-                                  },
-                                  "teams": Array [],
-                                }
-                              }
-                              relative="14d"
-                              showAbsolute={true}
-                              showRelative={true}
-                              start={null}
-                              utc={true}
-                            >
-                              <DropdownMenu
-                                closeOnEscape={true}
-                                isOpen={false}
-                                keepMenuOpen={true}
-                                onClose={[Function]}
-                                onOpen={[Function]}
-                              >
-                                <TimeRangeRoot>
-                                  <div
-                                    className="css-1lz3nth-TimeRangeRoot e1u8612l0"
-                                  >
-                                    <StyledHeaderItem
-                                      allowClear={true}
-                                      hasChanges={false}
-                                      hasSelected={false}
-                                      icon={
-                                        <StyledInlineSvg
-                                          src="icon-calendar"
-                                        />
-                                      }
-                                      innerRef={[Function]}
-                                      isOpen={false}
-                                      onClear={[Function]}
-                                      onClick={[Function]}
-                                      onKeyDown={[Function]}
-                                      onMouseEnter={[Function]}
-                                      onMouseLeave={[Function]}
-                                      onSubmit={[Function]}
-                                      style={
-                                        Object {
-                                          "outline": "none",
-                                        }
-                                      }
-                                      tabIndex={-1}
-                                    >
-                                      <ForwardRef
+                                      <StyledHeaderItem
                                         allowClear={true}
-                                        className="css-22y332-StyledHeaderItem e1u8612l1"
                                         hasChanges={false}
                                         hasSelected={false}
                                         icon={
@@ -1760,6 +1741,7 @@ exports[`OrganizationUserFeedback renders 1`] = `
                                             src="icon-calendar"
                                           />
                                         }
+                                        innerRef={[Function]}
                                         isOpen={false}
                                         onClear={[Function]}
                                         onClick={[Function]}
@@ -1774,7 +1756,7 @@ exports[`OrganizationUserFeedback renders 1`] = `
                                         }
                                         tabIndex={-1}
                                       >
-                                        <HeaderItem
+                                        <ForwardRef
                                           allowClear={true}
                                           className="css-22y332-StyledHeaderItem e1u8612l1"
                                           hasChanges={false}
@@ -1784,7 +1766,6 @@ exports[`OrganizationUserFeedback renders 1`] = `
                                               src="icon-calendar"
                                             />
                                           }
-                                          innerRef={[Function]}
                                           isOpen={false}
                                           onClear={[Function]}
                                           onClick={[Function]}
@@ -1799,15 +1780,24 @@ exports[`OrganizationUserFeedback renders 1`] = `
                                           }
                                           tabIndex={-1}
                                         >
-                                          <StyledHeaderItem
+                                          <HeaderItem
+                                            allowClear={true}
                                             className="css-22y332-StyledHeaderItem e1u8612l1"
+                                            hasChanges={false}
                                             hasSelected={false}
+                                            icon={
+                                              <StyledInlineSvg
+                                                src="icon-calendar"
+                                              />
+                                            }
                                             innerRef={[Function]}
                                             isOpen={false}
+                                            onClear={[Function]}
                                             onClick={[Function]}
                                             onKeyDown={[Function]}
                                             onMouseEnter={[Function]}
                                             onMouseLeave={[Function]}
+                                            onSubmit={[Function]}
                                             style={
                                               Object {
                                                 "outline": "none",
@@ -1815,8 +1805,11 @@ exports[`OrganizationUserFeedback renders 1`] = `
                                             }
                                             tabIndex={-1}
                                           >
-                                            <div
-                                              className="e1u8612l1 css-1v6igws-StyledHeaderItem-StyledHeaderItem enk2k7v0"
+                                            <StyledHeaderItem
+                                              className="css-22y332-StyledHeaderItem e1u8612l1"
+                                              hasSelected={false}
+                                              innerRef={[Function]}
+                                              isOpen={false}
                                               onClick={[Function]}
                                               onKeyDown={[Function]}
                                               onMouseEnter={[Function]}
@@ -1828,27 +1821,80 @@ exports[`OrganizationUserFeedback renders 1`] = `
                                               }
                                               tabIndex={-1}
                                             >
-                                              <IconContainer
-                                                hasSelected={false}
+                                              <div
+                                                className="e1u8612l1 css-1v6igws-StyledHeaderItem-StyledHeaderItem enk2k7v0"
+                                                onClick={[Function]}
+                                                onKeyDown={[Function]}
+                                                onMouseEnter={[Function]}
+                                                onMouseLeave={[Function]}
+                                                style={
+                                                  Object {
+                                                    "outline": "none",
+                                                  }
+                                                }
+                                                tabIndex={-1}
                                               >
-                                                <span
-                                                  className="css-1g4tz50-IconContainer enk2k7v2"
+                                                <IconContainer
+                                                  hasSelected={false}
                                                 >
-                                                  <StyledInlineSvg
-                                                    src="icon-calendar"
+                                                  <span
+                                                    className="css-1g4tz50-IconContainer enk2k7v2"
                                                   >
-                                                    <InlineSvg
-                                                      className="css-1ctth4-StyledInlineSvg e1u8612l2"
+                                                    <StyledInlineSvg
                                                       src="icon-calendar"
                                                     >
-                                                      <StyledSvg
+                                                      <InlineSvg
                                                         className="css-1ctth4-StyledInlineSvg e1u8612l2"
+                                                        src="icon-calendar"
+                                                      >
+                                                        <StyledSvg
+                                                          className="css-1ctth4-StyledInlineSvg e1u8612l2"
+                                                          height="1em"
+                                                          viewBox={Object {}}
+                                                          width="1em"
+                                                        >
+                                                          <svg
+                                                            className="e1u8612l2 css-1vh2z4q-StyledSvg-StyledInlineSvg e2idor0"
+                                                            height="1em"
+                                                            viewBox={Object {}}
+                                                            width="1em"
+                                                          >
+                                                            <use
+                                                              href="#test"
+                                                              xlinkHref="#test"
+                                                            />
+                                                          </svg>
+                                                        </StyledSvg>
+                                                      </InlineSvg>
+                                                    </StyledInlineSvg>
+                                                  </span>
+                                                </IconContainer>
+                                                <Content>
+                                                  <div
+                                                    className="css-1yquznf-Content enk2k7v1"
+                                                  >
+                                                    Last 14 days
+                                                  </div>
+                                                </Content>
+                                                <StyledChevron
+                                                  hasChanges={false}
+                                                  isOpen={false}
+                                                  onClick={[Function]}
+                                                >
+                                                  <div
+                                                    className="css-ft4nwy-StyledChevron enk2k7v4"
+                                                    onClick={[Function]}
+                                                  >
+                                                    <InlineSvg
+                                                      src="icon-chevron-down"
+                                                    >
+                                                      <StyledSvg
                                                         height="1em"
                                                         viewBox={Object {}}
                                                         width="1em"
                                                       >
                                                         <svg
-                                                          className="e1u8612l2 css-1vh2z4q-StyledSvg-StyledInlineSvg e2idor0"
+                                                          className="css-ryh69w-StyledSvg e2idor0"
                                                           height="1em"
                                                           viewBox={Object {}}
                                                           width="1em"
@@ -1860,65 +1906,26 @@ exports[`OrganizationUserFeedback renders 1`] = `
                                                         </svg>
                                                       </StyledSvg>
                                                     </InlineSvg>
-                                                  </StyledInlineSvg>
-                                                </span>
-                                              </IconContainer>
-                                              <Content>
-                                                <div
-                                                  className="css-1yquznf-Content enk2k7v1"
-                                                >
-                                                  Last 14 days
-                                                </div>
-                                              </Content>
-                                              <StyledChevron
-                                                hasChanges={false}
-                                                isOpen={false}
-                                                onClick={[Function]}
-                                              >
-                                                <div
-                                                  className="css-ft4nwy-StyledChevron enk2k7v4"
-                                                  onClick={[Function]}
-                                                >
-                                                  <InlineSvg
-                                                    src="icon-chevron-down"
-                                                  >
-                                                    <StyledSvg
-                                                      height="1em"
-                                                      viewBox={Object {}}
-                                                      width="1em"
-                                                    >
-                                                      <svg
-                                                        className="css-ryh69w-StyledSvg e2idor0"
-                                                        height="1em"
-                                                        viewBox={Object {}}
-                                                        width="1em"
-                                                      >
-                                                        <use
-                                                          href="#test"
-                                                          xlinkHref="#test"
-                                                        />
-                                                      </svg>
-                                                    </StyledSvg>
-                                                  </InlineSvg>
-                                                </div>
-                                              </StyledChevron>
-                                            </div>
-                                          </StyledHeaderItem>
-                                        </HeaderItem>
-                                      </ForwardRef>
-                                    </StyledHeaderItem>
-                                  </div>
-                                </TimeRangeRoot>
-                              </DropdownMenu>
-                            </TimeRangeSelector>
-                          </div>
-                        </HeaderItemPosition>
-                      </div>
-                    </Base>
-                  </Header>
-                </GlobalSelectionHeader>
-              </withGlobalSelection(GlobalSelectionHeader)>
-            </withRouter(withGlobalSelection(GlobalSelectionHeader))>
+                                                  </div>
+                                                </StyledChevron>
+                                              </div>
+                                            </StyledHeaderItem>
+                                          </HeaderItem>
+                                        </ForwardRef>
+                                      </StyledHeaderItem>
+                                    </div>
+                                  </TimeRangeRoot>
+                                </DropdownMenu>
+                              </TimeRangeSelector>
+                            </div>
+                          </HeaderItemPosition>
+                        </div>
+                      </Base>
+                    </Header>
+                  </GlobalSelectionHeader>
+                </withGlobalSelection(GlobalSelectionHeader)>
+              </withRouter(withGlobalSelection(GlobalSelectionHeader))>
+            </withProjects(withRouter(withGlobalSelection(GlobalSelectionHeader)))>
             <PageContent>
               <div
                 className="css-16fe6ul-PageContent e6lvex70"

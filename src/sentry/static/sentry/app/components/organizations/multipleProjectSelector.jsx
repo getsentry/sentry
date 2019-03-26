@@ -147,7 +147,7 @@ export default class MultipleProjectSelector extends React.PureComponent {
         {...this.props}
         multi={multi}
         selectedProjects={selected}
-        projects={projects}
+        multiProjects={projects}
         onSelect={this.handleQuickSelect}
         onClose={this.handleClose}
         onMultiSelect={this.handleMultiSelect}
