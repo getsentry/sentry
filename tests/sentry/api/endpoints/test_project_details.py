@@ -6,7 +6,7 @@ import six
 from django.core.urlresolvers import reverse
 
 from sentry.constants import RESERVED_PROJECT_SLUGS
-from sentry.models import OrganizationMember, Project, EnvironmentProject, ProjectOwnership, ProjectBookmark, ProjectStatus, ProjectTeam, Rule, UserOption, DeletedProject, ProjectRedirect, AuditLogEntry, AuditLogEntryEvent
+from sentry.models import OrganizationMember, OrganizationOption, Project, EnvironmentProject, ProjectOwnership, ProjectBookmark, ProjectStatus, ProjectTeam, Rule, UserOption, DeletedProject, ProjectRedirect, AuditLogEntry, AuditLogEntryEvent
 from sentry.testutils import APITestCase
 
 
@@ -839,13 +839,15 @@ class CopyProjectSettingsTest(APITestCase):
 
 
 class ProjectDeleteTest(APITestCase):
+    @mock.patch('sentry.db.mixin.uuid4')
     @mock.patch('sentry.api.endpoints.project_details.uuid4')
     @mock.patch('sentry.api.endpoints.project_details.delete_project')
-    def test_simple(self, mock_delete_project, mock_uuid4):
+    def test_simple(self, mock_delete_project, mock_uuid4_project, mock_uuid4_mixin):
         class uuid(object):
             hex = 'abc123'
 
-        mock_uuid4.return_value = uuid
+        mock_uuid4_mixin.return_value = uuid
+        mock_uuid4_project.return_value = uuid
         project = self.create_project()
 
         self.login_as(user=self.user)
@@ -871,7 +873,13 @@ class ProjectDeleteTest(APITestCase):
             countdown=3600,
         )
 
-        assert Project.objects.get(id=project.id).status == ProjectStatus.PENDING_DELETION
+        deleted_project = Project.objects.get(id=project.id)
+        assert deleted_project.status == ProjectStatus.PENDING_DELETION
+        assert deleted_project.slug == 'abc123'
+        assert OrganizationOption.objects.filter(
+            organization_id=deleted_project.organization_id,
+            key=deleted_project.build_pending_deletion_key(),
+        ).exists()
         deleted_project = DeletedProject.objects.get(slug=project.slug)
         self.assert_valid_deleted_log(deleted_project, project)
 
