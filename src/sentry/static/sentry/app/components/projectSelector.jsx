@@ -87,7 +87,9 @@ class ProjectSelector extends React.Component {
   getProjects() {
     const {organization, projects, multiProjects} = this.props;
 
-    if (multiProjects) return multiProjects;
+    if (multiProjects) {
+      return multiProjects;
+    }
 
     const {isSuperuser} = ConfigStore.get('user');
     const unfilteredProjects = projects || organization.projects;
