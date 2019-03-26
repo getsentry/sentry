@@ -92,10 +92,6 @@ class IssueDiff extends React.Component {
   }
 
   getEndpoint(issueId, eventId) {
-    if (eventId !== 'latest') {
-      return `/events/${eventId}/`;
-    }
-
     return `/issues/${issueId}/events/${eventId}/`;
   }
 
