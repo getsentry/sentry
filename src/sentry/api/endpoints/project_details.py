@@ -625,4 +625,6 @@ class ProjectDetailsEndpoint(ProjectEndpoint):
                 }
             )
 
+            project.rename_on_pending_deletion()
+
         return Response(status=204)

@@ -17,6 +17,7 @@ from datetime import datetime
 from bitfield import BitField
 from django.conf import settings
 from django.db import IntegrityError, models, transaction
+from django.db.models.signals import pre_delete
 from django.utils import timezone
 from django.utils.translation import ugettext_lazy as _
 from django.utils.http import urlencode
@@ -24,6 +25,7 @@ from uuid import uuid1
 
 from sentry.app import locks
 from sentry.constants import ObjectStatus, RESERVED_PROJECT_SLUGS
+from sentry.db.mixin import PendingDeletionMixin, delete_pending_deletion_option
 from sentry.db.models import (
     BaseManager, BoundedPositiveIntegerField, FlexibleForeignKey, Model, sane_repr
 )
@@ -81,7 +83,7 @@ class ProjectManager(BaseManager):
         return sorted(project_list, key=lambda x: x.name.lower())
 
 
-class Project(Model):
+class Project(Model, PendingDeletionMixin):
     """
     Projects are permission based namespaces which generally
     are the top level entry point for all data.
@@ -125,6 +127,8 @@ class Project(Model):
         unique_together = (('organization', 'slug'),)
 
     __repr__ = sane_repr('team_id', 'name', 'slug')
+
+    _rename_fields_on_pending_delete = frozenset(['slug'])
 
     def __unicode__(self):
         return u'%s (%s)' % (self.name, self.slug)
@@ -458,3 +462,6 @@ class Project(Model):
             )
             return False
         return True
+
+
+pre_delete.connect(delete_pending_deletion_option, sender=Project, weak=False)
