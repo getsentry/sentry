@@ -11,6 +11,7 @@ from django.core.urlresolvers import reverse
 from requests.exceptions import RequestException
 
 from sentry import options
+from sentry.utils import metrics
 from sentry.auth.system import get_system_token
 from sentry.net.http import Session
 from sentry.tasks.store import SymbolicatorRetry
@@ -32,12 +33,13 @@ def run_symbolicator(stacktraces, modules, project, arch, signal, request_id=Non
     )
 
     url = '%s/symbolicate' % settings.SENTRY_SYMBOLICATOR_URL
+    project_id = six.text_type(project.id)
 
     request = {
         'meta': {
             'signal': signal,
             'arch': arch or 'unknown',
-            'scope': six.text_type(project.id),
+            'scope': project_id,
         },
         'sources': [
             {
@@ -71,9 +73,18 @@ def run_symbolicator(stacktraces, modules, project, arch, signal, request_id=Non
     with sess:
         while 1:
             try:
-                rv = sess.post(url, json=request)
+                rv = sess.post(
+                    url,
+                    json=request,
+                    headers={
+                        "X-Sentry-Project-Id": project_id
+                    }
+                )
                 rv.raise_for_status()
                 json = rv.json()
+                metrics.incr('events.symbolicator.status.%s' % json['status'], tags={
+                    'project_id': project_id
+                })
                 if json['status'] == 'pending':
                     raise SymbolicatorRetry(retry_after=json['retry_after'])
                 elif json['status'] == 'completed':

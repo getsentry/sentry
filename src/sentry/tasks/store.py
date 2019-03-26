@@ -213,9 +213,6 @@ def _do_process_event(cache_key, start_time, event_id, process_task,
         if (time() - start_time) > 3600:
             raise RuntimeError('Event spent one hour in processing')
 
-        metrics.incr('events.symbolicator-retry', tags={
-        })
-
         retry_process_event.apply_async(
             args=(),
             kwargs={
