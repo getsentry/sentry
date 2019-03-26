@@ -6,7 +6,7 @@ from sentry.api.base import DocSection
 from sentry.api.bases.organization import OrganizationReleasesBaseEndpoint
 from sentry.api.exceptions import InvalidRepository, ResourceDoesNotExist
 from sentry.api.serializers import serialize
-from sentry.api.serializers.rest_framework import OrganizationReleaseSerializer
+from sentry.api.serializers.rest_framework import ListField, ReleaseSerializer, ReleaseHeadCommitSerializer, ReleaseHeadCommitSerializerDeprecated
 from sentry.models import Activity, Group, Release, ReleaseFile
 from sentry.utils.apidocs import scenario, attach_scenarios
 
@@ -31,6 +31,19 @@ def update_organization_release_scenario(runner):
             'url': 'https://vcshub.invalid/user/project/refs/deadbeef1337',
             'ref': 'deadbeef1337'
         }
+    )
+
+
+class OrganizationReleaseSerializer(ReleaseSerializer):
+    headCommits = ListField(
+        child=ReleaseHeadCommitSerializerDeprecated(),
+        required=False,
+        allow_null=False
+    )
+    refs = ListField(
+        child=ReleaseHeadCommitSerializer(),
+        required=False,
+        allow_null=False,
     )
 
 

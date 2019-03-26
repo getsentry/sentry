@@ -11,7 +11,7 @@ from sentry.api.exceptions import InvalidRepository
 from sentry.api.paginator import OffsetPaginator
 from sentry.api.serializers import serialize
 from sentry.api.serializers.rest_framework import (
-    OrganizationReleaseSerializer, ListField
+    ReleaseWithVersionSerializer, ListField
 )
 from sentry.models import Activity, Release
 from sentry.signals import release_created
@@ -63,7 +63,7 @@ def list_org_releases_scenario(runner):
     runner.request(method='GET', path='/organizations/%s/releases/' % (runner.org.slug, ))
 
 
-class ReleaseSerializerWithProjects(OrganizationReleaseSerializer):
+class ReleaseSerializerWithProjects(ReleaseWithVersionSerializer):
     projects = ListField()
 
 

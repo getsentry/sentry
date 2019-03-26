@@ -2,13 +2,11 @@ from __future__ import absolute_import
 
 from django.db import IntegrityError, transaction
 
-from rest_framework import serializers
 from rest_framework.response import Response
 
 from sentry.api.base import EnvironmentMixin
 from sentry.api.bases.project import ProjectEndpoint, ProjectReleasePermission
 from sentry.api.paginator import OffsetPaginator
-from sentry.api.fields.user import UserField
 from sentry.api.serializers import serialize
 from sentry.api.serializers.rest_framework import ReleaseSerializer
 from sentry.models import (
@@ -17,19 +15,7 @@ from sentry.models import (
     Release,
 )
 from sentry.plugins.interfaces.releasehook import ReleaseHook
-from sentry.constants import VERSION_LENGTH
 from sentry.signals import release_created
-
-
-class ProjectReleaseSerializer(ReleaseSerializer):
-    version = serializers.CharField(max_length=VERSION_LENGTH, required=True)
-    owner = UserField(required=False)
-
-    def validate_version(self, attrs, source):
-        value = attrs[source]
-        if not Release.is_valid_version(value) or self.check_release_name(value):
-            raise serializers.ValidationError('Invalid value for release')
-        return attrs
 
 
 class ProjectReleasesEndpoint(ProjectEndpoint, EnvironmentMixin):
@@ -118,7 +104,7 @@ class ProjectReleasesEndpoint(ProjectEndpoint, EnvironmentMixin):
                                       the current time is assumed.
         :auth: required
         """
-        serializer = ProjectReleaseSerializer(data=request.DATA)
+        serializer = ReleaseSerializer(data=request.DATA)
 
         if serializer.is_valid():
             result = serializer.object

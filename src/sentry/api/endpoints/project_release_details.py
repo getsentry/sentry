@@ -5,7 +5,7 @@ from rest_framework.response import Response
 from sentry.api.bases.project import ProjectEndpoint, ProjectReleasePermission
 from sentry.api.exceptions import ResourceDoesNotExist
 from sentry.api.serializers import serialize
-from sentry.api.serializers.rest_framework import ReleaseSerializer
+from sentry.api.serializers.rest_framework import ReleaseWithVersionSerializer
 
 from sentry.models import Activity, Group, Release, ReleaseFile
 from sentry.plugins.interfaces.releasehook import ReleaseHook
@@ -74,7 +74,7 @@ class ProjectReleaseDetailsEndpoint(ProjectEndpoint):
         except Release.DoesNotExist:
             raise ResourceDoesNotExist
 
-        serializer = ReleaseSerializer(data=request.DATA, partial=True)
+        serializer = ReleaseWithVersionSerializer(data=request.DATA, partial=True)
 
         if not serializer.is_valid():
             return Response(serializer.errors, status=400)

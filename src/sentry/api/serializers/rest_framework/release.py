@@ -2,8 +2,9 @@ from __future__ import absolute_import
 
 from rest_framework import serializers
 
-from sentry.api.serializers.rest_framework import CommitSerializer, ListField
+from sentry.api.serializers.rest_framework import CommitSerializer, ListField, UserField
 from sentry.constants import VERSION_LENGTH
+from sentry.models import Release
 
 
 class ReleaseHeadCommitSerializerDeprecated(serializers.Serializer):
@@ -34,14 +35,12 @@ class ReleaseSerializer(serializers.Serializer):
         return name.lower() != 'latest'
 
 
-class OrganizationReleaseSerializer(ReleaseSerializer):
-    headCommits = ListField(
-        child=ReleaseHeadCommitSerializerDeprecated(),
-        required=False,
-        allow_null=False
-    )
-    refs = ListField(
-        child=ReleaseHeadCommitSerializer(),
-        required=False,
-        allow_null=False,
-    )
+class ReleaseWithVersionSerializer(ReleaseSerializer):
+    version = serializers.CharField(max_length=VERSION_LENGTH, required=True)
+    owner = UserField(required=False)
+
+    def validate_version(self, attrs, source):
+        value = attrs[source]
+        if not Release.is_valid_version(value) or self.check_release_name(value):
+            raise serializers.ValidationError('Invalid value for release')
+        return attrs
