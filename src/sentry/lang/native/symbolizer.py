@@ -277,11 +277,13 @@ class Symbolizer(object):
     def symbolize_frame(self, instruction_addr, sdk_info=None,
                         symbolserver_match=None, symbolicator_match=None,
                         trust=None):
+        app_err = None
 
-        if symbolicator_match is not None:
-            if any(x.get("function") for x in symbolicator_match):
-                return symbolicator_match
-        else:
+        # A missing symbolicator match indicates that the symbolicator was not
+        # active for this event. Symbolize the app frame directly using
+        # symbolic.
+        # TODO: Remove this after fully switching to symbolicator
+        if symbolicator_match is None:
             obj = self.object_lookup.find_object(instruction_addr)
             if obj is None:
                 if trust == 'scan':
@@ -290,7 +292,6 @@ class Symbolizer(object):
 
             # Try to always prefer the images from the application storage.
             # If the symbolication fails we keep the error for later
-            app_err = None
             try:
                 match = self._symbolize_app_frame(
                     instruction_addr, obj, sdk_info=sdk_info, trust=trust)
@@ -299,21 +300,34 @@ class Symbolizer(object):
             except SymbolicationFailed as err:
                 app_err = err
 
+        # If the symbolicator was used, trust its result. Errors that were
+        # generated during symbolication are merged into the event's error
+        # array separately and do not need to be handled here. The match
+        # returned can either be:
+        #  - empty: Symbolicator has explicitly discarded this
+        #    frame as a false positive. This happens especially when
+        #    stackwalking without CFI.
+        #  - only unsymbolicated frames (missing a function name):
+        #    Symbolicator was unable to resolve symbols for this frame, so we
+        #    fall back to (iOS) symbolserver (see below).
+        #
+        # TODO: Remove this fallback once symbolicator supports iOS system
+        # symbols and fully trust the symbolicator response.
+        elif any(x.get("function") for x in symbolicator_match) or symbolicator_match == []:
+            return symbolicator_match
+
         # Then we check the symbolserver for a match.
         match = self._convert_symbolserver_match(instruction_addr, symbolserver_match)
 
-        if symbolicator_match is not None:
-            # XXX(markus): Unsure what to do here. We don't have an `obj`
-            pass
-        else:
-            # If we do not get a match and the image was from an app bundle
-            # and we got an error first, we now fail with the original error
-            # as we did indeed encounter a symbolication error.  If however
-            # the match was empty we just accept it as a valid symbolication
-            # that just did not return any results but without error.
-            if not match and self.is_image_from_app_bundle(obj, sdk_info=sdk_info) \
-               and app_err is not None:
-                raise app_err
+        # If we do not get a match and the image was from an app bundle
+        # and we got an error first, we now fail with the original error
+        # as we did indeed encounter a symbolication error.  If however
+        # the match was empty we just accept it as a valid symbolication
+        # that just did not return any results but without error.
+        if app_err is not None \
+                and not match \
+                and self.is_image_from_app_bundle(obj, sdk_info=sdk_info):
+            raise app_err
 
         return match
 

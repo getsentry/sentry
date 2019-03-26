@@ -14,7 +14,7 @@ from sentry import options
 from sentry.utils import metrics
 from sentry.auth.system import get_system_token
 from sentry.net.http import Session
-from sentry.tasks.store import SymbolicatorRetry
+from sentry.tasks.store import RetrySymbolication
 
 MAX_ATTEMPTS = 3
 
@@ -86,7 +86,7 @@ def run_symbolicator(stacktraces, modules, project, arch, signal, request_id=Non
                     'project_id': project_id
                 })
                 if json['status'] == 'pending':
-                    raise SymbolicatorRetry(retry_after=json['retry_after'])
+                    raise RetrySymbolication(retry_after=json['retry_after'])
                 elif json['status'] == 'completed':
                     return rv.json()
                 else:

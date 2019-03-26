@@ -43,7 +43,7 @@ class RetryProcessing(Exception):
     pass
 
 
-class SymbolicatorRetry(Exception):
+class RetrySymbolication(Exception):
     def __init__(self, retry_after=None):
         self.retry_after = retry_after
 
@@ -157,13 +157,22 @@ def preprocess_event_from_reprocessing(
     time_limit=(60 * 5) + 5,
     soft_time_limit=60 * 5,
 )
-def retry_process_event(process_task_name, kwargs, **_kwargs):
+def retry_process_event(process_task_name, task_kwargs, **kwargs):
     """
     The only purpose of this task is be enqueued with some ETA set. This is
     essentially an implementation of ETAs on top of Celery's existing ETAs, but
     with the intent of having separate workers wait for those ETAs.
     """
-    globals()[process_task_name].delay(**kwargs)
+    tasks = {
+        "process_event": process_event,
+        "process_event_from_reprocessing": process_event_from_reprocessing,
+    }
+
+    process_task = tasks.get(process_task_name)
+    if not process_task:
+        raise ValueError(process_task_name)
+
+    process_task.delay(**task_kwargs)
 
 
 def _do_process_event(cache_key, start_time, event_id, process_task,
@@ -209,15 +218,15 @@ def _do_process_event(cache_key, start_time, event_id, process_task,
         if new_data is not None:
             has_changed = True
             data = new_data
-    except SymbolicatorRetry as e:
-        if (time() - start_time) > 3600:
+    except RetrySymbolication as e:
+        if start_time and (time() - start_time) > 3600:
             raise RuntimeError('Event spent one hour in processing')
 
         retry_process_event.apply_async(
             args=(),
             kwargs={
                 'process_task_name': process_task.__name__,
-                'kwargs': {
+                'task_kwargs': {
                     'cache_key': cache_key,
                     'event_id': event_id,
                     'start_time': start_time,

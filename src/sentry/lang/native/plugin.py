@@ -39,14 +39,13 @@ class NativeStacktraceProcessor(StacktraceProcessor):
     def __init__(self, *args, **kwargs):
         StacktraceProcessor.__init__(self, *args, **kwargs)
 
+        self.use_symbolicator = features.has('projects:symbolicator', project=self.project)
+
         self.arch = cpu_name_from_data(self.data)
         self.signal = signal_from_data(self.data)
 
         self.sym = None
         self.difs_referenced = set()
-
-        self.use_symbolicator = features.has('projects:symbolicator',
-                                             project=self.project)
 
         images = get_path(self.data, 'debug_meta', 'images', default=(),
                           filter=self._is_valid_image)
@@ -126,7 +125,7 @@ class NativeStacktraceProcessor(StacktraceProcessor):
             'obj': obj,
             'debug_id': obj.debug_id if obj is not None else None,
             'symbolserver_match': None,
-            'symbolicator_match': None,
+            'symbolicator_match': [] if self.use_symbolicator else None,
             'symbolicator_errors': []
         }
 
@@ -210,8 +209,6 @@ class NativeStacktraceProcessor(StacktraceProcessor):
         ):
             for symbolicated_frame in symbolicated_stacktrace.get('frames') or ():
                 pf = pf_list[symbolicated_frame['original_index']]
-                if pf.data['symbolicator_match'] is None:
-                    pf.data['symbolicator_match'] = []
                 pf.data['symbolicator_match'].append(symbolicated_frame)
 
         # XXX(markus): Symbolicator does not associate errors with frames or
