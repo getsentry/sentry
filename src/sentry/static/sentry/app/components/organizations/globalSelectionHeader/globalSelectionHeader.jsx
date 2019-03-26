@@ -194,8 +194,9 @@ class GlobalSelectionHeader extends React.Component {
         this.props.projects.map(p => [p.slug, p.isBookmarked]),
         nextProps.projects.map(p => [p.slug, p.isBookmarked])
       )
-    )
+    ) {
       return true;
+    }
 
     return false;
   }

@@ -32,7 +32,7 @@ describe('projectGeneralSettings', function() {
 
     MockApiClient.clearMockResponses();
     MockApiClient.addMockResponse({
-      url: `/grouping-configs/`,
+      url: '/grouping-configs/',
       method: 'GET',
       body: groupingConfigs,
     });
