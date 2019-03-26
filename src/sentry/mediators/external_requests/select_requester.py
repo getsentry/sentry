@@ -28,6 +28,7 @@ class SelectRequester(Mediator):
     install = Param('sentry.models.SentryAppInstallation')
     project = Param('sentry.models.Project', required=False)
     uri = Param(six.string_types)
+    query = Param(six.string_types, required=False)
 
     def call(self):
         return self._make_request()
@@ -40,6 +41,9 @@ class SelectRequester(Mediator):
 
         if self.project:
             query['projectSlug'] = self.project.slug
+
+        if self.query:
+            query['query'] = self.query
 
         urlparts[4] = urlencode(query)
         return urlunparse(urlparts)
@@ -101,3 +105,8 @@ class SelectRequester(Mediator):
     @memoize
     def sentry_app(self):
         return self.install.sentry_app
+
+
+class AsyncSelectRequester(SelectRequester):
+    def _format_response(self, resp):
+        return resp

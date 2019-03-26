@@ -26,12 +26,14 @@ class SentryAppInstallationExternalRequestsEndpoint(SentryAppInstallationBaseEnd
         kwargs = {
             'install': installation,
             'uri': request.GET.get('uri'),
+            'query': request.GET.get('query'),
         }
+
         if project:
             kwargs.update({'project': project})
 
         try:
-            choices = external_requests.SelectRequester.run(**kwargs)
+            choices = external_requests.AsyncSelectRequester.run(**kwargs)
         except Exception:
             return Response({'error': 'Error communicating with Sentry App service'}, status=400)
 

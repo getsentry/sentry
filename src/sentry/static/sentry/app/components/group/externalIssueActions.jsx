@@ -5,8 +5,13 @@ import styled from 'react-emotion';
 
 import {addSuccessMessage, addErrorMessage} from 'app/actionCreators/indicator';
 import AsyncComponent from 'app/components/asyncComponent';
-import IssueSyncListElement from 'app/components/issueSyncListElement';
-import ExternalIssueForm from 'app/components/group/externalIssueForm';
+import IssueSyncListElement, {
+  IntegrationLink,
+  IntegrationIcon,
+} from 'app/components/issueSyncListElement';
+import SentryAppExternalIssueForm, {
+  ExternalIssueForm,
+} from 'app/components/group/externalIssueForm';
 import IntegrationItem from 'app/views/organizationIntegrations/integrationItem';
 import NavTabs from 'app/components/navTabs';
 import {t} from 'app/locale';
