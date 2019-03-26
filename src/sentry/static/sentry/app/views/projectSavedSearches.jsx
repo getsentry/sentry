@@ -107,15 +107,7 @@ class ProjectSavedSearches extends AsyncView {
     organization: SentryTypes.Organization,
   };
 
-  hasOrgSavedSearch() {
-    return this.context.organization.features.includes('org-saved-searches');
-  }
-
   getEndpoints() {
-    if (this.hasOrgSavedSearch()) {
-      return [];
-    }
-
     const {orgId, projectId} = this.props.params;
     return [['savedSearchList', `/projects/${orgId}/${projectId}/searches/`]];
   }
@@ -220,10 +212,6 @@ class ProjectSavedSearches extends AsyncView {
   }
 
   renderBody() {
-    if (this.hasOrgSavedSearch()) {
-      return <NotFound />;
-    }
-
     const {organization} = this.context;
     const access = organization && new Set(organization.access);
     const canModify = (organization && access.has('project:write')) || false;
@@ -252,5 +240,17 @@ class ProjectSavedSearches extends AsyncView {
   }
 }
 
-export default ProjectSavedSearches;
+const ProjectSavedSearchContainer = function(props, context) {
+  const hasSavedSearch = context.organization.features.includes('org-saved-searches');
+  if (hasSavedSearch) {
+    return <NotFound />;
+  }
+  return <ProjectSavedSearches {...props} />;
+};
+
+ProjectSavedSearchContainer.contextTypes = {
+  organization: SentryTypes.Organization,
+};
+
+export default ProjectSavedSearchContainer;
 export {SavedSearchRow};
