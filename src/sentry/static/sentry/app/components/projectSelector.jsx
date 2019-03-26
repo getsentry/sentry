@@ -30,6 +30,11 @@ class ProjectSelector extends React.Component {
       PropTypes.oneOfType([PropTypes.string, SentryTypes.Project])
     ),
 
+    // used by multiProjectSelector
+    multiProjects: PropTypes.arrayOf(
+      PropTypes.oneOfType([PropTypes.string, SentryTypes.Project])
+    ),
+
     // Render a footer at the bottom of the list
     // render function that is passed an `actions` object with `close` and `open` properties.
     menuFooter: PropTypes.func,
@@ -80,10 +85,11 @@ class ProjectSelector extends React.Component {
   }
 
   getProjects() {
-    const {organization, projects} = this.props;
+    const {organization, projects, multiProjects} = this.props;
     const {isSuperuser} = ConfigStore.get('user');
 
-    const unfilteredProjects = projects || organization.projects;
+    const unfilteredProjects = multiProjects || projects || organization.projects;
+
     const filteredProjects = isSuperuser
       ? unfilteredProjects
       : unfilteredProjects.filter(project => project.isMember);

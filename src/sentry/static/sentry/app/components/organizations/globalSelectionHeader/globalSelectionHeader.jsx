@@ -33,6 +33,7 @@ import TimeRangeSelector from 'app/components/organizations/timeRangeSelector';
 import Tooltip from 'app/components/tooltip';
 import withGlobalSelection from 'app/utils/withGlobalSelection';
 import ConfigStore from 'app/stores/configStore';
+import withProjects from 'app/utils/withProjects';
 import {getStateFromQuery} from './utils';
 
 class GlobalSelectionHeader extends React.Component {
@@ -423,7 +424,7 @@ class GlobalSelectionHeader extends React.Component {
   }
 }
 
-export default withRouter(withGlobalSelection(GlobalSelectionHeader));
+export default withProjects(withRouter(withGlobalSelection(GlobalSelectionHeader)));
 
 const BackButtonWrapper = styled('div')`
   display: flex;
