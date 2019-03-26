@@ -131,7 +131,7 @@ describe('Sentry App Installations', function() {
         wrapper.instance().install(sentryApp);
         await tick();
         expect(window.location.assign).toHaveBeenCalledWith(
-          `${sentryApp.redirectUrl}?code=${install.code}&installationId=${install.uuid}`
+          `${sentryApp.redirectUrl}?code=${install.code}&installationId=${install.uuid}&orgSlug=${org.slug}`
         );
       });
 
@@ -155,7 +155,7 @@ describe('Sentry App Installations', function() {
         wrapper.instance().install(sentryAppWithQuery);
         await tick();
         expect(window.location.assign).toHaveBeenCalledWith(
-          `https://example.com/setup?code=${install.code}&hello=1&installationId=${install.uuid}`
+          `https://example.com/setup?code=${install.code}&hello=1&installationId=${install.uuid}&orgSlug=${org.slug}`
         );
       });
     });

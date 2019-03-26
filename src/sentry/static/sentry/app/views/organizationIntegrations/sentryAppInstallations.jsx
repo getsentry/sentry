@@ -31,12 +31,17 @@ class SentryAppInstallations extends React.Component {
   redirectUser = data => {
     const {install, app} = data;
     const {installs} = this.state;
+    const {orgId} = this.props;
 
     if (!app.redirectUrl) {
       addSuccessMessage(t(`${app.slug} successfully installed.`));
       this.setState({installs: [install, ...installs]});
     } else {
-      const queryParams = {installationId: install.uuid, code: install.code};
+      const queryParams = {
+        installationId: install.uuid,
+        code: install.code,
+        orgSlug: orgId,
+      };
       const redirectUrl = addQueryParamsToExistingUrl(app.redirectUrl, queryParams);
       window.location.assign(redirectUrl);
     }
