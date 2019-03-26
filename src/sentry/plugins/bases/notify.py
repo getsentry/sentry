@@ -136,13 +136,16 @@ class NotificationPlugin(Plugin):
     def notify_about_activity(self, activity):
         pass
 
+    @property
+    def alert_option_key(self):
+        return '%s:alert' % self.get_conf_key()
+
     def get_sendable_users(self, project):
         """
         Return a collection of user IDs that are eligible to receive
         notifications for the provided project.
         """
-        user_option = '%s:alert' % self.get_conf_key()
-        return project.get_notification_recipients(user_option)
+        return project.get_notification_recipients(self.alert_option_key)
 
     def __is_rate_limited(self, group, event):
         return ratelimits.is_limited(
