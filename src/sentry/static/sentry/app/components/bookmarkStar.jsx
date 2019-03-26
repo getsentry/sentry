@@ -45,7 +45,9 @@ class BookmarkStar extends React.Component {
     //prevent dropdowns from closing
     event.stopPropagation();
 
-    if (this.props.onToggle) this.props.onToggle(!isBookmarked);
+    if (this.props.onToggle) {
+      this.props.onToggle(!isBookmarked);
+    }
   };
 
   render() {
