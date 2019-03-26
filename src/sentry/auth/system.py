@@ -1,5 +1,8 @@
 from __future__ import absolute_import, print_function
 
+import ipaddress
+import six
+
 from django.conf import settings
 from django.contrib.auth.models import AnonymousUser
 from django.utils.crypto import constant_time_compare
@@ -10,12 +13,14 @@ from sentry.utils.cache import memoize
 
 
 def is_internal_ip(request):
-    if settings.INTERNAL_IPS:
-        ip = request.META['REMOTE_ADDR']
-        if not any(ip in addr for addr in settings.INTERNAL_IPS):
-            return False
+    if not settings.INTERNAL_IPS:
+        return True
 
-    return True
+    ip = ipaddress.ip_address(six.text_type(request.META['REMOTE_ADDR']))
+    return any(
+        ip in ipaddress.ip_network(six.text_type(net), strict=False)
+        for net in settings.INTERNAL_IPS
+    )
 
 
 def get_system_token():
