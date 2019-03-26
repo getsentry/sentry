@@ -673,13 +673,13 @@ function routes() {
       />
       <Route path="/organizations/new/" component={errorHandler(OrganizationCreate)} />
       <Route path="/onboarding/:orgId/" component={errorHandler(OrganizationContext)}>
-        <Route path="" component={errorHandler(OnboardingWizard)}>
+        <Route component={errorHandler(OnboardingWizard)}>
           <IndexRoute component={errorHandler(CreateProject)} />
-          {hook('routes:onboarding-survey')}
           <Route
-            path=":projectId/configure/(:platform)"
+            path=":projectId/configure/:platform/"
             component={errorHandler(OnboardingConfigure)}
           />
+          {hook('routes:onboarding-survey')}
         </Route>
       </Route>
       <Route component={errorHandler(OrganizationDetails)}>

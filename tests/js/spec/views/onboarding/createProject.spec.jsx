@@ -1,7 +1,7 @@
 import React from 'react';
 import {shallow, mount} from 'enzyme';
 
-import CreateProject from 'app/views/onboarding/createProject';
+import {CreateProject} from 'app/views/onboarding/createProject';
 import {openCreateTeamModal} from 'app/actionCreators/modal';
 
 jest.mock('app/actionCreators/modal');
@@ -9,6 +9,8 @@ jest.mock('app/actionCreators/modal');
 describe('CreateProject', function() {
   const baseProps = {
     location: {query: {}},
+    organization: TestStubs.Organization(),
+    teams: [],
     params: {
       projectId: '',
       orgId: 'testOrg',
@@ -37,7 +39,7 @@ describe('CreateProject', function() {
     expect(wrapper).toMatchSnapshot();
   });
 
-  it('can create a new team if no access to teams', function() {
+  it('can create a new team', function() {
     const props = {
       ...baseProps,
     };
@@ -55,7 +57,7 @@ describe('CreateProject', function() {
       ])
     );
 
-    wrapper.find('CreateTeamBody Button').simulate('click');
+    wrapper.find('TeamSelectInput Button').simulate('click');
     expect(openCreateTeamModal).toHaveBeenCalled();
   });
 
@@ -80,18 +82,18 @@ describe('CreateProject', function() {
 
     let node = wrapper.find('PlatformCard').first();
     node.simulate('click');
-    expect(wrapper.state().projectName).toBe('C#');
+    expect(wrapper.find('ProjectNameInput input').props().value).toBe('C#');
 
     node = wrapper.find('PlatformCard').last();
     node.simulate('click');
-    expect(wrapper.state().projectName).toBe('Ruby');
+    expect(wrapper.find('ProjectNameInput input').props().value).toBe('Ruby');
 
     //but not replace it when project name is something else:
     wrapper.setState({projectName: 'another'});
 
     node = wrapper.find('PlatformCard').first();
     node.simulate('click');
-    expect(wrapper.state().projectName).toBe('another');
+    expect(wrapper.find('ProjectNameInput input').props().value).toBe('another');
 
     expect(wrapper).toMatchSnapshot();
   });
@@ -115,7 +117,7 @@ describe('CreateProject', function() {
       ])
     );
 
-    expect(wrapper.state().projectName).toBe('Ruby');
+    expect(wrapper.find('ProjectNameInput input').props().value).toBe('Ruby');
 
     expect(wrapper).toMatchSnapshot();
   });
@@ -139,7 +141,7 @@ describe('CreateProject', function() {
       ])
     );
 
-    expect(wrapper.state().projectName).toBe('');
+    expect(wrapper.find('ProjectNameInput input').props().value).toBe('');
 
     expect(wrapper).toMatchSnapshot();
   });
