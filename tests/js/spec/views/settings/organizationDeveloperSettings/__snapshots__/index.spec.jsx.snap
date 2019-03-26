@@ -1448,6 +1448,7 @@ exports[`Organization Developer Settings with unpublished apps displays all Apps
                                                 }
                                                 onConfirm={[Function]}
                                                 priority="danger"
+                                                stopPropagation={false}
                                               >
                                                 <Button
                                                   disabled={false}

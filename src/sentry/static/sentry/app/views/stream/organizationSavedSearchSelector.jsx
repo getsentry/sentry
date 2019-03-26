@@ -3,16 +3,22 @@ import PropTypes from 'prop-types';
 import styled from 'react-emotion';
 
 import {t} from 'app/locale';
+import Access from 'app/components/acl/access';
+import Button from 'app/components/button';
+import Confirm from 'app/components/confirm';
 import MenuItem from 'app/components/menuItem';
 import DropdownLink from 'app/components/dropdownLink';
 import QueryCount from 'app/components/queryCount';
 import InlineSvg from 'app/components/inlineSvg';
+import SentryTypes from 'app/sentryTypes';
 import space from 'app/styles/space';
 
 export default class OrganizationSavedSearchSelector extends React.Component {
   static propTypes = {
+    organization: SentryTypes.Organization.isRequired,
     savedSearchList: PropTypes.array.isRequired,
     onSavedSearchSelect: PropTypes.func.isRequired,
+    onSavedSearchDelete: PropTypes.func.isRequired,
     query: PropTypes.string,
     queryCount: PropTypes.number,
     queryMaxCount: PropTypes.number,
@@ -33,7 +39,12 @@ export default class OrganizationSavedSearchSelector extends React.Component {
   }
 
   renderList() {
-    const {savedSearchList, onSavedSearchSelect} = this.props;
+    const {
+      savedSearchList,
+      onSavedSearchDelete,
+      onSavedSearchSelect,
+      organization,
+    } = this.props;
 
     if (savedSearchList.length === 0) {
       return <EmptyItem>{t("There don't seem to be any saved searches yet.")}</EmptyItem>;
@@ -42,10 +53,27 @@ export default class OrganizationSavedSearchSelector extends React.Component {
     return savedSearchList.map(search => (
       <StyledMenuItem onSelect={() => onSavedSearchSelect(search)} key={search.id}>
         {search.isPinned && <InlineSvg src={'icon-pin'} />}
-        <span>
-          <strong>{search.name}</strong>
-        </span>
-        <code>{search.query}</code>
+        <SearchTitle>{search.name}</SearchTitle>
+        <SearchQuery>{search.query}</SearchQuery>
+        {search.isGlobal === false && (
+          <Access
+            organization={organization}
+            access={['org:write']}
+            renderNoAccessMessage={false}
+          >
+            <Confirm
+              onConfirm={() => onSavedSearchDelete(search)}
+              message={t('Are you sure you want to delete this saved search?')}
+              stopPropagation
+            >
+              <Button
+                title={t('Delete this saved search')}
+                icon="icon-trash"
+                size="xsmall"
+              />
+            </Confirm>
+          </Access>
+        )}
       </StyledMenuItem>
     ));
   }
@@ -77,21 +105,46 @@ const Container = styled.div`
   }
 `;
 
+const SearchTitle = styled.strong`
+  display: block;
+  max-width: 100%;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  overflow: hidden;
+  color: ${p => p.theme.gray5};
+  padding: 0;
+  background: inherit;
+`;
+
+const SearchQuery = styled.code`
+  display: block;
+  max-width: 100%;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  overflow: hidden;
+  color: ${p => p.theme.gray5};
+  padding: 0;
+  background: inherit;
+`;
+
 const StyledMenuItem = styled(MenuItem)`
+  position: relative;
+
   & a {
     /* override shared-components.less */
     padding: ${space(0.25)} ${space(1)} !important;
   }
-  & span,
-  & code {
+
+  & button {
+    display: none;
+  }
+
+  &:focus,
+  &:hover button {
     display: block;
-    max-width: 100%;
-    text-overflow: ellipsis;
-    white-space: nowrap;
-    overflow: hidden;
-    color: ${p => p.theme.gray5};
-    padding: 0;
-    background: inherit;
+    position: absolute;
+    top: ${space(0.5)};
+    right: ${space(1)};
   }
 `;
 
