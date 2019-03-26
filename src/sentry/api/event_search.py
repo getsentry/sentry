@@ -251,8 +251,7 @@ class SearchVisitor(NodeVisitor):
             SearchValue(value),
         )
 
-    def visit_numeric_filter(self, node, xxx_todo_changeme):
-        (search_key, _, operator, search_value) = xxx_todo_changeme
+    def visit_numeric_filter(self, node, (search_key, _, operator, search_value)):
         operator = operator[0] if not isinstance(operator, Node) else '='
 
         if search_key.name in self.numeric_keys:
@@ -267,8 +266,7 @@ class SearchVisitor(NodeVisitor):
             )
             return self._handle_basic_filter(search_key, '=', search_value)
 
-    def visit_time_filter(self, node, xxx_todo_changeme1):
-        (search_key, _, operator, search_value) = xxx_todo_changeme1
+    def visit_time_filter(self, node, (search_key, _, operator, search_value)):
         if search_key.name in self.date_keys:
             try:
                 search_value = parse_datetime_string(search_value)
@@ -279,8 +277,7 @@ class SearchVisitor(NodeVisitor):
             search_value = operator + search_value if operator != '=' else search_value
             return self._handle_basic_filter(search_key, '=', SearchValue(search_value))
 
-    def visit_rel_time_filter(self, node, xxx_todo_changeme2):
-        (search_key, _, value) = xxx_todo_changeme2
+    def visit_rel_time_filter(self, node, (search_key, _, value)):
         if search_key.name in self.date_keys:
             try:
                 from_val, to_val = parse_datetime_range(value.text)
@@ -298,11 +295,10 @@ class SearchVisitor(NodeVisitor):
         else:
             return self._handle_basic_filter(search_key, '=', SearchValue(value.text))
 
-    def visit_specific_time_filter(self, node, xxx_todo_changeme3):
+    def visit_specific_time_filter(self, node, (search_key, _, date_value)):
         # If we specify a specific date, it means any event on that day, and if
         # we specify a specific datetime then it means a few minutes interval
         # on either side of that datetime
-        (search_key, _, date_value) = xxx_todo_changeme3
         if search_key.name not in self.date_keys:
             return self._handle_basic_filter(search_key, '=', SearchValue(date_value))
 
@@ -342,8 +338,7 @@ class SearchVisitor(NodeVisitor):
 
         return node.text == '!'
 
-    def visit_basic_filter(self, node, xxx_todo_changeme4):
-        (negation, search_key, _, search_value) = xxx_todo_changeme4
+    def visit_basic_filter(self, node, (negation, search_key, _, search_value)):
         operator = '!=' if self.is_negated(negation) else '='
         return self._handle_basic_filter(search_key, operator, search_value)
 
