@@ -106,7 +106,7 @@ export function pinSearch(api, orgId, query, type) {
     },
   });
 
-  promise.catch(handleXhrErrorResponse('Unable to un-pin search'));
+  promise.catch(handleXhrErrorResponse('Unable to pin search'));
 
   return promise;
 }
