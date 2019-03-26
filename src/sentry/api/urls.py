@@ -864,6 +864,11 @@ urlpatterns = patterns(
         name='sentry-api-0-project-event-details'
     ),
     url(
+        r'^projects/(?P<organization_slug>[^\/]+)/(?P<project_slug>[^\/]+)/events/(?P<event_id>[\w-]+)/grouping-info/$',
+        EventGroupingInfoEndpoint.as_view(),
+        name='sentry-api-0-event-grouping-info'
+    ),
+    url(
         r'^projects/(?P<organization_slug>[^\/]+)/(?P<project_slug>[^\/]+)/events/(?P<event_id>[\w-]+)/attachments/$',
         EventAttachmentsEndpoint.as_view(),
         name='sentry-api-0-event-attachments'
@@ -1235,11 +1240,6 @@ urlpatterns = patterns(
         r'^events/(?P<event_id>\d+)/apple-crash-report$',
         EventAppleCrashReportEndpoint.as_view(),
         name='sentry-api-0-event-apple-crash-report'
-    ),
-    url(
-        r'^events/(?P<event_id>\d+)/grouping-info/$',
-        EventGroupingInfoEndpoint.as_view(),
-        name='sentry-api-0-event-grouping-info'
     ),
 
     # Sentry Apps
