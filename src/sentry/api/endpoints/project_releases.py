@@ -10,10 +10,9 @@ from sentry.api.bases.project import ProjectEndpoint, ProjectReleasePermission
 from sentry.api.paginator import OffsetPaginator
 from sentry.api.fields.user import UserField
 from sentry.api.serializers import serialize
-from sentry.api.serializers.rest_framework import CommitSerializer, ListField
+from sentry.api.serializers.rest_framework import ReleaseSerializer
 from sentry.models import (
     Activity,
-    CommitFileChange,
     Environment,
     Release,
 )
@@ -22,40 +21,13 @@ from sentry.constants import VERSION_LENGTH
 from sentry.signals import release_created
 
 
-class CommitPatchSetSerializer(serializers.Serializer):
-    path = serializers.CharField(max_length=255)
-    type = serializers.CharField(max_length=1)
-
-    def validate_type(self, attrs, source):
-        value = attrs[source]
-        if not CommitFileChange.is_valid_type(value):
-            raise serializers.ValidationError('Commit patch_set type %s is not supported.' % value)
-        return attrs
-
-
-class CommitSerializerWithPatchSet(CommitSerializer):
-    patch_set = ListField(
-        child=CommitPatchSetSerializer(
-            required=False),
-        required=False,
-        allow_null=True)
-
-
-class ReleaseSerializer(serializers.Serializer):
+class ProjectReleaseSerializer(ReleaseSerializer):
     version = serializers.CharField(max_length=VERSION_LENGTH, required=True)
-    ref = serializers.CharField(max_length=VERSION_LENGTH, required=False)
-    url = serializers.URLField(required=False)
     owner = UserField(required=False)
-    dateReleased = serializers.DateTimeField(required=False)
-    commits = ListField(
-        child=CommitSerializerWithPatchSet(
-            required=False),
-        required=False,
-        allow_null=True)
 
     def validate_version(self, attrs, source):
         value = attrs[source]
-        if not Release.is_valid_version(value):
+        if not Release.is_valid_version(value) or self.check_release_name(value):
             raise serializers.ValidationError('Invalid value for release')
         return attrs
 
@@ -146,7 +118,7 @@ class ProjectReleasesEndpoint(ProjectEndpoint, EnvironmentMixin):
                                       the current time is assumed.
         :auth: required
         """
-        serializer = ReleaseSerializer(data=request.DATA)
+        serializer = ProjectReleaseSerializer(data=request.DATA)
 
         if serializer.is_valid():
             result = serializer.object
