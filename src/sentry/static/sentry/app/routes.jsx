@@ -43,7 +43,6 @@ import ProjectInstallOverview from 'app/views/projectInstall/overview';
 import ProjectInstallPlatform from 'app/views/projectInstall/platform';
 import ProjectPluginDetails from 'app/views/projectPluginDetails';
 import ProjectPlugins from 'app/views/projectPlugins';
-import ProjectSavedSearches from 'app/views/projectSavedSearches';
 import ProjectSettings from 'app/views/projectSettings';
 import ProjectTags from 'app/views/projectTags';
 import RouteNotFound from 'app/views/routeNotFound';
@@ -287,7 +286,9 @@ function routes() {
       <Route
         path="saved-searches/"
         name="Saved Searches"
-        component={errorHandler(ProjectSavedSearches)}
+        componentPromise={() =>
+          import(/* webpackChunkName: "ProjectSavedSearches" */ './views/projectSavedSearches')}
+        component={errorHandler(LazyLoad)}
       />
       <Route
         path="debug-symbols/"

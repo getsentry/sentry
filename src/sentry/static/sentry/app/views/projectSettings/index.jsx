@@ -93,6 +93,7 @@ const ProjectSettings = createReactClass({
     const rootInstallPath = `${pathPrefix}/install/`;
     const path = this.props.location.pathname;
     const processingIssues = this.state.project.processingIssues;
+    const organization = this.context.organization;
 
     return (
       <div className="row">
@@ -126,9 +127,11 @@ const ProjectSettings = createReactClass({
             <ListLink to={`${pathPrefix}/data-forwarding/`}>
               {t('Data Forwarding')}
             </ListLink>
-            <ListLink to={`${pathPrefix}/saved-searches/`}>
-              {t('Saved Searches')}
-            </ListLink>
+            {organization.features.includes('org-saved-searches') === false && (
+              <ListLink to={`${pathPrefix}/saved-searches/`}>
+                {t('Saved Searches')}
+              </ListLink>
+            )}
             <ListLink to={`${pathPrefix}/debug-symbols/`}>
               {t('Debug Information Files')}
             </ListLink>

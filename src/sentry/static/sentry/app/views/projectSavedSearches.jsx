@@ -10,6 +10,7 @@ import Button from 'app/components/button';
 import Confirm from 'app/components/confirm';
 import EmptyStateWarning from 'app/components/emptyStateWarning';
 import IndicatorStore from 'app/stores/indicatorStore';
+import NotFound from 'app/components/errors/notFound';
 import SentryTypes from 'app/sentryTypes';
 import SettingsPageHeader from 'app/views/settings/components/settingsPageHeader';
 
@@ -101,6 +102,7 @@ class ProjectSavedSearches extends AsyncView {
   getTitle() {
     return t('Saved Searches');
   }
+
   static contextTypes = {
     organization: SentryTypes.Organization,
   };
@@ -238,5 +240,17 @@ class ProjectSavedSearches extends AsyncView {
   }
 }
 
-export default ProjectSavedSearches;
+const ProjectSavedSearchContainer = function(props, context) {
+  const hasSavedSearch = context.organization.features.includes('org-saved-searches');
+  if (hasSavedSearch) {
+    return <NotFound />;
+  }
+  return <ProjectSavedSearches {...props} />;
+};
+
+ProjectSavedSearchContainer.contextTypes = {
+  organization: SentryTypes.Organization,
+};
+
+export default ProjectSavedSearchContainer;
 export {SavedSearchRow};
