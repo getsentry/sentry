@@ -143,7 +143,8 @@ def up(project, exclude):
         listening = ''
         if options['ports']:
             listening = ' (listening: %s)' % ', '.join(map(text_type, options['ports'].values()))
-        click.secho("> Creating '%s' container%s" % (options['name'], listening), err=True, fg='yellow')
+        click.secho("> Creating '%s' container%s" %
+                    (options['name'], listening), err=True, fg='yellow')
         client.containers.run(**options)
 
 
