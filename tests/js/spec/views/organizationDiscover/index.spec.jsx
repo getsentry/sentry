@@ -1,5 +1,4 @@
 import React from 'react';
-import PropTypes from 'prop-types';
 import {mount} from 'enzyme';
 import {browserHistory} from 'react-router';
 
@@ -73,11 +72,30 @@ describe('OrganizationDiscoverContainer', function() {
   });
 
   describe('saved query', function() {
-    let wrapper, savedQueryMock, savedQueries;
+    let wrapper, savedQueryMock, addMock, savedQueries;
     const organization = TestStubs.Organization({
       projects: [TestStubs.Project()],
       features: ['discover'],
     });
+
+    const createWrapper = async (props, withStore) => {
+      const Component = withStore
+        ? OrganizationDiscoverContainerWithStore
+        : OrganizationDiscoverContainer;
+      const wrap = mount(
+        <Component
+          location={{query: {}, search: ''}}
+          params={{savedQueryId: 1}}
+          {...(withStore ? {} : {selection: {datetime: {}}})}
+          {...props}
+        />,
+        TestStubs.routerContext([{organization}])
+      );
+      await tick();
+      wrap.update();
+      return wrap;
+    };
+
     beforeEach(async function() {
       savedQueries = [
         TestStubs.DiscoverSavedQuery({id: '1', name: 'one'}),
@@ -94,47 +112,97 @@ describe('OrganizationDiscoverContainer', function() {
         body: savedQueries,
       });
 
-      wrapper = mount(
-        <OrganizationDiscoverContainer
-          location={{query: {}, search: ''}}
-          params={{savedQueryId: 1}}
-          selection={{datetime: {}}}
-        />,
-        {
-          ...TestStubs.routerContext([{organization}, {organization: PropTypes.object}]),
-          disableLifecycleMethods: false,
-        }
-      );
+      addMock = MockApiClient.addMockResponse({
+        url: '/organizations/org-slug/discover/saved/',
+        method: 'POST',
+      });
+    });
+
+    describe('Without Global Header Store', function() {
+      beforeEach(async function() {
+        wrapper = await createWrapper();
+      });
+      it('fetches saved query', function() {
+        expect(savedQueryMock).toHaveBeenCalled();
+      });
+
+      it('navigates to second query', function() {
+        const nextQueryMock = MockApiClient.addMockResponse({
+          url: '/organizations/org-slug/discover/saved/2/',
+          body: savedQueries[1],
+        });
+
+        expect(wrapper.find('SavedQueryListItem')).toHaveLength(2);
+
+        wrapper.setProps({
+          params: {savedQueryId: '2'},
+        });
+
+        expect(savedQueryMock).toHaveBeenCalledTimes(1);
+        expect(nextQueryMock).toHaveBeenCalledTimes(1);
+      });
+
+      it('toggles edit mode', function() {
+        wrapper.instance().toggleEditMode();
+        expect(browserHistory.push).toHaveBeenCalledWith({
+          pathname: '/organizations/org-slug/discover/saved/1/',
+          query: {editing: 'true'},
+        });
+      });
+    });
+
+    it('changes date correctly', async function() {
+      wrapper = await createWrapper({}, true);
+      const request = MockApiClient.addMockResponse({
+        url: '/organizations/org-slug/discover/query/?per_page=1000&cursor=0:0:1',
+        method: 'POST',
+        body: {timing: {}, data: [], meta: []},
+      });
+      wrapper.find('TimeRangeSelector HeaderItem').simulate('click');
+      wrapper.find('SelectorItem[value="7d"]').simulate('click');
+
       await tick();
       wrapper.update();
-    });
+      expect(request).toHaveBeenLastCalledWith(
+        expect.anything(),
+        expect.objectContaining({
+          data: expect.objectContaining({
+            range: '7d',
+            start: null,
+            end: null,
+            utc: null,
+          }),
+        })
+      );
 
-    it('fetches saved query', function() {
-      expect(savedQueryMock).toHaveBeenCalled();
-    });
+      wrapper.find('TimeRangeSelector HeaderItem').simulate('click');
+      wrapper.find('SelectorItem[value="24h"]').simulate('click');
 
-    it('navigates to second query', function() {
-      const nextQueryMock = MockApiClient.addMockResponse({
-        url: '/organizations/org-slug/discover/saved/2/',
-        body: savedQueries[1],
-      });
+      await tick();
+      wrapper.update();
 
-      expect(wrapper.find('SavedQueryListItem')).toHaveLength(2);
-
+      // Go to New Query and try to save
+      // We need this click because it updates component state :/
+      wrapper
+        .find('SidebarTabs .nav-tabs a')
+        .first()
+        .simulate('click');
+      // We need to update savedQueryId because there's also logic in cWRP of container
       wrapper.setProps({
-        params: {savedQueryId: '2'},
+        params: {savedQueryId: undefined},
       });
+      await tick();
+      wrapper.update();
 
-      expect(savedQueryMock).toHaveBeenCalledTimes(1);
-      expect(nextQueryMock).toHaveBeenCalledTimes(1);
-    });
-
-    it('toggles edit mode', function() {
-      wrapper.instance().toggleEditMode();
-      expect(browserHistory.push).toHaveBeenCalledWith({
-        pathname: '/organizations/org-slug/discover/saved/1/',
-        query: {editing: 'true'},
-      });
+      wrapper.find('button[aria-label="Save"]').simulate('click');
+      expect(addMock).toHaveBeenCalledWith(
+        expect.anything(),
+        expect.objectContaining({
+          data: expect.objectContaining({
+            range: '24h',
+          }),
+        })
+      );
     });
   });
 

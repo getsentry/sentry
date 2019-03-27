@@ -159,6 +159,12 @@ export default class OrganizationDiscover extends React.Component {
   updateDateTime = datetime => {
     const {start, end, range, utc} = this.getDateTimeFields(datetime);
 
+    updateDateTime({
+      start,
+      end,
+      period: range,
+      utc,
+    });
     this.updateFields({start, end, range, utc});
   };
 

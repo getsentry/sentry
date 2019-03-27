@@ -522,30 +522,6 @@ describe('Discover', function() {
         })
       );
     });
-
-    it('changes date correctly', async function() {
-      const request = MockApiClient.addMockResponse({
-        url: '/organizations/org-slug/discover/query/?per_page=1000&cursor=0:0:1',
-        method: 'POST',
-        body: {timing: {}, data: [], meta: []},
-      });
-      wrapper.find('TimeRangeSelector HeaderItem').simulate('click');
-      wrapper.find('SelectorItem[value="7d"]').simulate('click');
-
-      await tick();
-      wrapper.update();
-      expect(request).toHaveBeenLastCalledWith(
-        expect.anything(),
-        expect.objectContaining({
-          data: expect.objectContaining({
-            range: '7d',
-            start: null,
-            end: null,
-            utc: null,
-          }),
-        })
-      );
-    });
   });
 
   describe('Intro', function() {
