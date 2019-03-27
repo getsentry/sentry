@@ -93,6 +93,7 @@ class StreamFilters extends React.Component {
                 savedSearchList={savedSearchList}
                 onSavedSearchSelect={onSavedSearchSelect}
                 onSavedSearchDelete={onSavedSearchDelete}
+                query={query}
                 queryCount={queryCount}
                 queryMaxCount={queryMaxCount}
               />
