@@ -1,9 +1,9 @@
 ---
-created: '2019-03-27T19:57:34.986855Z'
+created: '2019-03-27T19:55:50.575742Z'
 creator: sentry
 source: tests/sentry/lang/native/test_plugin.py
 ---
-culprit: unknown
+culprit: main
 debug_meta:
   images:
   - arch: x86_64
@@ -18,23 +18,23 @@ debug_meta:
     version_major: 10
     version_minor: 12
     version_patchlevel: 4
-errors:
-- image_arch: x86_64
-  image_path: Foo.app/Contents/Foo
-  image_uuid: 502fc0a5-1ec1-3e47-9998-684fa139dca7
-  message: None
-  type: native_missing_dsym
 exception:
   values:
   - raw_stacktrace:
       frames:
-      - &id001
-        function: unknown
+      - function: unknown
         in_app: false
         instruction_addr: '0x100000fa0'
     stacktrace:
       frames:
-      - *id001
+      - abs_path: /tmp/hello.c
+        filename: hello.c
+        function: main
+        in_app: false
+        instruction_addr: '0x100000fa0'
+        lineno: 1
+        package: Foo.app/Contents/Foo
+        symbol: main
     type: Fail
     value: fail
 fingerprint:
@@ -42,26 +42,17 @@ fingerprint:
 grouping_config:
   id: legacy:2019-03-12
 hashes:
-- efca000ff6704f25e5434e9ed7eff02f
+- 6e2889ec15f82569f56fdba9ffc9b90b
 key_id: '2'
 level: error
-location: null
+location: hello.c
 logger: ''
 metadata:
+  filename: hello.c
+  function: main
   type: Fail
   value: fail
 platform: cocoa
-processing_issues:
-  native:dsym:502fc0a5-1ec1-3e47-9998-684fa139dca7:
-    data:
-      image_arch: x86_64
-      image_path: Foo.app/Contents/Foo
-      image_uuid: 502fc0a5-1ec1-3e47-9998-684fa139dca7
-      message: None
-      type: native_missing_dsym
-    object: dsym:502fc0a5-1ec1-3e47-9998-684fa139dca7
-    scope: native
-    type: native_missing_dsym
 project: 2
 sdk:
   name: _postWithHeader

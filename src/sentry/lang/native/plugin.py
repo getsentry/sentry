@@ -8,7 +8,6 @@ from symbolic import parse_addr, find_best_instruction, arch_get_ip_reg_name, \
     ObjectLookup
 
 from sentry import options, features
-from sentry.coreapi import cache_key_for_event
 from sentry.plugins import Plugin2
 from sentry.lang.native.cfi import reprocess_minidump_with_cfi
 from sentry.lang.native.minidump import is_minidump_event
@@ -30,6 +29,10 @@ FRAME_CACHE_VERSION = 6
 SYMBOLICATOR_FRAME_ATTRS = ("instruction_addr", "package", "lang", "symbol",
                             "function", "symbol_addr", "filename", "lineno",
                             "line_addr")
+
+
+def request_id_cache_key_for_event(data):
+    return u'symbolicator:{1}:{0}'.format(data['project'], data['event_id'])
 
 
 class NativeStacktraceProcessor(StacktraceProcessor):
@@ -193,16 +196,16 @@ class NativeStacktraceProcessor(StacktraceProcessor):
 
             processable_frames.append(pf_list)
 
-        request_id = cache_key_for_event(self.data)
+        request_id_cache_key = request_id_cache_key_for_event(self.data)
 
         rv = run_symbolicator(stacktraces=stacktraces, modules=images,
                               project=self.project, arch=self.arch,
                               signal=self.signal,
-                              request_id=request_id)
+                              request_id_cache_key=request_id_cache_key)
         if not rv:
             return
 
-        assert len(images) == len(rv['modules'])
+        assert len(images) == len(rv['modules']), (images, rv)
 
         for image, fetched_debug_file in zip(images, rv['modules']):
             if fetched_debug_file['status'] == 'missing_debug_file':

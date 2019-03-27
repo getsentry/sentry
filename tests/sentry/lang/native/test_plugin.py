@@ -1311,8 +1311,10 @@ class SymbolicResolvingIntegrationTest(ResolvingIntegrationTestBase, TestCase):
 
 class SymbolicatorResolvingIntegrationTest(ResolvingIntegrationTestBase, TransactionTestCase):
     @pytest.fixture(autouse=True)
-    def initialize(self, request, live_server, monkeypatch, betamax_recorder):
+    def initialize(self, live_server, monkeypatch, betamax_recorder):
         self.live_server = live_server
+        self.monkeypatch = monkeypatch
+        self.betamax_recorder = betamax_recorder
 
         monkeypatch.setattr('sentry.lang.native.symbolicator.Session',
                             lambda: betamax_recorder.session)
@@ -1327,6 +1329,11 @@ class SymbolicatorResolvingIntegrationTest(ResolvingIntegrationTestBase, Transac
 
             # Teardown:
             assert not symbolize_app_frame.called
+
+    def test_real_resolving_with_multiple_requests(self):
+        self.monkeypatch.setattr('sentry.lang.native.symbolicator.SYMBOLICATOR_TIMEOUT', 0)
+        self.test_real_resolving()
+        assert len(self.betamax_recorder.current_cassette.interactions) > 2
 
 
 class ExceptionMechanismIntegrationTest(TestCase):
