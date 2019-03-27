@@ -118,30 +118,49 @@ class DetailedOrganizationSerializer(OrganizationSerializer):
     def get_attrs(self, item_list, user, **kwargs):
         return super(DetailedOrganizationSerializer, self).get_attrs(item_list, user)
 
+    def _project_list(self, organization, access):
+        member_project_ids = []
+        member_projects = []
+        for project in access.projects:
+            if project.status == ProjectStatus.VISIBLE:
+                member_project_ids.append(project.id)
+                member_projects.append(project)
+
+        other_projects = list(Project.objects.filter(
+            organization=organization,
+            status=ProjectStatus.VISIBLE,
+        ).exclude(id__in=member_project_ids))
+        project_list = sorted(other_projects + member_projects, key=lambda x: x.slug)
+
+        for project in project_list:
+            project._organization_cache = organization
+        return project_list
+
+    def _team_list(self, organization, access):
+        member_team_ids = []
+        member_teams = []
+        for team in access.teams:
+            if team.status == TeamStatus.VISIBLE:
+                member_team_ids.append(team.id)
+                member_teams.append(team)
+
+        other_teams = list(Team.objects.filter(
+            organization=organization,
+            status=TeamStatus.VISIBLE,
+        ).exclude(id__in=member_team_ids))
+        team_list = sorted(other_teams + member_teams, key=lambda x: x.slug)
+
+        for team in team_list:
+            team._organization_cache = organization
+        return team_list
+
     def serialize(self, obj, attrs, user, access):
         from sentry import experiments
         from sentry.api.serializers.models.project import ProjectSummarySerializer
         from sentry.api.serializers.models.team import TeamSerializer
 
-        member_teams = [team.id for team in access.teams]
-        other_teams = list(Team.objects.filter(
-            organization=obj,
-            status=TeamStatus.VISIBLE,
-        ).exclude(id__in=member_teams))
-        team_list = sorted(other_teams + list(access.teams), key=lambda x: x.slug)
-
-        for team in team_list:
-            team._organization_cache = obj
-
-        member_projects = [project.id for project in access.projects]
-        other_projects = list(Project.objects.filter(
-            organization=obj,
-            status=ProjectStatus.VISIBLE,
-        ).exclude(id__in=member_projects))
-        project_list = sorted(other_projects + list(access.projects), key=lambda x: x.slug)
-
-        for project in project_list:
-            project._organization_cache = obj
+        team_list = self._team_list(obj, access)
+        project_list = self._project_list(obj, access)
 
         onboarding_tasks = list(
             OrganizationOnboardingTask.objects.filter(

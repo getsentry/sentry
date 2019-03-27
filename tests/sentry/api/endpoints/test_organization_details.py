@@ -16,6 +16,7 @@ from sentry.models import (
     Authenticator,
     AuthProvider,
     DeletedOrganization,
+    ObjectStatus,
     Organization,
     OrganizationAvatar,
     OrganizationOption,
@@ -53,11 +54,25 @@ class OrganizationDetailsTest(APITestCase):
         # Create non-member team to test response shape
         self.create_team(name='no-member', organization=org)
 
+        # Ensure deleted teams don't come back.
+        self.create_team(
+            name='deleted',
+            organization=org,
+            members=[user],
+            status=ObjectStatus.PENDING_DELETION)
+
         # Some projects with membership and some without.
-        for i in range(3):
+        for i in range(2):
             self.create_project(organization=org, teams=[team])
         for i in range(2):
             self.create_project(organization=org)
+
+        # Should not show up.
+        self.create_project(
+            slug='deleted',
+            organization=org,
+            teams=[team],
+            status=ObjectStatus.PENDING_DELETION)
 
         url = reverse(
             'sentry-api-0-organization-details', kwargs={
@@ -72,8 +87,14 @@ class OrganizationDetailsTest(APITestCase):
             from django.db import connections
             response = self.client.get(url, format='json')
             pprint(connections['default'].queries)
-        assert len(response.data['projects']) == 5
-        assert len(response.data['teams']) == 2
+
+        project_slugs = [p['slug'] for p in response.data['projects']]
+        assert len(project_slugs) == 4
+        assert 'deleted' not in project_slugs
+
+        team_slugs = [t['slug'] for t in response.data['teams']]
+        assert len(team_slugs) == 2
+        assert 'deleted' not in team_slugs
 
     def test_as_superuser(self):
         self.user = self.create_user('super@example.org', is_superuser=True)
