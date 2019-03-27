@@ -9,11 +9,15 @@ import GroupingActions from 'app/actions/groupingActions';
 import GroupingStore from 'app/stores/groupingStore';
 import LoadingError from 'app/components/loadingError';
 import LoadingIndicator from 'app/components/loadingIndicator';
+import SentryTypes from 'app/sentryTypes';
 
 import MergedList from './mergedList';
 
 const GroupMergedView = createReactClass({
   displayName: 'GroupMergedView',
+  propTypes: {
+    project: SentryTypes.Project,
+  },
   mixins: [ApiMixin, Reflux.listenTo(GroupingStore, 'onGroupingUpdate')],
 
   getInitialState() {
@@ -114,6 +118,8 @@ const GroupMergedView = createReactClass({
 
         {isLoadedSuccessfully && (
           <MergedList
+            orgId={this.props.params.orgId}
+            projectId={this.props.project.slug}
             items={this.state.mergedItems}
             pageLinks={this.state.mergedLinks}
             onUnmerge={this.handleUnmerge}

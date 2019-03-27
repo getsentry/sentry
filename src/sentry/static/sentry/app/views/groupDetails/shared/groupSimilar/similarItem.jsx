@@ -24,6 +24,7 @@ const SimilarIssueItem = createReactClass({
   displayName: 'SimilarIssueItem',
 
   propTypes: {
+    orgId: PropTypes.string.isRequired,
     groupId: PropTypes.string.isRequired,
     score: PropTypes.object,
     scoresByInterface: PropTypes.shape({
@@ -73,10 +74,12 @@ const SimilarIssueItem = createReactClass({
   },
 
   handleShowDiff(e) {
-    const {groupId, issue} = this.props;
+    const {orgId, groupId, issue} = this.props;
     openDiffModal({
       baseIssueId: groupId,
       targetIssueId: issue.id,
+      projectId: issue.project.slug,
+      orgId,
     });
 
     e.stopPropagation();
