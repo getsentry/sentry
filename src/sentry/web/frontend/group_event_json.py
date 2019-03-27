@@ -31,8 +31,8 @@ class GroupEventJsonView(OrganizationView):
             event_cls = SnubaEvent if use_snuba else Event
             event = event_cls.objects.from_event_id(event_id_or_latest, group.project.id)
 
-        if event is None:
-            return Http404
+        if event is None or (event.group_id != int(group_id)):
+            raise Http404
 
         Event.objects.bind_nodes([event], 'data')
 
