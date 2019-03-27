@@ -6,6 +6,19 @@ from sentry.testutils import TestCase
 
 
 class ReactPageViewTest(TestCase):
+    def test_redirects_unauthenticated_request(self):
+        owner = self.create_user('bar@example.com')
+        org = self.create_organization(owner=owner)
+
+        path = reverse('sentry-organization-home', args=[org.slug])
+        resp = self.client.get(path)
+
+        assert resp.status_code == 302
+        assert resp['Location'] == u'http://testserver{}'.format(
+            reverse('sentry-auth-organization', args=[org.slug]),
+        )
+        assert resp['X-Robots-Tag'] == 'noindex, nofollow'
+
     def test_superuser_can_load(self):
         org = self.create_organization(owner=self.user)
         path = reverse('sentry-organization-home', args=[org.slug])
