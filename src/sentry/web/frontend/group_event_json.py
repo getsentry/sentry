@@ -1,7 +1,6 @@
 from __future__ import absolute_import, division
 
 from django.http import Http404, HttpResponse
-from django.shortcuts import get_object_or_404
 
 from sentry import options
 from sentry.models import Event, SnubaEvent, Group, GroupMeta, get_group_with_redirect
@@ -29,10 +28,11 @@ class GroupEventJsonView(OrganizationView):
             # circumstances (such as a post_save signal failing)
             event = group.get_latest_event() or Event(group=group)
         else:
-            if use_snuba:
-                event = SnubaEvent.objects.from_event_id(event_id_or_latest, group.project.id)
-            else:
-                event = get_object_or_404(group.event_set, pk=event_id_or_latest)
+            event_cls = SnubaEvent if use_snuba else Event
+            event = event_cls.objects.from_event_id(event_id_or_latest, group.project.id)
+
+        if event is None:
+            return Http404
 
         Event.objects.bind_nodes([event], 'data')
 
