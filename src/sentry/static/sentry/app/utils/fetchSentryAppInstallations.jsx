@@ -1,10 +1,7 @@
-import {Client} from 'app/api';
-
 import SentryAppInstallationStore from 'app/stores/sentryAppInstallationsStore';
 import SentryAppStore from 'app/stores/sentryAppStore';
 
-const fetchSentryAppInstallations = orgSlug => {
-  const api = new Client();
+const fetchSentryAppInstallations = (api, orgSlug) => {
   const sentryAppsUri = '/sentry-apps/';
   const installsUri = `/organizations/${orgSlug}/sentry-app-installations/`;
 
