@@ -464,6 +464,7 @@ class SnubaEvent(EventCommon):
                 'event_id': [event_id],
                 'project_id': [project_id],
             },
+            referrer='SnubaEvent.get_event',
         )
         if 'error' not in result and len(result['data']) == 1:
             return SnubaEvent(result['data'][0])
@@ -571,7 +572,8 @@ class SnubaEvent(EventCommon):
                 'issue': [self.group_id],
             },
             orderby=['timestamp', 'event_id'],
-            limit=1
+            limit=1,
+            referrer='SnubaEvent.next_event_id',
         )
 
         if 'error' in result or len(result['data']) == 0:
@@ -600,7 +602,8 @@ class SnubaEvent(EventCommon):
                 'issue': [self.group_id],
             },
             orderby=['-timestamp', '-event_id'],
-            limit=1
+            limit=1,
+            referrer='SnubaEvent.prev_event_id',
         )
 
         if 'error' in result or len(result['data']) == 0:
