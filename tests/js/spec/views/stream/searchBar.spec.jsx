@@ -210,7 +210,7 @@ describe('SearchBar', function() {
       MockApiClient.clearMockResponses();
       pinSearch = MockApiClient.addMockResponse({
         url: '/organizations/org-slug/pinned-searches/',
-        method: 'POST',
+        method: 'PUT',
         body: {},
       });
       unpinSearch = MockApiClient.addMockResponse({

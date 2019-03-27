@@ -96,7 +96,7 @@ export function fetchRecentSearches(api, orgId, type, query) {
 
 const getPinSearchUrl = orgId => `/organizations/${orgId}/pinned-searches/`;
 
-export function pinSearch(api, orgId, query, type) {
+export function pinSearch(api, orgId, type, query) {
   const url = getPinSearchUrl(orgId);
   const promise = api.requestPromise(url, {
     method: 'PUT',
