@@ -1,12 +1,12 @@
 from __future__ import absolute_import
-
+import unittest
 from datetime import datetime
 from django.core.urlresolvers import reverse
 
 from sentry.api.endpoints.project_release_details import ReleaseSerializer
 from sentry.constants import VERSION_LENGTH
 from sentry.models import (Activity, File, Release, ReleaseCommit, ReleaseFile, ReleaseProject)
-from sentry.testutils import APITestCase, TestCase
+from sentry.testutils import APITestCase
 
 
 class ReleaseDetailsTest(APITestCase):
@@ -258,8 +258,9 @@ class ReleaseDeleteTest(APITestCase):
         assert Release.objects.filter(id=release.id).exists()
 
 
-class ReleaseSerializerTest(TestCase):
+class ReleaseSerializerTest(unittest.TestCase):
     def setUp(self):
+        super(ReleaseSerializerTest, self).setUp()
         self.commits = [{'id': 'a' * 40}, {'id': 'b' * 40}]
         self.ref = 'master'
         self.url = 'https://example.com'

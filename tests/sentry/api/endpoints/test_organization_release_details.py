@@ -1,5 +1,5 @@
 from __future__ import absolute_import
-
+import unittest
 from mock import patch
 from datetime import datetime
 from django.core.urlresolvers import reverse
@@ -8,7 +8,7 @@ from sentry.constants import VERSION_LENGTH
 from sentry.models import (
     Activity, Environment, File, Release, ReleaseCommit, ReleaseFile, ReleaseProject, ReleaseProjectEnvironment, Repository
 )
-from sentry.testutils import APITestCase, TestCase
+from sentry.testutils import APITestCase
 from sentry.api.endpoints.organization_release_details import ReleaseSerializer
 
 
@@ -682,8 +682,9 @@ class ReleaseDeleteTest(APITestCase):
         assert response.data == {'commits': ['id: This field is required.']}
 
 
-class ReleaseSerializerTest(TestCase):
+class ReleaseSerializerTest(unittest.TestCase):
     def setUp(self):
+        super(ReleaseSerializerTest, self).setUp()
         self.repo_name = 'repo/name'
         self.repo2_name = 'repo2/name'
         self.commits = [{'id': 'a' * 40}, {'id': 'b' * 40}]

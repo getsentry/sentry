@@ -1350,6 +1350,7 @@ class OrganizationReleaseCreateCommitPatch(ReleaseCommitPatchTest):
 
 class ReleaseSerializerWithProjectsTest(TestCase):
     def setUp(self):
+        super(ReleaseSerializerWithProjectsTest, self).setUp()
         self.version = '1234567890'
         self.repo_name = 'repo/name'
         self.repo2_name = 'repo2/name'
