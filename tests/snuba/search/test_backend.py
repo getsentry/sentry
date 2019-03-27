@@ -500,33 +500,54 @@ class SnubaSearchTest(SnubaTestCase):
 
     def test_search_filter_query_with_custom_priority_tag_and_priority_sort(self):
         priority = 'high'
-        for dt in [
-                self.group2.first_seen + timedelta(days=1),
-                self.group2.first_seen + timedelta(days=2)]:
-            self.store_event(
-                data={
-                    'fingerprint': ['put-me-in-group2'],
-                    'timestamp': dt.isoformat()[:19],
-                    'stacktrace': {
-                        'frames': [{
-                            'module': 'group2'
-                        }]
-                    },
-                    'message': 'group2',
-                    'tags': {
-                        'priority': priority,
-                    },
+        self.store_event(
+            data={
+                'fingerprint': ['put-me-in-group2'],
+                'timestamp': (self.group2.first_seen + timedelta(days=1)).isoformat()[:19],
+                'stacktrace': {
+                    'frames': [{
+                        'module': 'group2'
+                    }]
                 },
-                project_id=self.project.id,
-            )
+                'message': 'group2',
+                'tags': {
+                    'priority': priority,
+                },
+            },
+            project_id=self.project.id,
+        )
+        self.store_event(
+            data={
+                'fingerprint': ['put-me-in-group1'],
+                'timestamp': (self.group1.first_seen + timedelta(days=1)).isoformat()[:19],
+                'stacktrace': {
+                    'frames': [{
+                        'module': 'group1'
+                    }]
+                },
+                'message': 'group1',
+                'tags': {
+                    'priority': priority,
+                },
+            },
+            project_id=self.project.id,
+        )
+
+        self.group1.times_seen = 6
+        self.group2.times_seen = 3
+        self.group1.save()
+        self.group2.save()
+
+        group1_score = Group.calculate_score(self.group1.times_seen, self.group1.last_seen)
+        group2_score = Group.calculate_score(self.group2.times_seen, self.group2.last_seen)
+        assert group1_score > group2_score
+
         results = self.make_query(
             search_filter_query='priority:%s' % priority,
             tags={'priority': priority},
             sort_by='priority',
         )
-        # HELP(lb): I dont think this is testing what I want it to.
-        # I just want to ensure that the priority sort still works with the priority tag.
-        assert set(results) == set([self.group2])
+        assert set(results) == set([self.group1, self.group2])
 
     def test_project(self):
         results = self.make_query([self.create_project(name='other')])
