@@ -217,6 +217,8 @@ exports[`Issues -> Merged View renders with mocked data 1`] = `
     }
     onToggleCollapse={[Function]}
     onUnmerge={[Function]}
+    orgId="orgId"
+    projectId="projectId"
   />
 </div>
 `;
