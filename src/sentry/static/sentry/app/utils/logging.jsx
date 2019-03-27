@@ -10,11 +10,13 @@ export function logException(ex, context) {
 }
 
 export function logAjaxError(error, context) {
-  const errorString = error.responseJSON
-    ? error.responseJSON.detail || JSON.stringify(error.responseJSON, null, 2)
-    : error.responseText ? error.responseText.substr(0, 255) : '<unknown response>'; // occassionally responseText is undefined
+  // Promises will reject with an error instead of response
+  const resp = error instanceof Error ? error.resp : error;
+  const errorString = resp.responseJSON
+    ? resp.responseJSON.detail || JSON.stringify(resp.responseJSON, null, 2)
+    : resp.responseText ? resp.responseText.substr(0, 255) : '<unknown response>'; // occassionally responseText is undefined
 
-  const message = `HTTP ${error.status}: ${errorString}`;
+  const message = `HTTP ${resp.status}: ${errorString}`;
   Sentry.withScope(scope => {
     scope.setExtra('context', context);
     Sentry.captureMessage(message);
