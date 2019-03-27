@@ -118,7 +118,7 @@ class Browser(object):
 
         return self
 
-    def wait_until(self, selector=None, title=None, timeout=3):
+    def wait_until(self, selector=None, xpath=None, title=None, timeout=3):
         """
         Waits until ``selector`` is found in the browser, or until ``timeout``
         is hit, whichever happens first.
@@ -127,6 +127,8 @@ class Browser(object):
 
         if selector:
             condition = expected_conditions.presence_of_element_located((By.CSS_SELECTOR, selector))
+        elif xpath:
+            condition = expected_conditions.presence_of_element_located((By.XPATH, xpath))
         elif title:
             condition = expected_conditions.title_is(title)
         else:
