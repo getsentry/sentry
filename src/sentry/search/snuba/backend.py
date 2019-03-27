@@ -415,7 +415,9 @@ def snuba_search(start, end, project_ids, environment_ids, sort_field,
         ):
             continue
         converted_filter = convert_search_filter_to_snuba_query(search_filter)
-        if search_filter.key.name in aggregation_defs:
+
+        # Ensure that no user-generated tags that clashes with aggregation_defs is added to having
+        if search_filter.key.name in aggregation_defs and not search_filter.key.is_tag:
             having.append(converted_filter)
         else:
             conditions.append(converted_filter)
