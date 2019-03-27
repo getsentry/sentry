@@ -132,12 +132,17 @@ class PostSentryAppsTest(SentryAppsTest):
 
     @with_feature('organizations:sentry-apps')
     def test_non_unique_app_slug(self):
+        from sentry.mediators import sentry_apps
         self.login_as(user=self.user)
-        self.create_sentry_app(name='MyApp')
-        response = self._post()
+        sentry_app = self.create_sentry_app(
+            name='Foo Bar',
+            organization=self.org,
+        )
+        sentry_apps.Destroyer.run(sentry_app=sentry_app)
+        response = self._post(**{'name': sentry_app.name})
         assert response.status_code == 422
         assert response.data == \
-            {"name": ["Name MyApp is already taken, please use another."]}
+            {"name": ["Name Foo Bar is already taken, please use another."]}
 
     @with_feature('organizations:sentry-apps')
     def test_cannot_create_app_without_correct_permissions(self):

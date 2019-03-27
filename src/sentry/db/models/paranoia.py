@@ -26,9 +26,6 @@ class ParanoidManager(BaseManager):
         return ParanoidQuerySet(self.model, using=self._db).filter(
             date_deleted__isnull=True)
 
-    def with_deleted(self):
-        return ParanoidQuerySet(self.model, using=self._db).all()
-
 
 class ParanoidModel(Model):
     class Meta:
@@ -36,6 +33,7 @@ class ParanoidModel(Model):
 
     date_deleted = models.DateTimeField(null=True, blank=True)
     objects = ParanoidManager()
+    with_deleted = BaseManager()
 
     def delete(self):
         self.update(date_deleted=timezone.now())

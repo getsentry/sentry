@@ -23,7 +23,7 @@ class NameField(serializers.CharField):
     def is_valid_slug(self, value):
         slug = slugify(value)
 
-        if SentryApp.objects.with_deleted().filter(slug=slug).exists():
+        if SentryApp.with_deleted.filter(slug=slug).exists():
             return False
 
         return True

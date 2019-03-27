@@ -149,17 +149,21 @@ class UpdateSentryAppDetailsTest(SentryAppDetailsTest):
 
     @with_feature('organizations:sentry-apps')
     def test_cannot_update_name_with_non_unique_slug(self):
+        from sentry.mediators import sentry_apps
         self.login_as(user=self.user)
+        sentry_app = self.create_sentry_app(
+            name='Foo Bar',
+            organization=self.org,
+        )
+        sentry_apps.Destroyer.run(sentry_app=sentry_app)
         response = self.client.put(
             self.url,
-            data={
-                'name': 'test',
-            },
+            data={'name': sentry_app.name},
             format='json',
         )
         assert response.status_code == 400
         assert response.data == \
-            {"name": ["Name test is already taken, please use another."]}
+            {"name": ["Name Foo Bar is already taken, please use another."]}
 
     @with_feature('organizations:sentry-apps')
     def test_cannot_update_events_without_permissions(self):
