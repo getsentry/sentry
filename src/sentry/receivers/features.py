@@ -147,8 +147,13 @@ def record_issue_assigned(project, group, user, **kwargs):
 
 @issue_resolved.connect(weak=False)
 def record_issue_resolved(organization_id, project, group, user, resolution_type, **kwargs):
+    """ There are three main types of ways to resolve issues
+        1) via a release (the next release, or other (either current or another version which are indistinguishable))
+        2) via commit
+        3) now
+    """
     if resolution_type in ('in_next_release', 'in_release'):
-        data_resolution_type = 'resolved_in_release'
+        data_resolution_type = resolution_type
         FeatureAdoption.objects.record(
             organization_id=organization_id, feature_slug="resolved_in_release", complete=True
         )
