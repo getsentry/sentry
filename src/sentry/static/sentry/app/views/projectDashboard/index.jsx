@@ -2,6 +2,7 @@ import PropTypes from 'prop-types';
 import React from 'react';
 import createReactClass from 'create-react-class';
 import {Link} from 'react-router';
+import DocumentTitle from 'react-document-title';
 
 import SentryTypes from 'app/sentryTypes';
 import ProjectState from 'app/mixins/projectState';
@@ -93,79 +94,84 @@ const ProjectDashboard = createReactClass({
     const dateSince = this.getStatsPeriodBeginTimestamp(statsPeriod);
     const resolution = this.getStatsPeriodResolution(statsPeriod);
     const {orgId, projectId} = this.props.params;
+    const {name: orgName} = this.getOrganization();
+    const {slug: projectSlug} = this.getProject();
     const url = `/${orgId}/${projectId}/dashboard/`;
     const routeQuery = this.props.location.query;
 
     return (
-      <div>
-        <div className="row" style={{marginBottom: '5px'}}>
-          <div className="col-sm-9">
-            <PageHeading withMargins>{t('Overview')}</PageHeading>
+      <DocumentTitle title={`Overview - ${projectSlug} - ${orgName} - Sentry`}>
+        <div>
+          <div className="row" style={{marginBottom: '5px'}}>
+            <div className="col-sm-9">
+              <PageHeading withMargins>{t('Overview')}</PageHeading>
+            </div>
+            <div className="col-sm-3" style={{textAlign: 'right', marginTop: '4px'}}>
+              <div className="btn-group">
+                <Link
+                  to={{
+                    pathname: url,
+                    query: {...routeQuery, statsPeriod: PERIOD_HOUR},
+                  }}
+                  className={
+                    'btn btn-sm btn-default' +
+                    (statsPeriod === PERIOD_HOUR ? ' active' : '')
+                  }
+                >
+                  {t('1 hour')}
+                </Link>
+                <Link
+                  to={{
+                    pathname: url,
+                    query: {...routeQuery, statsPeriod: PERIOD_DAY},
+                  }}
+                  className={
+                    'btn btn-sm btn-default' +
+                    (statsPeriod === PERIOD_DAY ? ' active' : '')
+                  }
+                >
+                  {t('1 day')}
+                </Link>
+                <Link
+                  to={{
+                    pathname: url,
+                    query: {...routeQuery, statsPeriod: PERIOD_WEEK},
+                  }}
+                  className={
+                    'btn btn-sm btn-default' +
+                    (statsPeriod === PERIOD_WEEK ? ' active' : '')
+                  }
+                >
+                  {t('1 week')}
+                </Link>
+              </div>
+            </div>
           </div>
-          <div className="col-sm-3" style={{textAlign: 'right', marginTop: '4px'}}>
-            <div className="btn-group">
-              <Link
-                to={{
-                  pathname: url,
-                  query: {...routeQuery, statsPeriod: PERIOD_HOUR},
-                }}
-                className={
-                  'btn btn-sm btn-default' +
-                  (statsPeriod === PERIOD_HOUR ? ' active' : '')
-                }
-              >
-                {t('1 hour')}
-              </Link>
-              <Link
-                to={{
-                  pathname: url,
-                  query: {...routeQuery, statsPeriod: PERIOD_DAY},
-                }}
-                className={
-                  'btn btn-sm btn-default' + (statsPeriod === PERIOD_DAY ? ' active' : '')
-                }
-              >
-                {t('1 day')}
-              </Link>
-              <Link
-                to={{
-                  pathname: url,
-                  query: {...routeQuery, statsPeriod: PERIOD_WEEK},
-                }}
-                className={
-                  'btn btn-sm btn-default' +
-                  (statsPeriod === PERIOD_WEEK ? ' active' : '')
-                }
-              >
-                {t('1 week')}
-              </Link>
+          <ProjectChart
+            dateSince={dateSince}
+            resolution={resolution}
+            environment={this.props.environment}
+          />
+          <div className="row">
+            <div className="col-md-6">
+              <EventList
+                type="priority"
+                environment={this.props.environment}
+                dateSince={dateSince}
+                params={this.props.params}
+              />
+            </div>
+            <div className="col-md-6">
+              <EventList
+                type="new"
+                environment={this.props.environment}
+                dateSince={dateSince}
+                params={this.props.params}
+              />
             </div>
           </div>
         </div>
-        <ProjectChart
-          dateSince={dateSince}
-          resolution={resolution}
-          environment={this.props.environment}
-        />
-        <div className="row">
-          <div className="col-md-6">
-            <EventList
-              type="priority"
-              environment={this.props.environment}
-              dateSince={dateSince}
-              params={this.props.params}
-            />
-          </div>
-          <div className="col-md-6">
-            <EventList
-              type="new"
-              environment={this.props.environment}
-              dateSince={dateSince}
-              params={this.props.params}
-            />
-          </div>
-        </div>
-      </div>
+      </DocumentTitle>
     );
   },
 });
