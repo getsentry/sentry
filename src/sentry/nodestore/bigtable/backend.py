@@ -8,7 +8,6 @@ from zlib import compress as zlib_compress, decompress as zlib_decompress
 from google.cloud import bigtable
 from simplejson import JSONEncoder, _default_decoder
 from django.utils import timezone
-from concurrent.futures import ThreadPoolExecutor
 
 from sentry.nodestore.base import NodeStorage
 
@@ -84,7 +83,11 @@ class BigtableNodeStorage(NodeStorage):
         self.automatic_expiry = automatic_expiry
         self.default_ttl = default_ttl
         self.compression = compression
-        self.thread_pool = ThreadPoolExecutor(max_workers=thread_pool_size)
+        if thread_pool_size > 1:
+            from concurrent.futures import ThreadPoolExecutor
+            self.thread_pool = ThreadPoolExecutor(max_workers=thread_pool_size)
+        else:
+            self.thread_pool = None
         super(BigtableNodeStorage, self).__init__()
 
     @property
@@ -195,6 +198,9 @@ class BigtableNodeStorage(NodeStorage):
         self.connection.mutate_rows([row])
 
     def get_multi(self, id_list):
+        if self.thread_pool is None:
+            return super(BigtableNodeStorage, self).get_multi(id_list)
+
         if len(id_list) == 1:
             id = id_list[0]
             return {id: self.get(id)}
@@ -208,6 +214,9 @@ class BigtableNodeStorage(NodeStorage):
         }
 
     def delete_multi(self, id_list):
+        if self.thread_pool is None:
+            return super(BigtableNodeStorage, self).delete_multi(id_list)
+
         if len(id_list) == 1:
             self.delete(id_list[0])
             return
