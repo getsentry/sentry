@@ -307,13 +307,13 @@ class Symbolizer(object):
         #  - empty: Symbolicator has explicitly discarded this
         #    frame as a false positive. This happens especially when
         #    stackwalking without CFI.
-        #  - only unsymbolicated frames (missing a function name):
+        #  - only unsymbolicated frames:
         #    Symbolicator was unable to resolve symbols for this frame, so we
         #    fall back to (iOS) symbolserver (see below).
         #
         # TODO: Remove this fallback once symbolicator supports iOS system
         # symbols and fully trust the symbolicator response.
-        elif any(x.get("function") for x in symbolicator_match) or symbolicator_match == []:
+        elif any(x["status"] == "symbolicated" for x in symbolicator_match) or symbolicator_match == []:
             return symbolicator_match
 
         # Then we check the symbolserver for a match.

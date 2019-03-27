@@ -12,11 +12,12 @@ from sentry.coreapi import cache_key_for_event
 from sentry.plugins import Plugin2
 from sentry.lang.native.cfi import reprocess_minidump_with_cfi
 from sentry.lang.native.minidump import is_minidump_event
-from sentry.lang.native.symbolizer import USER_FIXABLE_ERRORS, FATAL_ERRORS, Symbolizer, SymbolicationFailed
+from sentry.lang.native.symbolizer import Symbolizer, SymbolicationFailed
 from sentry.lang.native.symbolicator import run_symbolicator
 from sentry.lang.native.utils import get_sdk_from_event, cpu_name_from_data, \
-    rebase_addr, signal_from_data, to_snake_case
+    rebase_addr, signal_from_data, image_name
 from sentry.lang.native.systemsymbols import lookup_system_symbols
+from sentry.models.eventerror import EventError
 from sentry.utils import metrics
 from sentry.utils.safe import get_path
 from sentry.stacktraces import StacktraceProcessor
@@ -201,33 +202,32 @@ class NativeStacktraceProcessor(StacktraceProcessor):
         if not rv:
             return
 
+        assert len(images) == len(rv['modules'])
+
+        for image, fetched_debug_file in zip(images, rv['modules']):
+            if fetched_debug_file['status'] == 'missing_debug_file':
+                error = SymbolicationFailed(type=EventError.NATIVE_MISSING_DSYM)
+            elif fetched_debug_file['status'] == 'malformed_debug_file':
+                error = SymbolicationFailed(type=EventError.NATIVE_BAD_DSYM)
+            else:
+                continue
+
+            error.image_arch = image['arch']
+            error.image_path = image['code_file']
+            error.image_name = image_name(image['code_file'])
+            error.image_uuid = image['debug_id']
+            self.data.setdefault('errors', []) \
+                .extend(self._handle_symbolication_failed(error))
+
         assert len(stacktraces) == len(rv['stacktraces'])
 
         for pf_list, symbolicated_stacktrace in zip(
             processable_frames,
-            rv.get('stacktraces') or ()
+            rv['stacktraces']
         ):
             for symbolicated_frame in symbolicated_stacktrace.get('frames') or ():
                 pf = pf_list[symbolicated_frame['original_index']]
                 pf.data['symbolicator_match'].append(symbolicated_frame)
-
-        # XXX(markus): Symbolicator does not associate errors with frames or
-        # debug images. Just dump them all at once into the event.
-        for error in rv.get('errors') or ():
-            ty = to_snake_case(error['type']) if error.get('type') else None
-            if ty is not None and (ty not in FATAL_ERRORS or ty not in USER_FIXABLE_ERRORS):
-                continue
-
-            report_processing_issue(
-                self.data,
-                scope='native',
-                type=ty,
-                data={"message": error.get('data') or None, "type": ty}
-            )
-
-            errors = self.data.setdefault('errors', [])
-
-            errors.append(error)
 
     def fetch_system_symbols(self, processing_task):
         to_lookup = []
@@ -264,6 +264,35 @@ class NativeStacktraceProcessor(StacktraceProcessor):
                 if symrv is None:
                     continue
                 pf.data['symbolserver_match'] = symrv
+
+    def _handle_symbolication_failed(self, e):
+        # User fixable but fatal errors are reported as processing
+        # issues
+        if e.is_user_fixable and e.is_fatal:
+            report_processing_issue(
+                self.data,
+                scope='native',
+                object='dsym:%s' % e.image_uuid,
+                type=e.type,
+                data=e.get_data()
+            )
+
+        # This in many ways currently does not really do anything.
+        # The reason is that once a processing issue is reported
+        # the event will only be stored as a raw event and no
+        # group will be generated.  As a result it also means that
+        # we will not have any user facing event or error showing
+        # up at all.  We want to keep this here though in case we
+        # do not want to report some processing issues (eg:
+        # optional difs)
+        errors = []
+        if e.is_user_fixable or e.is_sdk_failure:
+            errors.append(e.get_data())
+        else:
+            logger.debug('Failed to symbolicate with native backend',
+                         exc_info=True)
+
+        return errors
 
     def process_frame(self, processable_frame, processing_task):
         frame = processable_frame.frame
@@ -304,32 +333,7 @@ class NativeStacktraceProcessor(StacktraceProcessor):
                     else:
                         return None, [raw_frame], []
             except SymbolicationFailed as e:
-                # User fixable but fatal errors are reported as processing
-                # issues
-                if e.is_user_fixable and e.is_fatal:
-                    report_processing_issue(
-                        self.data,
-                        scope='native',
-                        object='dsym:%s' % e.image_uuid,
-                        type=e.type,
-                        data=e.get_data()
-                    )
-
-                # This in many ways currently does not really do anything.
-                # The reason is that once a processing issue is reported
-                # the event will only be stored as a raw event and no
-                # group will be generated.  As a result it also means that
-                # we will not have any user facing event or error showing
-                # up at all.  We want to keep this here though in case we
-                # do not want to report some processing issues (eg:
-                # optional difs)
-                errors = []
-                if e.is_user_fixable or e.is_sdk_failure:
-                    errors.append(e.get_data())
-                else:
-                    logger.debug('Failed to symbolicate with native backend',
-                                 exc_info=True)
-
+                errors = self._handle_symbolication_failed(e)
                 return [raw_frame], [raw_frame], errors
 
             processable_frame.set_cache_value([in_app, symbolicated_frames])

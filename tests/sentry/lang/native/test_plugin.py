@@ -17,6 +17,44 @@ from sentry.models import Event, EventAttachment, File, ProjectDebugFile
 
 from symbolic import parse_addr, SymbolicError, SymCache
 
+REAL_RESOLVING_EVENT_DATA = {
+    "platform": "cocoa",
+    "debug_meta": {
+        "images": [{
+            "type": "apple",
+            "arch": "x86_64",
+            "uuid": "502fc0a5-1ec1-3e47-9998-684fa139dca7",
+            "image_vmaddr": "0x0000000100000000",
+            "image_size": 4096,
+            "image_addr": "0x0000000100000000",
+            "name": "Foo.app/Contents/Foo"
+        }],
+        "sdk_info": {
+            "dsym_type": "macho",
+            "sdk_name": "macOS",
+            "version_major": 10,
+            "version_minor": 12,
+            "version_patchlevel": 4,
+        }
+    },
+    "exception": {
+        "values": [
+            {
+                'stacktrace': {
+                    "frames": [
+                        {
+                            "function": "unknown",
+                            "instruction_addr": "0x0000000100000fa0"
+                        },
+                    ]
+                },
+                "type": "Fail",
+                "value": "fail"
+            }
+        ]
+    },
+}
+
 
 class BasicResolvingIntegrationTest(TestCase):
 
@@ -1079,57 +1117,15 @@ class ResolvingIntegrationTestBase(object):
         assert response.status_code == 201, response.content
         assert len(response.data) == 1
 
-        event_data = {
-            "project": self.project.id,
-            "platform": "cocoa",
-            "debug_meta": {
-                "images": [{
-                    "type": "apple",
-                    "arch": "x86_64",
-                    "uuid": "502fc0a5-1ec1-3e47-9998-684fa139dca7",
-                    "image_vmaddr": "0x0000000100000000",
-                    "image_size": 4096,
-                    "image_addr": "0x0000000100000000",
-                    "name": "Foo.app/Contents/Foo"
-                }],
-                "sdk_info": {
-                    "dsym_type": "macho",
-                    "sdk_name": "macOS",
-                    "version_major": 10,
-                    "version_minor": 12,
-                    "version_patchlevel": 4,
-                }
-            },
-            "exception": {
-                "values": [
-                    {
-                        'stacktrace': {
-                            "frames": [
-                                {
-                                    "function": "unknown",
-                                    "instruction_addr": "0x0000000100000fa0"
-                                },
-                            ]
-                        },
-                        "type": "Fail",
-                        "value": "fail"
-                    }
-                ]
-            },
-        }
-
-        resp = self._postWithHeader(event_data)
+        resp = self._postWithHeader(dict(project=self.project.id, **REAL_RESOLVING_EVENT_DATA))
         assert resp.status_code == 200
 
         event = Event.objects.get()
-
-        bt = event.interfaces['exception'].values[0].stacktrace
-        frames = bt.frames
-
-        assert frames[0].function == 'main'
-        assert frames[0].filename == 'hello.c'
-        assert frames[0].abs_path == '/tmp/hello.c'
-        assert frames[0].lineno == 1
+        snapshot_data = dict(event.data)
+        del snapshot_data['event_id']
+        del snapshot_data['timestamp']
+        del snapshot_data['received']
+        self.insta_snapshot(snapshot_data)
 
     def test_debug_id_resolving(self):
         file = File.objects.create(
@@ -1197,14 +1193,24 @@ class ResolvingIntegrationTestBase(object):
         assert resp.status_code == 200
 
         event = Event.objects.get()
+        snapshot_data = dict(event.data)
+        del snapshot_data['event_id']
+        del snapshot_data['timestamp']
+        del snapshot_data['received']
+        self.insta_snapshot(snapshot_data)
 
-        bt = event.interfaces['exception'].values[0].stacktrace
-        frames = bt.frames
+    def test_missing_dsym(self):
+        self.login_as(user=self.user)
 
-        assert frames[0].function == 'main'
-        assert frames[0].filename == 'main.cpp'
-        assert frames[0].abs_path == 'c:\\projects\\breakpad-tools\\windows\\crash\\main.cpp'
-        assert frames[0].lineno == 35
+        resp = self._postWithHeader(dict(project=self.project.id, **REAL_RESOLVING_EVENT_DATA))
+        assert resp.status_code == 200
+
+        event = Event.objects.get()
+        snapshot_data = dict(event.data)
+        del snapshot_data['event_id']
+        del snapshot_data['timestamp']
+        del snapshot_data['received']
+        self.insta_snapshot(snapshot_data)
 
 
 class SymbolicResolvingIntegrationTest(ResolvingIntegrationTestBase, TestCase):
