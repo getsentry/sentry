@@ -26,7 +26,34 @@ exports[`Sentry App Installations when Apps exist displays all Apps owned by the
     ]
   }
   installs={Array []}
-  orgId="org-slug"
+  organization={
+    Object {
+      "access": Array [
+        "org:read",
+        "org:write",
+        "org:admin",
+        "org:integrations",
+        "project:read",
+        "project:write",
+        "project:admin",
+        "team:read",
+        "team:write",
+        "team:admin",
+      ],
+      "features": Array [],
+      "id": "3",
+      "name": "Organization Name",
+      "onboardingTasks": Array [],
+      "projects": Array [],
+      "scrapeJavaScript": true,
+      "slug": "org-slug",
+      "status": Object {
+        "id": "active",
+        "name": "active",
+      },
+      "teams": Array [],
+    }
+  }
 >
   <SentryApplicationRow
     app={
@@ -52,7 +79,34 @@ exports[`Sentry App Installations when Apps exist displays all Apps owned by the
     key="123456123456123456123456"
     onInstall={[Function]}
     onUninstall={[Function]}
-    orgId="org-slug"
+    organization={
+      Object {
+        "access": Array [
+          "org:read",
+          "org:write",
+          "org:admin",
+          "org:integrations",
+          "project:read",
+          "project:write",
+          "project:admin",
+          "team:read",
+          "team:write",
+          "team:admin",
+        ],
+        "features": Array [],
+        "id": "3",
+        "name": "Organization Name",
+        "onboardingTasks": Array [],
+        "projects": Array [],
+        "scrapeJavaScript": true,
+        "slug": "org-slug",
+        "status": Object {
+          "id": "active",
+          "name": "active",
+        },
+        "teams": Array [],
+      }
+    }
     showPublishStatus={false}
   >
     <SentryAppItem>
@@ -776,6 +830,33 @@ exports[`Sentry App Installations when no Apps exist no row is displayed 1`] = `
   api={Client {}}
   applications={Array []}
   installs={Array []}
-  orgId="org-slug"
+  organization={
+    Object {
+      "access": Array [
+        "org:read",
+        "org:write",
+        "org:admin",
+        "org:integrations",
+        "project:read",
+        "project:write",
+        "project:admin",
+        "team:read",
+        "team:write",
+        "team:admin",
+      ],
+      "features": Array [],
+      "id": "3",
+      "name": "Organization Name",
+      "onboardingTasks": Array [],
+      "projects": Array [],
+      "scrapeJavaScript": true,
+      "slug": "org-slug",
+      "status": Object {
+        "id": "active",
+        "name": "active",
+      },
+      "teams": Array [],
+    }
+  }
 />
 `;
