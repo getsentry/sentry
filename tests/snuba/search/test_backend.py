@@ -500,7 +500,7 @@ class SnubaSearchTest(SnubaTestCase):
 
     def test_search_filter_query_with_custom_priority_tag_and_priority_sort(self):
         priority = 'high'
-        for i in range(1, 10):
+        for i in range(1, 3):
             self.store_event(
                 data={
                     'fingerprint': ['put-me-in-group1'],
