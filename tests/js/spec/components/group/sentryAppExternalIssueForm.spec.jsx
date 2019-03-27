@@ -1,5 +1,6 @@
 import React from 'react';
 import {mount} from 'enzyme';
+import {Client} from 'app/api';
 
 import {addQueryParamsToExistingUrl} from 'app/utils/queryString';
 import SentryAppExternalIssueForm from 'app/components/group/sentryAppExternalIssueForm';
@@ -30,6 +31,7 @@ describe('SentryAppExternalIssueForm', () => {
           sentryAppInstallation={sentryAppInstallation}
           config={component.schema}
           action="create"
+          api={new Client()}
         />,
         TestStubs.routerContext()
       );
@@ -87,6 +89,7 @@ describe('SentryAppExternalIssueForm', () => {
           sentryAppInstallation={sentryAppInstallation}
           config={component.schema}
           action="link"
+          api={new Client()}
         />,
         TestStubs.routerContext()
       );

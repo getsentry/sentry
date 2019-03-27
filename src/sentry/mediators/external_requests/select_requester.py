@@ -58,14 +58,20 @@ class SelectRequester(Mediator):
             )
 
             response = json.loads(body)
-        except Exception:
+        except Exception as e:
+            if self.project:
+                project = self.project.slug
+            else:
+                project = None
+
             logger.info(
                 'select-requester.error',
                 extra={
                     'sentry_app': self.sentry_app.slug,
                     'install': self.install.uuid,
-                    'project': self.project.slug,
+                    'project': project,
                     'uri': self.uri,
+                    'error_message': e.message,
                 }
             )
             response = {}
@@ -105,8 +111,3 @@ class SelectRequester(Mediator):
     @memoize
     def sentry_app(self):
         return self.install.sentry_app
-
-
-class AsyncSelectRequester(SelectRequester):
-    def _format_response(self, resp):
-        return resp

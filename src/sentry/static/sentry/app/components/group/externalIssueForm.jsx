@@ -245,7 +245,10 @@ class SentryAppExternalIssueForm extends React.Component {
             query: input,
           },
         })
-        .then(data => resolve({options: data}));
+        .then(data => {
+          const options = (data.choices || []).map(([value, label]) => ({value, label}));
+          return resolve({options});
+        });
     },
     200,
     {trailing: true}
