@@ -18,6 +18,8 @@ class MergedList extends React.Component {
     onToggleCollapse: PropTypes.func.isRequired,
     items: PropTypes.arrayOf(SentryTypes.Event),
     pageLinks: PropTypes.string,
+    orgId: PropTypes.string.isRequired,
+    projectId: PropTypes.string.isRequired,
   };
 
   renderEmpty = () => {
@@ -29,7 +31,7 @@ class MergedList extends React.Component {
   };
 
   render() {
-    const {items, pageLinks, onToggleCollapse, onUnmerge} = this.props;
+    const {items, pageLinks, onToggleCollapse, onUnmerge, orgId, projectId} = this.props;
     const itemsWithLatestEvent = items.filter(({latestEvent}) => !!latestEvent);
     const hasResults = itemsWithLatestEvent.length > 0;
 
@@ -44,7 +46,12 @@ class MergedList extends React.Component {
           <QueryCount count={itemsWithLatestEvent.length} />
         </h2>
 
-        <MergedToolbar onToggleCollapse={onToggleCollapse} onUnmerge={onUnmerge} />
+        <MergedToolbar
+          onToggleCollapse={onToggleCollapse}
+          onUnmerge={onUnmerge}
+          orgId={orgId}
+          projectId={projectId}
+        />
 
         <MergedItems>
           {itemsWithLatestEvent.map(({id, latestEvent}) => (

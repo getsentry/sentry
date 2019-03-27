@@ -20,6 +20,8 @@ class EventDetailsEndpoint(Endpoint):
         This endpoint returns the data for a specific event.  The event ID
         is the event as it appears in the Sentry database and not the event
         ID that is reported by the client upon submission.
+
+        This method is deprecated.
         """
         event = Event.objects.from_event_id(event_id, project_id=None)
         if event is None:

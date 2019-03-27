@@ -16,6 +16,8 @@ class IssueDiff extends React.Component {
     targetIssueId: PropTypes.string.isRequired,
     baseEventId: PropTypes.string.isRequired,
     targetEventId: PropTypes.string.isRequired,
+    orgId: PropTypes.string.isRequired,
+    projectId: PropTypes.string.isRequired,
   };
 
   static defaultProps = {
@@ -92,8 +94,10 @@ class IssueDiff extends React.Component {
   }
 
   getEndpoint(issueId, eventId) {
+    const {orgId, projectId} = this.props;
+
     if (eventId !== 'latest') {
-      return `/events/${eventId}/`;
+      return `/projects/${orgId}/${projectId}/events/${eventId}/`;
     }
 
     return `/issues/${issueId}/events/${eventId}/`;

@@ -5,6 +5,8 @@ exports[`IssueDiff can diff message 1`] = `
   api={Client {}}
   baseEventId="latest"
   baseIssueId="base"
+  orgId="org-slug"
+  projectId="project-slug"
   targetEventId="latest"
   targetIssueId="target"
 >
@@ -132,6 +134,8 @@ exports[`IssueDiff can dynamically import SplitDiff 1`] = `
   api={Client {}}
   baseEventId="latest"
   baseIssueId="base"
+  orgId="org-slug"
+  projectId="project-slug"
   targetEventId="latest"
   targetIssueId="target"
 >
