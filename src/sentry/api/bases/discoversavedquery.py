@@ -15,7 +15,7 @@ class DiscoverSavedQuerySerializer(serializers.Serializer):
     )
     start = serializers.DateTimeField(required=False)
     end = serializers.DateTimeField(required=False)
-    range = serializers.CharField(required=False)
+    range = serializers.CharField(required=False, allow_none=True)
     fields = ListField(
         child=serializers.CharField(),
         required=False,
