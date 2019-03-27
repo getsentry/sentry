@@ -34,7 +34,7 @@ from sentry.db.models import (
 )
 from sentry.db.models.manager import EventManager, SnubaEventManager
 from sentry.interfaces.base import get_interfaces
-from sentry.utils import metrics
+from sentry.utils import json, metrics
 from sentry.utils.cache import memoize
 from sentry.utils.canonical import CanonicalKeyDict, CanonicalKeyView
 from sentry.utils.safe import get_path
@@ -291,11 +291,16 @@ class EventCommon(object):
         return dict(self.data.items())
 
     @property
+    def node_size(self):
+        """Estimate how much space this event's data takes on disk."""
+        data_len = self.data._data_size
+        if data_len is not None:
+            return data_len
+        return self.size
+
+    @property
     def size(self):
-        data_len = 0
-        for value in six.itervalues(self.data):
-            data_len += len(repr(value))
-        return data_len
+        return len(json.dumps(self.data.data))
 
     @property
     def transaction(self):
