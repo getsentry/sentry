@@ -175,7 +175,7 @@ def retry_process_event(process_task_name, task_kwargs, **kwargs):
     process_task.delay(**task_kwargs)
 
 
-def _do_process_event(cache_key, start_time, event_id, process_task,
+def _do_process_event(cache_key, start_time, event_id, symbolication_retries, process_task,
                       data=None):
     from sentry.plugins import plugins
 
@@ -219,8 +219,8 @@ def _do_process_event(cache_key, start_time, event_id, process_task,
             has_changed = True
             data = new_data
     except RetrySymbolication as e:
-        if start_time and (time() - start_time) > 3600:
-            raise RuntimeError('Event spent one hour in processing')
+        if symbolication_retries > 20:
+            raise RuntimeError('Symbolication with symbolicator not finished after 20 retries')
 
         retry_process_event.apply_async(
             args=(),
@@ -230,6 +230,7 @@ def _do_process_event(cache_key, start_time, event_id, process_task,
                     'cache_key': cache_key,
                     'event_id': event_id,
                     'start_time': start_time,
+                    'symbolication_retries': (symbolication_retries or 0) + 1
                 }
             },
             countdown=e.retry_after
@@ -272,7 +273,8 @@ def _do_process_event(cache_key, start_time, event_id, process_task,
             from_reprocessing = process_task is process_event_from_reprocessing
             submit_process(project, from_reprocessing, cache_key, event_id, start_time, data)
             process_task.delay(cache_key, start_time=start_time,
-                               event_id=event_id)
+                               event_id=event_id,
+                               symbolication_retries=0)
             return
 
         default_cache.set(cache_key, data, 3600)
@@ -286,9 +288,9 @@ def _do_process_event(cache_key, start_time, event_id, process_task,
     time_limit=65,
     soft_time_limit=60,
 )
-def process_event(cache_key, start_time=None, event_id=None, **kwargs):
+def process_event(cache_key, start_time=None, event_id=None, symbolication_retries=None, **kwargs):
     return _do_process_event(cache_key=cache_key, start_time=start_time,
-                             event_id=event_id, process_task=process_event)
+                             event_id=event_id, symbolication_retries=symbolication_retries, process_task=process_event)
 
 
 @instrumented_task(
@@ -297,9 +299,10 @@ def process_event(cache_key, start_time=None, event_id=None, **kwargs):
     time_limit=65,
     soft_time_limit=60,
 )
-def process_event_from_reprocessing(cache_key, start_time=None, event_id=None, **kwargs):
+def process_event_from_reprocessing(cache_key, start_time=None,
+                                    event_id=None, symbolication_retries=None, **kwargs):
     return _do_process_event(cache_key=cache_key, start_time=start_time,
-                             event_id=event_id,
+                             event_id=event_id, symbolication_retries=symbolication_retries,
                              process_task=process_event_from_reprocessing)
 
 
