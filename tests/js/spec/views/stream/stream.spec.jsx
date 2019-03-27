@@ -227,6 +227,7 @@ describe('Stream', function() {
         setProjectNavSection: function() {},
         params: {orgId: 'org-slug', projectId: 'project-slug', searchId: '789'},
         location: {query: {}, search: ''},
+        tags: {},
       };
       wrapper = shallow(<Stream {...streamProps} />, {
         context,
@@ -242,6 +243,7 @@ describe('Stream', function() {
         setProjectNavSection: function() {},
         params: {orgId: 'org-slug', projectId: 'project-slug', searchId: 'invalid'},
         location: {query: {}, search: ''},
+        tags: {},
       };
       wrapper = shallow(<Stream {...streamProps} />, {
         context,

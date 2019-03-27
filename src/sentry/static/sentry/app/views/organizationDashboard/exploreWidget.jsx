@@ -155,7 +155,7 @@ const QueryName = styled('span')`
 `;
 
 const Chevron = styled(InlineSvg)`
-  ${p => (p.isOpen ? `transform: rotate(90deg);` : '')};
+  ${p => (p.isOpen ? 'transform: rotate(90deg);' : '')};
   margin-left: ${p => (p.isOpen ? space(0.5) : 0)};
   transition: all 0.25s;
 `;

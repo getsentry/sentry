@@ -40,7 +40,9 @@ function CommitLink({inline, commitId, repository}) {
   const shortId = getShortVersion(commitId);
 
   const providerData = SUPPORTED_PROVIDERS.find(provider => {
-    if (!repository.provider) return false;
+    if (!repository.provider) {
+      return false;
+    }
     return provider.providerIds.includes(repository.provider.id);
   });
 

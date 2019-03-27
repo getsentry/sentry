@@ -22,6 +22,7 @@ const SimilarItemPropType = PropTypes.shape({
 
 class SimilarList extends React.Component {
   static propTypes = {
+    orgId: PropTypes.string.isRequired,
     groupId: PropTypes.string.isRequired,
     onMerge: PropTypes.func.isRequired,
     pageLinks: PropTypes.string,
@@ -55,7 +56,7 @@ class SimilarList extends React.Component {
   };
 
   render() {
-    const {groupId, items, filteredItems, pageLinks, onMerge} = this.props;
+    const {orgId, groupId, items, filteredItems, pageLinks, onMerge} = this.props;
     const hasHiddenItems = !!filteredItems.length;
     const hasResults = items.length > 0 || hasHiddenItems;
     const itemsWithFiltered = items.concat(
@@ -79,7 +80,7 @@ class SimilarList extends React.Component {
 
         <div className="similar-list">
           {itemsWithFiltered.map(item => (
-            <SimilarItem key={item.issue.id} groupId={groupId} {...item} />
+            <SimilarItem key={item.issue.id} orgId={orgId} groupId={groupId} {...item} />
           ))}
 
           {hasHiddenItems &&

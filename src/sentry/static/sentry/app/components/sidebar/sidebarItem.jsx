@@ -50,7 +50,9 @@ class SidebarItem extends React.Component {
   handleClick = e => {
     const {id, onClick} = this.props;
 
-    if (typeof onClick !== 'function') return;
+    if (typeof onClick !== 'function') {
+      return;
+    }
 
     onClick(id, e);
   };
@@ -116,7 +118,9 @@ class SidebarItem extends React.Component {
 export default withRouter(SidebarItem);
 
 const getActiveStyle = ({active, theme}) => {
-  if (!active) return '';
+  if (!active) {
+    return '';
+  }
   return css`
     color: ${theme.white};
 
@@ -209,7 +213,9 @@ const SidebarItemLabel = styled('span')`
 `;
 
 const getCollapsedBadgeStyle = ({collapsed, theme}) => {
-  if (!collapsed) return '';
+  if (!collapsed) {
+    return '';
+  }
 
   return css`
     text-indent: -99999em;

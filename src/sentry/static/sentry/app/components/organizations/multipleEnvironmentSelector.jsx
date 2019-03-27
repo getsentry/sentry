@@ -133,7 +133,9 @@ class MultipleEnvironmentSelector extends React.PureComponent {
 
   handleClose = () => {
     // Only update if there are changes
-    if (!this.state.hasChanges) return;
+    if (!this.state.hasChanges) {
+      return;
+    }
 
     analytics('environmentselector.update', {
       count: this.state.selectedEnvs.size,

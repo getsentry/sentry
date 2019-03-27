@@ -1,11 +1,15 @@
 import PropTypes from 'prop-types';
 import React from 'react';
 import styled from 'react-emotion';
+import {Link} from 'react-router';
 
 import {sortArray} from 'app/utils';
 import {t} from 'app/locale';
+import {alertHighlight, pulse} from 'app/styles/animations';
 import Button from 'app/components/button';
+import ConfigStore from 'app/stores/configStore';
 import InlineSvg from 'app/components/inlineSvg';
+import BookmarkStar from 'app/components/bookmarkStar';
 import DropdownAutoComplete from 'app/components/dropdownAutoComplete';
 import GlobalSelectionHeaderRow from 'app/components/globalSelectionHeaderRow';
 import Highlight from 'app/components/highlight';
@@ -13,6 +17,8 @@ import IdBadge from 'app/components/idBadge';
 import SentryTypes from 'app/sentryTypes';
 import space from 'app/styles/space';
 import theme from 'app/utils/theme';
+import Tooltip from 'app/components/tooltip';
+import withProjects from 'app/utils/withProjects';
 
 class ProjectSelector extends React.Component {
   static propTypes = {
@@ -21,6 +27,11 @@ class ProjectSelector extends React.Component {
     projectId: PropTypes.string,
     organization: PropTypes.object.isRequired,
     projects: PropTypes.arrayOf(
+      PropTypes.oneOfType([PropTypes.string, SentryTypes.Project])
+    ),
+
+    // used by multiProjectSelector
+    multiProjects: PropTypes.arrayOf(
       PropTypes.oneOfType([PropTypes.string, SentryTypes.Project])
     ),
 
@@ -74,11 +85,20 @@ class ProjectSelector extends React.Component {
   }
 
   getProjects() {
-    const {organization, projects} = this.props;
-    const projectList =
-      projects || organization.projects.filter(project => project.isMember);
+    const {organization, projects, multiProjects} = this.props;
 
-    return sortArray(projectList, project => {
+    if (multiProjects) {
+      return multiProjects;
+    }
+
+    const {isSuperuser} = ConfigStore.get('user');
+    const unfilteredProjects = projects || organization.projects;
+
+    const filteredProjects = isSuperuser
+      ? unfilteredProjects
+      : unfilteredProjects.filter(project => project.isMember);
+
+    return sortArray(filteredProjects, project => {
       return [!project.isBookmarked, project.name];
     });
   }
@@ -89,7 +109,9 @@ class ProjectSelector extends React.Component {
     const {onMultiSelect} = this.props;
     const {slug} = project;
     // Don't update state if this is a controlled component
-    if (this.isControlled()) return;
+    if (this.isControlled()) {
+      return;
+    }
 
     this.setState(state => {
       const selectedProjects = new Map(state.selectedProjects.entries());
@@ -180,7 +202,7 @@ class ProjectSelector extends React.Component {
         maxHeight={500}
         zIndex={theme.zIndex.dropdown}
         css={{marginTop: 6}}
-        inputProps={{style: {padding: 8, paddingLeft: 14}}}
+        inputProps={{style: {padding: 8, paddingLeft: 10}}}
         rootClassName={rootClassName}
         className={className}
         emptyMessage={t('You have no projects')}
@@ -188,19 +210,20 @@ class ProjectSelector extends React.Component {
         virtualizedHeight={theme.headerSelectorRowHeight}
         emptyHidesInput
         inputActions={() => (
-          <div>
-            <ManageButton to={`/settings/${org.slug}/projects/`} size="xsmall">
-              <StyledSettingsIcon src="icon-settings" />
-              {t('Manage')}
-            </ManageButton>
-          </div>
+          <Tooltip title="Add a project">
+            <AddButton to={`/organizations/${org.slug}/projects/new`} size="xsmall">
+              <StyledAddIcon src="icon-circle-add" /> project
+            </AddButton>
+          </Tooltip>
         )}
         menuFooter={renderProps => {
           const renderedFooter =
             typeof menuFooter === 'function' ? menuFooter(renderProps) : menuFooter;
           const showCreateProjectButton = !hasProjects && hasProjectWrite;
 
-          if (!renderedFooter && !showCreateProjectButton) return null;
+          if (!renderedFooter && !showCreateProjectButton) {
+            return null;
+          }
 
           return (
             <React.Fragment>
@@ -251,12 +274,28 @@ class ProjectSelector extends React.Component {
 
 class ProjectSelectorItem extends React.PureComponent {
   static propTypes = {
-    project: SentryTypes.Project,
+    project: SentryTypes.Project.isRequired,
+    organization: SentryTypes.Organization.isRequired,
     multi: PropTypes.bool,
     inputValue: PropTypes.string,
     isChecked: PropTypes.bool,
     onMultiSelect: PropTypes.func,
   };
+
+  constructor(props) {
+    super(props);
+    this.state = {
+      bookmarkHasChanged: false,
+    };
+  }
+
+  componentWillReceiveProps(nextProps) {
+    if (nextProps.project.isBookmarked !== this.props.project.isBookmarked) {
+      this.setState({
+        bookmarkHasChanged: true,
+      });
+    }
+  }
 
   handleMultiSelect = e => {
     const {project, onMultiSelect} = this.props;
@@ -268,33 +307,58 @@ class ProjectSelectorItem extends React.PureComponent {
     this.handleMultiSelect(e);
   };
 
+  clearAnimation = () => {
+    this.setState({bookmarkHasChanged: false});
+  };
+
   render() {
-    const {project, multi, inputValue, isChecked} = this.props;
+    const {project, multi, inputValue, isChecked, organization} = this.props;
 
     return (
-      <GlobalSelectionHeaderRow
-        checked={isChecked}
-        onCheckClick={this.handleClick}
-        multi={multi}
+      <BadgeAndActionsWrapper
+        bookmarkHasChanged={this.state.bookmarkHasChanged}
+        onAnimationEnd={this.clearAnimation}
       >
-        <BadgeWrapper multi={multi}>
-          <IdBadgeMenuItem
+        <GlobalSelectionHeaderRow
+          checked={isChecked}
+          onCheckClick={this.handleClick}
+          multi={multi}
+        >
+          <BadgeWrapper multi={multi}>
+            <IdBadge
+              project={project}
+              avatarSize={16}
+              displayName={<Highlight text={inputValue}>{project.slug}</Highlight>}
+              avatarProps={{consistentWidth: true}}
+            />
+          </BadgeWrapper>
+          <StyledBookmarkStar
             project={project}
-            avatarSize={16}
-            displayName={<Highlight text={inputValue}>{project.slug}</Highlight>}
-            avatarProps={{consistentWidth: true}}
+            organization={organization}
+            bookmarkHasChanged={this.state.bookmarkHasChanged}
           />
-        </BadgeWrapper>
-        {project.isBookmarked && <BookmarkIcon src="icon-star-small-filled" />}
-      </GlobalSelectionHeaderRow>
+          <SettingsIconLink
+            to={`/settings/${organization.slug}/${project.slug}/`}
+            onClick={e => e.stopPropagation()}
+          >
+            <SettingsIcon src="icon-settings" />
+          </SettingsIconLink>
+        </GlobalSelectionHeaderRow>
+      </BadgeAndActionsWrapper>
     );
   }
 }
 
-const BookmarkIcon = styled(InlineSvg)`
-  margin-left: ${space(0.5)};
-  color: ${p => p.theme.yellowOrange};
-  margin-top: -2px; /* trivial alignment bump */
+const StyledBookmarkStar = styled(BookmarkStar)`
+  padding: ${space(1)} ${space(0.5)};
+  box-sizing: content-box;
+  opacity: ${p => (p.project.isBookmarked ? 1 : 0.33)};
+  transition: 0.5s opacity ease-out;
+  display: block;
+  width: 14px;
+  height: 14px;
+  margin-top: -${space(0.25)}; /* trivial alignment bump */
+  animation: ${p => (p.bookmarkHasChanged ? `0.5s ${pulse(1.4)}` : 'none')};
 `;
 
 const CreateProjectButton = styled(Button)`
@@ -303,39 +367,61 @@ const CreateProjectButton = styled(Button)`
   margin: ${space(0.5)} 0;
 `;
 
-const BadgeWrapper = styled('div')`
-  display: flex;
-  ${p => !p.multi && 'flex: 1'};
-  white-space: nowrap;
-  overflow: hidden;
-`;
-
-const IdBadgeMenuItem = styled(IdBadge)`
-  flex: 1;
-  overflow: hidden;
-`;
-
-const StyledSettingsIcon = styled(InlineSvg)`
-  margin-right: ${space(0.25)};
-`;
-
-const ManageButton = styled(Button)`
+const AddButton = styled(Button)`
   display: block;
-  margin: 0 ${space(2)};
-  box-shadow: none;
-  border: 0;
-  background: ${p => p.theme.offWhite2};
-  color: ${p => p.theme.gray3};
-  transition: 0.2s transform;
+  margin: 0 ${space(1)};
+  color: ${p => p.theme.gray2};
 
-  &:hover,
-  &:active,
-  &:focus {
-    box-shadow: none;
-    border: 0;
-    background: ${p => p.theme.gray1};
-    color: #000;
+  &:hover {
+    color: ${p => p.theme.gray3};
   }
 `;
 
-export default ProjectSelector;
+const BadgeWrapper = styled('div')`
+  display: flex;
+  flex: 1;
+  ${p => !p.multi && 'flex: 1'};
+  white-space: nowrap;
+  overflow: hidden;
+  align-items: space-between;
+`;
+
+const SettingsIconLink = styled(Link)`
+  color: ${p => p.theme.gray2};
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: ${space(1)} ${space(0.25)} ${space(1)} ${space(1)};
+  opacity: 0.33;
+  transition: 0.5s opacity ease-out;
+
+  &:hover {
+    color: ${p => p.theme.gray4};
+  }
+`;
+
+const StyledAddIcon = styled(InlineSvg)`
+  margin-right: ${space(0.5)};
+`;
+
+const SettingsIcon = styled(InlineSvg)`
+  height: 16px;
+  width: 16px;
+`;
+
+const BadgeAndActionsWrapper = styled('div')`
+  animation: ${p => (p.bookmarkHasChanged ? `1s ${alertHighlight('info')}` : 'none')};
+  z-index: ${p => (p.bookmarkHasChanged ? 1 : 'inherit')};
+  position: relative;
+  border-style: solid;
+  border-width: 1px 0;
+  border-color: transparent;
+  margin: 1px -10px;
+  padding: 0 10px;
+
+  &:hover ${StyledBookmarkStar}, &:hover ${SettingsIconLink} {
+    opacity: 1;
+  }
+`;
+
+export default withProjects(ProjectSelector);

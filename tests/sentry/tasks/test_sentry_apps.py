@@ -13,6 +13,7 @@ from sentry.testutils.helpers.faux import faux
 from sentry.utils.http import absolute_uri
 from sentry.receivers.sentry_apps import *  # NOQA
 from sentry.utils import json
+from sentry.tasks.post_process import post_process_group
 from sentry.tasks.sentry_apps import (
     send_alert_event,
     notify_sentry_app,
@@ -172,8 +173,17 @@ class TestProcessResourceChange(TestCase):
         )
 
     def test_group_created_sends_webhook(self, safe_urlopen):
+        issue = self.create_group(project=self.project)
+        event = self.create_event(group=issue)
+
         with self.tasks():
-            issue = self.create_group(project=self.project)
+            post_process_group(
+                event=event,
+                is_new=True,
+                is_regression=False,
+                is_sample=False,
+                is_new_group_environment=False,
+            )
 
         data = json.loads(faux(safe_urlopen).kwargs['data'])
 

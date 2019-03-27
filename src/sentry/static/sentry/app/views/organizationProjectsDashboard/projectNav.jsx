@@ -39,7 +39,9 @@ const ProjectNav = createReactClass({
           openCreateTeamModal({
             organization: org,
             onClose: data => {
-              if (!data) return;
+              if (!data) {
+                return;
+              }
 
               browserHistory.push(`/settings/${org.slug}/teams/${data.slug}/members/`);
             },

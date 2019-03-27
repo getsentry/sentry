@@ -40,13 +40,17 @@ const withPlugins = WrappedComponent =>
       //
       // This is for the unusual case where component is mounted and receives a new org/project prop
       // e.g. when switching projects via breadcrumbs in settings.
-      if (!defined(prevProject) || !defined(prevOrg)) return;
+      if (!defined(prevProject) || !defined(prevOrg)) {
+        return;
+      }
 
       const isOrgSame = prevOrg.slug === organization.slug;
       const isProjectSame = prevProject.slug === project.slug;
 
       // Don't do anything if org and project are the same
-      if (isOrgSame && isProjectSame) return;
+      if (isOrgSame && isProjectSame) {
+        return;
+      }
 
       this.fetchPlugins();
     },
@@ -55,7 +59,9 @@ const withPlugins = WrappedComponent =>
       const organization = this.props.organization || this.getOrganization();
       const project = this.props.project || this.getProject();
 
-      if (!project || !organization) return;
+      if (!project || !organization) {
+        return;
+      }
 
       fetchPlugins({projectId: project.slug, orgId: organization.slug});
     },

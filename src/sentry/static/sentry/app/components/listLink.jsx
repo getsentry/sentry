@@ -39,9 +39,13 @@ class ListLink extends React.Component {
   getClassName = () => {
     const _classNames = {};
 
-    if (this.props.className) _classNames[this.props.className] = true;
+    if (this.props.className) {
+      _classNames[this.props.className] = true;
+    }
 
-    if (this.isActive()) _classNames[this.props.activeClassName] = true;
+    if (this.isActive()) {
+      _classNames[this.props.activeClassName] = true;
+    }
 
     return classNames(_classNames);
   };

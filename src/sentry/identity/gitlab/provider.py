@@ -8,7 +8,7 @@ from sentry.http import safe_urlopen, safe_urlread
 from sentry.identity.oauth2 import OAuth2Provider
 from sentry.utils import json
 
-logger = logging.getLogger('sentry.integrations.gitlab')
+logger = logging.getLogger('sentry.integration.gitlab')
 
 
 def get_oauth_data(payload):

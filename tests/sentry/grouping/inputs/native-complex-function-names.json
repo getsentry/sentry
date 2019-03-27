@@ -23,7 +23,11 @@
           ]
         },
         "type": "log_demo",
-        "value": "Holy shit everything is on fire!"
+        "value": "Holy shit everything is on fire!",
+        "mechanism": {
+          "type": "minidump",
+          "synthetic": true
+        }
       }
     ]
   },

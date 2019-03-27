@@ -26,7 +26,9 @@ class PieChart extends React.Component {
   componentDidMount() {
     const {selectOnRender} = this.props;
 
-    if (!selectOnRender) return;
+    if (!selectOnRender) {
+      return;
+    }
 
     // Timeout is because we need to wait for rendering animation to complete
     // And I haven't found a callback for this
@@ -48,7 +50,9 @@ class PieChart extends React.Component {
   // Select a series to highlight (e.g. shows details of series)
   // This is the same event as when you hover over a series in the chart
   highlight = dataIndex => {
-    if (!this.chart.current) return;
+    if (!this.chart.current) {
+      return;
+    }
 
     this.chart.current.getEchartsInstance().dispatchAction({
       type: 'highlight',
@@ -59,7 +63,9 @@ class PieChart extends React.Component {
 
   // Opposite of `highlight`
   downplay = dataIndex => {
-    if (!this.chart.current) return;
+    if (!this.chart.current) {
+      return;
+    }
 
     this.chart.current.getEchartsInstance().dispatchAction({
       type: 'downplay',
@@ -84,7 +90,9 @@ class PieChart extends React.Component {
 
   render() {
     const {series, ...props} = this.props;
-    if (!series || !series.length) return null;
+    if (!series || !series.length) {
+      return null;
+    }
     if (series.length > 1) {
       // eslint-disable-next-line no-console
       console.warn('PieChart only uses the first series!');
@@ -109,8 +117,9 @@ class PieChart extends React.Component {
             !this.isInitialSelected ||
             !name ||
             firstSeries.data[this.selected].name === name
-          )
+          ) {
             return;
+          }
 
           // Unhighlight if not initial "highlight" event and
           // if name exists (i.e. not dispatched from cDM) and
@@ -119,8 +128,12 @@ class PieChart extends React.Component {
           this.isInitialSelected = false;
         }}
         onMouseOver={({dataIndex}) => {
-          if (!this.isInitialSelected) return;
-          if (dataIndex === this.selected) return;
+          if (!this.isInitialSelected) {
+            return;
+          }
+          if (dataIndex === this.selected) {
+            return;
+          }
           this.downplay(this.selected);
           this.isInitialSelected = false;
         }}

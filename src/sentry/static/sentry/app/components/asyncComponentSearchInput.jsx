@@ -83,7 +83,9 @@ class AsyncComponentSearchInput extends React.Component {
       });
     }
 
-    if (typeof onSearchSubmit !== 'function') return;
+    if (typeof onSearchSubmit !== 'function') {
+      return;
+    }
     onSearchSubmit(this.state.query, evt);
   };
 

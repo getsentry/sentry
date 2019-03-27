@@ -72,7 +72,9 @@ export default class SelectField extends FormField {
   // This is also needed to get `multi` select working since we need the {label, value} object
   // for react-select (but forms expect just the value to be propagated)
   coerceValue(value) {
-    if (!value) return '';
+    if (!value) {
+      return '';
+    }
 
     if (this.isMultiple()) {
       return value.map(v => v.value);

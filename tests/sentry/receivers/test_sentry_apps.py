@@ -3,25 +3,8 @@ from __future__ import absolute_import
 from mock import patch
 
 from sentry.models import Commit, GroupAssignee, GroupLink, Repository, Release
-from sentry.testutils import APITestCase, TestCase
+from sentry.testutils import APITestCase
 from sentry.testutils.helpers.faux import faux
-
-
-@patch('sentry.tasks.sentry_apps.process_resource_change_bound.delay')
-class TestIssueSaved(TestCase):
-    def test_processes_created_issues(self, delay):
-        issue = self.create_group()
-        assert faux(delay).called_with(
-            action='created',
-            sender='Group',
-            instance_id=issue.id,
-        )
-
-    def test_does_not_process_unless_created(self, delay):
-        issue = self.create_group()
-        delay.reset_mock()
-        issue.update(message='Stuff blew up')
-        assert len(delay.mock_calls) == 0
 
 
 # This testcase needs to be an APITestCase because all of the logic to resolve

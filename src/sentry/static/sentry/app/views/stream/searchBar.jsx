@@ -1,9 +1,9 @@
 import PropTypes from 'prop-types';
 import React from 'react';
 
+import {RECENT_SEARCH_TYPES} from 'app/constants';
 import {t} from 'app/locale';
 import SmartSearchBar from 'app/components/smartSearchBar';
-import withApi from 'app/utils/withApi';
 
 const SEARCH_ITEMS = [
   {
@@ -50,10 +50,9 @@ const SEARCH_ITEMS = [
 
 class SearchBar extends React.Component {
   static propTypes = {
-    api: PropTypes.object,
-    orgId: PropTypes.string.isRequired,
+    ...SmartSearchBar.propTypes,
+
     tagValueLoader: PropTypes.func.isRequired,
-    supportedTags: PropTypes.object.isRequired,
   };
 
   /**
@@ -72,15 +71,21 @@ class SearchBar extends React.Component {
   };
 
   render() {
+    const {
+      tagValueLoader, // eslint-disable-line no-unused-vars
+      ...props
+    } = this.props;
+
     return (
       <SmartSearchBar
         onGetTagValues={this.getTagValues}
         defaultSearchItems={SEARCH_ITEMS}
         maxSearchItems={5}
-        {...this.props}
+        recentSearchType={RECENT_SEARCH_TYPES.ISSUE}
+        {...props}
       />
     );
   }
 }
 
-export default withApi(SearchBar);
+export default SearchBar;

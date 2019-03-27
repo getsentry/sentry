@@ -73,8 +73,11 @@ class Form extends React.Component {
     let newData = {};
     if (data) {
       Object.keys(curData).forEach(k => {
-        if (data.hasOwnProperty(k)) newData[k] = data[k];
-        else newData[k] = curData[k];
+        if (data.hasOwnProperty(k)) {
+          newData[k] = data[k];
+        } else {
+          newData[k] = curData[k];
+        }
       });
     } else {
       newData = curData;

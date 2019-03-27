@@ -18,6 +18,8 @@ const MergedToolbar = createReactClass({
   displayName: 'MergedToolbar',
 
   propTypes: {
+    orgId: PropTypes.string.isRequired,
+    projectId: PropTypes.string.isRequired,
     groupId: PropTypes.string,
     onUnmerge: PropTypes.func,
     onToggleCollapse: PropTypes.func,
@@ -53,11 +55,13 @@ const MergedToolbar = createReactClass({
   },
 
   handleShowDiff(e) {
-    const {groupId} = this.props;
+    const {groupId, projectId, orgId} = this.props;
     const entries = this.state.unmergeList.entries();
 
     // `unmergeList` should only have 2 items in map
-    if (this.state.unmergeList.size !== 2) return;
+    if (this.state.unmergeList.size !== 2) {
+      return;
+    }
 
     // only need eventId, not fingerprint
     const [baseEventId, targetEventId] = Array.from(entries).map(
@@ -69,6 +73,8 @@ const MergedToolbar = createReactClass({
       targetIssueId: groupId,
       baseEventId,
       targetEventId,
+      orgId,
+      projectId,
     });
 
     e.stopPropagation();

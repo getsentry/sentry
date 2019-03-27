@@ -1,7 +1,6 @@
 from __future__ import absolute_import
 import os
 import zipfile
-import uuid
 
 from six import BytesIO
 from django.core.urlresolvers import reverse
@@ -11,6 +10,9 @@ from sentry.testutils import TestCase
 from sentry.lang.native.minidump import MINIDUMP_ATTACHMENT_TYPE
 from sentry.lang.native.unreal import process_unreal_crash, unreal_attachment_type, merge_unreal_context_event, merge_unreal_logs_event, merge_apple_crash_report
 from sentry.models import Event, EventAttachment, UserReport
+
+
+MOCK_EVENT_ID = '12852a74acc943a790c8f1cd23907caa'
 
 
 def get_unreal_crash_file():
@@ -47,26 +49,22 @@ class MockFile(TestCase):
 class UnrealIntegrationTest(TestCase):
     def test_merge_unreal_context_event(self):
         with open(get_unreal_crash_file(), 'rb') as f:
-            event = {}
-            unreal_crash = process_unreal_crash(
-                f.read(),
-                'ebff51ef3c4878627823eebd9ff40eb4|2e7d369327054a448be6c8d3601213cb|C52DC39D-DAF3-5E36-A8D3-BF5F53A5D38F',
-                'Production',
-                event)
+            event = {'event_id': MOCK_EVENT_ID}
+            user_id = 'ebff51ef3c4878627823eebd9ff40eb4|2e7d369327054a448be6c8d3601213cb|C52DC39D-DAF3-5E36-A8D3-BF5F53A5D38F'
+            unreal_crash = process_unreal_crash(f.read(), user_id, 'Production', event)
             merge_unreal_context_event(unreal_crash.get_context(), event, self.project)
-            assert event['environment'] == 'Production'
-            assert event['tags']['machine_id'] == 'C52DC39D-DAF3-5E36-A8D3-BF5F53A5D38F'
-            assert event['tags']['epic_account_id'] == '2e7d369327054a448be6c8d3601213cb'
-            assert event['user']['id'] == 'ebff51ef3c4878627823eebd9ff40eb4'
-            assert event['message'] == 'Access violation - code c0000005 (first/second chance not available)'
-            assert event['user']['username'] == 'bruno'
-            assert event['contexts']['device']['memory_size'] == 6896832512
-            assert event['contexts']['os']['name'] == 'Windows 10'
-            assert event['contexts']['gpu']['name'] == 'Parallels Display Adapter (WDDM)'
-            assert len(event['stacktrace']['frames']) == 20
-            assert 'ntdll' == event['stacktrace']['frames'][0]['package']
-            assert 'YetAnother' == event['stacktrace']['frames'][2]['package']
-            assert 'YetAnother' == event['stacktrace']['frames'][2]['package']
+            self.insta_snapshot(event)
+
+    def test_merge_unreal_context_event_pcallstack_no_threads(self):
+        event = {}
+        unreal_context = {
+            'runtime_properties': {
+                'portable_call_stack': '0x00000000fc440000 + ffffffff PackageA 0x000000003fb70000 + e23831 PackageA 0x000000003fb70000 + 495d7b PackageA 0x000000003fb70000 + 1cbb89',
+                'threads': [],
+            }
+        }
+        merge_unreal_context_event(unreal_context, event, self.project)
+        assert event.get('threads') is None
 
     def test_merge_unreal_context_event_without_user(self):
         expected_message = 'user comments'
@@ -75,11 +73,11 @@ class UnrealIntegrationTest(TestCase):
                 'user_description': expected_message
             }
         }
-        event = {}
+        event = {'event_id': MOCK_EVENT_ID}
         merge_unreal_context_event(context, event, self.project)
 
         user_report = UserReport.objects.get(
-            event_id=event['event_id'],
+            event_id=MOCK_EVENT_ID,
             project=self.project,
         )
         assert user_report.comments == expected_message
@@ -95,7 +93,7 @@ class UnrealIntegrationTest(TestCase):
                 'user_description': expected_message
             }
         }
-        event = {}
+        event = {'event_id': MOCK_EVENT_ID}
         merge_unreal_context_event(context, event, self.project)
 
         user_report = UserReport.objects.get(
@@ -113,13 +111,11 @@ class UnrealIntegrationTest(TestCase):
                 'username': expected_username,
             }
         }
-        event = {
-            'event_id': uuid.uuid4().hex
-        }
+        event = {'event_id': MOCK_EVENT_ID}
         merge_unreal_context_event(context, event, self.project)
         try:
             user_report = UserReport.objects.get(
-                event_id=event['event_id'],
+                event_id=MOCK_EVENT_ID,
                 project=self.project,
             )
         except UserReport.DoesNotExist:
@@ -130,7 +126,7 @@ class UnrealIntegrationTest(TestCase):
 
     def test_merge_unreal_logs_event(self):
         with open(get_unreal_crash_file(), 'rb') as f:
-            event = {}
+            event = {'event_id': MOCK_EVENT_ID}
             unreal_crash = process_unreal_crash(f.read(), None, None, event)
             merge_unreal_logs_event(unreal_crash.get_logs(), event)
             breadcrumbs = event['breadcrumbs']['values']
@@ -144,27 +140,10 @@ class UnrealIntegrationTest(TestCase):
 
     def test_merge_apple_crash_report(self):
         with open(get_unreal_crash_apple_file(), 'rb') as f:
-            event = {}
+            event = {'event_id': MOCK_EVENT_ID}
             unreal_crash = process_unreal_crash(f.read(), None, None, event)
             merge_apple_crash_report(unreal_crash.get_apple_crash_report(), event)
-            assert event['platform'] == 'native'
-            assert event['timestamp'] == '2019-01-09T17:44:22Z'
-            assert event['level'] == 'fatal'
-            assert event['contexts']['os']['raw_description'] == 'Mac OS X 10.14.0 (18A391)'
-            assert event['contexts']['device']['model'] == 'MacBookPro14,3'
-            assert len(event['threads']) == 55
-            assert event['threads'][5]['crashed']
-            assert event['threads'][5]['id'] == 5
-            assert event['threads'][5]['stacktrace']['frames'][0]['instruction_addr'] == '0x7fff61c7f425'
-            assert event['threads'][5]['stacktrace']['frames'][0]['package'] == 'libsystem_pthread.dylib'
-            assert event['threads'][5]['stacktrace']['registers']['r14'] == '0x1'
-            assert len(event['debug_meta']['images']) == 272
-            assert event['debug_meta']['images'][0]['type'] == 'symbolic'
-            assert event['debug_meta']['images'][0]['id'] == '2d903291-397d-3d14-bfca-52c7fb8c5e00'
-            assert event['debug_meta']['images'][0]['image_addr'] == '0x10864e000'
-            assert event['debug_meta']['images'][0]['image_size'] == 108797951
-            assert event['debug_meta']['images'][0]['arch'] == 'x86_64'
-            assert event['debug_meta']['images'][0]['name'] == '/Users/bruno/Documents/Unreal Projects/YetAnotherMac/MacNoEditor/YetAnotherMac.app/Contents/MacOS/YetAnotherMac'
+            self.insta_snapshot(event)
 
     def upload_symbols(self):
         url = reverse(

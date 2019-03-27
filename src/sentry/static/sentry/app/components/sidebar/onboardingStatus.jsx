@@ -35,8 +35,12 @@ class OnboardingStatus extends React.Component {
 
   render() {
     const {collapsed, org, currentPanel, hidePanel, showPanel, onShowPanel} = this.props;
-    if (typeof org.features === 'undefined' || org.features.indexOf('onboarding') === -1)
+    if (
+      typeof org.features === 'undefined' ||
+      org.features.indexOf('onboarding') === -1
+    ) {
       return null;
+    }
 
     const doneTasks = (org.onboardingTasks || []).filter(
       task => task.status === 'complete' || task.status === 'skipped'

@@ -46,7 +46,9 @@ const ProjectDetailsLayout = createReactClass({
   },
 
   render() {
-    if (!this.context.project) return null;
+    if (!this.context.project) {
+      return null;
+    }
 
     return (
       <React.Fragment>

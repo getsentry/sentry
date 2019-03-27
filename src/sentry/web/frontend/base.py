@@ -248,7 +248,7 @@ class BaseView(View, OrganizationMixin):
             redirect_to = reverse('sentry-auth-organization', args=[kwargs['organization_slug']])
         else:
             redirect_to = auth.get_login_url()
-        return self.redirect(redirect_to)
+        return self.redirect(redirect_to, headers={'X-Robots-Tag': 'noindex, nofollow'})
 
     def is_sudo_required(self, request, *args, **kwargs):
         return self.sudo_required and not request.is_sudo()
@@ -284,8 +284,12 @@ class BaseView(View, OrganizationMixin):
 
         return render_to_response(template, default_context, self.request, status=status)
 
-    def redirect(self, url):
-        return HttpResponseRedirect(url)
+    def redirect(self, url, headers=None):
+        res = HttpResponseRedirect(url)
+        if headers:
+            for k, v in headers.items():
+                res[k] = v
+        return res
 
     def get_team_list(self, user, organization):
         return Team.objects.get_for_user(

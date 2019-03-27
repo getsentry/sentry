@@ -20,7 +20,6 @@ import {
   updateParamsWithoutHistory,
   updateProjects,
 } from 'app/actionCreators/globalSelection';
-import AlertActions from 'app/actions/alertActions';
 import BackToIssues from 'app/components/organizations/backToIssues';
 import Header from 'app/components/organizations/header';
 import HeaderItemPosition from 'app/components/organizations/headerItemPosition';
@@ -33,6 +32,7 @@ import TimeRangeSelector from 'app/components/organizations/timeRangeSelector';
 import Tooltip from 'app/components/tooltip';
 import withGlobalSelection from 'app/utils/withGlobalSelection';
 import ConfigStore from 'app/stores/configStore';
+import withProjects from 'app/utils/withProjects';
 import {getStateFromQuery} from './utils';
 
 class GlobalSelectionHeader extends React.Component {
@@ -102,20 +102,6 @@ class GlobalSelectionHeader extends React.Component {
     if (this.props.hasCustomRouting) {
       return;
     }
-
-    const hasSentry10 = new Set(this.props.organization.features).has('sentry10');
-
-    if (hasSentry10)
-      AlertActions.addAlert({
-        message:
-          'Hi! You are seeing some new changes to Sentry which we are rolling out. Click to read more.',
-        type: 'info',
-        url:
-          'https://forum.sentry.io/t/new-product-changes-now-available-for-preview/5805',
-        neverExpire: true,
-        noDuplicates: true,
-        id: 'visibility-changes-alert-message',
-      });
 
     const hasMultipleProjectFeature = this.hasMultipleProjectSelection();
 
@@ -195,6 +181,18 @@ class GlobalSelectionHeader extends React.Component {
       !isEqualWithDates(
         pick(this.props.selection.datetime, DATE_TIME_KEYS),
         pick(nextProps.selection.datetime, DATE_TIME_KEYS)
+      )
+    ) {
+      return true;
+    }
+
+    //update if any projects are starred or reordered
+    if (
+      this.props.projects &&
+      nextProps.projects &&
+      !isEqual(
+        this.props.projects.map(p => [p.slug, p.isBookmarked]),
+        nextProps.projects.map(p => [p.slug, p.isBookmarked])
       )
     ) {
       return true;
@@ -307,15 +305,14 @@ class GlobalSelectionHeader extends React.Component {
 
   getProjects = () => {
     const {isSuperuser} = ConfigStore.get('user');
+    const {projects, organization} = this.props;
+    const unfilteredProjects = projects || organization.projects;
 
     if (isSuperuser) {
-      return this.props.projects || this.props.organization.projects;
+      return unfilteredProjects;
     }
 
-    return (
-      this.props.projects ||
-      this.props.organization.projects.filter(project => project.isMember)
-    );
+    return unfilteredProjects.filter(project => project.isMember);
   };
 
   getFirstProject = () => {
@@ -412,7 +409,7 @@ class GlobalSelectionHeader extends React.Component {
   }
 }
 
-export default withRouter(withGlobalSelection(GlobalSelectionHeader));
+export default withProjects(withRouter(withGlobalSelection(GlobalSelectionHeader)));
 
 const BackButtonWrapper = styled('div')`
   display: flex;

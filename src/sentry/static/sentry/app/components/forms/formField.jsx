@@ -133,8 +133,12 @@ export default class FormField extends React.PureComponent {
 
   renderDisabledReason() {
     const {disabled, disabledReason} = this.props;
-    if (!disabled) return null;
-    if (!disabledReason) return null;
+    if (!disabled) {
+      return null;
+    }
+    if (!disabledReason) {
+      return null;
+    }
     return (
       <span className="disabled-indicator tip" title={disabledReason}>
         <StyledInlineSvg src="icon-circle-question" size="18px" />

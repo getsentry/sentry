@@ -21,6 +21,12 @@ def single_exception_v1(exception, config, **meta):
         values=[exception.type] if exception.type else [],
     )
 
+    if exception.mechanism and exception.mechanism.synthetic:
+        type_component.update(
+            contributes=False,
+            hint='ignored because exception is synthetic'
+        )
+
     return GroupingComponent(
         id='exception',
         values=[

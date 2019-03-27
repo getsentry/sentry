@@ -1,7 +1,7 @@
 // Jest Snapshot v1, https://goo.gl/fbAQLP
 
 exports[`ProjectSavedSearches renders 1`] = `
-<ProjectSavedSearches
+<ProjectSavedSearchContainer
   params={
     Object {
       "orgId": "org-slug",
@@ -9,480 +9,465 @@ exports[`ProjectSavedSearches renders 1`] = `
     }
   }
 >
-  <SideEffect(DocumentTitle)
-    title="Saved Searches - Sentry"
+  <ProjectSavedSearches
+    params={
+      Object {
+        "orgId": "org-slug",
+        "projectId": "project-slug",
+      }
+    }
   >
-    <DocumentTitle
+    <SideEffect(DocumentTitle)
       title="Saved Searches - Sentry"
     >
-      <div>
-        <SettingsPageHeading
-          noTitleStyles={false}
-          title="Saved Searches"
-        >
-          <Wrapper>
-            <div
-              className="css-1r5ylk7-Wrapper e1kblvez2"
-            >
-              <Flex
-                align="center"
-              >
-                <Base
-                  align="center"
-                  className="css-5ipae5"
-                >
-                  <div
-                    className="css-5ipae5"
-                    is={null}
-                  >
-                    <Title
-                      styled={false}
-                    >
-                      <Base
-                        className="css-1ky52ze-Title e1kblvez0"
-                      >
-                        <div
-                          className="css-1ky52ze-Title e1kblvez0"
-                          is={null}
-                        >
-                          <HeaderTitle>
-                            <h4
-                              className="css-1w8ttcn-HeaderTitle e6lvex72"
-                            >
-                              Saved Searches
-                            </h4>
-                          </HeaderTitle>
-                        </div>
-                      </Base>
-                    </Title>
-                  </div>
-                </Base>
-              </Flex>
-            </div>
-          </Wrapper>
-        </SettingsPageHeading>
-        <Panel>
-          <Component
-            className="css-yahxlu-Panel e1laxa7d0"
+      <DocumentTitle
+        title="Saved Searches - Sentry"
+      >
+        <div>
+          <SettingsPageHeading
+            noTitleStyles={false}
+            title="Saved Searches"
           >
-            <div
+            <Wrapper>
+              <div
+                className="css-1r5ylk7-Wrapper e1kblvez2"
+              >
+                <Flex
+                  align="center"
+                >
+                  <Base
+                    align="center"
+                    className="css-5ipae5"
+                  >
+                    <div
+                      className="css-5ipae5"
+                      is={null}
+                    >
+                      <Title
+                        styled={false}
+                      >
+                        <Base
+                          className="css-1ky52ze-Title e1kblvez0"
+                        >
+                          <div
+                            className="css-1ky52ze-Title e1kblvez0"
+                            is={null}
+                          >
+                            <HeaderTitle>
+                              <h4
+                                className="css-1w8ttcn-HeaderTitle e6lvex72"
+                              >
+                                Saved Searches
+                              </h4>
+                            </HeaderTitle>
+                          </div>
+                        </Base>
+                      </Title>
+                    </div>
+                  </Base>
+                </Flex>
+              </div>
+            </Wrapper>
+          </SettingsPageHeading>
+          <Panel>
+            <Component
               className="css-yahxlu-Panel e1laxa7d0"
             >
-              <PanelHeader
-                disablePadding={true}
+              <div
+                className="css-yahxlu-Panel e1laxa7d0"
               >
-                <Component
-                  className="css-18sl05e-PanelHeader-getPadding e1p8v8nv0"
+                <PanelHeader
                   disablePadding={true}
                 >
-                  <Flex
-                    align="center"
+                  <Component
                     className="css-18sl05e-PanelHeader-getPadding e1p8v8nv0"
-                    justify="space-between"
+                    disablePadding={true}
                   >
-                    <Base
+                    <Flex
                       align="center"
-                      className="e1p8v8nv0 css-1egsr5k-PanelHeader-getPadding"
+                      className="css-18sl05e-PanelHeader-getPadding e1p8v8nv0"
                       justify="space-between"
                     >
-                      <div
+                      <Base
+                        align="center"
                         className="e1p8v8nv0 css-1egsr5k-PanelHeader-getPadding"
-                        is={null}
+                        justify="space-between"
                       >
-                        <Flex
-                          flex="1"
+                        <div
+                          className="e1p8v8nv0 css-1egsr5k-PanelHeader-getPadding"
+                          is={null}
                         >
-                          <Base
-                            className="css-z8nhq7"
+                          <Flex
                             flex="1"
                           >
-                            <div
+                            <Base
                               className="css-z8nhq7"
-                              is={null}
+                              flex="1"
                             >
-                              <Flex
-                                flex="1"
-                                px={2}
+                              <div
+                                className="css-z8nhq7"
+                                is={null}
                               >
-                                <Base
-                                  className="css-1i4q2rt"
+                                <Flex
                                   flex="1"
                                   px={2}
                                 >
-                                  <div
+                                  <Base
                                     className="css-1i4q2rt"
-                                    is={null}
+                                    flex="1"
+                                    px={2}
                                   >
-                                    Search
-                                  </div>
-                                </Base>
-                              </Flex>
-                              <Flex
-                                flex="1"
-                              >
-                                <Base
-                                  className="css-z8nhq7"
+                                    <div
+                                      className="css-1i4q2rt"
+                                      is={null}
+                                    >
+                                      Search
+                                    </div>
+                                  </Base>
+                                </Flex>
+                                <Flex
                                   flex="1"
                                 >
-                                  <div
+                                  <Base
                                     className="css-z8nhq7"
-                                    is={null}
+                                    flex="1"
                                   >
-                                    <InputColumn>
-                                      <Flex
-                                        flex="1"
-                                        justify="center"
-                                      >
-                                        <Base
-                                          className="css-k3hlac"
+                                    <div
+                                      className="css-z8nhq7"
+                                      is={null}
+                                    >
+                                      <InputColumn>
+                                        <Flex
                                           flex="1"
                                           justify="center"
                                         >
-                                          <div
+                                          <Base
                                             className="css-k3hlac"
-                                            is={null}
+                                            flex="1"
+                                            justify="center"
                                           >
-                                            My Default
-                                          </div>
-                                        </Base>
-                                      </Flex>
-                                    </InputColumn>
-                                    <InputColumn>
-                                      <Flex
-                                        flex="1"
-                                        justify="center"
-                                      >
-                                        <Base
-                                          className="css-k3hlac"
+                                            <div
+                                              className="css-k3hlac"
+                                              is={null}
+                                            >
+                                              My Default
+                                            </div>
+                                          </Base>
+                                        </Flex>
+                                      </InputColumn>
+                                      <InputColumn>
+                                        <Flex
                                           flex="1"
                                           justify="center"
                                         >
-                                          <div
+                                          <Base
                                             className="css-k3hlac"
-                                            is={null}
+                                            flex="1"
+                                            justify="center"
                                           >
-                                            Team Default
-                                          </div>
-                                        </Base>
-                                      </Flex>
-                                    </InputColumn>
-                                    <InputColumn>
-                                      <Flex
-                                        flex="1"
-                                        justify="center"
-                                      >
-                                        <Base
-                                          className="css-k3hlac"
+                                            <div
+                                              className="css-k3hlac"
+                                              is={null}
+                                            >
+                                              Team Default
+                                            </div>
+                                          </Base>
+                                        </Flex>
+                                      </InputColumn>
+                                      <InputColumn>
+                                        <Flex
                                           flex="1"
                                           justify="center"
                                         >
-                                          <div
+                                          <Base
                                             className="css-k3hlac"
-                                            is={null}
+                                            flex="1"
+                                            justify="center"
                                           >
-                                            Remove
-                                          </div>
-                                        </Base>
-                                      </Flex>
-                                    </InputColumn>
-                                  </div>
-                                </Base>
-                              </Flex>
-                            </div>
-                          </Base>
-                        </Flex>
-                      </div>
-                    </Base>
-                  </Flex>
-                </Component>
-              </PanelHeader>
-              <PanelBody
-                direction="column"
-                disablePadding={true}
-                flex={false}
-              >
-                <div
-                  className="css-9vq8an-textStyles"
+                                            <div
+                                              className="css-k3hlac"
+                                              is={null}
+                                            >
+                                              Remove
+                                            </div>
+                                          </Base>
+                                        </Flex>
+                                      </InputColumn>
+                                    </div>
+                                  </Base>
+                                </Flex>
+                              </div>
+                            </Base>
+                          </Flex>
+                        </div>
+                      </Base>
+                    </Flex>
+                  </Component>
+                </PanelHeader>
+                <PanelBody
+                  direction="column"
+                  disablePadding={true}
+                  flex={false}
                 >
-                  <SavedSearchRow
-                    access={
-                      Set {
-                        "org:read",
-                        "org:write",
-                        "org:admin",
-                        "org:integrations",
-                        "project:read",
-                        "project:write",
-                        "project:admin",
-                        "team:read",
-                        "team:write",
-                        "team:admin",
-                      }
-                    }
-                    canModify={true}
-                    data={
-                      Object {
-                        "dateCreated": "2017-11-14T02:22:58.026Z",
-                        "id": "2",
-                        "isDefault": true,
-                        "isPrivate": false,
-                        "isUserDefault": false,
-                        "name": "Needs Triage",
-                        "query": "is:unresolved is:unassigned",
-                      }
-                    }
-                    key="2"
-                    onDefault={[Function]}
-                    onRemove={[Function]}
-                    onUserDefault={[Function]}
-                    orgId="org-slug"
-                    projectId="project-slug"
+                  <div
+                    className="css-9vq8an-textStyles"
                   >
-                    <PanelItem
-                      align="center"
-                      p={0}
-                      py={2}
+                    <SavedSearchRow
+                      access={
+                        Set {
+                          "org:read",
+                          "org:write",
+                          "org:admin",
+                          "org:integrations",
+                          "project:read",
+                          "project:write",
+                          "project:admin",
+                          "team:read",
+                          "team:write",
+                          "team:admin",
+                        }
+                      }
+                      canModify={true}
+                      data={
+                        Object {
+                          "dateCreated": "2017-11-14T02:22:58.026Z",
+                          "id": "2",
+                          "isDefault": true,
+                          "isPrivate": false,
+                          "isUserDefault": false,
+                          "name": "Needs Triage",
+                          "query": "is:unresolved is:unassigned",
+                        }
+                      }
+                      key="2"
+                      onDefault={[Function]}
+                      onRemove={[Function]}
+                      onUserDefault={[Function]}
+                      orgId="org-slug"
+                      projectId="project-slug"
                     >
-                      <Base
+                      <PanelItem
                         align="center"
-                        className="css-16d6l3f-PanelItem eo8n7lk0"
                         p={0}
                         py={2}
                       >
-                        <div
+                        <Base
+                          align="center"
                           className="css-16d6l3f-PanelItem eo8n7lk0"
-                          is={null}
+                          p={0}
+                          py={2}
                         >
-                          <Flex
-                            direction="column"
-                            flex="1"
-                            px={2}
+                          <div
+                            className="css-16d6l3f-PanelItem eo8n7lk0"
+                            is={null}
                           >
-                            <Base
-                              className="css-16auc1r"
+                            <Flex
                               direction="column"
                               flex="1"
                               px={2}
                             >
-                              <div
+                              <Base
                                 className="css-16auc1r"
-                                is={null}
+                                direction="column"
+                                flex="1"
+                                px={2}
                               >
-                                <SearchTitle>
-                                  <div
-                                    className="css-225nrx-SearchTitle e1e9fsi50"
-                                  >
-                                    Needs Triage
-                                  </div>
-                                </SearchTitle>
-                                <code>
-                                  is:unresolved is:unassigned
-                                </code>
-                              </div>
-                            </Base>
-                          </Flex>
-                          <Flex
-                            flex="1"
-                          >
-                            <Base
-                              className="css-z8nhq7"
+                                <div
+                                  className="css-16auc1r"
+                                  is={null}
+                                >
+                                  <SearchTitle>
+                                    <div
+                                      className="css-225nrx-SearchTitle e1e9fsi50"
+                                    >
+                                      Needs Triage
+                                    </div>
+                                  </SearchTitle>
+                                  <code>
+                                    is:unresolved is:unassigned
+                                  </code>
+                                </div>
+                              </Base>
+                            </Flex>
+                            <Flex
                               flex="1"
                             >
-                              <div
+                              <Base
                                 className="css-z8nhq7"
-                                is={null}
+                                flex="1"
                               >
-                                <InputColumn>
-                                  <Flex
-                                    flex="1"
-                                    justify="center"
-                                  >
-                                    <Base
-                                      className="css-k3hlac"
+                                <div
+                                  className="css-z8nhq7"
+                                  is={null}
+                                >
+                                  <InputColumn>
+                                    <Flex
                                       flex="1"
                                       justify="center"
                                     >
-                                      <div
+                                      <Base
                                         className="css-k3hlac"
-                                        is={null}
+                                        flex="1"
+                                        justify="center"
                                       >
-                                        <input
-                                          checked={false}
-                                          name="userDefault"
-                                          onChange={[Function]}
-                                          type="radio"
-                                        />
-                                      </div>
-                                    </Base>
-                                  </Flex>
-                                </InputColumn>
-                                <InputColumn>
-                                  <Flex
-                                    flex="1"
-                                    justify="center"
-                                  >
-                                    <Base
-                                      className="css-k3hlac"
-                                      flex="1"
-                                      justify="center"
-                                    >
-                                      <div
-                                        className="css-k3hlac"
-                                        is={null}
-                                      >
-                                        <input
-                                          checked={true}
-                                          disabled={false}
-                                          name="default"
-                                          onChange={[Function]}
-                                          type="radio"
-                                        />
-                                      </div>
-                                    </Base>
-                                  </Flex>
-                                </InputColumn>
-                                <InputColumn>
-                                  <Flex
-                                    flex="1"
-                                    justify="center"
-                                  >
-                                    <Base
-                                      className="css-k3hlac"
-                                      flex="1"
-                                      justify="center"
-                                    >
-                                      <div
-                                        className="css-k3hlac"
-                                        is={null}
-                                      >
-                                        <Confirm
-                                          cancelText="Cancel"
-                                          confirmText="Confirm"
-                                          disableConfirmButton={false}
-                                          disabled={false}
-                                          message="Are you sure you want to remove this?"
-                                          onConfirm={[Function]}
-                                          priority="primary"
+                                        <div
+                                          className="css-k3hlac"
+                                          is={null}
                                         >
-                                          <Button
+                                          <input
+                                            checked={false}
+                                            name="userDefault"
+                                            onChange={[Function]}
+                                            type="radio"
+                                          />
+                                        </div>
+                                      </Base>
+                                    </Flex>
+                                  </InputColumn>
+                                  <InputColumn>
+                                    <Flex
+                                      flex="1"
+                                      justify="center"
+                                    >
+                                      <Base
+                                        className="css-k3hlac"
+                                        flex="1"
+                                        justify="center"
+                                      >
+                                        <div
+                                          className="css-k3hlac"
+                                          is={null}
+                                        >
+                                          <input
+                                            checked={true}
                                             disabled={false}
-                                            icon="icon-trash"
-                                            onClick={[Function]}
-                                            size="small"
+                                            name="default"
+                                            onChange={[Function]}
+                                            type="radio"
+                                          />
+                                        </div>
+                                      </Base>
+                                    </Flex>
+                                  </InputColumn>
+                                  <InputColumn>
+                                    <Flex
+                                      flex="1"
+                                      justify="center"
+                                    >
+                                      <Base
+                                        className="css-k3hlac"
+                                        flex="1"
+                                        justify="center"
+                                      >
+                                        <div
+                                          className="css-k3hlac"
+                                          is={null}
+                                        >
+                                          <Confirm
+                                            cancelText="Cancel"
+                                            confirmText="Confirm"
+                                            disableConfirmButton={false}
+                                            disabled={false}
+                                            message="Are you sure you want to remove this?"
+                                            onConfirm={[Function]}
+                                            priority="primary"
+                                            stopPropagation={false}
                                           >
-                                            <StyledButton
-                                              aria-disabled={false}
+                                            <Button
                                               disabled={false}
+                                              icon="icon-trash"
                                               onClick={[Function]}
-                                              role="button"
                                               size="small"
                                             >
-                                              <Component
+                                              <StyledButton
                                                 aria-disabled={false}
-                                                className="css-dkprmi-StyledButton-getColors eqrebog0"
+                                                disabled={false}
                                                 onClick={[Function]}
                                                 role="button"
                                                 size="small"
                                               >
-                                                <button
+                                                <Component
                                                   aria-disabled={false}
                                                   className="css-dkprmi-StyledButton-getColors eqrebog0"
                                                   onClick={[Function]}
                                                   role="button"
                                                   size="small"
                                                 >
-                                                  <ButtonLabel
+                                                  <button
+                                                    aria-disabled={false}
+                                                    className="css-dkprmi-StyledButton-getColors eqrebog0"
+                                                    onClick={[Function]}
+                                                    role="button"
                                                     size="small"
                                                   >
-                                                    <Component
-                                                      className="css-7ui8bl-ButtonLabel eqrebog1"
+                                                    <ButtonLabel
                                                       size="small"
                                                     >
-                                                      <span
+                                                      <Component
                                                         className="css-7ui8bl-ButtonLabel eqrebog1"
+                                                        size="small"
                                                       >
-                                                        <Icon
-                                                          hasChildren={false}
-                                                          size="small"
+                                                        <span
+                                                          className="css-7ui8bl-ButtonLabel eqrebog1"
                                                         >
-                                                          <Component
-                                                            className="css-ljhpxy-Icon eqrebog2"
+                                                          <Icon
                                                             hasChildren={false}
                                                             size="small"
                                                           >
-                                                            <span
+                                                            <Component
                                                               className="css-ljhpxy-Icon eqrebog2"
+                                                              hasChildren={false}
                                                               size="small"
                                                             >
-                                                              <StyledInlineSvg
-                                                                size="12px"
-                                                                src="icon-trash"
+                                                              <span
+                                                                className="css-ljhpxy-Icon eqrebog2"
+                                                                size="small"
                                                               >
-                                                                <InlineSvg
-                                                                  className="css-1ov3rcq-StyledInlineSvg eqrebog3"
+                                                                <StyledInlineSvg
                                                                   size="12px"
                                                                   src="icon-trash"
                                                                 >
-                                                                  <StyledSvg
+                                                                  <InlineSvg
                                                                     className="css-1ov3rcq-StyledInlineSvg eqrebog3"
-                                                                    height="12px"
-                                                                    viewBox={Object {}}
-                                                                    width="12px"
+                                                                    size="12px"
+                                                                    src="icon-trash"
                                                                   >
-                                                                    <svg
-                                                                      className="eqrebog3 css-1jjmnki-StyledSvg-StyledInlineSvg e2idor0"
+                                                                    <StyledSvg
+                                                                      className="css-1ov3rcq-StyledInlineSvg eqrebog3"
                                                                       height="12px"
                                                                       viewBox={Object {}}
                                                                       width="12px"
                                                                     >
-                                                                      <use
-                                                                        href="#test"
-                                                                        xlinkHref="#test"
-                                                                      />
-                                                                    </svg>
-                                                                  </StyledSvg>
-                                                                </InlineSvg>
-                                                              </StyledInlineSvg>
-                                                            </span>
-                                                          </Component>
-                                                        </Icon>
-                                                      </span>
-                                                    </Component>
-                                                  </ButtonLabel>
-                                                </button>
-                                              </Component>
-                                            </StyledButton>
-                                          </Button>
-                                          <Modal
-                                            animation={false}
-                                            autoFocus={true}
-                                            backdrop={true}
-                                            bsClass="modal"
-                                            dialogComponentClass={[Function]}
-                                            enforceFocus={true}
-                                            keyboard={true}
-                                            manager={
-                                              ModalManager {
-                                                "add": [Function],
-                                                "containers": Array [],
-                                                "data": Array [],
-                                                "handleContainerOverflow": true,
-                                                "hideSiblingNodes": true,
-                                                "isTopModal": [Function],
-                                                "modals": Array [],
-                                                "remove": [Function],
-                                              }
-                                            }
-                                            onHide={[Function]}
-                                            renderBackdrop={[Function]}
-                                            restoreFocus={true}
-                                            show={false}
-                                          >
+                                                                      <svg
+                                                                        className="eqrebog3 css-1jjmnki-StyledSvg-StyledInlineSvg e2idor0"
+                                                                        height="12px"
+                                                                        viewBox={Object {}}
+                                                                        width="12px"
+                                                                      >
+                                                                        <use
+                                                                          href="#test"
+                                                                          xlinkHref="#test"
+                                                                        />
+                                                                      </svg>
+                                                                    </StyledSvg>
+                                                                  </InlineSvg>
+                                                                </StyledInlineSvg>
+                                                              </span>
+                                                            </Component>
+                                                          </Icon>
+                                                        </span>
+                                                      </Component>
+                                                    </ButtonLabel>
+                                                  </button>
+                                                </Component>
+                                              </StyledButton>
+                                            </Button>
                                             <Modal
+                                              animation={false}
                                               autoFocus={true}
                                               backdrop={true}
-                                              backdropClassName="modal-backdrop"
-                                              containerClassName="modal-open"
+                                              bsClass="modal"
+                                              dialogComponentClass={[Function]}
                                               enforceFocus={true}
                                               keyboard={true}
                                               manager={
@@ -497,305 +482,306 @@ exports[`ProjectSavedSearches renders 1`] = `
                                                   "remove": [Function],
                                                 }
                                               }
-                                              onEntering={[Function]}
-                                              onExited={[Function]}
                                               onHide={[Function]}
                                               renderBackdrop={[Function]}
                                               restoreFocus={true}
                                               show={false}
-                                            />
-                                          </Modal>
-                                        </Confirm>
-                                      </div>
-                                    </Base>
-                                  </Flex>
-                                </InputColumn>
-                              </div>
-                            </Base>
-                          </Flex>
-                        </div>
-                      </Base>
-                    </PanelItem>
-                  </SavedSearchRow>
-                  <SavedSearchRow
-                    access={
-                      Set {
-                        "org:read",
-                        "org:write",
-                        "org:admin",
-                        "org:integrations",
-                        "project:read",
-                        "project:write",
-                        "project:admin",
-                        "team:read",
-                        "team:write",
-                        "team:admin",
+                                            >
+                                              <Modal
+                                                autoFocus={true}
+                                                backdrop={true}
+                                                backdropClassName="modal-backdrop"
+                                                containerClassName="modal-open"
+                                                enforceFocus={true}
+                                                keyboard={true}
+                                                manager={
+                                                  ModalManager {
+                                                    "add": [Function],
+                                                    "containers": Array [],
+                                                    "data": Array [],
+                                                    "handleContainerOverflow": true,
+                                                    "hideSiblingNodes": true,
+                                                    "isTopModal": [Function],
+                                                    "modals": Array [],
+                                                    "remove": [Function],
+                                                  }
+                                                }
+                                                onEntering={[Function]}
+                                                onExited={[Function]}
+                                                onHide={[Function]}
+                                                renderBackdrop={[Function]}
+                                                restoreFocus={true}
+                                                show={false}
+                                              />
+                                            </Modal>
+                                          </Confirm>
+                                        </div>
+                                      </Base>
+                                    </Flex>
+                                  </InputColumn>
+                                </div>
+                              </Base>
+                            </Flex>
+                          </div>
+                        </Base>
+                      </PanelItem>
+                    </SavedSearchRow>
+                    <SavedSearchRow
+                      access={
+                        Set {
+                          "org:read",
+                          "org:write",
+                          "org:admin",
+                          "org:integrations",
+                          "project:read",
+                          "project:write",
+                          "project:admin",
+                          "team:read",
+                          "team:write",
+                          "team:admin",
+                        }
                       }
-                    }
-                    canModify={true}
-                    data={
-                      Object {
-                        "dateCreated": "2017-11-14T02:22:58.022Z",
-                        "id": "1",
-                        "isDefault": false,
-                        "isPrivate": false,
-                        "isUserDefault": true,
-                        "name": "Unresolved Issues",
-                        "query": "is:unresolved",
+                      canModify={true}
+                      data={
+                        Object {
+                          "dateCreated": "2017-11-14T02:22:58.022Z",
+                          "id": "1",
+                          "isDefault": false,
+                          "isPrivate": false,
+                          "isUserDefault": true,
+                          "name": "Unresolved Issues",
+                          "query": "is:unresolved",
+                        }
                       }
-                    }
-                    key="1"
-                    onDefault={[Function]}
-                    onRemove={[Function]}
-                    onUserDefault={[Function]}
-                    orgId="org-slug"
-                    projectId="project-slug"
-                  >
-                    <PanelItem
-                      align="center"
-                      p={0}
-                      py={2}
+                      key="1"
+                      onDefault={[Function]}
+                      onRemove={[Function]}
+                      onUserDefault={[Function]}
+                      orgId="org-slug"
+                      projectId="project-slug"
                     >
-                      <Base
+                      <PanelItem
                         align="center"
-                        className="css-16d6l3f-PanelItem eo8n7lk0"
                         p={0}
                         py={2}
                       >
-                        <div
+                        <Base
+                          align="center"
                           className="css-16d6l3f-PanelItem eo8n7lk0"
-                          is={null}
+                          p={0}
+                          py={2}
                         >
-                          <Flex
-                            direction="column"
-                            flex="1"
-                            px={2}
+                          <div
+                            className="css-16d6l3f-PanelItem eo8n7lk0"
+                            is={null}
                           >
-                            <Base
-                              className="css-16auc1r"
+                            <Flex
                               direction="column"
                               flex="1"
                               px={2}
                             >
-                              <div
+                              <Base
                                 className="css-16auc1r"
-                                is={null}
+                                direction="column"
+                                flex="1"
+                                px={2}
                               >
-                                <SearchTitle>
-                                  <div
-                                    className="css-225nrx-SearchTitle e1e9fsi50"
-                                  >
-                                    Unresolved Issues
-                                  </div>
-                                </SearchTitle>
-                                <code>
-                                  is:unresolved
-                                </code>
-                              </div>
-                            </Base>
-                          </Flex>
-                          <Flex
-                            flex="1"
-                          >
-                            <Base
-                              className="css-z8nhq7"
+                                <div
+                                  className="css-16auc1r"
+                                  is={null}
+                                >
+                                  <SearchTitle>
+                                    <div
+                                      className="css-225nrx-SearchTitle e1e9fsi50"
+                                    >
+                                      Unresolved Issues
+                                    </div>
+                                  </SearchTitle>
+                                  <code>
+                                    is:unresolved
+                                  </code>
+                                </div>
+                              </Base>
+                            </Flex>
+                            <Flex
                               flex="1"
                             >
-                              <div
+                              <Base
                                 className="css-z8nhq7"
-                                is={null}
+                                flex="1"
                               >
-                                <InputColumn>
-                                  <Flex
-                                    flex="1"
-                                    justify="center"
-                                  >
-                                    <Base
-                                      className="css-k3hlac"
+                                <div
+                                  className="css-z8nhq7"
+                                  is={null}
+                                >
+                                  <InputColumn>
+                                    <Flex
                                       flex="1"
                                       justify="center"
                                     >
-                                      <div
+                                      <Base
                                         className="css-k3hlac"
-                                        is={null}
+                                        flex="1"
+                                        justify="center"
                                       >
-                                        <input
-                                          checked={true}
-                                          name="userDefault"
-                                          onChange={[Function]}
-                                          type="radio"
-                                        />
-                                      </div>
-                                    </Base>
-                                  </Flex>
-                                </InputColumn>
-                                <InputColumn>
-                                  <Flex
-                                    flex="1"
-                                    justify="center"
-                                  >
-                                    <Base
-                                      className="css-k3hlac"
-                                      flex="1"
-                                      justify="center"
-                                    >
-                                      <div
-                                        className="css-k3hlac"
-                                        is={null}
-                                      >
-                                        <input
-                                          checked={false}
-                                          disabled={false}
-                                          name="default"
-                                          onChange={[Function]}
-                                          type="radio"
-                                        />
-                                      </div>
-                                    </Base>
-                                  </Flex>
-                                </InputColumn>
-                                <InputColumn>
-                                  <Flex
-                                    flex="1"
-                                    justify="center"
-                                  >
-                                    <Base
-                                      className="css-k3hlac"
-                                      flex="1"
-                                      justify="center"
-                                    >
-                                      <div
-                                        className="css-k3hlac"
-                                        is={null}
-                                      >
-                                        <Confirm
-                                          cancelText="Cancel"
-                                          confirmText="Confirm"
-                                          disableConfirmButton={false}
-                                          disabled={false}
-                                          message="Are you sure you want to remove this?"
-                                          onConfirm={[Function]}
-                                          priority="primary"
+                                        <div
+                                          className="css-k3hlac"
+                                          is={null}
                                         >
-                                          <Button
+                                          <input
+                                            checked={true}
+                                            name="userDefault"
+                                            onChange={[Function]}
+                                            type="radio"
+                                          />
+                                        </div>
+                                      </Base>
+                                    </Flex>
+                                  </InputColumn>
+                                  <InputColumn>
+                                    <Flex
+                                      flex="1"
+                                      justify="center"
+                                    >
+                                      <Base
+                                        className="css-k3hlac"
+                                        flex="1"
+                                        justify="center"
+                                      >
+                                        <div
+                                          className="css-k3hlac"
+                                          is={null}
+                                        >
+                                          <input
+                                            checked={false}
                                             disabled={false}
-                                            icon="icon-trash"
-                                            onClick={[Function]}
-                                            size="small"
+                                            name="default"
+                                            onChange={[Function]}
+                                            type="radio"
+                                          />
+                                        </div>
+                                      </Base>
+                                    </Flex>
+                                  </InputColumn>
+                                  <InputColumn>
+                                    <Flex
+                                      flex="1"
+                                      justify="center"
+                                    >
+                                      <Base
+                                        className="css-k3hlac"
+                                        flex="1"
+                                        justify="center"
+                                      >
+                                        <div
+                                          className="css-k3hlac"
+                                          is={null}
+                                        >
+                                          <Confirm
+                                            cancelText="Cancel"
+                                            confirmText="Confirm"
+                                            disableConfirmButton={false}
+                                            disabled={false}
+                                            message="Are you sure you want to remove this?"
+                                            onConfirm={[Function]}
+                                            priority="primary"
+                                            stopPropagation={false}
                                           >
-                                            <StyledButton
-                                              aria-disabled={false}
+                                            <Button
                                               disabled={false}
+                                              icon="icon-trash"
                                               onClick={[Function]}
-                                              role="button"
                                               size="small"
                                             >
-                                              <Component
+                                              <StyledButton
                                                 aria-disabled={false}
-                                                className="css-dkprmi-StyledButton-getColors eqrebog0"
+                                                disabled={false}
                                                 onClick={[Function]}
                                                 role="button"
                                                 size="small"
                                               >
-                                                <button
+                                                <Component
                                                   aria-disabled={false}
                                                   className="css-dkprmi-StyledButton-getColors eqrebog0"
                                                   onClick={[Function]}
                                                   role="button"
                                                   size="small"
                                                 >
-                                                  <ButtonLabel
+                                                  <button
+                                                    aria-disabled={false}
+                                                    className="css-dkprmi-StyledButton-getColors eqrebog0"
+                                                    onClick={[Function]}
+                                                    role="button"
                                                     size="small"
                                                   >
-                                                    <Component
-                                                      className="css-7ui8bl-ButtonLabel eqrebog1"
+                                                    <ButtonLabel
                                                       size="small"
                                                     >
-                                                      <span
+                                                      <Component
                                                         className="css-7ui8bl-ButtonLabel eqrebog1"
+                                                        size="small"
                                                       >
-                                                        <Icon
-                                                          hasChildren={false}
-                                                          size="small"
+                                                        <span
+                                                          className="css-7ui8bl-ButtonLabel eqrebog1"
                                                         >
-                                                          <Component
-                                                            className="css-ljhpxy-Icon eqrebog2"
+                                                          <Icon
                                                             hasChildren={false}
                                                             size="small"
                                                           >
-                                                            <span
+                                                            <Component
                                                               className="css-ljhpxy-Icon eqrebog2"
+                                                              hasChildren={false}
                                                               size="small"
                                                             >
-                                                              <StyledInlineSvg
-                                                                size="12px"
-                                                                src="icon-trash"
+                                                              <span
+                                                                className="css-ljhpxy-Icon eqrebog2"
+                                                                size="small"
                                                               >
-                                                                <InlineSvg
-                                                                  className="css-1ov3rcq-StyledInlineSvg eqrebog3"
+                                                                <StyledInlineSvg
                                                                   size="12px"
                                                                   src="icon-trash"
                                                                 >
-                                                                  <StyledSvg
+                                                                  <InlineSvg
                                                                     className="css-1ov3rcq-StyledInlineSvg eqrebog3"
-                                                                    height="12px"
-                                                                    viewBox={Object {}}
-                                                                    width="12px"
+                                                                    size="12px"
+                                                                    src="icon-trash"
                                                                   >
-                                                                    <svg
-                                                                      className="eqrebog3 css-1jjmnki-StyledSvg-StyledInlineSvg e2idor0"
+                                                                    <StyledSvg
+                                                                      className="css-1ov3rcq-StyledInlineSvg eqrebog3"
                                                                       height="12px"
                                                                       viewBox={Object {}}
                                                                       width="12px"
                                                                     >
-                                                                      <use
-                                                                        href="#test"
-                                                                        xlinkHref="#test"
-                                                                      />
-                                                                    </svg>
-                                                                  </StyledSvg>
-                                                                </InlineSvg>
-                                                              </StyledInlineSvg>
-                                                            </span>
-                                                          </Component>
-                                                        </Icon>
-                                                      </span>
-                                                    </Component>
-                                                  </ButtonLabel>
-                                                </button>
-                                              </Component>
-                                            </StyledButton>
-                                          </Button>
-                                          <Modal
-                                            animation={false}
-                                            autoFocus={true}
-                                            backdrop={true}
-                                            bsClass="modal"
-                                            dialogComponentClass={[Function]}
-                                            enforceFocus={true}
-                                            keyboard={true}
-                                            manager={
-                                              ModalManager {
-                                                "add": [Function],
-                                                "containers": Array [],
-                                                "data": Array [],
-                                                "handleContainerOverflow": true,
-                                                "hideSiblingNodes": true,
-                                                "isTopModal": [Function],
-                                                "modals": Array [],
-                                                "remove": [Function],
-                                              }
-                                            }
-                                            onHide={[Function]}
-                                            renderBackdrop={[Function]}
-                                            restoreFocus={true}
-                                            show={false}
-                                          >
+                                                                      <svg
+                                                                        className="eqrebog3 css-1jjmnki-StyledSvg-StyledInlineSvg e2idor0"
+                                                                        height="12px"
+                                                                        viewBox={Object {}}
+                                                                        width="12px"
+                                                                      >
+                                                                        <use
+                                                                          href="#test"
+                                                                          xlinkHref="#test"
+                                                                        />
+                                                                      </svg>
+                                                                    </StyledSvg>
+                                                                  </InlineSvg>
+                                                                </StyledInlineSvg>
+                                                              </span>
+                                                            </Component>
+                                                          </Icon>
+                                                        </span>
+                                                      </Component>
+                                                    </ButtonLabel>
+                                                  </button>
+                                                </Component>
+                                              </StyledButton>
+                                            </Button>
                                             <Modal
+                                              animation={false}
                                               autoFocus={true}
                                               backdrop={true}
-                                              backdropClassName="modal-backdrop"
-                                              containerClassName="modal-open"
+                                              bsClass="modal"
+                                              dialogComponentClass={[Function]}
                                               enforceFocus={true}
                                               keyboard={true}
                                               manager={
@@ -810,39 +796,64 @@ exports[`ProjectSavedSearches renders 1`] = `
                                                   "remove": [Function],
                                                 }
                                               }
-                                              onEntering={[Function]}
-                                              onExited={[Function]}
                                               onHide={[Function]}
                                               renderBackdrop={[Function]}
                                               restoreFocus={true}
                                               show={false}
-                                            />
-                                          </Modal>
-                                        </Confirm>
-                                      </div>
-                                    </Base>
-                                  </Flex>
-                                </InputColumn>
-                              </div>
-                            </Base>
-                          </Flex>
-                        </div>
-                      </Base>
-                    </PanelItem>
-                  </SavedSearchRow>
-                </div>
-              </PanelBody>
-            </div>
-          </Component>
-        </Panel>
-      </div>
-    </DocumentTitle>
-  </SideEffect(DocumentTitle)>
-</ProjectSavedSearches>
+                                            >
+                                              <Modal
+                                                autoFocus={true}
+                                                backdrop={true}
+                                                backdropClassName="modal-backdrop"
+                                                containerClassName="modal-open"
+                                                enforceFocus={true}
+                                                keyboard={true}
+                                                manager={
+                                                  ModalManager {
+                                                    "add": [Function],
+                                                    "containers": Array [],
+                                                    "data": Array [],
+                                                    "handleContainerOverflow": true,
+                                                    "hideSiblingNodes": true,
+                                                    "isTopModal": [Function],
+                                                    "modals": Array [],
+                                                    "remove": [Function],
+                                                  }
+                                                }
+                                                onEntering={[Function]}
+                                                onExited={[Function]}
+                                                onHide={[Function]}
+                                                renderBackdrop={[Function]}
+                                                restoreFocus={true}
+                                                show={false}
+                                              />
+                                            </Modal>
+                                          </Confirm>
+                                        </div>
+                                      </Base>
+                                    </Flex>
+                                  </InputColumn>
+                                </div>
+                              </Base>
+                            </Flex>
+                          </div>
+                        </Base>
+                      </PanelItem>
+                    </SavedSearchRow>
+                  </div>
+                </PanelBody>
+              </div>
+            </Component>
+          </Panel>
+        </div>
+      </DocumentTitle>
+    </SideEffect(DocumentTitle)>
+  </ProjectSavedSearches>
+</ProjectSavedSearchContainer>
 `;
 
 exports[`ProjectSavedSearches renders empty 1`] = `
-<ProjectSavedSearches
+<ProjectSavedSearchContainer
   params={
     Object {
       "orgId": "org-slug",
@@ -850,259 +861,268 @@ exports[`ProjectSavedSearches renders empty 1`] = `
     }
   }
 >
-  <SideEffect(DocumentTitle)
-    title="Saved Searches - Sentry"
+  <ProjectSavedSearches
+    params={
+      Object {
+        "orgId": "org-slug",
+        "projectId": "project-slug",
+      }
+    }
   >
-    <DocumentTitle
+    <SideEffect(DocumentTitle)
       title="Saved Searches - Sentry"
     >
-      <div>
-        <SettingsPageHeading
-          noTitleStyles={false}
-          title="Saved Searches"
-        >
-          <Wrapper>
-            <div
-              className="css-1r5ylk7-Wrapper e1kblvez2"
-            >
-              <Flex
-                align="center"
-              >
-                <Base
-                  align="center"
-                  className="css-5ipae5"
-                >
-                  <div
-                    className="css-5ipae5"
-                    is={null}
-                  >
-                    <Title
-                      styled={false}
-                    >
-                      <Base
-                        className="css-1ky52ze-Title e1kblvez0"
-                      >
-                        <div
-                          className="css-1ky52ze-Title e1kblvez0"
-                          is={null}
-                        >
-                          <HeaderTitle>
-                            <h4
-                              className="css-1w8ttcn-HeaderTitle e6lvex72"
-                            >
-                              Saved Searches
-                            </h4>
-                          </HeaderTitle>
-                        </div>
-                      </Base>
-                    </Title>
-                  </div>
-                </Base>
-              </Flex>
-            </div>
-          </Wrapper>
-        </SettingsPageHeading>
-        <Panel>
-          <Component
-            className="css-yahxlu-Panel e1laxa7d0"
+      <DocumentTitle
+        title="Saved Searches - Sentry"
+      >
+        <div>
+          <SettingsPageHeading
+            noTitleStyles={false}
+            title="Saved Searches"
           >
-            <div
+            <Wrapper>
+              <div
+                className="css-1r5ylk7-Wrapper e1kblvez2"
+              >
+                <Flex
+                  align="center"
+                >
+                  <Base
+                    align="center"
+                    className="css-5ipae5"
+                  >
+                    <div
+                      className="css-5ipae5"
+                      is={null}
+                    >
+                      <Title
+                        styled={false}
+                      >
+                        <Base
+                          className="css-1ky52ze-Title e1kblvez0"
+                        >
+                          <div
+                            className="css-1ky52ze-Title e1kblvez0"
+                            is={null}
+                          >
+                            <HeaderTitle>
+                              <h4
+                                className="css-1w8ttcn-HeaderTitle e6lvex72"
+                              >
+                                Saved Searches
+                              </h4>
+                            </HeaderTitle>
+                          </div>
+                        </Base>
+                      </Title>
+                    </div>
+                  </Base>
+                </Flex>
+              </div>
+            </Wrapper>
+          </SettingsPageHeading>
+          <Panel>
+            <Component
               className="css-yahxlu-Panel e1laxa7d0"
             >
-              <PanelHeader
-                disablePadding={true}
+              <div
+                className="css-yahxlu-Panel e1laxa7d0"
               >
-                <Component
-                  className="css-18sl05e-PanelHeader-getPadding e1p8v8nv0"
+                <PanelHeader
                   disablePadding={true}
                 >
-                  <Flex
-                    align="center"
+                  <Component
                     className="css-18sl05e-PanelHeader-getPadding e1p8v8nv0"
-                    justify="space-between"
+                    disablePadding={true}
                   >
-                    <Base
+                    <Flex
                       align="center"
-                      className="e1p8v8nv0 css-1egsr5k-PanelHeader-getPadding"
+                      className="css-18sl05e-PanelHeader-getPadding e1p8v8nv0"
                       justify="space-between"
                     >
-                      <div
+                      <Base
+                        align="center"
                         className="e1p8v8nv0 css-1egsr5k-PanelHeader-getPadding"
-                        is={null}
+                        justify="space-between"
                       >
-                        <Flex
-                          flex="1"
+                        <div
+                          className="e1p8v8nv0 css-1egsr5k-PanelHeader-getPadding"
+                          is={null}
                         >
-                          <Base
-                            className="css-z8nhq7"
+                          <Flex
                             flex="1"
                           >
-                            <div
+                            <Base
                               className="css-z8nhq7"
-                              is={null}
+                              flex="1"
                             >
-                              <Flex
-                                flex="1"
-                                px={2}
+                              <div
+                                className="css-z8nhq7"
+                                is={null}
                               >
-                                <Base
-                                  className="css-1i4q2rt"
+                                <Flex
                                   flex="1"
                                   px={2}
                                 >
-                                  <div
+                                  <Base
                                     className="css-1i4q2rt"
-                                    is={null}
+                                    flex="1"
+                                    px={2}
                                   >
-                                    Search
-                                  </div>
-                                </Base>
-                              </Flex>
-                              <Flex
-                                flex="1"
-                              >
-                                <Base
-                                  className="css-z8nhq7"
+                                    <div
+                                      className="css-1i4q2rt"
+                                      is={null}
+                                    >
+                                      Search
+                                    </div>
+                                  </Base>
+                                </Flex>
+                                <Flex
                                   flex="1"
                                 >
-                                  <div
+                                  <Base
                                     className="css-z8nhq7"
-                                    is={null}
+                                    flex="1"
                                   >
-                                    <InputColumn>
-                                      <Flex
-                                        flex="1"
-                                        justify="center"
-                                      >
-                                        <Base
-                                          className="css-k3hlac"
+                                    <div
+                                      className="css-z8nhq7"
+                                      is={null}
+                                    >
+                                      <InputColumn>
+                                        <Flex
                                           flex="1"
                                           justify="center"
                                         >
-                                          <div
+                                          <Base
                                             className="css-k3hlac"
-                                            is={null}
+                                            flex="1"
+                                            justify="center"
                                           >
-                                            My Default
-                                          </div>
-                                        </Base>
-                                      </Flex>
-                                    </InputColumn>
-                                    <InputColumn>
-                                      <Flex
-                                        flex="1"
-                                        justify="center"
-                                      >
-                                        <Base
-                                          className="css-k3hlac"
+                                            <div
+                                              className="css-k3hlac"
+                                              is={null}
+                                            >
+                                              My Default
+                                            </div>
+                                          </Base>
+                                        </Flex>
+                                      </InputColumn>
+                                      <InputColumn>
+                                        <Flex
                                           flex="1"
                                           justify="center"
                                         >
-                                          <div
+                                          <Base
                                             className="css-k3hlac"
-                                            is={null}
+                                            flex="1"
+                                            justify="center"
                                           >
-                                            Team Default
-                                          </div>
-                                        </Base>
-                                      </Flex>
-                                    </InputColumn>
-                                    <InputColumn>
-                                      <Flex
-                                        flex="1"
-                                        justify="center"
-                                      >
-                                        <Base
-                                          className="css-k3hlac"
+                                            <div
+                                              className="css-k3hlac"
+                                              is={null}
+                                            >
+                                              Team Default
+                                            </div>
+                                          </Base>
+                                        </Flex>
+                                      </InputColumn>
+                                      <InputColumn>
+                                        <Flex
                                           flex="1"
                                           justify="center"
                                         >
-                                          <div
+                                          <Base
                                             className="css-k3hlac"
-                                            is={null}
+                                            flex="1"
+                                            justify="center"
                                           >
-                                            Remove
-                                          </div>
-                                        </Base>
-                                      </Flex>
-                                    </InputColumn>
-                                  </div>
-                                </Base>
-                              </Flex>
-                            </div>
-                          </Base>
-                        </Flex>
-                      </div>
-                    </Base>
-                  </Flex>
-                </Component>
-              </PanelHeader>
-              <PanelBody
-                direction="column"
-                disablePadding={true}
-                flex={false}
-              >
-                <div
-                  className="css-9vq8an-textStyles"
+                                            <div
+                                              className="css-k3hlac"
+                                              is={null}
+                                            >
+                                              Remove
+                                            </div>
+                                          </Base>
+                                        </Flex>
+                                      </InputColumn>
+                                    </div>
+                                  </Base>
+                                </Flex>
+                              </div>
+                            </Base>
+                          </Flex>
+                        </div>
+                      </Base>
+                    </Flex>
+                  </Component>
+                </PanelHeader>
+                <PanelBody
+                  direction="column"
+                  disablePadding={true}
+                  flex={false}
                 >
-                  <EmptyStateWarning
-                    small={false}
+                  <div
+                    className="css-9vq8an-textStyles"
                   >
-                    <EmptyStreamWrapper
-                      data-test-id="empty-state"
+                    <EmptyStateWarning
+                      small={false}
                     >
-                      <div
-                        className="css-1ff2mrl-EmptyStreamWrapper ernlsnc0"
+                      <EmptyStreamWrapper
                         data-test-id="empty-state"
                       >
-                        <HeroIcon
-                          size="54"
-                          src="icon-circle-exclamation"
+                        <div
+                          className="css-1ff2mrl-EmptyStreamWrapper ernlsnc0"
+                          data-test-id="empty-state"
                         >
-                          <Component
-                            className="css-1j03cl-HeroIcon e1h7wyrq0"
+                          <HeroIcon
                             size="54"
                             src="icon-circle-exclamation"
                           >
-                            <InlineSvg
+                            <Component
                               className="css-1j03cl-HeroIcon e1h7wyrq0"
                               size="54"
                               src="icon-circle-exclamation"
                             >
-                              <StyledSvg
+                              <InlineSvg
                                 className="css-1j03cl-HeroIcon e1h7wyrq0"
-                                height="54"
-                                viewBox={Object {}}
-                                width="54"
+                                size="54"
+                                src="icon-circle-exclamation"
                               >
-                                <svg
-                                  className="e1h7wyrq0 css-196iyqp-StyledSvg-HeroIcon e2idor0"
+                                <StyledSvg
+                                  className="css-1j03cl-HeroIcon e1h7wyrq0"
                                   height="54"
                                   viewBox={Object {}}
                                   width="54"
                                 >
-                                  <use
-                                    href="#test"
-                                    xlinkHref="#test"
-                                  />
-                                </svg>
-                              </StyledSvg>
-                            </InlineSvg>
-                          </Component>
-                        </HeroIcon>
-                        <p>
-                          There are no saved searches for this project.
-                        </p>
-                      </div>
-                    </EmptyStreamWrapper>
-                  </EmptyStateWarning>
-                </div>
-              </PanelBody>
-            </div>
-          </Component>
-        </Panel>
-      </div>
-    </DocumentTitle>
-  </SideEffect(DocumentTitle)>
-</ProjectSavedSearches>
+                                  <svg
+                                    className="e1h7wyrq0 css-196iyqp-StyledSvg-HeroIcon e2idor0"
+                                    height="54"
+                                    viewBox={Object {}}
+                                    width="54"
+                                  >
+                                    <use
+                                      href="#test"
+                                      xlinkHref="#test"
+                                    />
+                                  </svg>
+                                </StyledSvg>
+                              </InlineSvg>
+                            </Component>
+                          </HeroIcon>
+                          <p>
+                            There are no saved searches for this project.
+                          </p>
+                        </div>
+                      </EmptyStreamWrapper>
+                    </EmptyStateWarning>
+                  </div>
+                </PanelBody>
+              </div>
+            </Component>
+          </Panel>
+        </div>
+      </DocumentTitle>
+    </SideEffect(DocumentTitle)>
+  </ProjectSavedSearches>
+</ProjectSavedSearchContainer>
 `;

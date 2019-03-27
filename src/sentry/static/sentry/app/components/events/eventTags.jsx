@@ -16,7 +16,8 @@ import InlineSvg from 'app/components/inlineSvg';
 
 class EventTags extends React.Component {
   static propTypes = {
-    organization: SentryTypes.Organization.isRequired,
+    // organization is not provided in the shared issue view
+    organization: SentryTypes.Organization,
     group: SentryTypes.Group.isRequired,
     event: SentryTypes.Event.isRequired,
     orgId: PropTypes.string.isRequired,
@@ -25,11 +26,16 @@ class EventTags extends React.Component {
 
   render() {
     const tags = this.props.event.tags;
-    if (_.isEmpty(tags)) return null;
+
+    if (_.isEmpty(tags)) {
+      return null;
+    }
 
     const {event, group, organization, orgId, projectId} = this.props;
 
-    const hasSentry10 = new Set(organization.features).has('sentry10');
+    // Just use the sentry 10 paths if we are in a shared view since we
+    // don't have the organization object to check the feature list
+    const hasSentry10 = !organization || new Set(organization.features).has('sentry10');
 
     const streamPath = hasSentry10
       ? `/organizations/${orgId}/issues/`

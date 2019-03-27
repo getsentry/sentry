@@ -79,7 +79,9 @@ export default class MultipleProjectSelector extends React.PureComponent {
    */
   handleClose = props => {
     // Only update if there are changes
-    if (!this.state.hasChanges) return;
+    if (!this.state.hasChanges) {
+      return;
+    }
 
     const {value, multi} = this.props;
     analytics('projectselector.update', {
@@ -145,7 +147,7 @@ export default class MultipleProjectSelector extends React.PureComponent {
         {...this.props}
         multi={multi}
         selectedProjects={selected}
-        projects={projects}
+        multiProjects={projects}
         onSelect={this.handleQuickSelect}
         onClose={this.handleClose}
         onMultiSelect={this.handleMultiSelect}

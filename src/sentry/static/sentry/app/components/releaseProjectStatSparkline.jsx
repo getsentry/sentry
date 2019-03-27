@@ -111,8 +111,12 @@ class ReleaseProjectStatSparkline extends React.Component {
   render() {
     const {organization, orgId, project, version} = this.props;
 
-    if (this.state.loading) return <LoadingIndicator />;
-    if (this.state.error) return <LoadingError />;
+    if (this.state.loading) {
+      return <LoadingIndicator />;
+    }
+    if (this.state.error) {
+      return <LoadingError />;
+    }
 
     const {Sparklines, SparklinesLine, stats} = this.state;
     const values = stats.map(tuple => tuple[1]);

@@ -98,6 +98,7 @@ exports[`ResolveActions with confirmation step renders 1`] = `
           message="Are you sure???"
           onConfirm={[Function]}
           priority="primary"
+          stopPropagation={false}
         >
           <a
             className="btn btn-default btn-sm"
@@ -283,6 +284,7 @@ exports[`ResolveActions with confirmation step renders 1`] = `
                         message="Are you sure???"
                         onConfirm={[Function]}
                         priority="primary"
+                        stopPropagation={false}
                       >
                         <a
                           className="tip"
@@ -366,6 +368,7 @@ exports[`ResolveActions with confirmation step renders 1`] = `
                         message="Are you sure???"
                         onConfirm={[Function]}
                         priority="primary"
+                        stopPropagation={false}
                       >
                         <a
                           className="tip"

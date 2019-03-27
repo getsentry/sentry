@@ -191,7 +191,9 @@ class DropdownAutoCompleteMenu extends React.Component {
   autoCompleteFilter = (items, inputValue) => {
     let itemCount = 0;
 
-    if (!items) return [];
+    if (!items) {
+      return [];
+    }
 
     if (items[0] && items[0].items) {
       //if the first item has children, we assume it is a group
@@ -462,7 +464,9 @@ const getMenuBorderRadius = ({blendCorner, alignMenu, theme}) => {
 };
 
 const getMenuArrow = ({menuWithArrow, alignMenu}) => {
-  if (!menuWithArrow) return '';
+  if (!menuWithArrow) {
+    return '';
+  }
   const alignRight = alignMenu === 'right';
 
   return css`
@@ -538,8 +542,12 @@ const StyledInput = styled(Input)`
 `;
 
 const getItemPaddingForSize = size => {
-  if (size === 'small') return `${space(0.5)} ${space(1)}`;
-  if (size === 'zero') return '0';
+  if (size === 'small') {
+    return `${space(0.5)} ${space(1)}`;
+  }
+  if (size === 'zero') {
+    return '0';
+  }
 
   return space(1);
 };

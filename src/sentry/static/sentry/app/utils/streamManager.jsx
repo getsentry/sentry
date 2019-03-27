@@ -22,7 +22,9 @@ class StreamManager {
 
   push(items = []) {
     items = [].concat(items);
-    if (items.length === 0) return this;
+    if (items.length === 0) {
+      return this;
+    }
 
     items = items.filter(item => item.hasOwnProperty('id'));
 
@@ -46,7 +48,9 @@ class StreamManager {
 
   unshift(items = []) {
     items = [].concat(items);
-    if (items.length === 0) return this;
+    if (items.length === 0) {
+      return this;
+    }
 
     items.forEach(item => removeFromList(item.id, this.idList));
     const ids = items.map(item => item.id);

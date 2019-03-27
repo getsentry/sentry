@@ -80,7 +80,9 @@ function ToastIndicator({indicator, onDismiss, className, ...props}) {
   const {undo, disableDismiss} = options || {};
   const showUndo = typeof undo === 'function';
   const handleClick = e => {
-    if (disableDismiss) return;
+    if (disableDismiss) {
+      return;
+    }
     if (typeof onDismiss === 'function') {
       onDismiss(indicator, e);
     }

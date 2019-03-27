@@ -27,6 +27,20 @@ describe('logging', function() {
       );
     });
 
+    it('handles error objects', function() {
+      const error = new Error('An error');
+      error.resp = {
+        status: 500,
+        responseJSON: {detail: 'A bad thing happened'},
+      };
+      logAjaxError(error, {foo: 'bar'} /* context */);
+
+      expect(Sentry.captureMessage).toHaveBeenCalled();
+      expect(Sentry.captureMessage.mock.calls[0][0]).toEqual(
+        'HTTP 500: A bad thing happened'
+      );
+    });
+
     it('should handle text/html responses', function() {
       logAjaxError(
         {

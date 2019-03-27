@@ -5,6 +5,7 @@ import {mount} from 'enzyme';
 import GlobalSelectionHeader from 'app/components/organizations/globalSelectionHeader';
 import GlobalSelectionStore from 'app/stores/globalSelectionStore';
 import * as globalActions from 'app/actionCreators/globalSelection';
+import ProjectsStore from 'app/stores/projectsStore';
 
 const changeQuery = (routerContext, query) => ({
   ...routerContext,
@@ -226,6 +227,8 @@ describe('GlobalSelectionHeader', function() {
     it('selects first project if none (i.e. all) is requested', function() {
       const project = TestStubs.Project({id: '3'});
       const org = TestStubs.Organization({projects: [project]});
+      ProjectsStore.loadInitialData(org.projects);
+
       const initializationObj = initializeOrg({
         organization: org,
         router: {

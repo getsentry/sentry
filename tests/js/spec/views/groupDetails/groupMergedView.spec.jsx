@@ -46,6 +46,7 @@ describe('Issues -> Merged View', function() {
   it('renders initially with loading component', function() {
     const wrapper = shallow(
       <GroupMergedView
+        project={TestStubs.Project({slug: 'projectId'})}
         params={{orgId: 'orgId', projectId: 'projectId', groupId: 'groupId'}}
         location={{query: {}}}
       />,
@@ -58,6 +59,7 @@ describe('Issues -> Merged View', function() {
   it('renders with mocked data', async function() {
     const wrapper = shallow(
       <GroupMergedView
+        project={TestStubs.Project({slug: 'projectId'})}
         params={{orgId: 'orgId', projectId: 'projectId', groupId: 'groupId'}}
         location={{query: {}}}
       />,

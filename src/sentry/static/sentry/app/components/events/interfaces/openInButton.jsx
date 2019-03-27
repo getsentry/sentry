@@ -2,7 +2,7 @@ import PropTypes from 'prop-types';
 import React from 'react';
 import SentryTypes from 'app/sentryTypes';
 import Button from 'app/components/button';
-import qs from 'query-string';
+import {addQueryParamsToExistingUrl} from 'app/utils/queryString';
 import styled from 'react-emotion';
 import {t} from 'app/locale';
 
@@ -34,10 +34,10 @@ class OpenInButton extends React.Component {
   fetchIssueLinkComponents() {
     const {api, organization, group} = this.props;
     const hasOrganization = !!organization;
-    const features = new Set(organization.features);
-    const hasSentryApps = hasOrganization && features.has('sentry-apps');
+    const hasSentryApps =
+      hasOrganization && new Set(organization.features).has('sentry-apps');
 
-    if (hasSentryApps && group && group.project) {
+    if (hasSentryApps && group && group.project && group.project.id) {
       api
         .requestPromise(
           `/organizations/${organization.slug}/sentry-app-components/?filter=stacktrace-link&projectId=${group
@@ -62,8 +62,7 @@ class OpenInButton extends React.Component {
       lineNo,
       filename,
     };
-    const query = qs.stringify(queryParams);
-    return components[0].schema.url + '&' + query;
+    return addQueryParamsToExistingUrl(components[0].schema.url, queryParams);
   }
 
   render() {

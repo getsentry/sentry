@@ -41,7 +41,9 @@ const PENDING_INVITE = 'pending-invite';
 const getFields = ({authenticator, hasSentCode, onSmsReset, onSmsSubmit, onU2fTap}) => {
   const {form, qrcode, challenge, id} = authenticator || {};
 
-  if (!form) return null;
+  if (!form) {
+    return null;
+  }
 
   if (qrcode) {
     return [
@@ -191,7 +193,9 @@ class AccountSecurityEnroll extends AsyncView {
     const {authenticator, hasSentCode} = this.state;
 
     // Don't submit if empty
-    if (!this._form.phone) return;
+    if (!this._form.phone) {
+      return;
+    }
 
     const data = {
       phone: this._form.phone,
@@ -311,7 +315,9 @@ class AccountSecurityEnroll extends AsyncView {
   handleRemove = () => {
     const {authenticator} = this.state;
 
-    if (!authenticator || !authenticator.authId) return;
+    if (!authenticator || !authenticator.authId) {
+      return;
+    }
 
     // `authenticator.authId` is NOT the same as `props.params.authId`
     // This is for backwards compatbility with API endpoint
