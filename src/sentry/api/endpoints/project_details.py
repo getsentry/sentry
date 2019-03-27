@@ -88,6 +88,7 @@ class ProjectAdminSerializer(ProjectMemberSerializer):
     securityToken = serializers.RegexField(r'^[-a-zA-Z0-9+/=\s]+$', max_length=255)
     securityTokenHeader = serializers.RegexField(r'^[a-zA-Z0-9_\-]+$', max_length=20)
     verifySSL = serializers.BooleanField(required=False)
+
     defaultEnvironment = serializers.CharField(required=False, allow_none=True)
     dataScrubber = serializers.BooleanField(required=False)
     dataScrubberDefaults = serializers.BooleanField(required=False)
@@ -101,6 +102,7 @@ class ProjectAdminSerializer(ProjectMemberSerializer):
     allowedDomains = ListField(child=OriginField(), required=False)
     resolveAge = serializers.IntegerField(required=False)
     platform = serializers.CharField(required=False)
+    copy_from_project = serializers.IntegerField(required=False)
 
     def validate_digestsMinDelay(self, attrs, source):
         max_delay = attrs['digestsMaxDelay'] if 'digestsMaxDelay' in attrs else self.context['project'].get_option(
@@ -164,6 +166,33 @@ class ProjectAdminSerializer(ProjectMemberSerializer):
             raise serializers.ValidationError(
                 'Organization does not have the relay feature enabled'
             )
+        return attrs
+
+    def validate_copy_from_project(self, attrs, source):
+        other_project_id = attrs[source]
+
+        try:
+            other_project = Project.objects.filter(
+                id=other_project_id,
+                organization_id=self.context['project'].organization_id,
+            ).prefetch_related('teams')[0]
+        except IndexError:
+            raise serializers.ValidationError(
+                'Project to copy settings from not found.'
+            )
+
+        request = self.context['request']
+        if not request.access.has_project_access(other_project):
+            raise serializers.ValidationError(
+                'Project settings cannot be copied from a project you do not have access to.'
+            )
+
+        for project_team in other_project.projectteam_set.all():
+            if not request.access.has_team_scope(project_team.team, 'team:write'):
+                raise serializers.ValidationError(
+                    'Project settings cannot be copied from a project with a team you do not have write access to.'
+                )
+
         return attrs
 
 
@@ -521,6 +550,13 @@ class ProjectDetailsEndpoint(ProjectEndpoint):
                             'detail': ['You do not have that feature enabled']
                         }, status=400
                     )
+            if 'copy_from_project' in result:
+                if not project.copy_settings_from(result['copy_from_project']):
+                    return Response(
+                        {
+                            'detail': ['Copy project settings failed.']
+                        }, status=409
+                    )
 
             self.create_audit_entry(
                 request=request,
@@ -589,5 +625,7 @@ class ProjectDetailsEndpoint(ProjectEndpoint):
                     'model': type(project).__name__,
                 }
             )
+
+            project.rename_on_pending_deletion()
 
         return Response(status=204)

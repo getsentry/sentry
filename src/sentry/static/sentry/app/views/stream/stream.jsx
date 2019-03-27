@@ -670,16 +670,13 @@ const Stream = createReactClass({
     if (this.state.loading) {
       return this.renderLoading();
     }
-    const params = this.props.params;
     const classes = ['stream-row'];
     if (this.state.isSidebarVisible) {
       classes.push('show-sidebar');
     }
-    const {orgId, projectId} = this.props.params;
     const {organization} = this.context;
 
     const searchId = this.state.searchId;
-    const access = this.getAccess();
     const projectFeatures = this.getProjectFeatures();
     const project = this.getProject();
 
@@ -694,9 +691,8 @@ const Stream = createReactClass({
       <div className={classNames(classes)}>
         <div className="stream-content">
           <StreamFilters
-            access={access}
-            orgId={orgId}
-            projectId={projectId}
+            organization={organization}
+            projectId={project.slug}
             query={this.state.query}
             sort={this.state.sort}
             searchId={searchId}
@@ -706,6 +702,7 @@ const Stream = createReactClass({
             onSearch={this.onSearch}
             onSavedSearchCreate={this.onSavedSearchCreate}
             onSavedSearchSelect={this.onSavedSearchSelect}
+            onSavedSearchDelete={() => {}}
             onSidebarToggle={this.onSidebarToggle}
             isSearchDisabled={this.state.isSidebarVisible}
             savedSearchList={this.state.savedSearchList}
@@ -714,8 +711,8 @@ const Stream = createReactClass({
           />
           <Panel>
             <StreamActions
-              orgId={params.orgId}
-              projectId={params.projectId}
+              orgId={organization.slug}
+              projectId={project.slug}
               selection={selection}
               hasReleases={projectFeatures.has('releases')}
               latestRelease={this.context.project.latestRelease}
@@ -744,8 +741,8 @@ const Stream = createReactClass({
           tags={this.props.tags}
           query={this.state.query}
           onQueryChange={this.onSearch}
-          orgId={params.orgId}
-          projectId={params.projectId}
+          orgId={organization.slug}
+          projectId={project.slug}
           tagValueLoader={this.tagValueLoader}
         />
       </div>

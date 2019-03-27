@@ -1,6 +1,7 @@
 import React from 'react';
 import {Box, Flex} from 'grid-emotion';
 import {Link} from 'react-router';
+import Access from 'app/components/acl/access';
 import Button from 'app/components/button';
 import Confirm from 'app/components/confirm';
 import ConfirmDelete from 'app/components/confirmDelete';
@@ -111,10 +112,23 @@ export default class SentryApplicationRow extends React.PureComponent {
           ) : (
             <Box>
               {app.status === 'unpublished' ? (
-                this.renderRemoveApp(app)
+                <Access access={['org:admin']}>
+                  {({hasAccess}) => (
+                    <React.Fragment>
+                      {!hasAccess && (
+                        <Tooltip
+                          title={t('Owner permissions are required for this action.')}
+                        >
+                          <Button disabled size="small" icon="icon-trash" />
+                        </Tooltip>
+                      )}
+                      {hasAccess && this.renderRemoveApp(app)}
+                    </React.Fragment>
+                  )}
+                </Access>
               ) : (
                 <Tooltip title={t('Published apps cannot be removed.')}>
-                  <Button disabled={true} size="small" icon="icon-trash" />
+                  <Button disabled size="small" icon="icon-trash" />
                 </Tooltip>
               )}
             </Box>

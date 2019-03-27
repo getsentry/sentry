@@ -2,6 +2,7 @@ from __future__ import absolute_import, print_function
 
 import os
 import click
+from six import text_type
 
 
 def get_docker_client():
@@ -139,7 +140,11 @@ def up(project, exclude):
         else:
             container.stop()
             container.remove()
-        click.secho("> Creating '%s' container" % options['name'], err=True, fg='yellow')
+        listening = ''
+        if options['ports']:
+            listening = ' (listening: %s)' % ', '.join(map(text_type, options['ports'].values()))
+        click.secho("> Creating '%s' container%s" %
+                    (options['name'], listening), err=True, fg='yellow')
         client.containers.run(**options)
 
 

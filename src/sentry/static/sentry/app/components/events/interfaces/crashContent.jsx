@@ -24,6 +24,7 @@ class CrashContent extends React.Component {
     return stackView === 'raw' ? (
       <RawExceptionContent
         eventId={event.id}
+        projectId={group.project.slug}
         type={stackType}
         values={exception.values}
         platform={event.platform}

@@ -115,11 +115,9 @@ class TagStorageTest(SnubaTestCase):
         result.sort(key=lambda r: r.key)
         assert result[0].key == 'baz'
         assert result[0].top_values[0].value == 'quux'
-        assert result[0].values_seen == 1
         assert result[0].count == 2
 
         assert result[3].key == 'sentry:release'
-        assert result[3].values_seen == 2
         assert result[3].count == 2
         top_release_values = result[3].top_values
         assert len(top_release_values) == 2
@@ -168,6 +166,26 @@ class TagStorageTest(SnubaTestCase):
             'foo'
         ) == 2
 
+    def test_get_tag_keys(self):
+        expected_keys = set([
+            'baz', 'browser', 'environment', 'foo', 'sentry:release', 'sentry:user',
+        ])
+        keys = {
+            k.key: k for k in self.ts.get_tag_keys(
+                project_id=self.proj1.id,
+                environment_id=self.proj1env1.id,
+            )
+        }
+        assert set(keys) == expected_keys
+        keys = {
+            k.key: k for k in self.ts.get_tag_keys(
+                project_id=self.proj1.id,
+                environment_id=self.proj1env1.id,
+                include_values_seen=True,
+            )
+        }
+        assert set(keys) == expected_keys
+
     def test_get_group_tag_key(self):
         with pytest.raises(GroupTagKeyNotFound):
             self.ts.get_group_tag_key(
@@ -192,11 +210,6 @@ class TagStorageTest(SnubaTestCase):
             )
         }
         assert set(keys) == set(['baz', 'environment', 'foo', 'sentry:release', 'sentry:user'])
-        for k in keys.values():
-            if k.key not in set(['sentry:release', 'sentry:user']):
-                assert k.values_seen == 1, u'expected {!r} to have 1 unique value'.format(k.key)
-            else:
-                assert k.values_seen == 2
 
     def test_get_group_tag_value(self):
         with pytest.raises(GroupTagValueNotFound):

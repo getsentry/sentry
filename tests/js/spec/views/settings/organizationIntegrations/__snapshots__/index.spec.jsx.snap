@@ -674,7 +674,7 @@ exports[`OrganizationIntegrations render() with installed integrations Displays 
                                                 "greenTransparent": "rgba(87, 190, 140, 0.5)",
                                                 "grid": 8,
                                                 "headerFontSize": "22px",
-                                                "headerSelectorRowHeight": 40,
+                                                "headerSelectorRowHeight": 44,
                                                 "offWhite": "#FAF9FB",
                                                 "offWhite2": "#E7E1EC",
                                                 "orange": "#ec5e44",
@@ -942,7 +942,7 @@ exports[`OrganizationIntegrations render() with installed integrations Displays 
                                                         "greenTransparent": "rgba(87, 190, 140, 0.5)",
                                                         "grid": 8,
                                                         "headerFontSize": "22px",
-                                                        "headerSelectorRowHeight": 40,
+                                                        "headerSelectorRowHeight": 44,
                                                         "offWhite": "#FAF9FB",
                                                         "offWhite2": "#E7E1EC",
                                                         "orange": "#ec5e44",
@@ -1666,6 +1666,7 @@ exports[`OrganizationIntegrations render() with installed integrations Displays 
                                               }
                                               onConfirm={[Function]}
                                               priority="danger"
+                                              stopPropagation={false}
                                             >
                                               <StyledButton
                                                 borderless={true}
@@ -2138,7 +2139,7 @@ exports[`OrganizationIntegrations render() with installed integrations Displays 
                                                 "greenTransparent": "rgba(87, 190, 140, 0.5)",
                                                 "grid": 8,
                                                 "headerFontSize": "22px",
-                                                "headerSelectorRowHeight": 40,
+                                                "headerSelectorRowHeight": 44,
                                                 "offWhite": "#FAF9FB",
                                                 "offWhite2": "#E7E1EC",
                                                 "orange": "#ec5e44",
@@ -2406,7 +2407,7 @@ exports[`OrganizationIntegrations render() with installed integrations Displays 
                                                         "greenTransparent": "rgba(87, 190, 140, 0.5)",
                                                         "grid": 8,
                                                         "headerFontSize": "22px",
-                                                        "headerSelectorRowHeight": 40,
+                                                        "headerSelectorRowHeight": 44,
                                                         "offWhite": "#FAF9FB",
                                                         "offWhite2": "#E7E1EC",
                                                         "orange": "#ec5e44",
@@ -3109,6 +3110,7 @@ exports[`OrganizationIntegrations render() with installed integrations Displays 
                                               }
                                               onConfirm={[Function]}
                                               priority="danger"
+                                              stopPropagation={false}
                                             >
                                               <StyledButton
                                                 borderless={true}
@@ -3892,7 +3894,7 @@ exports[`OrganizationIntegrations render() without integrations Displays integra
                                                 "greenTransparent": "rgba(87, 190, 140, 0.5)",
                                                 "grid": 8,
                                                 "headerFontSize": "22px",
-                                                "headerSelectorRowHeight": 40,
+                                                "headerSelectorRowHeight": 44,
                                                 "offWhite": "#FAF9FB",
                                                 "offWhite2": "#E7E1EC",
                                                 "orange": "#ec5e44",
@@ -4160,7 +4162,7 @@ exports[`OrganizationIntegrations render() without integrations Displays integra
                                                         "greenTransparent": "rgba(87, 190, 140, 0.5)",
                                                         "grid": 8,
                                                         "headerFontSize": "22px",
-                                                        "headerSelectorRowHeight": 40,
+                                                        "headerSelectorRowHeight": 44,
                                                         "offWhite": "#FAF9FB",
                                                         "offWhite2": "#E7E1EC",
                                                         "orange": "#ec5e44",
@@ -4656,7 +4658,7 @@ exports[`OrganizationIntegrations render() without integrations Displays integra
                                                 "greenTransparent": "rgba(87, 190, 140, 0.5)",
                                                 "grid": 8,
                                                 "headerFontSize": "22px",
-                                                "headerSelectorRowHeight": 40,
+                                                "headerSelectorRowHeight": 44,
                                                 "offWhite": "#FAF9FB",
                                                 "offWhite2": "#E7E1EC",
                                                 "orange": "#ec5e44",
@@ -4924,7 +4926,7 @@ exports[`OrganizationIntegrations render() without integrations Displays integra
                                                         "greenTransparent": "rgba(87, 190, 140, 0.5)",
                                                         "grid": 8,
                                                         "headerFontSize": "22px",
-                                                        "headerSelectorRowHeight": 40,
+                                                        "headerSelectorRowHeight": 44,
                                                         "offWhite": "#FAF9FB",
                                                         "offWhite2": "#E7E1EC",
                                                         "orange": "#ec5e44",

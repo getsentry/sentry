@@ -4,18 +4,15 @@ import six
 
 from django.http import HttpResponse
 
-from sentry.api.base import Endpoint
-from sentry.api.bases.group import GroupPermission
+from sentry.api.bases.project import ProjectEndpoint
 from sentry.api.exceptions import ResourceDoesNotExist
 from sentry.grouping.api import ConfigNotFoundException
 from sentry.models import Event
 from sentry.utils import json
 
 
-class EventGroupingInfoEndpoint(Endpoint):
-    permission_classes = (GroupPermission, )
-
-    def get(self, request, event_id):
+class EventGroupingInfoEndpoint(ProjectEndpoint):
+    def get(self, request, project, event_id):
         """
         Returns the grouping information for an event
         `````````````````````````````````````````````
@@ -23,11 +20,9 @@ class EventGroupingInfoEndpoint(Endpoint):
         This endpoint returns a JSON dump of the metadata that went into the
         grouping algorithm.
         """
-        event = Event.objects.from_event_id(event_id, project_id=None)
+        event = Event.objects.from_event_id(event_id, project_id=project.id)
         if event is None:
             raise ResourceDoesNotExist
-
-        self.check_object_permissions(request, event.group)
 
         Event.objects.bind_nodes([event], 'data')
 

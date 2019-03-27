@@ -12,7 +12,7 @@ import SentryTypes from 'app/sentryTypes';
 import {t} from 'app/locale';
 import KeyValueList from 'app/components/events/interfaces/keyValueList';
 
-import withApi from 'app/utils/withApi';
+import withOrganization from 'app/utils/withOrganization';
 
 const GroupVariantList = styled('ul')`
   padding: 0;
@@ -159,10 +159,10 @@ class GroupVariant extends React.Component {
         break;
       case 'custom-fingerprint':
         data.push(['Fingerprint values', variant.values]);
-        data.push(['Grouping Config', variant.config.id]);
         break;
       case 'salted-component':
         data.push(['Fingerprint values', variant.values]);
+        data.push(['Grouping Config', variant.config.id]);
         component = variant.component;
         break;
       default:
@@ -247,12 +247,16 @@ class GroupingConfigSelect extends AsyncComponent {
 class EventGroupingInfo extends AsyncComponent {
   static propTypes = {
     api: PropTypes.object,
+    organization: SentryTypes.Organization.isRequired,
     group: SentryTypes.Group.isRequired,
     event: SentryTypes.Event.isRequired,
   };
 
   getEndpoints() {
-    let path = `/events/${this.props.event.id}/grouping-info/`;
+    const {organization, group, event} = this.props;
+
+    let path = `/projects/${organization.slug}/${group.project
+      .slug}/events/${event.id}/grouping-info/`;
     if (this.state && this.state.configOverride) {
       path = `${path}?config=${this.state.configOverride}`;
     }
@@ -365,4 +369,4 @@ class EventGroupingInfo extends AsyncComponent {
   }
 }
 
-export default withApi(EventGroupingInfo);
+export default withOrganization(EventGroupingInfo);

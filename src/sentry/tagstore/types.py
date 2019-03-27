@@ -1,5 +1,7 @@
 from __future__ import absolute_import
 
+from sentry.api.serializers import Serializer, register, serialize
+
 import six
 
 from sentry.search.utils import convert_user_tag_to_query
@@ -31,7 +33,8 @@ class TagType(object):
 class TagKey(TagType):
     __slots__ = ['key', 'values_seen', 'status']
 
-    def __init__(self, key, values_seen, status=TagKeyStatus.VISIBLE, count=None, top_values=None):
+    def __init__(self, key, values_seen=None, status=TagKeyStatus.VISIBLE,
+                 count=None, top_values=None):
         self.key = key
         self.values_seen = values_seen
         self.status = status
@@ -58,7 +61,7 @@ class TagValue(TagType):
 class GroupTagKey(TagType):
     __slots__ = ['group_id', 'key', 'values_seen']
 
-    def __init__(self, group_id, key, values_seen, count=None, top_values=None):
+    def __init__(self, group_id, key, values_seen=None, count=None, top_values=None):
         self.group_id = group_id
         self.key = key
         self.values_seen = values_seen
@@ -78,9 +81,6 @@ class GroupTagValue(TagType):
         self.last_seen = last_seen
 
 
-from sentry.api.serializers import Serializer, register, serialize
-
-
 @register(GroupTagKey)
 @register(TagKey)
 class TagKeySerializer(Serializer):
@@ -89,9 +89,10 @@ class TagKeySerializer(Serializer):
 
         output = {
             'key': tagstore.get_standardized_key(obj.key),
-            'name': tagstore.get_tag_key_label(obj.key),
-            'uniqueValues': obj.values_seen,
+            'name': tagstore.get_tag_key_label(obj.key)
         }
+        if obj.values_seen is not None:
+            output['uniqueValues'] = obj.values_seen
         if obj.count is not None:
             output['totalValues'] = obj.count
         if obj.top_values is not None:

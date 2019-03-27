@@ -51,8 +51,8 @@ describe('OrganizationProjects', function() {
 
     expect(projectsPutMock).toHaveBeenCalledTimes(0);
 
-    wrapper.find('.icon-star-outline').simulate('click');
-    expect(wrapper.find('.icon-star-solid')).toBeTruthy();
+    wrapper.find('BookmarkStar').simulate('click');
+    expect(wrapper.find('Star').prop('isBookmarked')).toBeTruthy();
     expect(projectsPutMock).toHaveBeenCalledTimes(1);
   });
 

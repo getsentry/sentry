@@ -90,6 +90,7 @@ from .endpoints.organization_member_team_details import OrganizationMemberTeamDe
 from .endpoints.organization_monitors import OrganizationMonitorsEndpoint
 from .endpoints.organization_onboarding_tasks import OrganizationOnboardingTaskEndpoint
 from .endpoints.organization_index import OrganizationIndexEndpoint
+from .endpoints.organization_pinned_searches import OrganizationPinnedSearchEndpoint
 from .endpoints.organization_plugins import OrganizationPluginsEndpoint
 from .endpoints.organization_processingissues import OrganizationProcessingIssuesEndpoint
 from .endpoints.organization_projects import OrganizationProjectsEndpoint
@@ -588,6 +589,11 @@ urlpatterns = patterns(
         OrganizationMonitorsEndpoint.as_view(),
     ),
     url(
+        r'^organizations/(?P<organization_slug>[^\/]+)/pinned-searches/$',
+        OrganizationPinnedSearchEndpoint.as_view(),
+        name='sentry-api-0-organization-pinned-searches'
+    ),
+    url(
         r'^organizations/(?P<organization_slug>[^\/]+)/recent-searches/$',
         OrganizationRecentSearchesEndpoint.as_view(),
         name='sentry-api-0-organization-recent-searches'
@@ -862,6 +868,16 @@ urlpatterns = patterns(
         r'^projects/(?P<organization_slug>[^\/]+)/(?P<project_slug>[^\/]+)/events/(?P<event_id>(?:\d+|[A-Fa-f0-9]{32}))/$',
         ProjectEventDetailsEndpoint.as_view(),
         name='sentry-api-0-project-event-details'
+    ),
+    url(
+        r'^projects/(?P<organization_slug>[^\/]+)/(?P<project_slug>[^\/]+)/events/(?P<event_id>[\w-]+)/grouping-info/$',
+        EventGroupingInfoEndpoint.as_view(),
+        name='sentry-api-0-event-grouping-info'
+    ),
+    url(
+        r'^projects/(?P<organization_slug>[^\/]+)/(?P<project_slug>[^\/]+)/events/(?P<event_id>[\w-]+)/apple-crash-report$',
+        EventAppleCrashReportEndpoint.as_view(),
+        name='sentry-api-0-event-apple-crash-report'
     ),
     url(
         r'^projects/(?P<organization_slug>[^\/]+)/(?P<project_slug>[^\/]+)/events/(?P<event_id>[\w-]+)/attachments/$',
@@ -1230,16 +1246,6 @@ urlpatterns = patterns(
         r'^events/(?P<event_id>\d+)/$',
         EventDetailsEndpoint.as_view(),
         name='sentry-api-0-event-details'
-    ),
-    url(
-        r'^events/(?P<event_id>\d+)/apple-crash-report$',
-        EventAppleCrashReportEndpoint.as_view(),
-        name='sentry-api-0-event-apple-crash-report'
-    ),
-    url(
-        r'^events/(?P<event_id>\d+)/grouping-info/$',
-        EventGroupingInfoEndpoint.as_view(),
-        name='sentry-api-0-event-grouping-info'
     ),
 
     # Sentry Apps

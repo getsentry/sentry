@@ -247,18 +247,24 @@ export class Client {
   }
 
   requestPromise(path, {includeAllArgs, ...options} = {}) {
-    return new Promise((resolve, reject) => {
-      // Create an error object here before we make any async calls so
-      // that we have a helpful stacktrace if it errors
-      const error = new Error('API Request Failed');
+    // Create an error object here before we make any async calls so
+    // that we have a helpful stacktrace if it errors
+    const error = new Error(`${options.method || 'GET'} "${path}"`);
 
+    return new Promise((resolve, reject) => {
       this.request(path, {
         ...options,
         success: (data, ...args) => {
           includeAllArgs ? resolve([data, ...args]) : resolve(data);
         },
         error: (resp, ...args) => {
+          // Update error message with response status code
+          error.message = `${error.message} -> ${(resp && resp.status) || 'n/a'}`;
           error.resp = resp;
+
+          // Drop the Client.requestPromise frame so stacktrace starts at `requestPromise` callsite
+          const lines = error.stack.split('\n');
+          error.stack = [lines[0], ...lines.slice(2)].join('\n');
           reject(error);
         },
       });

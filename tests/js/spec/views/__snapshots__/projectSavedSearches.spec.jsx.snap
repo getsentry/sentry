@@ -371,6 +371,7 @@ exports[`ProjectSavedSearches renders 1`] = `
                                             message="Are you sure you want to remove this?"
                                             onConfirm={[Function]}
                                             priority="primary"
+                                            stopPropagation={false}
                                           >
                                             <Button
                                               disabled={false}
@@ -684,6 +685,7 @@ exports[`ProjectSavedSearches renders 1`] = `
                                             message="Are you sure you want to remove this?"
                                             onConfirm={[Function]}
                                             priority="primary"
+                                            stopPropagation={false}
                                           >
                                             <Button
                                               disabled={false}

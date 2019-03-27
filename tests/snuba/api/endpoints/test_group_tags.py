@@ -37,8 +37,5 @@ class GroupTagsTest(APITestCase, SnubaTestCase):
             format='json'
         )
         assert response.status_code == 200
-        assert set([
-            (tag['key'], tag['uniqueValues']) for tag in response.data
-        ]) >= set([
-            ('biz', 1), ('environment', 2), ('foo', 1)
-        ])
+        assert set([tag['key'] for tag in response.data
+                    ]) >= set(['biz', 'environment', 'foo'])

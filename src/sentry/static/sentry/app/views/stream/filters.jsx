@@ -1,15 +1,18 @@
 import PropTypes from 'prop-types';
 import React from 'react';
 
-import SavedSearchSelector from 'app/views/stream/savedSearchSelector';
-import SearchBar from 'app/views/stream/searchBar';
-import SortOptions from 'app/views/stream/sortOptions';
+import Feature from 'app/components/acl/feature';
+
+import SentryTypes from 'app/sentryTypes';
+import SearchBar from './searchBar';
+import SortOptions from './sortOptions';
+import SavedSearchSelector from './savedSearchSelector';
+import OrganizationSavedSearchSelector from './organizationSavedSearchSelector';
 
 class StreamFilters extends React.Component {
   static propTypes = {
-    orgId: PropTypes.string.isRequired,
     projectId: PropTypes.string,
-    access: PropTypes.object.isRequired,
+    organization: SentryTypes.Organization,
 
     searchId: PropTypes.string,
     savedSearchList: PropTypes.array.isRequired,
@@ -25,6 +28,7 @@ class StreamFilters extends React.Component {
     onSidebarToggle: PropTypes.func,
     onSavedSearchCreate: PropTypes.func.isRequired,
     onSavedSearchSelect: PropTypes.func.isRequired,
+    onSavedSearchDelete: PropTypes.func.isRequired,
     tagValueLoader: PropTypes.func.isRequired,
     tags: PropTypes.object.isRequired,
   };
@@ -44,8 +48,7 @@ class StreamFilters extends React.Component {
 
   render() {
     const {
-      access,
-      orgId,
+      organization,
       projectId,
       searchId,
       queryCount,
@@ -59,6 +62,7 @@ class StreamFilters extends React.Component {
       onSearch,
       onSavedSearchCreate,
       onSavedSearchSelect,
+      onSavedSearchDelete,
       onSortChange,
       tagValueLoader,
       tags,
@@ -68,18 +72,31 @@ class StreamFilters extends React.Component {
       <div className="stream-header">
         <div className="row">
           <div className="col-sm-5">
-            <SavedSearchSelector
-              access={access}
-              orgId={orgId}
-              projectId={projectId}
-              searchId={searchId}
-              queryCount={queryCount}
-              queryMaxCount={queryMaxCount}
-              query={query}
-              onSavedSearchCreate={onSavedSearchCreate}
-              onSavedSearchSelect={onSavedSearchSelect}
-              savedSearchList={savedSearchList}
-            />
+            <Feature
+              features={['org-saved-searches']}
+              renderDisabled={() => (
+                <SavedSearchSelector
+                  organization={organization}
+                  projectId={projectId}
+                  searchId={searchId}
+                  queryCount={queryCount}
+                  queryMaxCount={queryMaxCount}
+                  query={query}
+                  onSavedSearchCreate={onSavedSearchCreate}
+                  onSavedSearchSelect={onSavedSearchSelect}
+                  savedSearchList={savedSearchList}
+                />
+              )}
+            >
+              <OrganizationSavedSearchSelector
+                organization={organization}
+                savedSearchList={savedSearchList}
+                onSavedSearchSelect={onSavedSearchSelect}
+                onSavedSearchDelete={onSavedSearchDelete}
+                queryCount={queryCount}
+                queryMaxCount={queryMaxCount}
+              />
+            </Feature>
           </div>
           <div className="col-sm-7">
             <div className="search-container">
@@ -88,7 +105,7 @@ class StreamFilters extends React.Component {
               </div>
 
               <SearchBar
-                orgId={orgId}
+                orgId={organization.slug}
                 query={query || ''}
                 onSearch={onSearch}
                 disabled={isSearchDisabled}
