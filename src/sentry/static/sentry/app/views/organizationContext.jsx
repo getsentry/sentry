@@ -64,16 +64,16 @@ const OrganizationContext = createReactClass({
     this.fetchData();
   },
 
-  componentWillReceiveProps(nextProps) {
+  componentDidUpdate(prevProps) {
     const hasOrgIdAndChanged =
-      nextProps.params.orgId &&
+      prevProps.params.orgId &&
       this.props.params.orgId &&
-      nextProps.params.orgId !== this.props.params.orgId;
+      prevProps.params.orgId !== this.props.params.orgId;
 
     if (
       hasOrgIdAndChanged ||
-      nextProps.location.state === 'refresh' ||
-      this.props.organizations !== nextProps.organizations
+      prevProps.organizationsLoading !== this.props.organizationsLoading ||
+      (this.props.location.state === 'refresh' && prevProps.location.state !== 'refresh')
     ) {
       this.remountComponent();
     }
