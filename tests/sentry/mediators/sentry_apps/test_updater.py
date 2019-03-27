@@ -60,6 +60,7 @@ class TestUpdater(TestCase):
             name='sentry',
             organization=self.org,
             scopes=('project:read', 'event:read',),
+            events=('event.alert',),
         )
         self.create_sentry_app_installation(slug='sentry')
         updater = Updater(sentry_app=sentry_app, events=('issue',))

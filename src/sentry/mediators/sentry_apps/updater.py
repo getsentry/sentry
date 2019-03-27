@@ -7,7 +7,7 @@ from sentry.coreapi import APIError
 
 from sentry.constants import SentryAppStatus
 from sentry.mediators import Mediator, Param
-from sentry.mediators.service_hooks import Updater as ServiceHookUpdater
+from sentry.mediators import service_hooks
 from sentry.mediators.param import if_param
 from sentry.models import SentryAppComponent, ServiceHook
 from sentry.models.sentryapp import REQUIRED_EVENT_PERMISSIONS
@@ -62,7 +62,7 @@ class Updater(Mediator):
     def _update_service_hook_events(self):
         hooks = ServiceHook.objects.filter(application=self.sentry_app.application)
         for hook in hooks:
-            ServiceHookUpdater.run(service_hook=hook, events=self.events)
+            service_hooks.Updater.run(service_hook=hook, events=self.events)
 
     @if_param('webhook_url')
     def _update_webhook_url(self):
