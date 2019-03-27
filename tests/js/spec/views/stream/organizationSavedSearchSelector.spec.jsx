@@ -6,7 +6,7 @@ import OrganizationSavedSearchSelector from 'app/views/stream/organizationSavedS
 describe('OrganizationSavedSearchSelector', function() {
   let wrapper, onSelect, onDelete, organization, savedSearchList;
   beforeEach(function() {
-    organization = TestStubs.Organization();
+    organization = TestStubs.Organization({access: ['org:write']});
     onSelect = jest.fn();
     onDelete = jest.fn();
     savedSearchList = [
@@ -31,6 +31,7 @@ describe('OrganizationSavedSearchSelector', function() {
         savedSearchList={savedSearchList}
         onSavedSearchSelect={onSelect}
         onSavedSearchDelete={onDelete}
+        query={'is:unresolved assigned:lyn@sentry.io'}
       />,
       TestStubs.routerContext()
     );
@@ -118,6 +119,29 @@ describe('OrganizationSavedSearchSelector', function() {
 
       wrapper.find('Modal Button[priority="primary"]').simulate('click');
       expect(onDelete).toHaveBeenCalledWith(savedSearchList[1]);
+    });
+  });
+
+  describe('saves a search', function() {
+    it('clicking save search opens modal', function() {
+      wrapper.find('DropdownLink').simulate('click');
+      expect(wrapper.find('ModalDialog')).toHaveLength(0);
+      wrapper
+        .find('button')
+        .at(0)
+        .simulate('click');
+
+      expect(wrapper.find('ModalDialog')).toHaveLength(1);
+    });
+
+    it('hides save search button if no access', function() {
+      const orgWithoutAccess = TestStubs.Organization({access: ['org:read']});
+
+      wrapper.setProps({organization: orgWithoutAccess});
+
+      const button = wrapper.find('button');
+
+      expect(button).toHaveLength(0);
     });
   });
 });
