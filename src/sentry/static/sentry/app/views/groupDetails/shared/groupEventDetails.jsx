@@ -42,7 +42,7 @@ class GroupEventDetails extends React.Component {
   }
 
   componentDidUpdate(prevProps, prevState) {
-    const {environments, params} = this.props;
+    const {environments, params, location} = this.props;
 
     const eventHasChanged = prevProps.params.eventId !== params.eventId;
     const environmentsHaveChanged = !isEqual(prevProps.environments, environments);
@@ -60,9 +60,10 @@ class GroupEventDetails extends React.Component {
         !environments.find(env => env.name === getEventEnvironment(prevState.event));
 
       if (shouldRedirect) {
-        browserHistory.replace(
-          `/organizations/${params.orgId}/issues/${params.groupId}/`
-        );
+        browserHistory.replace({
+          pathname: `/organizations/${params.orgId}/issues/${params.groupId}/`,
+          query: location.query,
+        });
         return;
       }
     }

@@ -96,6 +96,7 @@ describe('groupEventDetails', () => {
         organization={org}
         environments={[{id: '1', name: 'dev', displayName: 'Dev'}]}
         params={{orgId: org.slug, groupId: group.id, eventId: '1'}}
+        location={{}}
       />,
       routerContext
     );
@@ -119,6 +120,7 @@ describe('groupEventDetails', () => {
         organization={org}
         environments={[{id: '1', name: 'dev', displayName: 'Dev'}]}
         params={{orgId: org.slug, group: group.id, eventId: '1'}}
+        location={{}}
       />,
       routerContext
     );
@@ -143,6 +145,7 @@ describe('groupEventDetails', () => {
         organization={org}
         environments={[{id: '1', name: 'dev', displayName: 'Dev'}]}
         params={{}}
+        location={{}}
       />,
       routerContext
     );
@@ -166,6 +169,7 @@ describe('groupEventDetails', () => {
         organization={org}
         environments={[{id: '1', name: 'dev', displayName: 'Dev'}]}
         params={{}}
+        location={{}}
       />,
       routerContext
     );
