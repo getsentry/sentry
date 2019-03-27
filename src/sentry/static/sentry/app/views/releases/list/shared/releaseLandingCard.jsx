@@ -1,6 +1,7 @@
 import PropTypes from 'prop-types';
 import React from 'react';
 import styled from 'react-emotion';
+import space from 'app/styles/space';
 import {t} from 'app/locale';
 
 import Button from 'app/components/button';
@@ -60,12 +61,12 @@ const Container = styled('div')`
   align-items: center;
   justify-content: center;
   height: 450px;
-  padding: 10px;
+  padding: ${space(1)};
 `;
 
 const StyledBox = styled('div')`
   flex: 1;
-  padding-right: 10px;
+  padding-right: ${space(1)};
 `;
 
 const IllustrationContainer = styled(StyledBox)`
