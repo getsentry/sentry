@@ -1,7 +1,6 @@
 import PropTypes from 'prop-types';
 import React from 'react';
 import styled from 'react-emotion';
-import {Box} from 'grid-emotion';
 import {t} from 'app/locale';
 
 import Button from 'app/components/button';
@@ -30,42 +29,57 @@ class ReleaseLandingCard extends React.Component {
     const CardComponent = card.component;
     const finalStep = step === cardsLength - 1;
     return (
-      <div className="row">
-        <div className="col-md-6">
-          <StyledBox>
+      <Container>
+        <IllustrationContainer>
+          <CardComponentContainer>
             <CardComponent />
-          </StyledBox>
-        </div>
+          </CardComponentContainer>
+        </IllustrationContainer>
 
-        <div className="col-md-6">
-          <StyledBox>
-            <h3>{card.title}</h3>
-            <p>{card.message}</p>
-            {finalStep ? (
-              <StyledButton
-                href={'https://docs.sentry.io/learn/releases/'}
-                onClick={this.props.onClick}
-              >
-                {this.getMessage()}
-              </StyledButton>
-            ) : (
-              <StyledButton onClick={this.props.onClick}>
-                {this.getMessage()}
-              </StyledButton>
-            )}
-          </StyledBox>
-        </div>
-      </div>
+        <StyledBox>
+          <h3>{card.title}</h3>
+          <p>{card.message}</p>
+          {finalStep ? (
+            <Button
+              href={'https://docs.sentry.io/learn/releases/'}
+              onClick={this.props.onClick}
+            >
+              {this.getMessage()}
+            </Button>
+          ) : (
+            <Button onClick={this.props.onClick}>{this.getMessage()}</Button>
+          )}
+        </StyledBox>
+      </Container>
     );
   }
 }
 
-const StyledBox = styled(Box)`
-  padding: 80px;
+const Container = styled('div')`
+  display: flex;
   align-items: center;
+  justify-content: center;
+  height: 450px;
+  padding: 10px;
 `;
 
-const StyledButton = styled(Button)`
-  align-items: left;
+const StyledBox = styled('div')`
+  flex: 1;
+  padding-right: 10px;
 `;
+
+const IllustrationContainer = styled(StyledBox)`
+  display: flex;
+  align-items: center;
+  justify-content: center;
+`;
+
+const CardComponentContainer = styled('div')`
+  width: 450px;
+
+  img {
+    vertical-align: baseline;
+  }
+`;
+
 export default ReleaseLandingCard;
