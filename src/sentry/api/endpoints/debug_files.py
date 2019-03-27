@@ -98,13 +98,26 @@ class DebugFilesEndpoint(ProjectEndpoint):
         :qparam string id: If set, the specified DIF will be sent in the response.
         :auth: required
         """
+        download_requested = request.GET.get('id') is not None
+        if download_requested and (request.access.has_scope('project:write')):
+            return self.download(request.GET.get('id'), project)
+
+        code_id = request.GET.get('code_id')
+        debug_id = request.GET.get('debug_id')
         query = request.GET.get('query')
 
-        queryset = ProjectDebugFile.objects.filter(
-            project=project,
-        ).select_related('file')
-
-        if query:
+        if code_id:
+            # If a code identifier is provided, try to find an exact match and
+            # only consider the debug identifier if the DIF does not have a
+            # primary code identifier.
+            q = Q(code_id__exact=code_id)
+            if debug_id:
+                q |= Q(code_id__exact=None, debug_id__exact=debug_id)
+        elif debug_id:
+            # If only a debug ID is specified, do not consider the stored code
+            # identifier and strictly filter by debug identifier.
+            q = Q(debug_id__exact=debug_id)
+        elif query:
             if len(query) <= 45:
                 # If this query contains a debug identifier, normalize it to
                 # allow for more lenient queries (e.g. supporting Breakpad ids).
@@ -123,12 +136,12 @@ class DebugFilesEndpoint(ProjectEndpoint):
             file_format = KNOWN_DIF_FORMATS_REVERSE.get(query)
             if file_format:
                 q |= Q(file__headers__icontains=file_format)
+        else:
+            q = Q()
 
-            queryset = queryset.filter(q)
-
-        download_requested = request.GET.get('id') is not None
-        if download_requested and (request.access.has_scope('project:write')):
-            return self.download(request.GET.get('id'), project)
+        queryset = ProjectDebugFile.objects \
+            .filter(q, project=project) \
+            .select_related('file')
 
         return self.paginate(
             request=request,
