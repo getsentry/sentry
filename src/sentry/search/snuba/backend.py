@@ -52,7 +52,7 @@ aggregation_defs = {
 }
 issue_only_fields = set([
     'query', 'status', 'bookmarked_by', 'assigned_to', 'unassigned',
-    'subscribed_by', 'active_at', 'first_release',
+    'subscribed_by', 'active_at', 'first_release', 'first_seen',
 ])
 
 
