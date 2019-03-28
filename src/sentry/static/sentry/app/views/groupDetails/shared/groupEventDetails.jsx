@@ -1,5 +1,7 @@
 import React from 'react';
 import PropTypes from 'prop-types';
+import {isEqual} from 'lodash';
+import {browserHistory} from 'react-router';
 
 import SentryTypes from 'app/sentryTypes';
 import {withMeta} from 'app/components/events/meta/metaProxy';
@@ -14,7 +16,7 @@ import withOrganization from 'app/utils/withOrganization';
 import fetchSentryAppInstallations from 'app/utils/fetchSentryAppInstallations';
 
 import GroupEventToolbar from './eventToolbar';
-import {fetchGroupEventAndMarkSeen} from './utils';
+import {fetchGroupEventAndMarkSeen, getEventEnvironment} from './utils';
 
 class GroupEventDetails extends React.Component {
   static propTypes = {
@@ -39,8 +41,34 @@ class GroupEventDetails extends React.Component {
     this.fetchData();
   }
 
-  componentDidUpdate(prevProps) {
-    if (prevProps.params.eventId !== this.props.params.eventId) {
+  componentDidUpdate(prevProps, prevState) {
+    const {environments, params, location} = this.props;
+
+    const eventHasChanged = prevProps.params.eventId !== params.eventId;
+    const environmentsHaveChanged = !isEqual(prevProps.environments, environments);
+
+    // If environments are being actively changed and will no longer contain the
+    // current event's environment, redirect to latest
+    if (
+      environmentsHaveChanged &&
+      prevState.event &&
+      params.eventId &&
+      !['latest', 'oldest'].includes(params.eventId)
+    ) {
+      const shouldRedirect =
+        environments.length > 0 &&
+        !environments.find(env => env.name === getEventEnvironment(prevState.event));
+
+      if (shouldRedirect) {
+        browserHistory.replace({
+          pathname: `/organizations/${params.orgId}/issues/${params.groupId}/`,
+          query: location.query,
+        });
+        return;
+      }
+    }
+
+    if (eventHasChanged || environmentsHaveChanged) {
       this.fetchData();
     }
   }
@@ -50,7 +78,7 @@ class GroupEventDetails extends React.Component {
   }
 
   fetchData = () => {
-    const {api, group, project, organization, params} = this.props;
+    const {api, group, project, organization, params, environments} = this.props;
     const eventId = params.eventId || 'latest';
     const groupId = group.id;
     const orgSlug = organization.slug;
@@ -61,7 +89,9 @@ class GroupEventDetails extends React.Component {
       error: false,
     });
 
-    fetchGroupEventAndMarkSeen(api, orgSlug, projSlug, groupId, eventId)
+    const envNames = environments.map(e => e.name);
+
+    fetchGroupEventAndMarkSeen(api, orgSlug, projSlug, groupId, eventId, envNames)
       .then(data => {
         this.setState({
           event: data,
@@ -71,6 +101,7 @@ class GroupEventDetails extends React.Component {
       })
       .catch(() => {
         this.setState({
+          event: null,
           error: true,
           loading: false,
         });
@@ -119,7 +150,10 @@ class GroupEventDetails extends React.Component {
             {this.state.loading ? (
               <LoadingIndicator />
             ) : this.state.error ? (
-              <GroupEventDetailsLoadingError onRetry={this.fetchData} />
+              <GroupEventDetailsLoadingError
+                environments={environments}
+                onRetry={this.fetchData}
+              />
             ) : (
               <EventEntries
                 group={group}
