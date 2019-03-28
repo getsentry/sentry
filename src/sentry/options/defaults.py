@@ -109,8 +109,16 @@ register('filestore.options', default={'location': '/tmp/sentry-files'}, flags=F
 register('symbolserver.enabled', default=False, flags=FLAG_ALLOW_EMPTY | FLAG_PRIORITIZE_DISK)
 register(
     'symbolserver.options',
-    default={'url': 'http://127.0.0.1:3000'},
+    default={'url': 'http://127.0.0.1:3021'},
     flags=FLAG_ALLOW_EMPTY | FLAG_PRIORITIZE_DISK
+)
+
+# Symbolicator
+register('symbolicator.enabled', default=False, flags=FLAG_ALLOW_EMPTY | FLAG_PRIORITIZE_DISK)
+register(
+    'symbolicator.options',
+    default={'url': 'http://127.0.0.1:'},
+    flags=FLAG_ALLOW_EMPTY | FLAG_PRIORITIZE_DISK,
 )
 
 # Analytics
