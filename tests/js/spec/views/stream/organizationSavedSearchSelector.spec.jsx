@@ -4,11 +4,12 @@ import {mount} from 'enzyme';
 import OrganizationSavedSearchSelector from 'app/views/stream/organizationSavedSearchSelector';
 
 describe('OrganizationSavedSearchSelector', function() {
-  let wrapper, onSelect, onDelete, organization, savedSearchList;
+  let wrapper, onCreate, onSelect, onDelete, organization, savedSearchList, createMock;
   beforeEach(function() {
     organization = TestStubs.Organization({access: ['org:write']});
     onSelect = jest.fn();
     onDelete = jest.fn();
+    onCreate = jest.fn();
     savedSearchList = [
       {
         id: '789',
@@ -29,12 +30,23 @@ describe('OrganizationSavedSearchSelector', function() {
       <OrganizationSavedSearchSelector
         organization={organization}
         savedSearchList={savedSearchList}
+        onSavedSearchCreate={onCreate}
         onSavedSearchSelect={onSelect}
         onSavedSearchDelete={onDelete}
         query={'is:unresolved assigned:lyn@sentry.io'}
       />,
       TestStubs.routerContext()
     );
+
+    createMock = MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/searches/',
+      method: 'POST',
+      body: {id: '1', name: 'test', query: 'is:unresolved assigned:lyn@sentry.io'},
+    });
+  });
+
+  afterEach(function() {
+    MockApiClient.clearMockResponses();
   });
 
   describe('getTitle()', function() {
@@ -126,12 +138,21 @@ describe('OrganizationSavedSearchSelector', function() {
     it('clicking save search opens modal', function() {
       wrapper.find('DropdownLink').simulate('click');
       expect(wrapper.find('ModalDialog')).toHaveLength(0);
-      wrapper
-        .find('button')
-        .at(0)
-        .simulate('click');
-
+      wrapper.find('Button[data-test-id="save-current-search"]').simulate('click');
       expect(wrapper.find('ModalDialog')).toHaveLength(1);
+    });
+
+    it('saves a search', async function() {
+      wrapper.find('DropdownLink').simulate('click');
+      wrapper.find('Button[data-test-id="save-current-search"]').simulate('click');
+      wrapper.find('#id-name').simulate('change', {target: {value: 'test'}});
+      wrapper
+        .find('ModalDialog')
+        .find('Button[priority="primary"]')
+        .simulate('submit');
+
+      expect(createMock).toHaveBeenCalled();
+      expect(onCreate).toHaveBeenCalled();
     });
 
     it('hides save search button if no access', function() {
