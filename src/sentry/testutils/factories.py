@@ -25,7 +25,7 @@ from sentry.models import (
     Activity, Environment, Event, EventError, EventMapping, Group, Organization, OrganizationMember,
     OrganizationMemberTeam, Project, ProjectBookmark, Team, User, UserEmail, Release, Commit, ReleaseCommit,
     CommitAuthor, Repository, CommitFileChange, ProjectDebugFile, File, UserPermission, EventAttachment,
-    UserReport,
+    UserReport, PlatformExternalIssue,
 )
 from sentry.utils.canonical import CanonicalKeyDict
 
@@ -821,3 +821,13 @@ class Factories(object):
         session = engine.SessionStore()
         session.save()
         return session
+
+    @staticmethod
+    def create_platform_external_issue(group=None, service_type=None,
+                                       display_name=None, web_url=None):
+        return PlatformExternalIssue.objects.create(
+            group_id=group.id,
+            service_type=service_type,
+            display_name=display_name,
+            web_url=web_url,
+        )

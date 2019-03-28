@@ -203,6 +203,9 @@ class Fixtures(object):
     def create_userreport(self, *args, **kwargs):
         return Factories.create_userreport(*args, **kwargs)
 
+    def create_platform_external_issue(self, *args, **kwargs):
+        return Factories.create_platform_external_issue(*args, **kwargs)
+
     @pytest.fixture(autouse=True)
     def _init_insta_snapshot(self, insta_snapshot):
         self.insta_snapshot = insta_snapshot
