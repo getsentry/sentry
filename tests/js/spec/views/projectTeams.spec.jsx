@@ -127,6 +127,85 @@ describe('ProjectTeams', function() {
     );
   });
 
+  it('removes team from project when project team is not in org list', async function() {
+    MockApiClient.clearMockResponses();
+    MockApiClient.addMockResponse({
+      url: `/projects/${org.slug}/${project.slug}/teams/`,
+      method: 'GET',
+      body: [team, team2],
+    });
+
+    const endpoint = `/projects/${org.slug}/${project.slug}/teams/${team.slug}/`;
+    const mock = MockApiClient.addMockResponse({
+      url: endpoint,
+      method: 'DELETE',
+    });
+
+    const endpoint2 = `/projects/${org.slug}/${project.slug}/teams/${team2.slug}/`;
+    const mock2 = MockApiClient.addMockResponse({
+      url: endpoint2,
+      method: 'DELETE',
+    });
+
+    MockApiClient.addMockResponse({
+      url: `/organizations/${org.slug}/teams/`,
+      method: 'GET',
+      body: [
+        TestStubs.Team({
+          id: '3',
+          slug: 'team-slug-3',
+          name: 'Team Name 3',
+          hasAccess: true,
+        }),
+      ],
+    });
+
+    const wrapper = mount(
+      <ProjectTeams
+        params={{orgId: org.slug, projectId: project.slug}}
+        organization={org}
+      />,
+      TestStubs.routerContext()
+    );
+    // Wait for team list to fetch.
+    await wrapper.update();
+
+    expect(mock).not.toHaveBeenCalled();
+
+    // Click "Remove"
+    wrapper
+      .find('PanelBody Button')
+      .first()
+      .simulate('click');
+
+    expect(mock).toHaveBeenCalledWith(
+      endpoint,
+      expect.objectContaining({
+        method: 'DELETE',
+      })
+    );
+
+    await tick();
+
+    // Remove second team
+    wrapper
+      .update()
+      .find('PanelBody Button')
+      .first()
+      .simulate('click');
+
+    // Modal opens because this is the last team in project
+    // Click confirm
+    wrapper.find('ModalDialog Button[priority="primary"]').simulate('click');
+
+    expect(mock2).toHaveBeenCalledWith(
+      endpoint2,
+      expect.objectContaining({
+        method: 'DELETE',
+      })
+    );
+  });
+
   it('can associate a team with project', async function() {
     const endpoint = `/projects/${org.slug}/${project.slug}/teams/${team2.slug}/`;
     const mock = MockApiClient.addMockResponse({
