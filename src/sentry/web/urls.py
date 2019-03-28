@@ -420,12 +420,12 @@ urlpatterns += patterns(
         name='sentry-organization-issue-detail'
     ),
     url(
-        r'^organizations/(?P<organization_slug>[\w_-]+)/issues/(?P<group_id>\d+)/events/(?P<event_id_or_latest>(\d+|latest))/$',
+        r'^organizations/(?P<organization_slug>[\w_-]+)/issues/(?P<group_id>\d+)/events/(?P<event_id_or_latest>[\w-]+)/$',
         react_page_view,
         name='sentry-organization-event-detail'
     ),
     url(
-        r'^organizations/(?P<organization_slug>[\w_-]+)/issues/(?P<group_id>\d+)/events/(?P<event_id_or_latest>(\d+|latest))/json/$',
+        r'^organizations/(?P<organization_slug>[\w_-]+)/issues/(?P<group_id>\d+)/events/(?P<event_id_or_latest>[\w-]+)/json/$',
         GroupEventJsonView.as_view(),
         name='sentry-group-event-json'
     ),
