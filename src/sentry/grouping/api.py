@@ -72,10 +72,12 @@ def _get_project_enhancements_config(project):
     return rv
 
 
-def get_default_grouping_config_dict():
+def get_default_grouping_config_dict(id=None):
     """Returns the default grouping config."""
+    if id is None:
+        id = DEFAULT_CONFIG
     return {
-        'id': DEFAULT_CONFIG,
+        'id': id,
         'enhancements': DEFAULT_ENHANCEMENTS_CONFIG,
     }
 

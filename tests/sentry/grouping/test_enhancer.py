@@ -25,10 +25,10 @@ def test_basic_parsing(insta_snapshot):
     enhancement = Enhancements.from_config_string('''
 # This is a config
 path:*/code/game/whatever/*                     +app
-function:panic_handler                          ^-keep -keep
-function:ThreadStartWin32                       v-keep
-function:ThreadStartLinux                       v-keep
-function:ThreadStartMac                         v-keep
+function:panic_handler                          ^-store -store
+function:ThreadStartWin32                       v-store
+function:ThreadStartLinux                       v-store
+function:ThreadStartMac                         v-store
 module:std::*                                   -app
 module:core::*                                  -app
 ''', bases=['common:v1'])

@@ -12,20 +12,20 @@ function:alloc::*                                   -app
 function:__rust_*                                   -app
 
 # rust borders
-function:std::panicking::begin_panic                ^-keep -app
-function:core::panicking::begin_panic               ^-keep -app
-function:failure::backtrace::Backtrace::new         ^-keep -app
-function:error_chain::make_backtrace                ^-keep -app
+function:std::panicking::begin_panic                ^-store -app
+function:core::panicking::begin_panic               ^-store -app
+function:failure::backtrace::Backtrace::new         ^-store -app
+function:error_chain::make_backtrace                ^-store -app
 
 # C++ borders
-function:_CxxThrowException                         ^-keep -app -group
-function:__cxa_throw                                ^-keep -app -group
-function:__assert_rtn                               ^-keep -app -group
+function:_CxxThrowException                         ^-store -app -group
+function:__cxa_throw                                ^-store -app -group
+function:__assert_rtn                               ^-store -app -group
 
 # Objective-C
-function:_NSRaiseError                              ^-keep -app -group
+function:_NSRaiseError                              ^-store -app -group
 
 # Breakpad
 function:google_breakpad::*                         -app -group
-function:google_breakpad::ExceptionHandler::SignalHandler ^-keep
-function:google_breakpad::ExceptionHandler::WriteMinidumpWithException ^-keep
+function:google_breakpad::ExceptionHandler::SignalHandler ^-store
+function:google_breakpad::ExceptionHandler::WriteMinidumpWithException ^-store

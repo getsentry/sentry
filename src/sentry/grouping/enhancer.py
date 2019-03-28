@@ -27,7 +27,7 @@ matcher_type   = "path" / "function" / "module"
 
 actions        = action+
 action         = _ range? flag action_name
-action_name    = "keep" / "group" / "app"
+action_name    = "store" / "group" / "app"
 flag           = "+" / "-"
 range          = "^" / "v"
 
@@ -54,7 +54,7 @@ MATCH_KEYS = {
 }
 SHORT_MATCH_KEYS = dict((v, k) for k, v in six.iteritems(MATCH_KEYS))
 
-ACTIONS = ['keep', 'group', 'app']
+ACTIONS = ['store', 'group', 'app']
 ACTION_FLAGS = {
     (True, None): 0,
     (True, 'up'): 1,
@@ -150,10 +150,16 @@ class Enhancements(object):
     @classmethod
     def _from_config_structure(cls, data):
         version, bases, rules = data
-        return cls([Rule._from_config_structure(x) for x in rules], version, bases)
+        return cls(
+            rules=[Rule._from_config_structure(x) for x in rules],
+            version=version,
+            bases=bases
+        )
 
     @classmethod
     def loads(cls, data):
+        if six.PY2 and isinstance(data, six.text_type):
+            data = data.encode('ascii', 'ignore')
         padded = data + b'=' * (4 - (len(data) % 4))
         try:
             return cls._from_config_structure(msgpack.loads(

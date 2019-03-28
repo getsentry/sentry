@@ -10,6 +10,7 @@ from sentry.models import Event
 from sentry.event_manager import EventManager
 from sentry.grouping.component import GroupingComponent
 from sentry.grouping.strategies.configurations import CONFIGURATIONS
+from sentry.grouping.api import get_default_grouping_config_dict
 
 
 def dump_variant(variant, lines=None, indent=0):
@@ -71,9 +72,7 @@ def test_event_hash_variant(insta_snapshot, config_name, test_name, log):
     with open(os.path.join(_fixture_path, test_name + '.json')) as f:
         input = json.load(f)
 
-    grouping_config = {
-        'id': config_name,
-    }
+    grouping_config = get_default_grouping_config_dict(config_name)
     mgr = EventManager(data=input, grouping_config=grouping_config)
     mgr.normalize()
     data = mgr.get_data()
