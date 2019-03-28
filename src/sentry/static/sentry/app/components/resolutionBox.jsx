@@ -1,11 +1,19 @@
 import PropTypes from 'prop-types';
 import React from 'react';
+import styled from 'react-emotion';
 
 import Avatar from 'app/components/avatar';
 import CommitLink from 'app/components/commitLink';
 import TimeSince from 'app/components/timeSince';
 import Version from 'app/components/version';
 import {t, tct} from 'app/locale';
+import space from 'app/styles/space';
+
+const StyledTimeSince = styled(TimeSince)`
+  color: ${p => p.theme.gray2};
+  margin-left: ${space(0.5)};
+  font-size: ${p => p.theme.fontSizeSmall};
+`;
 
 export default class ResolutionBox extends React.Component {
   static propTypes = {
@@ -58,7 +66,7 @@ export default class ResolutionBox extends React.Component {
               commitId={statusDetails.inCommit.id}
               repository={statusDetails.inCommit.repository}
             />
-            <TimeSince className="issue-time" date={statusDetails.inCommit.dateCreated} />
+            <StyledTimeSince date={statusDetails.inCommit.dateCreated} />
           </React.Fragment>
         ),
       });

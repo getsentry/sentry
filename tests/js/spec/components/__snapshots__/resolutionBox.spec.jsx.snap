@@ -86,10 +86,8 @@ exports[`ResolutionBox render() handles inCommit 1`] = `
           }
         }
       />
-      <TimeSince
-        className="issue-time"
+      <StyledTimeSince
         date="2018-11-30T18:46:31Z"
-        suffix="ago"
       />
     </span>
   </p>
