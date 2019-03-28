@@ -1,5 +1,5 @@
 import React from 'react';
-import {browserHistory, withRouter} from 'react-router';
+import {browserHistory} from 'react-router';
 import PropTypes from 'prop-types';
 import {throttle, isEqual} from 'lodash';
 
@@ -41,6 +41,7 @@ import {
 class Result extends React.Component {
   static propTypes = {
     data: PropTypes.object.isRequired,
+    location: PropTypes.object.isRequired,
     savedQuery: SentryTypes.DiscoverSavedQuery, // Provided if it's a saved search
     onFetchPage: PropTypes.func.isRequired,
     onToggleEdit: PropTypes.func,
@@ -78,7 +79,12 @@ class Result extends React.Component {
   }
 
   shouldComponentUpdate(nextProps, nextState) {
-    return !isEqual(nextProps, this.props) || !isEqual(nextState, this.state);
+    return (
+      (nextProps.location.state === 'fetching' &&
+        nextProps.location.state !== this.props.location.state) ||
+      !isEqual(nextProps, this.props) ||
+      !isEqual(nextState, this.state)
+    );
   }
 
   componentWillUnmount() {
@@ -299,5 +305,4 @@ class Result extends React.Component {
   }
 }
 
-export {Result};
-export default withRouter(Result);
+export default Result;

@@ -1,7 +1,7 @@
 import React from 'react';
 import {mount, shallow} from 'enzyme';
 
-import {Result} from 'app/views/organizationDiscover/result';
+import Result from 'app/views/organizationDiscover/result';
 import createQueryBuilder from 'app/views/organizationDiscover/queryBuilder';
 
 describe('Result', function() {
