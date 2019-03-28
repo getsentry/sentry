@@ -34,8 +34,9 @@ from sentry.interfaces.base import get_interface
 from sentry.models import (
     Activity, Environment, Event, EventError, EventMapping, EventUser, Group,
     GroupEnvironment, GroupHash, GroupLink, GroupRelease, GroupResolution, GroupStatus,
-    Project, Release, ReleaseEnvironment, ReleaseProject,
-    ReleaseProjectEnvironment, UserReport, Organization,
+    GroupAssignee, Project, ProjectOwnership, Release,
+    ReleaseEnvironment, ReleaseProject, ReleaseProjectEnvironment,
+    Team, UserReport, Organization,
 )
 from sentry.plugins import plugins
 from sentry.signals import event_discarded, event_saved, first_event_received
@@ -1136,7 +1137,44 @@ class EventManager(object):
                 event.event_id,
             )
 
+        self._handle_owner_assignment(project, group, event)
+
         return group, is_new, is_regression, is_sample
+
+    def _handle_owner_assignment(self, project, group, event):
+        # Is the issue already assigned to a team or user?
+        if group.assignee_set.exists():
+            return
+
+        owner = self._find_owner(event.data, project)
+
+        if owner is not None:
+            GroupAssignee.objects.assign(group, owner)
+
+    @staticmethod
+    def _find_owner(event_data, project):
+        # Do ownership rules exist for this project?
+        if not project.projectownership_set.exists():
+            return
+
+        ownership = project.projectownership_set.first()
+
+        # Is auto-assignment enabled?
+        if not ownership.auto_assignment:
+            return
+
+        owners, _ = ProjectOwnership.get_owners(project.id, event_data)
+        if owners and owners is not ProjectOwnership.Everyone:
+            # Try teams first, in alphabetical order by name
+            owners = sorted(
+                map(
+                    lambda o: (0 if o.type is Team else 1, o.resolve()),
+                    owners
+                ),
+                key=lambda o: (o[0], o[1].name)
+            )
+            owner = owners[0][1]
+            return owner
 
     def _handle_regression(self, group, event, release):
         if not group.is_resolved():
