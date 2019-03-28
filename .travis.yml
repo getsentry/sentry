@@ -37,6 +37,8 @@ env:
     - NODE_DIR="${HOME}/.nvm/versions/node/v$(< .nvmrc)"
     - YARN_VERSION="1.13.0"
 script:
+  # certain commands require sentry init to be run, but this is only true for
+  # running things within Travis
   - make travis-lint-$TEST_SUITE
   - make travis-test-$TEST_SUITE
   - make travis-scan-$TEST_SUITE
