@@ -66,7 +66,7 @@ const Container = styled('div')`
 
 const StyledBox = styled('div')`
   flex: 1;
-  padding-right: ${space(1)};
+  padding: 40px;
 `;
 
 const IllustrationContainer = styled(StyledBox)`
@@ -80,6 +80,16 @@ const CardComponentContainer = styled('div')`
 
   img {
     vertical-align: baseline;
+  }
+
+  @media (max-width: 1150px) {
+    font-size: 14px;
+    width: 350px;
+  }
+
+  @media (max-width: 1000px) {
+    font-size: 12px;
+    width: 280px;
   }
 `;
 

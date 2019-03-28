@@ -20,6 +20,10 @@ const StyledSuggestedAssignees = styled(SuggestedAssignees)`
   width: 70px;
   height: 70px;
   margin-left: 250px;
+
+  @media (max-width: 1150px) {
+    margin-left: 100px;
+  }
 `;
 
 const cards = [
