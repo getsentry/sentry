@@ -17,10 +17,6 @@ class SearchDropdown extends React.PureComponent {
     onClick: function() {},
   };
 
-  onClick = itemValue => {
-    this.props.onClick(itemValue);
-  };
-
   renderDescription = item => {
     const searchSubstring = this.props.searchSubstring;
     if (!searchSubstring) {
@@ -60,7 +56,7 @@ class SearchDropdown extends React.PureComponent {
                     'search-autocomplete-item',
                     item.active && 'active'
                   )}
-                  onClick={this.onClick.bind(this, item.value)}
+                  onClick={this.props.onClick.bind(this, item.value, item)}
                 >
                   <span className={classNames('icon', item.className)} />
                   <h4>
