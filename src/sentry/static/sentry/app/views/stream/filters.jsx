@@ -19,7 +19,8 @@ class StreamFilters extends React.Component {
     organization: SentryTypes.Organization,
 
     searchId: PropTypes.string,
-    savedSearchList: PropTypes.array.isRequired,
+    savedSearchList: PropTypes.arrayOf(SentryTypes.SavedSearch),
+    savedSearch: SentryTypes.SavedSearch,
 
     sort: PropTypes.string,
     query: PropTypes.string,
@@ -54,6 +55,7 @@ class StreamFilters extends React.Component {
     const {
       organization,
       projectId,
+      savedSearch,
       searchId,
       queryCount,
       queryMaxCount,
@@ -119,6 +121,7 @@ class StreamFilters extends React.Component {
             excludeEnvironment={true}
             supportedTags={tags}
             tagValueLoader={tagValueLoader}
+            savedSearch={savedSearch}
           />
           <a className="btn btn-default toggle-stream-sidebar" onClick={onSidebarToggle}>
             <span className="icon-filter" />

@@ -272,7 +272,7 @@ describe('SearchBar', function() {
         tagValueLoader: () => Promise.resolve([]),
         supportedTags,
         organization,
-        pinnedSearch: {query: 'url:"fu" '},
+        pinnedSearch: {id: '1', query: 'url:"fu" '},
       };
       const searchBar = mount(<SearchBar {...props} />, routerContext);
       searchBar.find('PinButton').simulate('click');

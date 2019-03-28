@@ -92,7 +92,7 @@ class SmartSearchBar extends React.Component {
     /**
      * The pinned search object
      */
-    pinnedSearch: PropTypes.object,
+    pinnedSearch: SentryTypes.SavedSearch,
 
     // Callback that returns a promise of an array of strings
     onGetTagValues: PropTypes.func,
@@ -734,9 +734,9 @@ const PinButton = styled(Button)`
 `;
 
 const PinIcon = styled(InlineSvg)`
-  color: ${p => (p.isPinned ? 'yellow' : 'gray')};
+  fill: ${p => (p.isPinned ? p.theme.blueLight : p.theme.gray2)};
   &:hover {
-    color: yellow;
+    fill: ${p => p.theme.blueLight};
   }
 `;
 
