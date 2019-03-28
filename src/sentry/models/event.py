@@ -34,7 +34,7 @@ from sentry.db.models import (
 )
 from sentry.db.models.manager import EventManager, SnubaEventManager
 from sentry.interfaces.base import get_interfaces
-from sentry.utils import metrics
+from sentry.utils import json, metrics
 from sentry.utils.cache import memoize
 from sentry.utils.canonical import CanonicalKeyDict, CanonicalKeyView
 from sentry.utils.safe import get_path
@@ -292,10 +292,7 @@ class EventCommon(object):
 
     @property
     def size(self):
-        data_len = 0
-        for value in six.itervalues(self.data):
-            data_len += len(repr(value))
-        return data_len
+        return len(json.dumps(dict(self.data)))
 
     @property
     def transaction(self):
