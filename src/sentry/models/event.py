@@ -292,7 +292,7 @@ class EventCommon(object):
 
     @property
     def size(self):
-        return len(json.dumps(self.data.data))
+        return len(json.dumps(dict(self.data)))
 
     @property
     def transaction(self):
