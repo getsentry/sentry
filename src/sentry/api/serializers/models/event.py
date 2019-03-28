@@ -323,7 +323,13 @@ class SimpleEventSerializer(EventSerializer):
     """
 
     def get_attrs(self, item_list, user):
-        return {}
+        crash_files = get_crash_files(item_list)
+        return {
+            event: {
+                'crash_file': serialize(crash_files.get(event.event_id), user=user)
+            }
+            for event in item_list
+        }
 
     def serialize(self, obj, attrs, user):
         tags = [{
@@ -352,4 +358,7 @@ class SimpleEventSerializer(EventSerializer):
             'tags': tags,
             'platform': obj.platform,
             'dateCreated': obj.datetime,
+
+            # Needed to generate minidump links in UI
+            'crashFile': attrs['crash_file'],
         }
