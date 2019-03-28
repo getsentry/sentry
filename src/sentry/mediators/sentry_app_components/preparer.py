@@ -1,7 +1,5 @@
 from __future__ import absolute_import
 
-from sentry.utils.http import absolute_uri
-from django.core.urlresolvers import reverse
 from six.moves.urllib.parse import urlparse, urlencode, urlunparse
 from sentry.mediators import Mediator, Param
 from sentry.mediators.external_requests import SelectRequester
