@@ -12,15 +12,18 @@ from sentry import options
 from sentry.utils.cache import memoize
 
 
+INTERNAL_NETWORKS = [
+    ipaddress.ip_network(six.text_type(net), strict=False)
+    for net in settings.INTERNAL_IPS
+]
+
+
 def is_internal_ip(request):
     if not settings.INTERNAL_IPS:
         return True
 
     ip = ipaddress.ip_address(six.text_type(request.META['REMOTE_ADDR']))
-    return any(
-        ip in ipaddress.ip_network(six.text_type(net), strict=False)
-        for net in settings.INTERNAL_IPS
-    )
+    return any(ip in net for net in INTERNAL_NETWORKS)
 
 
 def get_system_token():
