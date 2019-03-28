@@ -1,0 +1,31 @@
+## * The default configuration of stacktrace grouping enhancers
+
+# exclude common paths
+path:/usr/lib/*                                     -app
+path:/usr/local/lib/*                               -app
+path:/usr/local/Cellar/*                            -app
+
+# rust common modules
+function:std::*                                     -app
+function:core::*                                    -app
+function:alloc::*                                   -app
+function:__rust_*                                   -app
+
+# rust borders
+function:std::panicking::begin_panic                ^-keep -app
+function:core::panicking::begin_panic               ^-keep -app
+function:failure::backtrace::Backtrace::new         ^-keep -app
+function:error_chain::make_backtrace                ^-keep -app
+
+# C++ borders
+function:_CxxThrowException                         ^-keep -app -group
+function:__cxa_throw                                ^-keep -app -group
+function:__assert_rtn                               ^-keep -app -group
+
+# Objective-C
+function:_NSRaiseError                              ^-keep -app -group
+
+# Breakpad
+function:google_breakpad::*                         -app -group
+function:google_breakpad::ExceptionHandler::SignalHandler ^-keep
+function:google_breakpad::ExceptionHandler::WriteMinidumpWithException ^-keep

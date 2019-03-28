@@ -7,6 +7,8 @@ from sentry.grouping.strategies.configurations import CONFIGURATIONS, DEFAULT_CO
 from sentry.grouping.component import GroupingComponent
 from sentry.grouping.variants import ChecksumVariant, FallbackVariant, \
     ComponentVariant, CustomFingerprintVariant, SaltedComponentVariant
+from sentry.grouping.enhancer import Enhancements, InvalidEnhancerConfig, \
+    DEFAULT_ENHANCEMENTS_CONFIG, LATEST_ENHANCEMENT_BASE, ENHANCEMENT_BASES
 from sentry.grouping.utils import DEFAULT_FINGERPRINT_VALUES, hash_from_values
 
 
@@ -29,9 +31,7 @@ def get_grouping_config_dict_for_project(project, silent=True):
     if config_id is None:
         config_id = DEFAULT_CONFIG
     else:
-        try:
-            CONFIGURATIONS[config_id]
-        except KeyError:
+        if config_id not in CONFIGURATIONS:
             if not silent:
                 raise ConfigNotFoundException(config_id)
             config_id = DEFAULT_CONFIG
@@ -40,13 +40,43 @@ def get_grouping_config_dict_for_project(project, silent=True):
     # such as frames that mark the end of a stacktrace and more.
     return {
         'id': config_id,
+        'enhancements': _get_project_enhancements_config(project),
     }
+
+
+def _get_project_enhancements_config(project):
+    enhancements = project.get_option('sentry:grouping_enhancements')
+    enhancements_base = project.get_option('sentry:grouping_enhancements_base')
+    if not enhancements and not enhancements_base:
+        return DEFAULT_ENHANCEMENTS_CONFIG
+
+    if enhancements_base is None or enhancements_base not in ENHANCEMENT_BASES:
+        enhancements_base = LATEST_ENHANCEMENT_BASE
+
+    # Instead of parsing and dumping out config here, we can make a
+    # shortcut
+    from sentry.utils.cache import cache
+    from sentry.utils.hashlib import md5_text
+    cache_key = 'grouping-enhancements:' + \
+        md5_text('%s|%s' % (enhancements_base, enhancements)).hexdigest()
+    rv = cache.get(cache_key)
+    if rv is not None:
+        return rv
+
+    try:
+        rv = Enhancements.from_config_string(
+            enhancements or '', bases=[enhancements_base]).dumps()
+    except InvalidEnhancerConfig:
+        rv = DEFAULT_ENHANCEMENTS_CONFIG
+    cache.set(cache_key, rv)
+    return rv
 
 
 def get_default_grouping_config_dict():
     """Returns the default grouping config."""
     return {
         'id': DEFAULT_CONFIG,
+        'enhancements': DEFAULT_ENHANCEMENTS_CONFIG,
     }
 
 

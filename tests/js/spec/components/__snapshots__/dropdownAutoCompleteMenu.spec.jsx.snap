@@ -90,7 +90,7 @@ exports[`DropdownAutoCompleteMenu renders with a group 1`] = `
                       >
                         <input
                           autoFocus={true}
-                          className="css-dqpq6t-Input-inputStyles-StyledInput ejumqxq3"
+                          className="css-1rdiewf-Input-inputStyles-StyledInput ejumqxq3"
                           onBlur={[Function]}
                           onChange={[Function]}
                           onFocus={[Function]}
@@ -267,7 +267,7 @@ exports[`DropdownAutoCompleteMenu renders without a group 1`] = `
                       >
                         <input
                           autoFocus={true}
-                          className="css-dqpq6t-Input-inputStyles-StyledInput ejumqxq3"
+                          className="css-1rdiewf-Input-inputStyles-StyledInput ejumqxq3"
                           onBlur={[Function]}
                           onChange={[Function]}
                           onFocus={[Function]}

@@ -119,6 +119,55 @@ export const fields = {
     },
     help: t('Sets the grouping algorithm to be used for new events.'),
   },
+  groupingEnhancementsBase: {
+    name: 'groupingEnhancementsBase',
+    type: 'array',
+    label: t('Grouping Enhancements Base'),
+    choices: ({groupingEnhancementBases}) => {
+      return groupingEnhancementBases.map(({id}) => [
+        id.toString(),
+        <code key={id}>{id}</code>,
+      ]);
+    },
+    help: t('The builtin base version of grouping enhancements.'),
+  },
+  groupingEnhancements: {
+    name: 'groupingEnhancements',
+    type: 'string',
+    label: t('Custom Grouping Enhancements'),
+    placeholder: t('function:raise_an_exception ^-keep\nfunction:namespace::* +app'),
+    multiline: true,
+    monospace: true,
+    autosize: true,
+    inline: false,
+    maxRows: 20,
+    saveOnBlur: false,
+    saveMessageAlertType: 'info',
+    saveMessage: t('Changing grouping enhancements will apply to future events only.'),
+    formatMessageValue: false,
+    help: (
+      <React.Fragment>
+        <div style={{marginBottom: 3}}>
+          {tct(
+            `This can be used to enhance the grouping algorithm with custom rules.
+        Rules follow the pattern [pattern].`,
+            {
+              pattern: <code>matcher:glob [^v]?[+-]flag</code>,
+            }
+          )}
+        </div>
+        <pre>
+          {'# discard all frames above a certain function\n' +
+            'function:panic_handler      ^-keep\n' +
+            '# mark all functions following a prefix in-app\n' +
+            'function:mylibrary_*        +app\n'}
+        </pre>
+      </React.Fragment>
+    ),
+    validate: ({id, form}) => {
+      return [];
+    },
+  },
 
   dataScrubber: {
     name: 'dataScrubber',

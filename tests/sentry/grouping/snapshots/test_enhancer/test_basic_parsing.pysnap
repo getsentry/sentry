@@ -1,0 +1,63 @@
+---
+created: '2019-03-23T20:48:50.811096Z'
+creator: sentry
+source: tests/sentry/grouping/test_enhancer.py
+---
+bases:
+- common:v1
+changelog: null
+id: null
+rules:
+- actions:
+  - flag: true
+    key: app
+    range: null
+  matchers:
+  - key: path
+    pattern: '*/code/game/whatever/*'
+- actions:
+  - flag: false
+    key: keep
+    range: up
+  - flag: false
+    key: keep
+    range: null
+  matchers:
+  - key: function
+    pattern: panic_handler
+- actions:
+  - flag: false
+    key: keep
+    range: down
+  matchers:
+  - key: function
+    pattern: ThreadStartWin32
+- actions:
+  - flag: false
+    key: keep
+    range: down
+  matchers:
+  - key: function
+    pattern: ThreadStartLinux
+- actions:
+  - flag: false
+    key: keep
+    range: down
+  matchers:
+  - key: function
+    pattern: ThreadStartMac
+- actions:
+  - flag: false
+    key: app
+    range: null
+  matchers:
+  - key: module
+    pattern: std::*
+- actions:
+  - flag: false
+    key: app
+    range: null
+  matchers:
+  - key: module
+    pattern: core::*
+version: 1

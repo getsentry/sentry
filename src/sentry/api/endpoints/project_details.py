@@ -24,6 +24,7 @@ from sentry.models import (
     AuditLogEntryEvent, Group, GroupStatus, Project, ProjectBookmark, ProjectRedirect,
     ProjectStatus, ProjectTeam, UserOption,
 )
+from sentry.grouping.enhancer import Enhancements, InvalidEnhancerConfig
 from sentry.tasks.deletion import delete_project
 from sentry.utils.apidocs import scenario, attach_scenarios
 
@@ -98,6 +99,8 @@ class ProjectAdminSerializer(ProjectMemberSerializer):
     relayPiiConfig = serializers.CharField(required=False)
     scrubIPAddresses = serializers.BooleanField(required=False)
     groupingConfig = serializers.CharField(required=False)
+    groupingEnhancements = serializers.CharField(required=False)
+    groupingEnhancementsBase = serializers.CharField(required=False)
     scrapeJavaScript = serializers.BooleanField(required=False)
     allowedDomains = ListField(child=OriginField(), required=False)
     resolveAge = serializers.IntegerField(required=False)
@@ -380,6 +383,18 @@ class ProjectDetailsEndpoint(ProjectEndpoint):
         if result.get('groupingConfig') is not None:
             if project.update_option('sentry:grouping_config', result['groupingConfig']):
                 changed_proj_settings['sentry:grouping_config'] = result['groupingConfig']
+        if result.get('groupingEnhancements') is not None:
+            try:
+                Enhancements.from_config_string(result['groupingEnhancements'])
+            except InvalidEnhancerConfig as e:
+                return Response({'groupingEnhancements': [e.message]}, status=400)
+            if project.update_option('sentry:grouping_enhancements',
+                                     result['groupingEnhancements']):
+                changed_proj_settings['sentry:grouping_enhancements'] = result['groupingEnhancements']
+        if result.get('groupingEnhancementsBase') is not None:
+            if project.update_option('sentry:grouping_enhancements_base',
+                                     result['groupingEnhancementsBase']):
+                changed_proj_settings['sentry:grouping_enhancements_base'] = result['groupingEnhancementsBase']
         if result.get('securityToken') is not None:
             if project.update_option('sentry:token', result['securityToken']):
                 changed_proj_settings['sentry:token'] = result['securityToken']
