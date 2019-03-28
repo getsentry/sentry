@@ -33,6 +33,7 @@ class ParanoidModel(Model):
 
     date_deleted = models.DateTimeField(null=True, blank=True)
     objects = ParanoidManager()
+    with_deleted = BaseManager()
 
     def delete(self):
         self.update(date_deleted=timezone.now())

@@ -5,9 +5,28 @@ from jsonschema.exceptions import ValidationError as SchemaValidationError
 from rest_framework import serializers
 from rest_framework.serializers import Serializer, ValidationError
 
+from django.template.defaultfilters import slugify
 from sentry.api.validators.sentry_apps.schema import validate as validate_schema
-from sentry.models import ApiScopes
+from sentry.models import ApiScopes, SentryApp
 from sentry.models.sentryapp import VALID_EVENT_RESOURCES, REQUIRED_EVENT_PERMISSIONS
+
+
+class NameField(serializers.CharField):
+    def from_native(self, data):
+        rv = super(NameField, self).from_native(data)
+        if not rv:
+            return
+        if not self.is_valid_slug(rv):
+            raise ValidationError(u'Name {} is already taken, please use another.'.format(data))
+        return rv
+
+    def is_valid_slug(self, value):
+        slug = slugify(value)
+
+        if SentryApp.with_deleted.filter(slug=slug).exists():
+            return False
+
+        return True
 
 
 class ApiScopesField(serializers.WritableField):
@@ -41,7 +60,7 @@ class SchemaField(serializers.WritableField):
 
 
 class SentryAppSerializer(Serializer):
-    name = serializers.CharField()
+    name = NameField()
     scopes = ApiScopesField()
     events = EventListField(required=False)
     schema = SchemaField(required=False)
