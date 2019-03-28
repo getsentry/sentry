@@ -103,6 +103,7 @@ def get_oldest_or_latest_event_for_environments(
         },
         orderby=ordering.value,
         limit=1,
+        referrer="Group.get_latest",
     )
 
     if 'error' not in result and len(result['data']) == 1:
