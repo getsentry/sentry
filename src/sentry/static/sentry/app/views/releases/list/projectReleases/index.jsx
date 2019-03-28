@@ -2,6 +2,7 @@ import PropTypes from 'prop-types';
 import React from 'react';
 import createReactClass from 'create-react-class';
 import {browserHistory} from 'react-router';
+import DocumentTitle from 'react-document-title';
 import {omit, isEqual} from 'lodash';
 import qs from 'query-string';
 
@@ -212,28 +213,32 @@ const ProjectReleases = createReactClass({
   },
 
   render() {
+    const {project: {slug: projectSlug}, organization: {name: orgName}} = this.context;
+
     return (
-      <div className="ref-project-releases">
-        <GuideAnchor target="releases" type="invisible" />
-        <div className="row" style={{marginBottom: '5px'}}>
-          <div className="col-sm-7">
-            <PageHeading withMargins>{t('Releases')}</PageHeading>
+      <DocumentTitle title={`Releases - ${projectSlug} - ${orgName} - Sentry`}>
+        <div className="ref-project-releases">
+          <GuideAnchor target="releases" type="invisible" />
+          <div className="row" style={{marginBottom: '5px'}}>
+            <div className="col-sm-7">
+              <PageHeading withMargins>{t('Releases')}</PageHeading>
+            </div>
+            <div className="col-sm-5 release-search" style={{marginTop: '5px'}}>
+              <SearchBar
+                defaultQuery=""
+                placeholder={t('Search for a release')}
+                query={this.state.query}
+                onSearch={this.onSearch}
+              />
+            </div>
           </div>
-          <div className="col-sm-5 release-search" style={{marginTop: '5px'}}>
-            <SearchBar
-              defaultQuery=""
-              placeholder={t('Search for a release')}
-              query={this.state.query}
-              onSearch={this.onSearch}
-            />
-          </div>
+          <Panel>
+            <ReleaseListHeader />
+            <PanelBody>{this.renderStreamBody()}</PanelBody>
+          </Panel>
+          <Pagination pageLinks={this.state.pageLinks} />
         </div>
-        <Panel>
-          <ReleaseListHeader />
-          <PanelBody>{this.renderStreamBody()}</PanelBody>
-        </Panel>
-        <Pagination pageLinks={this.state.pageLinks} />
-      </div>
+      </DocumentTitle>
     );
   },
 });

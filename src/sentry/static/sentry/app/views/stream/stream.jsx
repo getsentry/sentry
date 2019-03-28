@@ -6,6 +6,7 @@ import React from 'react';
 import Reflux from 'reflux';
 import classNames from 'classnames';
 import createReactClass from 'create-react-class';
+import DocumentTitle from 'react-document-title';
 import qs from 'query-string';
 
 import {Panel, PanelBody} from 'app/components/panels';
@@ -688,64 +689,66 @@ const Stream = createReactClass({
     };
 
     return (
-      <div className={classNames(classes)}>
-        <div className="stream-content">
-          <StreamFilters
-            organization={organization}
-            projectId={project.slug}
-            query={this.state.query}
-            sort={this.state.sort}
-            searchId={searchId}
-            queryCount={this.state.queryCount}
-            queryMaxCount={this.state.queryMaxCount}
-            onSortChange={this.onSortChange}
-            onSearch={this.onSearch}
-            onSavedSearchCreate={this.onSavedSearchCreate}
-            onSavedSearchSelect={this.onSavedSearchSelect}
-            onSavedSearchDelete={() => {}}
-            onSidebarToggle={this.onSidebarToggle}
-            isSearchDisabled={this.state.isSidebarVisible}
-            savedSearchList={this.state.savedSearchList}
-            tagValueLoader={this.tagValueLoader}
-            tags={this.props.tags}
-          />
-          <Panel>
-            <StreamActions
-              orgId={organization.slug}
+      <DocumentTitle title={`Issues - ${project.slug} - ${organization.name} - Sentry`}>
+        <div className={classNames(classes)}>
+          <div className="stream-content">
+            <StreamFilters
+              organization={organization}
               projectId={project.slug}
-              selection={selection}
-              hasReleases={projectFeatures.has('releases')}
-              latestRelease={this.context.project.latestRelease}
-              environment={this.state.environment}
               query={this.state.query}
+              sort={this.state.sort}
+              searchId={searchId}
               queryCount={this.state.queryCount}
-              onSelectStatsPeriod={this.onSelectStatsPeriod}
-              onRealtimeChange={this.onRealtimeChange}
-              realtimeActive={this.state.realtimeActive}
-              statsPeriod={this.state.statsPeriod}
-              groupIds={this.state.groupIds}
-              allResultsVisible={this.allResultsVisible()}
+              queryMaxCount={this.state.queryMaxCount}
+              onSortChange={this.onSortChange}
+              onSearch={this.onSearch}
+              onSavedSearchCreate={this.onSavedSearchCreate}
+              onSavedSearchSelect={this.onSavedSearchSelect}
+              onSavedSearchDelete={() => {}}
+              onSidebarToggle={this.onSidebarToggle}
+              isSearchDisabled={this.state.isSidebarVisible}
+              savedSearchList={this.state.savedSearchList}
+              tagValueLoader={this.tagValueLoader}
+              tags={this.props.tags}
             />
-            <PanelBody>
-              <ProcessingIssueList
-                organization={organization}
-                projectIds={selection.projects}
+            <Panel>
+              <StreamActions
+                orgId={organization.slug}
+                projectId={project.slug}
+                selection={selection}
+                hasReleases={projectFeatures.has('releases')}
+                latestRelease={this.context.project.latestRelease}
+                environment={this.state.environment}
+                query={this.state.query}
+                queryCount={this.state.queryCount}
+                onSelectStatsPeriod={this.onSelectStatsPeriod}
+                onRealtimeChange={this.onRealtimeChange}
+                realtimeActive={this.state.realtimeActive}
+                statsPeriod={this.state.statsPeriod}
+                groupIds={this.state.groupIds}
+                allResultsVisible={this.allResultsVisible()}
               />
-              {this.renderStreamBody()}
-            </PanelBody>
-          </Panel>
-          <Pagination pageLinks={this.state.pageLinks} />
+              <PanelBody>
+                <ProcessingIssueList
+                  organization={organization}
+                  projectIds={selection.projects}
+                />
+                {this.renderStreamBody()}
+              </PanelBody>
+            </Panel>
+            <Pagination pageLinks={this.state.pageLinks} />
+          </div>
+          <StreamSidebar
+            loading={this.props.tagsLoading}
+            tags={this.props.tags}
+            query={this.state.query}
+            onQueryChange={this.onSearch}
+            orgId={organization.slug}
+            projectId={project.slug}
+            tagValueLoader={this.tagValueLoader}
+          />
         </div>
-        <StreamSidebar
-          loading={this.props.tagsLoading}
-          tags={this.props.tags}
-          query={this.state.query}
-          onQueryChange={this.onSearch}
-          orgId={organization.slug}
-          projectId={project.slug}
-          tagValueLoader={this.tagValueLoader}
-        />
-      </div>
+      </DocumentTitle>
     );
   },
 });

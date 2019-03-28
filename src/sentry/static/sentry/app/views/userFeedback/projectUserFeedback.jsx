@@ -2,10 +2,13 @@ import PropTypes from 'prop-types';
 import React from 'react';
 import createReactClass from 'create-react-class';
 import {Link, browserHistory} from 'react-router';
+import DocumentTitle from 'react-document-title';
 import qs from 'query-string';
 import {omit, isEqual} from 'lodash';
+
 import SentryTypes from 'app/sentryTypes';
 import ApiMixin from 'app/mixins/apiMixin';
+import ProjectState from 'app/mixins/projectState';
 import GroupStore from 'app/stores/groupStore';
 import LoadingError from 'app/components/loadingError';
 import LoadingIndicator from 'app/components/loadingIndicator';
@@ -33,7 +36,7 @@ const ProjectUserFeedback = createReactClass({
     project: SentryTypes.Project,
   },
 
-  mixins: [ApiMixin],
+  mixins: [ApiMixin, ProjectState],
 
   getDefaultProps() {
     return {
@@ -212,15 +215,18 @@ const ProjectUserFeedback = createReactClass({
 
   render() {
     const {location} = this.props;
+    const {project: {slug: projectSlug}, organization: {name: orgName}} = this.context;
 
     return (
-      <UserFeedbackContainer
-        pageLinks={this.state.pageLinks}
-        status={this.state.status}
-        location={location}
-      >
-        {this.renderStreamBody()}
-      </UserFeedbackContainer>
+      <DocumentTitle title={`User Feedback - ${projectSlug} - ${orgName} - Sentry`}>
+        <UserFeedbackContainer
+          pageLinks={this.state.pageLinks}
+          status={this.state.status}
+          location={location}
+        >
+          {this.renderStreamBody()}
+        </UserFeedbackContainer>
+      </DocumentTitle>
     );
   },
 });
