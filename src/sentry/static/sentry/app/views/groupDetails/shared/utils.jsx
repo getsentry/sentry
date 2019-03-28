@@ -9,9 +9,7 @@ import {Client} from 'app/api';
  * @param {String} eventId eventId or "latest" or "oldest"
  * @returns {Promise<Object>}
  */
-export function fetchGroupEventAndMarkSeen(orgId, projectId, groupId, eventId) {
-  const api = new Client();
-
+export function fetchGroupEventAndMarkSeen(api, orgId, projectId, groupId, eventId) {
   const url =
     eventId === 'latest' || eventId === 'oldest'
       ? `/issues/${groupId}/events/${eventId}/`

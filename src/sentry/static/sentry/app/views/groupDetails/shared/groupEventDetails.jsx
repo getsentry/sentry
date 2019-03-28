@@ -9,6 +9,7 @@ import GroupSidebar from 'app/components/group/sidebar';
 import LoadingIndicator from 'app/components/loadingIndicator';
 import ResolutionBox from 'app/components/resolutionBox';
 import MutedBox from 'app/components/mutedBox';
+import withApi from 'app/utils/withApi';
 import withOrganization from 'app/utils/withOrganization';
 import fetchSentryAppInstallations from 'app/utils/fetchSentryAppInstallations';
 
@@ -17,6 +18,7 @@ import {fetchGroupEventAndMarkSeen} from './utils';
 
 class GroupEventDetails extends React.Component {
   static propTypes = {
+    api: PropTypes.object.isRequired,
     group: SentryTypes.Group.isRequired,
     project: SentryTypes.Project.isRequired,
     organization: SentryTypes.Organization.isRequired,
@@ -43,8 +45,12 @@ class GroupEventDetails extends React.Component {
     }
   }
 
+  componentWillUnmount() {
+    this.props.api.clear();
+  }
+
   fetchData = () => {
-    const {group, project, organization, params} = this.props;
+    const {api, group, project, organization, params} = this.props;
     const eventId = params.eventId || 'latest';
     const groupId = group.id;
     const orgSlug = organization.slug;
@@ -55,7 +61,7 @@ class GroupEventDetails extends React.Component {
       error: false,
     });
 
-    fetchGroupEventAndMarkSeen(orgSlug, projSlug, groupId, eventId)
+    fetchGroupEventAndMarkSeen(api, orgSlug, projSlug, groupId, eventId)
       .then(data => {
         this.setState({
           event: data,
@@ -74,7 +80,7 @@ class GroupEventDetails extends React.Component {
       const features = new Set(organization.features);
 
       if (features.has('sentry-apps')) {
-        fetchSentryAppInstallations(orgSlug);
+        fetchSentryAppInstallations(api, orgSlug);
       }
     }
   };
@@ -137,4 +143,4 @@ class GroupEventDetails extends React.Component {
   }
 }
 
-export default withOrganization(GroupEventDetails);
+export default withApi(withOrganization(GroupEventDetails));
