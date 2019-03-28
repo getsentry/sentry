@@ -1,8 +1,9 @@
 import PropTypes from 'prop-types';
 import React from 'react';
 import styled from 'react-emotion';
-import {Link} from 'react-router';
+import {Link, withRouter} from 'react-router';
 
+import {analytics} from 'app/utils/analytics';
 import {sortArray} from 'app/utils';
 import {t} from 'app/locale';
 import {alertHighlight, pulse} from 'app/styles/animations';
@@ -11,6 +12,7 @@ import ConfigStore from 'app/stores/configStore';
 import InlineSvg from 'app/components/inlineSvg';
 import BookmarkStar from 'app/components/bookmarkStar';
 import DropdownAutoComplete from 'app/components/dropdownAutoComplete';
+import getRouteStringFromRoutes from 'app/utils/getRouteStringFromRoutes';
 import GlobalSelectionHeaderRow from 'app/components/globalSelectionHeaderRow';
 import Highlight from 'app/components/highlight';
 import IdBadge from 'app/components/idBadge';
@@ -55,6 +57,7 @@ class ProjectSelector extends React.Component {
     // Calls back with (projects[], event)
     onMultiSelect: PropTypes.func,
     rootClassName: PropTypes.string,
+    router: PropTypes.object,
   };
 
   static defaultProps = {
@@ -255,6 +258,7 @@ class ProjectSelector extends React.Component {
                   : this.state.selectedProjects.has(project.slug)
               }
               onMultiSelect={this.handleMultiSelect}
+              router={this.props.router}
             />
           ),
         }))}
@@ -280,6 +284,7 @@ class ProjectSelectorItem extends React.PureComponent {
     inputValue: PropTypes.string,
     isChecked: PropTypes.bool,
     onMultiSelect: PropTypes.func,
+    router: PropTypes.object,
   };
 
   constructor(props) {
@@ -305,6 +310,15 @@ class ProjectSelectorItem extends React.PureComponent {
   handleClick = e => {
     e.stopPropagation();
     this.handleMultiSelect(e);
+  };
+
+  handleBookmarkToggle = isBookmarked => {
+    if (this.props.router) {
+      analytics('projectselector.bookmark_toggle', {
+        path: getRouteStringFromRoutes(this.props.router.routes),
+        bookmarked: isBookmarked,
+      });
+    }
   };
 
   clearAnimation = () => {
@@ -336,6 +350,7 @@ class ProjectSelectorItem extends React.PureComponent {
             project={project}
             organization={organization}
             bookmarkHasChanged={this.state.bookmarkHasChanged}
+            onToggle={this.handleBookmarkToggle}
           />
           <SettingsIconLink
             to={`/settings/${organization.slug}/${project.slug}/`}
@@ -424,4 +439,4 @@ const BadgeAndActionsWrapper = styled('div')`
   }
 `;
 
-export default withProjects(ProjectSelector);
+export default withProjects(withRouter(ProjectSelector));
