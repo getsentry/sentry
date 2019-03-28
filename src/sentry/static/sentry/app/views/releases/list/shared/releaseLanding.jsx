@@ -17,9 +17,13 @@ import withApi from 'app/utils/withApi';
 import ReleaseLandingCard from './releaseLandingCard';
 
 const StyledSuggestedAssignees = styled(SuggestedAssignees)`
-  width: 150px;
-  height: 150px;
-  padding-left: 250px;
+  width: 70px;
+  height: 70px;
+  margin-left: 250px;
+
+  @media (max-width: 1150px) {
+    margin-left: 100px;
+  }
 `;
 
 const cards = [
