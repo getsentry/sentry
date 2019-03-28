@@ -982,12 +982,6 @@ class EventManager(object):
             tags={'project_id': project.id}
         )
 
-        metrics.timing(
-            'events.node_size.post_save',
-            event.node_size,
-            tags={'project_id': project.id}
-        )
-
         return event
 
     def _get_event_user(self, project, data):

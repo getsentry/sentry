@@ -291,14 +291,6 @@ class EventCommon(object):
         return dict(self.data.items())
 
     @property
-    def node_size(self):
-        """Estimate how much space this event's data takes on disk."""
-        data_len = self.data._data_size
-        if data_len is not None:
-            return data_len
-        return self.size
-
-    @property
     def size(self):
         return len(json.dumps(self.data.data))
 

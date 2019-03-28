@@ -46,7 +46,7 @@ class NodeData(collections.MutableMapping):
         data={...} means, this is an object that should be saved to nodestore.
     """
 
-    def __init__(self, field, id, data=None, data_size=None):
+    def __init__(self, field, id, data=None):
         self.field = field
         self.id = id
         self.ref = None
@@ -55,7 +55,6 @@ class NodeData(collections.MutableMapping):
         #  in the case of something changing on the data model)
         self.ref_version = None
         self._node_data = data
-        self._data_size = data_size
 
     def __getstate__(self):
         data = dict(self.__dict__)
@@ -74,7 +73,6 @@ class NodeData(collections.MutableMapping):
         state.pop('data', None)
         if state.pop('_node_data_CANONICAL', False):
             state['_node_data'] = CanonicalKeyDict(state['_node_data'])
-        state.setdefault('_data_size', None)
         self.__dict__ = state
 
     def __getitem__(self, key):
@@ -187,12 +185,10 @@ class NodeField(GzippedDictField):
 
     def to_python(self, value):
         node_id = None
-        data_size = None
         # If value is a string, we assume this is a value we've loaded from the
         # database, it should be decompressed/unpickled, and we should end up
         # with a dict.
         if value and isinstance(value, six.string_types):
-            data_size = len(value)
             try:
                 value = pickle.loads(decompress(value))
             except Exception as e:
@@ -223,7 +219,7 @@ class NodeField(GzippedDictField):
         if value is not None and self.wrapper is not None:
             value = self.wrapper(value)
 
-        return NodeData(self, node_id, value, data_size=data_size)
+        return NodeData(self, node_id, value)
 
     def get_prep_value(self, value):
         """
