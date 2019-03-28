@@ -149,8 +149,10 @@ export default class MultipleProjectSelector extends React.PureComponent {
         selectedProjects={selected}
         multiProjects={projects}
         onSelect={this.handleQuickSelect}
+        hasChanges={this.state.hasChanges}
         onClose={this.handleClose}
         onMultiSelect={this.handleMultiSelect}
+        onUpdate={this.handleUpdate}
         rootClassName={rootContainerStyles}
       >
         {({
@@ -173,7 +175,6 @@ export default class MultipleProjectSelector extends React.PureComponent {
               hasSelected={hasSelected}
               hasChanges={this.state.hasChanges}
               isOpen={isOpen}
-              onSubmit={() => this.handleUpdate(actions)}
               onClear={this.handleClear}
               allowClear={multi}
               {...getActorProps()}

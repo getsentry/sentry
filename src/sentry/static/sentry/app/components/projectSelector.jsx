@@ -6,7 +6,7 @@ import {Link} from 'react-router';
 import {analytics} from 'app/utils/analytics';
 import {sortArray} from 'app/utils';
 import {t} from 'app/locale';
-import {alertHighlight, pulse} from 'app/styles/animations';
+import {alertHighlight, growIn, pulse} from 'app/styles/animations';
 import Button from 'app/components/button';
 import ConfigStore from 'app/stores/configStore';
 import InlineSvg from 'app/components/inlineSvg';
@@ -22,6 +22,7 @@ import withProjects from 'app/utils/withProjects';
 
 class ProjectSelector extends React.Component {
   static propTypes = {
+    hasChanges: PropTypes.bool,
     // Accepts a project id (slug) and not a project *object* because ProjectSelector
     // is created from Django templates, and only organization is serialized
     projectId: PropTypes.string,
@@ -54,6 +55,10 @@ class ProjectSelector extends React.Component {
     // Callback when projects are selected via the multiple project selector
     // Calls back with (projects[], event)
     onMultiSelect: PropTypes.func,
+
+    // Callback to trigger a multiSelect update
+    onUpdate: PropTypes.func,
+
     rootClassName: PropTypes.string,
   };
 
@@ -175,9 +180,11 @@ class ProjectSelector extends React.Component {
       organization: org,
       menuFooter,
       multi,
+      hasChanges,
       className,
       rootClassName,
       onClose,
+      onUpdate,
     } = this.props;
     const {activeProject} = this.state;
     const access = new Set(org.access);
@@ -209,17 +216,29 @@ class ProjectSelector extends React.Component {
         noResultsMessage={t('No projects found')}
         virtualizedHeight={theme.headerSelectorRowHeight}
         emptyHidesInput
-        inputActions={() => (
-          <AddButton
-            disabled={!hasProjectWrite}
-            to={`/organizations/${org.slug}/projects/new/`}
-            size="xsmall"
-            title={
-              hasProjectWrite ? null : t("You don't have permission to add a project")
-            }
-          >
-            <StyledAddIcon src="icon-circle-add" /> {t('Project')}
-          </AddButton>
+        inputActions={({actions}) => (
+          <React.Fragment>
+            {multi &&
+              hasChanges && (
+                <SubmitButton
+                  onClick={() => onUpdate(actions)}
+                  size="xsmall"
+                  priority="primary"
+                >
+                  Submit
+                </SubmitButton>
+              )}
+              <AddButton
+                disabled={!hasProjectWrite}
+                to={`/organizations/${org.slug}/projects/new/`}
+                size="xsmall"
+                title={
+                  hasProjectWrite ? null : t("You don't have permission to add a project")
+                }
+              >
+                <StyledAddIcon src="icon-circle-add" /> {t('Project')}
+              </AddButton>
+          </React.Fragment>
         )}
         menuFooter={renderProps => {
           const renderedFooter =
@@ -393,6 +412,10 @@ const AddButton = styled(Button)`
   &:hover {
     color: ${p => p.theme.gray3};
   }
+`;
+
+const SubmitButton = styled(Button)`
+  animation: 0.1s ${growIn} ease-in;
 `;
 
 const BadgeWrapper = styled('div')`
