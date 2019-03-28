@@ -35,7 +35,7 @@ describe('Discover', function() {
       const savedQuery = TestStubs.DiscoverSavedQuery();
       wrapper = mount(
         <Discover
-          location={{}}
+          location={{query: {}}}
           queryBuilder={queryBuilder}
           organization={organization}
           savedQuery={savedQuery}
@@ -61,6 +61,7 @@ describe('Discover', function() {
       wrapper = mount(
         <Discover
           location={{
+            query: {},
             search:
               'projects=%5B%5D&fields=%5B%22id%22%2C%22issue.id%22%2C%22project.name%22%2C%22platform%22%2C%22timestamp%22%5D&conditions=%5B%5D&aggregations=%5B%5D&range=%227d%22&orderby=%22-timestamp%22&limit=1000&start=null&end=null',
           }}
@@ -87,6 +88,7 @@ describe('Discover', function() {
       wrapper = mount(
         <Discover
           location={{
+            query: {},
             search: '',
           }}
           queryBuilder={queryBuilder}
@@ -110,7 +112,7 @@ describe('Discover', function() {
           queryBuilder={queryBuilder}
           organization={organization}
           updateSavedQueryData={jest.fn()}
-          location={{search: ''}}
+          location={{query: {}, search: ''}}
           params={{}}
           toggleEditMode={jest.fn()}
           isLoading={false}
@@ -136,7 +138,7 @@ describe('Discover', function() {
           queryBuilder={queryBuilder}
           organization={organization}
           updateSavedQueryData={jest.fn()}
-          location={{search: ''}}
+          location={{query: {}, search: ''}}
           params={{}}
           toggleEditMode={jest.fn()}
           isLoading={false}
@@ -147,6 +149,7 @@ describe('Discover', function() {
       expect(wrapper.find('TimeRangeSelector').text()).toEqual('Last 14 days');
       wrapper.setProps({
         location: {
+          query: {},
           search:
             'projects=%5B%5D&fields=%5B%22id%22%2C%22issue.id%22%2C%22project.name%22%2C%22platform%22%2C%22timestamp%22%5D&conditions=%5B%5D&aggregations=%5B%5D&range=%227d%22&orderby=%22-timestamp%22&limit=1000&start=null&end=null',
         },
@@ -181,6 +184,7 @@ describe('Discover', function() {
 
       wrapper = mount(
         <Discover
+          location={{query: {}}}
           queryBuilder={queryBuilder}
           organization={organization}
           params={{}}
@@ -241,6 +245,7 @@ describe('Discover', function() {
 
       wrapper = mount(
         <Discover
+          location={{query: {}}}
           queryBuilder={queryBuilder}
           organization={organization}
           updateSavedQueryData={jest.fn()}
@@ -311,6 +316,7 @@ describe('Discover', function() {
     it('can be saved', function() {
       const wrapper = mount(
         <Discover
+          location={{query: {}}}
           queryBuilder={queryBuilder}
           organization={organization}
           updateSavedQueryData={jest.fn()}
@@ -343,6 +349,7 @@ describe('Discover', function() {
         browserHistory.push.mockImplementation(function({search}) {
           wrapper.setProps({
             location: {
+              query: {},
               search: search || '',
             },
           });
@@ -417,6 +424,7 @@ describe('Discover', function() {
         const prevCallCount = queryBuilder.reset.mock.calls.length;
         wrapper.setProps({
           location: {
+            query: {},
             search: '?fields=[]',
           },
         });
@@ -437,7 +445,10 @@ describe('Discover', function() {
           params={{savedQueryId: savedQuery.id}}
           updateSavedQueryData={jest.fn()}
           view="saved"
-          location={{search: ''}}
+          location={{
+            query: {},
+            search: '',
+          }}
           toggleEditMode={jest.fn()}
           isLoading={false}
         />,
@@ -517,7 +528,10 @@ describe('Discover', function() {
         <Discover
           queryBuilder={queryBuilder}
           organization={organization}
-          location={{location: '?fields=something'}}
+          location={{
+            query: {},
+            location: '?fields=something',
+          }}
           updateSavedQueryData={jest.fn()}
           toggleEditMode={jest.fn()}
           isLoading={false}
@@ -558,6 +572,7 @@ describe('Discover', function() {
       browserHistory.push.mockImplementation(function({search}) {
         wrapper.setProps({
           location: {
+            query: {},
             search: search || '',
           },
         });
@@ -567,7 +582,10 @@ describe('Discover', function() {
         <Discover
           queryBuilder={queryBuilder}
           organization={organization}
-          location={{location: ''}}
+          location={{
+            query: {},
+            location: '',
+          }}
           updateSavedQueryData={jest.fn()}
           toggleEditMode={jest.fn()}
           isLoading={false}
@@ -611,6 +629,7 @@ describe('Discover', function() {
       });
       wrapper = mount(
         <Discover
+          location={{query: {}}}
           queryBuilder={queryBuilder}
           organization={organization}
           updateSavedQueryData={jest.fn()}
