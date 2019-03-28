@@ -94,12 +94,10 @@ update-transifex: build-js-po
 
 build-platform-assets:
 	@echo "--> Building platform assets"
-	sentry init
 	@echo "from sentry.utils.integrationdocs import sync_docs; sync_docs(quiet=True)" | sentry exec
 
 fetch-release-registry:
 	@echo "--> Fetching release registry"
-	sentry init
 	@echo "from sentry.utils.distutils import sync_registry; sync_registry()" | sentry exec
 
 test-cli:
@@ -125,7 +123,9 @@ test-styleguide:
 	@npm run snapshot
 	@echo ""
 
-test-python: build-platform-assets
+test-python:
+	sentry init
+	make build-platform-assets
 	@echo "--> Running Python tests"
 	py.test tests/integration tests/sentry --cov . --cov-report="xml:.artifacts/python.coverage.xml" --junit-xml=".artifacts/python.junit.xml" || exit 1
 	@echo ""
@@ -135,7 +135,9 @@ test-snuba:
 	py.test tests/snuba tests/sentry/eventstream/kafka -vv --cov . --cov-report="xml:.artifacts/snuba.coverage.xml" --junit-xml=".artifacts/snuba.junit.xml"
 	@echo ""
 
-test-acceptance: build-platform-assets node-version-check
+test-acceptance: node-version-check
+	sentry init
+	make build-platform-assets
 	@echo "--> Building static assets"
 	@$(WEBPACK) --display errors-only
 	@echo "--> Running acceptance tests"
