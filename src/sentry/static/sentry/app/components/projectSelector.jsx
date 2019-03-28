@@ -3,6 +3,7 @@ import React from 'react';
 import styled from 'react-emotion';
 import {Link} from 'react-router';
 
+import {analytics} from 'app/utils/analytics';
 import {sortArray} from 'app/utils';
 import {t} from 'app/locale';
 import {alertHighlight, pulse} from 'app/styles/animations';
@@ -307,6 +308,13 @@ class ProjectSelectorItem extends React.PureComponent {
     this.handleMultiSelect(e);
   };
 
+  handleBookmarkToggle = isBookmarked => {
+    analytics('projectselector.bookmark_toggle', {
+      org_id: parseInt(this.props.organization.id, 10),
+      bookmarked: isBookmarked,
+    });
+  };
+
   clearAnimation = () => {
     this.setState({bookmarkHasChanged: false});
   };
@@ -336,6 +344,7 @@ class ProjectSelectorItem extends React.PureComponent {
             project={project}
             organization={organization}
             bookmarkHasChanged={this.state.bookmarkHasChanged}
+            onToggle={this.handleBookmarkToggle}
           />
           <SettingsIconLink
             to={`/settings/${organization.slug}/${project.slug}/`}
