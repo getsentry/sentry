@@ -121,13 +121,13 @@ class OrganizationMemberDetail extends AsyncView {
     this.setState({member});
   };
 
-  handleRemoveTeam = team => {
+  handleRemoveTeam = removedTeam => {
     const {member} = this.state;
 
     this.setState({
       member: {
         ...member,
-        teams: member.teams.filter(teamSlug => teamSlug !== team.slug),
+        teams: member.teams.filter(slug => slug !== removedTeam),
       },
     });
   };

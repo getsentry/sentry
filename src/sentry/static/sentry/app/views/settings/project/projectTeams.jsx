@@ -27,26 +27,26 @@ class ProjectTeams extends AsyncView {
     );
   };
 
-  handleRemove = team => {
+  handleRemove = teamSlug => {
     if (this.state.loading) {
       return;
     }
 
     const {orgId, projectId} = this.props.params;
 
-    removeTeamFromProject(this.api, orgId, projectId, team.slug)
-      .then(() => this.handleRemovedTeam(team))
+    removeTeamFromProject(this.api, orgId, projectId, teamSlug)
+      .then(() => this.handleRemovedTeam(teamSlug))
       .catch(() => {
-        addErrorMessage(t('Could not remove the %s team', team.slug));
+        addErrorMessage(t('Could not remove the %s team', teamSlug));
         this.setState({loading: false});
       });
   };
 
-  handleRemovedTeam = removedTeam => {
+  handleRemovedTeam = teamSlug => {
     this.setState(prevState => {
       return {
         projectTeams: this.state.projectTeams.filter(team => {
-          return team.slug !== removedTeam.slug;
+          return team.slug !== teamSlug;
         }),
       };
     });

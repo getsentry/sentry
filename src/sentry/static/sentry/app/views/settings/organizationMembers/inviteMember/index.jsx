@@ -205,9 +205,9 @@ const InviteMember = createReactClass({
     this.setState({selectedTeams});
   },
 
-  handleRemoveTeam(team) {
+  handleRemoveTeam(teamSlug) {
     const {selectedTeams} = this.state;
-    selectedTeams.delete(team.slug);
+    selectedTeams.delete(teamSlug);
 
     this.setState({selectedTeams});
   },

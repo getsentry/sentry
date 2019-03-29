@@ -1,6 +1,6 @@
 // Jest Snapshot v1, https://goo.gl/fbAQLP
 
-exports[`CreateProject should render loading 1`] = `
+exports[`InviteMember should render loading 1`] = `
 <div>
   <SettingsPageHeading
     noTitleStyles={false}
@@ -13,7 +13,7 @@ exports[`CreateProject should render loading 1`] = `
 </div>
 `;
 
-exports[`CreateProject should render roles when available and allowed, and handle submitting 1`] = `
+exports[`InviteMember should render roles when available and allowed, and handle submitting 1`] = `
 <InviteMember
   location={
     Object {
@@ -700,7 +700,7 @@ exports[`CreateProject should render roles when available and allowed, and handl
 </InviteMember>
 `;
 
-exports[`CreateProject should use invite/add language based on config 1`] = `
+exports[`InviteMember should use invite/add language based on config 1`] = `
 <TextBlock>
   You may add a user by their username if they already have an account. Multiple inputs delimited by commas.
 </TextBlock>
