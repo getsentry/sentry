@@ -14,7 +14,7 @@ def validate_and_normalize(report, client_ip='198.51.100.0',
     return manager.get_data()
 
 
-def test_csp_validate_basic():
+def _build_test_report(effective_directive, violated_directive):
     report = {
         "release": "abc123",
         "environment": "production",
@@ -23,21 +23,44 @@ def test_csp_validate_basic():
             "csp-report": {
                 "document-uri": "http://45.55.25.245:8123/csp",
                 "referrer": "http://example.com",
-                "violated-directive": "img-src https://45.55.25.245:8123/",
-                "effective-directive": "img-src",
+                "violated-directive": violated_directive,
+                "effective-directive": effective_directive,
                 "original-policy": "default-src  https://45.55.25.245:8123/; child-src  https://45.55.25.245:8123/; connect-src  https://45.55.25.245:8123/; font-src  https://45.55.25.245:8123/; img-src  https://45.55.25.245:8123/; media-src  https://45.55.25.245:8123/; object-src  https://45.55.25.245:8123/; script-src  https://45.55.25.245:8123/; style-src  https://45.55.25.245:8123/; form-action  https://45.55.25.245:8123/; frame-ancestors 'none'; plugin-types 'none'; report-uri http://45.55.25.245:8123/csp-report?os=OS%20X&device=&browser_version=43.0&browser=chrome&os_version=Lion",
                 "blocked-uri": "http://google.com",
                 "status-code": 200,
             }
         }
     }
+    if violated_directive is None:
+        del report['report']['csp-report']['violated-directive']
+    if effective_directive is None:
+        del report['report']['csp-report']['effective-directive']
+
+    return report
+
+
+@pytest.mark.parametrize(
+    'effective_directive,violated_directive,culprit_element', (
+        ("img-src", "img-src https://45.55.25.245:8123/", "img-src"),
+        ("img-src", "default-src https://45.55.25.245:8123/", "default-src"),
+        # build a report without the effective-directive key
+        (None, "img-src https://45.55.25.245:8123/", "img-src"),
+    ),
+    ids=(
+        'directives match',
+        'prefer effective-directive',
+        'parse effective-directive from violated-directive',
+    )
+)
+def test_csp_validate(effective_directive, violated_directive, culprit_element):
+    report = _build_test_report(effective_directive, violated_directive)
     result = validate_and_normalize(report)
     assert result['logger'] == 'csp'
     assert result['release'] == 'abc123'
     assert result['environment'] == 'production'
     assert "errors" not in result
     assert 'logentry' in result
-    assert result['culprit'] == "img-src 'self'"
+    assert result['culprit'] == culprit_element + " 'self'"
     assert map(tuple, result['tags']) == [
         ('effective-directive', 'img-src'),
         ('blocked-uri', 'http://google.com'),
@@ -50,18 +73,25 @@ def test_csp_validate_basic():
     }
 
 
-def test_csp_validate_failure():
-    report = {
-        "release": "abc123",
-        "interface": 'csp',
-        "report": {}
-    }
-
+@pytest.mark.parametrize(
+    'report', (
+        {},
+        {"release": "abc123", "interface": 'csp', "report": {}},
+        _build_test_report(effective_directive=None, violated_directive=None),
+        _build_test_report(effective_directive=None, violated_directive=""),
+        _build_test_report(effective_directive=None, violated_directive="blink-src"),
+    ),
+    ids=(
+        'empty dict',
+        'no csp-report',
+        'no violated-directive to parse (expect KeyError)',
+        'unsplittable violated-directive (expect IndexError)',
+        'invalid violated-directive (not in schema enum)',
+    )
+)
+def test_csp_validate_failure(report):
     with pytest.raises(APIError):
         validate_and_normalize(report)
-
-    with pytest.raises(APIError):
-        validate_and_normalize({})
 
 
 def test_csp_tags_out_of_bounds():

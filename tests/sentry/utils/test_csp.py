@@ -10,6 +10,10 @@ from sentry.interfaces.security import Csp
     'report', (
         {}, {
             'effective_directive': 'lolnotreal'
+        }, {
+            'violated_directive': 'lolnotreal'
+        }, {
+            'violated_directive': ' '
         },
     )
 )
