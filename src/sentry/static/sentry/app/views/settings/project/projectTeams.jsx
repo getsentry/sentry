@@ -13,6 +13,7 @@ import SettingsPageHeader from 'app/views/settings/components/settingsPageHeader
 import TeamSelect from 'app/views/settings/components/teamSelect';
 import Tooltip from 'app/components/tooltip';
 import space from 'app/styles/space';
+import withTeams from 'app/utils/withTeams';
 
 class ProjectTeams extends AsyncView {
   static PropTypes = {
@@ -108,7 +109,7 @@ class ProjectTeams extends AsyncView {
   };
 
   renderBody() {
-    const {params, organization} = this.props;
+    const {params, organization, teams} = this.props;
 
     const canCreateTeam = this.canCreateTeam();
     const hasAccess = organization.access.includes('project:write');
@@ -140,6 +141,7 @@ class ProjectTeams extends AsyncView {
         <SettingsPageHeader title={t('%s Teams', params.projectId)} />
         <TeamSelect
           organization={organization}
+          teams={teams}
           selectedTeams={projectTeams}
           onAddTeam={this.handleAdd}
           onRemoveTeam={this.handleRemove}
@@ -170,4 +172,4 @@ const StyledCreateTeamLink = styled(Link)`
     `};
 `;
 
-export default ProjectTeams;
+export default withTeams(ProjectTeams);

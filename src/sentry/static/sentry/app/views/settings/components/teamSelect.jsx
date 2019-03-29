@@ -21,6 +21,8 @@ class TeamSelect extends React.Component {
     api: PropTypes.object.isRequired,
     organization: SentryTypes.Organization.isRequired,
     disabled: PropTypes.bool,
+    // All teams in the organization
+    teams: PropTypes.array.isRequired,
     // Teams that are already selected.
     selectedTeams: PropTypes.array.isRequired,
     // callback when teams are added
@@ -36,40 +38,44 @@ class TeamSelect extends React.Component {
     confirmLastTeamRemoveMessage: PropTypes.string,
   };
 
-  state = {
-    teams: null,
-  };
+  // state = {
+  //   teams: null,
+  // };
 
-  componentDidMount() {
-    this.fetchTeams();
-  }
+  // componentDidMount() {
+  //   this.fetchTeams();
+  // }
 
-  fetchTeams = debounce(query => {
-    const {organization} = this.props;
-    this.props.api
-      .requestPromise(`/organizations/${organization.slug}/teams/`, {
-        query: {query},
-      })
-      .then(teams => this.setState({teams}));
-  }, 100);
+  // fetchTeams = debounce(query => {
+  //   const {organization} = this.props;
+  //   this.props.api
+  //     .requestPromise(`/organizations/${organization.slug}/teams/`, {
+  //       query: {query},
+  //     })
+  //     .then(teams => this.setState({teams}));
+  // }, 100);
 
   handleQueryUpdate = event => {
-    this.fetchTeams(event.target.value);
+    // this.fetchTeams(event.target.value);
+    const {teams} = this.props;
+    const query = event.target.value.toLowerCase();
+    return teams.filter(team => {
+      return team.slug.contains(query) || team.name.contains(query);
+    });
   };
 
   handleAddTeam = option => {
-    const team = this.state.teams.find(tm => tm.slug === option.value);
+    const team = this.props.teams.find(tm => tm.slug === option.value);
     this.props.onAddTeam(team);
   };
 
   handleRemove = value => {
-    const team = this.state.teams.find(tm => tm.slug === value);
+    const team = this.props.teams.find(tm => tm.slug === value);
     this.props.onRemoveTeam(team);
   };
 
   renderTeamAddDropDown() {
-    const {disabled, selectedTeams, menuHeader} = this.props;
-    const {teams} = this.state;
+    const {disabled, teams, selectedTeams, menuHeader} = this.props;
     const noTeams = teams === null || teams.length === 0;
     const isDisabled = noTeams || disabled;
 
