@@ -1,3 +1,4 @@
+import {MAX_RECENT_SEARCHES} from 'app/constants';
 import handleXhrErrorResponse from 'app/utils/handleXhrErrorResponse';
 
 export function fetchSavedSearches(api, orgId, useOrgSavedSearches = false) {
@@ -63,6 +64,7 @@ export function fetchRecentSearches(api, orgId, type, query) {
       query: {
         query,
         type,
+        limit: MAX_RECENT_SEARCHES,
       },
     })
     .catch(handleXhrErrorResponse('Unable to fetch recent searches'));

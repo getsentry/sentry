@@ -290,45 +290,57 @@ describe('SmartSearchBar', function() {
       expect(searchBar.state.activeSearchItem).toEqual(0);
     });
 
-    it('sets state when incomplete tag', function() {
+    it('sets state when incomplete tag', async function() {
       const props = {
         orgId: '123',
         projectId: '456',
         query: 'fu',
         supportedTags,
       };
-      const searchBar = mount(<SmartSearchBar {...props} />, options).instance();
+      jest.useRealTimers();
+      const wrapper = mount(<SmartSearchBar {...props} />, options);
+      const searchBar = wrapper.instance();
       searchBar.updateAutoCompleteItems();
+      await tick();
+      wrapper.update();
       expect(searchBar.state.searchTerm).toEqual('fu');
       expect(searchBar.state.searchItems).toEqual([]);
       expect(searchBar.state.activeSearchItem).toEqual(0);
     });
 
-    it('sets state when incomplete tag has negation operator', function() {
+    it('sets state when incomplete tag has negation operator', async function() {
       const props = {
         orgId: '123',
         projectId: '456',
         query: '!fu',
         supportedTags,
       };
-      const searchBar = mount(<SmartSearchBar {...props} />, options).instance();
+      jest.useRealTimers();
+      const wrapper = mount(<SmartSearchBar {...props} />, options);
+      const searchBar = wrapper.instance();
       searchBar.updateAutoCompleteItems();
+      await tick();
+      wrapper.update();
       expect(searchBar.state.searchTerm).toEqual('fu');
       expect(searchBar.state.searchItems).toEqual([]);
       expect(searchBar.state.activeSearchItem).toEqual(0);
     });
 
-    it('sets state when incomplete tag as second input', function() {
+    it('sets state when incomplete tag as second input', async function() {
       const props = {
         orgId: '123',
         projectId: '456',
         query: 'is:unresolved fu',
         supportedTags,
       };
-      const searchBar = mount(<SmartSearchBar {...props} />, options).instance();
+      jest.useRealTimers();
+      const wrapper = mount(<SmartSearchBar {...props} />, options);
+      const searchBar = wrapper.instance();
       searchBar.getCursorPosition = jest.fn();
       searchBar.getCursorPosition.mockReturnValue(15); // end of line
       searchBar.updateAutoCompleteItems();
+      await tick();
+      wrapper.update();
       expect(searchBar.state.searchTerm).toEqual('fu');
       expect(searchBar.state.searchItems).toHaveLength(0);
       expect(searchBar.state.activeSearchItem).toEqual(0);

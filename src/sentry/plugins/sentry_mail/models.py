@@ -148,21 +148,26 @@ class MailPlugin(NotificationPlugin):
                     },
                     skip_internal=True,
                 )
-                send_to_list = []
-                teams_to_resolve = []
+                send_to_list = set()
+                teams_to_resolve = set()
                 for owner in owners:
                     if owner.type == User:
-                        send_to_list.append(owner.id)
+                        send_to_list.add(owner.id)
                     else:
-                        teams_to_resolve.append(owner.id)
+                        teams_to_resolve.add(owner.id)
 
                 # get all users in teams
                 if teams_to_resolve:
-                    send_to_list += User.objects.filter(
+                    send_to_list |= set(User.objects.filter(
                         is_active=True,
                         sentry_orgmember_set__organizationmemberteam__team__id__in=teams_to_resolve,
-                    ).values_list('id', flat=True)
-                return send_to_list
+                    ).values_list('id', flat=True))
+
+                alert_settings = project.get_member_alert_settings(self.alert_option_key)
+                disabled_users = set(
+                    user for user, setting in alert_settings.items() if setting == 0
+                )
+                return send_to_list - disabled_users
             else:
                 metrics.incr(
                     'features.owners.send_to',

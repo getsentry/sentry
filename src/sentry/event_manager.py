@@ -976,6 +976,12 @@ class EventManager(object):
             },
         )
 
+        metrics.timing(
+            'events.size.data.post_save',
+            event.size,
+            tags={'project_id': project.id}
+        )
+
         return event
 
     def _get_event_user(self, project, data):

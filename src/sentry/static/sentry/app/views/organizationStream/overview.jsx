@@ -98,14 +98,8 @@ const OrganizationStream = createReactClass({
     this.fetchMemberList();
 
     // Start by getting searches first so if the user is on a saved search
-    // we load the correct data the first time.
+    // or they have a pinned search we load the correct data the first time.
     this.fetchSavedSearches();
-
-    // If we don't have a searchId there won't be more chained requests
-    // so we should fetch groups
-    if (!this.props.params.searchId) {
-      this.fetchData();
-    }
   },
 
   componentDidUpdate(prevProps, prevState) {
@@ -571,14 +565,30 @@ const OrganizationStream = createReactClass({
           savedSearchLoading: false,
         };
 
+        // Switch to the the current saved search or pinned result if available
         if (searchId) {
           const match = savedSearchList.find(search => search.id === searchId);
           newState.savedSearch = match ? match : null;
         }
+        if (
+          useOrgSavedSearches &&
+          !newState.savedSearch &&
+          this.getQuery() === DEFAULT_QUERY
+        ) {
+          const pin = savedSearchList.find(search => search.isPinned);
+          newState.savedSearch = pin ? pin : null;
+        }
         this.setState(newState);
+
+        // If we aren't loading a saved search/pin fetch data as there won't
+        // be a re-render
+        if (!newState.savedSearch) {
+          this.fetchData();
+        }
       },
       error => {
         logAjaxError(error);
+        this.fetchData();
       }
     );
   },

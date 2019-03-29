@@ -59,9 +59,9 @@ describe('ProjectKeys', function() {
   });
 
   it('has clippable box', function() {
-    expect(wrapper.find('.clip-fade .btn')).toHaveLength(1);
-    wrapper.find('.clip-fade .btn').simulate('click');
-    expect(wrapper.find('.clip-fade .btn')).toHaveLength(0);
+    expect(wrapper.find('.clip-fade Button')).toHaveLength(1);
+    wrapper.find('.clip-fade Button').simulate('click');
+    expect(wrapper.find('.clip-fade Button')).toHaveLength(0);
   });
 
   it('deletes key', function() {

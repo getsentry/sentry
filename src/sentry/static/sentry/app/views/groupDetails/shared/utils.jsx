@@ -9,15 +9,25 @@ import {Client} from 'app/api';
  * @param {String} eventId eventId or "latest" or "oldest"
  * @returns {Promise<Object>}
  */
-export function fetchGroupEventAndMarkSeen(orgId, projectId, groupId, eventId) {
-  const api = new Client();
-
+export function fetchGroupEventAndMarkSeen(
+  api,
+  orgId,
+  projectId,
+  groupId,
+  eventId,
+  envNames
+) {
   const url =
     eventId === 'latest' || eventId === 'oldest'
       ? `/issues/${groupId}/events/${eventId}/`
       : `/projects/${orgId}/${projectId}/events/${eventId}/`;
 
-  const promise = api.requestPromise(url);
+  const query = {};
+  if (envNames.length !== 0) {
+    query.environment = envNames;
+  }
+
+  const promise = api.requestPromise(url, {query});
 
   promise.then(data => {
     api.bulkUpdate({
@@ -40,4 +50,16 @@ export function fetchGroupUserReports(groupId, query) {
     includeAllArgs: true,
     query,
   });
+}
+
+/**
+ * Returns the environment name for an event or null
+ *
+ * @param {Object} event
+ * @returns {String|Void}
+ */
+export function getEventEnvironment(event) {
+  const tag = event.tags.find(({key}) => key === 'environment');
+
+  return tag ? tag.value : null;
 }

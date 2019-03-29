@@ -152,3 +152,4 @@ export const RECENT_SEARCH_TYPES = {
   ISSUE: 0,
   EVENT: 1,
 };
+export const MAX_RECENT_SEARCHES = 3;
