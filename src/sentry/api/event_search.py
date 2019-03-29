@@ -513,7 +513,7 @@ def get_snuba_query_args(query=None, params=None):
 
         if snuba_name in ('start', 'end'):
             kwargs[snuba_name] = _filter.value.value
-        elif snuba_name == 'project_id':
+        elif snuba_name in ('project_id', 'issue'):
             kwargs['filter_keys'][snuba_name] = _filter.value.value
         else:
             converted_filter = convert_search_filter_to_snuba_query(_filter)
