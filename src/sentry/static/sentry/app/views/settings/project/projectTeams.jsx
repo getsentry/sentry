@@ -1,3 +1,4 @@
+import PropTypes from 'prop-types';
 import React from 'react';
 import styled, {css} from 'react-emotion';
 
@@ -14,6 +15,11 @@ import Tooltip from 'app/components/tooltip';
 import space from 'app/styles/space';
 
 class ProjectTeams extends AsyncView {
+  static PropTypes = {
+    ...ProjectTeams.PropTypes,
+    // All teams in the organization
+    teams: PropTypes.array,
+  };
   getEndpoints() {
     const {orgId, projectId} = this.props.params;
     return [['projectTeams', `/projects/${orgId}/${projectId}/teams/`]];
