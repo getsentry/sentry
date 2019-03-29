@@ -68,6 +68,7 @@ export default class NewQuery extends React.Component {
                     onClick={onRunQuery}
                     priority="primary"
                     busy={isFetchingQuery}
+                    label={t('Run')}
                   >
                     {t('Run')}
                     {isFetchingQuery && <ButtonSpinner />}
