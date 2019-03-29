@@ -169,6 +169,12 @@ class NativeStacktraceProcessor(StacktraceProcessor):
             self.run_symbolicator(processing_task)
 
     def run_symbolicator(self, processing_task):
+        request_id_cache_key = request_id_cache_key_for_event(self.data)
+
+        # TODO(markus): Make this work with minidumps. An unprocessed minidump
+        # event will not contain unsymbolicated frames, because the minidump
+        # upload already happened in store.
+
         images = list(get_path(self.data, 'debug_meta', 'images', filter=True))
         if not images:
             return
@@ -179,8 +185,9 @@ class NativeStacktraceProcessor(StacktraceProcessor):
             registers = stacktrace_info.stacktrace.get('registers') or {}
 
             pf_list = [
+                # This condition is copied from iter_processable_frames
                 pf for pf in reversed(pf_list)
-                if pf.processor == self  # This condition is copied from iter_processable_frames
+                if pf.processor == self
             ]
 
             frames = [
@@ -196,8 +203,6 @@ class NativeStacktraceProcessor(StacktraceProcessor):
 
             processable_frames.append(pf_list)
 
-        request_id_cache_key = request_id_cache_key_for_event(self.data)
-
         rv = run_symbolicator(stacktraces=stacktraces, modules=images,
                               project=self.project, arch=self.arch,
                               signal=self.signal,
@@ -205,14 +210,25 @@ class NativeStacktraceProcessor(StacktraceProcessor):
         if not rv:
             return
 
+        # TODO(markus): Set signal and os context from symbolicator response,
+        # for minidumps
+
         assert len(images) == len(rv['modules']), (images, rv)
 
         for image, fetched_debug_file in zip(images, rv['modules']):
-            if fetched_debug_file['status'] == 'missing_debug_file':
+            if fetched_debug_file['status'] == 'found':
+                # Set image data from symbolicator, for minidumps
+                for k in fetched_debug_file:
+                    if k != 'status':
+                        image[k] = fetched_debug_file[k]
+                continue
+            elif fetched_debug_file['status'] == 'missing_debug_file':
                 error = SymbolicationFailed(type=EventError.NATIVE_MISSING_DSYM)
             elif fetched_debug_file['status'] == 'malformed_debug_file':
                 error = SymbolicationFailed(type=EventError.NATIVE_BAD_DSYM)
             else:
+                # Some error we can't handle. Probably one we wouldn't want to
+                # report to the user either.
                 continue
 
             error.image_arch = image['arch']

@@ -35,26 +35,80 @@ def run_symbolicator(stacktraces, modules, project, arch, signal, request_id_cac
         })
     )
 
-    url = '%s/symbolicate' % settings.SENTRY_SYMBOLICATOR_URL
     project_id = six.text_type(project.id)
-
     request_id = default_cache.get(request_id_cache_key)
+    sess = Session()
+
+    attempts = 0
+    wait = 0.5
+
+    with sess:
+        while 1:
+            try:
+                rv = _do_send_request(
+                    sess=sess,
+                    request_id=request_id,
+                    project_id=project_id,
+                    self_bucket_url=self_bucket_url,
+                    signal=signal,
+                    stacktraces=stacktraces,
+                    modules=modules
+                )
+
+                metrics.incr('events.symbolicator.status.%s' % rv.status_code, tags={
+                    'project_id': project_id
+                })
+
+                if rv.status_code == 404 and request_id:
+                    default_cache.delete(request_id_cache_key)
+                    raise RetrySymbolication(retry_after=0)
+                elif rv.status_code == 503:
+                    raise RetrySymbolication(retry_after=10)
+
+                rv.raise_for_status()
+                json = rv.json()
+                metrics.incr(
+                    'events.symbolicator.response.%s' % json['status'],
+                    tags={'project_id': project_id}
+                )
+
+                if json['status'] == 'pending':
+                    default_cache.set(
+                        request_id_cache_key,
+                        json['request_id'],
+                        REQUEST_CACHE_TIMEOUT)
+                    raise RetrySymbolication(retry_after=json['retry_after'])
+                elif json['status'] == 'completed':
+                    default_cache.delete(request_id_cache_key)
+                    return rv.json()
+                else:
+                    logger.error("Unexpected status: %s", json['status'])
+                    default_cache.delete(request_id_cache_key)
+                    return
+
+            except (IOError, RequestException):
+                attempts += 1
+                if attempts > MAX_ATTEMPTS:
+                    logger.error('Failed to contact symbolicator', exc_info=True)
+                    default_cache.delete(request_id_cache_key)
+                    return
+
+                time.sleep(wait)
+                wait *= 2.0
+
+
+def _do_send_request(sess, request_id, project_id, self_bucket_url, signal,
+                     stacktraces, modules):
     if request_id:
-        request = {
-            'meta': {
-                'scope': project_id,
-            },
-            'request': {
-                'request_id': request_id,
-                'timeout': SYMBOLICATOR_TIMEOUT,
-            }
-        }
+        url = '{base}/requests/{request_id}?timeout={timeout}'.format(
+            base=settings.SENTRY_SYMBOLICATOR_URL,
+            request_id=request_id,
+            timeout=SYMBOLICATOR_TIMEOUT,
+        )
+        rv = sess.get(url)
     else:
         request = {
-            'meta': {
-                'signal': signal,
-                'scope': project_id,
-            },
+            'signal': signal,
             'sources': [
                 {
                     "type": "sentry",
@@ -77,50 +131,11 @@ def run_symbolicator(stacktraces, modules, project, arch, signal, request_id_cac
             'threads': stacktraces,
             'modules': modules,
         }
+        url = '{base}/symbolicate?timeout={timeout}&scope={scope}'.format(
+            base=settings.SENTRY_SYMBOLICATOR_URL,
+            timeout=SYMBOLICATOR_TIMEOUT,
+            scope=project_id,
+        )
+        rv = sess.post(url, json=request)
 
-    sess = Session()
-
-    attempts = 0
-    wait = 0.5
-
-    with sess:
-        while 1:
-            try:
-                rv = sess.post(
-                    url,
-                    json=request,
-                    headers={
-                        "X-Sentry-Project-Id": project_id
-                    }
-                )
-                rv.raise_for_status()
-                json = rv.json()
-                metrics.incr('events.symbolicator.status.%s' % json['status'], tags={
-                    'project_id': project_id
-                })
-                if json['status'] == 'pending':
-                    default_cache.set(
-                        request_id_cache_key,
-                        json['request_id'],
-                        REQUEST_CACHE_TIMEOUT)
-                    raise RetrySymbolication(retry_after=json['retry_after'])
-                elif json['status'] == 'completed':
-                    default_cache.delete(request_id_cache_key)
-                    return rv.json()
-                elif json['status'] == 'unknown_request':
-                    default_cache.delete(request_id_cache_key)
-                    raise RetrySymbolication(retry_after=0)
-                else:
-                    logger.error("Unexpected status: %s", json['status'])
-                    default_cache.delete(request_id_cache_key)
-                    return
-
-            except (IOError, RequestException):
-                attempts += 1
-                if attempts > MAX_ATTEMPTS:
-                    logger.error('Failed to contact symbolicator', exc_info=True)
-                    default_cache.delete(request_id_cache_key)
-                    return
-
-                time.sleep(wait)
-                wait *= 2.0
+    return rv

@@ -1,5 +1,5 @@
 ---
-created: '2019-03-27T19:57:34.986855Z'
+created: '2019-03-29T10:42:33.151649Z'
 creator: sentry
 source: tests/sentry/lang/native/test_plugin.py
 ---
@@ -43,7 +43,7 @@ grouping_config:
   id: legacy:2019-03-12
 hashes:
 - efca000ff6704f25e5434e9ed7eff02f
-key_id: '2'
+key_id: '10'
 level: error
 location: null
 logger: ''
@@ -62,7 +62,7 @@ processing_issues:
     object: dsym:502fc0a5-1ec1-3e47-9998-684fa139dca7
     scope: native
     type: native_missing_dsym
-project: 2
+project: 10
 sdk:
   name: _postWithHeader
   version: 0.0.0

@@ -1,5 +1,5 @@
 ---
-created: '2019-03-27T19:57:37.354617Z'
+created: '2019-03-29T10:42:39.232446Z'
 creator: sentry
 source: tests/sentry/lang/native/test_plugin.py
 ---
@@ -8,6 +8,8 @@ debug_meta:
   images:
   - arch: x86_64
     code_file: Foo.app/Contents/Foo
+    code_id: null
+    debug_file: null
     debug_id: 502fc0a5-1ec1-3e47-9998-684fa139dca7
     image_addr: '0x100000000'
     image_size: 4096
@@ -43,7 +45,7 @@ grouping_config:
   id: legacy:2019-03-12
 hashes:
 - 6e2889ec15f82569f56fdba9ffc9b90b
-key_id: '2'
+key_id: '16'
 level: error
 location: hello.c
 logger: ''
@@ -53,7 +55,7 @@ metadata:
   type: Fail
   value: fail
 platform: cocoa
-project: 2
+project: 14
 sdk:
   name: _postWithHeader
   version: 0.0.0
