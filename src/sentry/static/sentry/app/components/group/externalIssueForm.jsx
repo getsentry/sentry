@@ -10,7 +10,6 @@ import FieldFromConfig from 'app/views/settings/components/forms/fieldFromConfig
 import Form from 'app/views/settings/components/forms/form';
 import SentryTypes from 'app/sentryTypes';
 import {t} from 'app/locale';
-import withApi from 'app/utils/withApi';
 import ExternalIssueStore from 'app/stores/externalIssueStore';
 
 const MESSAGES_BY_ACTION = {
@@ -272,6 +271,26 @@ class SentryAppExternalIssueForm extends React.Component {
     const config = this.props.config[this.props.action];
     const requiredFields = config.required_fields || [];
     const optionalFields = config.optional_fields || [];
+    const metaFields = [
+      {
+        type: 'hidden',
+        name: 'action',
+        value: this.props.action,
+        defaultValue: this.props.action,
+      },
+      {
+        type: 'hidden',
+        name: 'groupId',
+        value: this.props.group.id,
+        defaultValue: this.props.group.id,
+      },
+      {
+        type: 'hidden',
+        name: 'uri',
+        value: config.uri,
+        defaultValue: config.uri,
+      },
+    ];
 
     if (!sentryAppInstallation) {
       return '';
@@ -279,16 +298,16 @@ class SentryAppExternalIssueForm extends React.Component {
 
     return (
       <Form
+        key={this.props.action}
         apiEndpoint={`/sentry-app-installations/${sentryAppInstallation.uuid}/external-issues/`}
         apiMethod="POST"
         onSubmitSuccess={this.onSubmitSuccess}
         onSubmitError={this.onSubmitError}
-        initialData={{
-          action: this.props.action,
-          groupId: this.props.group.id,
-          uri: config.uri,
-        }}
       >
+        {metaFields.map(field => {
+          return <FieldFromConfig key={field.name} field={field} />;
+        })}
+
         {requiredFields.map(field => {
           field.choices = field.choices || [];
           if (['text', 'textarea'].includes(field.type) && field.default) {
@@ -331,5 +350,4 @@ class SentryAppExternalIssueForm extends React.Component {
 }
 
 export {SentryAppExternalIssueForm};
-export default withApi(SentryAppExternalIssueForm);
-export {ExternalIssueForm};
+export default ExternalIssueForm;
