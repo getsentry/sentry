@@ -30,11 +30,19 @@ export default function createResultManager(queryBuilder) {
 
     if (cursor) {
       return queryBuilder.fetch(baseQuery, cursor).then(resp => {
-        data.baseQuery.current = cursor;
-        data.baseQuery.query = query;
-        data.baseQuery.data = resp;
-        updatePageLinks(resp.pageLinks);
+        const newData = {
+          ...data,
+          baseQuery: {
+            ...data.baseQuery,
+            current: cursor,
+            query,
+            data: resp,
+          },
+        };
 
+        updatePageLinks(newData, resp.pageLinks);
+
+        data = newData;
         return data;
       });
     }
@@ -72,18 +80,32 @@ export default function createResultManager(queryBuilder) {
     }
 
     return Promise.all(promises).then(resp => {
-      data.baseQuery.query = query;
-      data.baseQuery.data = resp[0];
-      data.baseQuery.current = '0:0:1';
-      updatePageLinks(resp[0].pageLinks);
+      const newData = {
+        ...data,
+        baseQuery: {
+          ...data.baseQuery,
+          query,
+          data: resp[0],
+          current: '0:0:1',
+        },
+      };
+
+      updatePageLinks(newData, resp[0].pageLinks);
 
       if (hasAggregations) {
-        data.byDayQuery.query = byDayQuery;
-        data.byDayQuery.data = resp[1];
+        newData.byDayQuery = {
+          ...data.byDayQuery,
+          query: byDayQuery,
+          data: resp[1],
+        };
       } else {
-        data.byDayQuery.query = null;
-        data.byDayQuery.data = null;
+        newData.byDayQuery = {
+          query: null,
+          data: null,
+        };
       }
+
+      data = newData;
       return data;
     });
   }
@@ -95,13 +117,15 @@ export default function createResultManager(queryBuilder) {
    * @param {Object} pageLinks
    * @returns {Void}
    */
-  function updatePageLinks(pageLinks) {
+  function updatePageLinks(dataContext, pageLinks) {
     if (!pageLinks) {
       return;
     }
     const links = parseLinkHeader(pageLinks);
-    data.baseQuery.next = links.next.results ? links.next.cursor : null;
-    data.baseQuery.previous = links.previous.results ? links.previous.cursor : null;
+    dataContext.baseQuery.next = links.next.results ? links.next.cursor : null;
+    dataContext.baseQuery.previous = links.previous.results
+      ? links.previous.cursor
+      : null;
   }
 
   /**

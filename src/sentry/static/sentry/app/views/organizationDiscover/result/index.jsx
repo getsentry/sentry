@@ -209,6 +209,10 @@ class Result extends React.Component {
 
     const {view} = this.state;
 
+    if (!baseQuery.data && !byDayQuery.data) {
+      return null;
+    }
+
     const basicChartData = getChartData(baseQuery.data.data, baseQuery.query);
 
     const byDayChartData =

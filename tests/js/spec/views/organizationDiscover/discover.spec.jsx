@@ -9,11 +9,29 @@ import createQueryBuilder from 'app/views/organizationDiscover/queryBuilder';
 
 describe('Discover', function() {
   let organization, project, queryBuilder;
+
   beforeEach(function() {
     project = TestStubs.Project();
     organization = TestStubs.Organization({projects: [project]});
     queryBuilder = createQueryBuilder({}, organization);
     GlobalSelectionStore.reset();
+    MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/discover/saved/',
+      body: {},
+    });
+
+    MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/discover/query/?per_page=1000&cursor=0:0:1',
+      method: 'POST',
+      body: {
+        timing: {},
+        data: [{foo: 'bar', 'project.id': project.id}],
+        meta: [{name: 'foo'}],
+      },
+      headers: {
+        Link: '',
+      },
+    });
   });
 
   afterEach(function() {
@@ -65,6 +83,7 @@ describe('Discover', function() {
             search:
               'projects=%5B%5D&fields=%5B%22id%22%2C%22issue.id%22%2C%22project.name%22%2C%22platform%22%2C%22timestamp%22%5D&conditions=%5B%5D&aggregations=%5B%5D&range=%227d%22&orderby=%22-timestamp%22&limit=1000&start=null&end=null',
           }}
+          params={{}}
           queryBuilder={queryBuilder}
           organization={organization}
           updateSavedQueryData={jest.fn()}
@@ -78,6 +97,7 @@ describe('Discover', function() {
       expect(wrapper.state().data.baseQuery.data).toBe(null);
       wrapper.setProps({isLoading: false});
       await tick();
+      wrapper.update();
       expect(wrapper.state().data.baseQuery.query).toEqual(queryBuilder.getExternal());
       expect(wrapper.state().data.baseQuery.data).toEqual(
         expect.objectContaining({data: mockResponse.data})
@@ -91,6 +111,7 @@ describe('Discover', function() {
             query: {},
             search: '',
           }}
+          params={{}}
           queryBuilder={queryBuilder}
           organization={organization}
           updateSavedQueryData={jest.fn()}
@@ -246,6 +267,7 @@ describe('Discover', function() {
       wrapper = mount(
         <Discover
           location={{query: {}}}
+          params={{}}
           queryBuilder={queryBuilder}
           organization={organization}
           updateSavedQueryData={jest.fn()}
@@ -317,6 +339,7 @@ describe('Discover', function() {
       const wrapper = mount(
         <Discover
           location={{query: {}}}
+          params={{}}
           queryBuilder={queryBuilder}
           organization={organization}
           updateSavedQueryData={jest.fn()}
@@ -534,6 +557,7 @@ describe('Discover', function() {
             query: {},
             location: '?fields=something',
           }}
+          params={{}}
           updateSavedQueryData={jest.fn()}
           toggleEditMode={jest.fn()}
           isLoading={false}
@@ -588,6 +612,7 @@ describe('Discover', function() {
             query: {},
             location: '',
           }}
+          params={{}}
           updateSavedQueryData={jest.fn()}
           toggleEditMode={jest.fn()}
           isLoading={false}
@@ -632,6 +657,7 @@ describe('Discover', function() {
       wrapper = mount(
         <Discover
           location={{query: {}}}
+          params={{}}
           queryBuilder={queryBuilder}
           organization={organization}
           updateSavedQueryData={jest.fn()}
