@@ -1569,6 +1569,7 @@ SENTRY_USER_PERMISSIONS = (
 KAFKA_CLUSTERS = {
     'default': {
         'bootstrap.servers': 'localhost:9092',
+        'compression.type': 'lz4',
         'message.max.bytes': 50000000,  # 50MB, default is 1MB
     }
 }
