@@ -144,6 +144,7 @@ export function getVisualization(data, current = 'table') {
     return 'table';
   }
 
+  console.log(data);
   if (!baseQuery.query.aggregations.length && ['line', 'bar'].includes(current)) {
     return 'table';
   }
