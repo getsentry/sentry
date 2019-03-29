@@ -61,7 +61,7 @@ class WebCrawlersFilter(Filter):
 
     def test(self, data):
         """Return True if event with given user agent should be filtered out, False otherwise"""
-        
+
         # TODO(dcramer): we could also look at UA parser and use the 'Spider'
         # device type
         user_agent = self.get_user_agent(data)
