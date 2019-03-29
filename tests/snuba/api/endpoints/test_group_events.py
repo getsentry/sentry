@@ -67,7 +67,7 @@ class GroupEventsTest(APITestCase, SnubaTestCase):
         )
         event_2 = self.create_event(
             event_id='b' * 32,
-            datetime=self.min_ago,
+            datetime=self.min_ago - timedelta(minutes=1),
             group=group,
             tags={
                 'bar': 'biz',
@@ -76,47 +76,50 @@ class GroupEventsTest(APITestCase, SnubaTestCase):
 
         url = u'/api/0/issues/{}/events/'.format(group.id)
         response = self.client.get(url + '?query=foo:baz', format='json')
-
         assert response.status_code == 200, response.content
         assert len(response.data) == 1
         assert response.data[0]['eventID'] == six.text_type(event_1.event_id)
 
-        response = self.client.get(url + '?query=bar:biz', format='json')
+        response = self.client.get(url + '?query=!foo:baz', format='json')
+        assert response.status_code == 200, response.content
+        assert len(response.data) == 1
+        assert response.data[0]['eventID'] == six.text_type(event_2.event_id)
 
+        response = self.client.get(url + '?query=bar:biz', format='json')
         assert response.status_code == 200, response.content
         assert len(response.data) == 1
         assert response.data[0]['eventID'] == six.text_type(event_2.event_id)
 
         response = self.client.get(url + '?query=bar:biz%20foo:baz', format='json')
-
         assert response.status_code == 200, response.content
         assert len(response.data) == 0
 
         response = self.client.get(url + '?query=bar:buz%20foo:baz', format='json')
-
         assert response.status_code == 200, response.content
         assert len(response.data) == 1
         assert response.data[0]['eventID'] == six.text_type(event_1.event_id)
 
         response = self.client.get(url + '?query=bar:baz', format='json')
-
         assert response.status_code == 200, response.content
         assert len(response.data) == 0
 
         response = self.client.get(url + '?query=a:b', format='json')
-
         assert response.status_code == 200, response.content
         assert len(response.data) == 0
 
         response = self.client.get(url + '?query=bar:b', format='json')
-
         assert response.status_code == 200, response.content
         assert len(response.data) == 0
 
         response = self.client.get(url + '?query=bar:baz', format='json')
-
         assert response.status_code == 200, response.content
         assert len(response.data) == 0
+
+        response = self.client.get(url + '?query=!bar:baz', format='json')
+        assert response.status_code == 200, response.content
+        assert len(response.data) == 2
+        assert response.data[0]['eventID'] == six.text_type(event_1.event_id)
+        assert response.data[1]['eventID'] == six.text_type(event_2.event_id)
 
     def test_search_event_by_id(self):
         self.login_as(user=self.user)
@@ -327,3 +330,36 @@ class GroupEventsTest(APITestCase, SnubaTestCase):
         assert response.status_code == 200, response.content
         assert len(response.data) == 1
         assert response.data[0]['eventID'] == six.text_type(event_2.event_id)
+
+    def test_multiple_group(self):
+        self.login_as(user=self.user)
+
+        event_1 = self.store_event(
+            data={
+                'fingerprint': ['group_1'],
+                'event_id': 'a' * 32,
+                'message': 'foo',
+                'timestamp': self.min_ago.isoformat()[:19],
+            },
+            project_id=self.project.id,
+        )
+        event_2 = self.store_event(
+            data={
+                'fingerprint': ['group_2'],
+                'event_id': 'b' * 32,
+                'message': 'group2',
+                'timestamp': self.min_ago.isoformat()[:19],
+            },
+            project_id=self.project.id,
+        )
+
+        for event in (event_1, event_2):
+            url = u'/api/0/issues/{}/events/'.format(event.group.id)
+            response = self.client.get(url, format='json')
+            assert response.status_code == 200, response.content
+            assert len(response.data) == 1, response.data
+            assert sorted(map(lambda x: x['eventID'], response.data)) == sorted(
+                [
+                    six.text_type(event.event_id),
+                ]
+            )
