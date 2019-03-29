@@ -772,6 +772,7 @@ class CliTestCase(TestCase):
         return self.runner.invoke(self.command, args, obj={})
 
 
+@pytest.mark.usefixtures('browser_setup')
 @pytest.mark.usefixtures('browser')
 class AcceptanceTestCase(TransactionTestCase):
     def setUp(self):

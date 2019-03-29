@@ -165,6 +165,10 @@ matrix:
       name: 'Acceptance'
       env: TEST_SUITE=acceptance USE_SNUBA=1
 
+    - <<: *acceptance_default
+      name: 'Acceptance (Chromedriver session-bound)'
+      env: TEST_SUITE=acceptance USE_SNUBA=1 SENTRY_SELENIUM_USE_SESSION=1 PERCY_ENABLE=0
+
     # XXX(markus): Remove after rust interfaces are done
     - <<: *acceptance_default
       python: 2.7
