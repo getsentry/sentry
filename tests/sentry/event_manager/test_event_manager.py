@@ -23,7 +23,7 @@ from sentry.models import (
     ReleaseProjectEnvironment, OrganizationIntegration, UserReport
 )
 from sentry.signals import event_discarded, event_saved
-from sentry.testutils import assert_mock_called_once_with_partial, TransactionTestCase
+from sentry.testutils import assert_mock_called_once_with_partial, TestCase
 from sentry.utils.data_filters import FilterStatKeys
 
 
@@ -39,7 +39,7 @@ def make_event(**kwargs):
     return result
 
 
-class EventManagerTest(TransactionTestCase):
+class EventManagerTest(TestCase):
     def make_release_event(self, release_name, project_id):
         manager = EventManager(make_event(release=release_name))
         manager.normalize()
@@ -1331,7 +1331,7 @@ class EventManagerTest(TransactionTestCase):
         assert tags['server_name'] == 'foo.com'
 
 
-class ReleaseIssueTest(TransactionTestCase):
+class ReleaseIssueTest(TestCase):
     def setUp(self):
         self.project = self.create_project()
         self.release = Release.get_or_create(self.project, '1.0')
