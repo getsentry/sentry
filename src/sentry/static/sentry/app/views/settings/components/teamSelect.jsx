@@ -18,7 +18,6 @@ import withApi from 'app/utils/withApi';
 
 class TeamSelect extends React.Component {
   static propTypes = {
-    api: PropTypes.object.isRequired,
     organization: SentryTypes.Organization.isRequired,
     disabled: PropTypes.bool,
     // All teams in the organization
@@ -38,25 +37,7 @@ class TeamSelect extends React.Component {
     confirmLastTeamRemoveMessage: PropTypes.string,
   };
 
-  // state = {
-  //   teams: null,
-  // };
-
-  // componentDidMount() {
-  //   this.fetchTeams();
-  // }
-
-  // fetchTeams = debounce(query => {
-  //   const {organization} = this.props;
-  //   this.props.api
-  //     .requestPromise(`/organizations/${organization.slug}/teams/`, {
-  //       query: {query},
-  //     })
-  //     .then(teams => this.setState({teams}));
-  // }, 100);
-
   handleQueryUpdate = event => {
-    // this.fetchTeams(event.target.value);
     const {teams} = this.props;
     const query = event.target.value.toLowerCase();
     return teams.filter(team => {
