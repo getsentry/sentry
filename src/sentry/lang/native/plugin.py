@@ -216,7 +216,7 @@ class NativeStacktraceProcessor(StacktraceProcessor):
         assert len(images) == len(rv['modules']), (images, rv)
 
         for image, fetched_debug_file in zip(images, rv['modules']):
-            if fetched_debug_file['status'] == 'found':
+            if fetched_debug_file['status'] in ('found', 'unused'):
                 # Set image data from symbolicator, for minidumps
                 for k in fetched_debug_file:
                     if k != 'status':
@@ -226,9 +226,12 @@ class NativeStacktraceProcessor(StacktraceProcessor):
                 error = SymbolicationFailed(type=EventError.NATIVE_MISSING_DSYM)
             elif fetched_debug_file['status'] == 'malformed_debug_file':
                 error = SymbolicationFailed(type=EventError.NATIVE_BAD_DSYM)
+            elif fetched_debug_file['status'] == 'too_large':
+                error = SymbolicationFailed(type=EventError.FETCH_TOO_LARGE)
+            elif fetched_debug_file['status'] == 'other':
+                error = SymbolicationFailed(type=EventError.UNKNOWN_ERROR)
             else:
-                # Some error we can't handle. Probably one we wouldn't want to
-                # report to the user either.
+                logger.error("Unknown status: %s", fetched_debug_file['status'])
                 continue
 
             error.image_arch = image['arch']
