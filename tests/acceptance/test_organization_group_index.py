@@ -1,13 +1,21 @@
 from __future__ import absolute_import
 
+import pytz
+
+from datetime import datetime, timedelta
 from django.utils import timezone
 
-from sentry.testutils import AcceptanceTestCase
+from sentry.testutils import AcceptanceTestCase, SnubaTestMixin
+from mock import patch
 
 
-class OrganizationGroupIndexTest(AcceptanceTestCase):
+event_time = (datetime.utcnow() - timedelta(days=3)).replace(tzinfo=pytz.utc)
+
+
+class OrganizationGroupIndexTest(SnubaTestMixin, AcceptanceTestCase):
     def setUp(self):
         super(OrganizationGroupIndexTest, self).setUp()
+        self.init_snuba()
         self.user = self.create_user('foo@example.com')
         self.org = self.create_organization(owner=self.user, name='Rowdy Tiger')
         self.team = self.create_team(
@@ -42,6 +50,39 @@ class OrganizationGroupIndexTest(AcceptanceTestCase):
             self.wait_until_loaded()
             self.browser.wait_until('[data-test-id="empty-state"]')
             self.browser.snapshot('organization issues no results')
+
+    @patch('django.utils.timezone.now')
+    def test_with_results(self, mock_now):
+        mock_now.return_value = datetime.utcnow().replace(tzinfo=pytz.utc)
+
+        self.store_event(
+            data={
+                'event_id': 'a' * 32,
+                'message': 'oh no',
+                'timestamp': event_time.isoformat()[:19],
+                'fingerprint': ['group-1']
+            },
+            project_id=self.project.id
+        )
+        self.store_event(
+            data={
+                'event_id': 'b' * 32,
+                'message': 'oh snap',
+                'timestamp': event_time.isoformat()[:19],
+                'fingerprint': ['group-2']
+            },
+            project_id=self.project.id
+        )
+        with self.feature(['organizations:sentry10', 'organizations:discover']):
+            self.browser.get(self.path)
+            self.wait_until_loaded()
+            self.browser.wait_until('.event-issue-header')
+            self.browser.snapshot('organization issues with issues')
+
+            groups = self.browser.find_elements_by_class_name('event-issue-header')
+            assert len(groups) == 2
+            assert 'oh snap' in groups[0].text
+            assert 'oh no' in groups[1].text
 
     def wait_until_loaded(self):
         self.browser.wait_until_not('.loading')
