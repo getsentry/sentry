@@ -127,7 +127,7 @@ test-python:
 	sentry init
 	make build-platform-assets
 	@echo "--> Running Python tests"
-	py.test tests/integration tests/sentry --cov . --cov-report="xml:.artifacts/python.coverage.xml" --junit-xml=".artifacts/python.junit.xml" || exit 1
+	py.test tests/integration tests/sentry --durations=0 --cov . --cov-report="xml:.artifacts/python.coverage.xml" --junit-xml=".artifacts/python.junit.xml" || exit 1
 	@echo ""
 
 test-snuba:
