@@ -23,7 +23,7 @@ logger = logging.getLogger(__name__)
 
 
 def run_symbolicator(stacktraces, modules, project, arch, signal, request_id_cache_key):
-    self_url_prefix = options.get('system.url-prefix')
+    self_url_prefix = options.get('system.internal-url-prefix')
 
     assert self_url_prefix
     self_bucket_url = '%s%s' % (
@@ -60,7 +60,8 @@ def run_symbolicator(stacktraces, modules, project, arch, signal, request_id_cac
 
                 if rv.status_code == 404 and request_id:
                     default_cache.delete(request_id_cache_key)
-                    raise RetrySymbolication(retry_after=0)
+                    request_id = None
+                    continue
                 elif rv.status_code == 503:
                     raise RetrySymbolication(retry_after=10)
 
@@ -101,38 +102,52 @@ def _do_send_request(sess, request_id, project_id, self_bucket_url, signal,
     symbolicator_options = options.get('symbolicator.options')
 
     if request_id:
-        url = '{base}/requests/{request_id}?timeout={timeout}'.format(
-            base=symbolicator_options['url'],
-            request_id=request_id,
-            timeout=SYMBOLICATOR_TIMEOUT,
+        return _poll_symbolication_task(
+            sess=sess, symbolicator_options=symbolicator_options,
+            request_id=request_id
         )
-        rv = sess.get(url)
     else:
-        request = {
-            'signal': signal,
-            'sources': [
-                # TODO(markus): Support for internal bucket here once we
-                # figured auth out
-                {
-                    "type": "http",
-                    "id": "microsoft",
-                    "layout": "symstore",
-                    "filetypes": ["pdb", "pe"],
-                    "url": "https://msdl.microsoft.com/download/symbols/",
-                    "is_public": True,
-                }
-            ],
-            'request': {
-                'timeout': SYMBOLICATOR_TIMEOUT,
-            },
-            'threads': stacktraces,
-            'modules': modules,
-        }
-        url = '{base}/symbolicate?timeout={timeout}&scope={scope}'.format(
-            base=symbolicator_options['url'],
-            timeout=SYMBOLICATOR_TIMEOUT,
-            scope=project_id,
+        return _create_symbolication_task(
+            sess=sess, symbolicator_options=symbolicator_options,
+            project_id=project_id, self_bucket_url=self_bucket_url,
+            signal=signal, stacktraces=stacktraces, modules=modules
         )
-        rv = sess.post(url, json=request)
 
-    return rv
+
+def _poll_symbolication_task(sess, symbolicator_options, request_id):
+    url = '{base}/requests/{request_id}?timeout={timeout}'.format(
+        base=symbolicator_options['url'],
+        request_id=request_id,
+        timeout=SYMBOLICATOR_TIMEOUT,
+    )
+    return sess.get(url)
+
+
+def _create_symbolication_task(sess, symbolicator_options, project_id,
+                               self_bucket_url, signal, stacktraces, modules):
+    request = {
+        'signal': signal,
+        'sources': [
+            # TODO(markus): Support for internal bucket here once we
+            # figured auth out
+            {
+                "type": "http",
+                "id": "microsoft",
+                "layout": "symstore",
+                "filetypes": ["pdb", "pe"],
+                "url": "https://msdl.microsoft.com/download/symbols/",
+                "is_public": True,
+            }
+        ],
+        'request': {
+            'timeout': SYMBOLICATOR_TIMEOUT,
+        },
+        'threads': stacktraces,
+        'modules': modules,
+    }
+    url = '{base}/symbolicate?timeout={timeout}&scope={scope}'.format(
+        base=symbolicator_options['url'],
+        timeout=SYMBOLICATOR_TIMEOUT,
+        scope=project_id,
+    )
+    return sess.post(url, json=request)

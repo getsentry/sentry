@@ -86,3 +86,5 @@ def signal_from_data(data):
     signal = get_path(exceptions, 0, 'mechanism', 'meta', 'signal', 'number')
     if signal is not None:
         return int(signal)
+
+    return None

@@ -8,7 +8,6 @@ from symbolic import parse_addr, find_best_instruction, arch_get_ip_reg_name, \
     ObjectLookup
 
 from sentry import options
-from sentry.models import ProjectOption
 from sentry.plugins import Plugin2
 from sentry.lang.native.cfi import reprocess_minidump_with_cfi
 from sentry.lang.native.minidump import is_minidump_event
@@ -36,12 +35,12 @@ def _is_symbolicator_enabled(project):
     if not options.get('symbolicator.enabled'):
         return False
 
-    rv = ProjectOption.objects.get_value(project, 'sentry:symbolicator-enabled')
+    rv = project.get_option('sentry:symbolicator-enabled')
 
     if rv is not None:
         return rv
 
-    ProjectOption.objects.set_value(project, 'sentry:symbolicator-enabled', False)
+    project.update_option('sentry:symbolicator-enabled', False)
     return False
 
 
@@ -57,6 +56,10 @@ class NativeStacktraceProcessor(StacktraceProcessor):
     def __init__(self, *args, **kwargs):
         StacktraceProcessor.__init__(self, *args, **kwargs)
 
+        # If true, the project has been opted into using the symbolicator
+        # service for native symbolication, which also means symbolic is not
+        # used at all anymore.
+        # The (iOS) symbolserver is still used regardless of this value.
         self.use_symbolicator = _is_symbolicator_enabled(self.project)
 
         self.arch = cpu_name_from_data(self.data)
@@ -72,6 +75,7 @@ class NativeStacktraceProcessor(StacktraceProcessor):
             self.available = True
             self.sdk_info = get_sdk_from_event(self.data)
             self.object_lookup = ObjectLookup(images)
+            self.images = images
         else:
             self.available = False
 
@@ -143,8 +147,14 @@ class NativeStacktraceProcessor(StacktraceProcessor):
             'obj': obj,
             'debug_id': obj.debug_id if obj is not None else None,
             'symbolserver_match': None,
+
+            # `[]` is used to indicate to the symbolizer that the symbolicator
+            # deliberately discarded this frame, while `None` means the
+            # symbolicator didn't run (because `self.use_symbolicator` is
+            # false).
+            # If the symbolicator did run and was not able to symbolize the
+            # frame, this value will be a list with the raw frame as only item.
             'symbolicator_match': [] if self.use_symbolicator else None,
-            'symbolicator_errors': []
         }
 
         if obj is not None:
@@ -183,23 +193,36 @@ class NativeStacktraceProcessor(StacktraceProcessor):
             self.run_symbolicator(processing_task)
 
     def run_symbolicator(self, processing_task):
-        request_id_cache_key = request_id_cache_key_for_event(self.data)
-
         # TODO(markus): Make this work with minidumps. An unprocessed minidump
         # event will not contain unsymbolicated frames, because the minidump
         # upload already happened in store.
+        # It will also presumably not contain images, so `self.available` will
+        # already be `False`.
 
-        images = list(get_path(self.data, 'debug_meta', 'images', filter=True))
-        if not images:
+        if not self.available:
             return
+
+        request_id_cache_key = request_id_cache_key_for_event(self.data)
 
         stacktraces = []
         processable_frames = []
         for stacktrace_info, pf_list in processing_task.iter_processable_stacktraces():
             registers = stacktrace_info.stacktrace.get('registers') or {}
 
+            # The filtering condition of this list comprehension is copied
+            # from `iter_processable_frames`.
+            #
+            # We cannot reuse `iter_processable_frames` because the
+            # symbolicator currently expects a list of stacktraces, not
+            # flat frames.
+            #
+            # Right now we can't even filter out frames (e.g. using a frame
+            # cache locally). The stacktraces have to be as complete as
+            # possible because the symbolicator assumes the first frame of
+            # a stacktrace to be the crashing frame. This assumption is
+            # already violated because the SDK might chop off frames though
+            # (which is less likely to be the case though).
             pf_list = [
-                # This condition is copied from iter_processable_frames
                 pf for pf in reversed(pf_list)
                 if pf.processor == self
             ]
@@ -217,7 +240,7 @@ class NativeStacktraceProcessor(StacktraceProcessor):
 
             processable_frames.append(pf_list)
 
-        rv = run_symbolicator(stacktraces=stacktraces, modules=images,
+        rv = run_symbolicator(stacktraces=stacktraces, modules=self.images,
                               project=self.project, arch=self.arch,
                               signal=self.signal,
                               request_id_cache_key=request_id_cache_key)
@@ -227,9 +250,9 @@ class NativeStacktraceProcessor(StacktraceProcessor):
         # TODO(markus): Set signal and os context from symbolicator response,
         # for minidumps
 
-        assert len(images) == len(rv['modules']), (images, rv)
+        assert len(self.images) == len(rv['modules']), (self.images, rv)
 
-        for image, fetched_debug_file in zip(images, rv['modules']):
+        for image, fetched_debug_file in zip(self.images, rv['modules']):
             if fetched_debug_file['status'] in ('found', 'unused'):
                 # Set image data from symbolicator, for minidumps
                 for k in fetched_debug_file:
