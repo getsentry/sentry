@@ -1318,10 +1318,11 @@ class SymbolicatorResolvingIntegrationTest(ResolvingIntegrationTestBase, Transac
 
         monkeypatch.setattr('sentry.lang.native.symbolicator.Session',
                             lambda: betamax_recorder.session)
+        monkeypatch.setattr('sentry.lang.native.plugin._is_symbolicator_enabled',
+                            lambda _: True)
 
         with patch('sentry.lang.native.symbolizer.Symbolizer._symbolize_app_frame') \
                 as symbolize_app_frame, \
-                self.feature("projects:symbolicator"), \
                 self.options({"system.url-prefix": live_server.url}):
 
             # Run test case:

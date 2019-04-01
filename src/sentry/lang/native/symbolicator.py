@@ -5,7 +5,6 @@ import six
 import time
 import logging
 
-from django.conf import settings
 from django.core.urlresolvers import reverse
 
 from requests.exceptions import RequestException
@@ -26,6 +25,7 @@ logger = logging.getLogger(__name__)
 
 def run_symbolicator(stacktraces, modules, project, arch, signal, request_id_cache_key):
     self_url_prefix = options.get('system.url-prefix')
+
     assert self_url_prefix
     self_bucket_url = '%s%s' % (
         self_url_prefix.rstrip('/'),
@@ -99,9 +99,11 @@ def run_symbolicator(stacktraces, modules, project, arch, signal, request_id_cac
 
 def _do_send_request(sess, request_id, project_id, self_bucket_url, signal,
                      stacktraces, modules):
+    symbolicator_options = options.get('symbolicator.options')
+
     if request_id:
         url = '{base}/requests/{request_id}?timeout={timeout}'.format(
-            base=settings.SENTRY_SYMBOLICATOR_URL,
+            base=symbolicator_options['url'],
             request_id=request_id,
             timeout=SYMBOLICATOR_TIMEOUT,
         )
@@ -132,7 +134,7 @@ def _do_send_request(sess, request_id, project_id, self_bucket_url, signal,
             'modules': modules,
         }
         url = '{base}/symbolicate?timeout={timeout}&scope={scope}'.format(
-            base=settings.SENTRY_SYMBOLICATOR_URL,
+            base=symbolicator_options['url'],
             timeout=SYMBOLICATOR_TIMEOUT,
             scope=project_id,
         )

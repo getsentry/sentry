@@ -7,7 +7,8 @@ import posixpath
 from symbolic import parse_addr, find_best_instruction, arch_get_ip_reg_name, \
     ObjectLookup
 
-from sentry import options, features
+from sentry import options
+from sentry.models import ProjectOption
 from sentry.plugins import Plugin2
 from sentry.lang.native.cfi import reprocess_minidump_with_cfi
 from sentry.lang.native.minidump import is_minidump_event
@@ -31,6 +32,19 @@ SYMBOLICATOR_FRAME_ATTRS = ("instruction_addr", "package", "lang", "symbol",
                             "line_addr")
 
 
+def _is_symbolicator_enabled(project):
+    if not options.get('symbolicator.enabled'):
+        return False
+
+    rv = ProjectOption.objects.get_value(project, 'sentry:symbolicator-enabled')
+
+    if rv is not None:
+        return rv
+
+    ProjectOption.objects.set_value(project, 'sentry:symbolicator-enabled', False)
+    return False
+
+
 def request_id_cache_key_for_event(data):
     return u'symbolicator:{1}:{0}'.format(data['project'], data['event_id'])
 
@@ -43,7 +57,7 @@ class NativeStacktraceProcessor(StacktraceProcessor):
     def __init__(self, *args, **kwargs):
         StacktraceProcessor.__init__(self, *args, **kwargs)
 
-        self.use_symbolicator = features.has('projects:symbolicator', project=self.project)
+        self.use_symbolicator = _is_symbolicator_enabled(self.project)
 
         self.arch = cpu_name_from_data(self.data)
         self.signal = signal_from_data(self.data)

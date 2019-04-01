@@ -1604,6 +1604,3 @@ KAFKA_TOPICS = {
         'topic': KAFKA_EVENTS,
     },
 }
-
-# Symbolicator service
-SENTRY_SYMBOLICATOR_URL = "http://localhost:3021"
