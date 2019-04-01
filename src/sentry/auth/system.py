@@ -72,7 +72,6 @@ class SystemToken(object):
     def user(self):
         user = AnonymousUser()
         user.is_active = True
-        user.is_superuser = True
         return user
 
     def get_allowed_origins(self):
