@@ -255,22 +255,23 @@ class NativeStacktraceProcessor(StacktraceProcessor):
         assert len(self.images) == len(rv['modules']), (self.images, rv)
 
         for image, fetched_debug_file in zip(self.images, rv['modules']):
-            if fetched_debug_file['status'] in ('found', 'unused'):
-                # Set image data from symbolicator, for minidumps
-                for k in fetched_debug_file:
-                    if k != 'status':
-                        image[k] = fetched_debug_file[k]
+            status = fetched_debug_file.pop('status')
+            # Set image data from symbolicator as symbolicator might know more
+            # than the SDK, especially for minidumps
+            image.update(fetched_debug_file)
+
+            if status in ('found', 'unused'):
                 continue
-            elif fetched_debug_file['status'] == 'missing_debug_file':
+            elif status == 'missing_debug_file':
                 error = SymbolicationFailed(type=EventError.NATIVE_MISSING_DSYM)
-            elif fetched_debug_file['status'] == 'malformed_debug_file':
+            elif status == 'malformed_debug_file':
                 error = SymbolicationFailed(type=EventError.NATIVE_BAD_DSYM)
-            elif fetched_debug_file['status'] == 'too_large':
+            elif status == 'too_large':
                 error = SymbolicationFailed(type=EventError.FETCH_TOO_LARGE)
-            elif fetched_debug_file['status'] == 'other':
+            elif status == 'other':
                 error = SymbolicationFailed(type=EventError.UNKNOWN_ERROR)
             else:
-                logger.error("Unknown status: %s", fetched_debug_file['status'])
+                logger.error("Unknown status: %s", status)
                 continue
 
             error.image_arch = image['arch']
