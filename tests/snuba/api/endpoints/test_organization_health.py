@@ -6,12 +6,13 @@ from datetime import timedelta
 from django.utils import timezone
 from django.core.urlresolvers import reverse
 
-from sentry.testutils import APITestCase, SnubaTestCase
+from sentry.testutils import APITestCase, SnubaTestMixin
 
 
-class OrganizationHealthTest(APITestCase, SnubaTestCase):
+class OrganizationHealthTest(SnubaTestMixin, APITestCase):
     def setUp(self):
         super(OrganizationHealthTest, self).setUp()
+        self.init_snuba()
         self.min_ago = timezone.now() - timedelta(minutes=1)
         self.day_ago = timezone.now() - timedelta(days=1)
 
@@ -22,9 +23,9 @@ class OrganizationHealthTest(APITestCase, SnubaTestCase):
         project2 = self.create_project()
         group = self.create_group(project=project)
         group2 = self.create_group(project=project2)
-        self.create_event('a' * 32, group=group, datetime=self.min_ago,
+        self.create_event(event_id='a' * 32, group=group, datetime=self.min_ago,
                           tags=[('sentry:user', 'id:%s' % (self.user.id,))])
-        self.create_event('b' * 32, group=group2, datetime=self.day_ago,
+        self.create_event(event_id='b' * 32, group=group2, datetime=self.day_ago,
                           tags=[('sentry:user', 'id:%s' % (self.user.id,))])
 
         now = timezone.now()

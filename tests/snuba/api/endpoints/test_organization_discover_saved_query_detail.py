@@ -1,16 +1,16 @@
 from __future__ import absolute_import
 
 import six
-from sentry.testutils import APITestCase
+from sentry.testutils import APITestCase, SnubaTestMixin
 from django.core.urlresolvers import reverse
-from sentry.testutils import SnubaTestCase
 
 from sentry.models import DiscoverSavedQuery, DiscoverSavedQueryProject
 
 
-class OrganizationDiscoverSavedQueryDetailTest(APITestCase, SnubaTestCase):
+class OrganizationDiscoverSavedQueryDetailTest(SnubaTestMixin, APITestCase):
     def setUp(self):
         super(OrganizationDiscoverSavedQueryDetailTest, self).setUp()
+        self.init_snuba()
         self.login_as(user=self.user)
         self.org = self.create_organization(owner=self.user)
         self.org_without_access = self.create_organization()

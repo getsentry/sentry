@@ -11,7 +11,7 @@ from __future__ import absolute_import
 __all__ = (
     'TestCase', 'TransactionTestCase', 'APITestCase', 'TwoFactorAPITestCase', 'AuthProviderTestCase', 'RuleTestCase',
     'PermissionTestCase', 'PluginTestCase', 'CliTestCase', 'AcceptanceTestCase',
-    'IntegrationTestCase', 'UserReportEnvironmentTestCase', 'SnubaTestCase', 'SnubaTestMixin',
+    'IntegrationTestCase', 'UserReportEnvironmentTestCase', 'SnubaTestMixin',
     'IntegrationRepositoryTestCase',
     'ReleaseCommitPatchTest', 'SetRefsTestCase', 'OrganizationDashboardWidgetTestCase'
 )
@@ -927,12 +927,6 @@ class SnubaTestMixin(object):
             settings.SENTRY_SNUBA + '/tests/insert',
             data=json.dumps(events)
         ).status_code == 200
-
-
-class SnubaTestCase(TestCase, SnubaTestMixin):
-    def setUp(self):
-        super(SnubaTestCase, self).setUp()
-        self.init_snuba()
 
 
 class IntegrationRepositoryTestCase(APITestCase):

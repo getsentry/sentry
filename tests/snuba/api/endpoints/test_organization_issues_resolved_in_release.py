@@ -14,16 +14,17 @@ from sentry.models import (
 
 from sentry.testutils import (
     APITestCase,
-    SnubaTestCase,
+    SnubaTestMixin,
 )
 
 
-class OrganizationIssuesResolvedInReleaseEndpointTest(APITestCase, SnubaTestCase):
+class OrganizationIssuesResolvedInReleaseEndpointTest(SnubaTestMixin, APITestCase):
     endpoint = 'sentry-api-0-organization-release-resolved'
     method = 'get'
 
     def setUp(self):
         super(OrganizationIssuesResolvedInReleaseEndpointTest, self).setUp()
+        self.init_snuba()
         self.user = self.create_user()
         self.org = self.create_organization()
         self.team = self.create_team(organization=self.org)

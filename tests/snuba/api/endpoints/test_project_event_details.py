@@ -6,12 +6,13 @@ from datetime import timedelta
 from django.utils import timezone
 from django.core.urlresolvers import reverse
 from sentry import options
-from sentry.testutils import APITestCase, SnubaTestCase
+from sentry.testutils import APITestCase, SnubaTestMixin
 
 
-class ProjectEventDetailsTest(APITestCase, SnubaTestCase):
+class ProjectEventDetailsTest(SnubaTestMixin, APITestCase):
     def setUp(self):
         super(ProjectEventDetailsTest, self).setUp()
+        self.init_snuba()
         self.login_as(user=self.user)
         project = self.create_project()
 

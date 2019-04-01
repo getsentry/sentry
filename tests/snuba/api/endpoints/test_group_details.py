@@ -3,10 +3,14 @@ from __future__ import absolute_import, print_function
 import mock
 
 from sentry.models import Environment
-from sentry.testutils import APITestCase, SnubaTestCase
+from sentry.testutils import APITestCase, SnubaTestMixin
 
 
-class GroupDetailsTest(APITestCase, SnubaTestCase):
+class GroupDetailsTest(SnubaTestMixin, APITestCase):
+    def setUp(self):
+        super(GroupDetailsTest, self).setUp()
+        self.init_snuba()
+
     def test_multiple_environments(self):
         group = self.create_group()
         self.login_as(user=self.user)

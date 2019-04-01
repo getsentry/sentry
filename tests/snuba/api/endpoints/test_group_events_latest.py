@@ -7,12 +7,13 @@ from django.utils import timezone
 
 from sentry import options
 from sentry.models import Group
-from sentry.testutils import APITestCase, SnubaTestCase
+from sentry.testutils import APITestCase, SnubaTestMixin
 
 
-class GroupEventsLatestTest(APITestCase, SnubaTestCase):
+class GroupEventsLatestTest(SnubaTestMixin, APITestCase):
     def setUp(self):
         super(GroupEventsLatestTest, self).setUp()
+        self.init_snuba()
         self.login_as(user=self.user)
 
         project = self.create_project()
