@@ -99,7 +99,7 @@ def up(project, exclude):
         exclude |= {'kafka', 'zookeeper', 'snuba', 'clickhouse'}
 
     if not sentry_options.get('symbolicator.enabled'):
-        exclude |= 'symbolicator'
+        exclude |= {'symbolicator'}
 
     get_or_create(client, 'network', project)
 
