@@ -11,10 +11,15 @@ from sentry.models import EventError, ProjectDebugFile
 from sentry.lang.native.utils import image_name, rebase_addr
 from sentry.constants import MAX_SYM, NATIVE_UNKNOWN_STRING
 
-FATAL_ERRORS = (EventError.NATIVE_MISSING_DSYM, EventError.NATIVE_BAD_DSYM, )
+FATAL_ERRORS = (EventError.NATIVE_MISSING_DSYM, EventError.NATIVE_BAD_DSYM,
+                EventError.NATIVE_SYMBOLICATOR_FAILED)
 USER_FIXABLE_ERRORS = (
     EventError.NATIVE_MISSING_DSYM, EventError.NATIVE_MISSING_OPTIONALLY_BUNDLED_DSYM,
     EventError.NATIVE_BAD_DSYM, EventError.NATIVE_MISSING_SYMBOL,
+
+    # XXX: user can't fix this, but they should see it regardless to see it's
+    # not their fault. Also better than silently creating an unsymbolicated event
+    EventError.NATIVE_SYMBOLICATOR_FAILED
 )
 APP_BUNDLE_PATHS = (
     '/var/containers/Bundle/Application/', '/private/var/containers/Bundle/Application/',

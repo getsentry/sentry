@@ -32,16 +32,8 @@ SYMBOLICATOR_FRAME_ATTRS = ("instruction_addr", "package", "lang", "symbol",
 
 
 def _is_symbolicator_enabled(project):
-    if not options.get('symbolicator.enabled'):
-        return False
-
-    rv = project.get_option('sentry:symbolicator-enabled')
-
-    if rv is not None:
-        return rv
-
-    project.update_option('sentry:symbolicator-enabled', False)
-    return False
+    return options.get('symbolicator.enabled') and \
+        project.get_option('sentry:symbolicator-enabled')
 
 
 def request_id_cache_key_for_event(data):
@@ -247,6 +239,9 @@ class NativeStacktraceProcessor(StacktraceProcessor):
                               signal=self.signal,
                               request_id_cache_key=request_id_cache_key)
         if not rv:
+            self._handle_symbolication_failed(
+                SymbolicationFailed(type=EventError.NATIVE_SYMBOLICATOR_FAILED)
+            )
             return
 
         # TODO(markus): Set signal and os context from symbolicator response,
