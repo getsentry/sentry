@@ -12,7 +12,6 @@ from requests.exceptions import RequestException
 from sentry import options
 from sentry.cache import default_cache
 from sentry.utils import metrics
-from sentry.auth.system import get_system_token
 from sentry.net.http import Session
 from sentry.tasks.store import RetrySymbolication
 
@@ -112,12 +111,8 @@ def _do_send_request(sess, request_id, project_id, self_bucket_url, signal,
         request = {
             'signal': signal,
             'sources': [
-                {
-                    "type": "sentry",
-                    "id": "sentry-project-difs",
-                    "url": self_bucket_url,
-                    "token": get_system_token()
-                },
+                # TODO(markus): Support for internal bucket here once we
+                # figured auth out
                 {
                     "type": "http",
                     "id": "microsoft",
