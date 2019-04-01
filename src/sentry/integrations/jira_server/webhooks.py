@@ -66,12 +66,7 @@ class JiraIssueUpdatedWebhook(Endpoint):
         data = request.DATA
 
         if not data.get('changelog'):
-            logger.info(
-                'missing-changelog', extra={
-                    'integration_id': integration.id,
-                    'data': data,
-                }
-            )
+            logger.info('missing-changelog', extra={'integration_id': integration.id})
             return self.respond()
 
         handle_assignee_change(integration, data)
