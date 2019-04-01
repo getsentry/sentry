@@ -2,11 +2,13 @@ from __future__ import absolute_import, print_function
 
 from datetime import timedelta
 from django.utils import timezone
+from freezegun import freeze_time
 
 from sentry.models import CheckInStatus, Monitor, MonitorCheckIn, MonitorStatus, MonitorType
 from sentry.testutils import APITestCase
 
 
+@freeze_time('2019-01-01')
 class CreateMonitorCheckInTest(APITestCase):
     def test_passing(self):
         user = self.create_user()
