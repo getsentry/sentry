@@ -143,6 +143,7 @@ matrix:
         - rm ~/chromedriver_linux64.zip
         - sudo install -m755 ~/chromedriver /usr/local/bin/
       before_script:
+        - sentry init
         - sentry devservices up
         - psql -c 'create database sentry;' -U postgres
 
