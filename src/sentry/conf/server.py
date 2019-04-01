@@ -874,8 +874,6 @@ SENTRY_FEATURES = {
     'projects:sample-events': True,
     # Enable functionality to trigger service hooks upon event ingestion.
     'projects:servicehooks': False,
-    # Use Symbolicator service
-    'projects:symbolicator': False,
     # Use Kafka (instead of Celery) for ingestion pipeline.
     'projects:kafka-ingest': False,
 
