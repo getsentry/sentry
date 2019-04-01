@@ -227,11 +227,13 @@ class NativeStacktraceProcessor(StacktraceProcessor):
                 if pf.processor == self
             ]
 
-            frames = [
-                {'instruction_addr': pf['instruction_addr'],
-                 'trust': pf.get('trust')}
-                for pf in pf_list
-            ]
+            frames = []
+
+            for pf in pf_list:
+                frame = {'instruction_addr': pf['instruction_addr']}
+                if pf.get('trust') is not None:
+                    frame['trust'] = pf['trust']
+                frames.append(frame)
 
             stacktraces.append({
                 'registers': registers,
