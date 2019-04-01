@@ -1309,6 +1309,7 @@ class SymbolicResolvingIntegrationTest(ResolvingIntegrationTestBase, TestCase):
             event.delete()
 
 
+@pytest.mark.skip(reason="TODO(markus): Requires internal bucket to be implemented")
 class SymbolicatorResolvingIntegrationTest(ResolvingIntegrationTestBase, TransactionTestCase):
     @pytest.fixture(autouse=True)
     def initialize(self, live_server, monkeypatch, betamax_recorder):
