@@ -183,15 +183,8 @@ publish:
 travis-noop:
 	@echo "nothing to do here."
 
-.PHONY: travis-lint-sqlite travis-lint-postgres travis-lint-mysql travis-lint-acceptance travis-lint-snuba travis-lint-js travis-lint-cli travis-lint-dist
-travis-lint-sqlite: lint-python
-travis-lint-postgres: lint-python
-travis-lint-mysql: lint-python
-travis-lint-acceptance: travis-noop
-travis-lint-snuba: lint-python
-travis-lint-js: lint-js
-travis-lint-cli: travis-noop
-travis-lint-dist: travis-noop
+.PHONY: travis-test-lint
+travis-test-lint: lint-python lint-js
 
 .PHONY: travis-test-sqlite travis-test-postgres travis-test-mysql travis-test-acceptance travis-test-snuba travis-test-js travis-test-cli travis-test-dist
 travis-test-sqlite: test-python
