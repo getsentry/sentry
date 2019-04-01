@@ -1416,6 +1416,12 @@ SENTRY_DEVSERVICES = {
         'image': 'memcached:1.5-alpine',
         'ports': {'11211/tcp': 11211},
     },
+    'symbolicator': {
+        'image': 'us.gcr.io/sentryio/symbolicator:latest',
+        'pull': True,
+        'ports': {'3021/tcp': 3021},
+        'command': ['run'],
+    }
 }
 
 # Max file size for avatar photo uploads
