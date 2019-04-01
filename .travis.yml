@@ -75,6 +75,7 @@ matrix:
         - nvm install
         - npm install -g "yarn@${YARN_VERSION}"
         - pip install -r requirements-dev.txt
+        - yarn install --pure-lockfile
 
     # only the sqlite suite runs riak tests
     - python: 2.7

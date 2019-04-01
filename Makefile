@@ -202,7 +202,7 @@ travis-test-dist:
 	SENTRY_BUILD=$(TRAVIS_COMMIT) SENTRY_LIGHT_BUILD=0 python setup.py -q sdist bdist_wheel
 	@ls -lh dist/
 
-.PHONY: scan-python travis-scan-sqlite travis-scan-postgres travis-scan-mysql travis-scan-acceptance travis-scan-snuba travis-scan-js travis-scan-cli travis-scan-dist
+.PHONY: scan-python travis-scan-sqlite travis-scan-postgres travis-scan-mysql travis-scan-acceptance travis-scan-snuba travis-scan-js travis-scan-cli travis-scan-dist travis-scan-lint
 scan-python:
 	@echo "--> Running Python vulnerability scanner"
 	$(PIP) install safety
@@ -217,3 +217,4 @@ travis-scan-snuba: scan-python
 travis-scan-js: travis-noop
 travis-scan-cli: travis-noop
 travis-scan-dist: travis-noop
+travis-scan-lint: travis-noop
