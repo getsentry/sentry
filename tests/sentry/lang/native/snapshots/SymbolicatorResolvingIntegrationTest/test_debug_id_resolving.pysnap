@@ -1,5 +1,5 @@
 ---
-created: '2019-03-29T10:42:34.497061Z'
+created: '2019-04-01T16:17:33.768481Z'
 creator: sentry
 source: tests/sentry/lang/native/test_plugin.py
 ---
@@ -50,7 +50,6 @@ grouping_config:
   id: legacy:2019-03-12
 hashes:
 - ffe48bfc93b1bf86ffb750d5d2bdc51a
-key_id: '12'
 level: error
 location: main.cpp
 logger: ''
@@ -60,7 +59,6 @@ metadata:
   type: EXCEPTION_ACCESS_VIOLATION_WRITE
   value: 'Fatal Error: EXCEPTION_ACCESS_VIOLATION_WRITE'
 platform: native
-project: 12
 sdk:
   name: _postWithHeader
   version: 0.0.0

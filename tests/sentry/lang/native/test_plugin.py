@@ -1315,13 +1315,15 @@ class SymbolicResolvingIntegrationTest(ResolvingIntegrationTestBase, TestCase):
             event.delete()
 
 
-@pytest.mark.skip(reason="TODO(markus): Requires internal bucket to be implemented")
 class SymbolicatorResolvingIntegrationTest(ResolvingIntegrationTestBase, TransactionTestCase):
     @pytest.fixture(autouse=True)
     def initialize(self, live_server, monkeypatch, betamax_recorder):
         self.live_server = live_server
         self.monkeypatch = monkeypatch
         self.betamax_recorder = betamax_recorder
+        self.betamax_recorder \
+            .current_cassette \
+            .default_cassette_options['match_requests_on'] = ['method', 'path']
 
         monkeypatch.setattr('sentry.lang.native.symbolicator.Session',
                             lambda: betamax_recorder.session)

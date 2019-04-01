@@ -23,7 +23,8 @@ logger = logging.getLogger(__name__)
 
 
 def run_symbolicator(stacktraces, modules, project, arch, signal, request_id_cache_key):
-    self_url_prefix = options.get('system.internal-url-prefix')
+    self_url_prefix = options.get('system.internal-url-prefix') \
+        or options.get('system.url-prefix')
 
     assert self_url_prefix
     self_bucket_url = '%s%s' % (

@@ -1,5 +1,5 @@
 ---
-created: '2019-03-29T10:42:39.232446Z'
+created: '2019-04-01T16:17:40.223840Z'
 creator: sentry
 source: tests/sentry/lang/native/test_plugin.py
 ---
@@ -45,7 +45,6 @@ grouping_config:
   id: legacy:2019-03-12
 hashes:
 - 6e2889ec15f82569f56fdba9ffc9b90b
-key_id: '16'
 level: error
 location: hello.c
 logger: ''
@@ -55,7 +54,6 @@ metadata:
   type: Fail
   value: fail
 platform: cocoa
-project: 14
 sdk:
   name: _postWithHeader
   version: 0.0.0
