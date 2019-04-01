@@ -205,7 +205,7 @@ class NativeStacktraceProcessor(StacktraceProcessor):
         request_id_cache_key = request_id_cache_key_for_event(self.data)
 
         stacktraces = []
-        processable_frames = []
+        processable_stacktraces = []
         for stacktrace_info, pf_list in processing_task.iter_processable_stacktraces():
             registers = stacktrace_info.stacktrace.get('registers') or {}
 
@@ -238,7 +238,7 @@ class NativeStacktraceProcessor(StacktraceProcessor):
                 'frames': frames
             })
 
-            processable_frames.append(pf_list)
+            processable_stacktraces.append(pf_list)
 
         rv = run_symbolicator(stacktraces=stacktraces, modules=self.images,
                               project=self.project, arch=self.arch,
@@ -281,7 +281,7 @@ class NativeStacktraceProcessor(StacktraceProcessor):
         assert len(stacktraces) == len(rv['stacktraces'])
 
         for pf_list, symbolicated_stacktrace in zip(
-            processable_frames,
+            processable_stacktraces,
             rv['stacktraces']
         ):
             for symbolicated_frame in symbolicated_stacktrace.get('frames') or ():
