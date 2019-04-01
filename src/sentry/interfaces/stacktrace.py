@@ -10,7 +10,6 @@ from __future__ import absolute_import
 
 __all__ = ('Stacktrace', )
 
-import re
 import six
 from itertools import islice, chain
 
@@ -24,11 +23,6 @@ from sentry.interfaces.schemas import validate_and_default_interface
 from sentry.models import UserOption
 from sentry.utils.safe import trim, trim_dict
 from sentry.web.helpers import render_to_string
-
-
-# Native function trim re.  For now this is a simple hack until we have the
-# language hints in which will let us trim this down better.
-_native_function_trim_re = re.compile(r'^(.[^(]*)\(')
 
 
 def max_addr(cur, addr):
@@ -53,20 +47,6 @@ def trim_package(pkg):
     if pkg.endswith(('.dylib', '.so', '.a')):
         pkg = pkg.rsplit('.', 1)[0]
     return pkg
-
-
-def trim_function_name(func, platform):
-    # TODO(mitsuhiko): we actually want to use the language information here
-    # but we don't have that yet.
-    if platform in ('objc', 'cocoa', 'native'):
-        # objc function
-        if func.startswith(('[', '+[', '-[')):
-            return func
-        # c/c++ function hopefully
-        match = _native_function_trim_re.match(func.strip())
-        if match is not None:
-            return match.group(1).strip()
-    return func
 
 
 def to_hex_addr(addr):

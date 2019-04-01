@@ -112,3 +112,13 @@ def test_enclosed_string_simple(input, start, end, replacement, output):
 )
 def test_split_func_tokens(input, output):
     assert split_func_tokens(input) == output
+
+
+def test_trim_function_name():
+    assert trim_function_name('+[foo:(bar)]', 'objc') == '+[foo:(bar)]'
+    assert trim_function_name('[foo:(bar)]', 'objc') == '[foo:(bar)]'
+    assert trim_function_name('-[foo:(bar)]', 'objc') == '-[foo:(bar)]'
+    assert trim_function_name(
+        '(anonymous namespace)::foo(int)',
+        'native') == '(anonymous namespace)::foo'
+    assert trim_function_name('foo::bar::foo(int)', 'native') == 'foo::bar::foo'
