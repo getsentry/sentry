@@ -1321,9 +1321,6 @@ class SymbolicatorResolvingIntegrationTest(ResolvingIntegrationTestBase, Transac
         self.live_server = live_server
         self.monkeypatch = monkeypatch
         self.betamax_recorder = betamax_recorder
-        self.betamax_recorder \
-            .current_cassette \
-            .default_cassette_options['match_requests_on'] = ['method', 'path']
 
         monkeypatch.setattr('sentry.lang.native.symbolicator.Session',
                             lambda: betamax_recorder.session)

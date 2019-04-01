@@ -201,6 +201,7 @@ def pytest_configure(config):
 
     with betamax.Betamax.configure() as config:
         config.cassette_library_dir = 'tests/betamax/'
+        config.default_cassette_options['match_requests_on'] = ['method', 'path']
 
 
 def register_extensions():
