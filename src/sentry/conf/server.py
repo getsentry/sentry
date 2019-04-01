@@ -1092,7 +1092,7 @@ SENTRY_TSDB_OPTIONS = {}
 SENTRY_NEWSLETTER = 'sentry.newsletter.base.Newsletter'
 SENTRY_NEWSLETTER_OPTIONS = {}
 
-SENTRY_EVENTSTREAM = 'sentry.eventstream.base.EventStream'
+SENTRY_EVENTSTREAM = os.environ.get('SENTRY_EVENTSTREAM', 'sentry.eventstream.base.EventStream')
 SENTRY_EVENTSTREAM_OPTIONS = {}
 
 # rollups must be ordered from highest granularity to lowest
@@ -1609,3 +1609,9 @@ KAFKA_TOPICS = {
         'topic': KAFKA_EVENTS,
     },
 }
+
+if os.environ.get('USE_SNUBA', False):
+    SENTRY_SEARCH = 'sentry.search.snuba.SnubaSearchBackend'
+    SENTRY_TAGSTORE = 'sentry.tagstore.snuba.SnubaTagStorage'
+    SENTRY_TSDB = 'sentry.tsdb.redissnuba.RedisSnubaTSDB'
+    SENTRY_EVENTSTREAM = 'sentry.eventstream.snuba.SnubaEventStream'

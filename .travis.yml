@@ -132,8 +132,6 @@ matrix:
       env: TEST_SUITE=acceptance USE_SNUBA=1
       services:
         - docker
-        - memcached
-        - redis-server
         - postgresql
       before_install:
         - find "$NODE_DIR" -type d -empty -delete
@@ -157,8 +155,6 @@ matrix:
       env: TEST_SUITE=acceptance SENTRY_TEST_USE_RUST_INTERFACE_RENORMALIZATION=1 PERCY_ENABLE=0
       services:
         - docker
-        - memcached
-        - redis-server
         - postgresql
       before_install:
         - find "$NODE_DIR" -type d -empty -delete
