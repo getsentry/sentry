@@ -1125,6 +1125,8 @@ class ResolvingIntegrationTestBase(object):
         del snapshot_data['event_id']
         del snapshot_data['timestamp']
         del snapshot_data['received']
+        del snapshot_data['key_id']
+        del snapshot_data['project']
         self.insta_snapshot(snapshot_data)
 
     def test_debug_id_resolving(self):
@@ -1197,6 +1199,8 @@ class ResolvingIntegrationTestBase(object):
         del snapshot_data['event_id']
         del snapshot_data['timestamp']
         del snapshot_data['received']
+        del snapshot_data['key_id']
+        del snapshot_data['project']
         self.insta_snapshot(snapshot_data)
 
     def test_missing_dsym(self):
@@ -1210,6 +1214,8 @@ class ResolvingIntegrationTestBase(object):
         del snapshot_data['event_id']
         del snapshot_data['timestamp']
         del snapshot_data['received']
+        del snapshot_data['key_id']
+        del snapshot_data['project']
         self.insta_snapshot(snapshot_data)
 
 
