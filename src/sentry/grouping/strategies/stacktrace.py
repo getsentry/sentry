@@ -2,13 +2,14 @@
 from __future__ import absolute_import
 
 import re
+import six
 
 from sentry.grouping.component import GroupingComponent
 from sentry.grouping.strategies.base import strategy
 from sentry.grouping.strategies.utils import replace_enclosed_string, split_func_tokens
 
 
-_ruby_anon_func = re.compile(r'_\d{2,}')
+_ruby_erb_func = re.compile(r'__\d{4,}_\d{4,}$')
 _basename_re = re.compile(r'[/\\]')
 _cpp_trailer_re = re.compile(r'(\bconst\b|&)$')
 
@@ -225,11 +226,11 @@ def get_function_component_v1(function, platform):
                 hint='ruby block'
             )
         else:
-            new_function = _ruby_anon_func.sub('_<anon>', function)
+            new_function = _ruby_erb_func.sub('', function)
             if new_function != function:
                 function_component.update(
                     values=[new_function],
-                    hint='removed integer suffix'
+                    hint='removed generated erb template suffix'
                 )
 
     elif platform == 'php':
@@ -261,6 +262,20 @@ def get_function_component_v1(function, platform):
                 )
 
     return function_component
+
+
+def trim_function_name(function, platform):
+    """This works similar to `get_function_component_v1` but returns a
+    string in all situations that was just trimmed.  This function is supposed
+    to be used for display purposes in the UI.
+
+    The return value of this function does not need to be kept stable so it
+    can be upgraded without breaking grouping.
+    """
+    component = get_function_component_v1(function, platform)
+    if len(component.values) == 1 and isinstance(component.values[0], six.string_types):
+        return component.values[0]
+    return function
 
 
 @strategy(

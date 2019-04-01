@@ -2,7 +2,7 @@ from __future__ import absolute_import
 
 import pytest
 
-from sentry.grouping.strategies.stacktrace import isolate_native_function_v1
+from sentry.grouping.strategies.stacktrace import isolate_native_function_v1, trim_function_name
 from sentry.grouping.strategies.utils import replace_enclosed_string, split_func_tokens
 
 
@@ -77,6 +77,7 @@ from sentry.grouping.strategies.utils import replace_enclosed_string, split_func
 )
 def test_isolate_native_function_v1(input, output):
     assert isolate_native_function_v1(input) == output
+    assert trim_function_name(input, 'native') == output
 
 
 def replace_group(value, start):

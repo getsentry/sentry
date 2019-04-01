@@ -1,5 +1,5 @@
 ---
-created: '2019-03-19T22:59:40.922214Z'
+created: '2019-04-01T17:31:12.333493Z'
 creator: sentry
 source: tests/sentry/grouping/test_variants.py
 ---
@@ -11,16 +11,16 @@ app:
         frame (non app frame)
           filename*
             u'foo.html.erb'
-          function* (removed integer suffix)
-            u'_foo_html_erb__<anon>_<anon>'
+          function* (removed generated erb template suffix)
+            u'_foo_html_erb'
 --------------------------------------------------------------------------
 system:
-  hash: '140d61119ffa316766cf0f710bf1e7f1'
+  hash: '4067a71d7098866f87c746a57a77b2bb'
   component:
     system*
       stacktrace*
         frame*
           filename*
             u'foo.html.erb'
-          function* (removed integer suffix)
-            u'_foo_html_erb__<anon>_<anon>'
+          function* (removed generated erb template suffix)
+            u'_foo_html_erb'
