@@ -81,6 +81,9 @@ ADMINS = ()
 
 INTERNAL_IPS = ()
 
+# Hosts that are allowed to use system token authentication
+INTERNAL_SYSTEM_IPS = ()
+
 MANAGERS = ADMINS
 
 APPEND_SLASH = True
