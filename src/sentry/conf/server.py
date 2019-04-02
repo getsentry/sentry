@@ -892,7 +892,7 @@ SENTRY_FEATURES = {
 SENTRY_DEFAULT_TIME_ZONE = 'UTC'
 
 # Enable the Sentry Debugger (Beta)
-SENTRY_DEBUGGER = DEBUG
+SENTRY_DEBUGGER = None
 
 SENTRY_IGNORE_EXCEPTIONS = ('OperationalError', )
 
