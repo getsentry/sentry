@@ -40,7 +40,7 @@ class CloudflareTokenAuthentication(TokenAuthentication):
             token = request.DATA['authentications']['account']['token']['token']
         except KeyError:
             return None
-        return self.authenticate_credentials(token)
+        return self.authenticate_credentials(request, token)
 
 
 class CloudflareWebhookEndpoint(Endpoint):
