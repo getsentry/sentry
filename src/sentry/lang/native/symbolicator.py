@@ -10,6 +10,7 @@ from django.core.urlresolvers import reverse
 from requests.exceptions import RequestException
 
 from sentry import options
+from sentry.auth.system import get_system_token
 from sentry.cache import default_cache
 from sentry.utils import metrics
 from sentry.net.http import Session
@@ -23,12 +24,12 @@ logger = logging.getLogger(__name__)
 
 
 def run_symbolicator(stacktraces, modules, project, arch, signal, request_id_cache_key):
-    self_url_prefix = options.get('system.internal-url-prefix') \
+    internal_url_prefix = options.get('system.internal-url-prefix') \
         or options.get('system.url-prefix')
 
-    assert self_url_prefix
-    self_bucket_url = '%s%s' % (
-        self_url_prefix.rstrip('/'),
+    assert internal_url_prefix
+    sentry_source_url = '%s%s' % (
+        internal_url_prefix.rstrip('/'),
         reverse('sentry-api-0-dsym-files', kwargs={
             'organization_slug': project.organization.slug,
             'project_slug': project.slug
@@ -58,7 +59,7 @@ def run_symbolicator(stacktraces, modules, project, arch, signal, request_id_cac
                 else:
                     rv = _create_symbolication_task(
                         sess=sess, base_url=base_url,
-                        project_id=project_id, self_bucket_url=self_bucket_url,
+                        project_id=project_id, sentry_source_url=sentry_source_url,
                         signal=signal, stacktraces=stacktraces, modules=modules
                     )
 
@@ -115,19 +116,23 @@ def _poll_symbolication_task(sess, base_url, request_id):
 
 
 def _create_symbolication_task(sess, base_url, project_id,
-                               self_bucket_url, signal, stacktraces, modules):
+                               sentry_source_url, signal, stacktraces, modules):
     request = {
         'signal': signal,
         'sources': [
-            # TODO(markus): Support for internal bucket here once we
-            # figured auth out
             {
-                "type": "http",
-                "id": "microsoft",
-                "layout": "symstore",
-                "filetypes": ["pdb", "pe"],
-                "url": "https://msdl.microsoft.com/download/symbols/",
-                "is_public": True,
+                'type': 'sentry',
+                'id': '__sentry_internal__',
+                'url': sentry_source_url,
+                'token': get_system_token(),
+            },
+            {
+                'type': 'http',
+                'id': 'microsoft',
+                'layout': 'symstore',
+                'filetypes': ['pdb', 'pe'],
+                'url': 'https://msdl.microsoft.com/download/symbols/',
+                'is_public': True,
             }
         ],
         'request': {
