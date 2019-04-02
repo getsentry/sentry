@@ -79,9 +79,11 @@ MAINTENANCE = False
 
 ADMINS = ()
 
+# Hosts that are considered in the same network (including VPNs).
+# This gives access to functionality like the debug toolbar.
 INTERNAL_IPS = ()
 
-# Hosts that are allowed to use system token authentication
+# Hosts that are allowed to use system token authentication.
 INTERNAL_SYSTEM_IPS = ()
 
 MANAGERS = ADMINS
