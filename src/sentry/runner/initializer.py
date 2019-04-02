@@ -306,6 +306,9 @@ def initialize_app(config, skip_service_validation=False):
         version=settings.ASSET_VERSION,
     )
 
+    if getattr(settings, 'SENTRY_DEBUGGER', None) is None:
+        settings.SENTRY_DEBUGGER = settings.DEBUG
+
     import django
     if hasattr(django, 'setup'):
         # support for Django 1.7+
