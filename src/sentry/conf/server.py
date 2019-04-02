@@ -1609,9 +1609,3 @@ KAFKA_TOPICS = {
         'topic': KAFKA_EVENTS,
     },
 }
-
-if os.environ.get('USE_SNUBA', False):
-    SENTRY_SEARCH = 'sentry.search.snuba.SnubaSearchBackend'
-    SENTRY_TAGSTORE = 'sentry.tagstore.snuba.SnubaTagStorage'
-    SENTRY_TSDB = 'sentry.tsdb.redissnuba.RedisSnubaTSDB'
-    SENTRY_EVENTSTREAM = 'sentry.eventstream.snuba.SnubaEventStream'
