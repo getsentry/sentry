@@ -1,8 +1,9 @@
 import PropTypes from 'prop-types';
 import React from 'react';
 import SentryTypes from 'app/sentryTypes';
-import {defined} from 'app/utils';
 import OpenInButton from 'app/components/events/interfaces/openInButton';
+import {defined} from 'app/utils';
+import styled from 'react-emotion';
 
 const ContextLine = function(props) {
   const {line, isActive, filename, group} = props;
@@ -18,11 +19,22 @@ const ContextLine = function(props) {
   }
 
   return (
-    <li className={liClassName} key={line[0]}>
-      <span className="ws">{lineWs}</span>
-      <span className="contextline">{lineCode}</span>
-      {isActive && <OpenInButton filename={filename} lineNo={line[0]} group={group} />}
-    </li>
+    <React.Fragment>
+      {isActive ? (
+        <OpenInButton
+          group={group}
+          filename={filename}
+          lineNo={line[0]}
+          lineWs={lineWs}
+          lineCode={lineCode}
+        />
+      ) : (
+        <ListItem className={liClassName} key={line[0]}>
+          <span className="ws">{lineWs}</span>
+          <span className="contextline">{lineCode}</span>
+        </ListItem>
+      )}
+    </React.Fragment>
   );
 };
 
@@ -34,3 +46,8 @@ ContextLine.propTypes = {
 };
 
 export default ContextLine;
+
+const ListItem = styled('li')`
+  padding: 0 20px;
+  background: inherit;
+`;

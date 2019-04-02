@@ -1,7 +1,7 @@
 import PropTypes from 'prop-types';
 import React from 'react';
 import SentryTypes from 'app/sentryTypes';
-import Button from 'app/components/button';
+import InlineSvg from 'app/components/inlineSvg';
 import {addQueryParamsToExistingUrl} from 'app/utils/queryString';
 import styled from 'react-emotion';
 import {t} from 'app/locale';
@@ -14,6 +14,8 @@ class OpenInButton extends React.Component {
     api: PropTypes.object,
     organization: SentryTypes.Organization,
     lineNo: PropTypes.number,
+    lineWs: PropTypes.string,
+    lineCode: PropTypes.string,
     filename: PropTypes.string,
     group: SentryTypes.Group,
   };
@@ -68,17 +70,31 @@ class OpenInButton extends React.Component {
 
   render() {
     const {components} = this.state;
-    if (!components.length) {
-      return null;
-    }
+    const {lineNo, lineWs, lineCode} = this.props;
 
+    if (!components.length) {
+      return (
+        <ListItem className="expandable active" key={lineNo}>
+          <span className="ws">{lineWs}</span>
+          <span className="contextline">{lineCode}</span>
+        </ListItem>
+      );
+    }
     const url = this.getUrl();
     return (
-      <StyledButtonContainer>
-        <StyledButton href={url} size="small" priority="primary">
-          {t(`Debug In ${components[0].sentryApp.name}`)}
-        </StyledButton>
-      </StyledButtonContainer>
+      <ActiveListItem className="expandable active" key={lineNo}>
+        <Context>
+          <span className="ws">{lineWs}</span>
+          <span className="contextline">{lineCode}</span>
+        </Context>
+        <OpenInContainer>
+          <span>Open this line in:</span>
+          <OpenInLink href={url}>
+            <OpenInIcon src="icon-generic-box" />
+            <OpenInName> {t(`${components[0].sentryApp.name}`)}</OpenInName>
+          </OpenInLink>
+        </OpenInContainer>
+      </ActiveListItem>
     );
   }
 }
@@ -87,17 +103,43 @@ export {OpenInButton};
 const OpenInButtonComponent = withLatestContext(OpenInButton);
 export default withApi(OpenInButtonComponent);
 
-const StyledButtonContainer = styled('div')`
-  height: 0;
-  position: relative;
+const OpenInContainer = styled('div')`
+  font-family: 'Rubik', 'Avenir Next', 'Helvetica Neue', sans-serif;
+  font-size: 13px;
+  padding: 3px;
+  border-bottom: 1px solid ${p => p.theme.borderLight};
+  background-color: white;
+  color: ${p => p.theme.purple2};
 `;
 
-const StyledButton = styled(Button)`
-  position: absolute;
-  z-index: ${p => p.theme.zIndex.header};
-  height: 36px;
-  line-height: 1.5;
-  padding: 0px 5px;
-  top: -31px;
-  right: 30px;
+const OpenInIcon = styled(InlineSvg)`
+  vertical-align: text-top;
+  height: 14px;
+  width: 14px;
+  margin-left: 2px;
+`;
+
+const OpenInLink = styled('a')`
+  padding-left: 5px;
+  cursor: pointer;
+`;
+
+const OpenInName = styled('span')`
+  font-weight: bold;
+  color: ${p => p.theme.gray3};
+  margin-left: 2px;
+`;
+
+const ListItem = styled('li')`
+  padding: 0 20px;
+  background: inherit;
+`;
+
+const ActiveListItem = styled(ListItem)`
+  padding: 0;
+  text-indent: 20px;
+`;
+
+const Context = styled('div')`
+  display: inline;
 `;
