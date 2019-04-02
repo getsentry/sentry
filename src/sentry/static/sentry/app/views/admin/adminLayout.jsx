@@ -68,7 +68,6 @@ export default class AdminLayout extends React.Component {
 
                   <h6 className="nav-header">Manage</h6>
                   <ul className="nav nav-stacked">
-                    <ListLink to="/manage/relays/">Relays</ListLink>
                     <ListLink to="/manage/organizations/">Organizations</ListLink>
                     <ListLink to="/manage/projects/">Projects</ListLink>
                     <ListLink to="/manage/users/">Users</ListLink>
