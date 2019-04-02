@@ -14,10 +14,10 @@ CRAWLERS = re.compile(
         (
             # Google spiders (Adsense and others)
             # https://support.google.com/webmasters/answer/1061943?hl=en
-            r'Mediapartners-Google',
-            r'AdsBot-Google',
+            r'Mediapartners\-Google',
+            r'AdsBot\-Google',
             r'Googlebot',
-            r'FeedFetcher-Google',
+            r'FeedFetcher\-Google',
             # Bing search
             r'BingBot',
             r'BingPreview',
