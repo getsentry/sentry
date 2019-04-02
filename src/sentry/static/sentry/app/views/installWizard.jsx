@@ -61,7 +61,13 @@ export default class InstallWizard extends AsyncView {
     const data = {};
     Object.keys(options).forEach(optionName => {
       const option = options[optionName];
-      if (!option.field.isSet) {
+      // XXX(dcramer): we need the user to explicitly choose beacon.anonymous
+      // vs using an implied default so effectively this is binding
+      // all values to their server-defaults (as client-side defaults dont really work)
+      if (
+        option.value !== undefined &&
+        (option.field.isSet || optionName != 'beacon.anonymous')
+      ) {
         data[optionName] = option.value;
       }
     });

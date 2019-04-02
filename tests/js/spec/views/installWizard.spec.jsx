@@ -31,7 +31,7 @@ describe('InstallWizard', function() {
     expect(wrapper).toMatchSnapshot();
   });
 
-  it('has "Send my contact information..." when beacon.anonymous is false', function() {
+  it('has no option selected when beacon.anonymous is unset', function() {
     MockApiClient.addMockResponse({
       url: '/internal/options/?query=is:required',
       body: TestStubs.InstallWizard({
@@ -43,6 +43,34 @@ describe('InstallWizard', function() {
             disabled: false,
             allowEmpty: true,
             isSet: false,
+          },
+          value: false,
+        },
+      }),
+    });
+    const wrapper = mount(<InstallWizard onConfigured={jest.fn()} />);
+
+    expect(
+      wrapper.find('input[name="beacon.anonymous"][value="false"]').prop('checked')
+    ).toBe(false);
+
+    expect(
+      wrapper.find('input[name="beacon.anonymous"][value="true"]').prop('checked')
+    ).toBe(false);
+  });
+
+  it('has "Send my contact information..." when beacon.anonymous is false', function() {
+    MockApiClient.addMockResponse({
+      url: '/internal/options/?query=is:required',
+      body: TestStubs.InstallWizard({
+        'beacon.anonymous': {
+          field: {
+            disabledReason: null,
+            default: false,
+            required: true,
+            disabled: false,
+            allowEmpty: true,
+            isSet: true,
           },
           value: false,
         },
@@ -70,7 +98,7 @@ describe('InstallWizard', function() {
             required: true,
             disabled: false,
             allowEmpty: true,
-            isSet: false,
+            isSet: true,
           },
           value: true,
         },
