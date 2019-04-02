@@ -26,5 +26,6 @@ class SentryAppInstallationDetailsEndpoint(SentryAppInstallationBaseEndpoint):
         Destroyer.run(
             install=installation,
             user=request.user,
+            request=request,
         )
         return Response(status=204)

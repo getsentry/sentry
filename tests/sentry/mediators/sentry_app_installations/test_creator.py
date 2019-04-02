@@ -5,7 +5,7 @@ import responses
 from mock import patch
 
 from sentry.mediators.sentry_app_installations import Creator
-from sentry.models import ApiAuthorization, ApiGrant, ServiceHook, ServiceHookProject
+from sentry.models import AuditLogEntry, AuditLogEntryEvent, ApiAuthorization, ApiGrant, ServiceHook, ServiceHookProject
 from sentry.testutils import TestCase
 
 
@@ -69,6 +69,18 @@ class TestCreator(TestCase):
         assert hook.url == self.sentry_app.webhook_url
 
         assert not ServiceHookProject.objects.all()
+
+    @responses.activate
+    def test_creates_audit_log_entry(self):
+        responses.add(responses.POST, 'https://example.com/webhook')
+        request = self.make_request(user=self.user, method='GET')
+        Creator.run(
+            organization=self.org,
+            slug='nulldb',
+            user=self.user,
+            request=request,
+        )
+        assert AuditLogEntry.objects.filter(event=AuditLogEntryEvent.SENTRY_APP_INSTALL).exists()
 
     @responses.activate
     @patch('sentry.mediators.sentry_app_installations.InstallationNotifier.run')

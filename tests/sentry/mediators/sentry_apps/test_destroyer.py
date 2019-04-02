@@ -3,7 +3,7 @@ from __future__ import absolute_import
 from django.db import connection
 
 from sentry.mediators.sentry_apps import Destroyer
-from sentry.models import ApiApplication, User, SentryApp, SentryAppInstallation
+from sentry.models import AuditLogEntry, AuditLogEntryEvent, ApiApplication, User, SentryApp, SentryAppInstallation
 from sentry.testutils import TestCase
 
 
@@ -42,6 +42,14 @@ class TestDestroyer(TestCase):
         self.destroyer.call()
 
         assert not User.objects.filter(pk=proxy_user.id).exists()
+
+    def test_creates_audit_log_entry(self):
+        request = self.make_request(user=self.user, method='GET')
+        Destroyer.run(
+            sentry_app=self.sentry_app,
+            request=request,
+        )
+        assert AuditLogEntry.objects.filter(event=AuditLogEntryEvent.SENTRY_APP_REMOVE).exists()
 
     def test_soft_deletes_sentry_app(self):
         self.destroyer.call()

@@ -55,7 +55,10 @@ class SentryAppDetailsEndpoint(SentryAppBaseEndpoint):
             return Response(status=404)
 
         if sentry_app.status == SentryAppStatus.UNPUBLISHED:
-            Destroyer.run(sentry_app=sentry_app)
+            Destroyer.run(
+                sentry_app=sentry_app,
+                request=request,
+            )
             return Response(status=204)
 
         return Response(
