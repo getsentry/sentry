@@ -3,6 +3,7 @@ from __future__ import absolute_import
 import pytest
 import mock
 import os
+import betamax
 
 from django.conf import settings
 from sentry_sdk import Hub
@@ -197,6 +198,10 @@ def pytest_configure(config):
     # disable DISALLOWED_IPS
     from sentry import http
     http.DISALLOWED_IPS = set()
+
+    with betamax.Betamax.configure() as config:
+        config.cassette_library_dir = 'tests/betamax/'
+        config.default_cassette_options['match_requests_on'] = ['method', 'path']
 
 
 def register_extensions():

@@ -1,3 +1,4 @@
+betamax>=0.8.1,<0.9.0
 # cassandra
 blist
 # TODO(dcramer): figure out why Travis needs this
