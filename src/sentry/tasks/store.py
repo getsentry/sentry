@@ -153,7 +153,7 @@ def preprocess_event_from_reprocessing(
 
 @instrumented_task(
     name='sentry.tasks.store.retry_process_event',
-    queue='events.process_event',  # XXX(markus): Change to new queue
+    queue='sleep',
     time_limit=(60 * 5) + 5,
     soft_time_limit=60 * 5,
 )
