@@ -39,7 +39,6 @@ env:
 script:
   # certain commands require sentry init to be run, but this is only true for
   # running things within Travis
-  - make travis-lint-$TEST_SUITE
   - make travis-test-$TEST_SUITE
   - make travis-scan-$TEST_SUITE
   # installing dependencies for after_* steps here ensures they get cached
@@ -68,6 +67,16 @@ after_script:
 matrix:
   fast_finish: true
   include:
+    # Lint python and javascript together
+    - python: 2.7
+      env: TEST_SUITE=lint
+      install:
+        - find "$NODE_DIR" -type d -empty -delete
+        - nvm install
+        - npm install -g "yarn@${YARN_VERSION}"
+        - pip install -r requirements-dev.txt
+        - yarn install --pure-lockfile
+
     # only the sqlite suite runs riak tests
     - python: 2.7
       env: TEST_SUITE=sqlite DB=sqlite
