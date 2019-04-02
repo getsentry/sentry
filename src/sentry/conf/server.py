@@ -1092,7 +1092,7 @@ SENTRY_TSDB_OPTIONS = {}
 SENTRY_NEWSLETTER = 'sentry.newsletter.base.Newsletter'
 SENTRY_NEWSLETTER_OPTIONS = {}
 
-SENTRY_EVENTSTREAM = os.environ.get('SENTRY_EVENTSTREAM', 'sentry.eventstream.base.EventStream')
+SENTRY_EVENTSTREAM = 'sentry.eventstream.base.EventStream'
 SENTRY_EVENTSTREAM_OPTIONS = {}
 
 # rollups must be ordered from highest granularity to lowest
