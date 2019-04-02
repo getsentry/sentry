@@ -66,6 +66,44 @@ after_script:
   - zeus upload -t "text/xml+checkstyle" .artifacts/*checkstyle.xml
   - zeus upload -t "application/webpack-stats+json" .artifacts/*webpack-stats.json
 
+base_postgres: &postgres_default
+  python: 2.7
+  services:
+    - memcached
+    - redis-server
+    - postgresql
+  install:
+    - python setup.py install_egg_info
+    - pip install -e ".[dev,tests,optional]"
+  before_script:
+    - psql -c 'create database sentry;' -U postgres
+
+base_acceptance: &acceptance_default
+  python: 2.7
+  services:
+    - docker
+    - memcached
+    - redis-server
+    - postgresql
+  before_install:
+    - find "$NODE_DIR" -type d -empty -delete
+    - nvm install
+    - npm install -g "yarn@${YARN_VERSION}"
+    - docker run -d --network host --name clickhouse-server --ulimit nofile=262144:262144 yandex/clickhouse-server:18.14.9
+    - docker run -d --network host --name snuba --env SNUBA_SETTINGS=test --env CLICKHOUSE_SERVER=localhost:9000 getsentry/snuba
+    - docker ps -a
+  install:
+    - yarn install --pure-lockfile
+    - python setup.py install_egg_info
+    - pip install -e ".[dev,tests,optional]"
+    - wget -N "https://chromedriver.storage.googleapis.com/2.45/chromedriver_linux64.zip" -P ~/
+    - unzip ~/chromedriver_linux64.zip -d ~/
+    - rm ~/chromedriver_linux64.zip
+    - sudo install -m755 ~/chromedriver /usr/local/bin/
+  before_script:
+    - psql -c 'create database sentry;' -U postgres
+
+
 # each job in the matrix inherits `env/global` and uses everything above,
 # but custom `services`, `before_install`, `install`, and `before_script` directives
 # may be defined to define and setup individual job environments with more precision.
@@ -83,46 +121,33 @@ matrix:
         - pip install -r requirements-dev.txt
         - yarn install --pure-lockfile
 
-    - python: 2.7
-      name: 'Backend [Postgres]'
-      env: TEST_SUITE=postgres DB=postgres
-      services:
-        - memcached
-        - redis-server
-        - postgresql
-      install:
-        - python setup.py install_egg_info
-        - pip install -e ".[dev,tests,optional]"
-      before_script:
-        - psql -c 'create database sentry;' -U postgres
+    - <<: *postgres_default
+      name: 'Backend [Postgres] (1/2)'
+      env: TEST_SUITE=postgres DB=postgres TOTAL_TEST_GROUPS=2 TEST_GROUP=0
+    - <<: *postgres_default
+      name: 'Backend [Postgres] (2/2)'
+      env: TEST_SUITE=postgres DB=postgres TOTAL_TEST_GROUPS=2 TEST_GROUP=1
 
     # django 1.8 compatibility
-    - python: 2.7
-      name: 'Backend [Postgres] (Django 1.8)'
-      env: TEST_SUITE=postgres DJANGO_VERSION=">=1.8,<1.9"
-      services:
-        - memcached
-        - redis-server
-        - postgresql
-      install:
-        - python setup.py install_egg_info
-        - pip install -e ".[dev,tests,optional]"
-      before_script:
-        - psql -c 'create database sentry;' -U postgres
+    - <<: *postgres_default
+      name: 'Backend [Postgres] (Django 1.8) (1/2)'
+      env: TEST_SUITE=postgres DB=postgres DJANGO_VERSION=">=1.8,<1.9" TOTAL_TEST_GROUPS=2 TEST_GROUP=0
+    - <<: *postgres_default
+      name: 'Backend [Postgres] (Django 1.8) (2/2)'
+      env: TEST_SUITE=postgres DB=postgres DJANGO_VERSION=">=1.8,<1.9" TOTAL_TEST_GROUPS=2 TEST_GROUP=1
 
     # django 1.8 compatibility with migrations
-    - python: 2.7
-      name: 'Backend [Postgres] (Django 1.8, No migrations)'
-      env: TEST_SUITE=postgres DJANGO_VERSION=">=1.8,<1.9" SOUTH_TESTS_MIGRATE=0
-      services:
-        - memcached
-        - redis-server
-        - postgresql
-      install:
-        - python setup.py install_egg_info
-        - pip install -e ".[dev,tests,optional]"
-      before_script:
-        - psql -c 'create database sentry;' -U postgres
+    - <<: *postgres_default
+      name: 'Backend [Postgres] (Django 1.8, No migrations) (1/2)'
+      env: TEST_SUITE=postgres DJANGO_VERSION=">=1.8,<1.9" SOUTH_TESTS_MIGRATE=0 TOTAL_TEST_GROUPS=2 TEST_GROUP=0
+    - <<: *postgres_default
+      name: 'Backend [Postgres] (Django 1.8, No migrations) (2/2)'
+      env: TEST_SUITE=postgres DJANGO_VERSION=">=1.8,<1.9" SOUTH_TESTS_MIGRATE=0 TOTAL_TEST_GROUPS=2 TEST_GROUP=1
+
+    # XXX(markus): Remove after rust interfaces are done
+    - <<: *postgres_default
+      name: 'Backend [Postgres] (Rust Interface Renormalization)'
+      env: TEST_SUITE=postgres DB=postgres SENTRY_TEST_USE_RUST_INTERFACE_RENORMALIZATION=1
 
     # only the sqlite suite runs riak tests
     - python: 2.7
@@ -136,73 +161,18 @@ matrix:
         - python setup.py install_egg_info
         - pip install -e ".[dev,tests,optional]"
 
+    - <<: *acceptance_default
+      name: 'Acceptance (1/2)'
+      env: TEST_SUITE=acceptance USE_SNUBA=1 TOTAL_TEST_GROUPS=2 TEST_GROUP=0 PERCY_PARALLEL_NONCE=${TRAVIS_BUILD_ID} PERCY_PARALLEL_TOTAL=2
+    - <<: *acceptance_default
+      name: 'Acceptance (2/2)'
+      env: TEST_SUITE=acceptance USE_SNUBA=1 TOTAL_TEST_GROUPS=2 TEST_GROUP=1 PERCY_PARALLEL_NONCE=${TRAVIS_BUILD_ID} PERCY_PARALLEL_TOTAL=2
 
     # XXX(markus): Remove after rust interfaces are done
-    - python: 2.7
-      name: 'Backend [Postgres] (Rust Interface Renormalization)'
-      env: TEST_SUITE=postgres DB=postgres SENTRY_TEST_USE_RUST_INTERFACE_RENORMALIZATION=1
-      services:
-        - memcached
-        - redis-server
-        - postgresql
-      install:
-        - python setup.py install_egg_info
-        - pip install -e ".[dev,tests,optional]"
-      before_script:
-        - psql -c 'create database sentry;' -U postgres
-
-    - python: 2.7
-      name: 'Acceptance'
-      env: TEST_SUITE=acceptance USE_SNUBA=1
-      services:
-        - docker
-        - memcached
-        - redis-server
-        - postgresql
-      before_install:
-        - find "$NODE_DIR" -type d -empty -delete
-        - nvm install
-        - npm install -g "yarn@${YARN_VERSION}"
-        - docker run -d --network host --name clickhouse-server --ulimit nofile=262144:262144 yandex/clickhouse-server:18.14.9
-        - docker run -d --network host --name snuba --env SNUBA_SETTINGS=test --env CLICKHOUSE_SERVER=localhost:9000 getsentry/snuba
-        - docker ps -a
-      install:
-        - yarn install --pure-lockfile
-        - python setup.py install_egg_info
-        - pip install -e ".[dev,tests,optional]"
-        - wget -N "https://chromedriver.storage.googleapis.com/2.45/chromedriver_linux64.zip" -P ~/
-        - unzip ~/chromedriver_linux64.zip -d ~/
-        - rm ~/chromedriver_linux64.zip
-        - sudo install -m755 ~/chromedriver /usr/local/bin/
-      before_script:
-        - psql -c 'create database sentry;' -U postgres
-
-    # XXX(markus): Remove after rust interfaces are done
-    - python: 2.7
+    - <<: *acceptance_default
+      python: 2.7
       name: 'Acceptance (Rust Interface Renormalization)'
       env: TEST_SUITE=acceptance USE_SNUBA=1 SENTRY_TEST_USE_RUST_INTERFACE_RENORMALIZATION=1 PERCY_ENABLE=0
-      services:
-        - docker
-        - memcached
-        - redis-server
-        - postgresql
-      before_install:
-        - find "$NODE_DIR" -type d -empty -delete
-        - nvm install
-        - npm install -g "yarn@${YARN_VERSION}"
-        - docker run -d --network host --name clickhouse-server --ulimit nofile=262144:262144 yandex/clickhouse-server:18.14.9
-        - docker run -d --network host --name snuba --env SNUBA_SETTINGS=test --env CLICKHOUSE_SERVER=localhost:9000 getsentry/snuba
-        - docker ps -a
-      install:
-        - yarn install --pure-lockfile
-        - python setup.py install_egg_info
-        - pip install -e ".[dev,tests,optional]"
-        - wget -N "https://chromedriver.storage.googleapis.com/2.45/chromedriver_linux64.zip" -P ~/
-        - unzip ~/chromedriver_linux64.zip -d ~/
-        - rm ~/chromedriver_linux64.zip
-        - sudo install -m755 ~/chromedriver /usr/local/bin/
-      before_script:
-        - psql -c 'create database sentry;' -U postgres
 
     - python: 2.7
       name: 'Frontend'

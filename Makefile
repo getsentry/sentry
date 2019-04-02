@@ -137,7 +137,11 @@ test-python:
 	sentry init
 	make build-platform-assets
 	@echo "--> Running Python tests"
+ifndef TEST_GROUP
 	py.test tests/integration tests/sentry --cov . --cov-report="xml:.artifacts/python.coverage.xml" --junit-xml=".artifacts/python.junit.xml" || exit 1
+else
+	py.test tests/integration tests/sentry -m group_$(TEST_GROUP) --cov . --cov-report="xml:.artifacts/python.coverage.xml" --junit-xml=".artifacts/python.junit.xml" || exit 1
+endif
 	@echo ""
 
 test-snuba:
@@ -156,7 +160,12 @@ test-acceptance: node-version-check
 	@echo "--> Building static assets"
 	@$(WEBPACK) --display errors-only
 	@echo "--> Running acceptance tests"
+ifndef TEST_GROUP
 	py.test tests/acceptance --cov . --cov-report="xml:.artifacts/acceptance.coverage.xml" --junit-xml=".artifacts/acceptance.junit.xml" --html=".artifacts/acceptance.pytest.html"
+else
+	py.test tests/acceptance -m group_$(TEST_GROUP) --cov . --cov-report="xml:.artifacts/acceptance.coverage.xml" --junit-xml=".artifacts/acceptance.junit.xml" --html=".artifacts/acceptance.pytest.html"
+endif
+
 	@echo ""
 
 lint: lint-python lint-js
