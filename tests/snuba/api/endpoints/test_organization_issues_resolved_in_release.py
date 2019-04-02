@@ -16,8 +16,10 @@ from sentry.testutils import (
     APITestCase,
     SnubaTestMixin,
 )
+from sentry.testutils.skips import requires_snuba
 
 
+@requires_snuba
 class OrganizationIssuesResolvedInReleaseEndpointTest(SnubaTestMixin, APITestCase):
     endpoint = 'sentry-api-0-organization-release-resolved'
     method = 'get'

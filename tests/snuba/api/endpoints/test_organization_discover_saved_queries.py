@@ -1,11 +1,13 @@
 from __future__ import absolute_import
 
 from sentry.testutils import APITestCase, SnubaTestMixin
+from sentry.testutils.skips import requires_snuba
 from django.core.urlresolvers import reverse
 
 from sentry.models import DiscoverSavedQuery
 
 
+@requires_snuba
 class OrganizationDiscoverSavedQueriesTest(SnubaTestMixin, APITestCase):
     def setUp(self):
         super(OrganizationDiscoverSavedQueriesTest, self).setUp()

@@ -2,6 +2,7 @@ from __future__ import absolute_import
 
 from datetime import datetime, timedelta
 from sentry.testutils import AcceptanceTestCase, SnubaTestMixin
+from sentry.testutils.skips import requires_snuba
 from mock import patch
 import pytz
 
@@ -11,7 +12,6 @@ event_time = (datetime.utcnow() - timedelta(days=3)).replace(tzinfo=pytz.utc)
 class ProjectTagsSettingsTest(SnubaTestMixin, AcceptanceTestCase):
     def setUp(self):
         super(ProjectTagsSettingsTest, self).setUp()
-        self.init_snuba()
         self.user = self.create_user('foo@example.com')
         self.org = self.create_organization(
             name='Rowdy Tiger',
@@ -30,6 +30,15 @@ class ProjectTagsSettingsTest(SnubaTestMixin, AcceptanceTestCase):
             teams=[self.team],
         )
 
+        self.login_as(self.user)
+        self.path = u'/settings/{}/projects/{}/tags/'.format(self.org.slug, self.project.slug)
+
+    @requires_snuba
+    @patch('django.utils.timezone.now')
+    def test_tags_list(self, mock_now):
+        mock_now.return_value = event_time + timedelta(days=2)
+
+        self.init_snuba()
         self.store_event(
             data={
                 'event_id': 'a' * 32,
@@ -40,13 +49,6 @@ class ProjectTagsSettingsTest(SnubaTestMixin, AcceptanceTestCase):
             project_id=self.project.id,
             assert_no_errors=False,
         )
-
-        self.login_as(self.user)
-        self.path = u'/settings/{}/projects/{}/tags/'.format(self.org.slug, self.project.slug)
-
-    @patch('django.utils.timezone.now')
-    def test_tags_list(self, mock_now):
-        mock_now.return_value = event_time + timedelta(days=2)
 
         self.browser.get(self.path)
         self.browser.wait_until_not('.loading-indicator')

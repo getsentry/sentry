@@ -1,12 +1,12 @@
 from __future__ import absolute_import
 
 from sentry.testutils import AcceptanceTestCase, SnubaTestMixin
+from sentry.testutils.skips import requires_snuba
 
 
 class ProjectReleaseTrackingSettingsTest(SnubaTestMixin, AcceptanceTestCase):
     def setUp(self):
         super(ProjectReleaseTrackingSettingsTest, self).setUp()
-        self.init_snuba()
         self.user = self.create_user('foo@example.com')
         self.org = self.create_organization(
             name='Rowdy Tiger',
@@ -24,6 +24,13 @@ class ProjectReleaseTrackingSettingsTest(SnubaTestMixin, AcceptanceTestCase):
             role='owner',
             teams=[self.team],
         )
+
+        self.login_as(self.user)
+        self.path1 = u'/{}/{}/settings/release-tracking/'.format(self.org.slug, self.project.slug)
+
+    @requires_snuba
+    def test_tags_list(self):
+        self.init_snuba()
         self.store_event(
             data={
                 'event_id': 'a' * 32,
@@ -34,11 +41,6 @@ class ProjectReleaseTrackingSettingsTest(SnubaTestMixin, AcceptanceTestCase):
             },
             project_id=self.project.id,
         )
-
-        self.login_as(self.user)
-        self.path1 = u'/{}/{}/settings/release-tracking/'.format(self.org.slug, self.project.slug)
-
-    def test_tags_list(self):
         self.browser.get(self.path1)
         self.browser.wait_until_not('.loading-indicator')
         self.browser.snapshot('project settings - release tracking')

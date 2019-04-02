@@ -10,9 +10,11 @@ from sentry.event_manager import EventManager
 from sentry.eventstream.kafka import KafkaEventStream
 from sentry.eventstream.snuba import SnubaEventStream
 from sentry.testutils import SnubaTestMixin, TestCase
+from sentry.testutils.skips import requires_snuba
 from sentry.utils import snuba, json
 
 
+@requires_snuba
 class SnubaEventStreamTest(SnubaTestMixin, TestCase):
     def setUp(self):
         super(SnubaEventStreamTest, self).setUp()

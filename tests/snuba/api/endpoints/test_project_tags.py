@@ -9,8 +9,10 @@ from sentry.testutils import (
     APITestCase,
     SnubaTestMixin,
 )
+from sentry.testutils.skips import requires_snuba
 
 
+@requires_snuba
 class ProjectTagsTest(SnubaTestMixin, APITestCase):
     def setUp(self):
         super(ProjectTagsTest, self).setUp()

@@ -3,9 +3,11 @@ from __future__ import absolute_import
 from datetime import datetime, timedelta
 
 from sentry.testutils import APITestCase, SnubaTestMixin
+from sentry.testutils.skips import requires_snuba
 from django.core.urlresolvers import reverse
 
 
+@requires_snuba
 class OrganizationDiscoverQueryTest(SnubaTestMixin, APITestCase):
     def setUp(self):
         super(OrganizationDiscoverQueryTest, self).setUp()

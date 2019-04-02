@@ -25,6 +25,7 @@ from sentry.testutils import (
     TestCase,
     xfail_if_not_postgres,
 )
+from sentry.testutils.skips import requires_snuba
 from sentry.utils.snuba import (
     SENTRY_SNUBA_MAP,
     SnubaError,
@@ -35,6 +36,7 @@ def date_to_query_format(date):
     return date.strftime('%Y-%m-%dT%H:%M:%S')
 
 
+@requires_snuba
 class SnubaSearchTest(SnubaTestMixin, TestCase):
     def setUp(self):
         super(SnubaSearchTest, self).setUp()

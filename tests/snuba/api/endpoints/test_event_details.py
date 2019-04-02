@@ -8,8 +8,10 @@ from django.core.urlresolvers import reverse
 
 from sentry.models import UserReport, Group
 from sentry.testutils import APITestCase, SnubaTestMixin
+from sentry.testutils.skips import requires_snuba
 
 
+@requires_snuba
 class EventDetailsTest(SnubaTestMixin, APITestCase):
     def setUp(self):
         super(EventDetailsTest, self).setUp()

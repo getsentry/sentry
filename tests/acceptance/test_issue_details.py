@@ -7,9 +7,11 @@ from django.conf import settings
 from django.utils import timezone
 
 from sentry.testutils import AcceptanceTestCase, SnubaTestMixin
+from sentry.testutils.skips import requires_snuba
 from sentry.utils.samples import load_data
 
 
+@requires_snuba
 class IssueDetailsTest(SnubaTestMixin, AcceptanceTestCase):
     def setUp(self):
         super(IssueDetailsTest, self).setUp()

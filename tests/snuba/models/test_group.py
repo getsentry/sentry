@@ -5,8 +5,10 @@ from django.utils import timezone
 from sentry import options
 from sentry.models import Group
 from sentry.testutils import SnubaTestMixin, TestCase
+from sentry.testutils.skips import requires_snuba
 
 
+@requires_snuba
 class GroupTestSnuba(SnubaTestMixin, TestCase):
     def setUp(self):
         super(GroupTestSnuba, self).setUp()

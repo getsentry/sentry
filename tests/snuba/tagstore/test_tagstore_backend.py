@@ -19,8 +19,10 @@ from sentry.tagstore.exceptions import (
 )
 from sentry.tagstore.snuba.backend import SnubaTagStorage
 from sentry.testutils import SnubaTestMixin, TestCase
+from sentry.testutils.skips import requires_snuba
 
 
+@requires_snuba
 class TagStorageTest(SnubaTestMixin, TestCase):
     def setUp(self):
         super(TagStorageTest, self).setUp()

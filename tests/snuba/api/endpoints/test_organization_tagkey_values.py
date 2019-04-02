@@ -6,8 +6,10 @@ from django.core.urlresolvers import reverse
 from exam import fixture
 
 from sentry.testutils import APITestCase, SnubaTestMixin
+from sentry.testutils.skips import requires_snuba
 
 
+@requires_snuba
 class OrganizationTagKeyValuesTest(SnubaTestMixin, APITestCase):
     endpoint = 'sentry-api-0-organization-tagkey-values'
 

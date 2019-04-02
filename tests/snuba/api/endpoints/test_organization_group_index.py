@@ -17,8 +17,10 @@ from sentry.models import (
 )
 from sentry.testutils import APITestCase, SnubaTestMixin
 from sentry.testutils.helpers import parse_link_header
+from sentry.testutils.skips import requires_snuba
 
 
+@requires_snuba
 class GroupListTest(SnubaTestMixin, APITestCase):
     endpoint = 'sentry-api-0-organization-group-index'
 
@@ -428,6 +430,7 @@ class GroupListTest(SnubaTestMixin, APITestCase):
         assert response.status_code == 200, response.data
 
 
+@requires_snuba
 class GroupUpdateTest(SnubaTestMixin, APITestCase):
     endpoint = 'sentry-api-0-organization-group-index'
     method = 'put'

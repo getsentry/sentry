@@ -6,9 +6,11 @@ from datetime import datetime, timedelta
 from sentry.api.serializers import serialize
 from sentry.models.event import Event, SnubaEvent
 from sentry.testutils import SnubaTestMixin, TestCase
+from sentry.testutils.skips import requires_snuba
 from sentry import nodestore
 
 
+@requires_snuba
 class SnubaEventTest(SnubaTestMixin, TestCase):
 
     def setUp(self):

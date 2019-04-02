@@ -17,8 +17,10 @@ from sentry.models import (
     GroupSubscription, UserOption, UserOptionValue
 )
 from sentry.testutils import APITestCase, SnubaTestMixin
+from sentry.testutils.skips import requires_snuba
 
 
+@requires_snuba
 class GroupSerializerSnubaTest(SnubaTestMixin, APITestCase):
     def setUp(self):
         super(GroupSerializerSnubaTest, self).setUp()

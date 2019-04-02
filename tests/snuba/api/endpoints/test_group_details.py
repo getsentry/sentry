@@ -4,8 +4,10 @@ import mock
 
 from sentry.models import Environment
 from sentry.testutils import APITestCase, SnubaTestMixin
+from sentry.testutils.skips import requires_snuba
 
 
+@requires_snuba
 class GroupDetailsTest(SnubaTestMixin, APITestCase):
     def setUp(self):
         super(GroupDetailsTest, self).setUp()

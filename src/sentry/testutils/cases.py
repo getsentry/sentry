@@ -71,7 +71,6 @@ from .factories import Factories
 from .helpers import (
     AuthProvider, Feature, get_auth_header, TaskRunner, override_options, parse_queries
 )
-from .skips import requires_snuba
 
 DEFAULT_USER_AGENT = 'Mozilla/5.0 (Windows NT 6.1) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/41.0.2228.0 Safari/537.36'
 
@@ -841,7 +840,6 @@ class SnubaTestMixin(object):
     tests that require snuba.
     """
 
-    @requires_snuba
     def init_snuba(self):
         self.snuba_eventstream = SnubaEventStream()
         self.snuba_tagstore = SnubaCompatibilityTagStorage()

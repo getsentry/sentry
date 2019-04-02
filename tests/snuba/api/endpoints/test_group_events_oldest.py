@@ -8,8 +8,10 @@ from django.utils import timezone
 from sentry import options
 from sentry.models import Group
 from sentry.testutils import APITestCase, SnubaTestMixin
+from sentry.testutils.skips import requires_snuba
 
 
+@requires_snuba
 class GroupEventsOldestTest(SnubaTestMixin, APITestCase):
     def setUp(self):
         super(GroupEventsOldestTest, self).setUp()

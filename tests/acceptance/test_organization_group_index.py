@@ -6,6 +6,7 @@ from datetime import datetime, timedelta
 from django.utils import timezone
 
 from sentry.testutils import AcceptanceTestCase, SnubaTestMixin
+from sentry.testutils.skips import requires_snuba
 from mock import patch
 
 
@@ -15,7 +16,6 @@ event_time = (datetime.utcnow() - timedelta(days=3)).replace(tzinfo=pytz.utc)
 class OrganizationGroupIndexTest(SnubaTestMixin, AcceptanceTestCase):
     def setUp(self):
         super(OrganizationGroupIndexTest, self).setUp()
-        self.init_snuba()
         self.user = self.create_user('foo@example.com')
         self.org = self.create_organization(owner=self.user, name='Rowdy Tiger')
         self.team = self.create_team(
@@ -51,10 +51,11 @@ class OrganizationGroupIndexTest(SnubaTestMixin, AcceptanceTestCase):
             self.browser.wait_until('[data-test-id="empty-state"]')
             self.browser.snapshot('organization issues no results')
 
+    @requires_snuba
     @patch('django.utils.timezone.now')
     def test_with_results(self, mock_now):
+        self.init_snuba()
         mock_now.return_value = datetime.utcnow().replace(tzinfo=pytz.utc)
-
         self.store_event(
             data={
                 'event_id': 'a' * 32,

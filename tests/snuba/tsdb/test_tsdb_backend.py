@@ -13,6 +13,7 @@ from sentry.models import GroupHash, GroupRelease, Release
 from sentry.tsdb.base import TSDBModel
 from sentry.tsdb.snuba import SnubaTSDB
 from sentry.testutils import TestCase
+from sentry.testutils.skips import requires_snuba
 from sentry.utils.dates import to_timestamp
 
 
@@ -51,6 +52,7 @@ def has_shape(data, shape, allow_empty=False):
         return True
 
 
+@requires_snuba
 class SnubaTSDBTest(TestCase):
     def setUp(self):
         assert requests.post(settings.SENTRY_SNUBA + '/tests/drop').status_code == 200

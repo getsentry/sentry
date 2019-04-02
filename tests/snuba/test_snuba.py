@@ -6,9 +6,11 @@ import time
 import uuid
 
 from sentry.testutils import SnubaTestMixin, TestCase
+from sentry.testutils.skips import requires_snuba
 from sentry.utils import snuba
 
 
+@requires_snuba
 class SnubaTest(SnubaTestMixin, TestCase):
     def setUp(self):
         super(SnubaTest, self).setUp()

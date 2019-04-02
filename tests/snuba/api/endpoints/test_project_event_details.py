@@ -7,8 +7,10 @@ from django.utils import timezone
 from django.core.urlresolvers import reverse
 from sentry import options
 from sentry.testutils import APITestCase, SnubaTestMixin
+from sentry.testutils.skips import requires_snuba
 
 
+@requires_snuba
 class ProjectEventDetailsTest(SnubaTestMixin, APITestCase):
     def setUp(self):
         super(ProjectEventDetailsTest, self).setUp()

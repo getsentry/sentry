@@ -8,8 +8,10 @@ from freezegun import freeze_time
 
 from sentry import options
 from sentry.testutils import APITestCase, SnubaTestMixin
+from sentry.testutils.skips import requires_snuba
 
 
+@requires_snuba
 class GroupEventsTest(SnubaTestMixin, APITestCase):
     """
     This is more or less an exact copy of the tests under:

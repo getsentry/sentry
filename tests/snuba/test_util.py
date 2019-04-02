@@ -4,9 +4,11 @@ from datetime import datetime, timedelta
 
 from sentry.models import GroupHash
 from sentry.testutils import TestCase
+from sentry.testutils.skips import requires_snuba
 from sentry.utils import snuba
 
 
+@requires_snuba
 class SnubaUtilTest(TestCase):
     def test_filter_keys_set(self):
         snuba.raw_query(
