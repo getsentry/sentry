@@ -1,5 +1,6 @@
 from __future__ import absolute_import, print_function
 
+import os
 import struct
 from itertools import izip
 from threading import Lock
@@ -88,13 +89,16 @@ class BigtableNodeStorage(NodeStorage):
             self.thread_pool = ThreadPoolExecutor(max_workers=thread_pool_size)
         else:
             self.thread_pool = None
-        super(BigtableNodeStorage, self).__init__()
+        self.skip_deletes = automatic_expiry and '_SENTRY_CLEANUP' in os.environ
 
     @property
     def connection(self):
         return get_connection(self.project, self.instance, self.table, self.options)
 
     def delete(self, id):
+        if self.skip_deletes:
+            return
+
         row = self.connection.row(id)
         row.delete()
         self.connection.mutate_rows([row])
@@ -214,6 +218,9 @@ class BigtableNodeStorage(NodeStorage):
         }
 
     def delete_multi(self, id_list):
+        if self.skip_deletes:
+            return
+
         if self.thread_pool is None:
             return super(BigtableNodeStorage, self).delete_multi(id_list)
 
