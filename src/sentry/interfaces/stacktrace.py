@@ -643,7 +643,8 @@ class Stacktrace(Interface):
         # This is a simplified logic from how the normalizer works.
         # Because this always works on normalized data we do not have to
         # consider the "all frames are in_app" case.  The normalizer lives
-        # in stacktraces.normalize_in_app which will take care of that.
+        # in stacktraces.normalize_stacktraces_for_grouping which will take
+        # care of that.
         return any(frame.in_app for frame in self.frames)
 
     def get_longest_address(self):

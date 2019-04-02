@@ -30,8 +30,7 @@ TextAreaControl.propTypes = {
   monospace: PropTypes.bool,
 };
 
-const propFilter = p =>
-  ['autosize', 'rows', 'maxRows', 'monospace'].includes(p) || isPropValid(p);
+const propFilter = p => ['autosize', 'rows', 'maxRows'].includes(p) || isPropValid(p);
 
 const TextArea = styled(TextAreaControl, {shouldForwardProp: propFilter})`
   ${inputStyles};

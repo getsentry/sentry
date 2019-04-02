@@ -5,11 +5,14 @@ import six
 import base64
 import msgpack
 import inspect
+from fnmatch import fnmatch
 
 from parsimonious.grammar import Grammar, NodeVisitor
 from parsimonious.exceptions import ParseError
 
+from sentry.stacktraces import find_stacktraces_in_data
 from sentry.utils.compat import implements_to_string
+from sentry.utils.safe import get_path
 
 
 # Grammar is defined in EBNF syntax.
@@ -76,6 +79,24 @@ class Match(object):
         self.key = key
         self.pattern = pattern
 
+    def match_frame(self, frame_data, platform):
+        # Path matches are always case insensitive
+        if self.key == 'path':
+            value = (frame_data.get('abs_path') or frame_data.get('filename') or '').lower()
+            return fnmatch(value, self.pattern.lower())
+
+        # all other matches are case sensitive
+        if self.key == 'function':
+            from sentry.grouping.strategies.stacktrace import trim_function_name
+            platform = frame_data.get('platform') or platform
+            value = trim_function_name(frame_data.get('function') or '<unknown>', platform)
+        elif self.key == 'module':
+            value = frame_data.get('module') or '<unknown>'
+        else:
+            # should not happen :)
+            value = '<unknown>'
+        return fnmatch(value, self.pattern)
+
     def _to_config_structure(self):
         return MATCH_KEYS[self.key] + self.pattern
 
@@ -120,6 +141,29 @@ class Enhancements(object):
         if bases is None:
             bases = []
         self.bases = bases
+
+    def would_change_event_data(self, event_data):
+        """Given an event data dictionary this performs a quick check if
+        actions would likely change the event.  This does not actually perform
+        a true check but it's used as a quick way to determine if we need to
+        dispatch to processor tasks in the event handling.
+        """
+        stacktrace_infos = find_stacktraces_in_data(event_data)
+        if not stacktrace_infos:
+            return False
+
+        platform = event_data.get('platform')
+        for stacktrace_info in stacktrace_infos:
+            frames = get_path(stacktrace_info.stacktrace, 'frames', filter=True)
+            for frame in frames or ():
+                for rule in self.iter_rules():
+                    if rule.get_matching_frame_actions(frame, platform):
+                        return True
+
+        return False
+
+    def apply_to_frames(self, frames, project, platform):
+        pass
 
     def as_dict(self, with_rules=False):
         rv = {
@@ -195,6 +239,14 @@ class Rule(object):
             'match': matchers,
             'actions': [six.text_type(x) for x in self.actions],
         }
+
+    def get_matching_frame_actions(self, frame_data, platform):
+        """Given a frame returns all the matching actions based on this rule.
+        If the rule does not match `None` is returned.
+        """
+        for matcher in self.matchers:
+            if matcher.matches_frame(frame_data, platform):
+                return self.actions
 
     def _to_config_structure(self):
         return [
@@ -301,5 +353,7 @@ def _load_configs():
 ENHANCEMENT_BASES = _load_configs()
 LATEST_ENHANCEMENT_BASE = sorted(x for x in ENHANCEMENT_BASES
                                  if x.startswith('common:'))[-1]
-DEFAULT_ENHANCEMENTS_CONFIG = Enhancements(rules=[], bases=[LATEST_ENHANCEMENT_BASE]).dumps()
+DEFAULT_ENHANCEMENT_BASE = 'legacy:2019-03-12'
+DEFAULT_ENHANCEMENTS_CONFIG = Enhancements(rules=[], bases=[DEFAULT_ENHANCEMENT_BASE]).dumps()
+assert DEFAULT_ENHANCEMENT_BASE in ENHANCEMENT_BASES
 del _load_configs

@@ -1,11 +1,13 @@
 import {Flex} from 'grid-emotion';
 import React from 'react';
 import styled from 'react-emotion';
+import marked from 'marked';
 
 import {extractMultilineFields} from 'app/utils';
 import {flattenedPlatforms} from 'app/views/onboarding/utils';
 import {t, tct, tn} from 'app/locale';
 import Platformicon from 'app/components/platformicon';
+import HintPanelItem from 'app/components/panels/hintPanelItem';
 import getDynamicText from 'app/utils/getDynamicText';
 import slugify from 'app/utils/slugify';
 import space from 'app/styles/space';
@@ -114,6 +116,25 @@ export const fields = {
     name: 'groupingConfig',
     type: 'array',
     label: t('Grouping Config'),
+    saveOnBlur: false,
+    saveMessageAlertType: 'info',
+    saveMessage: t('Changing grouping config will apply to future events only.'),
+    selectionInfoFunction: args => {
+      const {groupingConfigs, value} = args;
+      const selection = groupingConfigs.find(({id}) => id == value);
+      const changelog = (selection && selection.changelog) || '';
+      if (!changelog) {
+        return null;
+      }
+      return (
+        <HintPanelItem>
+          <div>
+            <h2>{selection.id}:</h2>
+            <div dangerouslySetInnerHTML={{__html: marked(changelog)}} />
+          </div>
+        </HintPanelItem>
+      );
+    },
     choices: ({groupingConfigs}) => {
       return groupingConfigs.map(({id}) => [id.toString(), <code key={id}>{id}</code>]);
     },
@@ -123,6 +144,25 @@ export const fields = {
     name: 'groupingEnhancementsBase',
     type: 'array',
     label: t('Grouping Enhancements Base'),
+    saveOnBlur: false,
+    saveMessageAlertType: 'info',
+    saveMessage: t('Changing grouping enhancements will apply to future events only.'),
+    selectionInfoFunction: args => {
+      const {groupingEnhancementBases, value} = args;
+      const selection = groupingEnhancementBases.find(({id}) => id == value);
+      const changelog = (selection && selection.changelog) || '';
+      if (!changelog) {
+        return null;
+      }
+      return (
+        <HintPanelItem>
+          <div>
+            <h2>{selection.id}:</h2>
+            <div dangerouslySetInnerHTML={{__html: marked(changelog)}} />
+          </div>
+        </HintPanelItem>
+      );
+    },
     choices: ({groupingEnhancementBases}) => {
       return groupingEnhancementBases.map(({id}) => [
         id.toString(),

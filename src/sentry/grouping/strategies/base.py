@@ -196,6 +196,7 @@ class StrategyConfiguration(object):
         return {
             'id': self.id,
             'strategies': sorted(self.strategies),
+            'changelog': self.changelog,
             'delegates': sorted(x.id for x in self.delegates.values()),
         }
 

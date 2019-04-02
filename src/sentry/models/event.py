@@ -160,9 +160,8 @@ class EventCommon(object):
 
     def get_grouping_config(self):
         """Returns the event grouping config."""
-        from sentry.grouping.api import get_grouping_config_dict_for_project
-        return self.data.get('grouping_config') \
-            or get_grouping_config_dict_for_project(self.project)
+        from sentry.grouping.api import get_grouping_config_dict_for_event_data
+        return get_grouping_config_dict_for_event_data(self.data, self.project)
 
     def get_hashes(self, force_config=None):
         """

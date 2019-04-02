@@ -21,7 +21,7 @@ from sentry.models import (
     ProjectStatus, ProjectTeam, Release, ReleaseProjectEnvironment, Deploy, UserOption, DEFAULT_SUBJECT_TEMPLATE
 )
 from sentry.grouping.strategies.configurations import DEFAULT_CONFIG as DEFAULT_GROUPING_CONFIG
-from sentry.grouping.enhancer import LATEST_ENHANCEMENT_BASE
+from sentry.grouping.enhancer import DEFAULT_ENHANCEMENT_BASE
 from sentry.utils.data_filters import FilterTypes
 from sentry.utils.db import is_postgres
 
@@ -547,7 +547,7 @@ class DetailedProjectSerializer(ProjectWithTeamSerializer):
                 'scrapeJavaScript': bool(attrs['options'].get('sentry:scrape_javascript', True)),
                 'groupingConfig': attrs['options'].get('sentry:grouping_config') or DEFAULT_GROUPING_CONFIG,
                 'groupingEnhancements': attrs['options'].get('sentry:grouping_enhancements') or u'',
-                'groupingEnhancementsBase': attrs['options'].get('sentry:grouping_enhancements_base') or LATEST_ENHANCEMENT_BASE,
+                'groupingEnhancementsBase': attrs['options'].get('sentry:grouping_enhancements_base') or DEFAULT_ENHANCEMENT_BASE,
                 'organization':
                 attrs['org'],
                 'plugins':

@@ -8,7 +8,7 @@ from sentry.grouping.component import GroupingComponent
 from sentry.grouping.variants import ChecksumVariant, FallbackVariant, \
     ComponentVariant, CustomFingerprintVariant, SaltedComponentVariant
 from sentry.grouping.enhancer import Enhancements, InvalidEnhancerConfig, \
-    DEFAULT_ENHANCEMENTS_CONFIG, LATEST_ENHANCEMENT_BASE, ENHANCEMENT_BASES
+    DEFAULT_ENHANCEMENTS_CONFIG, DEFAULT_ENHANCEMENT_BASE, ENHANCEMENT_BASES
 from sentry.grouping.utils import DEFAULT_FINGERPRINT_VALUES, hash_from_values
 
 
@@ -44,6 +44,12 @@ def get_grouping_config_dict_for_project(project, silent=True):
     }
 
 
+def get_grouping_config_dict_for_event_data(data, project):
+    """Returns the grouping config for an event dictionary."""
+    return data.get('grouping_config') \
+        or get_grouping_config_dict_for_project(project)
+
+
 def _get_project_enhancements_config(project):
     enhancements = project.get_option('sentry:grouping_enhancements')
     enhancements_base = project.get_option('sentry:grouping_enhancements_base')
@@ -51,7 +57,7 @@ def _get_project_enhancements_config(project):
         return DEFAULT_ENHANCEMENTS_CONFIG
 
     if enhancements_base is None or enhancements_base not in ENHANCEMENT_BASES:
-        enhancements_base = LATEST_ENHANCEMENT_BASE
+        enhancements_base = DEFAULT_ENHANCEMENT_BASE
 
     # Instead of parsing and dumping out config here, we can make a
     # shortcut

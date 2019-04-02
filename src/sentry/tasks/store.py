@@ -43,7 +43,7 @@ class RetryProcessing(Exception):
     pass
 
 
-def should_process(data):
+def should_process(project, data):
     """Quick check if processing is needed at all."""
     from sentry.plugins import plugins
 
@@ -114,7 +114,7 @@ def _do_preprocess_event(cache_key, data, start_time, event_id, process_task):
 
     project = Project.objects.get_from_cache(id=project_id)
 
-    if should_process(data):
+    if should_process(project, data):
         from_reprocessing = process_task is process_event_from_reprocessing
         submit_process(project, from_reprocessing, cache_key, event_id, start_time, original_data)
         return
