@@ -1,5 +1,6 @@
 from __future__ import absolute_import
 
+import django
 from django.utils import timezone
 from exam import fixture
 
@@ -22,6 +23,11 @@ class OrganizationSearchesListTest(APITestCase):
         team = self.create_team(members=[self.user])
         project1 = self.create_project(teams=[team], name='foo')
         project2 = self.create_project(teams=[team], name='bar')
+
+        if django.VERSION[:2] >= (1, 8):
+            # Depending on test we run migrations in Django 1.8. This causes
+            # extra rows to be created, so remove them to keep this test working
+            SavedSearch.objects.filter(is_global=True).delete()
 
         SavedSearch.objects.create(
             project=project1,
@@ -76,6 +82,11 @@ class OrgLevelOrganizationSearchesListTest(APITestCase):
         )
 
     def create_base_data(self):
+        if django.VERSION[:2] >= (1, 8):
+            # Depending on test we run migrations in Django 1.8. This causes
+            # extra rows to be created, so remove them to keep this test working
+            SavedSearch.objects.filter(is_global=True).delete()
+
         team = self.create_team(members=[self.user])
         SavedSearch.objects.create(
             project=self.create_project(teams=[team], name='foo'),
