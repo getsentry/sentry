@@ -485,6 +485,7 @@ CELERY_QUEUES = [
     Queue('reports.deliver', routing_key='reports.deliver'),
     Queue('reports.prepare', routing_key='reports.prepare'),
     Queue('search', routing_key='search'),
+    Queue('sleep', routing_key='sleep'),
     Queue('stats', routing_key='stats'),
     Queue('unmerge', routing_key='unmerge'),
     Queue('update', routing_key='update'),
