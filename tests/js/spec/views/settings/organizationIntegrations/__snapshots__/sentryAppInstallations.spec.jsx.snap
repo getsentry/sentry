@@ -6,6 +6,7 @@ exports[`Sentry App Installations when Apps exist displays all Apps owned by the
   applications={
     Array [
       Object {
+        "author": "Sentry",
         "clientId": "client-id",
         "clientSecret": "client-secret",
         "events": Array [],
@@ -30,6 +31,7 @@ exports[`Sentry App Installations when Apps exist displays all Apps owned by the
   <SentryApplicationRow
     app={
       Object {
+        "author": "Sentry",
         "clientId": "client-id",
         "clientSecret": "client-secret",
         "events": Array [],
@@ -72,6 +74,7 @@ exports[`Sentry App Installations when Apps exist displays all Apps owned by the
                 <SentryAppAvatar
                   sentryApp={
                     Object {
+                      "author": "Sentry",
                       "clientId": "client-id",
                       "clientSecret": "client-secret",
                       "events": Array [],
