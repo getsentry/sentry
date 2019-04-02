@@ -133,7 +133,7 @@ def _create_symbolication_task(sess, base_url, project_id,
         'request': {
             'timeout': SYMBOLICATOR_TIMEOUT,
         },
-        'threads': stacktraces,
+        'stacktraces': stacktraces,
         'modules': modules,
     }
     url = '{base_url}/symbolicate?timeout={timeout}&scope={scope}'.format(
