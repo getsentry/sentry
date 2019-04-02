@@ -234,6 +234,9 @@ matrix:
       env: TEST_SUITE=symbolicator
       services:
         - docker
+        - memcached
+        - redis-server
+        - postgresql
       before_install:
         - docker run -d --network host --name symbolicator us.gcr.io/sentryio/symbolicator:latest
         - docker ps -a
