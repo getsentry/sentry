@@ -35,6 +35,10 @@ def run_symbolicator(stacktraces, modules, project, arch, signal, request_id_cac
         })
     )
 
+    symbolicator_options = options.get('symbolicator.options')
+    base_url = symbolicator_options['url'].rstrip('/')
+    assert base_url
+
     project_id = six.text_type(project.id)
     request_id = default_cache.get(request_id_cache_key)
     sess = Session()
@@ -45,15 +49,18 @@ def run_symbolicator(stacktraces, modules, project, arch, signal, request_id_cac
     with sess:
         while 1:
             try:
-                rv = _do_send_request(
-                    sess=sess,
-                    request_id=request_id,
-                    project_id=project_id,
-                    self_bucket_url=self_bucket_url,
-                    signal=signal,
-                    stacktraces=stacktraces,
-                    modules=modules
-                )
+
+                if request_id:
+                    rv = _poll_symbolication_task(
+                        sess=sess, base_url=base_url,
+                        request_id=request_id
+                    )
+                else:
+                    rv = _create_symbolication_task(
+                        sess=sess, base_url=base_url,
+                        project_id=project_id, self_bucket_url=self_bucket_url,
+                        signal=signal, stacktraces=stacktraces, modules=modules
+                    )
 
                 metrics.incr('events.symbolicator.status.%s' % rv.status_code, tags={
                     'project_id': project_id
@@ -98,33 +105,16 @@ def run_symbolicator(stacktraces, modules, project, arch, signal, request_id_cac
                 wait *= 2.0
 
 
-def _do_send_request(sess, request_id, project_id, self_bucket_url, signal,
-                     stacktraces, modules):
-    symbolicator_options = options.get('symbolicator.options')
-
-    if request_id:
-        return _poll_symbolication_task(
-            sess=sess, symbolicator_options=symbolicator_options,
-            request_id=request_id
-        )
-    else:
-        return _create_symbolication_task(
-            sess=sess, symbolicator_options=symbolicator_options,
-            project_id=project_id, self_bucket_url=self_bucket_url,
-            signal=signal, stacktraces=stacktraces, modules=modules
-        )
-
-
-def _poll_symbolication_task(sess, symbolicator_options, request_id):
-    url = '{base}/requests/{request_id}?timeout={timeout}'.format(
-        base=symbolicator_options['url'],
+def _poll_symbolication_task(sess, base_url, request_id):
+    url = '{base_url}/requests/{request_id}?timeout={timeout}'.format(
+        base_url=base_url,
         request_id=request_id,
         timeout=SYMBOLICATOR_TIMEOUT,
     )
     return sess.get(url)
 
 
-def _create_symbolication_task(sess, symbolicator_options, project_id,
+def _create_symbolication_task(sess, base_url, project_id,
                                self_bucket_url, signal, stacktraces, modules):
     request = {
         'signal': signal,
@@ -146,8 +136,8 @@ def _create_symbolication_task(sess, symbolicator_options, project_id,
         'threads': stacktraces,
         'modules': modules,
     }
-    url = '{base}/symbolicate?timeout={timeout}&scope={scope}'.format(
-        base=symbolicator_options['url'],
+    url = '{base_url}/symbolicate?timeout={timeout}&scope={scope}'.format(
+        base_url=base_url,
         timeout=SYMBOLICATOR_TIMEOUT,
         scope=project_id,
     )
