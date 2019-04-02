@@ -11,10 +11,15 @@ from sentry.models import EventError, ProjectDebugFile
 from sentry.lang.native.utils import image_name, rebase_addr
 from sentry.constants import MAX_SYM, NATIVE_UNKNOWN_STRING
 
-FATAL_ERRORS = (EventError.NATIVE_MISSING_DSYM, EventError.NATIVE_BAD_DSYM, )
+FATAL_ERRORS = (EventError.NATIVE_MISSING_DSYM, EventError.NATIVE_BAD_DSYM,
+                EventError.NATIVE_SYMBOLICATOR_FAILED)
 USER_FIXABLE_ERRORS = (
     EventError.NATIVE_MISSING_DSYM, EventError.NATIVE_MISSING_OPTIONALLY_BUNDLED_DSYM,
     EventError.NATIVE_BAD_DSYM, EventError.NATIVE_MISSING_SYMBOL,
+
+    # XXX: user can't fix this, but they should see it regardless to see it's
+    # not their fault. Also better than silently creating an unsymbolicated event
+    EventError.NATIVE_SYMBOLICATOR_FAILED
 )
 APP_BUNDLE_PATHS = (
     '/var/containers/Bundle/Application/', '/private/var/containers/Bundle/Application/',
@@ -127,7 +132,7 @@ class Symbolizer(object):
                 on_dif_referenced=on_dif_referenced,
                 with_conversion_errors=True)
 
-    def _process_frame(self, sym, obj, package=None, addr_off=0):
+    def _process_frame(self, sym, package=None, addr_off=0):
         frame = {
             'sym_addr': sym.sym_addr + addr_off,
             'instruction_addr': sym.instr_addr + addr_off,
@@ -253,9 +258,9 @@ class Symbolizer(object):
                 return []
             raise SymbolicationFailed(
                 type=EventError.NATIVE_MISSING_SYMBOL, obj=obj)
-        return [self._process_frame(s, obj, addr_off=obj.addr) for s in reversed(rv)]
+        return [self._process_frame(s, addr_off=obj.addr) for s in reversed(rv)]
 
-    def _convert_symbolserver_match(self, instruction_addr, symbolserver_match, obj):
+    def _convert_symbolserver_match(self, instruction_addr, symbolserver_match):
         """Symbolizes a frame with system symbols only."""
         if symbolserver_match is None:
             return []
@@ -271,36 +276,66 @@ class Symbolizer(object):
                 line=None,
                 lang=None,
                 symbol=symbol,
-            ), obj, package=symbolserver_match['object_name'])
+            ), package=symbolserver_match['object_name'])
         ]
 
-    def symbolize_frame(self, instruction_addr, sdk_info=None, symbolserver_match=None, trust=None):
-        obj = self.object_lookup.find_object(instruction_addr)
-        if obj is None:
-            if trust == 'scan':
-                return []
-            raise SymbolicationFailed(type=EventError.NATIVE_UNKNOWN_IMAGE)
-
-        # Try to always prefer the images from the application storage.
-        # If the symbolication fails we keep the error for later
+    def symbolize_frame(self, instruction_addr, sdk_info=None,
+                        symbolserver_match=None, symbolicator_match=None,
+                        trust=None):
         app_err = None
-        try:
-            match = self._symbolize_app_frame(instruction_addr, obj, sdk_info=sdk_info, trust=trust)
-            if match:
-                return match
-        except SymbolicationFailed as err:
-            app_err = err
+
+        # A missing symbolicator match indicates that the symbolicator was not
+        # active for this event. Symbolize the app frame directly using
+        # symbolic.
+        # TODO: Remove this after fully switching to symbolicator
+        if symbolicator_match is None:
+            obj = self.object_lookup.find_object(instruction_addr)
+            if obj is None:
+                if trust == 'scan':
+                    return []
+                raise SymbolicationFailed(type=EventError.NATIVE_UNKNOWN_IMAGE)
+
+            # Try to always prefer the images from the application storage.
+            # If the symbolication fails we keep the error for later
+            try:
+                match = self._symbolize_app_frame(
+                    instruction_addr, obj, sdk_info=sdk_info, trust=trust)
+                if match:
+                    return match
+            except SymbolicationFailed as err:
+                app_err = err
+
+        # If the symbolicator was used, trust its result. Errors that were
+        # generated during symbolication are merged into the event's error
+        # array separately and do not need to be handled here. The match
+        # returned can either be:
+        #  - empty: Symbolicator has explicitly discarded this
+        #    frame as a false positive. This happens especially when
+        #    stackwalking without CFI.
+        #  - all unsymbolicated frames:
+        #    Symbolicator was unable to resolve symbols for this frame, so we
+        #    fall back to (iOS) symbolserver (see below).
+        #  - some unsymbolicated frames:
+        #    Symbolicator was able to resolve e.g.
+        #    an inline frame but then failed to symbolicate. This is not really
+        #    that useful either.
+        #
+        # TODO: Remove this fallback once symbolicator supports iOS system
+        # symbols and fully trust the symbolicator response.
+        elif all(x["status"] == "symbolicated" for x in symbolicator_match) or symbolicator_match == []:
+            return symbolicator_match
 
         # Then we check the symbolserver for a match.
-        match = self._convert_symbolserver_match(instruction_addr, symbolserver_match, obj)
+        match = self._convert_symbolserver_match(instruction_addr, symbolserver_match)
 
         # If we do not get a match and the image was from an app bundle
         # and we got an error first, we now fail with the original error
         # as we did indeed encounter a symbolication error.  If however
         # the match was empty we just accept it as a valid symbolication
         # that just did not return any results but without error.
-        if not match and self.is_image_from_app_bundle(obj, sdk_info=sdk_info) \
-           and app_err is not None:
+        if app_err is not None \
+                and not match \
+                and self.is_image_from_app_bundle(obj, sdk_info=sdk_info):
             raise app_err
 
         return match

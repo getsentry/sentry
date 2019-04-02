@@ -41,7 +41,7 @@ def patched_symbolize_app_frame(self, instruction_addr, img, sdk_info=None, trus
     ]
 
 
-def patched_convert_symbolserver_match(self, instruction_addr, symbolserver_match, img):
+def patched_convert_symbolserver_match(self, instruction_addr, symbolserver_match):
     if 6016 <= instruction_addr < 6020:
         return [
             {
