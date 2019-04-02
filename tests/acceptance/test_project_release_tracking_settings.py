@@ -1,12 +1,12 @@
 from __future__ import absolute_import
 
-from sentry import tagstore
-from sentry.testutils import AcceptanceTestCase
+from sentry.testutils import AcceptanceTestCase, SnubaTestMixin
 
 
-class ProjectReleaseTrackingSettingsTest(AcceptanceTestCase):
+class ProjectReleaseTrackingSettingsTest(SnubaTestMixin, AcceptanceTestCase):
     def setUp(self):
         super(ProjectReleaseTrackingSettingsTest, self).setUp()
+        self.init_snuba()
         self.user = self.create_user('foo@example.com')
         self.org = self.create_organization(
             name='Rowdy Tiger',
@@ -24,8 +24,16 @@ class ProjectReleaseTrackingSettingsTest(AcceptanceTestCase):
             role='owner',
             teams=[self.team],
         )
-
-        tagstore.create_tag_key(project_id=self.project.id, environment_id=None, key="Foo")
+        self.store_event(
+            data={
+                'event_id': 'a' * 32,
+                'message': 'oh no',
+                'environment': 'prod',
+                'release': 'first',
+                'tags': {'Foo': 'value'},
+            },
+            project_id=self.project.id,
+        )
 
         self.login_as(self.user)
         self.path1 = u'/{}/{}/settings/release-tracking/'.format(self.org.slug, self.project.slug)

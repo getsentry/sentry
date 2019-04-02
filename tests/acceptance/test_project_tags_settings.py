@@ -1,12 +1,17 @@
 from __future__ import absolute_import
 
-from sentry import tagstore
-from sentry.testutils import AcceptanceTestCase
+from datetime import datetime, timedelta
+from sentry.testutils import AcceptanceTestCase, SnubaTestMixin
+from mock import patch
+import pytz
+
+event_time = (datetime.utcnow() - timedelta(days=3)).replace(tzinfo=pytz.utc)
 
 
-class ProjectTagsSettingsTest(AcceptanceTestCase):
+class ProjectTagsSettingsTest(SnubaTestMixin, AcceptanceTestCase):
     def setUp(self):
         super(ProjectTagsSettingsTest, self).setUp()
+        self.init_snuba()
         self.user = self.create_user('foo@example.com')
         self.org = self.create_organization(
             name='Rowdy Tiger',
@@ -25,18 +30,32 @@ class ProjectTagsSettingsTest(AcceptanceTestCase):
             teams=[self.team],
         )
 
-        tagstore.create_tag_key(project_id=self.project.id, environment_id=None, key="Foo")
+        self.store_event(
+            data={
+                'event_id': 'a' * 32,
+                'message': 'oh no',
+                'level': 'error',
+                'timestamp': event_time.isoformat()[:19],
+            },
+            project_id=self.project.id,
+            assert_no_errors=False,
+        )
 
         self.login_as(self.user)
-        self.path1 = u'/settings/{}/projects/{}/tags/'.format(self.org.slug, self.project.slug)
+        self.path = u'/settings/{}/projects/{}/tags/'.format(self.org.slug, self.project.slug)
 
-    def test_tags_list(self):
-        self.browser.get(self.path1)
+    @patch('django.utils.timezone.now')
+    def test_tags_list(self, mock_now):
+        mock_now.return_value = event_time + timedelta(days=2)
+
+        self.browser.get(self.path)
         self.browser.wait_until_not('.loading-indicator')
         self.browser.snapshot('project settings - tags')
+
         self.browser.wait_until('.ref-tag-row')
         self.browser.click('.ref-tag-row [data-test-id="delete"]')
         self.browser.wait_until('.modal-footer [data-test-id="confirm-modal"]')
+
         self.browser.click('.modal-footer [data-test-id="confirm-modal"]')
         self.browser.wait_until_not('.ref-tag-row')
         self.browser.snapshot('project settings - tags - after remove')

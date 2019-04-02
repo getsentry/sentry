@@ -2,15 +2,16 @@ from __future__ import absolute_import
 
 from django.utils import timezone
 
-from sentry.testutils import AcceptanceTestCase
+from sentry.testutils import AcceptanceTestCase, SnubaTestMixin
 from sentry.models import GroupAssignee, Release, Environment, Deploy, ReleaseProjectEnvironment, OrganizationOnboardingTask, OnboardingTask, OnboardingTaskStatus
-from sentry.utils.samples import create_sample_event
+from sentry.utils.samples import load_data
 from datetime import datetime
 
 
-class DashboardTest(AcceptanceTestCase):
+class DashboardTest(SnubaTestMixin, AcceptanceTestCase):
     def setUp(self):
         super(DashboardTest, self).setUp()
+        self.init_snuba()
         self.user = self.create_user('foo@example.com')
         self.org = self.create_organization(
             name='Rowdy Tiger',
@@ -65,11 +66,13 @@ class DashboardTest(AcceptanceTestCase):
         self.browser.snapshot('org dash no issues')
 
     def test_one_issue(self):
-        event = create_sample_event(
-            project=self.project,
-            platform='python',
-            event_id='d964fdbd649a4cf8bfc35d18082b6b0e',
-            timestamp=1452683305,
+        event_data = load_data('python')
+        event_data['event_id'] = 'd964fdbd649a4cf8bfc35d18082b6b0e'
+        event_data['timestamp'] = 1452683305
+        event = self.store_event(
+            project_id=self.project.id,
+            data=event_data,
+            assert_no_errors=False
         )
         event.group.update(
             first_seen=datetime(2018, 1, 12, 3, 8, 25, tzinfo=timezone.utc),
