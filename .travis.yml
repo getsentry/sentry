@@ -230,6 +230,19 @@ matrix:
       before_script:
         - psql -c 'create database sentry;' -U postgres
 
+    - python: 2.7
+      env: TEST_SUITE=symbolicator
+      services:
+        - docker
+      before_install:
+        - docker run -d --network host --name symbolicator us.gcr.io/sentryio/symbolicator:latest
+        - docker ps -a
+      install:
+        - python setup.py install_egg_info
+        - pip install -e ".[dev,tests,optional]"
+      before_script:
+        - psql -c 'create database sentry;' -U postgres
+
     # snuba in testing
     - python: 2.7
       env: TEST_SUITE=snuba SENTRY_TAGSTORE=sentry.tagstore.snuba.SnubaTagStorage SENTRY_ZOOKEEPER_HOSTS=localhost:2181 SENTRY_KAFKA_HOSTS=localhost:9092

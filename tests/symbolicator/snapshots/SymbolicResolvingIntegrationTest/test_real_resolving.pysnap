@@ -1,7 +1,7 @@
 ---
-created: '2019-04-01T13:57:49.268992Z'
+created: '2019-04-02T13:25:33.177266Z'
 creator: sentry
-source: tests/sentry/lang/native/test_plugin.py
+source: tests/acceptance/native/test_plugin.py
 ---
 culprit: main
 debug_meta:

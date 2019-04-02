@@ -1,13 +1,15 @@
 ---
-created: '2019-04-01T13:57:48.442366Z'
+created: '2019-04-02T13:25:37.145307Z'
 creator: sentry
-source: tests/sentry/lang/native/test_plugin.py
+source: tests/acceptance/native/test_plugin.py
 ---
 culprit: unknown
 debug_meta:
   images:
   - arch: x86_64
     code_file: Foo.app/Contents/Foo
+    code_id: null
+    debug_file: null
     debug_id: 502fc0a5-1ec1-3e47-9998-684fa139dca7
     image_addr: '0x100000000'
     image_size: 4096
@@ -28,13 +30,14 @@ exception:
   values:
   - raw_stacktrace:
       frames:
-      - &id001
-        function: unknown
+      - function: unknown
         in_app: false
         instruction_addr: '0x100000fa0'
     stacktrace:
       frames:
-      - *id001
+      - function: unknown
+        in_app: false
+        instruction_addr: '0x100000fa0'
     type: Fail
     value: fail
 fingerprint:
