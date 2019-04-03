@@ -1,5 +1,5 @@
 ---
-created: '2019-03-28T18:54:48.471075Z'
+created: '2019-04-03T09:05:57.852545Z'
 creator: sentry
 source: tests/sentry/grouping/test_enhancer.py
 ---
@@ -51,6 +51,8 @@ rules:
     key: app
     range: null
   matchers:
+  - key: family
+    pattern: native
   - key: module
     pattern: std::*
 - actions:
@@ -60,4 +62,13 @@ rules:
   matchers:
   - key: module
     pattern: core::*
+- actions:
+  - flag: false
+    key: app
+    range: null
+  matchers:
+  - key: family
+    pattern: javascript
+  - key: path
+    pattern: '*/test.js'
 version: 1

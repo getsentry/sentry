@@ -5,14 +5,13 @@ import six
 import base64
 import msgpack
 import inspect
-from fnmatch import fnmatch
 
 from parsimonious.grammar import Grammar, NodeVisitor
 from parsimonious.exceptions import ParseError
 
-from sentry.stacktraces import find_stacktraces_in_data
+from sentry.grouping.utils import get_grouping_family_for_platform
 from sentry.utils.compat import implements_to_string
-from sentry.utils.safe import get_path
+from sentry.utils.glob import glob_match
 
 
 # Grammar is defined in EBNF syntax.
@@ -26,7 +25,7 @@ rule = _ matchers actions
 
 matchers       = matcher+
 matcher        = _ matcher_type sep argument
-matcher_type   = "path" / "function" / "module"
+matcher_type   = "path" / "function" / "module" / "family"
 
 actions        = action+
 action         = _ range? flag action_name
@@ -49,11 +48,19 @@ _       = space*
 """)
 
 
+FAMILIES = {
+    'native': 'N',
+    'javascript': 'J',
+    'all': None,
+}
+REVERSE_FAMILIES = dict((v, k) for k, v in six.iteritems(FAMILIES))
+
 VERSION = 1
 MATCH_KEYS = {
     'path': 'p',
     'function': 'f',
     'module': 'm',
+    'family': 'F',
 }
 SHORT_MATCH_KEYS = dict((v, k) for k, v in six.iteritems(MATCH_KEYS))
 
@@ -79,11 +86,23 @@ class Match(object):
         self.key = key
         self.pattern = pattern
 
-    def match_frame(self, frame_data, platform):
+    def matches_frame(self, frame_data, platform):
         # Path matches are always case insensitive
         if self.key == 'path':
-            value = (frame_data.get('abs_path') or frame_data.get('filename') or '').lower()
-            return fnmatch(value, self.pattern.lower())
+            value = frame_data.get('abs_path') or frame_data.get('filename') or ''
+            if glob_match(value, self.pattern, ignorecase=True,
+                          doublestar=True, path_normalize=True):
+                return True
+            if not value.startswith('/') and glob_match('/' + value, self.pattern,
+                                                        ignorecase=True, doublestar=True, path_normalize=True):
+                return True
+            return False
+
+        # families need custom handling as well
+        if self.key == 'family':
+            family = get_grouping_family_for_platform(frame_data.get('platform') or platform)
+            flags = self.pattern.split(',')
+            return family in flags or None in flags
 
         # all other matches are case sensitive
         if self.key == 'function':
@@ -95,14 +114,23 @@ class Match(object):
         else:
             # should not happen :)
             value = '<unknown>'
-        return fnmatch(value, self.pattern)
+        return glob_match(value, self.pattern, doublestar=True)
 
     def _to_config_structure(self):
-        return MATCH_KEYS[self.key] + self.pattern
+        if self.key == 'family':
+            arg = ''.join(filter(None, [REVERSE_FAMILIES.get(x) for x in self.pattern.split(',')]))
+        else:
+            arg = self.pattern
+        return MATCH_KEYS[self.key] + arg
 
     @classmethod
     def _from_config_structure(cls, obj):
-        return cls(SHORT_MATCH_KEYS[obj[0]], obj[1:])
+        key = SHORT_MATCH_KEYS[obj[0]]
+        if key == 'family':
+            arg = ','.join(filter(None, [FAMILIES.get(x) for x in obj[1:]]))
+        else:
+            arg = obj[1:]
+        return cls(key, arg)
 
 
 @implements_to_string
@@ -141,26 +169,6 @@ class Enhancements(object):
         if bases is None:
             bases = []
         self.bases = bases
-
-    def would_change_event_data(self, event_data):
-        """Given an event data dictionary this performs a quick check if
-        actions would likely change the event.  This does not actually perform
-        a true check but it's used as a quick way to determine if we need to
-        dispatch to processor tasks in the event handling.
-        """
-        stacktrace_infos = find_stacktraces_in_data(event_data)
-        if not stacktrace_infos:
-            return False
-
-        platform = event_data.get('platform')
-        for stacktrace_info in stacktrace_infos:
-            frames = get_path(stacktrace_info.stacktrace, 'frames', filter=True)
-            for frame in frames or ():
-                for rule in self.iter_rules():
-                    if rule.get_matching_frame_actions(frame, platform):
-                        return True
-
-        return False
 
     def apply_to_frames(self, frames, project, platform):
         pass
@@ -244,9 +252,8 @@ class Rule(object):
         """Given a frame returns all the matching actions based on this rule.
         If the rule does not match `None` is returned.
         """
-        for matcher in self.matchers:
-            if matcher.matches_frame(frame_data, platform):
-                return self.actions
+        if all(m.matches_frame(frame_data, platform) for m in self.matchers):
+            return self.actions
 
     def _to_config_structure(self):
         return [

@@ -1,31 +1,31 @@
 ## * The default configuration of stacktrace grouping enhancers
 
 # exclude common paths
-path:/usr/lib/*                                     -app
-path:/usr/local/lib/*                               -app
-path:/usr/local/Cellar/*                            -app
+family:native path:/usr/lib/**                                    -app
+family:native path:/usr/local/lib/*                               -app
+family:native path:/usr/local/Cellar/**                           -app
 
 # rust common modules
-function:std::*                                     -app
-function:core::*                                    -app
-function:alloc::*                                   -app
-function:__rust_*                                   -app
+family:native function:std::*                                     -app
+family:native function:core::*                                    -app
+family:native function:alloc::*                                   -app
+family:native function:__rust_*                                   -app
 
 # rust borders
-function:std::panicking::begin_panic                ^-store -app
-function:core::panicking::begin_panic               ^-store -app
-function:failure::backtrace::Backtrace::new         ^-store -app
-function:error_chain::make_backtrace                ^-store -app
+family:native function:std::panicking::begin_panic                ^-store -app
+family:native function:core::panicking::begin_panic               ^-store -app
+family:native function:failure::backtrace::Backtrace::new         ^-store -app
+family:native function:error_chain::make_backtrace                ^-store -app
 
 # C++ borders
-function:_CxxThrowException                         ^-store -app -group
-function:__cxa_throw                                ^-store -app -group
-function:__assert_rtn                               ^-store -app -group
+family:native function:_CxxThrowException                         ^-store -app -group
+family:native function:__cxa_throw                                ^-store -app -group
+family:native function:__assert_rtn                               ^-store -app -group
 
 # Objective-C
-function:_NSRaiseError                              ^-store -app -group
+family:native function:_NSRaiseError                              ^-store -app -group
 
 # Breakpad
-function:google_breakpad::*                         -app -group
-function:google_breakpad::ExceptionHandler::SignalHandler ^-store
-function:google_breakpad::ExceptionHandler::WriteMinidumpWithException ^-store
+family:native function:google_breakpad::*                         -app -group
+family:native function:google_breakpad::ExceptionHandler::SignalHandler ^-store
+family:native function:google_breakpad::ExceptionHandler::WriteMinidumpWithException ^-store
