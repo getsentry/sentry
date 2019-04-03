@@ -403,22 +403,21 @@ export default class OrganizationDiscover extends React.Component {
               isLoading={isLoading}
             />
           )}
-          {isEditingSavedQuery &&
-            savedQuery && (
-              <QueryPanel title={t('Edit Query')} onClose={toggleEditMode}>
-                <EditSavedQuery
-                  savedQuery={savedQuery}
-                  queryBuilder={queryBuilder}
-                  isFetchingQuery={isFetchingQuery}
-                  onUpdateField={this.updateField}
-                  onRunQuery={this.runQuery}
-                  onReset={this.reset}
-                  onDeleteQuery={this.deleteSavedQuery}
-                  onSaveQuery={this.updateSavedQuery}
-                  isLoading={isLoading}
-                />
-              </QueryPanel>
-            )}
+          {isEditingSavedQuery && savedQuery && (
+            <QueryPanel title={t('Edit Query')} onClose={toggleEditMode}>
+              <EditSavedQuery
+                savedQuery={savedQuery}
+                queryBuilder={queryBuilder}
+                isFetchingQuery={isFetchingQuery}
+                onUpdateField={this.updateField}
+                onRunQuery={this.runQuery}
+                onReset={this.reset}
+                onDeleteQuery={this.deleteSavedQuery}
+                onSaveQuery={this.updateSavedQuery}
+                isLoading={isLoading}
+              />
+            </QueryPanel>
+          )}
         </Sidebar>
 
         <DiscoverGlobalSelectionHeader

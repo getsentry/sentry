@@ -74,7 +74,9 @@ export default class ProviderRow extends React.Component {
       icon: upgradeable ? 'icon-upgrade' : 'icon-circle-add',
       children: this.isEnabled
         ? t('Add Another')
-        : upgradeable ? t('Update') : t('Install'),
+        : upgradeable
+        ? t('Update')
+        : t('Install'),
     };
   }
 
@@ -153,15 +155,14 @@ const NewInstallation = styled('div')`
     ${p => highlight(p.theme.yellowLightest)} 1000ms 500ms ease-in-out forwards;
 `;
 
-const StyledInstalledIntegration = styled(
-  p =>
-    p.integration.newlyAdded ? (
-      <NewInstallation>
-        <InstalledIntegration {...p} />
-      </NewInstallation>
-    ) : (
+const StyledInstalledIntegration = styled(p =>
+  p.integration.newlyAdded ? (
+    <NewInstallation>
       <InstalledIntegration {...p} />
-    )
+    </NewInstallation>
+  ) : (
+    <InstalledIntegration {...p} />
+  )
 )`
   padding: ${space(2)};
   padding-left: 0;

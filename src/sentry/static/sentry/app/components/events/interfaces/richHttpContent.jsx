@@ -61,14 +61,13 @@ class RichHttpContent extends React.Component {
           </ClippedBox>
         )}
 
-        {data.cookies &&
-          !objectIsEmpty(data.cookies) && (
-            <ClippedBox title={t('Cookies')} defaultCollapsed>
-              <ErrorBoundary mini>
-                <KeyValueList data={data.cookies} />
-              </ErrorBoundary>
-            </ClippedBox>
-          )}
+        {data.cookies && !objectIsEmpty(data.cookies) && (
+          <ClippedBox title={t('Cookies')} defaultCollapsed>
+            <ErrorBoundary mini>
+              <KeyValueList data={data.cookies} />
+            </ErrorBoundary>
+          </ClippedBox>
+        )}
         {!objectIsEmpty(data.headers) && (
           <ClippedBox title={t('Headers')}>
             <ErrorBoundary mini>

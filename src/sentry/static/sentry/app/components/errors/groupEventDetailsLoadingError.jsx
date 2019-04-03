@@ -20,7 +20,9 @@ const GroupEventDetailsLoadingError = ({onRetry, environments}) => {
       <div>
         <p>{t('This could be due to a handful of reasons:')}</p>
         <ol className="detailed-error-list">
-          {reasons.map((reason, i) => <li key={i}>{reason}</li>)}
+          {reasons.map((reason, i) => (
+            <li key={i}>{reason}</li>
+          ))}
         </ol>
       </div>
     );

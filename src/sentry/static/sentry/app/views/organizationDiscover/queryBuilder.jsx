@@ -78,10 +78,12 @@ export default function createQueryBuilder(initial = {}, organization) {
       turbo: true,
     })
       .then(res => {
-        tags = res.data.filter(tag => !HIDDEN_TAGS.includes(tag.tags_key)).map(tag => {
-          const type = SPECIAL_TAGS[tags.tags_key] || 'string';
-          return {name: tag.tags_key, type, isTag: true};
-        });
+        tags = res.data
+          .filter(tag => !HIDDEN_TAGS.includes(tag.tags_key))
+          .map(tag => {
+            const type = SPECIAL_TAGS[tags.tags_key] || 'string';
+            return {name: tag.tags_key, type, isTag: true};
+          });
       })
       .catch(err => {
         tags = PROMOTED_TAGS.map(tag => {
@@ -181,7 +183,9 @@ export default function createQueryBuilder(initial = {}, organization) {
    */
   function fetch(data = getExternal(), cursor = '0:0:1') {
     const limit = data.limit || 1000;
-    const endpoint = `/organizations/${organization.slug}/discover/query/?per_page=${limit}&cursor=${cursor}`;
+    const endpoint = `/organizations/${
+      organization.slug
+    }/discover/query/?per_page=${limit}&cursor=${cursor}`;
 
     // Reject immediately if no projects are available
     if (!data.projects.length) {

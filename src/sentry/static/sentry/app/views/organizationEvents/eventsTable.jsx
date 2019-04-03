@@ -31,7 +31,9 @@ class EventsTableBody extends React.PureComponent {
       const hasSentry10 = new Set(organization.features).has('sentry10');
 
       const eventLink = hasSentry10
-        ? `/organizations/${organization.slug}/projects/${project.slug}/events/${event.eventID}/`
+        ? `/organizations/${organization.slug}/projects/${project.slug}/events/${
+            event.eventID
+          }/`
         : `/${organization.slug}/${project.slug}/events/${event.eventID}/`;
 
       const idBadge = (
@@ -144,12 +146,11 @@ class EventsTable extends React.Component {
           </TableLayout>
         </PanelHeader>
         {loading && <LoadingIndicator />}
-        {!loading &&
-          !hasEvents && (
-            <EmptyStateWarning>
-              <p>No events</p>
-            </EmptyStateWarning>
-          )}
+        {!loading && !hasEvents && (
+          <EmptyStateWarning>
+            <p>No events</p>
+          </EmptyStateWarning>
+        )}
         {hasEvents && (
           <StyledPanelBody>
             {(reloading || zoomChanged) && <StyledLoadingIndicator overlay />}

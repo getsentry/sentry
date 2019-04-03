@@ -46,7 +46,9 @@ class ResultTable extends React.Component {
   }
 
   getCellRenderer = cols => ({key, rowIndex, columnIndex, style}) => {
-    const {data: {data, meta}} = this.props;
+    const {
+      data: {data, meta},
+    } = this.props;
 
     const isSpacingCol = columnIndex === cols.length;
 
@@ -130,7 +132,9 @@ class ResultTable extends React.Component {
   // are less than 20 columns of data to check in total.
   // Adds an empty column at the end with the remaining table width if any.
   getColumnWidths = tableWidth => {
-    const {data: {data}} = this.props;
+    const {
+      data: {data},
+    } = this.props;
     const cols = this.getColumnList();
 
     const widths = [];
@@ -175,7 +179,9 @@ class ResultTable extends React.Component {
   };
 
   getRowHeight = (rowIndex, columnsToCheck) => {
-    const {data: {data}} = this.props;
+    const {
+      data: {data},
+    } = this.props;
 
     if (rowIndex === 0) {
       return TABLE_ROW_HEIGHT_WITH_BORDER;
@@ -198,7 +204,10 @@ class ResultTable extends React.Component {
   };
 
   getColumnList = () => {
-    const {query, data: {meta}} = this.props;
+    const {
+      query,
+      data: {meta},
+    } = this.props;
 
     const fields = new Set([
       ...(query.fields || []),
@@ -237,7 +246,10 @@ class ResultTable extends React.Component {
   };
 
   renderTable() {
-    const {data: {data}, height} = this.props;
+    const {
+      data: {data},
+      height,
+    } = this.props;
 
     const cols = this.getColumnList();
 
@@ -316,7 +328,7 @@ const Grid = styled(({visibleRows, ...props}) => <div {...props} />)`
 
 const Cell = styled('div')`
   ${p => !p.isOddRow && `background-color: ${p.theme.whiteDark};`} ${p =>
-      `text-align: ${p.align};`} overflow: scroll;
+    `text-align: ${p.align};`} overflow: scroll;
   font-size: 14px;
   line-height: ${TABLE_ROW_HEIGHT}px;
   padding: 0 10px;

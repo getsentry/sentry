@@ -2,9 +2,12 @@ import {getFormattedDate} from 'app/utils/dates';
 import theme from 'app/utils/theme';
 import {truncationFormatter} from '../utils';
 
-export default function XAxis(
-  {isGroupedByDate, shouldRenderTimeOnly, utc, ...props} = {}
-) {
+export default function XAxis({
+  isGroupedByDate,
+  shouldRenderTimeOnly,
+  utc,
+  ...props
+} = {}) {
   const axisLabelFormatter = value => {
     if (isGroupedByDate) {
       const format = shouldRenderTimeOnly === 'hour' ? 'LT' : 'MMM Do';

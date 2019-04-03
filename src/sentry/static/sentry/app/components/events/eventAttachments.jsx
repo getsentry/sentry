@@ -47,8 +47,9 @@ export default createReactClass({
       return;
     }
     this.api.request(
-      `/projects/${this.props.orgId}/${this.props
-        .projectId}/events/${event.id}/attachments/`,
+      `/projects/${this.props.orgId}/${this.props.projectId}/events/${
+        event.id
+      }/attachments/`,
       {
         success: (data, _, jqXHR) => {
           this.setState({
@@ -66,7 +67,9 @@ export default createReactClass({
 
   getDownloadUrl(attachment) {
     const {orgId, event, projectId} = this.props;
-    return `/api/0/projects/${orgId}/${projectId}/events/${event.id}/attachments/${attachment.id}/?download=1`;
+    return `/api/0/projects/${orgId}/${projectId}/events/${event.id}/attachments/${
+      attachment.id
+    }/?download=1`;
   },
 
   render() {

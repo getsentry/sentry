@@ -21,7 +21,9 @@ class SettingsWrapper extends React.Component {
     this.state = {
       lastAppContext: !!props.project
         ? 'project'
-        : !!props.organization ? 'organization' : null,
+        : !!props.organization
+        ? 'organization'
+        : null,
     };
   }
 

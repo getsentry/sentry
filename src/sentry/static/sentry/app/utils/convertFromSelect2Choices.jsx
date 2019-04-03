@@ -5,11 +5,10 @@ const convertFromSelect2Choices = choices => {
   }
 
   // Accepts an array of strings or an array of tuples
-  return choices.map(
-    choice =>
-      Array.isArray(choice)
-        ? {value: choice[0], label: choice[1]}
-        : {value: choice, label: choice}
+  return choices.map(choice =>
+    Array.isArray(choice)
+      ? {value: choice[0], label: choice[1]}
+      : {value: choice, label: choice}
   );
 };
 

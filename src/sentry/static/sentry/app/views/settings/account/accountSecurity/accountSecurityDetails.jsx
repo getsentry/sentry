@@ -158,13 +158,12 @@ class AccountSecurityDetails extends AsyncView {
           onRemoveU2fDevice={this.handleRemove}
         />
 
-        {authenticator.isEnrolled &&
-          authenticator.phone && (
-            <div css={{marginTop: 30}}>
-              {t('Confirmation codes are sent to the following phone number')}:
-              <Phone>{authenticator.phone}</Phone>
-            </div>
-          )}
+        {authenticator.isEnrolled && authenticator.phone && (
+          <div css={{marginTop: 30}}>
+            {t('Confirmation codes are sent to the following phone number')}:
+            <Phone>{authenticator.phone}</Phone>
+          </div>
+        )}
 
         <RecoveryCodes
           onRegenerateBackupCodes={onRegenerateBackupCodes}

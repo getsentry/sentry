@@ -33,8 +33,9 @@ describe('TeamMembers', function() {
   });
 
   it('can remove a team', function() {
-    const endpoint = `/organizations/${org.slug}/members/${members[0]
-      .id}/teams/${team.slug}/`;
+    const endpoint = `/organizations/${org.slug}/members/${members[0].id}/teams/${
+      team.slug
+    }/`;
     const mock = Client.addMockResponse({
       url: endpoint,
       method: 'DELETE',

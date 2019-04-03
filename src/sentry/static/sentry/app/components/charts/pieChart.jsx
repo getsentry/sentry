@@ -41,7 +41,7 @@ class PieChart extends React.Component {
     return series.data.reduce(
       (acc, {name, value}) => ({
         ...acc,
-        [name]: Math.round(value / total * 10000) / 100,
+        [name]: Math.round((value / total) * 10000) / 100,
       }),
       {}
     );
@@ -78,7 +78,7 @@ class PieChart extends React.Component {
   getSeriesPercentages = series => {
     const total = series.data.reduce((acc, {value}) => acc + value, 0);
     return series.data
-      .map(({name, value}) => [name, Math.round(value / total * 10000) / 100])
+      .map(({name, value}) => [name, Math.round((value / total) * 10000) / 100])
       .reduce(
         (acc, [name, value]) => ({
           ...acc,
@@ -147,9 +147,11 @@ class PieChart extends React.Component {
             top: 10,
             bottom: 10,
             formatter: name => {
-              return `${name} ${typeof seriesPercentages[name] !== 'undefined'
-                ? `(${seriesPercentages[name]}%)`
-                : ''}`;
+              return `${name} ${
+                typeof seriesPercentages[name] !== 'undefined'
+                  ? `(${seriesPercentages[name]}%)`
+                  : ''
+              }`;
             },
           }),
         }}

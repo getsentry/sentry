@@ -267,7 +267,8 @@ class ProjectSelector extends React.Component {
             selectedProjects: this.isControlled()
               ? this.props.selectedProjects
               : Array.from(this.state.selectedProjects.values()),
-          })}
+          })
+        }
       </DropdownAutoComplete>
     );
   }

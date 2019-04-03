@@ -130,9 +130,11 @@ const AssigneeSelectorComponent = createReactClass({
   assignableTeams() {
     const group = GroupStore.get(this.props.id);
 
-    return (ProjectsStore.getBySlug(group.project.slug) || {
-      teams: [],
-    }).teams
+    return (
+      ProjectsStore.getBySlug(group.project.slug) || {
+        teams: [],
+      }
+    ).teams
       .sort((a, b) => a.slug.localeCompare(b.slug))
       .map(team => ({
         id: buildTeamId(team.id),
@@ -163,7 +165,13 @@ const AssigneeSelectorComponent = createReactClass({
     this.setState({loading: true});
   },
 
-  handleAssign({value: {type, assignee}}, state, e) {
+  handleAssign(
+    {
+      value: {type, assignee},
+    },
+    state,
+    e
+  ) {
     if (type === 'member') {
       this.assignToUser(assignee);
     }
@@ -291,8 +299,9 @@ const AssigneeSelectorComponent = createReactClass({
                 <InviteMemberLink
                   data-test-id="invite-member"
                   disabled={loading}
-                  to={`/settings/${this.context.organization
-                    .slug}/members/new/?referrer=assignee_selector`}
+                  to={`/settings/${
+                    this.context.organization.slug
+                  }/members/new/?referrer=assignee_selector`}
                 >
                   <MenuItemWrapper>
                     <IconContainer>

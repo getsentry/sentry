@@ -173,13 +173,12 @@ class AvatarChooser extends React.Component {
             </AvatarGroup>
 
             <AvatarUploadSection>
-              {allowGravatar &&
-                avatarType === 'gravatar' && (
-                  <Well>
-                    {t('Gravatars are managed through ')}
-                    <ExternalLink href="http://gravatar.com">Gravatar.com</ExternalLink>
-                  </Well>
-                )}
+              {allowGravatar && avatarType === 'gravatar' && (
+                <Well>
+                  {t('Gravatars are managed through ')}
+                  <ExternalLink href="http://gravatar.com">Gravatar.com</ExternalLink>
+                </Well>
+              )}
 
               {avatarType === 'upload' && (
                 <AvatarCropper

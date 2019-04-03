@@ -60,29 +60,27 @@ class EmailRow extends React.Component {
           )}
         </Flex>
         <Flex>
-          {!isPrimary &&
-            isVerified && (
-              <Button size="small" onClick={this.handleSetPrimary}>
-                {t('Set as primary')}
-              </Button>
-            )}
+          {!isPrimary && isVerified && (
+            <Button size="small" onClick={this.handleSetPrimary}>
+              {t('Set as primary')}
+            </Button>
+          )}
           {!isVerified && (
             <Button size="small" onClick={this.handleVerify}>
               {t('Resend verification')}
             </Button>
           )}
-          {!hideRemove &&
-            !isPrimary && (
-              <Box ml={1}>
-                <Button
-                  data-test-id="remove"
-                  priority="danger"
-                  size="small"
-                  icon="icon-trash"
-                  onClick={this.handleRemove}
-                />
-              </Box>
-            )}
+          {!hideRemove && !isPrimary && (
+            <Box ml={1}>
+              <Button
+                data-test-id="remove"
+                priority="danger"
+                size="small"
+                icon="icon-trash"
+                onClick={this.handleRemove}
+              />
+            </Box>
+          )}
         </Flex>
       </PanelItem>
     );

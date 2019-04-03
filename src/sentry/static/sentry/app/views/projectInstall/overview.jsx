@@ -95,7 +95,8 @@ class ProjectInstallOverview extends React.Component {
             <small>
               {tct('Already have things setup? [link:Get your DSN]', {
                 link: <a className="btn-xsmall" onClick={this.toggleDsn} />,
-              })}.
+              })}
+              .
             </small>
           </p>
         )}
