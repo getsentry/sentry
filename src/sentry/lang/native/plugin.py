@@ -265,6 +265,8 @@ class NativeStacktraceProcessor(StacktraceProcessor):
                 error = SymbolicationFailed(type=EventError.NATIVE_BAD_DSYM)
             elif status == 'too_large':
                 error = SymbolicationFailed(type=EventError.FETCH_TOO_LARGE)
+            elif status == 'fetching_failed':
+                error = SymbolicationFailed(type=EventError.FETCH_GENERIC_ERROR)
             elif status == 'other':
                 error = SymbolicationFailed(type=EventError.UNKNOWN_ERROR)
             else:
