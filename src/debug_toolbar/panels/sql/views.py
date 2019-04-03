@@ -43,12 +43,7 @@ def sql_explain(request):
         vendor = form.connection.vendor
         cursor = form.cursor
 
-        if vendor == 'sqlite':
-            # SQLite's EXPLAIN dumps the low-level opcodes generated for a query;
-            # EXPLAIN QUERY PLAN dumps a more human-readable summary
-            # See http://www.sqlite.org/lang_explain.html for details
-            cursor.execute("EXPLAIN QUERY PLAN %s" % (sql, ), params)
-        elif vendor == 'postgresql':
+        if vendor == 'postgresql':
             cursor.execute("EXPLAIN ANALYZE %s" % (sql, ), params)
         else:
             cursor.execute("EXPLAIN %s" % (sql, ), params)

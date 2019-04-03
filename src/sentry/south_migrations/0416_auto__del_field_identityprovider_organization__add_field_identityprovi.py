@@ -3,7 +3,6 @@ from south.utils import datetime_utils as datetime
 from south.db import db
 from south.v2 import SchemaMigration
 from django.db import models
-from sentry.utils.db import is_sqlite
 
 
 class Migration(SchemaMigration):
@@ -13,8 +12,6 @@ class Migration(SchemaMigration):
     is_dangerous = False
 
     def forwards(self, orm):
-        if is_sqlite():
-            return
         db.delete_foreign_key(u'sentry_identityprovider', 'organization_id')
         db.alter_column(
             u'sentry_identityprovider',

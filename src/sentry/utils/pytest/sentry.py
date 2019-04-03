@@ -50,13 +50,6 @@ def pytest_configure(config):
             # postgres requires running full migration all the time
             # since it has to install stored functions which come from
             # an actual migration.
-        elif test_db == 'sqlite':
-            settings.DATABASES['default'].update(
-                {
-                    'ENGINE': 'django.db.backends.sqlite3',
-                    'NAME': ':memory:',
-                }
-            )
         else:
             raise RuntimeError('oops, wrong database: %r' % test_db)
 

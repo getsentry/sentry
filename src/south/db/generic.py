@@ -687,7 +687,7 @@ class DatabaseOperations(object):
 
         if sql:
 
-            # Some callers, like the sqlite stuff, just want the extended type.
+            # Some callers just want the extended type.
             if with_name:
                 field_output = [self.quote_name(field.column), sql]
             else:

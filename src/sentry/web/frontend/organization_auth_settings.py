@@ -15,7 +15,6 @@ from sentry.auth.superuser import is_active_superuser
 from sentry.models import AuditLogEntryEvent, AuthProvider, OrganizationMember, User
 from sentry.plugins import Response
 from sentry.tasks.auth import email_missing_links, email_unlink_notifications
-from sentry.utils import db
 from sentry.utils.http import absolute_uri
 from sentry.web.frontend.base import OrganizationView
 
@@ -58,21 +57,15 @@ class OrganizationAuthSettingsView(OrganizationView):
             data=auth_provider.get_audit_log_data(),
         )
 
-        if db.is_sqlite():
-            for om in OrganizationMember.objects.filter(organization=organization):
-                om.flags['sso:linked'] = False
-                om.flags['sso:invalid'] = False
-                om.save()
-        else:
-            OrganizationMember.objects.filter(
-                organization=organization,
-            ).update(
-                flags=F('flags').bitand(
-                    ~OrganizationMember.flags['sso:linked'],
-                ).bitand(
-                    ~OrganizationMember.flags['sso:invalid'],
-                ),
-            )
+        OrganizationMember.objects.filter(
+            organization=organization,
+        ).update(
+            flags=F('flags').bitand(
+                ~OrganizationMember.flags['sso:linked'],
+            ).bitand(
+                ~OrganizationMember.flags['sso:invalid'],
+            ),
+        )
 
         user_ids = OrganizationMember.objects.filter(organization=organization).values('user')
         User.objects.filter(id__in=user_ids).update(is_managed=False)

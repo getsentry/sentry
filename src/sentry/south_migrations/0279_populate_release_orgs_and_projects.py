@@ -9,9 +9,6 @@ from sentry.utils.query import RangeQuerySetWrapperWithProgressBar
 class Migration(DataMigration):
     def forwards(self, orm):
         "Write your forwards methods here."
-        if connection.vendor == 'sqlite':
-            transaction.set_autocommit(True)
-
         qs = orm.Release.objects.all().select_related('project')
         for r in RangeQuerySetWrapperWithProgressBar(qs):
             if not r.organization_id:

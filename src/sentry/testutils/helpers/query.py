@@ -1,8 +1,6 @@
 from __future__ import absolute_import
 
 import sqlparse
-import re
-import ast
 
 from sqlparse.tokens import DML
 
@@ -17,9 +15,6 @@ def parse_queries(captured_queries):
 
     for query in captured_queries:
         raw_sql = query['sql']
-        match = re.search(r"QUERY = (.+) - PARAMS", query['sql'])
-        if match:  # this is a sqlite query
-            raw_sql = ast.literal_eval(match.group(1))
         parsed = sqlparse.parse(raw_sql)
         for token in parsed[0].tokens:
             if token.ttype is DML:
