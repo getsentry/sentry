@@ -209,12 +209,16 @@ class ProjectSelector extends React.Component {
         noResultsMessage={t('No projects found')}
         virtualizedHeight={theme.headerSelectorRowHeight}
         emptyHidesInput
-        inputActions={() =>
-          hasProjectWrite && (
-            <AddButton to={`/organizations/${org.slug}/projects/new`} size="xsmall">
-              <StyledAddIcon src="icon-circle-add" /> {t('Project')}
-            </AddButton>
-          )}
+        inputActions={() => (
+          <AddButton
+            disabled={!hasProjectWrite}
+            to={`/organizations/${org.slug}/projects/new`}
+            size="xsmall"
+            title={hasProjectWrite ? null : 'You need project write access to use this'}
+          >
+            <StyledAddIcon src="icon-circle-add" /> {t('Project')}
+          </AddButton>
+        )}
         menuFooter={renderProps => {
           const renderedFooter =
             typeof menuFooter === 'function' ? menuFooter(renderProps) : menuFooter;
