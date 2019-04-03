@@ -27,14 +27,14 @@ class AcceptOrganizationInviteTest(AcceptanceTestCase):
         self.login_as(self.user)
         self.browser.get(self.member.get_invite_link().split('/', 3)[-1])
         self.browser.snapshot(name='accept organization invite')
-        assert self.browser.element_exists('[data-test-id="join-organization"]')
+        assert self.browser.element_exists_by_test_id('join-organization')
 
     def test_invite_not_authenticated(self):
         self.browser.get(self.member.get_invite_link().split('/', 3)[-1])
-        assert self.browser.element_exists('[data-test-id="create-account"]')
+        assert self.browser.element_exists_by_test_id('create-account')
 
     def test_invite_2fa_enforced_org(self):
         self.login_as(self.user)
         self.org.update(flags=F('flags').bitor(Organization.flags.require_2fa))
         self.browser.get(self.member.get_invite_link().split('/', 3)[-1])
-        assert self.browser.element_exists('[data-test-id="setup-2fa"]')
+        assert self.browser.element_exists_by_test_id('setup-2fa')

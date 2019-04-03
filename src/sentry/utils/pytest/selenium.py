@@ -73,6 +73,9 @@ class Browser(object):
             return False
         return True
 
+    def element_exists_by_test_id(self, selector):
+        return self.element_exists('[data-test-id="%s"]' % (selector))
+
     def click(self, selector):
         self.element(selector).click()
 
