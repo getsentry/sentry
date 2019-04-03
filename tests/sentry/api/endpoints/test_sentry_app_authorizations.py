@@ -7,7 +7,6 @@ from datetime import datetime, timedelta
 from django.core.urlresolvers import reverse
 from django.utils import timezone
 
-from sentry.mediators import sentry_apps
 from sentry.models import ApiApplication, ApiToken
 from sentry.testutils import APITestCase
 
@@ -17,14 +16,14 @@ class TestSentryAppAuthorizations(APITestCase):
         self.user = self.create_user()
         self.org = self.create_organization()
 
-        self.sentry_app = sentry_apps.Creator.run(
+        self.sentry_app = self.create_sentry_app(
             name='nulldb',
             organization=self.create_organization(),
             scopes=('org:read', ),
             webhook_url='http://example.com',
         )
 
-        self.other_sentry_app = sentry_apps.Creator.run(
+        self.other_sentry_app = self.create_sentry_app(
             name='slowdb',
             organization=self.create_organization(),
             scopes=(),

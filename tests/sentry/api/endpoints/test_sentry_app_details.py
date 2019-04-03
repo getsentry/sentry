@@ -101,7 +101,7 @@ class UpdateSentryAppDetailsTest(SentryAppDetailsTest):
         response = self.client.put(
             self.url,
             data={
-                'name': 'NewName',
+                'name': self.published_app.name,
                 'webhookUrl': 'https://newurl.com',
                 'redirectUrl': 'https://newredirecturl.com',
                 'isAlertable': True,
@@ -109,7 +109,8 @@ class UpdateSentryAppDetailsTest(SentryAppDetailsTest):
             format='json',
         )
         assert json.loads(response.content) == {
-            'name': 'NewName',
+            'name': self.published_app.name,
+            'author': self.published_app.author,
             'slug': self.published_app.slug,
             'scopes': [],
             'events': [],
@@ -155,7 +156,9 @@ class UpdateSentryAppDetailsTest(SentryAppDetailsTest):
             name='Foo Bar',
             organization=self.org,
         )
+
         sentry_apps.Destroyer.run(sentry_app=sentry_app)
+
         response = self.client.put(
             self.url,
             data={'name': sentry_app.name},
