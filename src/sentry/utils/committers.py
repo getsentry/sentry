@@ -39,17 +39,11 @@ def score_path_match_length(path_a, path_b):
 
 def _get_frame_paths(event):
     data = event.data
-    frames = (
-        get_path(data, 'stacktrace', 'frames', filter=True)
-        or get_path(data, 'exception', 'values', filter=True)
-    )
+    frames = get_path(data, 'stacktrace', 'frames', filter=True)
+    if frames:
+        return frames
 
-    if not frames:
-        return []
-
-    return get_path(
-        frames, 0, 'stacktrace', 'frames', filter=True
-    )
+    return get_path(data, 'exception', 'values', 0, 'stacktrace', 'frames', filter=True) or []
 
 
 def _get_commits(releases):
