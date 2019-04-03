@@ -7,7 +7,7 @@ import uuid
 
 from enum import Enum
 
-from sentry.testutils import TestCase
+from unittest import TestCase
 from sentry.utils import json
 
 
