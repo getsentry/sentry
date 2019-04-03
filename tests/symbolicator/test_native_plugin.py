@@ -3,8 +3,8 @@ from __future__ import absolute_import
 import os
 import pytest
 import zipfile
-
 from mock import patch
+
 from six import BytesIO
 
 from django.conf import settings
@@ -16,6 +16,7 @@ from sentry.lang.native.symbolizer import Symbolizer
 from sentry.models import Event, EventAttachment, File, ProjectDebugFile
 
 from symbolic import parse_addr, SymbolicError, SymCache
+
 
 REAL_RESOLVING_EVENT_DATA = {
     "platform": "cocoa",
@@ -1121,6 +1122,7 @@ class ResolvingIntegrationTestBase(object):
         assert resp.status_code == 200
 
         event = Event.objects.get()
+        assert event.data['culprit'] == 'main'
         snapshot_data = dict(event.data)
         del snapshot_data['event_id']
         del snapshot_data['timestamp']
@@ -1195,6 +1197,7 @@ class ResolvingIntegrationTestBase(object):
         assert resp.status_code == 200
 
         event = Event.objects.get()
+        assert event.data['culprit'] == 'main'
         snapshot_data = dict(event.data)
         del snapshot_data['event_id']
         del snapshot_data['timestamp']
@@ -1210,6 +1213,7 @@ class ResolvingIntegrationTestBase(object):
         assert resp.status_code == 200
 
         event = Event.objects.get()
+        assert event.data['culprit'] == 'unknown'
         snapshot_data = dict(event.data)
         del snapshot_data['event_id']
         del snapshot_data['timestamp']
@@ -1317,18 +1321,11 @@ class SymbolicResolvingIntegrationTest(ResolvingIntegrationTestBase, TestCase):
 
 class SymbolicatorResolvingIntegrationTest(ResolvingIntegrationTestBase, TransactionTestCase):
     @pytest.fixture(autouse=True)
-    def initialize(self, live_server, monkeypatch, betamax_recorder):
-        self.live_server = live_server
-        self.monkeypatch = monkeypatch
-        self.betamax_recorder = betamax_recorder
-
-        monkeypatch.setattr('sentry.lang.native.symbolicator.Session',
-                            lambda: betamax_recorder.session)
-        monkeypatch.setattr('sentry.lang.native.plugin._is_symbolicator_enabled',
-                            lambda _: True)
-
+    def initialize(self, live_server):
         with patch('sentry.lang.native.symbolizer.Symbolizer._symbolize_app_frame') \
-                as symbolize_app_frame, \
+            as symbolize_app_frame, \
+                patch('sentry.lang.native.plugin._is_symbolicator_enabled', return_value=True), \
+                patch('sentry.auth.system.is_internal_ip', return_value=True), \
                 self.options({"system.url-prefix": live_server.url}):
 
             # Run test case:
@@ -1336,11 +1333,6 @@ class SymbolicatorResolvingIntegrationTest(ResolvingIntegrationTestBase, Transac
 
             # Teardown:
             assert not symbolize_app_frame.called
-
-    def test_real_resolving_with_multiple_requests(self):
-        self.monkeypatch.setattr('sentry.lang.native.symbolicator.SYMBOLICATOR_TIMEOUT', 0)
-        self.test_real_resolving()
-        assert len(self.betamax_recorder.current_cassette.interactions) > 2
 
 
 class ExceptionMechanismIntegrationTest(TestCase):

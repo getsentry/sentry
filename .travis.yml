@@ -243,6 +243,23 @@ matrix:
         - nvm install
         - npm install -g "yarn@${YARN_VERSION}"
 
+    - python: 2.7
+      name: 'Symbolicator Integration'
+      env: TEST_SUITE=symbolicator
+      services:
+        - docker
+        - memcached
+        - redis-server
+        - postgresql
+      before_install:
+        - docker run -d --network host --name symbolicator us.gcr.io/sentryio/symbolicator:088c09f8b1c00bdb8e0009a985f6a0d4abd9b372 run
+        - docker ps -a
+      install:
+        - python setup.py install_egg_info
+        - pip install -e ".[dev,tests,optional]"
+      before_script:
+        - psql -c 'create database sentry;' -U postgres
+
     # snuba in testing
     - python: 2.7
       name: 'Snuba Integration'
