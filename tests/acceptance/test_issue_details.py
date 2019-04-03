@@ -6,16 +6,13 @@ from datetime import datetime
 from django.conf import settings
 from django.utils import timezone
 
-from sentry.testutils import AcceptanceTestCase, SnubaTestMixin
-from sentry.testutils.skips import requires_snuba
+from sentry.testutils import AcceptanceTestCase, SnubaTestCase
 from sentry.utils.samples import load_data
 
 
-@requires_snuba
-class IssueDetailsTest(SnubaTestMixin, AcceptanceTestCase):
+class IssueDetailsTest(AcceptanceTestCase, SnubaTestCase):
     def setUp(self):
         super(IssueDetailsTest, self).setUp()
-        self.init_snuba()
         self.user = self.create_user('foo@example.com')
         self.org = self.create_organization(owner=self.user, name='Rowdy Tiger')
         self.team = self.create_team(organization=self.org, name='Mariachi Band')

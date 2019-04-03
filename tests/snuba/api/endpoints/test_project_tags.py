@@ -7,16 +7,13 @@ from django.utils import timezone
 
 from sentry.testutils import (
     APITestCase,
-    SnubaTestMixin,
+    SnubaTestCase,
 )
-from sentry.testutils.skips import requires_snuba
 
 
-@requires_snuba
-class ProjectTagsTest(SnubaTestMixin, APITestCase):
+class ProjectTagsTest(APITestCase, SnubaTestCase):
     def setUp(self):
         super(ProjectTagsTest, self).setUp()
-        self.init_snuba()
         self.min_ago = timezone.now() - timedelta(minutes=1)
 
     def test_simple(self):

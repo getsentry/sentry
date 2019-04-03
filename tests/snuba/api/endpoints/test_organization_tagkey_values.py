@@ -5,17 +5,14 @@ from django.utils import timezone
 from django.core.urlresolvers import reverse
 from exam import fixture
 
-from sentry.testutils import APITestCase, SnubaTestMixin
-from sentry.testutils.skips import requires_snuba
+from sentry.testutils import APITestCase, SnubaTestCase
 
 
-@requires_snuba
-class OrganizationTagKeyValuesTest(SnubaTestMixin, APITestCase):
+class OrganizationTagKeyValuesTest(APITestCase, SnubaTestCase):
     endpoint = 'sentry-api-0-organization-tagkey-values'
 
     def setUp(self):
         super(OrganizationTagKeyValuesTest, self).setUp()
-        self.init_snuba()
         self.min_ago = timezone.now() - timedelta(minutes=1)
         self.day_ago = timezone.now() - timedelta(days=1)
         user = self.create_user()

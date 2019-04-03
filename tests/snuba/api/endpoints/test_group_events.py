@@ -7,12 +7,10 @@ from django.utils import timezone
 from freezegun import freeze_time
 
 from sentry import options
-from sentry.testutils import APITestCase, SnubaTestMixin
-from sentry.testutils.skips import requires_snuba
+from sentry.testutils import APITestCase, SnubaTestCase
 
 
-@requires_snuba
-class GroupEventsTest(SnubaTestMixin, APITestCase):
+class GroupEventsTest(APITestCase, SnubaTestCase):
     """
     This is more or less an exact copy of the tests under:
 
@@ -23,8 +21,8 @@ class GroupEventsTest(SnubaTestMixin, APITestCase):
     """
 
     def setUp(self):
+        print('group events')
         super(GroupEventsTest, self).setUp()
-        self.init_snuba()
         self.min_ago = timezone.now() - timedelta(minutes=1)
         options.set('snuba.events-queries.enabled', True)
 

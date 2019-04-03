@@ -4,15 +4,12 @@ from datetime import timedelta
 from django.utils import timezone
 from django.core.urlresolvers import reverse
 
-from sentry.testutils import APITestCase, SnubaTestMixin
-from sentry.testutils.skips import requires_snuba
+from sentry.testutils import APITestCase, SnubaTestCase
 
 
-@requires_snuba
-class OrganizationTagsTest(SnubaTestMixin, APITestCase):
+class OrganizationTagsTest(APITestCase, SnubaTestCase):
     def setUp(self):
         super(OrganizationTagsTest, self).setUp()
-        self.init_snuba()
         self.min_ago = timezone.now() - timedelta(minutes=1)
 
     def test_simple(self):

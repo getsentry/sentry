@@ -2,14 +2,13 @@ from __future__ import absolute_import
 
 from django.utils import timezone
 
-from sentry.testutils import AcceptanceTestCase, SnubaTestMixin
-from sentry.testutils.skips import requires_snuba
+from sentry.testutils import AcceptanceTestCase, SnubaTestCase
 from sentry.models import GroupAssignee, Release, Environment, Deploy, ReleaseProjectEnvironment, OrganizationOnboardingTask, OnboardingTask, OnboardingTaskStatus
 from sentry.utils.samples import load_data
 from datetime import datetime
 
 
-class DashboardTest(SnubaTestMixin, AcceptanceTestCase):
+class DashboardTest(AcceptanceTestCase, SnubaTestCase):
     def setUp(self):
         super(DashboardTest, self).setUp()
         self.user = self.create_user('foo@example.com')
@@ -65,7 +64,6 @@ class DashboardTest(SnubaTestMixin, AcceptanceTestCase):
         self.browser.wait_until('[data-test-id="awaiting-events"]')
         self.browser.snapshot('org dash no issues')
 
-    @requires_snuba
     def test_one_issue(self):
         self.init_snuba()
 

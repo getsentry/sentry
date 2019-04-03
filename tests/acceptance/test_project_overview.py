@@ -6,15 +6,12 @@ from datetime import datetime
 from django.utils import timezone
 from mock import patch
 
-from sentry.testutils import AcceptanceTestCase, SnubaTestMixin
-from sentry.testutils.skips import requires_snuba
+from sentry.testutils import AcceptanceTestCase, SnubaTestCase
 
 
-@requires_snuba
-class ProjectOverviewTest(SnubaTestMixin, AcceptanceTestCase):
+class ProjectOverviewTest(AcceptanceTestCase, SnubaTestCase):
     def setUp(self):
         super(ProjectOverviewTest, self).setUp()
-        self.init_snuba()
         self.user = self.create_user('foo@example.com')
         self.org = self.create_organization(
             owner=self.user, name='Rowdy Tiger')

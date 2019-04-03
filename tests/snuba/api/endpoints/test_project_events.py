@@ -5,15 +5,12 @@ from django.utils import timezone
 from django.core.urlresolvers import reverse
 
 from sentry import options
-from sentry.testutils import APITestCase, SnubaTestMixin
-from sentry.testutils.skips import requires_snuba
+from sentry.testutils import APITestCase, SnubaTestCase
 
 
-@requires_snuba
-class ProjectEventsTest(SnubaTestMixin, APITestCase):
+class ProjectEventsTest(APITestCase, SnubaTestCase):
     def setUp(self):
         super(ProjectEventsTest, self).setUp()
-        self.init_snuba()
         self.min_ago = timezone.now() - timedelta(minutes=1)
         options.set('snuba.events-queries.enabled', True)
 

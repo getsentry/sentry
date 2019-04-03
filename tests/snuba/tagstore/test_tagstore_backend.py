@@ -18,15 +18,12 @@ from sentry.tagstore.exceptions import (
     TagValueNotFound,
 )
 from sentry.tagstore.snuba.backend import SnubaTagStorage
-from sentry.testutils import SnubaTestMixin, TestCase
-from sentry.testutils.skips import requires_snuba
+from sentry.testutils import SnubaTestCase, TestCase
 
 
-@requires_snuba
-class TagStorageTest(SnubaTestMixin, TestCase):
+class TagStorageTest(TestCase, SnubaTestCase):
     def setUp(self):
         super(TagStorageTest, self).setUp()
-        self.init_snuba()
 
         self.ts = SnubaTagStorage()
 

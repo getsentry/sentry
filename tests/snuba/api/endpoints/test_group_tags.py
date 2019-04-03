@@ -2,16 +2,10 @@ from __future__ import absolute_import
 
 from datetime import timedelta
 from django.utils import timezone
-from sentry.testutils import APITestCase, SnubaTestMixin
-from sentry.testutils.skips import requires_snuba
+from sentry.testutils import APITestCase, SnubaTestCase
 
 
-@requires_snuba
-class GroupTagsTest(SnubaTestMixin, APITestCase):
-    def setUp(self):
-        super(GroupTagsTest, self).setUp()
-        self.init_snuba()
-
+class GroupTagsTest(APITestCase, SnubaTestCase):
     def test_multi_env(self):
         now = timezone.now()
         min_ago = now - timedelta(minutes=1)

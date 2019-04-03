@@ -2,16 +2,13 @@ from __future__ import absolute_import
 
 from datetime import datetime, timedelta
 
-from sentry.testutils import APITestCase, SnubaTestMixin
-from sentry.testutils.skips import requires_snuba
+from sentry.testutils import APITestCase, SnubaTestCase
 from django.core.urlresolvers import reverse
 
 
-@requires_snuba
-class OrganizationDiscoverQueryTest(SnubaTestMixin, APITestCase):
+class OrganizationDiscoverQueryTest(APITestCase, SnubaTestCase):
     def setUp(self):
         super(OrganizationDiscoverQueryTest, self).setUp()
-        self.init_snuba()
 
         self.now = datetime.now()
         one_second_ago = self.now - timedelta(seconds=1)

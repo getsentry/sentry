@@ -16,15 +16,12 @@ from sentry.models import (
     Group, Environment, GroupEnvironment, GroupLink, GroupResolution, GroupSnooze, GroupStatus,
     GroupSubscription, UserOption, UserOptionValue
 )
-from sentry.testutils import APITestCase, SnubaTestMixin
-from sentry.testutils.skips import requires_snuba
+from sentry.testutils import APITestCase, SnubaTestCase
 
 
-@requires_snuba
-class GroupSerializerSnubaTest(SnubaTestMixin, APITestCase):
+class GroupSerializerSnubaTest(APITestCase, SnubaTestCase):
     def setUp(self):
         super(GroupSerializerSnubaTest, self).setUp()
-        self.init_snuba()
         self.min_ago = timezone.now() - timedelta(minutes=1)
         self.day_ago = timezone.now() - timedelta(days=1)
         self.week_ago = timezone.now() - timedelta(days=7)
@@ -366,11 +363,7 @@ class GroupSerializerSnubaTest(SnubaTestMixin, APITestCase):
         assert result['count'] == '1'
 
 
-class StreamGroupSerializerTestCase(SnubaTestMixin, APITestCase):
-    def setUp(self):
-        super(StreamGroupSerializerTestCase, self).setUp()
-        self.init_snuba()
-
+class StreamGroupSerializerTestCase(APITestCase, SnubaTestCase):
     def test_environment(self):
         group = self.group
 

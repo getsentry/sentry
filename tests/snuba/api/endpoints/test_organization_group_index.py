@@ -15,18 +15,15 @@ from sentry.models import (
     GroupStatus, GroupResolution, GroupSubscription, GroupTombstone, Integration,
     OrganizationIntegration, UserOption, Release
 )
-from sentry.testutils import APITestCase, SnubaTestMixin
+from sentry.testutils import APITestCase, SnubaTestCase
 from sentry.testutils.helpers import parse_link_header
-from sentry.testutils.skips import requires_snuba
 
 
-@requires_snuba
-class GroupListTest(SnubaTestMixin, APITestCase):
+class GroupListTest(APITestCase, SnubaTestCase):
     endpoint = 'sentry-api-0-organization-group-index'
 
     def setUp(self):
         super(GroupListTest, self).setUp()
-        self.init_snuba()
         self.min_ago = timezone.now() - timedelta(minutes=1)
 
     def _parse_links(self, header):
@@ -430,14 +427,12 @@ class GroupListTest(SnubaTestMixin, APITestCase):
         assert response.status_code == 200, response.data
 
 
-@requires_snuba
-class GroupUpdateTest(SnubaTestMixin, APITestCase):
+class GroupUpdateTest(APITestCase, SnubaTestCase):
     endpoint = 'sentry-api-0-organization-group-index'
     method = 'put'
 
     def setUp(self):
         super(GroupUpdateTest, self).setUp()
-        self.init_snuba()
         self.min_ago = timezone.now() - timedelta(minutes=1)
 
     def get_response(self, *args, **kwargs):
@@ -1613,13 +1608,12 @@ class GroupUpdateTest(SnubaTestMixin, APITestCase):
         assert tombstone.data == group1.data
 
 
-class GroupDeleteTest(SnubaTestMixin, APITestCase):
+class GroupDeleteTest(APITestCase, SnubaTestCase):
     endpoint = 'sentry-api-0-organization-group-index'
     method = 'delete'
 
     def setUp(self):
         super(GroupDeleteTest, self).setUp()
-        self.init_snuba()
 
     def get_response(self, *args, **kwargs):
         if not args:

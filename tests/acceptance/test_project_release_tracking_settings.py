@@ -1,10 +1,9 @@
 from __future__ import absolute_import
 
-from sentry.testutils import AcceptanceTestCase, SnubaTestMixin
-from sentry.testutils.skips import requires_snuba
+from sentry.testutils import AcceptanceTestCase, SnubaTestCase
 
 
-class ProjectReleaseTrackingSettingsTest(SnubaTestMixin, AcceptanceTestCase):
+class ProjectReleaseTrackingSettingsTest(AcceptanceTestCase, SnubaTestCase):
     def setUp(self):
         super(ProjectReleaseTrackingSettingsTest, self).setUp()
         self.user = self.create_user('foo@example.com')
@@ -28,9 +27,7 @@ class ProjectReleaseTrackingSettingsTest(SnubaTestMixin, AcceptanceTestCase):
         self.login_as(self.user)
         self.path1 = u'/{}/{}/settings/release-tracking/'.format(self.org.slug, self.project.slug)
 
-    @requires_snuba
     def test_tags_list(self):
-        self.init_snuba()
         self.store_event(
             data={
                 'event_id': 'a' * 32,

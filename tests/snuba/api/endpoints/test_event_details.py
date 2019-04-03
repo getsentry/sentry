@@ -7,15 +7,12 @@ from django.utils import timezone
 from django.core.urlresolvers import reverse
 
 from sentry.models import UserReport, Group
-from sentry.testutils import APITestCase, SnubaTestMixin
-from sentry.testutils.skips import requires_snuba
+from sentry.testutils import APITestCase, SnubaTestCase
 
 
-@requires_snuba
-class EventDetailsTest(SnubaTestMixin, APITestCase):
+class EventDetailsTest(APITestCase, SnubaTestCase):
     def setUp(self):
         super(EventDetailsTest, self).setUp()
-        self.init_snuba()
         self.project = self.create_project()
         self.min_ago = (timezone.now() - timedelta(minutes=1)).isoformat()[:19]
         self.two_min_ago = (timezone.now() - timedelta(minutes=2)).isoformat()[:19]

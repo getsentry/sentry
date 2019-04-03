@@ -11,7 +11,7 @@ from __future__ import absolute_import
 __all__ = (
     'TestCase', 'TransactionTestCase', 'APITestCase', 'TwoFactorAPITestCase', 'AuthProviderTestCase', 'RuleTestCase',
     'PermissionTestCase', 'PluginTestCase', 'CliTestCase', 'AcceptanceTestCase',
-    'IntegrationTestCase', 'UserReportEnvironmentTestCase', 'SnubaTestMixin',
+    'IntegrationTestCase', 'UserReportEnvironmentTestCase', 'SnubaTestCase',
     'IntegrationRepositoryTestCase',
     'ReleaseCommitPatchTest', 'SetRefsTestCase', 'OrganizationDashboardWidgetTestCase'
 )
@@ -68,6 +68,7 @@ from sentry.utils.auth import SSO_SESSION_KEY
 
 from .fixtures import Fixtures
 from .factories import Factories
+from .skips import requires_snuba
 from .helpers import (
     AuthProvider, Feature, get_auth_header, TaskRunner, override_options, parse_queries
 )
@@ -833,12 +834,18 @@ class IntegrationTestCase(TestCase):
         assert 'window.opener.postMessage(' in resp.content
 
 
-class SnubaTestMixin(object):
+@pytest.mark.snuba
+@requires_snuba
+class SnubaTestCase(BaseTestCase):
     """
     Mixin for enabling test case classes to talk to snuba
     Useful when you are working on acceptance tests or integration
     tests that require snuba.
     """
+
+    def setUp(self):
+        super(SnubaTestCase, self).setUp()
+        self.init_snuba()
 
     def init_snuba(self):
         self.snuba_eventstream = SnubaEventStream()

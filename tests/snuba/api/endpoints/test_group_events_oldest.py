@@ -7,15 +7,12 @@ from django.utils import timezone
 
 from sentry import options
 from sentry.models import Group
-from sentry.testutils import APITestCase, SnubaTestMixin
-from sentry.testutils.skips import requires_snuba
+from sentry.testutils import APITestCase, SnubaTestCase
 
 
-@requires_snuba
-class GroupEventsOldestTest(SnubaTestMixin, APITestCase):
+class GroupEventsOldestTest(APITestCase, SnubaTestCase):
     def setUp(self):
         super(GroupEventsOldestTest, self).setUp()
-        self.init_snuba()
         self.login_as(user=self.user)
 
         project = self.create_project()

@@ -5,17 +5,11 @@ import pytest
 import time
 import uuid
 
-from sentry.testutils import SnubaTestMixin, TestCase
-from sentry.testutils.skips import requires_snuba
+from sentry.testutils import SnubaTestCase, TestCase
 from sentry.utils import snuba
 
 
-@requires_snuba
-class SnubaTest(SnubaTestMixin, TestCase):
-    def setUp(self):
-        super(SnubaTest, self).setUp()
-        self.init_snuba()
-
+class SnubaTest(TestCase, SnubaTestCase):
     def _insert_event_for_time(self, ts, hash='a' * 32, group_id=None):
         self.snuba_insert({
             'event_id': uuid.uuid4().hex,
