@@ -13,7 +13,6 @@ from django.core.files.uploadedfile import SimpleUploadedFile
 
 from sentry.testutils import TestCase, TransactionTestCase
 from sentry.lang.native.symbolizer import Symbolizer
-from sentry.lang.native import symbolicator
 from sentry.models import Event, EventAttachment, File, ProjectDebugFile
 
 from symbolic import parse_addr, SymbolicError, SymCache
@@ -1334,17 +1333,6 @@ class SymbolicatorResolvingIntegrationTest(ResolvingIntegrationTestBase, Transac
 
             # Teardown:
             assert not symbolize_app_frame.called
-
-    @patch('sentry.lang.native.symbolicator.SYMBOLICATOR_TIMEOUT', 0)
-    @patch('sentry.lang.native.symbolicator._create_symbolication_task',
-           wraps=symbolicator._create_symbolication_task)
-    @patch('sentry.lang.native.symbolicator._poll_symbolication_task',
-           wraps=symbolicator._poll_symbolication_task)
-    def test_real_resolving_with_multiple_requests(self, create_fn, poll_fn):
-        self.test_real_resolving()
-
-        assert poll_fn.called
-        assert create_fn.called
 
 
 class ExceptionMechanismIntegrationTest(TestCase):
