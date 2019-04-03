@@ -36,6 +36,7 @@ env:
     # node's version is pinned by .nvmrc and is autodetected by `nvm install`.
     - NODE_DIR="${HOME}/.nvm/versions/node/v$(< .nvmrc)"
     - YARN_VERSION="1.13.0"
+
 script:
   # certain commands require sentry init to be run, but this is only true for
   # running things within Travis
@@ -43,16 +44,20 @@ script:
   - make travis-scan-$TEST_SUITE
   # installing dependencies for after_* steps here ensures they get cached
   # since those steps execute after travis runs `store build cache`
-  - pip install codecov
-  - npm install -g @zeus-ci/cli
 
 after_success:
-  - codecov -e TEST_SUITE
+  - |
+      coverage_files=$(ls .artifacts/*coverage.xml || true)
+      if [[ -n "$coverage_files" || -f .artifacts/coverage/cobertura-coverage.xml ]]; then
+        pip install codecov
+        codecov -e TEST_SUITE
+      fi
 
 after_failure:
   - dmesg | tail -n 100
 
 after_script:
+  - npm install -g @zeus-ci/cli
   - zeus upload -t "text/xml+xunit" .artifacts/*junit.xml
   - zeus upload -t "text/xml+coverage" .artifacts/*coverage.xml
   - zeus upload -t "text/xml+coverage" .artifacts/coverage/cobertura-coverage.xml
