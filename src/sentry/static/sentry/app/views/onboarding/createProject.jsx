@@ -172,7 +172,7 @@ class CreateProject extends React.Component {
                   clearable={false}
                   value={team}
                   placeholder={t('Select a Team')}
-                  onChange={val => this.setState({team: val})}
+                  onChange={choice => this.setState({team: choice.value})}
                   options={teams.map(({slug}) => ({
                     label: `#${slug}`,
                     value: slug,
