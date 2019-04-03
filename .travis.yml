@@ -251,7 +251,7 @@ matrix:
         - redis-server
         - postgresql
       before_install:
-        - docker run -d --network host --name symbolicator us.gcr.io/sentryio/symbolicator:latest
+        - docker run -d --network host --name symbolicator us.gcr.io/sentryio/symbolicator:latest run
         - docker ps -a
       install:
         - python setup.py install_egg_info
