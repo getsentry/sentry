@@ -16,6 +16,7 @@ from django.conf import settings
 from sentry import features
 from sentry.utils import snuba
 from sentry.utils.cache import cache
+from sentry.exceptions import PluginError
 from sentry.plugins import plugins
 from sentry.signals import event_processed
 from sentry.tasks.sentry_apps import process_resource_change_bound
@@ -201,7 +202,12 @@ def plugin_post_process_group(plugin_slug, event, **kwargs):
         scope.set_tag("project", event.project_id)
 
     plugin = plugins.get(plugin_slug)
-    safe_execute(plugin.post_process, event=event, group=event.group, **kwargs)
+    safe_execute(
+        plugin.post_process,
+        event=event,
+        group=event.group,
+        expected_errors=(PluginError,),
+        **kwargs)
 
 
 @instrumented_task(
