@@ -244,6 +244,7 @@ matrix:
         - npm install -g "yarn@${YARN_VERSION}"
 
     - python: 2.7
+      name: 'Symbolicator Integration'
       env: TEST_SUITE=symbolicator
       services:
         - docker
