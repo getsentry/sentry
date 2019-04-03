@@ -14,7 +14,9 @@ export function logAjaxError(error, context) {
   const resp = error instanceof Error ? error.resp : error;
   const errorString = resp.responseJSON
     ? resp.responseJSON.detail || JSON.stringify(resp.responseJSON, null, 2)
-    : resp.responseText ? resp.responseText.substr(0, 255) : '<unknown response>'; // occassionally responseText is undefined
+    : resp.responseText
+    ? resp.responseText.substr(0, 255)
+    : '<unknown response>'; // occassionally responseText is undefined
 
   const message = `HTTP ${resp.status}: ${errorString}`;
   Sentry.withScope(scope => {

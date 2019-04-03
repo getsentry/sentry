@@ -183,10 +183,10 @@ const TeamMembers = createReactClass({
   },
 
   /**
- * We perform an API request to support orgs with > 100 members (since that's the max API returns)
- *
- * @param {Event} e React Event when member filter input changes
- */
+   * We perform an API request to support orgs with > 100 members (since that's the max API returns)
+   *
+   * @param {Event} e React Event when member filter input changes
+   */
   handleMemberFilterChange(e) {
     this.setState({dropdownBusy: true});
     this.debouncedFetchMembersRequest(e.target.value);

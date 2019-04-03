@@ -67,11 +67,10 @@ class RuleBuilder extends React.Component {
     }
 
     const ownerText = owners
-      .map(
-        owner =>
-          owner.actor.type === 'team'
-            ? `#${owner.actor.name}`
-            : memberListStore.getById(owner.actor.id).email
+      .map(owner =>
+        owner.actor.type === 'team'
+          ? `#${owner.actor.name}`
+          : memberListStore.getById(owner.actor.id).email
       )
       .join(' ');
 

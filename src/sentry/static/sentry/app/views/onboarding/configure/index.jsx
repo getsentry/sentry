@@ -158,7 +158,8 @@ const Configure = createReactClass({
                 }}
                 params={this.props.params}
                 linkPath={(_orgId, _projectId, _platform) =>
-                  `/onboarding/${_orgId}/${_projectId}/configure/${_platform}/`}
+                  `/onboarding/${_orgId}/${_projectId}/configure/${_platform}/`
+                }
               />
             </ProjectDocsContext>
           </ProjectContext>

@@ -34,7 +34,13 @@ const defaultFeatureGateComponents = {
       ungatedFeatures: p.features,
       gatedFeatureGroups: [],
     }),
-  FeatureList: p => <ul>{p.features.map((f, i) => <li key={i}>{f.description}</li>)}</ul>,
+  FeatureList: p => (
+    <ul>
+      {p.features.map((f, i) => (
+        <li key={i}>{f.description}</li>
+      ))}
+    </ul>
+  ),
 };
 
 class IntegrationDetailsModal extends React.Component {
@@ -99,19 +105,18 @@ class IntegrationDetailsModal extends React.Component {
           {...p}
         />
       )) ||
-      (!provider.canAdd &&
-        metadata.aspects.externalInstall && (
-          <Button
-            icon="icon-exit"
-            href={metadata.aspects.externalInstall.url}
-            onClick={closeModal}
-            external
-            {...buttonProps}
-            {...p}
-          >
-            {metadata.aspects.externalInstall.buttonText}
-          </Button>
-        ));
+      (!provider.canAdd && metadata.aspects.externalInstall && (
+        <Button
+          icon="icon-exit"
+          href={metadata.aspects.externalInstall.url}
+          onClick={closeModal}
+          external
+          {...buttonProps}
+          {...p}
+        >
+          {metadata.aspects.externalInstall.buttonText}
+        </Button>
+      ));
 
     // Prepare the features list
     const features = metadata.features.map(f => ({

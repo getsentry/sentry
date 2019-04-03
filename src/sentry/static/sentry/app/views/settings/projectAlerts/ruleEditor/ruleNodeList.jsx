@@ -38,10 +38,12 @@ class RuleNodeList extends React.Component {
           <SelectControl
             onChange={obj => this.props.handleAddRow(obj ? obj.value : obj)}
             style={{width: '100%'}}
-            options={this.props.nodes.filter(n => n.enabled).map(node => ({
-              value: node.id,
-              label: node.label,
-            }))}
+            options={this.props.nodes
+              .filter(n => n.enabled)
+              .map(node => ({
+                value: node.id,
+                label: node.label,
+              }))}
           />
         </fieldset>
       </div>

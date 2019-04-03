@@ -188,7 +188,8 @@ class CreateProject extends React.Component {
                       openCreateTeamModal({
                         organization,
                         onClose: ({slug}) => this.setState({team: slug}),
-                      })}
+                      })
+                    }
                   />
                 </Tooltip>
               </TeamSelectInput>

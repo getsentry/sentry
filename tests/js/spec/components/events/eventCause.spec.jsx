@@ -17,7 +17,9 @@ describe('EventCause', function() {
     project = TestStubs.Project();
     Client.addMockResponse({
       method: 'GET',
-      url: `/projects/${organization.slug}/${project.slug}/events/${event.id}/committers/`,
+      url: `/projects/${organization.slug}/${project.slug}/events/${
+        event.id
+      }/committers/`,
       body: {
         committers: [
           {

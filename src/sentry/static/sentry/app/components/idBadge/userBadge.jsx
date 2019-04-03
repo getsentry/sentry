@@ -87,9 +87,8 @@ const StyledEmail = styled('div')`
   ${overflowEllipsis};
 `;
 
-const StyledName = styled(
-  ({useLink, hideEmail, to, ...props}) =>
-    useLink ? <Link to={to} {...props} /> : <span {...props} />
+const StyledName = styled(({useLink, hideEmail, to, ...props}) =>
+  useLink ? <Link to={to} {...props} /> : <span {...props} />
 )`
   font-weight: ${p => (p.hideEmail ? 'inherit' : 'bold')};
   line-height: 1.15em;

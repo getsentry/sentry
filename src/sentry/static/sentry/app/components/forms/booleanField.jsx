@@ -39,15 +39,11 @@ export default class BooleanField extends InputField {
           <label className="control-label">
             {this.getField()}
             {this.props.label}
-            {this.props.disabled &&
-              this.props.disabledReason && (
-                <span
-                  className="disabled-indicator tip"
-                  title={this.props.disabledReason}
-                >
-                  <span className="icon-question" />
-                </span>
-              )}
+            {this.props.disabled && this.props.disabledReason && (
+              <span className="disabled-indicator tip" title={this.props.disabledReason}>
+                <span className="icon-question" />
+              </span>
+            )}
           </label>
           {defined(this.props.help) && <p className="help-block">{this.props.help}</p>}
           {error && <p className="error">{error}</p>}

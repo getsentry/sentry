@@ -199,7 +199,8 @@ class ProjectFiltersSettings extends AsyncComponent {
     <Feature
       features={['projects:custom-inbound-filters']}
       renderDisabled={({children, ...props}) =>
-        children({...props, renderDisabled: this.renderDisabledCustomFilters})}
+        children({...props, renderDisabled: this.renderDisabledCustomFilters})
+      }
     >
       {({hasFeature, organization, renderDisabled, ...featureProps}) => (
         <React.Fragment>

@@ -92,8 +92,8 @@ export default class InstallWizard extends AsyncView {
             {this.state.loading
               ? this.renderLoading()
               : this.state.error
-                ? this.renderError(new Error('Unable to load all required endpoints'))
-                : this.renderBody()}
+              ? this.renderError(new Error('Unable to load all required endpoints'))
+              : this.renderBody()}
           </div>
         </div>
       </DocumentTitle>

@@ -77,8 +77,9 @@ class EventOrGroupExtraDetails extends React.Component {
                 <TimeSince date={lastSeen} suffix={t('ago')} />
               </React.Fragment>
             )}
-            {firstSeen &&
-              lastSeen && <span className="hidden-xs hidden-sm">&nbsp;—&nbsp;</span>}
+            {firstSeen && lastSeen && (
+              <span className="hidden-xs hidden-sm">&nbsp;—&nbsp;</span>
+            )}
             {firstSeen && (
               <TimeSince
                 date={firstSeen}
@@ -130,8 +131,9 @@ class EventOrGroupExtraDetails extends React.Component {
             );
           })}
 
-        {showAssignee &&
-          assignedTo && <div>{tct('Assigned to [name]', {name: assignedTo.name})}</div>}
+        {showAssignee && assignedTo && (
+          <div>{tct('Assigned to [name]', {name: assignedTo.name})}</div>
+        )}
       </GroupExtra>
     );
   }

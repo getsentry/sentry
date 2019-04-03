@@ -165,7 +165,8 @@ export default class ProjectServiceHooks extends AsyncView {
                 size="small"
                 priority="primary"
               >
-                <span className="icon-plus" />&nbsp;{t('Create New Hook')}
+                <span className="icon-plus" />
+                &nbsp;{t('Create New Hook')}
               </Button>
             ) : null
           }

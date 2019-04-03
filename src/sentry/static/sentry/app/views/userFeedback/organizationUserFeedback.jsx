@@ -23,7 +23,10 @@ class OrganizationUserFeedback extends AsyncView {
   };
 
   getEndpoints() {
-    const {organization, location: {search}} = this.props;
+    const {
+      organization,
+      location: {search},
+    } = this.props;
 
     return [
       [

@@ -257,13 +257,15 @@ class StackedBarChart extends React.Component {
       `<div class="time-label">${timeLabel}</div>` +
       '</div>';
     if (this.props.label) {
-      title += `<div class="value-label">${totalY.toLocaleString()} ${this.props
-        .label}</div>`;
+      title += `<div class="value-label">${totalY.toLocaleString()} ${
+        this.props.label
+      }</div>`;
     }
     point.y.forEach((y, i) => {
       const s = this.state.series[i];
       if (s.label) {
-        title += `<div><span style="color:${s.color}">${s.label}:</span> ${(y || 0
+        title += `<div><span style="color:${s.color}">${s.label}:</span> ${(
+          y || 0
         ).toLocaleString()}</div>`;
       }
     });
@@ -286,7 +288,7 @@ class StackedBarChart extends React.Component {
     let prevPct = 0;
     const pts = point.y.map((y, i) => {
       const pct = Math.max(
-        totalY && this.floatFormat(y / totalY * totalPct * maxPercentage, 2),
+        totalY && this.floatFormat((y / totalY) * totalPct * maxPercentage, 2),
         this.getMinHeight(i, point.y.length)
       );
 

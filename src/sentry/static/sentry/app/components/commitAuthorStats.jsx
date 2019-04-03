@@ -20,7 +20,7 @@ class CommitBar extends React.Component {
 
   render() {
     const barStyle = {};
-    barStyle.width = this.props.authorCommits / this.props.totalCommits * 100 + '%';
+    barStyle.width = (this.props.authorCommits / this.props.totalCommits) * 100 + '%';
 
     return <div className="commit-bar" style={barStyle} />;
   }

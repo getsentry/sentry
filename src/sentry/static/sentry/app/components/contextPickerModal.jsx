@@ -268,22 +268,20 @@ class ContextPickerModal extends React.Component {
               />
             )}
 
-            {latestContext.organization &&
-              needProject &&
-              projects && (
-                <StyledSelectControl
-                  innerRef={ref => {
-                    this.projectSelect = ref;
-                    this.focusProjectSelector();
-                  }}
-                  placeholder="Select a Project"
-                  name="project"
-                  value=""
-                  openOnFocus
-                  options={projects.map(({slug}) => ({label: slug, value: slug}))}
-                  onChange={this.handleSelectProject}
-                />
-              )}
+            {latestContext.organization && needProject && projects && (
+              <StyledSelectControl
+                innerRef={ref => {
+                  this.projectSelect = ref;
+                  this.focusProjectSelector();
+                }}
+                placeholder="Select a Project"
+                name="project"
+                value=""
+                openOnFocus
+                options={projects.map(({slug}) => ({label: slug, value: slug}))}
+                onChange={this.handleSelectProject}
+              />
+            )}
           </Body>
         </React.Fragment>
       </div>

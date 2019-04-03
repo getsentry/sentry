@@ -257,7 +257,8 @@ const OrganizationStatsContainer = createReactClass({
           component={() =>
             import(/* webpackChunkName: "organizationStats" */ './organizationStatsDetails').then(
               mod => mod.default
-            )}
+            )
+          }
           organization={organization}
           {...this.state}
         />

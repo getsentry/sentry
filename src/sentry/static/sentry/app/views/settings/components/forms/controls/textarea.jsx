@@ -6,13 +6,12 @@ import isPropValid from '@emotion/is-prop-valid';
 
 import {inputStyles} from 'app/styles/input';
 
-const TextAreaControl = React.forwardRef(
-  ({autosize, rows, ...p}, ref) =>
-    autosize ? (
-      <TextareaAutosize async innerRef={ref} rows={rows ? rows : 2} {...p} />
-    ) : (
-      <textarea ref={ref} {...p} />
-    )
+const TextAreaControl = React.forwardRef(({autosize, rows, ...p}, ref) =>
+  autosize ? (
+    <TextareaAutosize async innerRef={ref} rows={rows ? rows : 2} {...p} />
+  ) : (
+    <textarea ref={ref} {...p} />
+  )
 );
 
 TextAreaControl.propTypes = {

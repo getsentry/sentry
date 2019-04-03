@@ -22,7 +22,8 @@ const NewProject = ({organization}) => (
         <DocumentTitle title={'Sentry'} />
         <CreateProject
           nextStepUrl={({slug, projectSlug, platform}) =>
-            `/${slug}/${projectSlug}/getting-started/${platform}/`}
+            `/${slug}/${projectSlug}/getting-started/${platform}/`
+          }
         />
       </Content>
     </div>

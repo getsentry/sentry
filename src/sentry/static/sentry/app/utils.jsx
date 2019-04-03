@@ -148,7 +148,7 @@ export function escape(str) {
 }
 
 export function percent(value, totalValue, precise) {
-  return value / totalValue * 100;
+  return (value / totalValue) * 100;
 }
 
 export function toTitleCase(str) {

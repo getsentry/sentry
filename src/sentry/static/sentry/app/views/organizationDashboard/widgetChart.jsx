@@ -94,7 +94,8 @@ class WidgetChart extends React.Component {
               ...extra,
               ...chartData,
               series: [...chartData.series, ...releaseSeries],
-            })}
+            })
+          }
         </ReleaseSeries>
       );
     }

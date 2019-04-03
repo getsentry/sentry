@@ -14,9 +14,9 @@ const getMarginLeft = p => {
 
 const getBorder = p =>
   p.border
-    ? `border: 1px solid ${p.priority
-        ? p.theme.alert[p.priority].border
-        : p.theme.gray1};`
+    ? `border: 1px solid ${
+        p.priority ? p.theme.alert[p.priority].border : p.theme.gray1
+      };`
     : '';
 
 const TagTextStyled = styled(({priority, size, border, inline, ...props}) => (

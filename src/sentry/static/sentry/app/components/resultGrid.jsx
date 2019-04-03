@@ -369,14 +369,15 @@ const ResultGrid = createReactClass({
             {this.state.loading
               ? this.renderLoading()
               : this.state.error
-                ? this.renderError()
-                : this.state.rows.length === 0
-                  ? this.renderNoResults()
-                  : this.renderResults()}
+              ? this.renderError()
+              : this.state.rows.length === 0
+              ? this.renderNoResults()
+              : this.renderResults()}
           </tbody>
         </table>
-        {this.props.hasPagination &&
-          this.state.pageLinks && <Pagination pageLinks={this.state.pageLinks} />}
+        {this.props.hasPagination && this.state.pageLinks && (
+          <Pagination pageLinks={this.state.pageLinks} />
+        )}
       </div>
     );
   },

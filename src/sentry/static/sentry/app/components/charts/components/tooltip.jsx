@@ -63,9 +63,15 @@ function getFormatter({filter, isGroupedByDate, truncate, formatAxisLabel, utc})
   };
 }
 
-export default function Tooltip(
-  {filter, isGroupedByDate, formatter, truncate, utc, formatAxisLabel, ...props} = {}
-) {
+export default function Tooltip({
+  filter,
+  isGroupedByDate,
+  formatter,
+  truncate,
+  utc,
+  formatAxisLabel,
+  ...props
+} = {}) {
   formatter =
     formatter || getFormatter({filter, isGroupedByDate, truncate, utc, formatAxisLabel});
 

@@ -57,7 +57,10 @@ const TeamProjects = createReactClass({
   },
 
   fetchTeamProjects() {
-    const {location, params: {orgId, teamId}} = this.props;
+    const {
+      location,
+      params: {orgId, teamId},
+    } = this.props;
 
     this.setState({loading: true});
 
@@ -83,7 +86,9 @@ const TeamProjects = createReactClass({
   },
 
   fetchUnlinkedProjects(query) {
-    const {params: {orgId, teamId}} = this.props;
+    const {
+      params: {orgId, teamId},
+    } = this.props;
 
     this.api
       .requestPromise(`/organizations/${orgId}/projects/`, {

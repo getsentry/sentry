@@ -72,17 +72,16 @@ const GroupReleaseChart = createReactClass({
       `<dd>${intcomma(totalY)} event${totalY !== 1 ? 's' : ''}</dd>` +
       (environment
         ? '<dt class="environment"><span></span></dt>' +
-          `<dd>${intcomma(envPoints[point.x] || 0)} event${envPoints[point.x] !== 1
-            ? 's'
-            : ''}` +
+          `<dd>${intcomma(envPoints[point.x] || 0)} event${
+            envPoints[point.x] !== 1 ? 's' : ''
+          }` +
           `<small>in ${escape(environment)}</small></dd>`
         : '') +
       (release
         ? '<dt class="active"><span></span></dt>' +
-          `<dd>${intcomma(releasePoints[point.x] || 0)} event${releasePoints[point.x] !==
-          1
-            ? 's'
-            : ''}` +
+          `<dd>${intcomma(releasePoints[point.x] || 0)} event${
+            releasePoints[point.x] !== 1 ? 's' : ''
+          }` +
           `<small>in ${escape(release.version.substr(0, 12))}</small></dd>`
         : '') +
       '</dl>' +

@@ -114,33 +114,32 @@ class ProjectGeneralSettings extends AsyncView {
             'This project cannot be removed. It is used internally by the Sentry server.'
           )}
 
-        {isProjectAdmin &&
-          !isInternal && (
-            <Confirm
-              onConfirm={this.handleRemoveProject}
-              priority="danger"
-              title={t('Remove project?')}
-              confirmText={t('Remove project')}
-              message={
-                <div>
-                  <TextBlock>
-                    <strong>
-                      {t('Removing this project is permanent and cannot be undone!')}
-                    </strong>
-                  </TextBlock>
-                  <TextBlock>
-                    {t('This will also remove all associated event data.')}
-                  </TextBlock>
-                </div>
-              }
-            >
+        {isProjectAdmin && !isInternal && (
+          <Confirm
+            onConfirm={this.handleRemoveProject}
+            priority="danger"
+            title={t('Remove project?')}
+            confirmText={t('Remove project')}
+            message={
               <div>
-                <Button className="ref-remove-project" type="button" priority="danger">
-                  {t('Remove Project')}
-                </Button>
+                <TextBlock>
+                  <strong>
+                    {t('Removing this project is permanent and cannot be undone!')}
+                  </strong>
+                </TextBlock>
+                <TextBlock>
+                  {t('This will also remove all associated event data.')}
+                </TextBlock>
               </div>
-            </Confirm>
-          )}
+            }
+          >
+            <div>
+              <Button className="ref-remove-project" type="button" priority="danger">
+                {t('Remove Project')}
+              </Button>
+            </div>
+          </Confirm>
+        )}
       </Field>
     );
   }
@@ -171,58 +170,57 @@ class ProjectGeneralSettings extends AsyncView {
             'This project cannot be transferred. It is used internally by the Sentry server.'
           )}
 
-        {isProjectAdmin &&
-          !isInternal && (
-            <Confirm
-              onConfirm={this.handleTransferProject}
-              priority="danger"
-              title={`${t('Transfer project')}?`}
-              confirmText={t('Transfer project')}
-              renderMessage={({confirm}) => (
-                <div>
-                  <TextBlock>
-                    <strong>
-                      {t('Transferring this project is permanent and cannot be undone!')}
-                    </strong>
-                  </TextBlock>
-                  <TextBlock>
-                    {t(
-                      'Please enter the organization owner you would like to transfer this project to.'
-                    )}
-                  </TextBlock>
-                  <Panel>
-                    <Form
-                      hideFooter
-                      onFieldChange={this.handleTransferFieldChange}
-                      onSubmit={(data, onSuccess, onError, e) => {
-                        e.stopPropagation();
-                        confirm();
-                      }}
-                    >
-                      <TextField
-                        name="email"
-                        label={t('Organization Owner')}
-                        placeholder="admin@example.com"
-                        required
-                        help={tct(
-                          'A request will be emailed to the new owner in order to transfer [project] to a new organization.',
-                          {
-                            project: <strong> {project.slug} </strong>,
-                          }
-                        )}
-                      />
-                    </Form>
-                  </Panel>
-                </div>
-              )}
-            >
+        {isProjectAdmin && !isInternal && (
+          <Confirm
+            onConfirm={this.handleTransferProject}
+            priority="danger"
+            title={`${t('Transfer project')}?`}
+            confirmText={t('Transfer project')}
+            renderMessage={({confirm}) => (
               <div>
-                <Button className="ref-transfer-project" type="button" priority="danger">
-                  {t('Transfer Project')}
-                </Button>
+                <TextBlock>
+                  <strong>
+                    {t('Transferring this project is permanent and cannot be undone!')}
+                  </strong>
+                </TextBlock>
+                <TextBlock>
+                  {t(
+                    'Please enter the organization owner you would like to transfer this project to.'
+                  )}
+                </TextBlock>
+                <Panel>
+                  <Form
+                    hideFooter
+                    onFieldChange={this.handleTransferFieldChange}
+                    onSubmit={(data, onSuccess, onError, e) => {
+                      e.stopPropagation();
+                      confirm();
+                    }}
+                  >
+                    <TextField
+                      name="email"
+                      label={t('Organization Owner')}
+                      placeholder="admin@example.com"
+                      required
+                      help={tct(
+                        'A request will be emailed to the new owner in order to transfer [project] to a new organization.',
+                        {
+                          project: <strong> {project.slug} </strong>,
+                        }
+                      )}
+                    />
+                  </Form>
+                </Panel>
               </div>
-            </Confirm>
-          )}
+            )}
+          >
+            <div>
+              <Button className="ref-transfer-project" type="button" priority="danger">
+                {t('Transfer Project')}
+              </Button>
+            </div>
+          </Confirm>
+        )}
       </Field>
     );
   }

@@ -195,7 +195,8 @@ export default class IgnoreActions extends React.Component {
                                   this.onIgnore({
                                     ignoreCount: count,
                                     ignoreWindow: hours,
-                                  })}
+                                  })
+                                }
                               >
                                 {label}
                               </ActionLink>
@@ -245,7 +246,8 @@ export default class IgnoreActions extends React.Component {
                                   this.onIgnore({
                                     ignoreUserCount: count,
                                     ignoreUserWindow: hours,
-                                  })}
+                                  })
+                                }
                               >
                                 {label}
                               </ActionLink>

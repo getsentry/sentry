@@ -88,7 +88,10 @@ class OrganizationReleases extends AsyncView {
 
   // Returns true if there has been a release in any selected project, otherwise false
   hasAnyRelease() {
-    const {organization: {projects}, selection} = this.props;
+    const {
+      organization: {projects},
+      selection,
+    } = this.props;
     const projectIds = new Set(selection.projects);
     const activeProjects = projects.filter(project =>
       projectIds.has(parseInt(project.id, 10))

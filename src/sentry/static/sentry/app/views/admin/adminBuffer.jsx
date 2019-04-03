@@ -30,9 +30,8 @@ export default class AdminBuffer extends React.Component {
             <p>
               Sentry buffers are responsible for making changes to cardinality counters —
               such as an issues event count — as well as updating attributes like{' '}
-              <em>last seen</em>
-              . These are flushed on a regularly interval, and are directly affected by
-              the queue backlog.
+              <em>last seen</em>. These are flushed on a regularly interval, and are
+              directly affected by the queue backlog.
             </p>
           </div>
         </div>

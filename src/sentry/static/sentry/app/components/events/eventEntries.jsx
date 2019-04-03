@@ -155,10 +155,9 @@ class EventEntries extends React.Component {
         {!utils.objectIsEmpty(event.errors) && (
           <EventErrors group={group} event={event} />
         )}{' '}
-        {!isShare &&
-          features.has('suggested-commits') && (
-            <EventCause event={event} orgId={orgId} projectId={project.slug} />
-          )}
+        {!isShare && features.has('suggested-commits') && (
+          <EventCause event={event} orgId={orgId} projectId={project.slug} />
+        )}
         {event.userReport && (
           <EventUserFeedback
             report={event.userReport}
@@ -186,30 +185,27 @@ class EventEntries extends React.Component {
         {!utils.objectIsEmpty(event.device) && (
           <EventDevice group={group} event={event} />
         )}
-        {!isShare &&
-          features.has('event-attachments') && (
-            <EventAttachments event={event} orgId={orgId} projectId={project.slug} />
-          )}
+        {!isShare && features.has('event-attachments') && (
+          <EventAttachments event={event} orgId={orgId} projectId={project.slug} />
+        )}
         {!utils.objectIsEmpty(event.sdk) && <EventSdk group={group} event={event} />}
-        {!utils.objectIsEmpty(event.sdk) &&
-          event.sdk.upstream.isNewer && (
-            <div className="alert-block alert-info box">
-              <span className="icon-exclamation" />
-              {t(
-                'This event was reported with an old version of the %s SDK.',
-                event.platform
-              )}
-              {event.sdk.upstream.url && (
-                <a href={event.sdk.upstream.url} className="btn btn-sm btn-default">
-                  {t('Learn More')}
-                </a>
-              )}
-            </div>
-          )}{' '}
-        {!isShare &&
-          features.has('grouping-info') && (
-            <EventGroupingInfo group={group} event={event} />
-          )}
+        {!utils.objectIsEmpty(event.sdk) && event.sdk.upstream.isNewer && (
+          <div className="alert-block alert-info box">
+            <span className="icon-exclamation" />
+            {t(
+              'This event was reported with an old version of the %s SDK.',
+              event.platform
+            )}
+            {event.sdk.upstream.url && (
+              <a href={event.sdk.upstream.url} className="btn btn-sm btn-default">
+                {t('Learn More')}
+              </a>
+            )}
+          </div>
+        )}{' '}
+        {!isShare && features.has('grouping-info') && (
+          <EventGroupingInfo group={group} event={event} />
+        )}
       </div>
     );
   }

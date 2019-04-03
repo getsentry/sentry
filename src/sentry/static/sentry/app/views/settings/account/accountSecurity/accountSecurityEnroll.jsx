@@ -386,19 +386,18 @@ class AccountSecurityEnroll extends AsyncView {
 
         <TextBlock>{authenticator.description}</TextBlock>
 
-        {authenticator.form &&
-          !!authenticator.form.length && (
-            <Form
-              apiMethod="POST"
-              onFieldChange={this.handleFieldChange}
-              apiEndpoint={endpoint}
-              onSubmit={this.handleSubmit}
-              initialData={{...defaultValues, ...authenticator}}
-              hideFooter
-            >
-              <JsonForm {...this.props} forms={[{title: 'Configuration', fields}]} />
-            </Form>
-          )}
+        {authenticator.form && !!authenticator.form.length && (
+          <Form
+            apiMethod="POST"
+            onFieldChange={this.handleFieldChange}
+            apiEndpoint={endpoint}
+            onSubmit={this.handleSubmit}
+            initialData={{...defaultValues, ...authenticator}}
+            hideFooter
+          >
+            <JsonForm {...this.props} forms={[{title: 'Configuration', fields}]} />
+          </Form>
+        )}
       </div>
     );
   }

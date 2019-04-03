@@ -31,14 +31,13 @@ class SessionRow extends React.Component {
             <div style={{marginBottom: 5}}>
               <strong>{ipAddress}</strong>
             </div>
-            {countryCode &&
-              regionCode && (
-                <div>
-                  <small>
-                    {countryCode} ({regionCode})
-                  </small>
-                </div>
-              )}
+            {countryCode && regionCode && (
+              <div>
+                <small>
+                  {countryCode} ({regionCode})
+                </small>
+              </div>
+            )}
           </Box>
         </Flex>
         <Flex align="center" w={140} mx={2}>

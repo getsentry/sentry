@@ -80,7 +80,9 @@ class Hovercard extends React.Component {
     const x =
       rect.right > window.innerWidth && !(rect.left < 0)
         ? 'right'
-        : rect.left < 0 ? 'left' : 'middle';
+        : rect.left < 0
+        ? 'left'
+        : 'middle';
 
     this.setState({position: {x, y, offset}});
   }
@@ -133,7 +135,9 @@ const positionX = offset => p => css`
   right: ${p.position.x === 'right' ? offset : 'inherit'};
   left: ${p.position.x === 'middle'
     ? '50%'
-    : p.position.x === 'left' ? offset : 'inherit'};
+    : p.position.x === 'left'
+    ? offset
+    : 'inherit'};
 
   transform: ${translateX(p.position.x)};
 `;

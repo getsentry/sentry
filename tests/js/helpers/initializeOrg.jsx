@@ -5,15 +5,14 @@
  *   - router
  *   - context that contains org + projects + router
  */
-export function initializeOrg(
-  {
-    organization: additionalOrg,
-    project: additionalProject,
-    projects: additionalProjects,
-    router: additionalRouter,
-  } = {}
-) {
-  const projects = (additionalProjects ||
+export function initializeOrg({
+  organization: additionalOrg,
+  project: additionalProject,
+  projects: additionalProjects,
+  router: additionalRouter,
+} = {}) {
+  const projects = (
+    additionalProjects ||
     (additionalProject && [additionalProject]) || [{}]
   ).map(p => TestStubs.Project(p));
   const [project] = projects;

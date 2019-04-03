@@ -14,7 +14,8 @@ const PermissionAlert = ({access, ...props}) => (
             'These settings can only be edited by users with the owner, manager, or admin role.'
           )}
         </Alert>
-      )}
+      )
+    }
   </Access>
 );
 

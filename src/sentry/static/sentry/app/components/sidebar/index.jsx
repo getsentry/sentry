@@ -269,7 +269,8 @@ class Sidebar extends React.Component {
                       this.navigateWithGlobalSelection(
                         `/organizations/${organization.slug}/issues/`,
                         evt
-                      )}
+                      )
+                    }
                     icon={<InlineSvg src="icon-issues" />}
                     label={t('Issues')}
                     to={`/organizations/${organization.slug}/issues/`}
@@ -288,7 +289,8 @@ class Sidebar extends React.Component {
                       this.navigateWithGlobalSelection(
                         `/organizations/${organization.slug}/events/`,
                         evt
-                      )}
+                      )
+                    }
                     icon={<InlineSvg src="icon-stack" />}
                     label={t('Events')}
                     to={`/organizations/${organization.slug}/events/`}
@@ -304,7 +306,8 @@ class Sidebar extends React.Component {
                         this.navigateWithGlobalSelection(
                           `/organizations/${organization.slug}/releases/`,
                           evt
-                        )}
+                        )
+                      }
                       icon={<InlineSvg src="icon-releases" />}
                       label={t('Releases')}
                       to={`/organizations/${organization.slug}/releases/`}
@@ -316,7 +319,8 @@ class Sidebar extends React.Component {
                         this.navigateWithGlobalSelection(
                           `/organizations/${organization.slug}/user-feedback/`,
                           evt
-                        )}
+                        )
+                      }
                       icon={<InlineSvg src="icon-support" />}
                       label={t('User Feedback')}
                       to={`/organizations/${organization.slug}/user-feedback/`}
@@ -372,7 +376,8 @@ class Sidebar extends React.Component {
                       this.navigateWithGlobalSelection(
                         `/organizations/${organization.slug}/monitors/`,
                         evt
-                      )}
+                      )
+                    }
                     icon={<InlineSvg src="icon-labs" />}
                     label={t('Monitors')}
                     to={`/organizations/${organization.slug}/monitors/`}

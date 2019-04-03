@@ -41,7 +41,10 @@ class CreateSampleEvent extends React.Component {
 
   createSampleEvent = () => {
     // TODO(DENA): swap out for action creator
-    const {api, params: {orgId, projectId}} = this.props;
+    const {
+      api,
+      params: {orgId, projectId},
+    } = this.props;
     const {organization} = this.context;
     const url = `/projects/${orgId}/${projectId}/create-sample/`;
     const project = organization.projects.find(proj => proj.slug === projectId);

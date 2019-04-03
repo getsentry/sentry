@@ -49,13 +49,15 @@ class SplitDiff extends React.Component {
               <tr key={j}>
                 <Cell isRemoved={highlightRemoved}>
                   <Line>
-                    {line.filter(result => !result.added).map((result, i) => {
-                      return (
-                        <Word key={i} isRemoved={result.removed}>
-                          {result.value}
-                        </Word>
-                      );
-                    })}
+                    {line
+                      .filter(result => !result.added)
+                      .map((result, i) => {
+                        return (
+                          <Word key={i} isRemoved={result.removed}>
+                            {result.value}
+                          </Word>
+                        );
+                      })}
                   </Line>
                 </Cell>
 
@@ -63,13 +65,15 @@ class SplitDiff extends React.Component {
 
                 <Cell isAdded={highlightAdded}>
                   <Line>
-                    {line.filter(result => !result.removed).map((result, i) => {
-                      return (
-                        <Word key={i} isAdded={result.added}>
-                          {result.value}
-                        </Word>
-                      );
-                    })}
+                    {line
+                      .filter(result => !result.removed)
+                      .map((result, i) => {
+                        return (
+                          <Word key={i} isAdded={result.added}>
+                            {result.value}
+                          </Word>
+                        );
+                      })}
                   </Line>
                 </Cell>
               </tr>

@@ -112,7 +112,8 @@ export default class ProjectTags extends AsyncView {
                       </Flex>
                     </PanelItem>
                   );
-                })}
+                })
+              }
             </Access>
           </PanelBody>
         </Panel>

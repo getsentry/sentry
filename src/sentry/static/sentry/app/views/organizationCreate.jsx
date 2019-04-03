@@ -50,21 +50,20 @@ export default class OrganizationCreate extends AsyncView {
             required={true}
           />
 
-          {termsUrl &&
-            privacyUrl && (
-              <BooleanField
-                name="agreeTerms"
-                label={tct(
-                  'I agree to the [termsLink:Terms of Service] and the [privacyLink:Privacy Policy]',
-                  {
-                    termsLink: <a href={termsUrl} />,
-                    privacyLink: <a href={privacyUrl} />,
-                  }
-                )}
-                placeholder={t('e.g. My Company')}
-                required={true}
-              />
-            )}
+          {termsUrl && privacyUrl && (
+            <BooleanField
+              name="agreeTerms"
+              label={tct(
+                'I agree to the [termsLink:Terms of Service] and the [privacyLink:Privacy Policy]',
+                {
+                  termsLink: <a href={termsUrl} />,
+                  privacyLink: <a href={privacyUrl} />,
+                }
+              )}
+              placeholder={t('e.g. My Company')}
+              required={true}
+            />
+          )}
         </ApiForm>
       </NarrowLayout>
     );

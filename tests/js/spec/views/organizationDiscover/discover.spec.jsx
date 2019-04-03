@@ -385,7 +385,9 @@ describe('Discover', function() {
       it('resets query builder and state', function() {
         wrapper.instance().reset();
         expect(queryBuilder.reset).toHaveBeenCalled();
-        const {data: {baseQuery, byDayQuery}} = wrapper.instance().state;
+        const {
+          data: {baseQuery, byDayQuery},
+        } = wrapper.instance().state;
         expect(baseQuery.query).toBeNull();
         expect(baseQuery.data).toBeNull();
         expect(byDayQuery.query).toBeNull();

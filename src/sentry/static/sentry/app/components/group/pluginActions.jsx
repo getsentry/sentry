@@ -126,22 +126,20 @@ const PluginActions = createReactClass({
               <a onClick={() => this.handleClick('link')}>{t('Link')}</a>
             </li>
           </NavTabs>
-          {this.state.showModal &&
-            actionType &&
-            !this.state.pluginLoading && (
-              // need the key here so React will re-render
-              // with new action prop
-              <Modal.Body key={actionType}>
-                {plugins.get(plugin).renderGroupActions({
-                  plugin,
-                  group: this.props.group,
-                  project: this.props.project,
-                  organization: this.getOrganization(),
-                  actionType,
-                  onSuccess: this.closeModal,
-                })}
-              </Modal.Body>
-            )}
+          {this.state.showModal && actionType && !this.state.pluginLoading && (
+            // need the key here so React will re-render
+            // with new action prop
+            <Modal.Body key={actionType}>
+              {plugins.get(plugin).renderGroupActions({
+                plugin,
+                group: this.props.group,
+                project: this.props.project,
+                organization: this.getOrganization(),
+                actionType,
+                onSuccess: this.closeModal,
+              })}
+            </Modal.Body>
+          )}
         </Modal>
       </React.Fragment>
     );

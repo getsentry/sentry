@@ -40,8 +40,9 @@ class OpenInButton extends React.Component {
     if (hasSentryApps && group && group.project && group.project.id) {
       api
         .requestPromise(
-          `/organizations/${organization.slug}/sentry-app-components/?filter=stacktrace-link&projectId=${group
-            .project.id}`
+          `/organizations/${
+            organization.slug
+          }/sentry-app-components/?filter=stacktrace-link&projectId=${group.project.id}`
         )
         .then(data => {
           if (data.length) {

@@ -255,8 +255,9 @@ class EventGroupingInfo extends AsyncComponent {
   getEndpoints() {
     const {organization, group, event} = this.props;
 
-    let path = `/projects/${organization.slug}/${group.project
-      .slug}/events/${event.id}/grouping-info/`;
+    let path = `/projects/${organization.slug}/${group.project.slug}/events/${
+      event.id
+    }/grouping-info/`;
     if (this.state && this.state.configOverride) {
       path = `${path}?config=${this.state.configOverride}`;
     }
@@ -338,7 +339,9 @@ class EventGroupingInfo extends AsyncComponent {
             }}
           />
         </div>
-        {variants.map(variant => <GroupVariant variant={variant} key={variant.key} />)}
+        {variants.map(variant => (
+          <GroupVariant variant={variant} key={variant.key} />
+        ))}
       </GroupVariantList>
     );
   }

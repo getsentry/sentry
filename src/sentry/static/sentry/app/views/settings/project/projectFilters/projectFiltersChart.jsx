@@ -183,26 +183,24 @@ const ProjectFiltersChart = createReactClass({
         <PanelBody>
           {isLoading && <LoadingIndicator />}
           {hasError && <LoadingError onRetry={this.fetchData} />}
-          {hasLoaded &&
-            !this.state.blankStats && (
-              <StackedBarChart
-                series={this.state.formattedData}
-                label="events"
-                barClasses={classes}
-                className="standard-barchart filtered-stats-barchart"
-                tooltip={this.renderTooltip}
-                minHeights={classes.map(p => (p == 'legacy-browsers' ? 1 : 0))}
-              />
-            )}
-          {hasLoaded &&
-            this.state.blankStats && (
-              <EmptyMessage
-                title={t('Nothing filtered in the last 30 days.')}
-                description={t(
-                  'Issues filtered as a result of your settings below will be shown here.'
-                )}
-              />
-            )}
+          {hasLoaded && !this.state.blankStats && (
+            <StackedBarChart
+              series={this.state.formattedData}
+              label="events"
+              barClasses={classes}
+              className="standard-barchart filtered-stats-barchart"
+              tooltip={this.renderTooltip}
+              minHeights={classes.map(p => (p == 'legacy-browsers' ? 1 : 0))}
+            />
+          )}
+          {hasLoaded && this.state.blankStats && (
+            <EmptyMessage
+              title={t('Nothing filtered in the last 30 days.')}
+              description={t(
+                'Issues filtered as a result of your settings below will be shown here.'
+              )}
+            />
+          )}
         </PanelBody>
       </Panel>
     );

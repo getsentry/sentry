@@ -200,7 +200,12 @@ class Result extends React.Component {
   }
 
   render() {
-    const {data: {baseQuery, byDayQuery}, savedQuery, onFetchPage, utc} = this.props;
+    const {
+      data: {baseQuery, byDayQuery},
+      savedQuery,
+      onFetchPage,
+      utc,
+    } = this.props;
 
     const {view} = this.state;
 

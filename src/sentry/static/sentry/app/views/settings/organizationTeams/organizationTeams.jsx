@@ -54,7 +54,8 @@ class OrganizationTeams extends React.Component {
         onClick={() =>
           openCreateTeamModal({
             organization,
-          })}
+          })
+        }
         icon="icon-circle-add"
       >
         {t('Create Team')}

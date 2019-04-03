@@ -64,16 +64,18 @@ class ProjectPlugins extends Component {
             </Access>
           </PanelAlert>
 
-          {plugins.filter(p => !p.isHidden).map(plugin => (
-            <PanelItem key={plugin.id}>
-              <ProjectPluginRow
-                params={params}
-                routes={routes}
-                {...plugin}
-                onChange={onChange}
-              />
-            </PanelItem>
-          ))}
+          {plugins
+            .filter(p => !p.isHidden)
+            .map(plugin => (
+              <PanelItem key={plugin.id}>
+                <ProjectPluginRow
+                  params={params}
+                  routes={routes}
+                  {...plugin}
+                  onChange={onChange}
+                />
+              </PanelItem>
+            ))}
         </PanelBody>
       </Panel>
     );

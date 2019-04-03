@@ -143,36 +143,35 @@ class Broadcasts extends React.Component {
           id="broadcasts"
         />
 
-        {showPanel &&
-          currentPanel == 'broadcasts' && (
-            <SidebarPanel
-              data-test-id="sidebar-broadcasts-panel"
-              orientation={orientation}
-              collapsed={collapsed}
-              title={t("What's new in Sentry")}
-              hidePanel={hidePanel}
-            >
-              {loading ? (
-                <LoadingIndicator />
-              ) : broadcasts.length === 0 ? (
-                <SidebarPanelEmpty>
-                  {t('No recent updates from the Sentry team.')}
-                </SidebarPanelEmpty>
-              ) : (
-                broadcasts.map(item => {
-                  return (
-                    <SidebarPanelItem
-                      key={item.id}
-                      hasSeen={item.hasSeen}
-                      title={item.title}
-                      message={item.message}
-                      link={item.link}
-                    />
-                  );
-                })
-              )}
-            </SidebarPanel>
-          )}
+        {showPanel && currentPanel == 'broadcasts' && (
+          <SidebarPanel
+            data-test-id="sidebar-broadcasts-panel"
+            orientation={orientation}
+            collapsed={collapsed}
+            title={t("What's new in Sentry")}
+            hidePanel={hidePanel}
+          >
+            {loading ? (
+              <LoadingIndicator />
+            ) : broadcasts.length === 0 ? (
+              <SidebarPanelEmpty>
+                {t('No recent updates from the Sentry team.')}
+              </SidebarPanelEmpty>
+            ) : (
+              broadcasts.map(item => {
+                return (
+                  <SidebarPanelItem
+                    key={item.id}
+                    hasSeen={item.hasSeen}
+                    title={item.title}
+                    message={item.message}
+                    link={item.link}
+                  />
+                );
+              })
+            )}
+          </SidebarPanel>
+        )}
       </React.Fragment>
     );
   }

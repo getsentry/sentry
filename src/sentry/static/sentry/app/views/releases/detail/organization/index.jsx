@@ -59,7 +59,10 @@ class OrganizationReleaseDetails extends AsyncView {
   }
 
   getTitle() {
-    const {params: {version}, organization} = this.props;
+    const {
+      params: {version},
+      organization,
+    } = this.props;
     return `Release ${version} | ${organization.slug}`;
   }
 
@@ -71,7 +74,10 @@ class OrganizationReleaseDetails extends AsyncView {
   }
 
   renderBody() {
-    const {location, params: {orgId}} = this.props;
+    const {
+      location,
+      params: {orgId},
+    } = this.props;
     const {release} = this.state;
 
     const query = pick(location.query, Object.values(URL_PARAM));

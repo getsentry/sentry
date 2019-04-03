@@ -511,47 +511,46 @@ const StreamActions = createReactClass({
           </Box>
         </StyledFlex>
 
-        {!allResultsVisible &&
-          pageSelected && (
-            <div className="row stream-select-all-notice">
-              <div className="col-md-12">
-                {allInQuerySelected ? (
-                  <strong>
+        {!allResultsVisible && pageSelected && (
+          <div className="row stream-select-all-notice">
+            <div className="col-md-12">
+              {allInQuerySelected ? (
+                <strong>
+                  {queryCount >= BULK_LIMIT
+                    ? tct(
+                        'Selected up to the first [count] issues that match this search query.',
+                        {
+                          count: BULK_LIMIT_STR,
+                        }
+                      )
+                    : tct('Selected all [count] issues that match this search query.', {
+                        count: queryCount,
+                      })}
+                </strong>
+              ) : (
+                <span>
+                  {tn(
+                    '%s issue on this page selected.',
+                    '%s issues on this page selected.',
+                    numIssues
+                  )}
+                  <a onClick={this.selectAll}>
                     {queryCount >= BULK_LIMIT
                       ? tct(
-                          'Selected up to the first [count] issues that match this search query.',
+                          'Select the first [count] issues that match this search query.',
                           {
                             count: BULK_LIMIT_STR,
                           }
                         )
-                      : tct('Selected all [count] issues that match this search query.', {
+                      : tct('Select all [count] issues that match this search query.', {
                           count: queryCount,
                         })}
-                  </strong>
-                ) : (
-                  <span>
-                    {tn(
-                      '%s issue on this page selected.',
-                      '%s issues on this page selected.',
-                      numIssues
-                    )}
-                    <a onClick={this.selectAll}>
-                      {queryCount >= BULK_LIMIT
-                        ? tct(
-                            'Select the first [count] issues that match this search query.',
-                            {
-                              count: BULK_LIMIT_STR,
-                            }
-                          )
-                        : tct('Select all [count] issues that match this search query.', {
-                            count: queryCount,
-                          })}
-                    </a>
-                  </span>
-                )}
-              </div>
+                  </a>
+                </span>
+              )}
             </div>
-          )}
+          </div>
+        )}
       </Sticky>
     );
   },
