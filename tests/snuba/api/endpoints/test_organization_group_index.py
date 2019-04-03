@@ -1612,9 +1612,6 @@ class GroupDeleteTest(APITestCase, SnubaTestCase):
     endpoint = 'sentry-api-0-organization-group-index'
     method = 'delete'
 
-    def setUp(self):
-        super(GroupDeleteTest, self).setUp()
-
     def get_response(self, *args, **kwargs):
         if not args:
             org = self.project.organization.slug

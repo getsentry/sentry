@@ -3,13 +3,11 @@ from __future__ import absolute_import
 from datetime import datetime, timedelta
 
 from sentry.models import GroupHash
-from sentry.testutils import TestCase
-from sentry.testutils.skips import requires_snuba
+from sentry.testutils import TestCase, SnubaTestCase
 from sentry.utils import snuba
 
 
-@requires_snuba
-class SnubaUtilTest(TestCase):
+class SnubaUtilTest(TestCase, SnubaTestCase):
     def test_filter_keys_set(self):
         snuba.raw_query(
             start=datetime.now(),
