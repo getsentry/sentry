@@ -73,9 +73,6 @@ if settings.SENTRY_USE_BIG_INTS:
             engine = connection.settings_dict['ENGINE']
             if 'postgres' in engine:
                 return "bigserial"
-            # SQLite doesnt actually support bigints with auto incr
-            elif 'sqlite' in engine:
-                return 'integer'
             else:
                 raise NotImplemented
 
