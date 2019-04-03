@@ -32,8 +32,9 @@ class NameField(serializers.CharField):
 class ApiScopesField(serializers.WritableField):
     def validate(self, data):
         valid_scopes = ApiScopes()
+
         if data is None:
-            raise ValidationError('Must provide scopes')
+            return
 
         for scope in data:
             if scope not in valid_scopes:
