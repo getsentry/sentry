@@ -14,6 +14,7 @@ class SentryAppSerializer(Serializer):
         data = {
             'name': obj.name,
             'slug': obj.slug,
+            'author': obj.author,
             'scopes': obj.get_scopes(),
             'events': consolidate_events(obj.events),
             'status': obj.get_status_display(),

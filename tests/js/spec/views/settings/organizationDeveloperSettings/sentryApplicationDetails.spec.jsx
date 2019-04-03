@@ -53,6 +53,9 @@ describe('Sentry Application Details', function() {
           .find('Input[name="name"]')
           .simulate('change', {target: {value: 'Test App'}});
         wrapper
+          .find('Input[name="author"]')
+          .simulate('change', {target: {value: 'Sentry'}});
+        wrapper
           .find('Input[name="webhookUrl"]')
           .simulate('change', {target: {value: 'https://webhook.com'}});
         wrapper
@@ -69,6 +72,7 @@ describe('Sentry Application Details', function() {
 
         const data = {
           name: 'Test App',
+          author: 'Sentry',
           organization: org.slug,
           redirectUrl: 'https://webhook.com/setup',
           webhookUrl: 'https://webhook.com',

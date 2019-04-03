@@ -11,6 +11,7 @@ class TestCreator(TestCase):
         self.org = self.create_organization(owner=self.user)
         self.creator = Creator(
             name='nulldb',
+            author='Sentry',
             organization=self.org,
             scopes=('project:read',),
             webhook_url='http://example.com',
@@ -79,6 +80,7 @@ class TestCreator(TestCase):
         request = self.make_request(user=self.user, method='GET')
         Creator.run(
             name='nulldb',
+            author='Sentry',
             organization=self.org,
             scopes=('project:read',),
             webhook_url='http://example.com',

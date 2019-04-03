@@ -42,6 +42,7 @@ class GetOrganizationSentryAppsTest(OrganizationSentryAppsTest):
 
         assert_response_json(response, [{
             'name': self.unpublished_app.name,
+            'author': self.unpublished_app.author,
             'slug': self.unpublished_app.slug,
             'scopes': [],
             'events': [],

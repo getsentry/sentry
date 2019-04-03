@@ -6,6 +6,7 @@ exports[`SentryAppPermissionsModal installs the application 1`] = `
   Header={[Function]}
   app={
     Object {
+      "author": "Sentry",
       "clientId": "client-id",
       "clientSecret": "client-secret",
       "events": Array [],
@@ -229,6 +230,7 @@ exports[`SentryAppPermissionsModal renders permissions modal 1`] = `
   Header={[Function]}
   app={
     Object {
+      "author": "Sentry",
       "clientId": "client-id",
       "clientSecret": "client-secret",
       "events": Array [],

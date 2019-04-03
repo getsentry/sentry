@@ -672,7 +672,7 @@ class Factories(object):
         UserPermission.objects.create(user=user, permission=permission)
 
     @staticmethod
-    def create_sentry_app(name=None, organization=None, published=False, scopes=(),
+    def create_sentry_app(name=None, author='Sentry', organization=None, published=False, scopes=(),
                           webhook_url=None, **kwargs):
         if not name:
             name = petname.Generate(2, ' ', letters=10).title()
@@ -684,6 +684,7 @@ class Factories(object):
         _kwargs = {
             'name': name,
             'organization': organization,
+            'author': author,
             'scopes': scopes,
             'webhook_url': webhook_url,
             'events': [],

@@ -59,6 +59,7 @@ class GetSentryAppsTest(SentryAppsTest):
         assert response.status_code == 200
         assert {
             'name': self.published_app.name,
+            'author': self.published_app.author,
             'slug': self.published_app.slug,
             'scopes': [],
             'events': [],
@@ -82,6 +83,7 @@ class GetSentryAppsTest(SentryAppsTest):
         assert response.status_code == 200
         assert {
             'name': self.unpublished_app.name,
+            'author': self.unpublished_app.author,
             'slug': self.unpublished_app.slug,
             'scopes': [],
             'events': [],
@@ -225,6 +227,7 @@ class PostSentryAppsTest(SentryAppsTest):
         body = {
             'name': 'MyApp',
             'organization': self.org.slug,
+            'author': 'Sentry',
             'scopes': ('project:read', 'event:read'),
             'events': ('issue',),
             'webhookUrl': 'https://example.com',

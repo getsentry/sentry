@@ -492,6 +492,7 @@ exports[`Organization Developer Settings with published apps trash button is dis
                   <SentryApplicationRow
                     app={
                       Object {
+                        "author": "Sentry",
                         "clientId": "client-id",
                         "clientSecret": "client-secret",
                         "events": Array [],
@@ -533,6 +534,7 @@ exports[`Organization Developer Settings with published apps trash button is dis
                                 <SentryAppAvatar
                                   sentryApp={
                                     Object {
+                                      "author": "Sentry",
                                       "clientId": "client-id",
                                       "clientSecret": "client-secret",
                                       "events": Array [],
@@ -1070,6 +1072,7 @@ exports[`Organization Developer Settings with unpublished apps displays all Apps
                   <SentryApplicationRow
                     app={
                       Object {
+                        "author": "Sentry",
                         "clientId": "client-id",
                         "clientSecret": "client-secret",
                         "events": Array [],
@@ -1111,6 +1114,7 @@ exports[`Organization Developer Settings with unpublished apps displays all Apps
                                 <SentryAppAvatar
                                   sentryApp={
                                     Object {
+                                      "author": "Sentry",
                                       "clientId": "client-id",
                                       "clientSecret": "client-secret",
                                       "events": Array [],
@@ -1848,6 +1852,7 @@ exports[`Organization Developer Settings without Owner permissions trash button 
                   <SentryApplicationRow
                     app={
                       Object {
+                        "author": "Sentry",
                         "clientId": "client-id",
                         "clientSecret": "client-secret",
                         "events": Array [],
@@ -1889,6 +1894,7 @@ exports[`Organization Developer Settings without Owner permissions trash button 
                                 <SentryAppAvatar
                                   sentryApp={
                                     Object {
+                                      "author": "Sentry",
                                       "clientId": "client-id",
                                       "clientSecret": "client-secret",
                                       "events": Array [],

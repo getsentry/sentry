@@ -15,6 +15,14 @@ const forms = [
         help: 'Human readable name of your application.',
       },
       {
+        name: 'author',
+        type: 'string',
+        required: true,
+        placeholder: 'Acme Software',
+        label: 'Author',
+        help: 'The company or person who built and maintains this Integration.',
+      },
+      {
         name: 'webhookUrl',
         type: 'string',
         required: true,
