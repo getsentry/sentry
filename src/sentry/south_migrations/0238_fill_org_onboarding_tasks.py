@@ -10,9 +10,6 @@ from sentry.plugins import IssueTrackingPlugin, NotificationPlugin
 
 class Migration(DataMigration):
     def forwards(self, orm):
-        if connection.vendor == 'sqlite':
-            transaction.set_autocommit(True)
-
         # These are constants, not models
         from sentry.models import OnboardingTask, OnboardingTaskStatus
         from sentry.utils.query import RangeQuerySetWrapperWithProgressBar
@@ -104,7 +101,8 @@ class Migration(DataMigration):
                                 pass
 
                             break
-                        # This occurs if we've iterated through all the projects and only one platform is found
+                        # This occurs if we've iterated through all the projects and only one
+                        # platform is found
                         else:
                             try:
                                 with transaction.atomic():

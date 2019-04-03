@@ -216,9 +216,8 @@ travis-noop:
 .PHONY: travis-test-lint
 travis-test-lint: lint-python lint-js
 
-.PHONY: travis-test-postgres travis-test-mysql travis-test-acceptance travis-test-snuba travis-test-symbolicator travis-test-js travis-test-cli travis-test-dist travis-test-riak
+.PHONY: travis-test-postgres travis-test-acceptance travis-test-snuba travis-test-symbolicator travis-test-js travis-test-cli travis-test-dist travis-test-riak
 travis-test-postgres: test-python
-travis-test-mysql: test-python
 travis-test-acceptance: test-acceptance
 travis-test-snuba: test-snuba
 travis-test-symbolicator: test-symbolicator
@@ -233,7 +232,7 @@ travis-test-dist:
 	@ls -lh dist/
 travis-test-riak: test-riak
 
-.PHONY: scan-python travis-scan-postgres travis-scan-mysql travis-scan-acceptance travis-scan-snuba travis-scan-symbolicator travis-scan-js travis-scan-cli travis-scan-dist travis-scan-lint travis-scan-riak
+.PHONY: scan-python travis-scan-postgres travis-scan-acceptance travis-scan-snuba travis-scan-symbolicator travis-scan-js travis-scan-cli travis-scan-dist travis-scan-lint travis-scan-riak
 scan-python:
 	@echo "--> Running Python vulnerability scanner"
 	$(PIP) install safety
@@ -241,7 +240,6 @@ scan-python:
 	@echo ""
 
 travis-scan-postgres: scan-python
-travis-scan-mysql: scan-python
 travis-scan-acceptance: travis-noop
 travis-scan-snuba: scan-python
 travis-scan-symbolicator: travis-noop
