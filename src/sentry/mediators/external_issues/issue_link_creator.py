@@ -14,6 +14,7 @@ class IssueLinkCreator(Mediator):
     action = Param(six.string_types)
     fields = Param(object)
     uri = Param(six.string_types)
+    user = Param('sentry.models.User')
 
     def call(self):
         self._verify_action()
@@ -31,6 +32,7 @@ class IssueLinkCreator(Mediator):
             uri=self.uri,
             group=self.group,
             fields=self.fields,
+            user=self.user,
         )
 
     def _format_response_data(self):
