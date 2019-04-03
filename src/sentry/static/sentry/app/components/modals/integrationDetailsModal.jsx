@@ -137,7 +137,7 @@ class IntegrationDetailsModal extends React.Component {
         <Flex align="center" mb={2}>
           <PluginIcon pluginId={provider.key} size={50} />
           <Flex pl={1} align="flex-start" direction="column" justify="center">
-            <ProviderName>{t('%s Integration', provider.name)}</ProviderName>
+            <ProviderName data-testid="provider-name">{t('%s Integration', provider.name)}</ProviderName>
             <Flex>
               {this.earlyAdopterLabel(provider)}
               {provider.features.length && this.featureTags(provider.features)}
@@ -165,7 +165,7 @@ class IntegrationDetailsModal extends React.Component {
           {({disabled, disabledReason}) => (
             <div className="modal-footer">
               {disabled && <DisabledNotice reason={disabledReason} />}
-              <Button size="small" onClick={closeModal}>
+              <Button data-testid="cancel-button" size="small" onClick={closeModal}>
                 {t('Cancel')}
               </Button>
               <Access organization={organization} access={['org:integrations']}>
@@ -174,7 +174,7 @@ class IntegrationDetailsModal extends React.Component {
                     title={t('You must be an Owner, Manager or Admin to install this.')}
                     disabled={hasAccess}
                   >
-                    <AddButton disabled={disabled || !hasAccess} />
+                    <AddButton data-testid="add-button" disabled={disabled || !hasAccess} />
                   </Tooltip>
                 )}
               </Access>

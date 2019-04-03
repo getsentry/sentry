@@ -23,7 +23,7 @@ export default class IntegrationItem extends React.Component {
           <IntegrationIcon size={compact ? 22 : 32} integration={integration} />
         </Box>
         <Labels compact={compact}>
-          <IntegrationName>
+          <IntegrationName data-testid="integration-name">
             {integration.name}
             {integration.status === 'disabled' && (
               <Tooltip
