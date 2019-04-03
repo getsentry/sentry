@@ -5,6 +5,7 @@ import six
 import base64
 import msgpack
 import inspect
+from itertools import izip
 
 from parsimonious.grammar import Grammar, NodeVisitor
 from parsimonious.exceptions import ParseError
@@ -151,8 +152,33 @@ class Action(object):
     def _to_config_structure(self):
         return ACTIONS.index(self.key) | (ACTION_FLAGS[self.flag, self.range] << 4)
 
-    def apply_to_frames(self, frames, idx):
-        pass
+    def _slice_to_range(self, seq, idx):
+        if self.range is None:
+            return [seq[idx]]
+        elif self.range == 'down':
+            return seq[idx + 1:]
+        elif self.range == 'up':
+            return seq[:idx]
+        return []
+
+    def apply_modifications_to_frame(self, frames, idx):
+        # Grouping is not stored on the frame
+        if self.key == 'group':
+            return
+        for frame in self._slice_to_range(frames, idx):
+            if self.key == 'app':
+                frame['in_app'] = self.flag
+
+    def update_frame_components_contributions(self, components, idx):
+        if self.key != 'group':
+            return
+        for component in self._slice_to_range(components, idx):
+            if self.flag != component.contributes:
+                component.update(
+                    contributes=self.flag,
+                    hint='%s by grouping enhancement rule' % (
+                        self.flag and 'un-ignored' or 'ignored')
+                )
 
     @classmethod
     def _from_config_structure(cls, num):
@@ -173,13 +199,22 @@ class Enhancements(object):
             bases = []
         self.bases = bases
 
-    def apply_to_frames(self, frames, project, platform):
+    def apply_modifications_to_frame(self, frames, project, platform):
+        """This applies the frame modifications to the frames itself.  This
+        does not affect grouping.
+        """
         for idx, frame in enumerate(frames):
-            actions = frame.matches_frame(frame, platform)
-            if not actions:
-                continue
-            for action in actions:
-                action.apply_to_frames(frames, idx)
+            for rule in self.iter_rules():
+                actions = rule.matches_frame(frame, platform)
+                for action in actions or ():
+                    action.apply_modifications_to_frame(frames, idx)
+
+    def update_frame_components_contributions(self, frames, components, platform):
+        for idx, (component, frame) in enumerate(izip(components, frames)):
+            for rule in self.iter_rules():
+                actions = rule.matches_frame(frame, platform)
+                for action in actions or ():
+                    action.update_frame_components_contributions(components, idx)
 
     def as_dict(self, with_rules=False):
         rv = {

@@ -328,6 +328,7 @@ def stacktrace_v1(stacktrace, config, variant, **meta):
 
     values = []
     prev_frame = None
+    frames_for_filtering = []
     for frame in frames:
         frame_component = config.get_grouping_component(frame, variant=variant, **meta)
         if variant == 'app' and not frame.in_app and not all_frames_considered_in_app:
@@ -345,7 +346,11 @@ def stacktrace_v1(stacktrace, config, variant, **meta):
                 hint='frame considered in-app because no frame is in-app'
             )
         values.append(frame_component)
+        frames_for_filtering.append(frame._data)
         prev_frame = frame
+
+    config.enhancements.update_frame_components_contributions(
+        values, frames_for_filtering, meta['event'].platform)
 
     return GroupingComponent(
         id='stacktrace',
