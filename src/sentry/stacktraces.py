@@ -323,8 +323,12 @@ def get_stacktrace_processing_task(infos, processors):
     processors that seem to not handle any frames.
     """
     by_processor = {}
-    by_stacktrace_info = OrderedDict()
     to_lookup = {}
+
+    # by_stacktrace_info requires stable sorting as it is used in
+    # StacktraceProcessingTask.iter_processable_stacktraces. This is important
+    # to guarantee reproducible symbolicator requests.
+    by_stacktrace_info = OrderedDict()
 
     for info in infos:
         processable_frames = get_processable_frames(info, processors)
