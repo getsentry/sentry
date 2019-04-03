@@ -1,5 +1,7 @@
 from __future__ import absolute_import
 
+from django.conf import settings
+
 from sentry.testutils import AcceptanceTestCase
 
 
@@ -10,6 +12,8 @@ class CreateOrganizationTest(AcceptanceTestCase):
         self.login_as(self.user)
 
     def test_simple(self):
+        settings.PRIVACY_URL = 'https://sentry.io/privacy/'
+        settings.TERMS_URL = 'https://sentry.io/terms/'
         self.browser.get('/organizations/new/')
         assert self.browser.element_exists('input[id="id-name"]')
         assert self.browser.element_exists('input[id="id-agreeTerms"]')
