@@ -80,7 +80,7 @@ class PlatformPicker extends React.Component {
     return (
       <React.Fragment>
         <NavContainer>
-          <CategoryNav>
+          <CategoryNav data-test-id="plaform-picker-container">
             {PLATFORM_CATEGORIES.map(({id, name}) => (
               <ListLink
                 key={id}

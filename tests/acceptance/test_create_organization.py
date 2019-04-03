@@ -17,6 +17,6 @@ class CreateOrganizationTest(AcceptanceTestCase):
         self.browser.element('input[name="name"]').send_keys('new org')
         self.browser.element('input[id="id-agreeTerms"]').click()
         self.browser.click('button[type="submit"]')
-        self.browser.wait_until_not('.loading-indicator')
         # After creating an org should end up on create project
-        assert self.browser.element('.onboarding-info')
+        self.browser.wait_until('.onboarding-info')
+        assert self.browser.element_exists_by_test_id('plaform-picker-container')
