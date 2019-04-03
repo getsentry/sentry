@@ -1,15 +1,15 @@
 ---
-created: '2019-03-15T11:58:32.796674Z'
+created: '2019-04-03T22:37:15.741137Z'
 creator: sentry
 source: tests/sentry/grouping/test_variants.py
 ---
 app:
-  hash: None
+  hash: '5a2cfd89b7b171fd7b4794b08023d04f'
   component:
-    app (exception of system takes precedence)
-      exception (ignored because hash matches system variant)
-        stacktrace*
-          frame*
+    app*
+      exception*
+        stacktrace
+          frame (non app frame)
             filename*
               u'baz.py'
         type*

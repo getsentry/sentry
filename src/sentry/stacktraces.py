@@ -193,7 +193,7 @@ def find_stacktraces_in_data(data, include_raw=False):
     return rv
 
 
-def normalize_stacktraces_for_grouping(data, project=None):
+def normalize_stacktraces_for_grouping(data, grouping_config=None):
     def _has_system_frames(frames):
         system_frames = 0
         for frame in frames:
@@ -211,15 +211,11 @@ def normalize_stacktraces_for_grouping(data, project=None):
     if not stacktraces:
         return
 
-    # If a project is available, run grouping enhancers
-    if project is not None:
-        from sentry.grouping.api import load_grouping_config, \
-            get_grouping_config_dict_for_project
-        grouping_config = load_grouping_config(
-            get_grouping_config_dict_for_project(data, project))
+    # If a grouping config is available, run grouping enhancers
+    if grouping_config is not None:
         platform = data.get('platform')
         for frames in stacktraces:
-            grouping_config.enhancers.apply_modifications_to_frame(frames, project, platform)
+            grouping_config.enhancements.apply_modifications_to_frame(frames, platform)
 
     # normalize in-app
     for frames in stacktraces:

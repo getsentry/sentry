@@ -52,7 +52,7 @@ _       = space*
 FAMILIES = {
     'native': 'N',
     'javascript': 'J',
-    'all': None,
+    'all': 'a',
 }
 REVERSE_FAMILIES = dict((v, k) for k, v in six.iteritems(FAMILIES))
 
@@ -101,15 +101,18 @@ class Match(object):
 
         # families need custom handling as well
         if self.key == 'family':
-            family = get_grouping_family_for_platform(frame_data.get('platform') or platform)
             flags = self.pattern.split(',')
-            return family in flags or None in flags
+            if 'all' in flags:
+                return True
+            family = get_grouping_family_for_platform(frame_data.get('platform') or platform)
+            return family in flags
 
         # all other matches are case sensitive
         if self.key == 'function':
             from sentry.grouping.strategies.stacktrace import trim_function_name
-            platform = frame_data.get('platform') or platform
-            value = trim_function_name(frame_data.get('function') or '<unknown>', platform)
+            value = trim_function_name(
+                frame_data.get('function') or '<unknown>',
+                frame_data.get('platform') or platform)
         elif self.key == 'module':
             value = frame_data.get('module') or '<unknown>'
         else:
@@ -199,20 +202,20 @@ class Enhancements(object):
             bases = []
         self.bases = bases
 
-    def apply_modifications_to_frame(self, frames, project, platform):
+    def apply_modifications_to_frame(self, frames, platform):
         """This applies the frame modifications to the frames itself.  This
         does not affect grouping.
         """
         for idx, frame in enumerate(frames):
             for rule in self.iter_rules():
-                actions = rule.matches_frame(frame, platform)
+                actions = rule.get_matching_frame_actions(frame, platform)
                 for action in actions or ():
                     action.apply_modifications_to_frame(frames, idx)
 
-    def update_frame_components_contributions(self, frames, components, platform):
+    def update_frame_components_contributions(self, components, frames, platform):
         for idx, (component, frame) in enumerate(izip(components, frames)):
             for rule in self.iter_rules():
-                actions = rule.matches_frame(frame, platform)
+                actions = rule.get_matching_frame_actions(frame, platform)
                 for action in actions or ():
                     action.update_frame_components_contributions(components, idx)
 
@@ -295,7 +298,7 @@ class Rule(object):
         """Given a frame returns all the matching actions based on this rule.
         If the rule does not match `None` is returned.
         """
-        if all(m.matches_frame(frame_data, platform) for m in self.matchers):
+        if self.matchers and all(m.matches_frame(frame_data, platform) for m in self.matchers):
             return self.actions
 
     def _to_config_structure(self):
