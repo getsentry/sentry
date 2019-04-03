@@ -118,7 +118,7 @@ register(
 register('symbolicator.enabled', default=False, flags=FLAG_ALLOW_EMPTY | FLAG_PRIORITIZE_DISK)
 register(
     'symbolicator.options',
-    default={'url': 'http://127.0.0.1:3021'},
+    default={'url': 'http://localhost:3021'},
     flags=FLAG_ALLOW_EMPTY | FLAG_PRIORITIZE_DISK,
 )
 
