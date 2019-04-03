@@ -18,5 +18,5 @@ class CreateOrganizationTest(AcceptanceTestCase):
         self.browser.element('input[id="id-agreeTerms"]').click()
         self.browser.click('button[type="submit"]')
         # After creating an org should end up on create project
-        self.browser.wait_until('.onboarding-info')
-        assert self.browser.element_exists_by_test_id('platform-javascript-react')
+        self.browser.wait_until_test_id('platform-javascript-react')
+        assert self.browser.element_exists_by_test_id('create-project')
