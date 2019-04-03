@@ -34,5 +34,5 @@ class ListOrganizationMembersTest(AcceptanceTestCase):
         self.browser.get(u'/organizations/{}/members/'.format(self.org.slug))
         self.browser.wait_until_not('.loading-indicator')
         self.browser.snapshot(name='list organization members')
-        assert self.browser.element_exists('[data-test-id="invite-member"]')
-        assert self.browser.element_exists('[data-test-id="resend-invite"]')
+        assert self.browser.element_exists_by_test_id('invite-member')
+        assert self.browser.element_exists_by_test_id('resend-invite')
