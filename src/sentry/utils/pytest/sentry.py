@@ -159,6 +159,9 @@ def pytest_configure(config):
         }
     )
 
+    settings.PRIVACY_URL = 'https://sentry.io/privacy/'
+    settings.TERMS_URL = 'https://sentry.io/terms/'
+
     # django mail uses socket.getfqdn which doesn't play nice if our
     # networking isn't stable
     patcher = mock.patch('socket.getfqdn', return_value='localhost')

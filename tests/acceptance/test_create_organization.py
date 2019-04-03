@@ -1,7 +1,5 @@
 from __future__ import absolute_import
 
-from django.conf import settings
-
 from sentry.testutils import AcceptanceTestCase
 
 
@@ -10,8 +8,6 @@ class CreateOrganizationTest(AcceptanceTestCase):
         super(CreateOrganizationTest, self).setUp()
         self.user = self.create_user('foo@example.com')
         self.login_as(self.user)
-        settings.PRIVACY_URL = 'https://sentry.io/privacy/'
-        settings.TERMS_URL = 'https://sentry.io/terms/'
 
     def test_simple(self):
         self.browser.get('/organizations/new/')
