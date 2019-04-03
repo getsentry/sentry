@@ -4,9 +4,8 @@ import PropTypes from 'prop-types';
 import withApi from 'app/utils/withApi';
 import withOrganization from 'app/utils/withOrganization';
 import AsyncComponent from 'app/components/asyncComponent';
-import ExternalIssueActions, {
-  SentryAppExternalIssueActions,
-} from 'app/components/group/externalIssueActions';
+import ExternalIssueActions from 'app/components/group/externalIssueActions';
+import SentryAppExternalIssueActions from 'app/components/group/sentryAppExternalIssueActions';
 import IssueSyncListElement from 'app/components/issueSyncListElement';
 import AlertLink from 'app/components/alertLink';
 import SentryTypes from 'app/sentryTypes';
@@ -133,9 +132,11 @@ class ExternalIssueList extends AsyncComponent {
 
     return issueLinkComponents.map(component => {
       const {sentryApp} = component;
+
       const installation = sentryAppInstallations.find(
         i => i.sentryApp.uuid === sentryApp.uuid
       );
+
       const issue = (externalIssues || []).find(i => i.serviceType == sentryApp.slug);
 
       return (
