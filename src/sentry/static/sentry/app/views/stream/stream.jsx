@@ -682,8 +682,9 @@ const Stream = createReactClass({
     const project = this.getProject();
 
     // for compatibility with new filters/stream component
+
     const selection = {
-      projects: [project.id],
+      projects: [parseInt(project.id, 10)],
       environments: this.state.environment ? [this.state.environment.name] : [],
       datetime: {start: null, end: null, period: null, utc: null},
     };
