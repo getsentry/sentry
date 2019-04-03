@@ -1,5 +1,5 @@
 ---
-created: '2019-04-02T14:12:17.702538Z'
+created: '2019-04-03T16:41:36.274604Z'
 creator: sentry
 source: tests/symbolicator/test_native_plugin.py
 ---
@@ -15,7 +15,7 @@ contexts:
 culprit: main
 debug_meta:
   images:
-  - arch: unknown
+  - arch: x86
     code_file: C:\projects\breakpad-tools\windows\Release\crash.exe
     code_id: null
     debug_file: null

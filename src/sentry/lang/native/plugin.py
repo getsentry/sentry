@@ -255,6 +255,8 @@ class NativeStacktraceProcessor(StacktraceProcessor):
             status = fetched_debug_file.pop('status')
             # Set image data from symbolicator as symbolicator might know more
             # than the SDK, especially for minidumps
+            if fetched_debug_file.get('arch') == 'unknown':
+                fetched_debug_file.pop('arch')
             image.update(fetched_debug_file)
 
             if status in ('found', 'unused'):
