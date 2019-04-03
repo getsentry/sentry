@@ -2,7 +2,8 @@ from __future__ import absolute_import
 
 from sentry.coreapi import APIError
 from sentry.mediators.sentry_apps import Updater
-from sentry.models import SentryAppComponent
+from sentry.mediators.service_hooks.creator import expand_events
+from sentry.models import SentryAppComponent, ServiceHook
 from sentry.testutils import TestCase
 
 
@@ -53,6 +54,20 @@ class TestUpdater(TestCase):
         updater.events = ('issue',)
         with self.assertRaises(APIError):
             updater.call()
+
+    def test_updates_service_hook_events(self):
+        sentry_app = self.create_sentry_app(
+            name='sentry',
+            organization=self.org,
+            scopes=('project:read', 'event:read',),
+            events=('event.alert',),
+        )
+        self.create_sentry_app_installation(slug='sentry')
+        updater = Updater(sentry_app=sentry_app, events=('issue',))
+        updater.call()
+        assert set(sentry_app.events) == expand_events(['issue'])
+        service_hook = ServiceHook.objects.filter(application=sentry_app.application)[0]
+        assert set(service_hook.events) == expand_events(['issue'])
 
     def test_updates_webhook_url(self):
         self.updater.webhook_url = 'http://example.com/hooks'

@@ -5,7 +5,7 @@ import responses
 from django.db import connection
 
 from sentry.mediators.sentry_app_installations import Creator, Destroyer
-from sentry.models import ApiAuthorization, ApiGrant, SentryAppInstallation, ServiceHook
+from sentry.models import AuditLogEntry, AuditLogEntryEvent, ApiAuthorization, ApiGrant, SentryAppInstallation, ServiceHook
 from sentry.testutils import TestCase
 
 
@@ -75,6 +75,17 @@ class TestDestroyer(TestCase):
         self.destroyer.call()
 
         assert not ServiceHook.objects.filter(pk=hook.id).exists()
+
+    @responses.activate
+    def test_creates_audit_log_entry(self):
+        responses.add(responses.POST, 'https://example.com/webhook')
+        request = self.make_request(user=self.user, method='GET')
+        Destroyer.run(
+            install=self.install,
+            user=self.user,
+            request=request,
+        )
+        assert AuditLogEntry.objects.filter(event=AuditLogEntryEvent.SENTRY_APP_UNINSTALL).exists()
 
     @responses.activate
     def test_soft_deletes_installation(self):

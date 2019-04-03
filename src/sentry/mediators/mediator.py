@@ -158,13 +158,19 @@ class Mediator(object):
         obj = cls(*args, **kwargs)
 
         with obj.log():
-            return obj.call()
+            result = obj.call()
+            obj.audit()
+            return result
 
     def __init__(self, *args, **kwargs):
         self.kwargs = kwargs
         self.logger = kwargs.get('logger',
                                  logging.getLogger(self._logging_name))
         self._validate_params(**kwargs)
+
+    def audit(self):
+        # used for creating audit log entries
+        pass
 
     def call(self):
         raise NotImplementedError
