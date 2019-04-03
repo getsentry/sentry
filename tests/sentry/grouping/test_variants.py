@@ -78,6 +78,9 @@ def test_event_hash_variant(insta_snapshot, config_name, test_name, log):
     data = mgr.get_data()
     evt = Event(data=data, platform=data['platform'])
 
+    # Make sure we don't need to touch the DB here
+    evt.project = None
+
     rv = []
     for (key, value) in sorted(evt.get_grouping_variants().items()):
         if rv:

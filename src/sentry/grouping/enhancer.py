@@ -118,7 +118,7 @@ class Match(object):
 
     def _to_config_structure(self):
         if self.key == 'family':
-            arg = ''.join(filter(None, [REVERSE_FAMILIES.get(x) for x in self.pattern.split(',')]))
+            arg = ''.join(filter(None, [FAMILIES.get(x) for x in self.pattern.split(',')]))
         else:
             arg = self.pattern
         return MATCH_KEYS[self.key] + arg
@@ -127,7 +127,7 @@ class Match(object):
     def _from_config_structure(cls, obj):
         key = SHORT_MATCH_KEYS[obj[0]]
         if key == 'family':
-            arg = ','.join(filter(None, [FAMILIES.get(x) for x in obj[1:]]))
+            arg = ','.join(filter(None, [REVERSE_FAMILIES.get(x) for x in obj[1:]]))
         else:
             arg = obj[1:]
         return cls(key, arg)
@@ -149,14 +149,14 @@ class Action(object):
         )
 
     def _to_config_structure(self):
-        return ACTIONS.index(self.key) | (ACTION_FLAGS[self.flag, self.range] << 5)
+        return ACTIONS.index(self.key) | (ACTION_FLAGS[self.flag, self.range] << 4)
 
     def apply_to_frames(self, frames, idx):
         pass
 
     @classmethod
     def _from_config_structure(cls, num):
-        flag, range = REVERSE_ACTION_FLAGS[num >> 5]
+        flag, range = REVERSE_ACTION_FLAGS[num >> 4]
         return cls(ACTIONS[num & 0xf], flag, range)
 
 

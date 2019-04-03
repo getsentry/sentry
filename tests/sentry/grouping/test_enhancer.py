@@ -37,6 +37,7 @@ family:javascript path:*/test.js                -app
     dumped = enhancement.dumps()
     insta_snapshot(dump_obj(enhancement))
     assert Enhancements.loads(dumped).dumps() == dumped
+    assert Enhancements.loads(dumped)._to_config_structure() == enhancement._to_config_structure()
     assert isinstance(dumped, six.string_types)
 
 

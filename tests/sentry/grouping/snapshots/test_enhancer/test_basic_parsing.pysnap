@@ -1,5 +1,5 @@
 ---
-created: '2019-04-03T09:05:57.852545Z'
+created: '2019-04-03T18:39:26.343115Z'
 creator: sentry
 source: tests/sentry/grouping/test_enhancer.py
 ---
@@ -17,31 +17,31 @@ rules:
     pattern: '*/code/game/whatever/*'
 - actions:
   - flag: false
-    key: store
+    key: group
     range: up
   - flag: false
-    key: store
+    key: group
     range: null
   matchers:
   - key: function
     pattern: panic_handler
 - actions:
   - flag: false
-    key: store
+    key: group
     range: down
   matchers:
   - key: function
     pattern: ThreadStartWin32
 - actions:
   - flag: false
-    key: store
+    key: group
     range: down
   matchers:
   - key: function
     pattern: ThreadStartLinux
 - actions:
   - flag: false
-    key: store
+    key: group
     range: down
   matchers:
   - key: function

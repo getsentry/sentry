@@ -115,7 +115,10 @@ class EventCommon(object):
 
     @project.setter
     def project(self, project):
-        self.project_id = project.id
+        if project is None:
+            self.project_id = None
+        else:
+            self.project_id = project.id
         self._project_cache = project
 
     def get_interfaces(self):
