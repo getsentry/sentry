@@ -21,7 +21,6 @@ class GroupEventsTest(APITestCase, SnubaTestCase):
     """
 
     def setUp(self):
-        print('group events')
         super(GroupEventsTest, self).setUp()
         self.min_ago = timezone.now() - timedelta(minutes=1)
         options.set('snuba.events-queries.enabled', True)
