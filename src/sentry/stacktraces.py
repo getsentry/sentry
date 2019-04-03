@@ -219,7 +219,7 @@ def normalize_stacktraces_for_grouping(data, project=None):
             get_grouping_config_dict_for_project(data, project))
         platform = data.get('platform')
         for frames in stacktraces:
-            grouping_config.enhancers.apply_to_frames(data, project, platform)
+            grouping_config.enhancers.apply_to_frames(frames, project, platform)
 
     # normalize in-app
     for frames in stacktraces:

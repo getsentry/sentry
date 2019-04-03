@@ -12,20 +12,20 @@ family:native function:alloc::*                                   -app
 family:native function:__rust_*                                   -app
 
 # rust borders
-family:native function:std::panicking::begin_panic                ^-store -app
-family:native function:core::panicking::begin_panic               ^-store -app
-family:native function:failure::backtrace::Backtrace::new         ^-store -app
-family:native function:error_chain::make_backtrace                ^-store -app
+family:native function:std::panicking::begin_panic                ^-group -group -app
+family:native function:core::panicking::begin_panic               ^-group -group -app
+family:native function:failure::backtrace::Backtrace::new         ^-group -group -app
+family:native function:error_chain::make_backtrace                ^-group -group -app
 
 # C++ borders
-family:native function:_CxxThrowException                         ^-store -app -group
-family:native function:__cxa_throw                                ^-store -app -group
-family:native function:__assert_rtn                               ^-store -app -group
+family:native function:_CxxThrowException                         ^-group -group -app
+family:native function:__cxa_throw                                ^-group -group -app
+family:native function:__assert_rtn                               ^-group -group -app
 
 # Objective-C
-family:native function:_NSRaiseError                              ^-store -app -group
+family:native function:_NSRaiseError                              ^-group -group -app
 
 # Breakpad
 family:native function:google_breakpad::*                         -app -group
-family:native function:google_breakpad::ExceptionHandler::SignalHandler ^-store
-family:native function:google_breakpad::ExceptionHandler::WriteMinidumpWithException ^-store
+family:native function:google_breakpad::ExceptionHandler::SignalHandler ^-group -group
+family:native function:google_breakpad::ExceptionHandler::WriteMinidumpWithException ^-group -group

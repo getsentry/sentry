@@ -29,7 +29,7 @@ matcher_type   = "path" / "function" / "module" / "family"
 
 actions        = action+
 action         = _ range? flag action_name
-action_name    = "store" / "group" / "app"
+action_name    = "group" / "app"
 flag           = "+" / "-"
 range          = "^" / "v"
 
@@ -64,7 +64,7 @@ MATCH_KEYS = {
 }
 SHORT_MATCH_KEYS = dict((v, k) for k, v in six.iteritems(MATCH_KEYS))
 
-ACTIONS = ['store', 'group', 'app']
+ACTIONS = ['group', 'app']
 ACTION_FLAGS = {
     (True, None): 0,
     (True, 'up'): 1,
@@ -151,6 +151,9 @@ class Action(object):
     def _to_config_structure(self):
         return ACTIONS.index(self.key) | (ACTION_FLAGS[self.flag, self.range] << 5)
 
+    def apply_to_frames(self, frames, idx):
+        pass
+
     @classmethod
     def _from_config_structure(cls, num):
         flag, range = REVERSE_ACTION_FLAGS[num >> 5]
@@ -171,7 +174,12 @@ class Enhancements(object):
         self.bases = bases
 
     def apply_to_frames(self, frames, project, platform):
-        pass
+        for idx, frame in enumerate(frames):
+            actions = frame.matches_frame(frame, platform)
+            if not actions:
+                continue
+            for action in actions:
+                action.apply_to_frames(frames, idx)
 
     def as_dict(self, with_rules=False):
         rv = {
