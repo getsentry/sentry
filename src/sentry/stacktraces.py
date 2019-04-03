@@ -5,7 +5,7 @@ import logging
 from datetime import datetime
 from django.utils import timezone
 
-from collections import namedtuple
+from collections import namedtuple, OrderedDict
 
 from sentry.models import Project, Release
 from sentry.utils.cache import cache
@@ -33,7 +33,11 @@ class ProcessableFrame(object):
         self.processable_frames = processable_frames
 
     def __repr__(self):
-        return '<ProcessableFrame %r #%r>' % (self.frame.get('function') or 'unknown', self.idx, )
+        return '<ProcessableFrame %r #%r at %r>' % (
+            self.frame.get('function') or 'unknown',
+            self.idx,
+            self.frame.get('instruction_addr'),
+        )
 
     def __contains__(self, key):
         return key in self.frame
@@ -319,8 +323,12 @@ def get_stacktrace_processing_task(infos, processors):
     processors that seem to not handle any frames.
     """
     by_processor = {}
-    by_stacktrace_info = {}
     to_lookup = {}
+
+    # by_stacktrace_info requires stable sorting as it is used in
+    # StacktraceProcessingTask.iter_processable_stacktraces. This is important
+    # to guarantee reproducible symbolicator requests.
+    by_stacktrace_info = OrderedDict()
 
     for info in infos:
         processable_frames = get_processable_frames(info, processors)
