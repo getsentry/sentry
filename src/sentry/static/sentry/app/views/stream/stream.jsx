@@ -381,8 +381,9 @@ const Stream = createReactClass({
         if (jqXHR.getResponseHeader('X-Sentry-Direct-Hit') === '1') {
           if (data && data[0].matchingEventId) {
             const {project, id, matchingEventId, matchingEventEnvironment} = data[0];
-            let redirect = `/${this.props.params
-              .orgId}/${project.slug}/issues/${id}/events/${matchingEventId}/`;
+            let redirect = `/${this.props.params.orgId}/${
+              project.slug
+            }/issues/${id}/events/${matchingEventId}/`;
             // Also direct to the environment of this specific event if this
             // key exists. We need to explicitly check against undefined becasue
             // an environment name may be an empty string, which is perfectly valid.

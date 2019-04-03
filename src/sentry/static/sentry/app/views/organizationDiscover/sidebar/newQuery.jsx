@@ -32,7 +32,9 @@ export default class NewQuery extends React.Component {
       .then(savedQuery => {
         addSuccessMessage(tct('Successfully saved query [name]', {name: savedQueryName}));
         browserHistory.push({
-          pathname: `/organizations/${organization.slug}/discover/saved/${savedQuery.id}/`,
+          pathname: `/organizations/${organization.slug}/discover/saved/${
+            savedQuery.id
+          }/`,
           query: {editing: true},
         });
       })

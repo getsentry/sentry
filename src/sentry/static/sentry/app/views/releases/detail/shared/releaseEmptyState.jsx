@@ -20,7 +20,8 @@ class ReleaseEmptyState extends React.Component {
         <h5>{t('Releases are better with commit data!')}</h5>
         <p>
           {t(`Connect a repository to see commit info, files changed, and authors
-                  involved in future releases`)}.
+                  involved in future releases`)}
+          .
         </p>
         <Button
           priority="primary"

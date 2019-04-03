@@ -136,7 +136,9 @@ export const TableChart = styled(
                   width:
                     columnIndex < widths.length
                       ? widths[columnIndex]
-                      : showRowTotal ? rowTotalWidth : null,
+                      : showRowTotal
+                      ? rowTotalWidth
+                      : null,
                   showRowTotal,
                   ...props,
                 })
@@ -154,7 +156,9 @@ export const TableChart = styled(
                     width:
                       index < widths.length
                         ? widths[index]
-                        : showRowTotal ? rowTotalWidth : null,
+                        : showRowTotal
+                        ? rowTotalWidth
+                        : null,
                     justify: 'right',
                     showRowTotal,
                     ...props,
@@ -185,7 +189,9 @@ export const TableChart = styled(
           <Cell justify={justify} width={width} key={`${rowIndex}-${columnIndex}`}>
             {isTableHeader
               ? renderTableHeaderCell(p)
-              : isHeader ? renderHeaderCell(p) : renderDataCell(p)}
+              : isHeader
+              ? renderHeaderCell(p)
+              : renderDataCell(p)}
           </Cell>
         );
       };
@@ -365,7 +371,7 @@ export const TableChartRow = styled(
     render() {
       const {className, showBar, total, value, children} = this.props;
       const barWidth =
-        total > 0 && typeof value === 'number' ? Math.round(value / total * 100) : 0;
+        total > 0 && typeof value === 'number' ? Math.round((value / total) * 100) : 0;
 
       return (
         <PanelItem className={className}>

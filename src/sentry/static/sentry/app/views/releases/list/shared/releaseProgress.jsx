@@ -153,7 +153,7 @@ class ReleaseProgress extends AsyncComponent {
   getWidth() {
     const {remainingSteps} = this.state;
     const width =
-      100 * (Object.keys(STEPS).length - remainingSteps) / Object.keys(STEPS).length;
+      (100 * (Object.keys(STEPS).length - remainingSteps)) / Object.keys(STEPS).length;
 
     return width === 0 ? 25 : width;
   }

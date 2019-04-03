@@ -294,8 +294,7 @@ class EventsRequest extends React.PureComponent {
       originalPreviousData: originalPreviousTimeseriesData,
       previousData: previousTimeseriesData,
       timeAggregatedData,
-    } =
-      (timeseriesData && this.processData(timeseriesData, true)) || {};
+    } = (timeseriesData && this.processData(timeseriesData, true)) || {};
 
     return children({
       loading,

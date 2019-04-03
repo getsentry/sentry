@@ -173,10 +173,9 @@ const IssueList = createReactClass({
     return (
       <React.Fragment>
         {this.renderResults()}
-        {this.props.pagination &&
-          this.state.pageLinks && (
-            <Pagination pageLinks={this.state.pageLinks} {...this.props} />
-          )}
+        {this.props.pagination && this.state.pageLinks && (
+          <Pagination pageLinks={this.state.pageLinks} {...this.props} />
+        )}
       </React.Fragment>
     );
   },

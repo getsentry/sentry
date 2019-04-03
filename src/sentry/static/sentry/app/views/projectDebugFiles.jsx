@@ -98,8 +98,9 @@ class ProjectDebugSymbols extends AsyncComponent {
     const {orgId, projectId} = this.props.params;
 
     const rows = this.state.debugFiles.map((dsym, key) => {
-      const url = `${this.api
-        .baseUrl}/projects/${orgId}/${projectId}/files/dsyms/?id=${dsym.id}`;
+      const url = `${this.api.baseUrl}/projects/${orgId}/${projectId}/files/dsyms/?id=${
+        dsym.id
+      }`;
       const fileType = getFileType(dsym);
       const symbolType = fileType ? `${dsym.symbolType} ${fileType}` : dsym.symbolType;
       const features = dsym.data && dsym.data.features;

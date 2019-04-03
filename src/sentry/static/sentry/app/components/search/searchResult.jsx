@@ -16,8 +16,8 @@ class SearchResult extends React.Component {
     highlighted: PropTypes.bool,
     item: PropTypes.shape({
       /**
-     * The source of the search result (i.e. a model type)
-     */
+       * The source of the search result (i.e. a model type)
+       */
       sourceType: PropTypes.oneOf([
         'organization',
         'project',
@@ -33,11 +33,11 @@ class SearchResult extends React.Component {
         'help',
       ]),
       /**
-     * The type of result this is, for example:
-     * - can be a setting route,
-     * - an application route (e.g. org dashboard)
-     * - form field
-     */
+       * The type of result this is, for example:
+       * - can be a setting route,
+       * - an application route (e.g. org dashboard)
+       * - form field
+       */
       resultType: PropTypes.oneOf([
         'settings',
         'command',

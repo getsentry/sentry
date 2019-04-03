@@ -35,7 +35,11 @@ export default class OrganizationReleaseOverview extends AsyncComponent {
   }
 
   renderBody() {
-    const {release, query, params: {orgId, version}} = this.props;
+    const {
+      release,
+      query,
+      params: {orgId, version},
+    } = this.props;
 
     const {fileList, repos} = this.state;
 

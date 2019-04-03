@@ -127,23 +127,26 @@ class Form extends React.Component {
 
     return (
       <StyledForm onSubmit={this.onSubmit} className={this.props.className}>
-        {isError &&
-          !hideErrors && (
-            <div className="alert alert-error alert-block">
-              {nonFieldErrors ? (
-                <div>
-                  <p>
-                    {t(
-                      'Unable to save your changes. Please correct the following errors try again.'
-                    )}
-                  </p>
-                  <ul>{nonFieldErrors.map((e, i) => <li key={i}>{e}</li>)}</ul>
-                </div>
-              ) : (
-                errorMessage
-              )}
-            </div>
-          )}
+        {isError && !hideErrors && (
+          <div className="alert alert-error alert-block">
+            {nonFieldErrors ? (
+              <div>
+                <p>
+                  {t(
+                    'Unable to save your changes. Please correct the following errors try again.'
+                  )}
+                </p>
+                <ul>
+                  {nonFieldErrors.map((e, i) => (
+                    <li key={i}>{e}</li>
+                  ))}
+                </ul>
+              </div>
+            ) : (
+              errorMessage
+            )}
+          </div>
+        )}
         {this.props.children}
         <div className={this.props.footerClass} style={{marginTop: 25}}>
           <button

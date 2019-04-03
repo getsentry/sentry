@@ -56,7 +56,9 @@ describe('SentryAppExternalIssueForm', () => {
     });
 
     it('submits to the New External Issue endpoint', () => {
-      const url = `/sentry-app-installations/${sentryAppInstallation.uuid}/external-issues/`;
+      const url = `/sentry-app-installations/${
+        sentryAppInstallation.uuid
+      }/external-issues/`;
       expect(wrapper.find('Form').prop('apiEndpoint')).toEqual(url);
       expect(wrapper.find('Form').prop('apiMethod')).toEqual('POST');
     });
@@ -111,7 +113,9 @@ describe('SentryAppExternalIssueForm', () => {
     });
 
     it('submits to the New External Issue endpoint', () => {
-      const url = `/sentry-app-installations/${sentryAppInstallation.uuid}/external-issues/`;
+      const url = `/sentry-app-installations/${
+        sentryAppInstallation.uuid
+      }/external-issues/`;
       expect(wrapper.find('Form').prop('apiEndpoint')).toEqual(url);
       expect(wrapper.find('Form').prop('apiMethod')).toEqual('POST');
     });

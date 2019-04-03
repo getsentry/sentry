@@ -56,8 +56,9 @@ export default createReactClass({
       return;
     }
     this.api.request(
-      `/projects/${this.props.orgId}/${this.props
-        .projectId}/events/${event.id}/committers/`,
+      `/projects/${this.props.orgId}/${this.props.projectId}/events/${
+        event.id
+      }/committers/`,
       {
         success: (data, _, jqXHR) => {
           this.setState(data);

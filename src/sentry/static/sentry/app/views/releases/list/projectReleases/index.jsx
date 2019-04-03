@@ -57,7 +57,10 @@ const ProjectReleases = createReactClass({
 
   componentWillMount() {
     // Redirect any Sentry 10 user that has followed an old link and ended up here
-    const {location, params: {orgId}} = this.props;
+    const {
+      location,
+      params: {orgId},
+    } = this.props;
     const hasSentry10 = new Set(this.context.organization.features).has('sentry10');
     if (hasSentry10) {
       browserHistory.replace(`/organizations/${orgId}/releases/${location.search}`);
@@ -213,7 +216,10 @@ const ProjectReleases = createReactClass({
   },
 
   render() {
-    const {project: {slug: projectSlug}, organization: {name: orgName}} = this.context;
+    const {
+      project: {slug: projectSlug},
+      organization: {name: orgName},
+    } = this.context;
 
     return (
       <DocumentTitle title={`Releases - ${projectSlug} - ${orgName} - Sentry`}>

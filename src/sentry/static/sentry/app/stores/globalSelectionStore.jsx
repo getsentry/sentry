@@ -58,7 +58,7 @@ const GlobalSelectionStore = Reflux.createStore({
   /**
    * Initializes the global selection store
    * If there are query params apply these, otherwise check local storage
-  */
+   */
   loadInitialData(organization, queryParams) {
     this.organization = organization;
     const query = pick(queryParams, Object.values(URL_PARAM));

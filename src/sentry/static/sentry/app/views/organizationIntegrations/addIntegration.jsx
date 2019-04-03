@@ -31,14 +31,14 @@ export default class AddIntegration extends React.Component {
     const innerWidth = window.innerWidth
       ? window.innerWidth
       : document.documentElement.clientWidth
-        ? document.documentElement.clientWidth
-        : screen.width;
+      ? document.documentElement.clientWidth
+      : screen.width;
 
     const innerHeight = window.innerHeight
       ? window.innerHeight
       : document.documentElement.clientHeight
-        ? document.documentElement.clientHeight
-        : screen.height;
+      ? document.documentElement.clientHeight
+      : screen.height;
 
     const left = innerWidth / 2 - width / 2 + screenLeft;
     const top = innerHeight / 2 - height / 2 + screenTop;
