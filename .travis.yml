@@ -47,7 +47,8 @@ script:
 
 after_success:
   - |
-      if [[ -f .artifacts/*coverage.xml || -f .artifacts/coverage/cobertura-coverage.xml ]]; then
+      coverage_files=$(ls .artifacts/*coverage.xml || true)
+      if [[ -n "$coverage_files" || -f .artifacts/coverage/cobertura-coverage.xml ]]; then
         pip install codecov
         codecov -e TEST_SUITE
       fi
