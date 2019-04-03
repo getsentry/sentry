@@ -143,6 +143,9 @@ class Browser(object):
 
         return self
 
+    def wait_until_test_id(self, selector):
+        return self.wait_until('[data-test-id="%s"]' % (selector))
+
     def wait_until_not(self, selector=None, title=None, timeout=3):
         """
         Waits until ``selector`` is NOT found in the browser, or until
