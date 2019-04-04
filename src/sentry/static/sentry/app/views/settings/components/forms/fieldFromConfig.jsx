@@ -79,11 +79,7 @@ export default class FieldFromConfig extends React.Component {
       case 'email':
         return <EmailField {...props} />;
       case 'hidden':
-<<<<<<< HEAD
         return <HiddenField {...props} />;
-=======
-        return <HiddenField {...props} type="hidden" />;
->>>>>>> add in unlink issue stuffs
       case 'string':
       case 'text':
       case 'url':
