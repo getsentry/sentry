@@ -12,12 +12,12 @@ from sentry.utils.safe import get_path
 CRAWLERS = re.compile(
     r'|'.join(
         (
-            # various Google services
-            r'AdsBot',
-            # Google Adsense
-            r'Mediapartners',
-            # Google+ and Google web search, but not apis-google
-            r'(?<!APIs-)Google',
+            # Google spiders (Adsense and others)
+            # https://support.google.com/webmasters/answer/1061943?hl=en
+            r'Mediapartners\-Google',
+            r'AdsBot\-Google',
+            r'Googlebot',
+            r'FeedFetcher\-Google',
             # Bing search
             r'BingBot',
             r'BingPreview',
