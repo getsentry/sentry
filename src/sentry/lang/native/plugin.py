@@ -3,6 +3,7 @@ from __future__ import absolute_import
 import uuid
 import logging
 import posixpath
+import six
 
 from symbolic import parse_addr, find_best_instruction, arch_get_ip_reg_name, \
     ObjectLookup
@@ -255,9 +256,9 @@ class NativeStacktraceProcessor(StacktraceProcessor):
             status = fetched_debug_file.pop('status')
             # Set image data from symbolicator as symbolicator might know more
             # than the SDK, especially for minidumps
-            if fetched_debug_file.get('arch') == 'unknown':
-                fetched_debug_file.pop('arch')
-            image.update(fetched_debug_file)
+            for k, v in six.iteritems(fetched_debug_file):
+                if not (v is None or (k, v) == ('arch', 'unknown')):
+                    image[k] = v
 
             if status in ('found', 'unused'):
                 continue
@@ -275,10 +276,10 @@ class NativeStacktraceProcessor(StacktraceProcessor):
                 logger.error("Unknown status: %s", status)
                 continue
 
-            error.image_arch = image['arch']
-            error.image_path = image['code_file']
-            error.image_name = image_name(image['code_file'])
-            error.image_uuid = image['debug_id']
+            error.image_arch = image.get('arch')
+            error.image_path = image.get('code_file')
+            error.image_name = image_name(image.get('code_file'))
+            error.image_uuid = image.get('debug_id')
             self.data.setdefault('errors', []) \
                 .extend(self._handle_symbolication_failed(error))
 

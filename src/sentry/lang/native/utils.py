@@ -22,6 +22,8 @@ AppInfo = namedtuple('AppInfo', ['id', 'version', 'build', 'name'])
 
 
 def image_name(pkg):
+    if not pkg:
+        return pkg
     split = '\\' if WINDOWS_PATH_RE.match(pkg) else '/'
     return pkg.rsplit(split, 1)[-1]
 
