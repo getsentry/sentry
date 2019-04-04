@@ -9,7 +9,6 @@ import six
 
 from datetime import datetime
 from subprocess import Popen, PIPE
-from contextlib import contextmanager
 from six.moves.urllib.parse import urlparse
 
 HERE = os.path.abspath(os.path.dirname(__file__))
@@ -78,18 +77,6 @@ def spawn_sentry():
     return cl
 
 
-@contextmanager
-def management_connection():
-    from sqlite3 import connect
-    cfg = settings.DATABASES['default']
-    con = connect(cfg['NAME'])
-    try:
-        con.cursor()
-        yield con
-    finally:
-        con.close()
-
-
 def init_db():
     drop_db()
     report('db', 'Migrating database (this can take some time)')
@@ -99,10 +86,20 @@ def init_db():
 
 def drop_db():
     report('db', 'Dropping database')
-    try:
-        os.remove(settings.DATABASES['default']['NAME'])
-    except (OSError, IOError):
-        pass
+    config = settings.DATABASES['default']
+    drop = Popen(
+        ['psql', '-U', config['USER'], '-h', config['HOST'],
+            '-c', 'DROP DATABASE {}'.format(config['NAME'])],
+        stdin=PIPE,
+        stdout=open(os.devnull, 'r+'))
+    drop.communicate()
+
+    create = Popen(
+        ['psql', '-U', config['USER'], '-h', config['HOST'],
+            '-c', 'CREATE DATABASE {}'.format(config['NAME'])],
+        stdin=PIPE,
+        stdout=open(os.devnull, 'r+'))
+    create.communicate()
 
 
 class SentryBox(object):
