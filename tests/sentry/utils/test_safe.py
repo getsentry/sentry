@@ -4,6 +4,7 @@ from collections import OrderedDict
 from functools import partial
 import pytest
 
+from mock import patch, Mock
 from sentry.testutils import TestCase
 from sentry.utils.canonical import CanonicalKeyDict
 from sentry.utils.safe import safe_execute, trim, trim_dict, get_path, set_path, \
@@ -92,6 +93,18 @@ class SafeExecuteTest(TestCase):
                 raise Exception()
 
         assert safe_execute(Foo().simple, 1) is None
+
+    @patch('sentry.utils.safe.logging.getLogger')
+    def test_with_expected_errors(self, mock_get_logger):
+        mock_log = Mock()
+        mock_get_logger.return_value = mock_log
+
+        def simple(a):
+            raise ValueError()
+
+        assert safe_execute(simple, 1, expected_errors=(ValueError,)) is None
+        assert mock_log.info.called
+        assert mock_log.error.called is False
 
 
 class GetPathTest(TestCase):
