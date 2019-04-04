@@ -88,15 +88,13 @@ def drop_db():
     report('db', 'Dropping database')
     config = settings.DATABASES['default']
     drop = Popen(
-        ['psql', '-U', config['USER'], '-h', config['HOST'],
-            '-c', 'DROP DATABASE {}'.format(config['NAME'])],
+        ['dropdb', '-U', config['USER'], '-h', config['HOST'], config['NAME']],
         stdin=PIPE,
         stdout=open(os.devnull, 'r+'))
     drop.communicate()
 
     create = Popen(
-        ['psql', '-U', config['USER'], '-h', config['HOST'],
-            '-c', 'CREATE DATABASE {}'.format(config['NAME'])],
+        ['createdb', '-U', config['USER'], '-h', config['HOST'], config['NAME']],
         stdin=PIPE,
         stdout=open(os.devnull, 'r+'))
     create.communicate()
