@@ -3,6 +3,7 @@ from __future__ import absolute_import
 from collections import OrderedDict
 from functools import partial
 import pytest
+import unittest
 
 from mock import patch, Mock
 from sentry.testutils import TestCase
@@ -13,7 +14,7 @@ from sentry.utils.safe import safe_execute, trim, trim_dict, get_path, set_path,
 a_very_long_string = 'a' * 1024
 
 
-class TrimTest(TestCase):
+class TrimTest(unittest.TestCase):
     def test_simple_string(self):
         assert trim(a_very_long_string) == a_very_long_string[:509] + '...'
 
@@ -58,7 +59,7 @@ class TrimTest(TestCase):
         assert trm(a) == {'a': {'b': {'c': '[]'}}}
 
 
-class TrimDictTest(TestCase):
+class TrimDictTest(unittest.TestCase):
     def test_large_dict(self):
         value = dict((k, k) for k in range(500))
         trim_dict(value)
@@ -107,7 +108,7 @@ class SafeExecuteTest(TestCase):
         assert mock_log.error.called is False
 
 
-class GetPathTest(TestCase):
+class GetPathTest(unittest.TestCase):
     def test_get_none(self):
         assert get_path(None, 'foo') is None
         assert get_path('foo', 'foo') is None
@@ -157,7 +158,7 @@ class GetPathTest(TestCase):
             get_path({}, 'foo', unknown=True)
 
 
-class SetPathTest(TestCase):
+class SetPathTest(unittest.TestCase):
     def test_set_none(self):
         assert not set_path(None, 'foo', value=42)
         assert not set_path('foo', 'foo', value=42)
