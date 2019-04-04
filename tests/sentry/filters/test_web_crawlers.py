@@ -23,9 +23,27 @@ class WebCrawlersFilterTest(TestCase):
             }
         }
 
-    def test_filters_googlebot(self):
-        data = self.get_mock_data('Googlebot')
+    def test_filters_google_adsense(self):
+        data = self.get_mock_data('Mediapartners-Google')
         assert self.apply_filter(data)
+
+    def test_filters_google_adsbot(self):
+        data = self.get_mock_data('AdsBot-Google (+http://www.google.com/adsbot.html)')
+        assert self.apply_filter(data)
+
+    def test_filters_google_bot(self):
+        data = self.get_mock_data(
+            'Mozilla/5.0 (compatible; Googlebot/2.1; +http://www.google.com/bot.html)')
+        assert self.apply_filter(data)
+
+    def test_filters_google_feedfetcher(self):
+        data = self.get_mock_data('FeedFetcher-Google; (+http://www.google.com/feedfetcher.html)')
+        assert self.apply_filter(data)
+
+    def test_does_not_filter_google_pubsub(self):
+        data = self.get_mock_data(
+            'APIs-Google (+https://developers.google.com/webmasters/APIs-Google.html)')
+        assert not self.apply_filter(data)
 
     def test_does_not_filter_chrome(self):
         data = self.get_mock_data(
