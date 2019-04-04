@@ -1,378 +1,510 @@
 // Jest Snapshot v1, https://goo.gl/fbAQLP
 
 exports[`PlatformPicker render() should only render Mobile platforms under Mobile tab 1`] = `
-<div
-  className="platform-picker"
->
-  <NavTabs>
-    <li
-      style={
+<Fragment>
+  <NavContainer>
+    <CategoryNav>
+      <ListLink
+        activeClassName="active"
+        index={false}
+        isActive={[Function]}
+        key="popular"
+        onClick={[Function]}
+        to=""
+      >
+        Popular
+      </ListLink>
+      <ListLink
+        activeClassName="active"
+        index={false}
+        isActive={[Function]}
+        key="browser"
+        onClick={[Function]}
+        to=""
+      >
+        Browser
+      </ListLink>
+      <ListLink
+        activeClassName="active"
+        index={false}
+        isActive={[Function]}
+        key="server"
+        onClick={[Function]}
+        to=""
+      >
+        Server
+      </ListLink>
+      <ListLink
+        activeClassName="active"
+        index={false}
+        isActive={[Function]}
+        key="mobile"
+        onClick={[Function]}
+        to=""
+      >
+        Mobile
+      </ListLink>
+      <ListLink
+        activeClassName="active"
+        index={false}
+        isActive={[Function]}
+        key="desktop"
+        onClick={[Function]}
+        to=""
+      >
+        Desktop
+      </ListLink>
+      <ListLink
+        activeClassName="active"
+        index={false}
+        isActive={[Function]}
+        key="all"
+        onClick={[Function]}
+        to=""
+      >
+        All
+      </ListLink>
+    </CategoryNav>
+    <SearchBar>
+      <InlineSvg
+        src="icon-search"
+      />
+      <input
+        label="Filter Platforms"
+        onChange={[Function]}
+        placeholder="Filter Platforms"
+        type="text"
+        value=""
+      />
+    </SearchBar>
+  </NavContainer>
+  <PlatformList>
+    <PlatformCard
+      data-test-id="platform-cordova"
+      key="cordova"
+      onClear={[Function]}
+      onClick={[Function]}
+      platform={
         Object {
-          "float": "right",
-          "marginRight": 0,
+          "id": "cordova",
+          "language": "cordova",
+          "link": "https://docs.getsentry.com/hosted/clients/cordova/",
+          "name": "Cordova",
+          "type": "language",
         }
       }
-    >
-      <div
-        className="platform-filter-container"
-      >
-        <span
-          className="icon icon-search"
-        />
-        <input
-          className="platform-filter"
-          label="Filter"
-          onChange={[Function]}
-          placeholder="Filter"
-          type="text"
-          value=""
-        />
-      </div>
-    </li>
-    <ListLink
-      activeClassName="active"
-      index={false}
-      isActive={[Function]}
-      key="popular"
-      onClick={[Function]}
-      to=""
-    >
-      Popular
-    </ListLink>
-    <ListLink
-      activeClassName="active"
-      index={false}
-      isActive={[Function]}
-      key="browser"
-      onClick={[Function]}
-      to=""
-    >
-      Browser
-    </ListLink>
-    <ListLink
-      activeClassName="active"
-      index={false}
-      isActive={[Function]}
-      key="server"
-      onClick={[Function]}
-      to=""
-    >
-      Server
-    </ListLink>
-    <ListLink
-      activeClassName="active"
-      index={false}
-      isActive={[Function]}
-      key="mobile"
-      onClick={[Function]}
-      to=""
-    >
-      Mobile
-    </ListLink>
-    <ListLink
-      activeClassName="active"
-      index={false}
-      isActive={[Function]}
-      key="desktop"
-      onClick={[Function]}
-      to=""
-    >
-      Desktop
-    </ListLink>
-    <ListLink
-      activeClassName="active"
-      index={false}
-      isActive={[Function]}
-      key="all"
-      onClick={[Function]}
-      to=""
-    >
-      All
-    </ListLink>
-  </NavTabs>
-  <ul
-    className="client-platform-list platform-tiles"
-  >
-    <PlatformCard
-      className=""
-      key="cordova"
-      onClick={[Function]}
-      platform="cordova"
+      selected={false}
     />
     <PlatformCard
-      className=""
+      data-test-id="platform-java-android"
       key="java-android"
+      onClear={[Function]}
       onClick={[Function]}
-      platform="java-android"
+      platform={
+        Object {
+          "id": "java-android",
+          "language": "java",
+          "link": "https://docs.getsentry.com/hosted/clients/java/modules/android/",
+          "name": "Android",
+          "type": "framework",
+        }
+      }
+      selected={false}
     />
     <PlatformCard
-      className=""
+      data-test-id="platform-objc"
       key="objc"
+      onClear={[Function]}
       onClick={[Function]}
-      platform="objc"
+      platform={
+        Object {
+          "id": "objc",
+          "language": "objc",
+          "link": "https://docs.getsentry.com/hosted/clients/cocoa/",
+          "name": "Objective-C",
+          "type": "language",
+        }
+      }
+      selected={false}
     />
     <PlatformCard
-      className=""
+      data-test-id="platform-cocoa"
       key="cocoa"
+      onClear={[Function]}
       onClick={[Function]}
-      platform="cocoa"
+      platform={
+        Object {
+          "id": "cocoa",
+          "language": "cocoa",
+          "link": "https://docs.getsentry.com/hosted/clients/react-native/",
+          "name": "React-Native",
+          "type": "language",
+        }
+      }
+      selected={false}
     />
     <PlatformCard
-      className=""
+      data-test-id="platform-swift"
       key="swift"
+      onClear={[Function]}
       onClick={[Function]}
-      platform="swift"
+      platform={
+        Object {
+          "id": "swift",
+          "language": "swift",
+          "link": "https://docs.getsentry.com/hosted/clients/cocoa/",
+          "name": "Swift",
+          "type": "language",
+        }
+      }
+      selected={false}
     />
-  </ul>
-</div>
+  </PlatformList>
+</Fragment>
 `;
 
 exports[`PlatformPicker render() should render renderPlatformList with Python when filtered with py 1`] = `
-<div
-  className="platform-picker"
->
-  <NavTabs>
-    <li
-      style={
+<Fragment>
+  <NavContainer>
+    <CategoryNav>
+      <ListLink
+        activeClassName="active"
+        index={false}
+        isActive={[Function]}
+        key="popular"
+        onClick={[Function]}
+        to=""
+      >
+        Popular
+      </ListLink>
+      <ListLink
+        activeClassName="active"
+        index={false}
+        isActive={[Function]}
+        key="browser"
+        onClick={[Function]}
+        to=""
+      >
+        Browser
+      </ListLink>
+      <ListLink
+        activeClassName="active"
+        index={false}
+        isActive={[Function]}
+        key="server"
+        onClick={[Function]}
+        to=""
+      >
+        Server
+      </ListLink>
+      <ListLink
+        activeClassName="active"
+        index={false}
+        isActive={[Function]}
+        key="mobile"
+        onClick={[Function]}
+        to=""
+      >
+        Mobile
+      </ListLink>
+      <ListLink
+        activeClassName="active"
+        index={false}
+        isActive={[Function]}
+        key="desktop"
+        onClick={[Function]}
+        to=""
+      >
+        Desktop
+      </ListLink>
+      <ListLink
+        activeClassName="active"
+        index={false}
+        isActive={[Function]}
+        key="all"
+        onClick={[Function]}
+        to=""
+      >
+        All
+      </ListLink>
+    </CategoryNav>
+    <SearchBar>
+      <InlineSvg
+        src="icon-search"
+      />
+      <input
+        label="Filter Platforms"
+        onChange={[Function]}
+        placeholder="Filter Platforms"
+        type="text"
+        value="py"
+      />
+    </SearchBar>
+  </NavContainer>
+  <PlatformList>
+    <PlatformCard
+      data-test-id="platform-python-bottle"
+      key="python-bottle"
+      onClear={[Function]}
+      onClick={[Function]}
+      platform={
         Object {
-          "float": "right",
-          "marginRight": 0,
+          "id": "python-bottle",
+          "language": "python",
+          "link": "https://docs.getsentry.com/hosted/clients/python/integrations/bottle/",
+          "name": "Bottle",
+          "type": "framework",
         }
       }
-    >
-      <div
-        className="platform-filter-container"
-      >
-        <span
-          className="icon icon-search"
-        />
-        <input
-          className="platform-filter"
-          label="Filter"
-          onChange={[Function]}
-          placeholder="Filter"
-          type="text"
-          value="py"
-        />
-      </div>
-    </li>
-    <ListLink
-      activeClassName="active"
-      index={false}
-      isActive={[Function]}
-      key="popular"
-      onClick={[Function]}
-      to=""
-    >
-      Popular
-    </ListLink>
-    <ListLink
-      activeClassName="active"
-      index={false}
-      isActive={[Function]}
-      key="browser"
-      onClick={[Function]}
-      to=""
-    >
-      Browser
-    </ListLink>
-    <ListLink
-      activeClassName="active"
-      index={false}
-      isActive={[Function]}
-      key="server"
-      onClick={[Function]}
-      to=""
-    >
-      Server
-    </ListLink>
-    <ListLink
-      activeClassName="active"
-      index={false}
-      isActive={[Function]}
-      key="mobile"
-      onClick={[Function]}
-      to=""
-    >
-      Mobile
-    </ListLink>
-    <ListLink
-      activeClassName="active"
-      index={false}
-      isActive={[Function]}
-      key="desktop"
-      onClick={[Function]}
-      to=""
-    >
-      Desktop
-    </ListLink>
-    <ListLink
-      activeClassName="active"
-      index={false}
-      isActive={[Function]}
-      key="all"
-      onClick={[Function]}
-      to=""
-    >
-      All
-    </ListLink>
-  </NavTabs>
-  <ul
-    className="client-platform-list platform-tiles"
-  >
-    <PlatformCard
-      className=""
-      key="python-bottle"
-      onClick={[Function]}
-      platform="python-bottle"
+      selected={false}
     />
     <PlatformCard
-      className=""
+      data-test-id="platform-python-celery"
       key="python-celery"
+      onClear={[Function]}
       onClick={[Function]}
-      platform="python-celery"
+      platform={
+        Object {
+          "id": "python-celery",
+          "language": "python",
+          "link": "https://docs.getsentry.com/hosted/clients/python/integrations/celery/",
+          "name": "Celery",
+          "type": "library",
+        }
+      }
+      selected={false}
     />
     <PlatformCard
-      className=""
+      data-test-id="platform-python-django"
       key="python-django"
+      onClear={[Function]}
       onClick={[Function]}
-      platform="python-django"
+      platform={
+        Object {
+          "id": "python-django",
+          "language": "python",
+          "link": "https://docs.getsentry.com/hosted/clients/python/integrations/django/",
+          "name": "Django",
+          "type": "framework",
+        }
+      }
+      selected={false}
     />
     <PlatformCard
-      className=""
+      data-test-id="platform-python-flask"
       key="python-flask"
+      onClear={[Function]}
       onClick={[Function]}
-      platform="python-flask"
+      platform={
+        Object {
+          "id": "python-flask",
+          "language": "python",
+          "link": "https://docs.getsentry.com/hosted/clients/python/integrations/flask/",
+          "name": "Flask",
+          "type": "framework",
+        }
+      }
+      selected={false}
     />
     <PlatformCard
-      className=""
+      data-test-id="platform-python-pylons"
       key="python-pylons"
+      onClear={[Function]}
       onClick={[Function]}
-      platform="python-pylons"
+      platform={
+        Object {
+          "id": "python-pylons",
+          "language": "python",
+          "link": "https://docs.getsentry.com/hosted/clients/python/integrations/pylons/",
+          "name": "Pylons",
+          "type": "framework",
+        }
+      }
+      selected={false}
     />
     <PlatformCard
-      className=""
+      data-test-id="platform-python-pyramid"
       key="python-pyramid"
+      onClear={[Function]}
       onClick={[Function]}
-      platform="python-pyramid"
+      platform={
+        Object {
+          "id": "python-pyramid",
+          "language": "python",
+          "link": "https://docs.getsentry.com/hosted/clients/python/integrations/pyramid/",
+          "name": "Pyramid",
+          "type": "framework",
+        }
+      }
+      selected={false}
     />
     <PlatformCard
-      className=""
+      data-test-id="platform-python"
       key="python"
+      onClear={[Function]}
       onClick={[Function]}
-      platform="python"
+      platform={
+        Object {
+          "id": "python",
+          "language": "python",
+          "link": "https://docs.getsentry.com/hosted/clients/python/",
+          "name": "Python",
+          "type": "language",
+        }
+      }
+      selected={false}
     />
     <PlatformCard
-      className=""
+      data-test-id="platform-python-rq"
       key="python-rq"
+      onClear={[Function]}
       onClick={[Function]}
-      platform="python-rq"
+      platform={
+        Object {
+          "id": "python-rq",
+          "language": "python",
+          "link": "https://docs.getsentry.com/hosted/clients/python/integrations/rq/",
+          "name": "RQ",
+          "type": "framework",
+        }
+      }
+      selected={false}
     />
     <PlatformCard
-      className=""
+      data-test-id="platform-python-tornado"
       key="python-tornado"
+      onClear={[Function]}
       onClick={[Function]}
-      platform="python-tornado"
+      platform={
+        Object {
+          "id": "python-tornado",
+          "language": "python",
+          "link": "https://docs.getsentry.com/hosted/clients/python/integrations/tornado/",
+          "name": "Tornado",
+          "type": "framework",
+        }
+      }
+      selected={false}
     />
-  </ul>
-</div>
+  </PlatformList>
+</Fragment>
 `;
 
 exports[`PlatformPicker render() should render renderPlatformList with community SDKs message if platform not found 1`] = `
-<div
-  className="platform-picker"
->
-  <NavTabs>
-    <li
-      style={
-        Object {
-          "float": "right",
-          "marginRight": 0,
-        }
-      }
+<Fragment>
+  <NavContainer>
+    <CategoryNav>
+      <ListLink
+        activeClassName="active"
+        index={false}
+        isActive={[Function]}
+        key="popular"
+        onClick={[Function]}
+        to=""
+      >
+        Popular
+      </ListLink>
+      <ListLink
+        activeClassName="active"
+        index={false}
+        isActive={[Function]}
+        key="browser"
+        onClick={[Function]}
+        to=""
+      >
+        Browser
+      </ListLink>
+      <ListLink
+        activeClassName="active"
+        index={false}
+        isActive={[Function]}
+        key="server"
+        onClick={[Function]}
+        to=""
+      >
+        Server
+      </ListLink>
+      <ListLink
+        activeClassName="active"
+        index={false}
+        isActive={[Function]}
+        key="mobile"
+        onClick={[Function]}
+        to=""
+      >
+        Mobile
+      </ListLink>
+      <ListLink
+        activeClassName="active"
+        index={false}
+        isActive={[Function]}
+        key="desktop"
+        onClick={[Function]}
+        to=""
+      >
+        Desktop
+      </ListLink>
+      <ListLink
+        activeClassName="active"
+        index={false}
+        isActive={[Function]}
+        key="all"
+        onClick={[Function]}
+        to=""
+      >
+        All
+      </ListLink>
+    </CategoryNav>
+    <SearchBar>
+      <InlineSvg
+        src="icon-search"
+      />
+      <input
+        label="Filter Platforms"
+        onChange={[Function]}
+        placeholder="Filter Platforms"
+        type="text"
+        value="aaaaaa"
+      />
+    </SearchBar>
+  </NavContainer>
+  <PlatformList />
+  <EmptyMessage
+    icon="icon-project"
+    title="We don't have an SDK for that yet!"
+  >
+    <span
+      key="5"
     >
-      <div
-        className="platform-filter-container"
+      <span
+        key="0"
+      >
+        Not finding your platform? You can still create your project,
+              but looks like we don't have an official SDK for your platform
+              yet. However, there's a rich ecosystem of community supported
+              SDKs (including Perl, CFML, Clojure, and ActionScript). Try
+              
+      </span>
+      <ExternalLink
+        href="https://github.com/search?q=-org%3Agetsentry+topic%3Asentry&type=Repositories"
+        key="2"
+        rel="noreferrer noopener"
+        target="_blank"
       >
         <span
-          className="icon icon-search"
-        />
-        <input
-          className="platform-filter"
-          label="Filter"
-          onChange={[Function]}
-          placeholder="Filter"
-          type="text"
-          value="aaaaaa"
-        />
-      </div>
-    </li>
-    <ListLink
-      activeClassName="active"
-      index={false}
-      isActive={[Function]}
-      key="popular"
-      onClick={[Function]}
-      to=""
-    >
-      Popular
-    </ListLink>
-    <ListLink
-      activeClassName="active"
-      index={false}
-      isActive={[Function]}
-      key="browser"
-      onClick={[Function]}
-      to=""
-    >
-      Browser
-    </ListLink>
-    <ListLink
-      activeClassName="active"
-      index={false}
-      isActive={[Function]}
-      key="server"
-      onClick={[Function]}
-      to=""
-    >
-      Server
-    </ListLink>
-    <ListLink
-      activeClassName="active"
-      index={false}
-      isActive={[Function]}
-      key="mobile"
-      onClick={[Function]}
-      to=""
-    >
-      Mobile
-    </ListLink>
-    <ListLink
-      activeClassName="active"
-      index={false}
-      isActive={[Function]}
-      key="desktop"
-      onClick={[Function]}
-      to=""
-    >
-      Desktop
-    </ListLink>
-    <ListLink
-      activeClassName="active"
-      index={false}
-      isActive={[Function]}
-      key="all"
-      onClick={[Function]}
-      to=""
-    >
-      All
-    </ListLink>
-  </NavTabs>
-  <p>
-    Not finding your platform? There's a rich ecosystem of community supported SDKs as well (including Perl, CFML, Clojure, and ActionScript).
- Try searching for Sentry clients or contacting support.
-  </p>
-</div>
+          key="1"
+        >
+          searching for Sentry clients
+        </span>
+      </ExternalLink>
+      <span
+        key="3"
+      >
+         or contacting support.
+      </span>
+    </span>
+  </EmptyMessage>
+</Fragment>
 `;
 
 exports[`PlatformPicker render() should update State.tab onClick when particular tab is clicked 1`] = `
@@ -386,1609 +518,2567 @@ exports[`PlatformPicker render() should update State.tab onClick when particular
   setPlatform={[Function]}
   showOther={true}
 >
-  <div
-    className="platform-picker"
-  >
-    <NavTabs>
-      <ul
-        className="nav nav-tabs"
-      >
-        <li
-          style={
-            Object {
-              "float": "right",
-              "marginRight": 0,
-            }
-          }
+  <NavContainer>
+    <div
+      className="css-xl0stt-NavContainer ewlrg790"
+    >
+      <CategoryNav>
+        <NavTabs
+          className="css-5tazcq-CategoryNav ewlrg792"
         >
-          <div
-            className="platform-filter-container"
+          <ul
+            className="nav nav-tabs css-5tazcq-CategoryNav ewlrg792"
           >
-            <span
-              className="icon icon-search"
-            />
-            <input
-              className="platform-filter"
-              label="Filter"
-              onChange={[Function]}
-              placeholder="Filter"
-              type="text"
-              value=""
-            />
-          </div>
-        </li>
-        <ListLink
-          activeClassName="active"
-          index={false}
-          isActive={[Function]}
-          key="popular"
-          onClick={[Function]}
-          to=""
-        >
-          <li
-            className=""
-          >
-            <Link
+            <ListLink
+              activeClassName="active"
+              index={false}
+              isActive={[Function]}
+              key="popular"
               onClick={[Function]}
-              onlyActiveOnIndex={false}
-              style={Object {}}
               to=""
             >
-              <a
-                onClick={[Function]}
-                style={Object {}}
+              <li
+                className=""
               >
-                Popular
-              </a>
-            </Link>
-          </li>
-        </ListLink>
-        <ListLink
-          activeClassName="active"
-          index={false}
-          isActive={[Function]}
-          key="browser"
-          onClick={[Function]}
-          to=""
-        >
-          <li
-            className=""
-          >
-            <Link
+                <Link
+                  onClick={[Function]}
+                  onlyActiveOnIndex={false}
+                  style={Object {}}
+                  to=""
+                >
+                  <a
+                    onClick={[Function]}
+                    style={Object {}}
+                  >
+                    Popular
+                  </a>
+                </Link>
+              </li>
+            </ListLink>
+            <ListLink
+              activeClassName="active"
+              index={false}
+              isActive={[Function]}
+              key="browser"
               onClick={[Function]}
-              onlyActiveOnIndex={false}
-              style={Object {}}
               to=""
             >
-              <a
-                onClick={[Function]}
-                style={Object {}}
+              <li
+                className=""
               >
-                Browser
-              </a>
-            </Link>
-          </li>
-        </ListLink>
-        <ListLink
-          activeClassName="active"
-          index={false}
-          isActive={[Function]}
-          key="server"
-          onClick={[Function]}
-          to=""
-        >
-          <li
-            className=""
-          >
-            <Link
+                <Link
+                  onClick={[Function]}
+                  onlyActiveOnIndex={false}
+                  style={Object {}}
+                  to=""
+                >
+                  <a
+                    onClick={[Function]}
+                    style={Object {}}
+                  >
+                    Browser
+                  </a>
+                </Link>
+              </li>
+            </ListLink>
+            <ListLink
+              activeClassName="active"
+              index={false}
+              isActive={[Function]}
+              key="server"
               onClick={[Function]}
-              onlyActiveOnIndex={false}
-              style={Object {}}
               to=""
             >
-              <a
-                onClick={[Function]}
-                style={Object {}}
+              <li
+                className=""
               >
-                Server
-              </a>
-            </Link>
-          </li>
-        </ListLink>
-        <ListLink
-          activeClassName="active"
-          index={false}
-          isActive={[Function]}
-          key="mobile"
-          onClick={[Function]}
-          to=""
-        >
-          <li
-            className=""
-          >
-            <Link
+                <Link
+                  onClick={[Function]}
+                  onlyActiveOnIndex={false}
+                  style={Object {}}
+                  to=""
+                >
+                  <a
+                    onClick={[Function]}
+                    style={Object {}}
+                  >
+                    Server
+                  </a>
+                </Link>
+              </li>
+            </ListLink>
+            <ListLink
+              activeClassName="active"
+              index={false}
+              isActive={[Function]}
+              key="mobile"
               onClick={[Function]}
-              onlyActiveOnIndex={false}
-              style={Object {}}
               to=""
             >
-              <a
-                onClick={[Function]}
-                style={Object {}}
+              <li
+                className=""
               >
-                Mobile
-              </a>
-            </Link>
-          </li>
-        </ListLink>
-        <ListLink
-          activeClassName="active"
-          index={false}
-          isActive={[Function]}
-          key="desktop"
-          onClick={[Function]}
-          to=""
-        >
-          <li
-            className=""
-          >
-            <Link
+                <Link
+                  onClick={[Function]}
+                  onlyActiveOnIndex={false}
+                  style={Object {}}
+                  to=""
+                >
+                  <a
+                    onClick={[Function]}
+                    style={Object {}}
+                  >
+                    Mobile
+                  </a>
+                </Link>
+              </li>
+            </ListLink>
+            <ListLink
+              activeClassName="active"
+              index={false}
+              isActive={[Function]}
+              key="desktop"
               onClick={[Function]}
-              onlyActiveOnIndex={false}
-              style={Object {}}
               to=""
             >
-              <a
-                onClick={[Function]}
-                style={Object {}}
+              <li
+                className=""
               >
-                Desktop
-              </a>
-            </Link>
-          </li>
-        </ListLink>
-        <ListLink
-          activeClassName="active"
-          index={false}
-          isActive={[Function]}
-          key="all"
-          onClick={[Function]}
-          to=""
-        >
-          <li
-            className="active"
-          >
-            <Link
+                <Link
+                  onClick={[Function]}
+                  onlyActiveOnIndex={false}
+                  style={Object {}}
+                  to=""
+                >
+                  <a
+                    onClick={[Function]}
+                    style={Object {}}
+                  >
+                    Desktop
+                  </a>
+                </Link>
+              </li>
+            </ListLink>
+            <ListLink
+              activeClassName="active"
+              index={false}
+              isActive={[Function]}
+              key="all"
               onClick={[Function]}
-              onlyActiveOnIndex={false}
-              style={Object {}}
               to=""
             >
-              <a
-                onClick={[Function]}
-                style={Object {}}
+              <li
+                className="active"
               >
-                All
-              </a>
-            </Link>
-          </li>
-        </ListLink>
-      </ul>
-    </NavTabs>
-    <ul
-      className="client-platform-list platform-tiles"
+                <Link
+                  onClick={[Function]}
+                  onlyActiveOnIndex={false}
+                  style={Object {}}
+                  to=""
+                >
+                  <a
+                    onClick={[Function]}
+                    style={Object {}}
+                  >
+                    All
+                  </a>
+                </Link>
+              </li>
+            </ListLink>
+          </ul>
+        </NavTabs>
+      </CategoryNav>
+      <SearchBar>
+        <div
+          className="css-1e5tau1-SearchBar-inputStyles ewlrg791"
+        >
+          <InlineSvg
+            src="icon-search"
+          >
+            <StyledSvg
+              height="1em"
+              viewBox={Object {}}
+              width="1em"
+            >
+              <svg
+                className="css-ryh69w-StyledSvg e2idor0"
+                height="1em"
+                viewBox={Object {}}
+                width="1em"
+              >
+                <use
+                  href="#test"
+                  xlinkHref="#test"
+                />
+              </svg>
+            </StyledSvg>
+          </InlineSvg>
+          <input
+            label="Filter Platforms"
+            onChange={[Function]}
+            placeholder="Filter Platforms"
+            type="text"
+            value=""
+          />
+        </div>
+      </SearchBar>
+    </div>
+  </NavContainer>
+  <PlatformList>
+    <div
+      className="css-545rh6-PlatformList ewlrg793"
     >
       <PlatformCard
-        className=""
+        data-test-id="platform-csharp"
         key="csharp"
+        onClear={[Function]}
         onClick={[Function]}
-        platform="csharp"
+        platform={
+          Object {
+            "id": "csharp",
+            "language": "csharp",
+            "link": "https://docs.getsentry.com/hosted/clients/csharp/",
+            "name": "C#",
+            "type": "language",
+          }
+        }
+        selected={false}
       >
-        <span
-          className="platform-card"
+        <Component
+          className="css-16kw2fg-PlatformCard ewlrg796"
+          data-test-id="platform-csharp"
+          onClear={[Function]}
           onClick={[Function]}
+          platform={
+            Object {
+              "id": "csharp",
+              "language": "csharp",
+              "link": "https://docs.getsentry.com/hosted/clients/csharp/",
+              "name": "C#",
+              "type": "language",
+            }
+          }
+          selected={false}
         >
-          <PlatformiconTile
-            className=""
+          <div
+            className="css-16kw2fg-PlatformCard ewlrg796"
+            data-test-id="platform-csharp"
             onClick={[Function]}
-            platform="csharp"
           >
-            <li
-              className="platform-tile list-unstyled csharp csharp "
+            <StyledPlatformiconTile
+              platform="csharp"
             >
-              <span
-                className="platformicon platformicon-csharp"
+              <div
+                className="css-tzg8rc-PlatformiconTile-getColorStyles-StyledPlatformiconTile ewlrg794"
               />
-            </li>
-          </PlatformiconTile>
-          <h5>
-             
-            C#
-             
-          </h5>
-        </span>
+            </StyledPlatformiconTile>
+            <h3>
+              C#
+            </h3>
+          </div>
+        </Component>
       </PlatformCard>
       <PlatformCard
-        className=""
+        data-test-id="platform-cordova"
         key="cordova"
+        onClear={[Function]}
         onClick={[Function]}
-        platform="cordova"
+        platform={
+          Object {
+            "id": "cordova",
+            "language": "cordova",
+            "link": "https://docs.getsentry.com/hosted/clients/cordova/",
+            "name": "Cordova",
+            "type": "language",
+          }
+        }
+        selected={false}
       >
-        <span
-          className="platform-card"
+        <Component
+          className="css-16kw2fg-PlatformCard ewlrg796"
+          data-test-id="platform-cordova"
+          onClear={[Function]}
           onClick={[Function]}
+          platform={
+            Object {
+              "id": "cordova",
+              "language": "cordova",
+              "link": "https://docs.getsentry.com/hosted/clients/cordova/",
+              "name": "Cordova",
+              "type": "language",
+            }
+          }
+          selected={false}
         >
-          <PlatformiconTile
-            className=""
+          <div
+            className="css-16kw2fg-PlatformCard ewlrg796"
+            data-test-id="platform-cordova"
             onClick={[Function]}
-            platform="cordova"
           >
-            <li
-              className="platform-tile list-unstyled cordova cordova "
+            <StyledPlatformiconTile
+              platform="cordova"
             >
-              <span
-                className="platformicon platformicon-cordova"
+              <div
+                className="css-yhb6wb-PlatformiconTile-getColorStyles-StyledPlatformiconTile ewlrg794"
               />
-            </li>
-          </PlatformiconTile>
-          <h5>
-             
-            Cordova
-             
-          </h5>
-        </span>
+            </StyledPlatformiconTile>
+            <h3>
+              Cordova
+            </h3>
+          </div>
+        </Component>
       </PlatformCard>
       <PlatformCard
-        className=""
+        data-test-id="platform-electron"
         key="electron"
+        onClear={[Function]}
         onClick={[Function]}
-        platform="electron"
+        platform={
+          Object {
+            "id": "electron",
+            "language": "electron",
+            "link": "https://docs.getsentry.com/hosted/clients/electron/",
+            "name": "Electron",
+            "type": "language",
+          }
+        }
+        selected={false}
       >
-        <span
-          className="platform-card"
+        <Component
+          className="css-16kw2fg-PlatformCard ewlrg796"
+          data-test-id="platform-electron"
+          onClear={[Function]}
           onClick={[Function]}
+          platform={
+            Object {
+              "id": "electron",
+              "language": "electron",
+              "link": "https://docs.getsentry.com/hosted/clients/electron/",
+              "name": "Electron",
+              "type": "language",
+            }
+          }
+          selected={false}
         >
-          <PlatformiconTile
-            className=""
+          <div
+            className="css-16kw2fg-PlatformCard ewlrg796"
+            data-test-id="platform-electron"
             onClick={[Function]}
-            platform="electron"
           >
-            <li
-              className="platform-tile list-unstyled electron electron "
+            <StyledPlatformiconTile
+              platform="electron"
             >
-              <span
-                className="platformicon platformicon-electron"
+              <div
+                className="css-yhb6wb-PlatformiconTile-getColorStyles-StyledPlatformiconTile ewlrg794"
               />
-            </li>
-          </PlatformiconTile>
-          <h5>
-             
-            Electron
-             
-          </h5>
-        </span>
+            </StyledPlatformiconTile>
+            <h3>
+              Electron
+            </h3>
+          </div>
+        </Component>
       </PlatformCard>
       <PlatformCard
-        className=""
+        data-test-id="platform-elixir"
         key="elixir"
+        onClear={[Function]}
         onClick={[Function]}
-        platform="elixir"
+        platform={
+          Object {
+            "id": "elixir",
+            "language": "elixir",
+            "link": "https://docs.getsentry.com/hosted/clients/elixir/",
+            "name": "Elixir",
+            "type": "language",
+          }
+        }
+        selected={false}
       >
-        <span
-          className="platform-card"
+        <Component
+          className="css-16kw2fg-PlatformCard ewlrg796"
+          data-test-id="platform-elixir"
+          onClear={[Function]}
           onClick={[Function]}
+          platform={
+            Object {
+              "id": "elixir",
+              "language": "elixir",
+              "link": "https://docs.getsentry.com/hosted/clients/elixir/",
+              "name": "Elixir",
+              "type": "language",
+            }
+          }
+          selected={false}
         >
-          <PlatformiconTile
-            className=""
+          <div
+            className="css-16kw2fg-PlatformCard ewlrg796"
+            data-test-id="platform-elixir"
             onClick={[Function]}
-            platform="elixir"
           >
-            <li
-              className="platform-tile list-unstyled elixir elixir "
+            <StyledPlatformiconTile
+              platform="elixir"
             >
-              <span
-                className="platformicon platformicon-elixir"
+              <div
+                className="css-1mdonx9-PlatformiconTile-getColorStyles-StyledPlatformiconTile ewlrg794"
               />
-            </li>
-          </PlatformiconTile>
-          <h5>
-             
-            Elixir
-             
-          </h5>
-        </span>
+            </StyledPlatformiconTile>
+            <h3>
+              Elixir
+            </h3>
+          </div>
+        </Component>
       </PlatformCard>
       <PlatformCard
-        className=""
+        data-test-id="platform-go"
         key="go"
+        onClear={[Function]}
         onClick={[Function]}
-        platform="go"
+        platform={
+          Object {
+            "id": "go",
+            "language": "go",
+            "link": "https://docs.getsentry.com/hosted/clients/go/",
+            "name": "Go",
+            "type": "language",
+          }
+        }
+        selected={false}
       >
-        <span
-          className="platform-card"
+        <Component
+          className="css-16kw2fg-PlatformCard ewlrg796"
+          data-test-id="platform-go"
+          onClear={[Function]}
           onClick={[Function]}
+          platform={
+            Object {
+              "id": "go",
+              "language": "go",
+              "link": "https://docs.getsentry.com/hosted/clients/go/",
+              "name": "Go",
+              "type": "language",
+            }
+          }
+          selected={false}
         >
-          <PlatformiconTile
-            className=""
+          <div
+            className="css-16kw2fg-PlatformCard ewlrg796"
+            data-test-id="platform-go"
             onClick={[Function]}
-            platform="go"
           >
-            <li
-              className="platform-tile list-unstyled go go "
+            <StyledPlatformiconTile
+              platform="go"
             >
-              <span
-                className="platformicon platformicon-go"
+              <div
+                className="css-ks66kg-PlatformiconTile-getColorStyles-StyledPlatformiconTile ewlrg794"
               />
-            </li>
-          </PlatformiconTile>
-          <h5>
-             
-            Go
-             
-          </h5>
-        </span>
+            </StyledPlatformiconTile>
+            <h3>
+              Go
+            </h3>
+          </div>
+        </Component>
       </PlatformCard>
       <PlatformCard
-        className=""
+        data-test-id="platform-go-http"
         key="go-http"
+        onClear={[Function]}
         onClick={[Function]}
-        platform="go-http"
+        platform={
+          Object {
+            "id": "go-http",
+            "language": "go",
+            "link": null,
+            "name": "net/http",
+            "type": "framework",
+          }
+        }
+        selected={false}
       >
-        <span
-          className="platform-card"
+        <Component
+          className="css-16kw2fg-PlatformCard ewlrg796"
+          data-test-id="platform-go-http"
+          onClear={[Function]}
           onClick={[Function]}
+          platform={
+            Object {
+              "id": "go-http",
+              "language": "go",
+              "link": null,
+              "name": "net/http",
+              "type": "framework",
+            }
+          }
+          selected={false}
         >
-          <PlatformiconTile
-            className=""
+          <div
+            className="css-16kw2fg-PlatformCard ewlrg796"
+            data-test-id="platform-go-http"
             onClick={[Function]}
-            platform="go-http"
           >
-            <li
-              className="platform-tile list-unstyled go-http go "
+            <StyledPlatformiconTile
+              platform="go-http"
             >
-              <span
-                className="platformicon platformicon-go-http"
+              <div
+                className="css-ks66kg-PlatformiconTile-getColorStyles-StyledPlatformiconTile ewlrg794"
               />
-            </li>
-          </PlatformiconTile>
-          <h5>
-             
-            net/http
-             
-          </h5>
-        </span>
+            </StyledPlatformiconTile>
+            <h3>
+              net/http
+            </h3>
+          </div>
+        </Component>
       </PlatformCard>
       <PlatformCard
-        className=""
+        data-test-id="platform-java-android"
         key="java-android"
+        onClear={[Function]}
         onClick={[Function]}
-        platform="java-android"
+        platform={
+          Object {
+            "id": "java-android",
+            "language": "java",
+            "link": "https://docs.getsentry.com/hosted/clients/java/modules/android/",
+            "name": "Android",
+            "type": "framework",
+          }
+        }
+        selected={false}
       >
-        <span
-          className="platform-card"
+        <Component
+          className="css-16kw2fg-PlatformCard ewlrg796"
+          data-test-id="platform-java-android"
+          onClear={[Function]}
           onClick={[Function]}
+          platform={
+            Object {
+              "id": "java-android",
+              "language": "java",
+              "link": "https://docs.getsentry.com/hosted/clients/java/modules/android/",
+              "name": "Android",
+              "type": "framework",
+            }
+          }
+          selected={false}
         >
-          <PlatformiconTile
-            className=""
+          <div
+            className="css-16kw2fg-PlatformCard ewlrg796"
+            data-test-id="platform-java-android"
             onClick={[Function]}
-            platform="java-android"
           >
-            <li
-              className="platform-tile list-unstyled java-android java "
+            <StyledPlatformiconTile
+              platform="java-android"
             >
-              <span
-                className="platformicon platformicon-java-android"
+              <div
+                className="css-lc48x8-PlatformiconTile-getColorStyles-StyledPlatformiconTile ewlrg794"
               />
-            </li>
-          </PlatformiconTile>
-          <h5>
-             
-            Android
-             
-          </h5>
-        </span>
+            </StyledPlatformiconTile>
+            <h3>
+              Android
+            </h3>
+          </div>
+        </Component>
       </PlatformCard>
       <PlatformCard
-        className=""
+        data-test-id="platform-java-appengine"
         key="java-appengine"
+        onClear={[Function]}
         onClick={[Function]}
-        platform="java-appengine"
+        platform={
+          Object {
+            "id": "java-appengine",
+            "language": "java",
+            "link": "https://docs.getsentry.com/hosted/clients/java/modules/appengine/",
+            "name": "Google App Engine",
+            "type": "framework",
+          }
+        }
+        selected={false}
       >
-        <span
-          className="platform-card"
+        <Component
+          className="css-16kw2fg-PlatformCard ewlrg796"
+          data-test-id="platform-java-appengine"
+          onClear={[Function]}
           onClick={[Function]}
+          platform={
+            Object {
+              "id": "java-appengine",
+              "language": "java",
+              "link": "https://docs.getsentry.com/hosted/clients/java/modules/appengine/",
+              "name": "Google App Engine",
+              "type": "framework",
+            }
+          }
+          selected={false}
         >
-          <PlatformiconTile
-            className=""
+          <div
+            className="css-16kw2fg-PlatformCard ewlrg796"
+            data-test-id="platform-java-appengine"
             onClick={[Function]}
-            platform="java-appengine"
           >
-            <li
-              className="platform-tile list-unstyled java-appengine java "
+            <StyledPlatformiconTile
+              platform="java-appengine"
             >
-              <span
-                className="platformicon platformicon-java-appengine"
+              <div
+                className="css-1s03x3z-PlatformiconTile-getColorStyles-StyledPlatformiconTile ewlrg794"
               />
-            </li>
-          </PlatformiconTile>
-          <h5>
-             
-            Google App Engine
-             
-          </h5>
-        </span>
+            </StyledPlatformiconTile>
+            <h3>
+              Google App Engine
+            </h3>
+          </div>
+        </Component>
       </PlatformCard>
       <PlatformCard
-        className=""
+        data-test-id="platform-java"
         key="java"
+        onClear={[Function]}
         onClick={[Function]}
-        platform="java"
+        platform={
+          Object {
+            "id": "java",
+            "language": "java",
+            "link": "https://docs.getsentry.com/hosted/clients/java/",
+            "name": "Java",
+            "type": "language",
+          }
+        }
+        selected={false}
       >
-        <span
-          className="platform-card"
+        <Component
+          className="css-16kw2fg-PlatformCard ewlrg796"
+          data-test-id="platform-java"
+          onClear={[Function]}
           onClick={[Function]}
+          platform={
+            Object {
+              "id": "java",
+              "language": "java",
+              "link": "https://docs.getsentry.com/hosted/clients/java/",
+              "name": "Java",
+              "type": "language",
+            }
+          }
+          selected={false}
         >
-          <PlatformiconTile
-            className=""
+          <div
+            className="css-16kw2fg-PlatformCard ewlrg796"
+            data-test-id="platform-java"
             onClick={[Function]}
-            platform="java"
           >
-            <li
-              className="platform-tile list-unstyled java java "
+            <StyledPlatformiconTile
+              platform="java"
             >
-              <span
-                className="platformicon platformicon-java"
+              <div
+                className="css-lc48x8-PlatformiconTile-getColorStyles-StyledPlatformiconTile ewlrg794"
               />
-            </li>
-          </PlatformiconTile>
-          <h5>
-             
-            Java
-             
-          </h5>
-        </span>
+            </StyledPlatformiconTile>
+            <h3>
+              Java
+            </h3>
+          </div>
+        </Component>
       </PlatformCard>
       <PlatformCard
-        className=""
+        data-test-id="platform-java-log4j"
         key="java-log4j"
+        onClear={[Function]}
         onClick={[Function]}
-        platform="java-log4j"
+        platform={
+          Object {
+            "id": "java-log4j",
+            "language": "java",
+            "link": "https://docs.getsentry.com/hosted/clients/java/modules/log4j/",
+            "name": "Log4j 1.x",
+            "type": "framework",
+          }
+        }
+        selected={false}
       >
-        <span
-          className="platform-card"
+        <Component
+          className="css-16kw2fg-PlatformCard ewlrg796"
+          data-test-id="platform-java-log4j"
+          onClear={[Function]}
           onClick={[Function]}
+          platform={
+            Object {
+              "id": "java-log4j",
+              "language": "java",
+              "link": "https://docs.getsentry.com/hosted/clients/java/modules/log4j/",
+              "name": "Log4j 1.x",
+              "type": "framework",
+            }
+          }
+          selected={false}
         >
-          <PlatformiconTile
-            className=""
+          <div
+            className="css-16kw2fg-PlatformCard ewlrg796"
+            data-test-id="platform-java-log4j"
             onClick={[Function]}
-            platform="java-log4j"
           >
-            <li
-              className="platform-tile list-unstyled java-log4j java "
+            <StyledPlatformiconTile
+              platform="java-log4j"
             >
-              <span
-                className="platformicon platformicon-java-log4j"
+              <div
+                className="css-lc48x8-PlatformiconTile-getColorStyles-StyledPlatformiconTile ewlrg794"
               />
-            </li>
-          </PlatformiconTile>
-          <h5>
-             
-            Log4j 1.x
-             
-          </h5>
-        </span>
+            </StyledPlatformiconTile>
+            <h3>
+              Log4j 1.x
+            </h3>
+          </div>
+        </Component>
       </PlatformCard>
       <PlatformCard
-        className=""
+        data-test-id="platform-java-log4j2"
         key="java-log4j2"
+        onClear={[Function]}
         onClick={[Function]}
-        platform="java-log4j2"
+        platform={
+          Object {
+            "id": "java-log4j2",
+            "language": "java",
+            "link": "https://docs.getsentry.com/hosted/clients/java/modules/log4j2/",
+            "name": "Log4j 2.x",
+            "type": "framework",
+          }
+        }
+        selected={false}
       >
-        <span
-          className="platform-card"
+        <Component
+          className="css-16kw2fg-PlatformCard ewlrg796"
+          data-test-id="platform-java-log4j2"
+          onClear={[Function]}
           onClick={[Function]}
+          platform={
+            Object {
+              "id": "java-log4j2",
+              "language": "java",
+              "link": "https://docs.getsentry.com/hosted/clients/java/modules/log4j2/",
+              "name": "Log4j 2.x",
+              "type": "framework",
+            }
+          }
+          selected={false}
         >
-          <PlatformiconTile
-            className=""
+          <div
+            className="css-16kw2fg-PlatformCard ewlrg796"
+            data-test-id="platform-java-log4j2"
             onClick={[Function]}
-            platform="java-log4j2"
           >
-            <li
-              className="platform-tile list-unstyled java-log4j2 java "
+            <StyledPlatformiconTile
+              platform="java-log4j2"
             >
-              <span
-                className="platformicon platformicon-java-log4j2"
+              <div
+                className="css-lc48x8-PlatformiconTile-getColorStyles-StyledPlatformiconTile ewlrg794"
               />
-            </li>
-          </PlatformiconTile>
-          <h5>
-             
-            Log4j 2.x
-             
-          </h5>
-        </span>
+            </StyledPlatformiconTile>
+            <h3>
+              Log4j 2.x
+            </h3>
+          </div>
+        </Component>
       </PlatformCard>
       <PlatformCard
-        className=""
+        data-test-id="platform-java-logback"
         key="java-logback"
+        onClear={[Function]}
         onClick={[Function]}
-        platform="java-logback"
+        platform={
+          Object {
+            "id": "java-logback",
+            "language": "java",
+            "link": "https://docs.getsentry.com/hosted/clients/java/modules/logback/",
+            "name": "Logback",
+            "type": "framework",
+          }
+        }
+        selected={false}
       >
-        <span
-          className="platform-card"
+        <Component
+          className="css-16kw2fg-PlatformCard ewlrg796"
+          data-test-id="platform-java-logback"
+          onClear={[Function]}
           onClick={[Function]}
+          platform={
+            Object {
+              "id": "java-logback",
+              "language": "java",
+              "link": "https://docs.getsentry.com/hosted/clients/java/modules/logback/",
+              "name": "Logback",
+              "type": "framework",
+            }
+          }
+          selected={false}
         >
-          <PlatformiconTile
-            className=""
+          <div
+            className="css-16kw2fg-PlatformCard ewlrg796"
+            data-test-id="platform-java-logback"
             onClick={[Function]}
-            platform="java-logback"
           >
-            <li
-              className="platform-tile list-unstyled java-logback java "
+            <StyledPlatformiconTile
+              platform="java-logback"
             >
-              <span
-                className="platformicon platformicon-java-logback"
+              <div
+                className="css-lc48x8-PlatformiconTile-getColorStyles-StyledPlatformiconTile ewlrg794"
               />
-            </li>
-          </PlatformiconTile>
-          <h5>
-             
-            Logback
-             
-          </h5>
-        </span>
+            </StyledPlatformiconTile>
+            <h3>
+              Logback
+            </h3>
+          </div>
+        </Component>
       </PlatformCard>
       <PlatformCard
-        className=""
+        data-test-id="platform-java-logging"
         key="java-logging"
+        onClear={[Function]}
         onClick={[Function]}
-        platform="java-logging"
+        platform={
+          Object {
+            "id": "java-logging",
+            "language": "java",
+            "link": "https://docs.getsentry.com/hosted/clients/java/modules/jul/",
+            "name": "java.util.logging",
+            "type": "framework",
+          }
+        }
+        selected={false}
       >
-        <span
-          className="platform-card"
+        <Component
+          className="css-16kw2fg-PlatformCard ewlrg796"
+          data-test-id="platform-java-logging"
+          onClear={[Function]}
           onClick={[Function]}
+          platform={
+            Object {
+              "id": "java-logging",
+              "language": "java",
+              "link": "https://docs.getsentry.com/hosted/clients/java/modules/jul/",
+              "name": "java.util.logging",
+              "type": "framework",
+            }
+          }
+          selected={false}
         >
-          <PlatformiconTile
-            className=""
+          <div
+            className="css-16kw2fg-PlatformCard ewlrg796"
+            data-test-id="platform-java-logging"
             onClick={[Function]}
-            platform="java-logging"
           >
-            <li
-              className="platform-tile list-unstyled java-logging java "
+            <StyledPlatformiconTile
+              platform="java-logging"
             >
-              <span
-                className="platformicon platformicon-java-logging"
+              <div
+                className="css-lc48x8-PlatformiconTile-getColorStyles-StyledPlatformiconTile ewlrg794"
               />
-            </li>
-          </PlatformiconTile>
-          <h5>
-             
-            java.util.logging
-             
-          </h5>
-        </span>
+            </StyledPlatformiconTile>
+            <h3>
+              java.util.logging
+            </h3>
+          </div>
+        </Component>
       </PlatformCard>
       <PlatformCard
-        className=""
+        data-test-id="platform-javascript-angular"
         key="javascript-angular"
+        onClear={[Function]}
         onClick={[Function]}
-        platform="javascript-angular"
+        platform={
+          Object {
+            "id": "javascript-angular",
+            "language": "javascript",
+            "link": "https://docs.getsentry.com/hosted/clients/javascript/integrations/angular/",
+            "name": "Angular",
+            "type": "framework",
+          }
+        }
+        selected={false}
       >
-        <span
-          className="platform-card"
+        <Component
+          className="css-16kw2fg-PlatformCard ewlrg796"
+          data-test-id="platform-javascript-angular"
+          onClear={[Function]}
           onClick={[Function]}
+          platform={
+            Object {
+              "id": "javascript-angular",
+              "language": "javascript",
+              "link": "https://docs.getsentry.com/hosted/clients/javascript/integrations/angular/",
+              "name": "Angular",
+              "type": "framework",
+            }
+          }
+          selected={false}
         >
-          <PlatformiconTile
-            className=""
+          <div
+            className="css-16kw2fg-PlatformCard ewlrg796"
+            data-test-id="platform-javascript-angular"
             onClick={[Function]}
-            platform="javascript-angular"
           >
-            <li
-              className="platform-tile list-unstyled javascript-angular javascript "
+            <StyledPlatformiconTile
+              platform="javascript-angular"
             >
-              <span
-                className="platformicon platformicon-javascript-angular"
+              <div
+                className="css-b15x81-PlatformiconTile-getColorStyles-StyledPlatformiconTile ewlrg794"
               />
-            </li>
-          </PlatformiconTile>
-          <h5>
-             
-            Angular
-             
-          </h5>
-        </span>
+            </StyledPlatformiconTile>
+            <h3>
+              Angular
+            </h3>
+          </div>
+        </Component>
       </PlatformCard>
       <PlatformCard
-        className=""
+        data-test-id="platform-javascript-angularjs"
         key="javascript-angularjs"
+        onClear={[Function]}
         onClick={[Function]}
-        platform="javascript-angularjs"
+        platform={
+          Object {
+            "id": "javascript-angularjs",
+            "language": "javascript",
+            "link": "https://docs.getsentry.com/hosted/clients/javascript/integrations/angularjs/",
+            "name": "AngularJS",
+            "type": "framework",
+          }
+        }
+        selected={false}
       >
-        <span
-          className="platform-card"
+        <Component
+          className="css-16kw2fg-PlatformCard ewlrg796"
+          data-test-id="platform-javascript-angularjs"
+          onClear={[Function]}
           onClick={[Function]}
+          platform={
+            Object {
+              "id": "javascript-angularjs",
+              "language": "javascript",
+              "link": "https://docs.getsentry.com/hosted/clients/javascript/integrations/angularjs/",
+              "name": "AngularJS",
+              "type": "framework",
+            }
+          }
+          selected={false}
         >
-          <PlatformiconTile
-            className=""
+          <div
+            className="css-16kw2fg-PlatformCard ewlrg796"
+            data-test-id="platform-javascript-angularjs"
             onClick={[Function]}
-            platform="javascript-angularjs"
           >
-            <li
-              className="platform-tile list-unstyled javascript-angularjs javascript "
+            <StyledPlatformiconTile
+              platform="javascript-angularjs"
             >
-              <span
-                className="platformicon platformicon-javascript-angularjs"
+              <div
+                className="css-6586kg-PlatformiconTile-getColorStyles-StyledPlatformiconTile ewlrg794"
               />
-            </li>
-          </PlatformiconTile>
-          <h5>
-             
-            AngularJS
-             
-          </h5>
-        </span>
+            </StyledPlatformiconTile>
+            <h3>
+              AngularJS
+            </h3>
+          </div>
+        </Component>
       </PlatformCard>
       <PlatformCard
-        className=""
+        data-test-id="platform-javascript-backbone"
         key="javascript-backbone"
+        onClear={[Function]}
         onClick={[Function]}
-        platform="javascript-backbone"
+        platform={
+          Object {
+            "id": "javascript-backbone",
+            "language": "javascript",
+            "link": "https://docs.getsentry.com/hosted/clients/javascript/integrations/backbone/",
+            "name": "Backbone",
+            "type": "framework",
+          }
+        }
+        selected={false}
       >
-        <span
-          className="platform-card"
+        <Component
+          className="css-16kw2fg-PlatformCard ewlrg796"
+          data-test-id="platform-javascript-backbone"
+          onClear={[Function]}
           onClick={[Function]}
+          platform={
+            Object {
+              "id": "javascript-backbone",
+              "language": "javascript",
+              "link": "https://docs.getsentry.com/hosted/clients/javascript/integrations/backbone/",
+              "name": "Backbone",
+              "type": "framework",
+            }
+          }
+          selected={false}
         >
-          <PlatformiconTile
-            className=""
+          <div
+            className="css-16kw2fg-PlatformCard ewlrg796"
+            data-test-id="platform-javascript-backbone"
             onClick={[Function]}
-            platform="javascript-backbone"
           >
-            <li
-              className="platform-tile list-unstyled javascript-backbone javascript "
+            <StyledPlatformiconTile
+              platform="javascript-backbone"
             >
-              <span
-                className="platformicon platformicon-javascript-backbone"
+              <div
+                className="css-105qz5e-PlatformiconTile-getColorStyles-StyledPlatformiconTile ewlrg794"
               />
-            </li>
-          </PlatformiconTile>
-          <h5>
-             
-            Backbone
-             
-          </h5>
-        </span>
+            </StyledPlatformiconTile>
+            <h3>
+              Backbone
+            </h3>
+          </div>
+        </Component>
       </PlatformCard>
       <PlatformCard
-        className=""
+        data-test-id="platform-javascript-ember"
         key="javascript-ember"
+        onClear={[Function]}
         onClick={[Function]}
-        platform="javascript-ember"
+        platform={
+          Object {
+            "id": "javascript-ember",
+            "language": "javascript",
+            "link": "https://docs.getsentry.com/hosted/clients/javascript/integrations/ember/",
+            "name": "Ember",
+            "type": "framework",
+          }
+        }
+        selected={false}
       >
-        <span
-          className="platform-card"
+        <Component
+          className="css-16kw2fg-PlatformCard ewlrg796"
+          data-test-id="platform-javascript-ember"
+          onClear={[Function]}
           onClick={[Function]}
+          platform={
+            Object {
+              "id": "javascript-ember",
+              "language": "javascript",
+              "link": "https://docs.getsentry.com/hosted/clients/javascript/integrations/ember/",
+              "name": "Ember",
+              "type": "framework",
+            }
+          }
+          selected={false}
         >
-          <PlatformiconTile
-            className=""
+          <div
+            className="css-16kw2fg-PlatformCard ewlrg796"
+            data-test-id="platform-javascript-ember"
             onClick={[Function]}
-            platform="javascript-ember"
           >
-            <li
-              className="platform-tile list-unstyled javascript-ember javascript "
+            <StyledPlatformiconTile
+              platform="javascript-ember"
             >
-              <span
-                className="platformicon platformicon-javascript-ember"
+              <div
+                className="css-1bbhz2-PlatformiconTile-getColorStyles-StyledPlatformiconTile ewlrg794"
               />
-            </li>
-          </PlatformiconTile>
-          <h5>
-             
-            Ember
-             
-          </h5>
-        </span>
+            </StyledPlatformiconTile>
+            <h3>
+              Ember
+            </h3>
+          </div>
+        </Component>
       </PlatformCard>
       <PlatformCard
-        className=""
+        data-test-id="platform-javascript"
         key="javascript"
+        onClear={[Function]}
         onClick={[Function]}
-        platform="javascript"
+        platform={
+          Object {
+            "id": "javascript",
+            "language": "javascript",
+            "link": "https://docs.getsentry.com/hosted/clients/javascript/install/",
+            "name": "JavaScript",
+            "type": "language",
+          }
+        }
+        selected={false}
       >
-        <span
-          className="platform-card"
+        <Component
+          className="css-16kw2fg-PlatformCard ewlrg796"
+          data-test-id="platform-javascript"
+          onClear={[Function]}
           onClick={[Function]}
+          platform={
+            Object {
+              "id": "javascript",
+              "language": "javascript",
+              "link": "https://docs.getsentry.com/hosted/clients/javascript/install/",
+              "name": "JavaScript",
+              "type": "language",
+            }
+          }
+          selected={false}
         >
-          <PlatformiconTile
-            className=""
+          <div
+            className="css-16kw2fg-PlatformCard ewlrg796"
+            data-test-id="platform-javascript"
             onClick={[Function]}
-            platform="javascript"
           >
-            <li
-              className="platform-tile list-unstyled javascript javascript "
+            <StyledPlatformiconTile
+              platform="javascript"
             >
-              <span
-                className="platformicon platformicon-javascript"
+              <div
+                className="css-105qz5e-PlatformiconTile-getColorStyles-StyledPlatformiconTile ewlrg794"
               />
-            </li>
-          </PlatformiconTile>
-          <h5>
-             
-            JavaScript
-             
-          </h5>
-        </span>
+            </StyledPlatformiconTile>
+            <h3>
+              JavaScript
+            </h3>
+          </div>
+        </Component>
       </PlatformCard>
       <PlatformCard
-        className=""
+        data-test-id="platform-javascript-react"
         key="javascript-react"
+        onClear={[Function]}
         onClick={[Function]}
-        platform="javascript-react"
+        platform={
+          Object {
+            "id": "javascript-react",
+            "language": "javascript",
+            "link": "https://docs.getsentry.com/hosted/clients/javascript/integrations/react/",
+            "name": "React",
+            "type": "framework",
+          }
+        }
+        selected={false}
       >
-        <span
-          className="platform-card"
+        <Component
+          className="css-16kw2fg-PlatformCard ewlrg796"
+          data-test-id="platform-javascript-react"
+          onClear={[Function]}
           onClick={[Function]}
+          platform={
+            Object {
+              "id": "javascript-react",
+              "language": "javascript",
+              "link": "https://docs.getsentry.com/hosted/clients/javascript/integrations/react/",
+              "name": "React",
+              "type": "framework",
+            }
+          }
+          selected={false}
         >
-          <PlatformiconTile
-            className=""
+          <div
+            className="css-16kw2fg-PlatformCard ewlrg796"
+            data-test-id="platform-javascript-react"
             onClick={[Function]}
-            platform="javascript-react"
           >
-            <li
-              className="platform-tile list-unstyled javascript-react javascript "
+            <StyledPlatformiconTile
+              platform="javascript-react"
             >
-              <span
-                className="platformicon platformicon-javascript-react"
+              <div
+                className="css-fosd7h-PlatformiconTile-getColorStyles-StyledPlatformiconTile ewlrg794"
               />
-            </li>
-          </PlatformiconTile>
-          <h5>
-             
-            React
-             
-          </h5>
-        </span>
+            </StyledPlatformiconTile>
+            <h3>
+              React
+            </h3>
+          </div>
+        </Component>
       </PlatformCard>
       <PlatformCard
-        className=""
+        data-test-id="platform-javascript-vue"
         key="javascript-vue"
+        onClear={[Function]}
         onClick={[Function]}
-        platform="javascript-vue"
+        platform={
+          Object {
+            "id": "javascript-vue",
+            "language": "javascript",
+            "link": "https://docs.getsentry.com/hosted/clients/javascript/integrations/vue/",
+            "name": "Vue",
+            "type": "framework",
+          }
+        }
+        selected={false}
       >
-        <span
-          className="platform-card"
+        <Component
+          className="css-16kw2fg-PlatformCard ewlrg796"
+          data-test-id="platform-javascript-vue"
+          onClear={[Function]}
           onClick={[Function]}
+          platform={
+            Object {
+              "id": "javascript-vue",
+              "language": "javascript",
+              "link": "https://docs.getsentry.com/hosted/clients/javascript/integrations/vue/",
+              "name": "Vue",
+              "type": "framework",
+            }
+          }
+          selected={false}
         >
-          <PlatformiconTile
-            className=""
+          <div
+            className="css-16kw2fg-PlatformCard ewlrg796"
+            data-test-id="platform-javascript-vue"
             onClick={[Function]}
-            platform="javascript-vue"
           >
-            <li
-              className="platform-tile list-unstyled javascript-vue javascript "
+            <StyledPlatformiconTile
+              platform="javascript-vue"
             >
-              <span
-                className="platformicon platformicon-javascript-vue"
+              <div
+                className="css-105qz5e-PlatformiconTile-getColorStyles-StyledPlatformiconTile ewlrg794"
               />
-            </li>
-          </PlatformiconTile>
-          <h5>
-             
-            Vue
-             
-          </h5>
-        </span>
+            </StyledPlatformiconTile>
+            <h3>
+              Vue
+            </h3>
+          </div>
+        </Component>
       </PlatformCard>
       <PlatformCard
-        className=""
+        data-test-id="platform-minidump"
         key="minidump"
+        onClear={[Function]}
         onClick={[Function]}
-        platform="minidump"
+        platform={
+          Object {
+            "id": "minidump",
+            "language": "minidump",
+            "link": "https://docs.getsentry.com/hosted/clients/minidump/",
+            "name": "Minidump",
+            "type": "language",
+          }
+        }
+        selected={false}
       >
-        <span
-          className="platform-card"
+        <Component
+          className="css-16kw2fg-PlatformCard ewlrg796"
+          data-test-id="platform-minidump"
+          onClear={[Function]}
           onClick={[Function]}
+          platform={
+            Object {
+              "id": "minidump",
+              "language": "minidump",
+              "link": "https://docs.getsentry.com/hosted/clients/minidump/",
+              "name": "Minidump",
+              "type": "language",
+            }
+          }
+          selected={false}
         >
-          <PlatformiconTile
-            className=""
+          <div
+            className="css-16kw2fg-PlatformCard ewlrg796"
+            data-test-id="platform-minidump"
             onClick={[Function]}
-            platform="minidump"
           >
-            <li
-              className="platform-tile list-unstyled minidump minidump "
+            <StyledPlatformiconTile
+              platform="minidump"
             >
-              <span
-                className="platformicon platformicon-minidump"
+              <div
+                className="css-yhb6wb-PlatformiconTile-getColorStyles-StyledPlatformiconTile ewlrg794"
               />
-            </li>
-          </PlatformiconTile>
-          <h5>
-             
-            Minidump
-             
-          </h5>
-        </span>
+            </StyledPlatformiconTile>
+            <h3>
+              Minidump
+            </h3>
+          </div>
+        </Component>
       </PlatformCard>
       <PlatformCard
-        className=""
+        data-test-id="platform-node-connect"
         key="node-connect"
+        onClear={[Function]}
         onClick={[Function]}
-        platform="node-connect"
+        platform={
+          Object {
+            "id": "node-connect",
+            "language": "node",
+            "link": "https://docs.getsentry.com/hosted/clients/node/integrations/connect/",
+            "name": "Connect",
+            "type": "framework",
+          }
+        }
+        selected={false}
       >
-        <span
-          className="platform-card"
+        <Component
+          className="css-16kw2fg-PlatformCard ewlrg796"
+          data-test-id="platform-node-connect"
+          onClear={[Function]}
           onClick={[Function]}
+          platform={
+            Object {
+              "id": "node-connect",
+              "language": "node",
+              "link": "https://docs.getsentry.com/hosted/clients/node/integrations/connect/",
+              "name": "Connect",
+              "type": "framework",
+            }
+          }
+          selected={false}
         >
-          <PlatformiconTile
-            className=""
+          <div
+            className="css-16kw2fg-PlatformCard ewlrg796"
+            data-test-id="platform-node-connect"
             onClick={[Function]}
-            platform="node-connect"
           >
-            <li
-              className="platform-tile list-unstyled node-connect node "
+            <StyledPlatformiconTile
+              platform="node-connect"
             >
-              <span
-                className="platformicon platformicon-node-connect"
+              <div
+                className="css-1wbn021-PlatformiconTile-getColorStyles-StyledPlatformiconTile ewlrg794"
               />
-            </li>
-          </PlatformiconTile>
-          <h5>
-             
-            Connect
-             
-          </h5>
-        </span>
+            </StyledPlatformiconTile>
+            <h3>
+              Connect
+            </h3>
+          </div>
+        </Component>
       </PlatformCard>
       <PlatformCard
-        className=""
+        data-test-id="platform-node-express"
         key="node-express"
+        onClear={[Function]}
         onClick={[Function]}
-        platform="node-express"
+        platform={
+          Object {
+            "id": "node-express",
+            "language": "node",
+            "link": "https://docs.getsentry.com/hosted/clients/node/integrations/express/",
+            "name": "Express",
+            "type": "framework",
+          }
+        }
+        selected={false}
       >
-        <span
-          className="platform-card"
+        <Component
+          className="css-16kw2fg-PlatformCard ewlrg796"
+          data-test-id="platform-node-express"
+          onClear={[Function]}
           onClick={[Function]}
+          platform={
+            Object {
+              "id": "node-express",
+              "language": "node",
+              "link": "https://docs.getsentry.com/hosted/clients/node/integrations/express/",
+              "name": "Express",
+              "type": "framework",
+            }
+          }
+          selected={false}
         >
-          <PlatformiconTile
-            className=""
+          <div
+            className="css-16kw2fg-PlatformCard ewlrg796"
+            data-test-id="platform-node-express"
             onClick={[Function]}
-            platform="node-express"
           >
-            <li
-              className="platform-tile list-unstyled node-express node "
+            <StyledPlatformiconTile
+              platform="node-express"
             >
-              <span
-                className="platformicon platformicon-node-express"
+              <div
+                className="css-1wbn021-PlatformiconTile-getColorStyles-StyledPlatformiconTile ewlrg794"
               />
-            </li>
-          </PlatformiconTile>
-          <h5>
-             
-            Express
-             
-          </h5>
-        </span>
+            </StyledPlatformiconTile>
+            <h3>
+              Express
+            </h3>
+          </div>
+        </Component>
       </PlatformCard>
       <PlatformCard
-        className=""
+        data-test-id="platform-node-koa"
         key="node-koa"
+        onClear={[Function]}
         onClick={[Function]}
-        platform="node-koa"
+        platform={
+          Object {
+            "id": "node-koa",
+            "language": "node",
+            "link": "https://docs.getsentry.com/hosted/clients/node/integrations/koa/",
+            "name": "Koa",
+            "type": "framework",
+          }
+        }
+        selected={false}
       >
-        <span
-          className="platform-card"
+        <Component
+          className="css-16kw2fg-PlatformCard ewlrg796"
+          data-test-id="platform-node-koa"
+          onClear={[Function]}
           onClick={[Function]}
+          platform={
+            Object {
+              "id": "node-koa",
+              "language": "node",
+              "link": "https://docs.getsentry.com/hosted/clients/node/integrations/koa/",
+              "name": "Koa",
+              "type": "framework",
+            }
+          }
+          selected={false}
         >
-          <PlatformiconTile
-            className=""
+          <div
+            className="css-16kw2fg-PlatformCard ewlrg796"
+            data-test-id="platform-node-koa"
             onClick={[Function]}
-            platform="node-koa"
           >
-            <li
-              className="platform-tile list-unstyled node-koa node "
+            <StyledPlatformiconTile
+              platform="node-koa"
             >
-              <span
-                className="platformicon platformicon-node-koa"
+              <div
+                className="css-1wbn021-PlatformiconTile-getColorStyles-StyledPlatformiconTile ewlrg794"
               />
-            </li>
-          </PlatformiconTile>
-          <h5>
-             
-            Koa
-             
-          </h5>
-        </span>
+            </StyledPlatformiconTile>
+            <h3>
+              Koa
+            </h3>
+          </div>
+        </Component>
       </PlatformCard>
       <PlatformCard
-        className=""
+        data-test-id="platform-node"
         key="node"
+        onClear={[Function]}
         onClick={[Function]}
-        platform="node"
+        platform={
+          Object {
+            "id": "node",
+            "language": "node",
+            "link": "https://docs.getsentry.com/hosted/clients/node/",
+            "name": "Node.js",
+            "type": "language",
+          }
+        }
+        selected={false}
       >
-        <span
-          className="platform-card"
+        <Component
+          className="css-16kw2fg-PlatformCard ewlrg796"
+          data-test-id="platform-node"
+          onClear={[Function]}
           onClick={[Function]}
+          platform={
+            Object {
+              "id": "node",
+              "language": "node",
+              "link": "https://docs.getsentry.com/hosted/clients/node/",
+              "name": "Node.js",
+              "type": "language",
+            }
+          }
+          selected={false}
         >
-          <PlatformiconTile
-            className=""
+          <div
+            className="css-16kw2fg-PlatformCard ewlrg796"
+            data-test-id="platform-node"
             onClick={[Function]}
-            platform="node"
           >
-            <li
-              className="platform-tile list-unstyled node node "
+            <StyledPlatformiconTile
+              platform="node"
             >
-              <span
-                className="platformicon platformicon-node"
+              <div
+                className="css-1wbn021-PlatformiconTile-getColorStyles-StyledPlatformiconTile ewlrg794"
               />
-            </li>
-          </PlatformiconTile>
-          <h5>
-             
-            Node.js
-             
-          </h5>
-        </span>
+            </StyledPlatformiconTile>
+            <h3>
+              Node.js
+            </h3>
+          </div>
+        </Component>
       </PlatformCard>
       <PlatformCard
-        className=""
+        data-test-id="platform-objc"
         key="objc"
+        onClear={[Function]}
         onClick={[Function]}
-        platform="objc"
+        platform={
+          Object {
+            "id": "objc",
+            "language": "objc",
+            "link": "https://docs.getsentry.com/hosted/clients/cocoa/",
+            "name": "Objective-C",
+            "type": "language",
+          }
+        }
+        selected={false}
       >
-        <span
-          className="platform-card"
+        <Component
+          className="css-16kw2fg-PlatformCard ewlrg796"
+          data-test-id="platform-objc"
+          onClear={[Function]}
           onClick={[Function]}
+          platform={
+            Object {
+              "id": "objc",
+              "language": "objc",
+              "link": "https://docs.getsentry.com/hosted/clients/cocoa/",
+              "name": "Objective-C",
+              "type": "language",
+            }
+          }
+          selected={false}
         >
-          <PlatformiconTile
-            className=""
+          <div
+            className="css-16kw2fg-PlatformCard ewlrg796"
+            data-test-id="platform-objc"
             onClick={[Function]}
-            platform="objc"
           >
-            <li
-              className="platform-tile list-unstyled objc objc "
+            <StyledPlatformiconTile
+              platform="objc"
             >
-              <span
-                className="platformicon platformicon-objc"
+              <div
+                className="css-1e8vskw-PlatformiconTile-getColorStyles-StyledPlatformiconTile ewlrg794"
               />
-            </li>
-          </PlatformiconTile>
-          <h5>
-             
-            Objective-C
-             
-          </h5>
-        </span>
+            </StyledPlatformiconTile>
+            <h3>
+              Objective-C
+            </h3>
+          </div>
+        </Component>
       </PlatformCard>
       <PlatformCard
-        className=""
+        data-test-id="platform-php-laravel"
         key="php-laravel"
+        onClear={[Function]}
         onClick={[Function]}
-        platform="php-laravel"
+        platform={
+          Object {
+            "id": "php-laravel",
+            "language": "php",
+            "link": "https://docs.getsentry.com/hosted/clients/php/integrations/laravel/",
+            "name": "Laravel",
+            "type": "framework",
+          }
+        }
+        selected={false}
       >
-        <span
-          className="platform-card"
+        <Component
+          className="css-16kw2fg-PlatformCard ewlrg796"
+          data-test-id="platform-php-laravel"
+          onClear={[Function]}
           onClick={[Function]}
+          platform={
+            Object {
+              "id": "php-laravel",
+              "language": "php",
+              "link": "https://docs.getsentry.com/hosted/clients/php/integrations/laravel/",
+              "name": "Laravel",
+              "type": "framework",
+            }
+          }
+          selected={false}
         >
-          <PlatformiconTile
-            className=""
+          <div
+            className="css-16kw2fg-PlatformCard ewlrg796"
+            data-test-id="platform-php-laravel"
             onClick={[Function]}
-            platform="php-laravel"
           >
-            <li
-              className="platform-tile list-unstyled php-laravel php "
+            <StyledPlatformiconTile
+              platform="php-laravel"
             >
-              <span
-                className="platformicon platformicon-php-laravel"
+              <div
+                className="css-jzifau-PlatformiconTile-getColorStyles-StyledPlatformiconTile ewlrg794"
               />
-            </li>
-          </PlatformiconTile>
-          <h5>
-             
-            Laravel
-             
-          </h5>
-        </span>
+            </StyledPlatformiconTile>
+            <h3>
+              Laravel
+            </h3>
+          </div>
+        </Component>
       </PlatformCard>
       <PlatformCard
-        className=""
+        data-test-id="platform-php-monolog"
         key="php-monolog"
+        onClear={[Function]}
         onClick={[Function]}
-        platform="php-monolog"
+        platform={
+          Object {
+            "id": "php-monolog",
+            "language": "php",
+            "link": "https://docs.getsentry.com/hosted/clients/php/integrations/monolog/",
+            "name": "Monolog",
+            "type": "framework",
+          }
+        }
+        selected={false}
       >
-        <span
-          className="platform-card"
+        <Component
+          className="css-16kw2fg-PlatformCard ewlrg796"
+          data-test-id="platform-php-monolog"
+          onClear={[Function]}
           onClick={[Function]}
+          platform={
+            Object {
+              "id": "php-monolog",
+              "language": "php",
+              "link": "https://docs.getsentry.com/hosted/clients/php/integrations/monolog/",
+              "name": "Monolog",
+              "type": "framework",
+            }
+          }
+          selected={false}
         >
-          <PlatformiconTile
-            className=""
+          <div
+            className="css-16kw2fg-PlatformCard ewlrg796"
+            data-test-id="platform-php-monolog"
             onClick={[Function]}
-            platform="php-monolog"
           >
-            <li
-              className="platform-tile list-unstyled php-monolog php "
+            <StyledPlatformiconTile
+              platform="php-monolog"
             >
-              <span
-                className="platformicon platformicon-php-monolog"
+              <div
+                className="css-f6lc5m-PlatformiconTile-getColorStyles-StyledPlatformiconTile ewlrg794"
               />
-            </li>
-          </PlatformiconTile>
-          <h5>
-             
-            Monolog
-             
-          </h5>
-        </span>
+            </StyledPlatformiconTile>
+            <h3>
+              Monolog
+            </h3>
+          </div>
+        </Component>
       </PlatformCard>
       <PlatformCard
-        className=""
+        data-test-id="platform-php"
         key="php"
+        onClear={[Function]}
         onClick={[Function]}
-        platform="php"
+        platform={
+          Object {
+            "id": "php",
+            "language": "php",
+            "link": "https://docs.getsentry.com/hosted/clients/php/",
+            "name": "PHP",
+            "type": "language",
+          }
+        }
+        selected={false}
       >
-        <span
-          className="platform-card"
+        <Component
+          className="css-16kw2fg-PlatformCard ewlrg796"
+          data-test-id="platform-php"
+          onClear={[Function]}
           onClick={[Function]}
+          platform={
+            Object {
+              "id": "php",
+              "language": "php",
+              "link": "https://docs.getsentry.com/hosted/clients/php/",
+              "name": "PHP",
+              "type": "language",
+            }
+          }
+          selected={false}
         >
-          <PlatformiconTile
-            className=""
+          <div
+            className="css-16kw2fg-PlatformCard ewlrg796"
+            data-test-id="platform-php"
             onClick={[Function]}
-            platform="php"
           >
-            <li
-              className="platform-tile list-unstyled php php "
+            <StyledPlatformiconTile
+              platform="php"
             >
-              <span
-                className="platformicon platformicon-php"
+              <div
+                className="css-f6lc5m-PlatformiconTile-getColorStyles-StyledPlatformiconTile ewlrg794"
               />
-            </li>
-          </PlatformiconTile>
-          <h5>
-             
-            PHP
-             
-          </h5>
-        </span>
+            </StyledPlatformiconTile>
+            <h3>
+              PHP
+            </h3>
+          </div>
+        </Component>
       </PlatformCard>
       <PlatformCard
-        className=""
+        data-test-id="platform-php-symfony2"
         key="php-symfony2"
+        onClear={[Function]}
         onClick={[Function]}
-        platform="php-symfony2"
+        platform={
+          Object {
+            "id": "php-symfony2",
+            "language": "php",
+            "link": "https://docs.getsentry.com/hosted/clients/php/integrations/symfony2/",
+            "name": "Symfony2",
+            "type": "framework",
+          }
+        }
+        selected={false}
       >
-        <span
-          className="platform-card"
+        <Component
+          className="css-16kw2fg-PlatformCard ewlrg796"
+          data-test-id="platform-php-symfony2"
+          onClear={[Function]}
           onClick={[Function]}
+          platform={
+            Object {
+              "id": "php-symfony2",
+              "language": "php",
+              "link": "https://docs.getsentry.com/hosted/clients/php/integrations/symfony2/",
+              "name": "Symfony2",
+              "type": "framework",
+            }
+          }
+          selected={false}
         >
-          <PlatformiconTile
-            className=""
+          <div
+            className="css-16kw2fg-PlatformCard ewlrg796"
+            data-test-id="platform-php-symfony2"
             onClick={[Function]}
-            platform="php-symfony2"
           >
-            <li
-              className="platform-tile list-unstyled php-symfony2 php "
+            <StyledPlatformiconTile
+              platform="php-symfony2"
             >
-              <span
-                className="platformicon platformicon-php-symfony2"
+              <div
+                className="css-f6lc5m-PlatformiconTile-getColorStyles-StyledPlatformiconTile ewlrg794"
               />
-            </li>
-          </PlatformiconTile>
-          <h5>
-             
-            Symfony2
-             
-          </h5>
-        </span>
+            </StyledPlatformiconTile>
+            <h3>
+              Symfony2
+            </h3>
+          </div>
+        </Component>
       </PlatformCard>
       <PlatformCard
-        className=""
+        data-test-id="platform-python-bottle"
         key="python-bottle"
+        onClear={[Function]}
         onClick={[Function]}
-        platform="python-bottle"
+        platform={
+          Object {
+            "id": "python-bottle",
+            "language": "python",
+            "link": "https://docs.getsentry.com/hosted/clients/python/integrations/bottle/",
+            "name": "Bottle",
+            "type": "framework",
+          }
+        }
+        selected={false}
       >
-        <span
-          className="platform-card"
+        <Component
+          className="css-16kw2fg-PlatformCard ewlrg796"
+          data-test-id="platform-python-bottle"
+          onClear={[Function]}
           onClick={[Function]}
+          platform={
+            Object {
+              "id": "python-bottle",
+              "language": "python",
+              "link": "https://docs.getsentry.com/hosted/clients/python/integrations/bottle/",
+              "name": "Bottle",
+              "type": "framework",
+            }
+          }
+          selected={false}
         >
-          <PlatformiconTile
-            className=""
+          <div
+            className="css-16kw2fg-PlatformCard ewlrg796"
+            data-test-id="platform-python-bottle"
             onClick={[Function]}
-            platform="python-bottle"
           >
-            <li
-              className="platform-tile list-unstyled python-bottle python "
+            <StyledPlatformiconTile
+              platform="python-bottle"
             >
-              <span
-                className="platformicon platformicon-python-bottle"
+              <div
+                className="css-jprxon-PlatformiconTile-getColorStyles-StyledPlatformiconTile ewlrg794"
               />
-            </li>
-          </PlatformiconTile>
-          <h5>
-             
-            Bottle
-             
-          </h5>
-        </span>
+            </StyledPlatformiconTile>
+            <h3>
+              Bottle
+            </h3>
+          </div>
+        </Component>
       </PlatformCard>
       <PlatformCard
-        className=""
+        data-test-id="platform-python-celery"
         key="python-celery"
+        onClear={[Function]}
         onClick={[Function]}
-        platform="python-celery"
+        platform={
+          Object {
+            "id": "python-celery",
+            "language": "python",
+            "link": "https://docs.getsentry.com/hosted/clients/python/integrations/celery/",
+            "name": "Celery",
+            "type": "library",
+          }
+        }
+        selected={false}
       >
-        <span
-          className="platform-card"
+        <Component
+          className="css-16kw2fg-PlatformCard ewlrg796"
+          data-test-id="platform-python-celery"
+          onClear={[Function]}
           onClick={[Function]}
+          platform={
+            Object {
+              "id": "python-celery",
+              "language": "python",
+              "link": "https://docs.getsentry.com/hosted/clients/python/integrations/celery/",
+              "name": "Celery",
+              "type": "library",
+            }
+          }
+          selected={false}
         >
-          <PlatformiconTile
-            className=""
+          <div
+            className="css-16kw2fg-PlatformCard ewlrg796"
+            data-test-id="platform-python-celery"
             onClick={[Function]}
-            platform="python-celery"
           >
-            <li
-              className="platform-tile list-unstyled python-celery python "
+            <StyledPlatformiconTile
+              platform="python-celery"
             >
-              <span
-                className="platformicon platformicon-python-celery"
+              <div
+                className="css-1vvuenp-PlatformiconTile-getColorStyles-StyledPlatformiconTile ewlrg794"
               />
-            </li>
-          </PlatformiconTile>
-          <h5>
-             
-            Celery
-             
-          </h5>
-        </span>
+            </StyledPlatformiconTile>
+            <h3>
+              Celery
+            </h3>
+          </div>
+        </Component>
       </PlatformCard>
       <PlatformCard
-        className=""
+        data-test-id="platform-python-django"
         key="python-django"
+        onClear={[Function]}
         onClick={[Function]}
-        platform="python-django"
+        platform={
+          Object {
+            "id": "python-django",
+            "language": "python",
+            "link": "https://docs.getsentry.com/hosted/clients/python/integrations/django/",
+            "name": "Django",
+            "type": "framework",
+          }
+        }
+        selected={false}
       >
-        <span
-          className="platform-card"
+        <Component
+          className="css-16kw2fg-PlatformCard ewlrg796"
+          data-test-id="platform-python-django"
+          onClear={[Function]}
           onClick={[Function]}
+          platform={
+            Object {
+              "id": "python-django",
+              "language": "python",
+              "link": "https://docs.getsentry.com/hosted/clients/python/integrations/django/",
+              "name": "Django",
+              "type": "framework",
+            }
+          }
+          selected={false}
         >
-          <PlatformiconTile
-            className=""
+          <div
+            className="css-16kw2fg-PlatformCard ewlrg796"
+            data-test-id="platform-python-django"
             onClick={[Function]}
-            platform="python-django"
           >
-            <li
-              className="platform-tile list-unstyled python-django python "
+            <StyledPlatformiconTile
+              platform="python-django"
             >
-              <span
-                className="platformicon platformicon-python-django"
+              <div
+                className="css-13uplim-PlatformiconTile-getColorStyles-StyledPlatformiconTile ewlrg794"
               />
-            </li>
-          </PlatformiconTile>
-          <h5>
-             
-            Django
-             
-          </h5>
-        </span>
+            </StyledPlatformiconTile>
+            <h3>
+              Django
+            </h3>
+          </div>
+        </Component>
       </PlatformCard>
       <PlatformCard
-        className=""
+        data-test-id="platform-python-flask"
         key="python-flask"
+        onClear={[Function]}
         onClick={[Function]}
-        platform="python-flask"
+        platform={
+          Object {
+            "id": "python-flask",
+            "language": "python",
+            "link": "https://docs.getsentry.com/hosted/clients/python/integrations/flask/",
+            "name": "Flask",
+            "type": "framework",
+          }
+        }
+        selected={false}
       >
-        <span
-          className="platform-card"
+        <Component
+          className="css-16kw2fg-PlatformCard ewlrg796"
+          data-test-id="platform-python-flask"
+          onClear={[Function]}
           onClick={[Function]}
+          platform={
+            Object {
+              "id": "python-flask",
+              "language": "python",
+              "link": "https://docs.getsentry.com/hosted/clients/python/integrations/flask/",
+              "name": "Flask",
+              "type": "framework",
+            }
+          }
+          selected={false}
         >
-          <PlatformiconTile
-            className=""
+          <div
+            className="css-16kw2fg-PlatformCard ewlrg796"
+            data-test-id="platform-python-flask"
             onClick={[Function]}
-            platform="python-flask"
           >
-            <li
-              className="platform-tile list-unstyled python-flask python "
+            <StyledPlatformiconTile
+              platform="python-flask"
             >
-              <span
-                className="platformicon platformicon-python-flask"
+              <div
+                className="css-1lbt1li-PlatformiconTile-getColorStyles-StyledPlatformiconTile ewlrg794"
               />
-            </li>
-          </PlatformiconTile>
-          <h5>
-             
-            Flask
-             
-          </h5>
-        </span>
+            </StyledPlatformiconTile>
+            <h3>
+              Flask
+            </h3>
+          </div>
+        </Component>
       </PlatformCard>
       <PlatformCard
-        className=""
+        data-test-id="platform-python-pylons"
         key="python-pylons"
+        onClear={[Function]}
         onClick={[Function]}
-        platform="python-pylons"
+        platform={
+          Object {
+            "id": "python-pylons",
+            "language": "python",
+            "link": "https://docs.getsentry.com/hosted/clients/python/integrations/pylons/",
+            "name": "Pylons",
+            "type": "framework",
+          }
+        }
+        selected={false}
       >
-        <span
-          className="platform-card"
+        <Component
+          className="css-16kw2fg-PlatformCard ewlrg796"
+          data-test-id="platform-python-pylons"
+          onClear={[Function]}
           onClick={[Function]}
+          platform={
+            Object {
+              "id": "python-pylons",
+              "language": "python",
+              "link": "https://docs.getsentry.com/hosted/clients/python/integrations/pylons/",
+              "name": "Pylons",
+              "type": "framework",
+            }
+          }
+          selected={false}
         >
-          <PlatformiconTile
-            className=""
+          <div
+            className="css-16kw2fg-PlatformCard ewlrg796"
+            data-test-id="platform-python-pylons"
             onClick={[Function]}
-            platform="python-pylons"
           >
-            <li
-              className="platform-tile list-unstyled python-pylons python "
+            <StyledPlatformiconTile
+              platform="python-pylons"
             >
-              <span
-                className="platformicon platformicon-python-pylons"
+              <div
+                className="css-1vvuenp-PlatformiconTile-getColorStyles-StyledPlatformiconTile ewlrg794"
               />
-            </li>
-          </PlatformiconTile>
-          <h5>
-             
-            Pylons
-             
-          </h5>
-        </span>
+            </StyledPlatformiconTile>
+            <h3>
+              Pylons
+            </h3>
+          </div>
+        </Component>
       </PlatformCard>
       <PlatformCard
-        className=""
+        data-test-id="platform-python-pyramid"
         key="python-pyramid"
+        onClear={[Function]}
         onClick={[Function]}
-        platform="python-pyramid"
+        platform={
+          Object {
+            "id": "python-pyramid",
+            "language": "python",
+            "link": "https://docs.getsentry.com/hosted/clients/python/integrations/pyramid/",
+            "name": "Pyramid",
+            "type": "framework",
+          }
+        }
+        selected={false}
       >
-        <span
-          className="platform-card"
+        <Component
+          className="css-16kw2fg-PlatformCard ewlrg796"
+          data-test-id="platform-python-pyramid"
+          onClear={[Function]}
           onClick={[Function]}
+          platform={
+            Object {
+              "id": "python-pyramid",
+              "language": "python",
+              "link": "https://docs.getsentry.com/hosted/clients/python/integrations/pyramid/",
+              "name": "Pyramid",
+              "type": "framework",
+            }
+          }
+          selected={false}
         >
-          <PlatformiconTile
-            className=""
+          <div
+            className="css-16kw2fg-PlatformCard ewlrg796"
+            data-test-id="platform-python-pyramid"
             onClick={[Function]}
-            platform="python-pyramid"
           >
-            <li
-              className="platform-tile list-unstyled python-pyramid python "
+            <StyledPlatformiconTile
+              platform="python-pyramid"
             >
-              <span
-                className="platformicon platformicon-python-pyramid"
+              <div
+                className="css-1vvuenp-PlatformiconTile-getColorStyles-StyledPlatformiconTile ewlrg794"
               />
-            </li>
-          </PlatformiconTile>
-          <h5>
-             
-            Pyramid
-             
-          </h5>
-        </span>
+            </StyledPlatformiconTile>
+            <h3>
+              Pyramid
+            </h3>
+          </div>
+        </Component>
       </PlatformCard>
       <PlatformCard
-        className=""
+        data-test-id="platform-python"
         key="python"
+        onClear={[Function]}
         onClick={[Function]}
-        platform="python"
+        platform={
+          Object {
+            "id": "python",
+            "language": "python",
+            "link": "https://docs.getsentry.com/hosted/clients/python/",
+            "name": "Python",
+            "type": "language",
+          }
+        }
+        selected={false}
       >
-        <span
-          className="platform-card"
+        <Component
+          className="css-16kw2fg-PlatformCard ewlrg796"
+          data-test-id="platform-python"
+          onClear={[Function]}
           onClick={[Function]}
+          platform={
+            Object {
+              "id": "python",
+              "language": "python",
+              "link": "https://docs.getsentry.com/hosted/clients/python/",
+              "name": "Python",
+              "type": "language",
+            }
+          }
+          selected={false}
         >
-          <PlatformiconTile
-            className=""
+          <div
+            className="css-16kw2fg-PlatformCard ewlrg796"
+            data-test-id="platform-python"
             onClick={[Function]}
-            platform="python"
           >
-            <li
-              className="platform-tile list-unstyled python python "
+            <StyledPlatformiconTile
+              platform="python"
             >
-              <span
-                className="platformicon platformicon-python"
+              <div
+                className="css-1vvuenp-PlatformiconTile-getColorStyles-StyledPlatformiconTile ewlrg794"
               />
-            </li>
-          </PlatformiconTile>
-          <h5>
-             
-            Python
-             
-          </h5>
-        </span>
+            </StyledPlatformiconTile>
+            <h3>
+              Python
+            </h3>
+          </div>
+        </Component>
       </PlatformCard>
       <PlatformCard
-        className=""
+        data-test-id="platform-python-rq"
         key="python-rq"
+        onClear={[Function]}
         onClick={[Function]}
-        platform="python-rq"
+        platform={
+          Object {
+            "id": "python-rq",
+            "language": "python",
+            "link": "https://docs.getsentry.com/hosted/clients/python/integrations/rq/",
+            "name": "RQ",
+            "type": "framework",
+          }
+        }
+        selected={false}
       >
-        <span
-          className="platform-card"
+        <Component
+          className="css-16kw2fg-PlatformCard ewlrg796"
+          data-test-id="platform-python-rq"
+          onClear={[Function]}
           onClick={[Function]}
+          platform={
+            Object {
+              "id": "python-rq",
+              "language": "python",
+              "link": "https://docs.getsentry.com/hosted/clients/python/integrations/rq/",
+              "name": "RQ",
+              "type": "framework",
+            }
+          }
+          selected={false}
         >
-          <PlatformiconTile
-            className=""
+          <div
+            className="css-16kw2fg-PlatformCard ewlrg796"
+            data-test-id="platform-python-rq"
             onClick={[Function]}
-            platform="python-rq"
           >
-            <li
-              className="platform-tile list-unstyled python-rq python "
+            <StyledPlatformiconTile
+              platform="python-rq"
             >
-              <span
-                className="platformicon platformicon-python-rq"
+              <div
+                className="css-1vvuenp-PlatformiconTile-getColorStyles-StyledPlatformiconTile ewlrg794"
               />
-            </li>
-          </PlatformiconTile>
-          <h5>
-             
-            RQ
-             
-          </h5>
-        </span>
+            </StyledPlatformiconTile>
+            <h3>
+              RQ
+            </h3>
+          </div>
+        </Component>
       </PlatformCard>
       <PlatformCard
-        className=""
+        data-test-id="platform-python-tornado"
         key="python-tornado"
+        onClear={[Function]}
         onClick={[Function]}
-        platform="python-tornado"
+        platform={
+          Object {
+            "id": "python-tornado",
+            "language": "python",
+            "link": "https://docs.getsentry.com/hosted/clients/python/integrations/tornado/",
+            "name": "Tornado",
+            "type": "framework",
+          }
+        }
+        selected={false}
       >
-        <span
-          className="platform-card"
+        <Component
+          className="css-16kw2fg-PlatformCard ewlrg796"
+          data-test-id="platform-python-tornado"
+          onClear={[Function]}
           onClick={[Function]}
+          platform={
+            Object {
+              "id": "python-tornado",
+              "language": "python",
+              "link": "https://docs.getsentry.com/hosted/clients/python/integrations/tornado/",
+              "name": "Tornado",
+              "type": "framework",
+            }
+          }
+          selected={false}
         >
-          <PlatformiconTile
-            className=""
+          <div
+            className="css-16kw2fg-PlatformCard ewlrg796"
+            data-test-id="platform-python-tornado"
             onClick={[Function]}
-            platform="python-tornado"
           >
-            <li
-              className="platform-tile list-unstyled python-tornado python "
+            <StyledPlatformiconTile
+              platform="python-tornado"
             >
-              <span
-                className="platformicon platformicon-python-tornado"
+              <div
+                className="css-1vvuenp-PlatformiconTile-getColorStyles-StyledPlatformiconTile ewlrg794"
               />
-            </li>
-          </PlatformiconTile>
-          <h5>
-             
-            Tornado
-             
-          </h5>
-        </span>
+            </StyledPlatformiconTile>
+            <h3>
+              Tornado
+            </h3>
+          </div>
+        </Component>
       </PlatformCard>
       <PlatformCard
-        className=""
+        data-test-id="platform-cocoa"
         key="cocoa"
+        onClear={[Function]}
         onClick={[Function]}
-        platform="cocoa"
+        platform={
+          Object {
+            "id": "cocoa",
+            "language": "cocoa",
+            "link": "https://docs.getsentry.com/hosted/clients/react-native/",
+            "name": "React-Native",
+            "type": "language",
+          }
+        }
+        selected={false}
       >
-        <span
-          className="platform-card"
+        <Component
+          className="css-16kw2fg-PlatformCard ewlrg796"
+          data-test-id="platform-cocoa"
+          onClear={[Function]}
           onClick={[Function]}
+          platform={
+            Object {
+              "id": "cocoa",
+              "language": "cocoa",
+              "link": "https://docs.getsentry.com/hosted/clients/react-native/",
+              "name": "React-Native",
+              "type": "language",
+            }
+          }
+          selected={false}
         >
-          <PlatformiconTile
-            className=""
+          <div
+            className="css-16kw2fg-PlatformCard ewlrg796"
+            data-test-id="platform-cocoa"
             onClick={[Function]}
-            platform="cocoa"
           >
-            <li
-              className="platform-tile list-unstyled cocoa cocoa "
+            <StyledPlatformiconTile
+              platform="cocoa"
             >
-              <span
-                className="platformicon platformicon-cocoa"
+              <div
+                className="css-yhb6wb-PlatformiconTile-getColorStyles-StyledPlatformiconTile ewlrg794"
               />
-            </li>
-          </PlatformiconTile>
-          <h5>
-             
-            React-Native
-             
-          </h5>
-        </span>
+            </StyledPlatformiconTile>
+            <h3>
+              React-Native
+            </h3>
+          </div>
+        </Component>
       </PlatformCard>
       <PlatformCard
-        className=""
+        data-test-id="platform-ruby-rack"
         key="ruby-rack"
+        onClear={[Function]}
         onClick={[Function]}
-        platform="ruby-rack"
+        platform={
+          Object {
+            "id": "ruby-rack",
+            "language": "ruby",
+            "link": "https://docs.getsentry.com/hosted/clients/ruby/integrations/rack/",
+            "name": "Rack",
+            "type": "framework",
+          }
+        }
+        selected={false}
       >
-        <span
-          className="platform-card"
+        <Component
+          className="css-16kw2fg-PlatformCard ewlrg796"
+          data-test-id="platform-ruby-rack"
+          onClear={[Function]}
           onClick={[Function]}
+          platform={
+            Object {
+              "id": "ruby-rack",
+              "language": "ruby",
+              "link": "https://docs.getsentry.com/hosted/clients/ruby/integrations/rack/",
+              "name": "Rack",
+              "type": "framework",
+            }
+          }
+          selected={false}
         >
-          <PlatformiconTile
-            className=""
+          <div
+            className="css-16kw2fg-PlatformCard ewlrg796"
+            data-test-id="platform-ruby-rack"
             onClick={[Function]}
-            platform="ruby-rack"
           >
-            <li
-              className="platform-tile list-unstyled ruby-rack ruby "
+            <StyledPlatformiconTile
+              platform="ruby-rack"
             >
-              <span
-                className="platformicon platformicon-ruby-rack"
+              <div
+                className="css-ze44n6-PlatformiconTile-getColorStyles-StyledPlatformiconTile ewlrg794"
               />
-            </li>
-          </PlatformiconTile>
-          <h5>
-             
-            Rack
-             
-          </h5>
-        </span>
+            </StyledPlatformiconTile>
+            <h3>
+              Rack
+            </h3>
+          </div>
+        </Component>
       </PlatformCard>
       <PlatformCard
-        className=""
+        data-test-id="platform-ruby-rails"
         key="ruby-rails"
+        onClear={[Function]}
         onClick={[Function]}
-        platform="ruby-rails"
+        platform={
+          Object {
+            "id": "ruby-rails",
+            "language": "ruby",
+            "link": "https://docs.getsentry.com/hosted/clients/ruby/integrations/rails/",
+            "name": "Rails",
+            "type": "framework",
+          }
+        }
+        selected={false}
       >
-        <span
-          className="platform-card"
+        <Component
+          className="css-16kw2fg-PlatformCard ewlrg796"
+          data-test-id="platform-ruby-rails"
+          onClear={[Function]}
           onClick={[Function]}
+          platform={
+            Object {
+              "id": "ruby-rails",
+              "language": "ruby",
+              "link": "https://docs.getsentry.com/hosted/clients/ruby/integrations/rails/",
+              "name": "Rails",
+              "type": "framework",
+            }
+          }
+          selected={false}
         >
-          <PlatformiconTile
-            className=""
+          <div
+            className="css-16kw2fg-PlatformCard ewlrg796"
+            data-test-id="platform-ruby-rails"
             onClick={[Function]}
-            platform="ruby-rails"
           >
-            <li
-              className="platform-tile list-unstyled ruby-rails ruby "
+            <StyledPlatformiconTile
+              platform="ruby-rails"
             >
-              <span
-                className="platformicon platformicon-ruby-rails"
+              <div
+                className="css-15nw1ir-PlatformiconTile-getColorStyles-StyledPlatformiconTile ewlrg794"
               />
-            </li>
-          </PlatformiconTile>
-          <h5>
-             
-            Rails
-             
-          </h5>
-        </span>
+            </StyledPlatformiconTile>
+            <h3>
+              Rails
+            </h3>
+          </div>
+        </Component>
       </PlatformCard>
       <PlatformCard
-        className=""
+        data-test-id="platform-ruby"
         key="ruby"
+        onClear={[Function]}
         onClick={[Function]}
-        platform="ruby"
+        platform={
+          Object {
+            "id": "ruby",
+            "language": "ruby",
+            "link": "https://docs.getsentry.com/hosted/clients/ruby/",
+            "name": "Ruby",
+            "type": "language",
+          }
+        }
+        selected={false}
       >
-        <span
-          className="platform-card"
+        <Component
+          className="css-16kw2fg-PlatformCard ewlrg796"
+          data-test-id="platform-ruby"
+          onClear={[Function]}
           onClick={[Function]}
+          platform={
+            Object {
+              "id": "ruby",
+              "language": "ruby",
+              "link": "https://docs.getsentry.com/hosted/clients/ruby/",
+              "name": "Ruby",
+              "type": "language",
+            }
+          }
+          selected={false}
         >
-          <PlatformiconTile
-            className=""
+          <div
+            className="css-16kw2fg-PlatformCard ewlrg796"
+            data-test-id="platform-ruby"
             onClick={[Function]}
-            platform="ruby"
           >
-            <li
-              className="platform-tile list-unstyled ruby ruby "
+            <StyledPlatformiconTile
+              platform="ruby"
             >
-              <span
-                className="platformicon platformicon-ruby"
+              <div
+                className="css-ze44n6-PlatformiconTile-getColorStyles-StyledPlatformiconTile ewlrg794"
               />
-            </li>
-          </PlatformiconTile>
-          <h5>
-             
-            Ruby
-             
-          </h5>
-        </span>
+            </StyledPlatformiconTile>
+            <h3>
+              Ruby
+            </h3>
+          </div>
+        </Component>
       </PlatformCard>
       <PlatformCard
-        className=""
+        data-test-id="platform-rust"
         key="rust"
+        onClear={[Function]}
         onClick={[Function]}
-        platform="rust"
+        platform={
+          Object {
+            "id": "rust",
+            "language": "rust",
+            "link": "https://docs.getsentry.com/hosted/clients/rust/",
+            "name": "Rust",
+            "type": "language",
+          }
+        }
+        selected={false}
       >
-        <span
-          className="platform-card"
+        <Component
+          className="css-16kw2fg-PlatformCard ewlrg796"
+          data-test-id="platform-rust"
+          onClear={[Function]}
           onClick={[Function]}
+          platform={
+            Object {
+              "id": "rust",
+              "language": "rust",
+              "link": "https://docs.getsentry.com/hosted/clients/rust/",
+              "name": "Rust",
+              "type": "language",
+            }
+          }
+          selected={false}
         >
-          <PlatformiconTile
-            className=""
+          <div
+            className="css-16kw2fg-PlatformCard ewlrg796"
+            data-test-id="platform-rust"
             onClick={[Function]}
-            platform="rust"
           >
-            <li
-              className="platform-tile list-unstyled rust rust "
+            <StyledPlatformiconTile
+              platform="rust"
             >
-              <span
-                className="platformicon platformicon-rust"
+              <div
+                className="css-yhb6wb-PlatformiconTile-getColorStyles-StyledPlatformiconTile ewlrg794"
               />
-            </li>
-          </PlatformiconTile>
-          <h5>
-             
-            Rust
-             
-          </h5>
-        </span>
+            </StyledPlatformiconTile>
+            <h3>
+              Rust
+            </h3>
+          </div>
+        </Component>
       </PlatformCard>
       <PlatformCard
-        className=""
+        data-test-id="platform-swift"
         key="swift"
+        onClear={[Function]}
         onClick={[Function]}
-        platform="swift"
+        platform={
+          Object {
+            "id": "swift",
+            "language": "swift",
+            "link": "https://docs.getsentry.com/hosted/clients/cocoa/",
+            "name": "Swift",
+            "type": "language",
+          }
+        }
+        selected={false}
       >
-        <span
-          className="platform-card"
+        <Component
+          className="css-16kw2fg-PlatformCard ewlrg796"
+          data-test-id="platform-swift"
+          onClear={[Function]}
           onClick={[Function]}
+          platform={
+            Object {
+              "id": "swift",
+              "language": "swift",
+              "link": "https://docs.getsentry.com/hosted/clients/cocoa/",
+              "name": "Swift",
+              "type": "language",
+            }
+          }
+          selected={false}
         >
-          <PlatformiconTile
-            className=""
+          <div
+            className="css-16kw2fg-PlatformCard ewlrg796"
+            data-test-id="platform-swift"
             onClick={[Function]}
-            platform="swift"
           >
-            <li
-              className="platform-tile list-unstyled swift swift "
+            <StyledPlatformiconTile
+              platform="swift"
             >
-              <span
-                className="platformicon platformicon-swift"
+              <div
+                className="css-1e8vskw-PlatformiconTile-getColorStyles-StyledPlatformiconTile ewlrg794"
               />
-            </li>
-          </PlatformiconTile>
-          <h5>
-             
-            Swift
-             
-          </h5>
-        </span>
+            </StyledPlatformiconTile>
+            <h3>
+              Swift
+            </h3>
+          </div>
+        </Component>
       </PlatformCard>
       <PlatformCard
-        className=""
+        data-test-id="platform-mock"
         key="mock"
+        onClear={[Function]}
         onClick={[Function]}
-        platform="mock"
+        platform={
+          Object {
+            "id": "mock",
+            "language": "mock",
+            "link": "",
+            "name": "Mock Integration",
+            "type": "language",
+          }
+        }
+        selected={false}
       >
-        <span
-          className="platform-card"
+        <Component
+          className="css-16kw2fg-PlatformCard ewlrg796"
+          data-test-id="platform-mock"
+          onClear={[Function]}
           onClick={[Function]}
+          platform={
+            Object {
+              "id": "mock",
+              "language": "mock",
+              "link": "",
+              "name": "Mock Integration",
+              "type": "language",
+            }
+          }
+          selected={false}
         >
-          <PlatformiconTile
-            className=""
+          <div
+            className="css-16kw2fg-PlatformCard ewlrg796"
+            data-test-id="platform-mock"
             onClick={[Function]}
-            platform="mock"
           >
-            <li
-              className="platform-tile list-unstyled mock mock "
+            <StyledPlatformiconTile
+              platform="mock"
             >
-              <span
-                className="platformicon platformicon-mock"
+              <div
+                className="css-yhb6wb-PlatformiconTile-getColorStyles-StyledPlatformiconTile ewlrg794"
               />
-            </li>
-          </PlatformiconTile>
-          <h5>
-             
-            Mock Integration
-             
-          </h5>
-        </span>
+            </StyledPlatformiconTile>
+            <h3>
+              Mock Integration
+            </h3>
+          </div>
+        </Component>
       </PlatformCard>
       <PlatformCard
-        className=""
+        data-test-id="platform-other"
         key="other"
+        onClear={[Function]}
         onClick={[Function]}
-        platform="other"
+        platform={
+          Object {
+            "id": "other",
+            "language": "other",
+            "link": "https://docs.getsentry.com/hosted/clients/",
+            "name": "Other",
+            "type": "language",
+          }
+        }
+        selected={false}
       >
-        <span
-          className="platform-card"
+        <Component
+          className="css-16kw2fg-PlatformCard ewlrg796"
+          data-test-id="platform-other"
+          onClear={[Function]}
           onClick={[Function]}
+          platform={
+            Object {
+              "id": "other",
+              "language": "other",
+              "link": "https://docs.getsentry.com/hosted/clients/",
+              "name": "Other",
+              "type": "language",
+            }
+          }
+          selected={false}
         >
-          <PlatformiconTile
-            className=""
+          <div
+            className="css-16kw2fg-PlatformCard ewlrg796"
+            data-test-id="platform-other"
             onClick={[Function]}
-            platform="other"
           >
-            <li
-              className="platform-tile list-unstyled other other "
+            <StyledPlatformiconTile
+              platform="other"
             >
-              <span
-                className="platformicon platformicon-other"
+              <div
+                className="css-yhb6wb-PlatformiconTile-getColorStyles-StyledPlatformiconTile ewlrg794"
               />
-            </li>
-          </PlatformiconTile>
-          <h5>
-             
-            Other
-             
-          </h5>
-        </span>
+            </StyledPlatformiconTile>
+            <h3>
+              Other
+            </h3>
+          </div>
+        </Component>
       </PlatformCard>
-    </ul>
-  </div>
+    </div>
+  </PlatformList>
 </PlatformPicker>
 `;

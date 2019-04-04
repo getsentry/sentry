@@ -33,6 +33,7 @@ register('system.event-retention-days', default=0, flags=FLAG_ALLOW_EMPTY | FLAG
 register('system.secret-key', flags=FLAG_NOSTORE)
 # Absolute URL to the sentry root directory. Should not include a trailing slash.
 register('system.url-prefix', ttl=60, grace=3600, flags=FLAG_REQUIRED | FLAG_PRIORITIZE_DISK)
+register('system.internal-url-prefix', flags=FLAG_ALLOW_EMPTY | FLAG_PRIORITIZE_DISK)
 register('system.root-api-key', flags=FLAG_PRIORITIZE_DISK)
 register('system.logging-format', default=LoggingFormat.HUMAN, flags=FLAG_NOSTORE)
 # This is used for the chunk upload endpoint
@@ -111,6 +112,14 @@ register(
     'symbolserver.options',
     default={'url': 'http://127.0.0.1:3000'},
     flags=FLAG_ALLOW_EMPTY | FLAG_PRIORITIZE_DISK
+)
+
+# Symbolicator
+register('symbolicator.enabled', default=False, flags=FLAG_ALLOW_EMPTY | FLAG_PRIORITIZE_DISK)
+register(
+    'symbolicator.options',
+    default={'url': 'http://localhost:3021'},
+    flags=FLAG_ALLOW_EMPTY | FLAG_PRIORITIZE_DISK,
 )
 
 # Analytics

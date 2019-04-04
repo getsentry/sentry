@@ -36,22 +36,28 @@ env:
     # node's version is pinned by .nvmrc and is autodetected by `nvm install`.
     - NODE_DIR="${HOME}/.nvm/versions/node/v$(< .nvmrc)"
     - YARN_VERSION="1.13.0"
+
 script:
-  - make travis-lint-$TEST_SUITE
+  # certain commands require sentry init to be run, but this is only true for
+  # running things within Travis
   - make travis-test-$TEST_SUITE
   - make travis-scan-$TEST_SUITE
   # installing dependencies for after_* steps here ensures they get cached
   # since those steps execute after travis runs `store build cache`
-  - pip install codecov
-  - npm install -g @zeus-ci/cli
 
 after_success:
-  - codecov -e TEST_SUITE
+  - |
+      coverage_files=$(ls .artifacts/*coverage.xml || true)
+      if [[ -n "$coverage_files" || -f .artifacts/coverage/cobertura-coverage.xml ]]; then
+        pip install codecov
+        codecov -e TEST_SUITE
+      fi
 
 after_failure:
   - dmesg | tail -n 100
 
 after_script:
+  - npm install -g @zeus-ci/cli
   - zeus upload -t "text/xml+xunit" .artifacts/*junit.xml
   - zeus upload -t "text/xml+coverage" .artifacts/*coverage.xml
   - zeus upload -t "text/xml+coverage" .artifacts/coverage/cobertura-coverage.xml
@@ -66,18 +72,19 @@ after_script:
 matrix:
   fast_finish: true
   include:
-    # only the sqlite suite runs riak tests
+    # Lint python and javascript together
     - python: 2.7
-      env: TEST_SUITE=sqlite DB=sqlite
-      services:
-        - memcached
-        - riak
-        - redis-server
+      name: 'Linter'
+      env: TEST_SUITE=lint
       install:
-        - python setup.py install_egg_info
-        - pip install -e ".[dev,tests,optional]"
+        - find "$NODE_DIR" -type d -empty -delete
+        - nvm install
+        - npm install -g "yarn@${YARN_VERSION}"
+        - pip install -r requirements-dev.txt
+        - yarn install --pure-lockfile
 
     - python: 2.7
+      name: 'Backend [Postgres]'
       env: TEST_SUITE=postgres DB=postgres
       services:
         - memcached
@@ -89,8 +96,50 @@ matrix:
       before_script:
         - psql -c 'create database sentry;' -U postgres
 
+    # django 1.8 compatibility
+    - python: 2.7
+      name: 'Backend [Postgres] (Django 1.8)'
+      env: TEST_SUITE=postgres DJANGO_VERSION=">=1.8,<1.9"
+      services:
+        - memcached
+        - redis-server
+        - postgresql
+      install:
+        - python setup.py install_egg_info
+        - pip install -e ".[dev,tests,optional]"
+      before_script:
+        - psql -c 'create database sentry;' -U postgres
+
+    # django 1.8 compatibility with migrations
+    - python: 2.7
+      name: 'Backend [Postgres] (Django 1.8, No migrations)'
+      env: TEST_SUITE=postgres DJANGO_VERSION=">=1.8,<1.9" SOUTH_TESTS_MIGRATE=0
+      services:
+        - memcached
+        - redis-server
+        - postgresql
+      install:
+        - python setup.py install_egg_info
+        - pip install -e ".[dev,tests,optional]"
+      before_script:
+        - psql -c 'create database sentry;' -U postgres
+
+    # only the sqlite suite runs riak tests
+    - python: 2.7
+      name: 'Backend [SQLite]'
+      env: TEST_SUITE=sqlite DB=sqlite
+      services:
+        - memcached
+        - riak
+        - redis-server
+      install:
+        - python setup.py install_egg_info
+        - pip install -e ".[dev,tests,optional]"
+
+
     # XXX(markus): Remove after rust interfaces are done
     - python: 2.7
+      name: 'Backend [Postgres] (Rust Interface Renormalization)'
       env: TEST_SUITE=postgres DB=postgres SENTRY_TEST_USE_RUST_INTERFACE_RENORMALIZATION=1
       services:
         - memcached
@@ -103,6 +152,7 @@ matrix:
         - psql -c 'create database sentry;' -U postgres
 
     - python: 2.7
+      name: 'Backend [MySQL]'
       env: TEST_SUITE=mysql DB=mysql
       services:
         - memcached
@@ -118,6 +168,7 @@ matrix:
         - mysql -u root -e 'create database sentry;'
 
     - python: 2.7
+      name: 'Acceptance'
       env: TEST_SUITE=acceptance
       services:
         - memcached
@@ -143,6 +194,7 @@ matrix:
 
     # XXX(markus): Remove after rust interfaces are done
     - python: 2.7
+      name: 'Acceptance (Rust Interface Renormalization)'
       env: TEST_SUITE=acceptance SENTRY_TEST_USE_RUST_INTERFACE_RENORMALIZATION=1 PERCY_ENABLE=0
       services:
         - memcached
@@ -167,6 +219,7 @@ matrix:
         - psql -c 'create database sentry;' -U postgres
 
     - python: 2.7
+      name: 'Frontend'
       env: TEST_SUITE=js
       before_install:
         - find "$NODE_DIR" -type d -empty -delete
@@ -176,6 +229,7 @@ matrix:
         - yarn install --pure-lockfile
 
     - python: 2.7
+      name: 'Command Line'
       env: TEST_SUITE=cli
       services:
         - postgresql
@@ -187,32 +241,24 @@ matrix:
         - psql -c 'create database sentry;' -U postgres
 
     - python: 2.7
+      name: 'Distribution build'
       env: TEST_SUITE=dist
       before_install:
         - find "$NODE_DIR" -type d -empty -delete
         - nvm install
         - npm install -g "yarn@${YARN_VERSION}"
 
-    # django 1.8 compatibility
     - python: 2.7
-      env: TEST_SUITE=postgres DJANGO_VERSION=">=1.8,<1.9"
+      name: 'Symbolicator Integration'
+      env: TEST_SUITE=symbolicator
       services:
+        - docker
         - memcached
         - redis-server
         - postgresql
-      install:
-        - python setup.py install_egg_info
-        - pip install -e ".[dev,tests,optional]"
-      before_script:
-        - psql -c 'create database sentry;' -U postgres
-
-    # django 1.8 compatibility with migrations
-    - python: 2.7
-      env: TEST_SUITE=postgres DJANGO_VERSION=">=1.8,<1.9" SOUTH_TESTS_MIGRATE=0
-      services:
-        - memcached
-        - redis-server
-        - postgresql
+      before_install:
+        - docker run -d --network host --name symbolicator us.gcr.io/sentryio/symbolicator:latest run
+        - docker ps -a
       install:
         - python setup.py install_egg_info
         - pip install -e ".[dev,tests,optional]"
@@ -221,6 +267,7 @@ matrix:
 
     # snuba in testing
     - python: 2.7
+      name: 'Snuba Integration'
       env: TEST_SUITE=snuba SENTRY_TAGSTORE=sentry.tagstore.snuba.SnubaTagStorage SENTRY_ZOOKEEPER_HOSTS=localhost:2181 SENTRY_KAFKA_HOSTS=localhost:9092
       services:
         - docker
@@ -242,6 +289,7 @@ matrix:
 
     # XXX(markus): Remove after rust interfaces are done
     - python: 2.7
+      name: 'Snuba Integration (Rust Interface Renormalization)'
       env: TEST_SUITE=snuba SENTRY_TAGSTORE=sentry.tagstore.snuba.SnubaTagStorage SENTRY_ZOOKEEPER_HOSTS=localhost:2181 SENTRY_KAFKA_HOSTS=localhost:9092 SENTRY_TEST_USE_RUST_INTERFACE_RENORMALIZATION=1
       services:
         - docker
@@ -263,6 +311,7 @@ matrix:
 
     # Deploy 'storybook' (component & style guide) - allowed to fail
     - language: node_js
+      name: 'Storybook Deploy'
       env: STORYBOOK_BUILD=1
       before_install:
         # Decrypt the credentials we added to the repo using the key we added with the Travis command line tool
@@ -288,6 +337,8 @@ matrix:
 
     # XXX(markus): Remove after rust interfaces are done
     - env: TEST_SUITE=postgres DB=postgres SENTRY_TEST_USE_RUST_INTERFACE_RENORMALIZATION=1
+
+    - env: TEST_SUITE=symbolicator
 
 notifications:
   webhooks:

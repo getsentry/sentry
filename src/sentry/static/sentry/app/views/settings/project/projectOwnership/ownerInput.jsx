@@ -105,9 +105,11 @@ class OwnerInput extends React.Component {
 
   mentionableTeams() {
     const {project} = this.props;
-    return (ProjectsStore.getBySlug(project.slug) || {
-      teams: [],
-    }).teams.map(team => ({
+    return (
+      ProjectsStore.getBySlug(project.slug) || {
+        teams: [],
+      }
+    ).teams.map(team => ({
       id: team.id,
       display: `#${team.slug}`,
       email: team.id,

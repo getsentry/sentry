@@ -32,8 +32,8 @@ class OrganizationOnboardingTest(AcceptanceTestCase):
         self.browser.wait_until_not('.loading-indicator')
         self.browser.snapshot(name='onboarding-choose-platform')
 
-        self.browser.click('.platform-tile.javascript-angular')
-        self.browser.click('.btn-primary')
+        self.browser.click('[data-test-id="platform-javascript-angular"]')
+        self.browser.click('[data-test-id="create-project"]')
 
         self.browser.wait_until('.onboarding-Configure')
         self.browser.wait_until_not('.loading-indicator')
@@ -47,4 +47,4 @@ class OrganizationOnboardingTest(AcceptanceTestCase):
         self.browser.wait_until_not('.loading')
 
         assert self.browser.element_exists('.robot')
-        assert self.browser.element_exists('[data-test-id="install-instructions"]')
+        assert self.browser.element_exists_by_test_id('install-instructions')

@@ -1,98 +1,70 @@
+import {browserHistory} from 'react-router';
 import PropTypes from 'prop-types';
 import React from 'react';
-import Reflux from 'reflux';
-import createReactClass from 'create-react-class';
-import styled from 'react-emotion';
 import * as Sentry from '@sentry/browser';
+import styled from 'react-emotion';
 
-import {Panel} from 'app/components/panels';
 import {getPlatformName} from 'app/views/onboarding/utils';
+import {inputStyles} from 'app/styles/input';
 import {openCreateTeamModal} from 'app/actionCreators/modal';
 import {t} from 'app/locale';
-import ApiMixin from 'app/mixins/apiMixin';
+import Alert from 'app/components/alert';
 import Button from 'app/components/button';
 import HookStore from 'app/stores/hookStore';
-import OnboardingProject from 'app/views/onboarding/project';
-import OrganizationState from 'app/mixins/organizationState';
-import PanelAlert from 'app/components/panels/panelAlert';
+import PageHeading from 'app/components/pageHeading';
+import PlatformPicker from 'app/views/onboarding/project/platformpicker';
+import PlatformiconTile from 'app/views/onboarding/project/platformiconTile';
 import ProjectActions from 'app/actions/projectActions';
-import TeamActions from 'app/actions/teamActions';
+import SelectControl from 'app/components/forms/selectControl';
+import SentryTypes from 'app/sentryTypes';
+import Tooltip from 'app/components/tooltip';
 import space from 'app/styles/space';
+import withApi from 'app/utils/withApi';
+import withOrganization from 'app/utils/withOrganization';
+import withTeams from 'app/utils/withTeams';
 
-const CreateProject = createReactClass({
-  displayName: 'CreateProject',
+class CreateProject extends React.Component {
+  static propTypes = {
+    api: PropTypes.object,
+    teams: PropTypes.arrayOf(SentryTypes.Team),
+    organization: SentryTypes.Organization,
+    nextStepUrl: PropTypes.func,
+  };
 
-  propTypes: {
-    getDocsUrl: PropTypes.func,
-  },
+  static defaultProps = {
+    nextStepUrl: ({slug, projectSlug, platform}) =>
+      `/onboarding/${slug}/${projectSlug}/configure/${platform}`,
+  };
 
-  contextTypes: {
-    router: PropTypes.object,
+  static contextTypes = {
     location: PropTypes.object,
-  },
+  };
 
-  mixins: [
-    ApiMixin,
-    OrganizationState,
-    Reflux.listenTo(TeamActions.createTeamSuccess, 'onTeamCreated'),
-  ],
+  constructor(props, ...args) {
+    super(props, ...args);
 
-  getDefaultProps() {
-    return {
-      getDocsUrl: ({slug, projectSlug, platform}) =>
-        `/onboarding/${slug}/${projectSlug}/configure/${platform}`,
-    };
-  },
-
-  getInitialState() {
-    const {teams} = this.getOrganization();
-    const accessTeams = teams.filter(team => team.hasAccess);
     const {query} = this.context.location;
+    const {teams} = this.props.organization;
+    const accessTeams = teams.filter(team => team.hasAccess);
 
     const team = query.team || (accessTeams.length && accessTeams[0].slug);
     const platform = getPlatformName(query.platform) ? query.platform : '';
 
-    return {
-      loading: true,
+    this.state = {
       error: false,
       projectName: getPlatformName(platform) || '',
       team,
       platform,
       inFlight: false,
     };
-  },
+  }
 
-  onTeamCreated() {
-    const {router} = this.context;
-    // After team gets created we need to force OrganizationContext to basically remount
-    router.replace({
-      pathname: router.location.pathname,
-      state: 'refresh',
-    });
-  },
+  createProject = e => {
+    e.preventDefault();
+    const {organization, api, nextStepUrl} = this.props;
+    const {projectName, platform, team} = this.state;
+    const {slug} = organization;
 
-  navigateNextUrl(data) {
-    const organization = this.getOrganization();
-
-    const url =
-      HookStore.get('utils:onboarding-survey-url').length &&
-      organization.projects.length === 0
-        ? HookStore.get('utils:onboarding-survey-url')[0](data, organization)
-        : data.docsUrl;
-
-    this.setState({inFlight: false});
-    data.router.push(url);
-  },
-
-  createProject() {
-    const {router} = this.context;
-    const {slug} = this.getOrganization();
-    const {projectName, platform, team, inFlight} = this.state;
-
-    //prevent double-trigger
-    if (inFlight) {
-      return;
-    }
     this.setState({inFlight: true});
 
     if (!projectName) {
@@ -103,7 +75,7 @@ const CreateProject = createReactClass({
       });
     }
 
-    this.api.request(`/teams/${slug}/${team}/projects/`, {
+    api.request(`/teams/${slug}/${team}/projects/`, {
       method: 'POST',
       data: {
         name: projectName,
@@ -112,9 +84,19 @@ const CreateProject = createReactClass({
       success: data => {
         ProjectActions.createSuccess(data);
 
-        // navigate to new url _now_
-        const docsUrl = this.props.getDocsUrl({slug, projectSlug: data.slug, platform});
-        this.navigateNextUrl({router, slug, projectSlug: data.slug, platform, docsUrl});
+        const urlData = {
+          slug: organization.slug,
+          projectSlug: data.slug,
+          platform: platform || 'other',
+        };
+
+        const defaultNextUrl = nextStepUrl(urlData);
+        const hookNextUrl =
+          organization.projects.length === 0 &&
+          HookStore.get('utils:onboarding-survey-url').length &&
+          HookStore.get('utils:onboarding-survey-url')[0](urlData, organization);
+
+        browserHistory.push(hookNextUrl || defaultNextUrl);
       },
       error: err => {
         this.setState({
@@ -135,70 +117,145 @@ const CreateProject = createReactClass({
         }
       },
     });
-  },
+  };
+
+  setPlatform = platformId =>
+    this.setState(({projectName, platform}) => ({
+      platform: platformId,
+      projectName:
+        !projectName || (platform && getPlatformName(platform) === projectName)
+          ? getPlatformName(platformId)
+          : projectName,
+    }));
 
   render() {
-    const {projectName, platform, error} = this.state;
-    const organization = this.getOrganization();
-    const {teams} = organization;
-    const accessTeams = teams.filter(team => team.hasAccess);
-
-    const stepProps = {
-      next: this.createProject,
-      platform,
-      setPlatform: p => {
-        if (!projectName || (platform && getPlatformName(platform) === projectName)) {
-          this.setState({projectName: getPlatformName(p)});
-        }
-        this.setState({platform: p});
-      },
-      name: projectName,
-      setName: n => this.setState({projectName: n}),
-      team: this.state.team,
-      teams: accessTeams,
-      setTeam: teamSlug => this.setState({team: teamSlug}),
-    };
+    const {organization} = this.props;
+    const {projectName, team, platform, error, inFlight} = this.state;
+    const teams = this.props.teams.filter(filterTeam => filterTeam.hasAccess);
 
     return (
-      <div>
-        {error && <h2 className="alert alert-error">{error}</h2>}
-        {accessTeams.length ? (
-          <OnboardingProject {...stepProps} />
-        ) : (
-          <Panel
-            title={t('Cannot Create Project')}
-            body={
-              <React.Fragment>
-                <PanelAlert type="error">
-                  {t(
-                    'You cannot create a new project because there are no teams to assign it to.'
-                  )}
-                </PanelAlert>
-                <CreateTeamBody>
+      <React.Fragment>
+        {error && <Alert type="error">{error}</Alert>}
+
+        <div data-test-id="onboarding-info">
+          <PageHeading withMargins>{t('Create a new Project')}</PageHeading>
+          <HelpText>
+            {t(
+              `Projects allow you to scope events to a specific application in
+               your organization. For example, you might have separate projects
+               for your API server and frontend client.`
+            )}
+          </HelpText>
+
+          <PlatformPicker platform={platform} setPlatform={this.setPlatform} showOther />
+          <CreateProjectForm onSubmit={this.createProject}>
+            <div>
+              <FormLabel>{t('Give your project a name')}</FormLabel>
+              <ProjectNameInput>
+                <ProjectPlatformicon monoTone platform={platform} />
+                <input
+                  type="text"
+                  name="name"
+                  label={t('Project Name')}
+                  placeholder={t('Project name')}
+                  autoComplete="off"
+                  value={projectName}
+                  onChange={e => this.setState({projectName: e.target.value})}
+                />
+              </ProjectNameInput>
+            </div>
+            <div>
+              <FormLabel>{t('Assign a Team')}</FormLabel>
+              <TeamSelectInput>
+                <SelectControl
+                  name="select-team"
+                  clearable={false}
+                  value={team}
+                  placeholder={t('Select a Team')}
+                  onChange={choice => this.setState({team: choice.value})}
+                  options={teams.map(({slug}) => ({
+                    label: `#${slug}`,
+                    value: slug,
+                  }))}
+                />
+                <Tooltip title={t('Create a team')}>
                   <Button
-                    className="ref-create-team"
-                    priority="primary"
+                    borderless
+                    data-test-id="create-team"
+                    type="button"
+                    icon="icon-circle-add"
                     onClick={() =>
                       openCreateTeamModal({
                         organization,
-                      })}
-                  >
-                    {t('Create a Team')}
-                  </Button>
-                </CreateTeamBody>
-              </React.Fragment>
-            }
-          />
-        )}
-      </div>
+                        onClose: ({slug}) => this.setState({team: slug}),
+                      })
+                    }
+                  />
+                </Tooltip>
+              </TeamSelectInput>
+            </div>
+            <div>
+              <Button
+                data-test-id="create-project"
+                priority="primary"
+                disabled={inFlight || !team || projectName === ''}
+              >
+                {t('Create Project')}
+              </Button>
+            </div>
+          </CreateProjectForm>
+        </div>
+      </React.Fragment>
     );
-  },
-});
+  }
+}
 
-export default CreateProject;
+export default withApi(withTeams(withOrganization(CreateProject)));
+export {CreateProject};
 
-const CreateTeamBody = styled('div')`
-  display: flex;
-  justify-content: center;
-  padding: ${space(2)};
+const CreateProjectForm = styled('form')`
+  display: grid;
+  grid-template-columns: 300px 250px max-content;
+  grid-gap: ${space(2)};
+  align-items: end;
+  padding: ${space(3)} 0;
+  margin-top: ${space(2)};
+  box-shadow: 0 -1px 0 rgba(0, 0, 0, 0.1);
+  background: #fff;
+  position: sticky;
+  bottom: 0;
+`;
+
+const FormLabel = styled('div')`
+  font-size: ${p => p.theme.fontSizeExtraLarge};
+  margin-bottom: ${space(1)};
+`;
+
+const ProjectPlatformicon = styled(PlatformiconTile)`
+  font-size: 25px;
+`;
+
+const ProjectNameInput = styled('div')`
+  ${inputStyles};
+  display: grid;
+  grid-template-columns: min-content 1fr;
+  grid-gap: ${space(1)};
+  align-items: center;
+  padding: 5px 10px;
+
+  input {
+    border: 0;
+    outline: 0;
+  }
+`;
+
+const TeamSelectInput = styled('div')`
+  display: grid;
+  grid-template-columns: 1fr min-content;
+  align-items: center;
+`;
+
+const HelpText = styled('p')`
+  color: ${p => p.theme.gray3};
+  max-width: 700px;
 `;

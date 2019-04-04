@@ -334,6 +334,17 @@ class Csp(SecurityReport):
 
     @classmethod
     def from_raw(cls, raw):
+        # Firefox doesn't send effective-directive, so parse it from
+        # violated-directive but prefer effective-directive when present
+        #
+        # refs: https://bugzil.la/1192684#c8
+        try:
+            report = raw['csp-report']
+            report['effective-directive'] = report.get('effective-directive',
+                                                       report['violated-directive'].split(None, 1)[0])
+        except (KeyError, IndexError):
+            pass
+
         # Validate the raw data against the input schema (raises on failure)
         schema = INPUT_SCHEMAS[cls.path]
         jsonschema.validate(raw, schema)

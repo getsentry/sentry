@@ -5,6 +5,7 @@ from django.utils.crypto import constant_time_compare
 from rest_framework.authentication import (BasicAuthentication, get_authorization_header)
 from rest_framework.exceptions import AuthenticationFailed
 
+from sentry.auth.system import SystemToken
 from sentry.models import ApiApplication, ApiKey, ApiToken, ProjectKey, Relay
 from sentry.relay.utils import get_header_relay_id, get_header_relay_signature
 from sentry.utils.sdk import configure_scope
@@ -33,7 +34,7 @@ class StandardAuthentication(QuietBasicAuthentication):
             msg = 'Invalid token header. Token string should not contain spaces.'
             raise AuthenticationFailed(msg)
 
-        return self.authenticate_credentials(auth[1])
+        return self.authenticate_credentials(request, auth[1])
 
 
 class RelayAuthentication(BasicAuthentication):
@@ -126,11 +127,12 @@ class ClientIdSecretAuthentication(QuietBasicAuthentication):
 class TokenAuthentication(StandardAuthentication):
     token_name = b'bearer'
 
-    def authenticate_credentials(self, token):
+    def authenticate_credentials(self, request, token_str):
+        token = SystemToken.from_request(request, token_str)
         try:
-            token = ApiToken.objects.filter(
-                token=token,
-            ).select_related('user', 'application').get()
+            token = token or ApiToken.objects.filter(token=token_str) \
+                .select_related('user', 'application') \
+                .get()
         except ApiToken.DoesNotExist:
             raise AuthenticationFailed('Invalid token')
 
@@ -153,7 +155,7 @@ class TokenAuthentication(StandardAuthentication):
 class DSNAuthentication(StandardAuthentication):
     token_name = b'dsn'
 
-    def authenticate_credentials(self, token):
+    def authenticate_credentials(self, request, token):
         try:
             key = ProjectKey.from_dsn(token)
         except ProjectKey.DoesNotExist:

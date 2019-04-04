@@ -64,7 +64,9 @@ class MailPluginTest(TestCase):
     @mock.patch('sentry.interfaces.stacktrace.Stacktrace.get_title')
     @mock.patch('sentry.interfaces.stacktrace.Stacktrace.to_email_html')
     @mock.patch('sentry.plugins.sentry_mail.models.MailPlugin._send_mail')
-    def test_notify_users_renders_interfaces_with_utf8(self, _send_mail, _to_email_html, _get_title):
+    def test_notify_users_renders_interfaces_with_utf8(
+        self, _send_mail, _to_email_html, _get_title,
+    ):
         group = self.create_group(
             first_seen=timezone.now(),
             last_seen=timezone.now(),
@@ -603,6 +605,12 @@ class MailPluginOwnersTest(TestCase):
         assert (sorted(set([self.user.pk, self.user2.pk])) == sorted(
             self.plugin.get_send_to(self.project, event.data)))
 
+        # Make sure that disabling mail alerts works as expected
+        UserOption.objects.set_value(
+            user=self.user2, key='mail:alert', value=0, project=self.project
+        )
+        assert set([self.user.pk]) == self.plugin.get_send_to(self.project, event.data)
+
     def test_get_send_to_with_user_owners(self):
         event = Event(
             group=self.group,
@@ -614,6 +622,12 @@ class MailPluginOwnersTest(TestCase):
         assert (sorted(set([self.user.pk, self.user2.pk])) == sorted(
             self.plugin.get_send_to(self.project, event.data)))
 
+        # Make sure that disabling mail alerts works as expected
+        UserOption.objects.set_value(
+            user=self.user2, key='mail:alert', value=0, project=self.project
+        )
+        assert set([self.user.pk]) == self.plugin.get_send_to(self.project, event.data)
+
     def test_get_send_to_with_user_owner(self):
         event = Event(
             group=self.group,
@@ -622,8 +636,7 @@ class MailPluginOwnersTest(TestCase):
             datetime=self.group.last_seen,
             data=self.make_event_data('foo.jx')
         )
-        assert (sorted(set([self.user2.pk])) == sorted(
-            self.plugin.get_send_to(self.project, event.data)))
+        assert set([self.user2.pk]) == self.plugin.get_send_to(self.project, event.data)
 
     def test_get_send_to_with_fallthrough(self):
         event = Event(
@@ -633,8 +646,7 @@ class MailPluginOwnersTest(TestCase):
             datetime=self.group.last_seen,
             data=self.make_event_data('foo.jx')
         )
-        assert (sorted(set([self.user2.pk])) == sorted(
-            self.plugin.get_send_to(self.project, event.data)))
+        assert set([self.user2.pk]) == self.plugin.get_send_to(self.project, event.data)
 
     def test_get_send_to_without_fallthrough(self):
         ProjectOwnership.objects.get(project_id=self.project.id).update(fallthrough=False)
@@ -645,7 +657,7 @@ class MailPluginOwnersTest(TestCase):
             datetime=self.group.last_seen,
             data=self.make_event_data('foo.cpp')
         )
-        assert [] == sorted(self.plugin.get_send_to(self.project, event.data))
+        assert [] == self.plugin.get_send_to(self.project, event.data)
 
     def test_notify_users_with_owners(self):
         event_all_users = Event(
@@ -674,3 +686,16 @@ class MailPluginOwnersTest(TestCase):
             data=self.make_event_data('foo.jx'),
         )
         self.assert_notify(event_single_user, [self.user2.email])
+
+        # Make sure that disabling mail alerts works as expected
+        UserOption.objects.set_value(
+            user=self.user2, key='mail:alert', value=0, project=self.project
+        )
+        event_all_users = Event(
+            group=self.group,
+            message=self.group.message,
+            project=self.project,
+            datetime=self.group.last_seen,
+            data=self.make_event_data('foo.cbl'),
+        )
+        self.assert_notify(event_all_users, [self.user.email])

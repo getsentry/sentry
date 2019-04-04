@@ -79,7 +79,12 @@ MAINTENANCE = False
 
 ADMINS = ()
 
+# Hosts that are considered in the same network (including VPNs).
+# This gives access to functionality like the debug toolbar.
 INTERNAL_IPS = ()
+
+# Hosts that are allowed to use system token authentication.
+INTERNAL_SYSTEM_IPS = ()
 
 MANAGERS = ADMINS
 
@@ -480,6 +485,7 @@ CELERY_QUEUES = [
     Queue('reports.deliver', routing_key='reports.deliver'),
     Queue('reports.prepare', routing_key='reports.prepare'),
     Queue('search', routing_key='search'),
+    Queue('sleep', routing_key='sleep'),
     Queue('stats', routing_key='stats'),
     Queue('unmerge', routing_key='unmerge'),
     Queue('update', routing_key='update'),
@@ -812,10 +818,10 @@ SENTRY_FEATURES = {
     'organizations:set-grouping-config': False,
     # Enable integration functionality to create and link groups to issues on
     # external services.
-    'organizations:integrations-issue-basic': False,
+    'organizations:integrations-issue-basic': True,
     # Enable interface functionality to synchronize groups between sentry and
     # issues on external services.
-    'organizations:integrations-issue-sync': False,
+    'organizations:integrations-issue-sync': True,
     # Special feature flag primarily used on the sentry.io SAAS product for
     # easily enabling features while in early development.
     'organizations:internal-catchall': False,
@@ -886,7 +892,7 @@ SENTRY_FEATURES = {
 SENTRY_DEFAULT_TIME_ZONE = 'UTC'
 
 # Enable the Sentry Debugger (Beta)
-SENTRY_DEBUGGER = DEBUG
+SENTRY_DEBUGGER = None
 
 SENTRY_IGNORE_EXCEPTIONS = ('OperationalError', )
 
@@ -1416,6 +1422,12 @@ SENTRY_DEVSERVICES = {
         'image': 'memcached:1.5-alpine',
         'ports': {'11211/tcp': 11211},
     },
+    'symbolicator': {
+        'image': 'us.gcr.io/sentryio/symbolicator:latest',
+        'pull': True,
+        'ports': {'3021/tcp': 3021},
+        'command': ['run'],
+    }
 }
 
 # Max file size for avatar photo uploads
@@ -1569,6 +1581,7 @@ SENTRY_USER_PERMISSIONS = (
 KAFKA_CLUSTERS = {
     'default': {
         'bootstrap.servers': 'localhost:9092',
+        'compression.type': 'lz4',
         'message.max.bytes': 50000000,  # 50MB, default is 1MB
     }
 }

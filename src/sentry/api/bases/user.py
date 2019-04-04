@@ -5,6 +5,7 @@ from sentry.api.exceptions import ResourceDoesNotExist
 from sentry.api.permissions import SentryPermission
 from sentry.models import Organization, OrganizationStatus, User
 from sentry.auth.superuser import is_active_superuser
+from sentry.auth.system import is_system_auth
 
 
 class UserPermission(SentryPermission):
@@ -12,6 +13,8 @@ class UserPermission(SentryPermission):
         if user is None:
             user = request.user
         if request.user == user:
+            return True
+        if is_system_auth(request.auth):
             return True
         if request.auth:
             return False

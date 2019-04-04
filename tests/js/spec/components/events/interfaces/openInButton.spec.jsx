@@ -21,16 +21,18 @@ describe('OpenInButton', function() {
     it('renders button', async function() {
       Client.addMockResponse({
         method: 'GET',
-        url: `/organizations/${org.slug}/sentry-app-components/?filter=stacktrace-link&projectId=${group
-          .project.id}`,
+        url: `/organizations/${
+          org.slug
+        }/sentry-app-components/?filter=stacktrace-link&projectId=${group.project.id}`,
         body: [
           {
             uuid: 'ed517da4-a324-44c0-aeea-1894cd9923fb',
             type: 'stacktrace-link',
             schema: {
               uri: '/redirection',
-              url: `http://localhost:5000/redirection?installationId=${install.uuid}&projectSlug=${group
-                .project.slug}`,
+              url: `http://localhost:5000/redirection?installationId=${
+                install.uuid
+              }&projectSlug=${group.project.slug}`,
             },
             sentryApp: {
               uuid: 'b468fed3-afba-4917-80d6-bdac99c1ec05',
@@ -53,8 +55,9 @@ describe('OpenInButton', function() {
       await tick();
       wrapper.update();
       expect(wrapper.state().components[0].schema.url).toEqual(
-        `http://localhost:5000/redirection?installationId=${install.uuid}&projectSlug=${group
-          .project.slug}`
+        `http://localhost:5000/redirection?installationId=${install.uuid}&projectSlug=${
+          group.project.slug
+        }`
       );
       const baseUrl = 'http://localhost:5000/redirection';
       const queryParams = {
@@ -73,8 +76,9 @@ describe('OpenInButton', function() {
     it('renders button', async function() {
       Client.addMockResponse({
         method: 'GET',
-        url: `/organizations/${org.slug}/sentry-app-components/?filter=stacktrace-link&projectId=${group
-          .project.id}`,
+        url: `/organizations/${
+          org.slug
+        }/sentry-app-components/?filter=stacktrace-link&projectId=${group.project.id}`,
         body: [],
       });
       const wrapper = mount(
@@ -98,8 +102,9 @@ describe('OpenInButton', function() {
     it('does not make api request', async function() {
       const response = Client.addMockResponse({
         method: 'GET',
-        url: `/organizations/${org.slug}/sentry-app-components/?filter=stacktrace-link&projectId=${group
-          .project.id}`,
+        url: `/organizations/${
+          org.slug
+        }/sentry-app-components/?filter=stacktrace-link&projectId=${group.project.id}`,
         body: [],
       });
       const wrapper = mount(
@@ -118,8 +123,9 @@ describe('OpenInButton', function() {
     it('does not make api request', async function() {
       const response = Client.addMockResponse({
         method: 'GET',
-        url: `/organizations/${org.slug}/sentry-app-components/?filter=stacktrace-link&projectId=${group
-          .project.id}`,
+        url: `/organizations/${
+          org.slug
+        }/sentry-app-components/?filter=stacktrace-link&projectId=${group.project.id}`,
         body: [],
       });
       const wrapper = mount(

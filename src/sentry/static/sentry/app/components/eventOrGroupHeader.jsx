@@ -86,12 +86,12 @@ class EventOrGroupHeader extends React.Component {
 
     if (includeLink) {
       props.to = {
-        pathname: `${basePath}${isEvent ? groupID : id}/${isEvent
-          ? `events/${data.id}/`
-          : ''}`,
-        search: `${this.props.query
-          ? `?query=${window.encodeURIComponent(this.props.query)}`
-          : ''}`,
+        pathname: `${basePath}${isEvent ? groupID : id}/${
+          isEvent ? `events/${data.id}/` : ''
+        }`,
+        search: `${
+          this.props.query ? `?query=${window.encodeURIComponent(this.props.query)}` : ''
+        }`,
       };
       if (projectId) {
         Wrapper = ProjectLink;
@@ -107,12 +107,11 @@ class EventOrGroupHeader extends React.Component {
         {...props}
         style={data.status === 'resolved' ? {textDecoration: 'line-through'} : null}
       >
-        {!hideLevel &&
-          level && (
-            <Tooltip title={`Error level: ${capitalize(level)}`}>
-              <GroupLevel level={data.level} />
-            </Tooltip>
-          )}
+        {!hideLevel && level && (
+          <Tooltip title={`Error level: ${capitalize(level)}`}>
+            <GroupLevel level={data.level} />
+          </Tooltip>
+        )}
         {!hideIcons && data.status === 'ignored' && <Muted className="icon-soundoff" />}
         {!hideIcons && data.isBookmarked && <Starred className="icon-star-solid" />}
         <EventOrGroupTitle

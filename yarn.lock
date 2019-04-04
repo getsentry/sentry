@@ -10647,10 +10647,10 @@ preserve@^0.2.0:
   resolved "https://registry.yarnpkg.com/preserve/-/preserve-0.2.0.tgz#815ed1f6ebc65926f865b310c0713bcb3315ce4b"
   integrity sha1-gV7R9uvGWSb4ZbMQwHE7yzMVzks=
 
-prettier@1.7.4:
-  version "1.7.4"
-  resolved "https://registry.yarnpkg.com/prettier/-/prettier-1.7.4.tgz#5e8624ae9363c80f95ec644584ecdf55d74f93fa"
-  integrity sha1-XoYkrpNjyA+V7GRFhOzfVddPk/o=
+prettier@1.16.4:
+  version "1.16.4"
+  resolved "https://registry.yarnpkg.com/prettier/-/prettier-1.16.4.tgz#73e37e73e018ad2db9c76742e2647e21790c9717"
+  integrity sha512-ZzWuos7TI5CKUeQAtFd6Zhm2s6EpAD/ZLApIhsF9pRvRtM1RFo61dM/4MSRUA0SuLugA/zgrZD8m0BaY46Og7g==
 
 prettier@^1.14.3:
   version "1.15.3"
@@ -12286,10 +12286,10 @@ send@0.16.2:
     range-parser "~1.2.0"
     statuses "~1.4.0"
 
-sentry-dreamy-components@^1.0.0:
-  version "1.0.0"
-  resolved "https://registry.yarnpkg.com/sentry-dreamy-components/-/sentry-dreamy-components-1.0.0.tgz#e15a3f896e086961b43b611e3a1bb95481b98d01"
-  integrity sha512-8Ls2feP9yAjm/CCgByBNuSToky/rI0xWaqHpyCUXJ6EMELqyJWOlmOOVM50ODp1iKxEioGbalJHqHeUQb7w6Cw==
+sentry-dreamy-components@^1.0.1:
+  version "1.0.1"
+  resolved "https://registry.yarnpkg.com/sentry-dreamy-components/-/sentry-dreamy-components-1.0.1.tgz#ffa58fb5590a7f28f8979d470d6381f6024b4424"
+  integrity sha512-O4EWxxKVuAA4JAtcydt9cwuZqeEUsJnmByJk+80/ITzVoOodIhVan6aGAggvleNrzRLD+stp94KAtatcrD3SVQ==
 
 serialize-javascript@^1.4.0:
   version "1.5.0"

@@ -8,8 +8,7 @@ const focusInput = el => el.find('input[name="query"]').simulate('focus');
 const selectFirstAutocompleteItem = el => {
   focusInput(el);
 
-  el
-    .find('.search-autocomplete-item')
+  el.find('.search-autocomplete-item')
     .first()
     .simulate('click');
   const input = el.find('input');
@@ -19,8 +18,7 @@ const selectFirstAutocompleteItem = el => {
   return el;
 };
 const setQuery = (el, query) => {
-  el
-    .find('input')
+  el.find('input')
     .simulate('change', {target: {value: query}})
     .getDOMNode()
     .setSelectionRange(query.length, query.length);

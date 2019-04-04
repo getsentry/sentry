@@ -55,16 +55,20 @@ class SearchBar extends React.PureComponent {
    * Returns array of tag values that substring match `query`; invokes `callback`
    * with data when ready
    */
-  getEventFieldValues = memoize((tag, query) => {
-    const {api, organization} = this.props;
+  getEventFieldValues = memoize(
+    (tag, query) => {
+      const {api, organization} = this.props;
 
-    return fetchTagValues(api, organization.slug, tag.key, query).then(
-      results => flatten(results.filter(({name}) => defined(name)).map(({name}) => name)),
-      () => {
-        throw new Error('Unable to fetch event field values');
-      }
-    );
-  }, ({key}, query) => `${key}-${query}`);
+      return fetchTagValues(api, organization.slug, tag.key, query).then(
+        results =>
+          flatten(results.filter(({name}) => defined(name)).map(({name}) => name)),
+        () => {
+          throw new Error('Unable to fetch event field values');
+        }
+      );
+    },
+    ({key}, query) => `${key}-${query}`
+  );
 
   getAllTags = (orgTags = []) => orgTags.sort().reduce(tagToObjectReducer, {});
 

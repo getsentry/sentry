@@ -5,16 +5,11 @@ import styled from 'react-emotion';
 
 import {addSuccessMessage, addErrorMessage} from 'app/actionCreators/indicator';
 import AsyncComponent from 'app/components/asyncComponent';
-import IssueSyncListElement, {
-  IntegrationLink,
-  IntegrationIcon,
-} from 'app/components/issueSyncListElement';
-import ExternalIssueForm, {
-  SentryAppExternalIssueForm,
-} from 'app/components/group/externalIssueForm';
+import IssueSyncListElement from 'app/components/issueSyncListElement';
+import ExternalIssueForm from 'app/components/group/externalIssueForm';
 import IntegrationItem from 'app/views/organizationIntegrations/integrationItem';
 import NavTabs from 'app/components/navTabs';
-import {t, tct} from 'app/locale';
+import {t} from 'app/locale';
 import overflowEllipsis from 'app/styles/overflowEllipsis';
 import space from 'app/styles/space';
 
@@ -48,7 +43,9 @@ class ExternalIssueActions extends AsyncComponent {
 
   deleteIssue(issueId) {
     const {group, integration} = this.props;
-    const endpoint = `/groups/${group.id}/integrations/${integration.id}/?externalIssue=${issueId}`;
+    const endpoint = `/groups/${group.id}/integrations/${
+      integration.id
+    }/?externalIssue=${issueId}`;
     this.api.request(endpoint, {
       method: 'DELETE',
       success: (data, _, jqXHR) => {
@@ -146,115 +143,6 @@ class ExternalIssueActions extends AsyncComponent {
             </Modal.Body>
           </Modal>
         )}
-      </React.Fragment>
-    );
-  }
-}
-
-export class SentryAppExternalIssueActions extends React.Component {
-  static propTypes = {
-    group: PropTypes.object.isRequired,
-    sentryAppComponent: PropTypes.object.isRequired,
-    sentryAppInstallation: PropTypes.object,
-    externalIssue: PropTypes.object,
-  };
-
-  constructor(props) {
-    super(props);
-
-    this.state = {
-      action: 'create',
-      showModal: false,
-    };
-  }
-
-  showModal = () => {
-    // Only show the modal when we don't have a linked issue
-    !this.props.externalIssue && this.setState({showModal: true});
-  };
-
-  hideModal = () => {
-    this.setState({showModal: false});
-  };
-
-  showLink = () => {
-    this.setState({action: 'link'});
-  };
-
-  showCreate = () => {
-    this.setState({action: 'create'});
-  };
-
-  iconExists() {
-    try {
-      require(`../../icons/${this.props.sentryAppComponent.sentryApp.slug}.svg`);
-      return true;
-    } catch (err) {
-      return false;
-    }
-  }
-
-  get link() {
-    const {sentryAppComponent, externalIssue} = this.props;
-
-    let url = '#';
-    let icon = 'icon-generic-box';
-    let displayName = tct('Link [name] Issue', {name: sentryAppComponent.sentryApp.name});
-
-    if (externalIssue) {
-      url = externalIssue.webUrl;
-      displayName = externalIssue.displayName;
-    }
-
-    if (this.iconExists()) {
-      icon = `icon-${sentryAppComponent.sentryApp.slug}`;
-    }
-
-    return (
-      <React.Fragment>
-        <IntegrationIcon src={icon} />
-        <IntegrationLink onClick={this.showModal} href={url}>
-          {displayName}
-        </IntegrationLink>
-      </React.Fragment>
-    );
-  }
-
-  get modal() {
-    const {sentryAppComponent, sentryAppInstallation, group} = this.props;
-    const {action, showModal} = this.state;
-
-    return (
-      <Modal show={showModal} onHide={this.hideModal} animation={false}>
-        <Modal.Header closeButton>
-          <Modal.Title>{`${sentryAppComponent.sentryApp.name} Issue`}</Modal.Title>
-        </Modal.Header>
-        <NavTabs underlined={true}>
-          <li className={action === 'create' ? 'active create' : 'create'}>
-            <a onClick={this.showCreate}>{t('Create')}</a>
-          </li>
-          <li className={action === 'link' ? 'active link' : 'link'}>
-            <a onClick={this.showLink}>{t('Link')}</a>
-          </li>
-        </NavTabs>
-        <Modal.Body>
-          <SentryAppExternalIssueForm
-            group={group}
-            sentryAppInstallation={sentryAppInstallation}
-            config={sentryAppComponent.schema}
-            action={action}
-            onSubmitSuccess={this.hideModal}
-          />
-        </Modal.Body>
-      </Modal>
-    );
-  }
-
-  render() {
-    return (
-      <React.Fragment>
-        {this.link}
-        {this.modal}
       </React.Fragment>
     );
   }

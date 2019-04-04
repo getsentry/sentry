@@ -5,8 +5,9 @@ from jsonschema.exceptions import ValidationError as SchemaValidationError
 from rest_framework import serializers
 from rest_framework.serializers import Serializer, ValidationError
 
+from django.template.defaultfilters import slugify
 from sentry.api.validators.sentry_apps.schema import validate as validate_schema
-from sentry.models import ApiScopes
+from sentry.models import ApiScopes, SentryApp
 from sentry.models.sentryapp import VALID_EVENT_RESOURCES, REQUIRED_EVENT_PERMISSIONS
 
 
@@ -42,6 +43,7 @@ class SchemaField(serializers.WritableField):
 
 class SentryAppSerializer(Serializer):
     name = serializers.CharField()
+    author = serializers.CharField()
     scopes = ApiScopesField()
     events = EventListField(required=False)
     schema = SchemaField(required=False)
@@ -49,6 +51,25 @@ class SentryAppSerializer(Serializer):
     redirectUrl = serializers.URLField(required=False)
     isAlertable = serializers.BooleanField(required=False)
     overview = serializers.CharField(required=False)
+
+    def __init__(self, instance=None, *args, **kwargs):
+        self.instance = instance
+        super(SentryAppSerializer, self).__init__(*args, **kwargs)
+
+    def validate_name(self, attrs, source):
+        if not attrs.get('name'):
+            return attrs
+
+        queryset = SentryApp.with_deleted.filter(slug=slugify(attrs['name']))
+
+        if self.instance:
+            queryset = queryset.exclude(id=self.instance.id)
+
+        if queryset.exists():
+            raise ValidationError(
+                u'Name {} is already taken, please use another.'.format(attrs['name'])
+            )
+        return attrs
 
     def validate_events(self, attrs, source):
         if not attrs.get('scopes'):

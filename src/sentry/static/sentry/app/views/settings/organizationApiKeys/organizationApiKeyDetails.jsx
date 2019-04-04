@@ -77,8 +77,9 @@ class OrganizationApiKeyDetails extends AsyncView {
 
         <ApiForm
           apiMethod="PUT"
-          apiEndpoint={`/organizations/${this.props.params.orgId}/api-keys/${this.props
-            .params.apiKey}/`}
+          apiEndpoint={`/organizations/${this.props.params.orgId}/api-keys/${
+            this.props.params.apiKey
+          }/`}
           initialData={this.state.apiKey}
           onSubmitSuccess={this.handleSubmitSuccess}
           onSubmitError={this.handleSubmitError}
@@ -89,7 +90,8 @@ class OrganizationApiKeyDetails extends AsyncView {
                 routes: this.props.routes,
                 params: this.props.params,
               })
-            )}
+            )
+          }
         >
           <SplitLayout splitWidth={15}>
             <TextField label={t('Label')} name="label" />

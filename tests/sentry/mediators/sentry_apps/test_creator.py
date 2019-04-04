@@ -1,7 +1,7 @@
 from __future__ import absolute_import
 
 from sentry.mediators.sentry_apps import Creator
-from sentry.models import ApiApplication, SentryApp, SentryAppComponent, User
+from sentry.models import AuditLogEntry, AuditLogEntryEvent, ApiApplication, SentryApp, SentryAppComponent, User
 from sentry.testutils import TestCase
 
 
@@ -11,6 +11,7 @@ class TestCreator(TestCase):
         self.org = self.create_organization(owner=self.user)
         self.creator = Creator(
             name='nulldb',
+            author='Sentry',
             organization=self.org,
             scopes=('project:read',),
             webhook_url='http://example.com',
@@ -74,6 +75,19 @@ class TestCreator(TestCase):
             sentry_app_id=app.id,
             type='alert-rule-action',
         ).exists()
+
+    def test_creates_audit_log_entry(self):
+        request = self.make_request(user=self.user, method='GET')
+        Creator.run(
+            name='nulldb',
+            author='Sentry',
+            organization=self.org,
+            scopes=('project:read',),
+            webhook_url='http://example.com',
+            schema={'elements': [self.create_issue_link_schema()]},
+            request=request,
+        )
+        assert AuditLogEntry.objects.filter(event=AuditLogEntryEvent.SENTRY_APP_ADD).exists()
 
     def test_blank_schema(self):
         self.creator.schema = ''

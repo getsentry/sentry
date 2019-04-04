@@ -33,8 +33,8 @@ class Qrcode extends React.Component {
         <tbody>
           {code.map((row, i) => (
             <tr key={i}>
-              {row.map(
-                (cell, j) => (cell ? <BlackCell key={j} /> : <WhiteCell key={j} />)
+              {row.map((cell, j) =>
+                cell ? <BlackCell key={j} /> : <WhiteCell key={j} />
               )}
             </tr>
           ))}

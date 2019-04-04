@@ -30,6 +30,7 @@ class Version extends React.Component {
       showShortVersion,
       version,
       anchor,
+      className,
     } = this.props;
     const versionTitle = showShortVersion ? getShortVersion(version) : version;
 
@@ -42,6 +43,7 @@ class Version extends React.Component {
           //       which can interfere with URL construction
           <ProjectLink
             to={`/${orgId}/${projectId}/releases/${encodeURIComponent(version)}/`}
+            className={className}
           >
             <span title={version}>{versionTitle}</span>
           </ProjectLink>
@@ -50,7 +52,10 @@ class Version extends React.Component {
 
       if (orgId) {
         return (
-          <Link to={`/organizations/${orgId}/releases/${encodeURIComponent(version)}`}>
+          <Link
+            to={`/organizations/${orgId}/releases/${encodeURIComponent(version)}`}
+            className={className}
+          >
             <span title={version}>{versionTitle}</span>
           </Link>
         );

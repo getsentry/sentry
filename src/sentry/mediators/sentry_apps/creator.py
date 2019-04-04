@@ -4,12 +4,14 @@ import six
 
 from collections import Iterable
 
+from sentry.utils.audit import create_audit_entry
 from sentry.mediators import Mediator, Param
-from sentry.models import (ApiApplication, SentryApp, SentryAppComponent, User,)
+from sentry.models import (AuditLogEntryEvent, ApiApplication, SentryApp, SentryAppComponent, User,)
 
 
 class Creator(Mediator):
     name = Param(six.string_types)
+    author = Param(six.string_types)
     organization = Param('sentry.models.Organization')
     scopes = Param(Iterable)
     events = Param(Iterable, default=lambda self: [])
@@ -18,6 +20,7 @@ class Creator(Mediator):
     is_alertable = Param(bool, default=False)
     schema = Param(dict, default=lambda self: {})
     overview = Param(six.string_types, required=False)
+    request = Param('rest_framework.request.Request', required=False)
 
     def call(self):
         self.proxy = self._create_proxy_user()
@@ -42,6 +45,7 @@ class Creator(Mediator):
 
         return SentryApp.objects.create(
             name=self.name,
+            author=self.author,
             application_id=self.api_app.id,
             owner_id=self.organization.id,
             proxy_user_id=self.proxy.id,
@@ -62,4 +66,16 @@ class Creator(Mediator):
                 type=element['type'],
                 sentry_app_id=self.app.id,
                 schema=element,
+            )
+
+    def audit(self):
+        if self.request:
+            create_audit_entry(
+                request=self.request,
+                organization=self.organization,
+                target_object=self.organization.id,
+                event=AuditLogEntryEvent.SENTRY_APP_ADD,
+                data={
+                    'sentry_app': self.app.name,
+                },
             )

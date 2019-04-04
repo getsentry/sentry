@@ -4,17 +4,57 @@ import os
 import pytest
 import zipfile
 from mock import patch
+
 from six import BytesIO
 
 from django.conf import settings
 from django.core.urlresolvers import reverse
 from django.core.files.uploadedfile import SimpleUploadedFile
 
-from sentry.testutils import TestCase
+from sentry.testutils import TestCase, TransactionTestCase
 from sentry.lang.native.symbolizer import Symbolizer
 from sentry.models import Event, EventAttachment, File, ProjectDebugFile
 
 from symbolic import parse_addr, SymbolicError, SymCache
+
+
+REAL_RESOLVING_EVENT_DATA = {
+    "platform": "cocoa",
+    "debug_meta": {
+        "images": [{
+            "type": "apple",
+            "arch": "x86_64",
+            "uuid": "502fc0a5-1ec1-3e47-9998-684fa139dca7",
+            "image_vmaddr": "0x0000000100000000",
+            "image_size": 4096,
+            "image_addr": "0x0000000100000000",
+            "name": "Foo.app/Contents/Foo"
+        }],
+        "sdk_info": {
+            "dsym_type": "macho",
+            "sdk_name": "macOS",
+            "version_major": 10,
+            "version_minor": 12,
+            "version_patchlevel": 4,
+        }
+    },
+    "exception": {
+        "values": [
+            {
+                'stacktrace': {
+                    "frames": [
+                        {
+                            "function": "unknown",
+                            "instruction_addr": "0x0000000100000fa0"
+                        },
+                    ]
+                },
+                "type": "Fail",
+                "value": "fail"
+            }
+        ]
+    },
+}
 
 
 class BasicResolvingIntegrationTest(TestCase):
@@ -1050,7 +1090,7 @@ class InAppHonoringResolvingIntegrationTest(TestCase):
         assert frames[0].in_app
 
 
-class RealResolvingIntegrationTest(TestCase):
+class ResolvingIntegrationTestBase(object):
     def test_real_resolving(self):
         url = reverse(
             'sentry-api-0-dsym-files',
@@ -1078,151 +1118,18 @@ class RealResolvingIntegrationTest(TestCase):
         assert response.status_code == 201, response.content
         assert len(response.data) == 1
 
-        event_data = {
-            "project": self.project.id,
-            "platform": "cocoa",
-            "debug_meta": {
-                "images": [{
-                    "type": "apple",
-                    "arch": "x86_64",
-                    "uuid": "502fc0a5-1ec1-3e47-9998-684fa139dca7",
-                    "image_vmaddr": "0x0000000100000000",
-                    "image_size": 4096,
-                    "image_addr": "0x0000000100000000",
-                    "name": "Foo.app/Contents/Foo"
-                }],
-                "sdk_info": {
-                    "dsym_type": "macho",
-                    "sdk_name": "macOS",
-                    "version_major": 10,
-                    "version_minor": 12,
-                    "version_patchlevel": 4,
-                }
-            },
-            "exception": {
-                "values": [
-                    {
-                        'stacktrace': {
-                            "frames": [
-                                {
-                                    "function": "unknown",
-                                    "instruction_addr": "0x0000000100000fa0"
-                                },
-                            ]
-                        },
-                        "type": "Fail",
-                        "value": "fail"
-                    }
-                ]
-            },
-        }
-
-        resp = self._postWithHeader(event_data)
+        resp = self._postWithHeader(dict(project=self.project.id, **REAL_RESOLVING_EVENT_DATA))
         assert resp.status_code == 200
 
         event = Event.objects.get()
-
-        bt = event.interfaces['exception'].values[0].stacktrace
-        frames = bt.frames
-
-        assert frames[0].function == 'main'
-        assert frames[0].filename == 'hello.c'
-        assert frames[0].abs_path == '/tmp/hello.c'
-        assert frames[0].lineno == 1
-
-    def test_broken_conversion(self):
-        url = reverse(
-            'sentry-api-0-dsym-files',
-            kwargs={
-                'organization_slug': self.project.organization.slug,
-                'project_slug': self.project.slug,
-            }
-        )
-
-        self.login_as(user=self.user)
-
-        out = BytesIO()
-        f = zipfile.ZipFile(out, 'w')
-        f.write(os.path.join(os.path.dirname(__file__), 'fixtures', 'hello.dsym'),
-                'dSYM/hello')
-        f.close()
-
-        original_make_symcache = SymCache.from_object
-
-        @classmethod
-        def broken_make_symcache(cls, obj):
-            raise SymbolicError('shit on fire')
-        SymCache.from_object = broken_make_symcache
-
-        try:
-            response = self.client.post(
-                url, {
-                    'file':
-                    SimpleUploadedFile(
-                        'symbols.zip',
-                        out.getvalue(),
-                        content_type='application/zip'),
-                },
-                format='multipart'
-            )
-            assert response.status_code == 201, response.content
-            assert len(response.data) == 1
-
-            event_data = {
-                "project": self.project.id,
-                "platform": "cocoa",
-                "debug_meta": {
-                    "images": [{
-                        "type": "apple",
-                        "arch": "x86_64",
-                        "uuid": "502fc0a5-1ec1-3e47-9998-684fa139dca7",
-                        "image_vmaddr": "0x0000000100000000",
-                        "image_size": 4096,
-                        "image_addr": "0x0000000100000000",
-                        "name": "Foo.app/Contents/Foo"
-                    }],
-                    "sdk_info": {
-                        "dsym_type": "macho",
-                        "sdk_name": "macOS",
-                        "version_major": 10,
-                        "version_minor": 12,
-                        "version_patchlevel": 4,
-                    }
-                },
-                "exception": {
-                    "values": [
-                        {
-                            'stacktrace': {
-                                "frames": [
-                                    {
-                                        "function": "unknown",
-                                        "instruction_addr": "0x0000000100000fa0"
-                                    },
-                                ]
-                            },
-                            "type": "Fail",
-                            "value": "fail"
-                        }
-                    ]
-                },
-            }
-
-            for _ in range(3):
-                resp = self._postWithHeader(event_data)
-                assert resp.status_code == 200
-                event = Event.objects.get(project_id=self.project.id)
-                errors = event.data['errors']
-                assert len(errors) == 1
-                assert errors[0] == {
-                    'image_arch': u'x86_64',
-                    'image_path': u'Foo.app/Contents/Foo',
-                    'image_uuid': u'502fc0a5-1ec1-3e47-9998-684fa139dca7',
-                    'message': u'shit on fire',
-                    'type': 'native_bad_dsym'
-                }
-                event.delete()
-        finally:
-            SymCache.from_object = original_make_symcache
+        assert event.data['culprit'] == 'main'
+        snapshot_data = dict(event.data)
+        del snapshot_data['event_id']
+        del snapshot_data['timestamp']
+        del snapshot_data['received']
+        del snapshot_data['key_id']
+        del snapshot_data['project']
+        self.insta_snapshot(snapshot_data)
 
     def test_debug_id_resolving(self):
         file = File.objects.create(
@@ -1290,14 +1197,142 @@ class RealResolvingIntegrationTest(TestCase):
         assert resp.status_code == 200
 
         event = Event.objects.get()
+        assert event.data['culprit'] == 'main'
+        snapshot_data = dict(event.data)
+        del snapshot_data['event_id']
+        del snapshot_data['timestamp']
+        del snapshot_data['received']
+        del snapshot_data['key_id']
+        del snapshot_data['project']
+        self.insta_snapshot(snapshot_data)
 
-        bt = event.interfaces['exception'].values[0].stacktrace
-        frames = bt.frames
+    def test_missing_dsym(self):
+        self.login_as(user=self.user)
 
-        assert frames[0].function == 'main'
-        assert frames[0].filename == 'main.cpp'
-        assert frames[0].abs_path == 'c:\\projects\\breakpad-tools\\windows\\crash\\main.cpp'
-        assert frames[0].lineno == 35
+        resp = self._postWithHeader(dict(project=self.project.id, **REAL_RESOLVING_EVENT_DATA))
+        assert resp.status_code == 200
+
+        event = Event.objects.get()
+        assert event.data['culprit'] == 'unknown'
+        snapshot_data = dict(event.data)
+        del snapshot_data['event_id']
+        del snapshot_data['timestamp']
+        del snapshot_data['received']
+        del snapshot_data['key_id']
+        del snapshot_data['project']
+        self.insta_snapshot(snapshot_data)
+
+
+class SymbolicResolvingIntegrationTest(ResolvingIntegrationTestBase, TestCase):
+    @pytest.fixture(autouse=True)
+    def inject_pytest_monkeypatch(self, monkeypatch):
+        self.pytest_monkeypatch = monkeypatch
+
+    def test_broken_conversion(self):
+        url = reverse(
+            'sentry-api-0-dsym-files',
+            kwargs={
+                'organization_slug': self.project.organization.slug,
+                'project_slug': self.project.slug,
+            }
+        )
+
+        self.login_as(user=self.user)
+
+        out = BytesIO()
+        f = zipfile.ZipFile(out, 'w')
+        f.write(os.path.join(os.path.dirname(__file__), 'fixtures', 'hello.dsym'),
+                'dSYM/hello')
+        f.close()
+
+        @classmethod
+        def broken_make_symcache(cls, obj):
+            raise SymbolicError('shit on fire')
+
+        self.pytest_monkeypatch.setattr(SymCache, 'from_object', broken_make_symcache)
+
+        response = self.client.post(
+            url, {
+                'file':
+                SimpleUploadedFile(
+                    'symbols.zip',
+                    out.getvalue(),
+                    content_type='application/zip'),
+            },
+            format='multipart'
+        )
+        assert response.status_code == 201, response.content
+        assert len(response.data) == 1
+
+        event_data = {
+            "project": self.project.id,
+            "platform": "cocoa",
+            "debug_meta": {
+                "images": [{
+                    "type": "apple",
+                    "arch": "x86_64",
+                    "uuid": "502fc0a5-1ec1-3e47-9998-684fa139dca7",
+                    "image_vmaddr": "0x0000000100000000",
+                    "image_size": 4096,
+                    "image_addr": "0x0000000100000000",
+                    "name": "Foo.app/Contents/Foo"
+                }],
+                "sdk_info": {
+                    "dsym_type": "macho",
+                    "sdk_name": "macOS",
+                    "version_major": 10,
+                    "version_minor": 12,
+                    "version_patchlevel": 4,
+                }
+            },
+            "exception": {
+                "values": [
+                    {
+                        'stacktrace': {
+                            "frames": [
+                                {
+                                    "function": "unknown",
+                                    "instruction_addr": "0x0000000100000fa0"
+                                },
+                            ]
+                        },
+                        "type": "Fail",
+                        "value": "fail"
+                    }
+                ]
+            },
+        }
+
+        for _ in range(3):
+            resp = self._postWithHeader(event_data)
+            assert resp.status_code == 200
+            event = Event.objects.get(project_id=self.project.id)
+            errors = event.data['errors']
+            assert len(errors) == 1
+            assert errors[0] == {
+                'image_arch': u'x86_64',
+                'image_path': u'Foo.app/Contents/Foo',
+                'image_uuid': u'502fc0a5-1ec1-3e47-9998-684fa139dca7',
+                'message': u'shit on fire',
+                'type': 'native_bad_dsym'
+            }
+            event.delete()
+
+
+class SymbolicatorResolvingIntegrationTest(ResolvingIntegrationTestBase, TransactionTestCase):
+    @pytest.fixture(autouse=True)
+    def initialize(self, live_server):
+        with patch('sentry.lang.native.symbolizer.Symbolizer._symbolize_app_frame') \
+            as symbolize_app_frame, \
+                patch('sentry.lang.native.plugin._is_symbolicator_enabled', return_value=True), \
+                patch('sentry.auth.system.is_internal_ip', return_value=True), \
+                self.options({"system.url-prefix": live_server.url}):
+
+            # Run test case:
+            yield
+
+            # Teardown:
+            assert not symbolize_app_frame.called
 
 
 class ExceptionMechanismIntegrationTest(TestCase):

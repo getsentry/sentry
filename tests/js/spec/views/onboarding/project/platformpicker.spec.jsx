@@ -1,4 +1,3 @@
-import PropTypes from 'prop-types';
 import React from 'react';
 import {shallow, mount} from 'enzyme';
 
@@ -27,10 +26,10 @@ describe('PlatformPicker', function() {
       };
 
       const wrapper = shallow(<PlatformPicker {...props} />);
-      wrapper.setState({tab: 'mobile'});
+      wrapper.setState({category: 'mobile'});
       const filteredPlatforms = wrapper
         .find('PlatformCard')
-        .map(node => node.prop('platform'));
+        .map(node => node.prop('platform').id);
 
       expect(filteredPlatforms).not.toContain('java');
       expect(filteredPlatforms).toContain('swift');
@@ -45,11 +44,11 @@ describe('PlatformPicker', function() {
 
       const wrapper = shallow(<PlatformPicker {...props} />);
 
-      wrapper.setState({tab: 'all', filter: 'py'});
+      wrapper.setState({category: 'all', filter: 'py'});
 
       const filteredPlatforms = wrapper
         .find('PlatformCard')
-        .map(node => node.prop('platform'));
+        .map(node => node.prop('platform').id);
       expect(filteredPlatforms).not.toContain('java');
       expect(filteredPlatforms).toContain('python-flask');
 
@@ -64,7 +63,7 @@ describe('PlatformPicker', function() {
       const wrapper = shallow(<PlatformPicker {...props} />);
       wrapper.setState({filter: 'aaaaaa'});
 
-      expect(wrapper.text()).toContain('Not finding your platform?');
+      expect(wrapper.find('EmptyMessage')).toHaveLength(1);
 
       expect(wrapper).toMatchSnapshot();
     });
@@ -74,28 +73,31 @@ describe('PlatformPicker', function() {
         ...baseProps,
       };
 
-      const wrapper = mount(<PlatformPicker {...props} />, {
-        context: {
-          router: TestStubs.router(),
-        },
-        childContextTypes: {
-          router: PropTypes.object,
-        },
-      });
+      const wrapper = mount(<PlatformPicker {...props} />, TestStubs.routerContext());
 
       const testListLink = wrapper
         .find('ListLink')
         .last()
         .find('a');
-      expect(wrapper.state().tab).toBe('popular');
-      expect(wrapper.state().tab).not.toBe('all');
+      expect(wrapper.state().category).toBe('popular');
 
       testListLink.simulate('click');
-
-      expect(wrapper.state().tab).not.toBe('popular');
-      expect(wrapper.state().tab).toBe('all');
+      expect(wrapper.state().category).toBe('all');
 
       expect(wrapper).toMatchSnapshot();
+    });
+
+    it('should clear the platform when clear is clicked', function() {
+      const props = {
+        ...baseProps,
+        platform: 'java',
+        setPlatform: jest.fn(),
+      };
+
+      const wrapper = mount(<PlatformPicker {...props} />, TestStubs.routerContext());
+
+      wrapper.find('ClearButton').simulate('click');
+      expect(props.setPlatform).toHaveBeenCalledWith('');
     });
   });
 });

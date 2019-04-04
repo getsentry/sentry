@@ -51,7 +51,7 @@ class PasswordStrength extends React.Component {
     }
 
     const {score} = result;
-    const percent = Math.round((score + 1) / MAX_SCORE * 100);
+    const percent = Math.round(((score + 1) / MAX_SCORE) * 100);
 
     const styles = css`
       background: ${colors[score]};

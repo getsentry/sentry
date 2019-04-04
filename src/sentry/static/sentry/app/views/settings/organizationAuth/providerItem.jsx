@@ -54,7 +54,8 @@ export default class ProviderItem extends React.PureComponent {
       <Feature
         features={[provider.requiredFeature].filter(f => f)}
         renderDisabled={({children, ...props}) =>
-          children({...props, renderDisabled: this.renderDisabledLock})}
+          children({...props, renderDisabled: this.renderDisabledLock})
+        }
       >
         {({hasFeature, features, organization, renderDisabled, renderInstallButton}) => (
           <PanelItem align="center">

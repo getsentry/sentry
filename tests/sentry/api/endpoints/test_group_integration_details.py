@@ -151,7 +151,8 @@ class GroupIntegrationDetailsTest(APITestCase):
 
         path = u'/api/0/issues/{}/integrations/{}/?action=create'.format(group.id, integration.id)
 
-        response = self.client.get(path)
+        with self.feature({'organizations:integrations-issue-basic': False}):
+            response = self.client.get(path)
         assert response.status_code == 400
         assert response.data['detail'] == 'Your organization does not have access to this feature.'
 
@@ -210,9 +211,10 @@ class GroupIntegrationDetailsTest(APITestCase):
 
         path = u'/api/0/issues/{}/integrations/{}/'.format(group.id, integration.id)
 
-        response = self.client.put(path, data={
-            'externalIssue': 'APP-123'
-        })
+        with self.feature({'organizations:integrations-issue-basic': False}):
+            response = self.client.put(path, data={
+                'externalIssue': 'APP-123'
+            })
         assert response.status_code == 400
         assert response.data['detail'] == 'Your organization does not have access to this feature.'
 
@@ -274,7 +276,8 @@ class GroupIntegrationDetailsTest(APITestCase):
 
         path = u'/api/0/issues/{}/integrations/{}/'.format(group.id, integration.id)
 
-        response = self.client.post(path, data={})
+        with self.feature({'organizations:integrations-issue-basic': False}):
+            response = self.client.post(path, data={})
         assert response.status_code == 400
         assert response.data['detail'] == 'Your organization does not have access to this feature.'
 
@@ -341,7 +344,8 @@ class GroupIntegrationDetailsTest(APITestCase):
             group.id, integration.id, external_issue.id,
         )
 
-        response = self.client.delete(path)
+        with self.feature({'organizations:integrations-issue-basic': False}):
+            response = self.client.delete(path)
         assert response.status_code == 400
         assert response.data['detail'] == 'Your organization does not have access to this feature.'
 

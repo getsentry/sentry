@@ -3,7 +3,6 @@ from __future__ import absolute_import
 from mock import patch
 
 from sentry.coreapi import APIUnauthorized
-from sentry.mediators import sentry_apps
 from sentry.mediators.sentry_app_installations import InstallationNotifier
 from sentry.testutils import TestCase
 from sentry.testutils.helpers.faux import faux
@@ -25,7 +24,7 @@ class TestInstallationNotifier(TestCase):
         self.user = self.create_user(name='foo')
         self.org = self.create_organization(owner=self.user)
 
-        self.sentry_app = sentry_apps.Creator.run(
+        self.sentry_app = self.create_sentry_app(
             name='foo',
             organization=self.org,
             webhook_url='https://example.com',

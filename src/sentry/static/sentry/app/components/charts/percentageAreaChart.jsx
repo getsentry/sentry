@@ -25,7 +25,7 @@ export default class PercentageAreaChart extends React.Component {
     return {
       getDataItemName: ({name}) => name,
       getValue: ({name, value}, total) =>
-        !total ? 0 : Math.round(value / total * 1000) / 10,
+        !total ? 0 : Math.round((value / total) * 1000) / 10,
     };
   }
 

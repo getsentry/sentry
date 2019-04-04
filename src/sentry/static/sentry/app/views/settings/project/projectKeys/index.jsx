@@ -160,16 +160,13 @@ const KeyRow = createReactClass({
             )}
           </Box>
           <Flex align="center">
-            {controls.map((c, n) => <KeyControl key={n}> {c}</KeyControl>)}
+            {controls.map((c, n) => (
+              <KeyControl key={n}> {c}</KeyControl>
+            ))}
           </Flex>
         </PanelHeader>
 
-        <ClippedBox
-          clipHeight={300}
-          defaultClipped={true}
-          btnClassName="btn btn-default btn-sm"
-          btnText={t('Expand')}
-        >
+        <ClippedBox clipHeight={300} defaultClipped={true} btnText={t('Expand')}>
           <PanelBody>
             <ProjectKeyCredentials projectId={`${data.projectId}`} data={data} />
           </PanelBody>

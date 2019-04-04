@@ -71,7 +71,7 @@ export function getChartDataForWidget(data, query, options = {}) {
         };
 
         if (options.includePercentages && total) {
-          obj.percentage = Math.round(res[aggregation[2]] / total * 10000) / 100;
+          obj.percentage = Math.round((res[aggregation[2]] / total) * 10000) / 100;
         }
 
         return obj;

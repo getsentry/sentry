@@ -10,7 +10,6 @@ from django.db.models import Q
 from django.utils import timezone
 from django.template.defaultfilters import slugify
 from hashlib import sha256
-
 from sentry.constants import SentryAppStatus, SENTRY_APP_SLUG_MAX_LENGTH
 from sentry.models import Organization
 from sentry.models.apiscopes import HasApiScopes
@@ -87,6 +86,7 @@ class SentryApp(ParanoidModel, HasApiScopes):
 
     name = models.TextField()
     slug = models.CharField(max_length=SENTRY_APP_SLUG_MAX_LENGTH, unique=True)
+    author = models.TextField(null=True)
     status = BoundedPositiveIntegerField(
         default=SentryAppStatus.UNPUBLISHED,
         choices=SentryAppStatus.as_choices(),

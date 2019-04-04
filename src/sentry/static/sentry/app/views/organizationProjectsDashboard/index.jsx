@@ -69,18 +69,17 @@ class Dashboard extends React.Component {
 
     return (
       <React.Fragment>
-        {!hasSentry10 &&
-          favorites.length > 0 && (
-            <TeamSection
-              data-test-id="favorites"
-              orgId={params.orgId}
-              showBorder
-              team={null}
-              title={t('Bookmarked projects')}
-              projects={favorites}
-              access={access}
-            />
-          )}
+        {!hasSentry10 && favorites.length > 0 && (
+          <TeamSection
+            data-test-id="favorites"
+            orgId={params.orgId}
+            showBorder
+            team={null}
+            title={t('Bookmarked projects')}
+            projects={favorites}
+            access={access}
+          />
+        )}
 
         {teamSlugs.map((slug, index) => {
           const showBorder = index !== teamSlugs.length - 1;
@@ -106,10 +105,9 @@ class Dashboard extends React.Component {
             </LazyLoad>
           );
         })}
-        {teamSlugs.length === 0 &&
-          favorites.length === 0 && (
-            <NoProjectMessage organization={organization}>{null}</NoProjectMessage>
-          )}
+        {teamSlugs.length === 0 && favorites.length === 0 && (
+          <NoProjectMessage organization={organization}>{null}</NoProjectMessage>
+        )}
       </React.Fragment>
     );
   }

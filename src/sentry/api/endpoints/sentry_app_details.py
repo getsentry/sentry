@@ -27,7 +27,11 @@ class SentryAppDetailsEndpoint(SentryAppBaseEndpoint):
 
             return Response(status=404)
 
-        serializer = SentryAppSerializer(data=request.DATA, partial=True)
+        serializer = SentryAppSerializer(
+            instance=sentry_app,
+            data=request.DATA,
+            partial=True,
+        )
 
         if serializer.is_valid():
             result = serializer.object
@@ -35,6 +39,7 @@ class SentryAppDetailsEndpoint(SentryAppBaseEndpoint):
             updated_app = Updater.run(
                 sentry_app=sentry_app,
                 name=result.get('name'),
+                author=result.get('author'),
                 webhook_url=result.get('webhookUrl'),
                 redirect_url=result.get('redirectUrl'),
                 is_alertable=result.get('isAlertable'),
@@ -55,7 +60,10 @@ class SentryAppDetailsEndpoint(SentryAppBaseEndpoint):
             return Response(status=404)
 
         if sentry_app.status == SentryAppStatus.UNPUBLISHED:
-            Destroyer.run(sentry_app=sentry_app)
+            Destroyer.run(
+                sentry_app=sentry_app,
+                request=request,
+            )
             return Response(status=204)
 
         return Response(

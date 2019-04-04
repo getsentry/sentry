@@ -59,6 +59,7 @@ class GetSentryAppsTest(SentryAppsTest):
         assert response.status_code == 200
         assert {
             'name': self.published_app.name,
+            'author': self.published_app.author,
             'slug': self.published_app.slug,
             'scopes': [],
             'events': [],
@@ -82,6 +83,7 @@ class GetSentryAppsTest(SentryAppsTest):
         assert response.status_code == 200
         assert {
             'name': self.unpublished_app.name,
+            'author': self.unpublished_app.author,
             'slug': self.unpublished_app.slug,
             'scopes': [],
             'events': [],
@@ -129,6 +131,20 @@ class PostSentryAppsTest(SentryAppsTest):
 
         assert response.status_code == 201, response.content
         assert six.viewitems(expected) <= six.viewitems(json.loads(response.content))
+
+    @with_feature('organizations:sentry-apps')
+    def test_non_unique_app_slug(self):
+        from sentry.mediators import sentry_apps
+        self.login_as(user=self.user)
+        sentry_app = self.create_sentry_app(
+            name='Foo Bar',
+            organization=self.org,
+        )
+        sentry_apps.Destroyer.run(sentry_app=sentry_app)
+        response = self._post(**{'name': sentry_app.name})
+        assert response.status_code == 422
+        assert response.data == \
+            {"name": ["Name Foo Bar is already taken, please use another."]}
 
     @with_feature('organizations:sentry-apps')
     def test_cannot_create_app_without_correct_permissions(self):
@@ -211,6 +227,7 @@ class PostSentryAppsTest(SentryAppsTest):
         body = {
             'name': 'MyApp',
             'organization': self.org.slug,
+            'author': 'Sentry',
             'scopes': ('project:read', 'event:read'),
             'events': ('issue',),
             'webhookUrl': 'https://example.com',

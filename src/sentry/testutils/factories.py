@@ -25,7 +25,7 @@ from sentry.models import (
     Activity, Environment, Event, EventError, EventMapping, Group, Organization, OrganizationMember,
     OrganizationMemberTeam, Project, ProjectBookmark, Team, User, UserEmail, Release, Commit, ReleaseCommit,
     CommitAuthor, Repository, CommitFileChange, ProjectDebugFile, File, UserPermission, EventAttachment,
-    UserReport,
+    UserReport, PlatformExternalIssue,
 )
 from sentry.utils.canonical import CanonicalKeyDict
 
@@ -672,7 +672,7 @@ class Factories(object):
         UserPermission.objects.create(user=user, permission=permission)
 
     @staticmethod
-    def create_sentry_app(name=None, organization=None, published=False, scopes=(),
+    def create_sentry_app(name=None, author='Sentry', organization=None, published=False, scopes=(),
                           webhook_url=None, **kwargs):
         if not name:
             name = petname.Generate(2, ' ', letters=10).title()
@@ -684,6 +684,7 @@ class Factories(object):
         _kwargs = {
             'name': name,
             'organization': organization,
+            'author': author,
             'scopes': scopes,
             'webhook_url': webhook_url,
             'events': [],
@@ -821,3 +822,13 @@ class Factories(object):
         session = engine.SessionStore()
         session.save()
         return session
+
+    @staticmethod
+    def create_platform_external_issue(group=None, service_type=None,
+                                       display_name=None, web_url=None):
+        return PlatformExternalIssue.objects.create(
+            group_id=group.id,
+            service_type=service_type,
+            display_name=display_name,
+            web_url=web_url,
+        )

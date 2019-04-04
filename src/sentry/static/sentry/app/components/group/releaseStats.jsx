@@ -78,7 +78,9 @@ const GroupReleaseStats = createReactClass({
     const shortEnvironmentLabel =
       environments.length > 1
         ? t('selected environments')
-        : environments.length === 1 ? environments[0].displayName : null;
+        : environments.length === 1
+        ? environments[0].displayName
+        : null;
 
     const projectId = project.slug;
     const orgId = this.getOrganization().slug;

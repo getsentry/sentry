@@ -104,13 +104,10 @@ class Matcher(namedtuple('Matcher', 'type pattern')):
 
     def test_path(self, data):
         for frame in _iter_frames(data):
-            try:
-                filename = frame['filename']
-            except KeyError:
-                try:
-                    filename = frame['abs_path']
-                except KeyError:
-                    continue
+            filename = frame.get('filename') or frame.get('abs_path')
+
+            if not filename:
+                continue
 
             # fnmatch keeps it's own internal cache, so
             # there isn't any optimization we can do here

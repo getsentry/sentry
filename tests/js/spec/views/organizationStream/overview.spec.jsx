@@ -34,6 +34,7 @@ describe('OrganizationStream', function() {
       id: '1337',
       slug: 'org-slug',
       access: ['releases'],
+      features: ['org-saved-searches'],
       projects: [project],
     });
     savedSearch = {
@@ -263,7 +264,7 @@ describe('OrganizationStream', function() {
 
     it('fetches searches and sets the savedSearch', async function() {
       const instance = wrapper.instance();
-      await instance.componentDidMount();
+      instance.componentDidMount();
       await wrapper.update();
 
       expect(instance.state.savedSearch).toBeTruthy();
@@ -271,7 +272,7 @@ describe('OrganizationStream', function() {
 
     it('uses the saved search query', async function() {
       const instance = wrapper.instance();
-      await instance.componentDidMount();
+      instance.componentDidMount();
       await wrapper.update();
 
       expect(instance.getQuery()).toEqual(savedSearch.query);
@@ -286,7 +287,7 @@ describe('OrganizationStream', function() {
 
     it('does not set the savedSearch state', async function() {
       const instance = wrapper.instance();
-      await instance.componentDidMount();
+      instance.componentDidMount();
       await wrapper.update();
 
       expect(instance.state.savedSearch).toBeNull();
@@ -327,7 +328,7 @@ describe('OrganizationStream', function() {
         wrapper.setProps({location});
 
         // Each propery change should cause a new fetch incrementing the call count.
-        expect(fetchDataMock).toHaveBeenCalledTimes(i + 1);
+        expect(fetchDataMock).toHaveBeenCalledTimes(i + 2);
       });
     });
   });
@@ -595,6 +596,59 @@ describe('OrganizationStream', function() {
       });
 
       expect(wrapper.find('ErrorRobot')).toHaveLength(0);
+    });
+  });
+
+  describe('pinned searches', function() {
+    let pinnedSearch;
+
+    beforeEach(function() {
+      pinnedSearch = {
+        id: '888',
+        query: 'best:yes',
+        name: 'best issues',
+        isPinned: true,
+      };
+
+      MockApiClient.addMockResponse({
+        url: '/organizations/org-slug/searches/',
+        body: [savedSearch, pinnedSearch],
+      });
+
+      wrapper = shallow(<OrganizationStream {...props} />, {
+        disableLifecycleMethods: false,
+      });
+    });
+
+    it('defaults to the pinned search', async function() {
+      await wrapper.update();
+
+      const instance = wrapper.instance();
+      expect(instance.state.savedSearch).toEqual(pinnedSearch);
+    });
+
+    it('does not use pin when there is an existing query', async function() {
+      const location = {query: {query: 'timesSeen:>100'}};
+      wrapper = shallow(<OrganizationStream {...props} location={location} />, {
+        disableLifecycleMethods: false,
+      });
+      await wrapper.update();
+
+      const instance = wrapper.instance();
+      expect(instance.state.savedSearch).toEqual(null);
+    });
+
+    it('does not use pin when there is a saved search selected', async function() {
+      const params = {orgId: organization.slug, searchId: savedSearch.id};
+      wrapper = shallow(<OrganizationStream {...props} params={params} />, {
+        disableLifecycleMethods: false,
+      });
+
+      const instance = wrapper.instance();
+      instance.setState({savedSearch});
+      await wrapper.update();
+
+      expect(instance.state.savedSearch).toEqual(savedSearch);
     });
   });
 });
