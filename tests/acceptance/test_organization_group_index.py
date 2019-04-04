@@ -32,7 +32,7 @@ class OrganizationGroupIndexTest(AcceptanceTestCase):
         with self.feature(['organizations:sentry10', 'organizations:discover']):
             self.browser.get(self.path)
             self.wait_until_loaded()
-            self.browser.wait_until('[data-test-id="awaiting-events"]')
+            self.browser.wait_until_test_id('awaiting-events')
             self.browser.snapshot('organization issues onboarding')
 
     def test_with_no_results(self):
@@ -40,7 +40,7 @@ class OrganizationGroupIndexTest(AcceptanceTestCase):
         with self.feature(['organizations:sentry10', 'organizations:discover']):
             self.browser.get(self.path)
             self.wait_until_loaded()
-            self.browser.wait_until('[data-test-id="empty-state"]')
+            self.browser.wait_until_test_id('empty-state')
             self.browser.snapshot('organization issues no results')
 
     def wait_until_loaded(self):

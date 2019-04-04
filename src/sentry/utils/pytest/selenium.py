@@ -73,6 +73,9 @@ class Browser(object):
             return False
         return True
 
+    def element_exists_by_test_id(self, selector):
+        return self.element_exists('[data-test-id="%s"]' % (selector))
+
     def click(self, selector):
         self.element(selector).click()
 
@@ -139,6 +142,9 @@ class Browser(object):
         ).until(condition)
 
         return self
+
+    def wait_until_test_id(self, selector):
+        return self.wait_until('[data-test-id="%s"]' % (selector))
 
     def wait_until_not(self, selector=None, title=None, timeout=3):
         """

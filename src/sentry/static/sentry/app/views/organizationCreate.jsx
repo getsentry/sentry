@@ -60,7 +60,6 @@ export default class OrganizationCreate extends AsyncView {
                   privacyLink: <a href={privacyUrl} />,
                 }
               )}
-              placeholder={t('e.g. My Company')}
               required={true}
             />
           )}

@@ -31,4 +31,4 @@ class ProjectDataForwardingSettingsTest(AcceptanceTestCase):
         self.browser.get(self.path)
         self.browser.wait_until_not('.loading-indicator')
         self.browser.snapshot('project data forwarding settings')
-        self.browser.wait_until('[data-test-id="data-forwarding-settings"]')
+        self.browser.wait_until_test_id('data-forwarding-settings')

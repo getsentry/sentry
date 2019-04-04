@@ -70,7 +70,6 @@ exports[`OrganizationCreate render() renders with terms 1`] = `
           </span>
         }
         name="agreeTerms"
-        placeholder="e.g. My Company"
         required={true}
       />
     </ApiForm>

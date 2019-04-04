@@ -193,8 +193,8 @@ class IssueDetailsTest(AcceptanceTestCase):
     def wait_until_loaded(self):
         self.browser.wait_until_not('.loading-indicator')
         self.browser.wait_until('.entries')
-        self.browser.wait_until('[data-test-id="linked-issues"]')
-        self.browser.wait_until('[data-test-id="loaded-device-name"]')
+        self.browser.wait_until_test_id('linked-issues')
+        self.browser.wait_until_test_id('loaded-device-name')
 
     def dismiss_assistant(self):
         # Forward session cookie to django client.

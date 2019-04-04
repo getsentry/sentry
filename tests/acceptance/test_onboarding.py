@@ -47,4 +47,4 @@ class OrganizationOnboardingTest(AcceptanceTestCase):
         self.browser.wait_until_not('.loading')
 
         assert self.browser.element_exists('.robot')
-        assert self.browser.element_exists('[data-test-id="install-instructions"]')
+        assert self.browser.element_exists_by_test_id('install-instructions')

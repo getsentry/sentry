@@ -246,6 +246,7 @@ class OrganizationMembersView extends AsyncView {
         }
         to={recreateRoute('new/', {routes, params})}
         icon="icon-circle-add"
+        data-test-id="invite-member"
       >
         {t('Invite Member')}
       </Button>
@@ -270,7 +271,7 @@ class OrganizationMembersView extends AsyncView {
           requestList={requestList}
         />
 
-        <Panel>
+        <Panel data-test-id="org-member-list">
           <PanelHeader hasButtons>
             {t('Member')}
 
