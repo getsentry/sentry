@@ -103,7 +103,12 @@ const SeenInfo = createReactClass({
               projectId={projectId}
               version={release.version}
             >
-              <Version orgId={orgId} projectId={projectId} version={release.version} />
+              <Version
+                orgId={orgId}
+                projectId={projectId}
+                version={release.version}
+                className="truncate"
+              />
             </VersionHoverCard>
           </dd>
         ) : !this.props.hasRelease ? (
