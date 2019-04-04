@@ -5,9 +5,12 @@ from rest_framework.response import Response
 from sentry.api.bases.organization import OrganizationEndpoint
 from sentry.api.serializers import serialize
 from sentry.models import OrganizationMember
+from sentry.api.endpoints.organization_member_index import MemberPermission
 
 
 class OrganizationUserDetailsEndpoint(OrganizationEndpoint):
+    permission_classes = (MemberPermission, )
+
     def get(self, request, organization, user_id):
         try:
             org_member = OrganizationMember.objects.get(
