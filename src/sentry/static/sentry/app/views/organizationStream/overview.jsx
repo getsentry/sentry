@@ -31,6 +31,7 @@ import StreamSidebar from 'app/views/stream/sidebar';
 import ProcessingIssueList from 'app/components/stream/processingIssueList';
 import {analytics} from 'app/utils/analytics';
 import {getUtcDateString} from 'app/utils/dates';
+import {logAjaxError} from 'app/utils/logging';
 import parseApiError from 'app/utils/parseApiError';
 import parseLinkHeader from 'app/utils/parseLinkHeader';
 import utils from 'app/utils';
@@ -586,6 +587,7 @@ const OrganizationStream = createReactClass({
         }
       },
       error => {
+        logAjaxError(error);
         this.fetchData();
       }
     );

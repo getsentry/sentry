@@ -3,6 +3,7 @@ import {isEqual} from 'lodash';
 import PropTypes from 'prop-types';
 
 import {Client} from 'app/api';
+import {logAjaxError} from 'app/utils/logging';
 import {fetchProcessingIssues} from 'app/actionCreators/processingIssues';
 import ProcessingIssueHint from 'app/components/stream/processingIssueHint';
 import SentryTypes from 'app/sentryTypes';
@@ -57,6 +58,7 @@ class ProcessingIssueList extends React.Component {
       },
       error => {
         // this is okay. it's just a ui hint
+        logAjaxError(error);
       }
     );
   }
