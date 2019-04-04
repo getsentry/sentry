@@ -7,6 +7,7 @@ from sentry.api.serializers import serialize
 from sentry.models import (Release, ReleaseCommit, Commit, CommitFileChange, Event, Group)
 from sentry.api.serializers.models.commit import CommitSerializer, get_users_for_commits
 from sentry.utils import metrics
+from sentry.utils.safe import get_path
 
 from django.db.models import Q
 
@@ -38,15 +39,11 @@ def score_path_match_length(path_a, path_b):
 
 def _get_frame_paths(event):
     data = event.data
-    try:
-        frames = data['stacktrace']['frames']
-    except KeyError:
-        try:
-            frames = data['exception']['values'][0]['stacktrace']['frames']
-        except (KeyError, TypeError):
-            return []  # can't find stacktrace information
+    frames = get_path(data, 'stacktrace', 'frames', filter=True)
+    if frames:
+        return frames
 
-    return frames
+    return get_path(data, 'exception', 'values', 0, 'stacktrace', 'frames', filter=True) or []
 
 
 def _get_commits(releases):
@@ -186,7 +183,7 @@ def get_event_file_committers(project, event, frame_limit=25):
     if not commits:
         raise Commit.DoesNotExist
 
-    frames = _get_frame_paths(event)
+    frames = _get_frame_paths(event) or ()
     app_frames = [frame for frame in frames if frame['in_app']][-frame_limit:]
     if not app_frames:
         app_frames = [frame for frame in frames][-frame_limit:]
