@@ -12,7 +12,7 @@ from sentry.utils.types import (
     Dict,
     Sequence,
 )
-from sentry.testutils import TestCase
+from unittest import TestCase
 
 
 class OptionsTypesTest(TestCase):

@@ -4,7 +4,7 @@ from sentry.utils.contexts_normalization import (
     normalize_runtime,
     normalize_user_agent
 )
-from sentry.testutils import TestCase
+from unittest import TestCase
 
 
 class NormalizeRuntimeTests(TestCase):

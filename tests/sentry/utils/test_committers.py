@@ -1,5 +1,7 @@
 from __future__ import absolute_import
 
+import unittest
+
 from datetime import timedelta
 from django.utils import timezone
 from mock import Mock
@@ -58,7 +60,7 @@ class CommitTestCase(TestCase):
         )
 
 
-class TokenizePathTestCase(TestCase):
+class TokenizePathTestCase(unittest.TestCase):
     def test_forward_slash(self):
         assert list(tokenize_path('foo/bar')) == ['bar', 'foo']
 
@@ -85,7 +87,7 @@ class TokenizePathTestCase(TestCase):
         assert list(tokenize_path('/')) == []
 
 
-class ScorePathMatchLengthTest(TestCase):
+class ScorePathMatchLengthTest(unittest.TestCase):
     def test_equal_paths(self):
         assert score_path_match_length('foo/bar/baz', 'foo/bar/baz') == 3
 
@@ -100,7 +102,7 @@ class ScorePathMatchLengthTest(TestCase):
         assert score_path_match_length('./foo/bar/baz', 'foo/bar/baz') == 3
 
 
-class GetFramePathsTestCase(TestCase):
+class GetFramePathsTestCase(unittest.TestCase):
     def setUp(self):
         self.event = Mock()
         self.event.data = {}

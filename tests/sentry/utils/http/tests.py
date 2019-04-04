@@ -3,6 +3,7 @@
 from __future__ import absolute_import
 
 import mock
+import unittest
 
 from exam import fixture
 from django.http import HttpRequest
@@ -26,7 +27,7 @@ from sentry.utils.data_filters import (
 )
 
 
-class AbsoluteUriTest(TestCase):
+class AbsoluteUriTest(unittest.TestCase):
     def test_without_path(self):
         assert absolute_uri() == options.get('system.url-prefix')
 
@@ -34,7 +35,7 @@ class AbsoluteUriTest(TestCase):
         assert absolute_uri('/foo/bar') == '%s/foo/bar' % (options.get('system.url-prefix'), )
 
 
-class SameDomainTestCase(TestCase):
+class SameDomainTestCase(unittest.TestCase):
     def test_is_same_domain(self):
         url1 = 'http://example.com/foo/bar'
         url2 = 'http://example.com/biz/baz'
@@ -102,7 +103,7 @@ class GetOriginsTestCase(TestCase):
             self.assertEquals(result, frozenset([u'*']))
 
 
-class IsValidOriginTestCase(TestCase):
+class IsValidOriginTestCase(unittest.TestCase):
     @fixture
     def project(self):
         return mock.Mock()
