@@ -77,7 +77,7 @@ def run_symbolicator(stacktraces, modules, project, arch, signal, request_id_cac
 
                 rv.raise_for_status()
                 json = rv.json()
-                metrics.incr('events.symbolicator.response.%s', tags={
+                metrics.incr('events.symbolicator.response', tags={
                     'response': json['status'],
                     'project_id': project_id,
                 })
