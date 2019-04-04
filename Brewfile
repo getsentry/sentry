@@ -7,3 +7,4 @@ brew 'postgresql@9.6', link: true
 
 tap 'caskroom/cask'
 cask 'chromedriver'
+cask 'docker'
