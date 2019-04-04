@@ -169,8 +169,9 @@ matrix:
 
     - python: 2.7
       name: 'Acceptance'
-      env: TEST_SUITE=acceptance
+      env: TEST_SUITE=acceptance USE_SNUBA=1
       services:
+        - docker
         - memcached
         - redis-server
         - postgresql
@@ -195,8 +196,9 @@ matrix:
     # XXX(markus): Remove after rust interfaces are done
     - python: 2.7
       name: 'Acceptance (Rust Interface Renormalization)'
-      env: TEST_SUITE=acceptance SENTRY_TEST_USE_RUST_INTERFACE_RENORMALIZATION=1 PERCY_ENABLE=0
+      env: TEST_SUITE=acceptance USE_SNUBA=1 SENTRY_TEST_USE_RUST_INTERFACE_RENORMALIZATION=1 PERCY_ENABLE=0
       services:
+        - docker
         - memcached
         - redis-server
         - postgresql
@@ -268,7 +270,7 @@ matrix:
     # snuba in testing
     - python: 2.7
       name: 'Snuba Integration'
-      env: TEST_SUITE=snuba SENTRY_TAGSTORE=sentry.tagstore.snuba.SnubaTagStorage SENTRY_ZOOKEEPER_HOSTS=localhost:2181 SENTRY_KAFKA_HOSTS=localhost:9092
+      env: TEST_SUITE=snuba USE_SNUBA=1 SENTRY_ZOOKEEPER_HOSTS=localhost:2181 SENTRY_KAFKA_HOSTS=localhost:9092
       services:
         - docker
         - memcached
@@ -290,7 +292,7 @@ matrix:
     # XXX(markus): Remove after rust interfaces are done
     - python: 2.7
       name: 'Snuba Integration (Rust Interface Renormalization)'
-      env: TEST_SUITE=snuba SENTRY_TAGSTORE=sentry.tagstore.snuba.SnubaTagStorage SENTRY_ZOOKEEPER_HOSTS=localhost:2181 SENTRY_KAFKA_HOSTS=localhost:9092 SENTRY_TEST_USE_RUST_INTERFACE_RENORMALIZATION=1
+      env: TEST_SUITE=snuba USE_SNUBA=1 SENTRY_ZOOKEEPER_HOSTS=localhost:2181 SENTRY_KAFKA_HOSTS=localhost:9092 SENTRY_TEST_USE_RUST_INTERFACE_RENORMALIZATION=1
       services:
         - docker
         - memcached

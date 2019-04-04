@@ -1,10 +1,9 @@
 from __future__ import absolute_import
 
-from sentry import tagstore
-from sentry.testutils import AcceptanceTestCase
+from sentry.testutils import AcceptanceTestCase, SnubaTestCase
 
 
-class ProjectReleaseTrackingSettingsTest(AcceptanceTestCase):
+class ProjectReleaseTrackingSettingsTest(AcceptanceTestCase, SnubaTestCase):
     def setUp(self):
         super(ProjectReleaseTrackingSettingsTest, self).setUp()
         self.user = self.create_user('foo@example.com')
@@ -25,12 +24,20 @@ class ProjectReleaseTrackingSettingsTest(AcceptanceTestCase):
             teams=[self.team],
         )
 
-        tagstore.create_tag_key(project_id=self.project.id, environment_id=None, key="Foo")
-
         self.login_as(self.user)
         self.path1 = u'/{}/{}/settings/release-tracking/'.format(self.org.slug, self.project.slug)
 
     def test_tags_list(self):
+        self.store_event(
+            data={
+                'event_id': 'a' * 32,
+                'message': 'oh no',
+                'environment': 'prod',
+                'release': 'first',
+                'tags': {'Foo': 'value'},
+            },
+            project_id=self.project.id,
+        )
         self.browser.get(self.path1)
         self.browser.wait_until_not('.loading-indicator')
         self.browser.snapshot('project settings - release tracking')

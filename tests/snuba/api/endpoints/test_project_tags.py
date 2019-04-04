@@ -25,13 +25,13 @@ class ProjectTagsTest(APITestCase, SnubaTestCase):
         project = self.create_project(organization=org, teams=[team])
         group = self.create_group(project=project)
         self.create_event(
-            'a' * 32,
+            event_id='a' * 32,
             group=group,
             datetime=self.min_ago,
             tags={'foo': 'oof', 'bar': 'rab'},
         )
         self.create_event(
-            'b' * 32,
+            event_id='b' * 32,
             group=group,
             datetime=self.min_ago,
             tags={'bar': 'rab2'},

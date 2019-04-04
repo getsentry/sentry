@@ -2,19 +2,16 @@ from __future__ import absolute_import
 
 import calendar
 from datetime import datetime, timedelta
-import requests
-
-from django.conf import settings
 
 from sentry.api.serializers import serialize
 from sentry.models.event import Event, SnubaEvent
-from sentry.testutils import SnubaTestCase
+from sentry.testutils import SnubaTestCase, TestCase
 from sentry import nodestore
 
 
-class SnubaEventTest(SnubaTestCase):
+class SnubaEventTest(TestCase, SnubaTestCase):
     def setUp(self):
-        assert requests.post(settings.SENTRY_SNUBA + '/tests/drop').status_code == 200
+        super(SnubaEventTest, self).setUp()
 
         self.event_id = 'f' * 32
         self.now = datetime.utcnow().replace(microsecond=0) - timedelta(seconds=10)
@@ -60,7 +57,9 @@ class SnubaEventTest(SnubaTestCase):
                 group=self.proj1group1,
                 data=data,
             )
-            nodestore_data = nodestore.get(SnubaEvent.generate_node_id(self.proj1.id, self.event_id))
+            nodestore_data = nodestore.get(
+                SnubaEvent.generate_node_id(
+                    self.proj1.id, self.event_id))
             assert data['event_id'] == nodestore_data['event_id']
         else:
             node_id = SnubaEvent.generate_node_id(self.proj1.id, self.event_id)

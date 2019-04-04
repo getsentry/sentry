@@ -22,9 +22,9 @@ class OrganizationHealthTest(APITestCase, SnubaTestCase):
         project2 = self.create_project()
         group = self.create_group(project=project)
         group2 = self.create_group(project=project2)
-        self.create_event('a' * 32, group=group, datetime=self.min_ago,
+        self.create_event(event_id='a' * 32, group=group, datetime=self.min_ago,
                           tags=[('sentry:user', 'id:%s' % (self.user.id,))])
-        self.create_event('b' * 32, group=group2, datetime=self.day_ago,
+        self.create_event(event_id='b' * 32, group=group2, datetime=self.day_ago,
                           tags=[('sentry:user', 'id:%s' % (self.user.id,))])
 
         now = timezone.now()
