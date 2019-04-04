@@ -212,9 +212,11 @@ class ProjectSelector extends React.Component {
         inputActions={() => (
           <AddButton
             disabled={!hasProjectWrite}
-            to={`/organizations/${org.slug}/projects/new`}
+            to={`/organizations/${org.slug}/projects/new/`}
             size="xsmall"
-            title={hasProjectWrite ? null : 'You need project write access to use this'}
+            title={
+              hasProjectWrite ? null : t("You don't have permission to add a project")
+            }
           >
             <StyledAddIcon src="icon-circle-add" /> {t('Project')}
           </AddButton>
