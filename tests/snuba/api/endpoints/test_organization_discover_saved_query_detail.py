@@ -1,9 +1,8 @@
 from __future__ import absolute_import
 
 import six
-from sentry.testutils import APITestCase
+from sentry.testutils import APITestCase, SnubaTestCase
 from django.core.urlresolvers import reverse
-from sentry.testutils import SnubaTestCase
 
 from sentry.models import DiscoverSavedQuery, DiscoverSavedQueryProject
 

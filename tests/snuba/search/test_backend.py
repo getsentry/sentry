@@ -22,6 +22,7 @@ from sentry.search.base import ANY
 from sentry.search.snuba.backend import SnubaSearchBackend
 from sentry.testutils import (
     SnubaTestCase,
+    TestCase,
     xfail_if_not_postgres,
 )
 from sentry.utils.snuba import (
@@ -34,7 +35,7 @@ def date_to_query_format(date):
     return date.strftime('%Y-%m-%dT%H:%M:%S')
 
 
-class SnubaSearchTest(SnubaTestCase):
+class SnubaSearchTest(TestCase, SnubaTestCase):
     def setUp(self):
         super(SnubaSearchTest, self).setUp()
         self.backend = SnubaSearchBackend()

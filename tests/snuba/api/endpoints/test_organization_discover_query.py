@@ -2,9 +2,8 @@ from __future__ import absolute_import
 
 from datetime import datetime, timedelta
 
-from sentry.testutils import APITestCase
+from sentry.testutils import APITestCase, SnubaTestCase
 from django.core.urlresolvers import reverse
-from sentry.testutils import SnubaTestCase
 
 
 class OrganizationDiscoverQueryTest(APITestCase, SnubaTestCase):

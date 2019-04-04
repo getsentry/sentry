@@ -11,7 +11,8 @@ from __future__ import absolute_import
 __all__ = (
     'TestCase', 'TransactionTestCase', 'APITestCase', 'TwoFactorAPITestCase', 'AuthProviderTestCase', 'RuleTestCase',
     'PermissionTestCase', 'PluginTestCase', 'CliTestCase', 'AcceptanceTestCase',
-    'IntegrationTestCase', 'UserReportEnvironmentTestCase', 'SnubaTestCase', 'IntegrationRepositoryTestCase',
+    'IntegrationTestCase', 'UserReportEnvironmentTestCase', 'SnubaTestCase',
+    'IntegrationRepositoryTestCase',
     'ReleaseCommitPatchTest', 'SetRefsTestCase', 'OrganizationDashboardWidgetTestCase'
 )
 
@@ -66,6 +67,8 @@ from sentry.utils import json
 from sentry.utils.auth import SSO_SESSION_KEY
 
 from .fixtures import Fixtures
+from .factories import Factories
+from .skips import requires_snuba
 from .helpers import (
     AuthProvider, Feature, get_auth_header, TaskRunner, override_options, parse_queries
 )
@@ -831,9 +834,20 @@ class IntegrationTestCase(TestCase):
         assert 'window.opener.postMessage(' in resp.content
 
 
-class SnubaTestCase(TestCase):
+@pytest.mark.snuba
+@requires_snuba
+class SnubaTestCase(BaseTestCase):
+    """
+    Mixin for enabling test case classes to talk to snuba
+    Useful when you are working on acceptance tests or integration
+    tests that require snuba.
+    """
+
     def setUp(self):
         super(SnubaTestCase, self).setUp()
+        self.init_snuba()
+
+    def init_snuba(self):
         self.snuba_eventstream = SnubaEventStream()
         self.snuba_tagstore = SnubaCompatibilityTagStorage()
         assert requests.post(settings.SENTRY_SNUBA + '/tests/drop').status_code == 200
@@ -849,7 +863,7 @@ class SnubaTestCase(TestCase):
             mock.patch('sentry.tagstore.incr_group_tag_value_times_seen',
                        self.snuba_tagstore.incr_group_tag_value_times_seen),
         ):
-            return super(SnubaTestCase, self).store_event(*args, **kwargs)
+            return Factories.store_event(*args, **kwargs)
 
     def __wrap_event(self, event, data, primary_hash):
         # TODO: Abstract and combine this with the stream code in
@@ -877,8 +891,7 @@ class SnubaTestCase(TestCase):
         world all test events would go through the full regular pipeline.
         """
         # XXX: Use `store_event` instead of this!
-
-        event = super(SnubaTestCase, self).create_event(*args, **kwargs)
+        event = Factories.create_event(*args, **kwargs)
 
         data = event.data.data
         tags = dict(data.get('tags', []))
