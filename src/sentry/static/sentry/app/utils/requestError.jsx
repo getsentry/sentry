@@ -10,9 +10,18 @@ export default class RequestError extends Error {
    */
   setResponse(resp) {
     this.resp = resp;
-    this.setMessage(
-      `${this.message} ${resp && resp.status !== 'undefined' ? resp.status : 'n/a'}`
-    );
+
+    if (resp) {
+      this.setMessage(
+        `${this.message} ${resp.status !== 'undefined' ? resp.status : 'n/a'}`
+      );
+
+      // Some callback handlers expect these properties on the error object
+      if (resp.responseJSON) {
+        this.responseJSON = resp.responseJSON;
+        this.status = resp.status;
+      }
+    }
   }
 
   setMessage(message) {
