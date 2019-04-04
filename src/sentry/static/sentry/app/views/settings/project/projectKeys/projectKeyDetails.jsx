@@ -414,7 +414,9 @@ const KeySettings = createReactClass({
                     placeholder={t('4.x')}
                     allowClear={false}
                     enabled={!hasAccess}
-                    help={t('Select the version of the SDK that should be loaded')}
+                    help={t(
+                      'Select the version of the SDK that should be loaded. Note that it can take a few minutes until this change is live.'
+                    )}
                   />
                 </PanelBody>
               </Panel>
