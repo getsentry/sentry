@@ -10,6 +10,7 @@ import {
 import {metric} from 'app/utils/analytics';
 import {openSudo, redirectToProject} from 'app/actionCreators/modal';
 import GroupActions from 'app/actions/groupActions';
+import RequestError from 'app/utils/requestError';
 import {uniqueId} from 'app/utils/guid';
 import * as tracing from 'app/utils/tracing';
 
@@ -197,6 +198,8 @@ export class Client {
       }
     }
 
+    const errorObject = new RequestError(options.method, path);
+
     this.activeRequests[id] = new Request(
       $.ajax({
         url: fullUrl,
@@ -209,12 +212,12 @@ export class Client {
           'X-Span-ID': tracing.getSpanId(),
         },
         success: (...args) => {
-          const [, , xhr] = args || [];
+          const [resp] = args || [];
           metric.measure({
             name: 'app.api.request-success',
             start: `api-request-start-${id}`,
             data: {
-              status: xhr && xhr.status,
+              status: resp && resp.status,
             },
           });
           if (!isUndefined(options.success)) {
@@ -222,14 +225,28 @@ export class Client {
           }
         },
         error: (...args) => {
-          const [, , xhr] = args || [];
+          const [resp] = args || [];
           metric.measure({
             name: 'app.api.request-error',
             start: `api-request-start-${id}`,
             data: {
-              status: xhr && xhr.status,
+              status: resp && resp.status,
             },
           });
+
+          Sentry.withScope(scope => {
+            // `requestPromise` can pass its error object
+            const errorObjectToUse = options.requestError || errorObject;
+
+            errorObjectToUse.setResponse(resp);
+            errorObjectToUse.removeFrames(4);
+
+            // Setting this to warning because we are going to capture all failed requests
+            scope.setLevel('warning');
+            scope.setTag('http.statusCode', resp.status);
+            Sentry.captureException(errorObjectToUse);
+          });
+
           this.handleRequestError(
             {
               id,
@@ -249,23 +266,23 @@ export class Client {
   requestPromise(path, {includeAllArgs, ...options} = {}) {
     // Create an error object here before we make any async calls so
     // that we have a helpful stacktrace if it errors
-    const error = new Error(`${options.method || 'GET'} "${path}"`);
+    //
+    // This *should* get logged to Sentry only if the promise rejection is not handled
+    // (since SDK captures unhandled rejections). Ideally we explicitly ignore rejection
+    // or handle with a user friendly error message
+    const requestError = new RequestError(options.method, path);
 
     return new Promise((resolve, reject) => {
       this.request(path, {
         ...options,
+        requestError,
         success: (data, ...args) => {
           includeAllArgs ? resolve([data, ...args]) : resolve(data);
         },
         error: (resp, ...args) => {
-          // Update error message with response status code
-          error.message = `${error.message} -> ${(resp && resp.status) || 'n/a'}`;
-          error.resp = resp;
-
-          // Drop the Client.requestPromise frame so stacktrace starts at `requestPromise` callsite
-          const lines = error.stack.split('\n');
-          error.stack = [lines[0], ...lines.slice(2)].join('\n');
-          reject(error);
+          // Since this method calls `this.request`, and its error handler
+          // modifies the error object, we don't update it
+          reject(requestError);
         },
       });
     });

@@ -11,7 +11,6 @@ import qs from 'query-string';
 
 import {Panel, PanelBody} from 'app/components/panels';
 import {analytics} from 'app/utils/analytics';
-import {logAjaxError} from 'app/utils/logging';
 import {
   setActiveEnvironment,
   setActiveEnvironmentName,
@@ -230,8 +229,7 @@ const Stream = createReactClass({
         this.setState(newState, needsData ? this.fetchData : null);
       },
       error => {
-        // XXX(dcramer): fail gracefully by still loading the stream
-        logAjaxError(error);
+        // Fail gracefully by still loading the stream
         this.setState({
           loading: false,
           isDefaultSearch: null,
