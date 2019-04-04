@@ -63,8 +63,9 @@ def run_symbolicator(stacktraces, modules, project, arch, signal, request_id_cac
                         signal=signal, stacktraces=stacktraces, modules=modules
                     )
 
-                metrics.incr('events.symbolicator.status.%s' % rv.status_code, tags={
-                    'project_id': project_id
+                metrics.incr('events.symbolicator.status_code', tags={
+                    'status_code': rv.status_code,
+                    'project_id': project_id,
                 })
 
                 if rv.status_code == 404 and request_id:
@@ -76,10 +77,10 @@ def run_symbolicator(stacktraces, modules, project, arch, signal, request_id_cac
 
                 rv.raise_for_status()
                 json = rv.json()
-                metrics.incr(
-                    'events.symbolicator.response.%s' % json['status'],
-                    tags={'project_id': project_id}
-                )
+                metrics.incr('events.symbolicator.response.%s', tags={
+                    'response': json['status'],
+                    'project_id': project_id,
+                })
 
                 if json['status'] == 'pending':
                     default_cache.set(
