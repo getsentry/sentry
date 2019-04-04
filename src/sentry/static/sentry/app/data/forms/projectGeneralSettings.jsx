@@ -175,7 +175,7 @@ export const fields = {
     name: 'groupingEnhancements',
     type: 'string',
     label: t('Custom Grouping Enhancements'),
-    placeholder: t('function:raise_an_exception ^-keep\nfunction:namespace::* +app'),
+    placeholder: t('function:raise_an_exception ^-group\nfunction:namespace::* +app'),
     multiline: true,
     monospace: true,
     autosize: true,
@@ -197,8 +197,8 @@ export const fields = {
           )}
         </div>
         <pre>
-          {'# discard all frames above a certain function\n' +
-            'function:panic_handler      ^-keep\n' +
+          {'# remove all frames above a certain function from grouping\n' +
+            'function:panic_handler      ^-group\n' +
             '# mark all functions following a prefix in-app\n' +
             'function:mylibrary_*        +app\n'}
         </pre>
