@@ -7,6 +7,7 @@ from rest_framework import serializers
 from sentry.models import ProjectOption
 from sentry.api.fields import MultipleChoiceField
 from sentry.utils.data_filters import FilterStatKeys
+from sentry.utils.safe import get_path
 
 """
 For default (legacy) filter
@@ -81,7 +82,7 @@ class LegacyBrowsersFilter(Filter):
 
     def get_user_agent(self, data):
         try:
-            for key, value in data['request']['headers']:
+            for key, value in get_path(data, 'request', 'headers', filter=True):
                 if key.lower() == 'user-agent':
                     return value
         except LookupError:
