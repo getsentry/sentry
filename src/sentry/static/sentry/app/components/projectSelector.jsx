@@ -217,40 +217,40 @@ class ProjectSelector extends React.Component {
         virtualizedHeight={theme.headerSelectorRowHeight}
         emptyHidesInput
         inputActions={({actions}) => (
-          <React.Fragment>
-            {multi &&
-              hasChanges && (
-                <SubmitButton
-                  onClick={() => onUpdate(actions)}
-                  size="xsmall"
-                  priority="primary"
-                >
-                  Submit
-                </SubmitButton>
-              )}
-              <AddButton
-                disabled={!hasProjectWrite}
-                to={`/organizations/${org.slug}/projects/new/`}
-                size="xsmall"
-                title={
-                  hasProjectWrite ? null : t("You don't have permission to add a project")
-                }
-              >
-                <StyledAddIcon src="icon-circle-add" /> {t('Project')}
-              </AddButton>
-          </React.Fragment>
+          <AddButton
+            disabled={!hasProjectWrite}
+            to={`/organizations/${org.slug}/projects/new/`}
+            size="xsmall"
+            title={
+              hasProjectWrite ? null : t("You don't have permission to add a project")
+            }
+          >
+            <StyledAddIcon src="icon-circle-add" /> {t('Project')}
+          </AddButton>
         )}
         menuFooter={renderProps => {
           const renderedFooter =
             typeof menuFooter === 'function' ? menuFooter(renderProps) : menuFooter;
           const showCreateProjectButton = !hasProjects && hasProjectWrite;
+          const showSubmitButton = multi && hasChanges;
 
-          if (!renderedFooter && !showCreateProjectButton) {
+          if (!renderedFooter && !showCreateProjectButton && !showSubmitButton) {
             return null;
           }
 
           return (
             <React.Fragment>
+              {showSubmitButton && (
+                  <SubmitButtonContainer>
+                    <SubmitButton
+                      onClick={() => onUpdate(actions)}
+                      size="xsmall"
+                      priority="primary"
+                    >
+                      Submit
+                    </SubmitButton>
+                  </SubmitButtonContainer>
+              )}
               {showCreateProjectButton && (
                 <CreateProjectButton
                   priority="primary"
@@ -414,8 +414,14 @@ const AddButton = styled(Button)`
   }
 `;
 
+const SubmitButtonContainer = styled('div')`
+  display: flex;
+  justify-content: flex-end;
+`;
+
 const SubmitButton = styled(Button)`
   animation: 0.1s ${growIn} ease-in;
+  margin: ${space(0.5)} 0;
 `;
 
 const BadgeWrapper = styled('div')`
