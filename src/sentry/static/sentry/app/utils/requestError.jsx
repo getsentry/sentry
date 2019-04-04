@@ -32,6 +32,12 @@ export default class RequestError extends Error {
     // Drop some frames so stacktrace starts at callsite
     //
     // Note that babel will add a call to support extending Error object
+
+    // Old browsers may not have stacktrace
+    if (!this.stack) {
+      return;
+    }
+
     const lines = this.stack.split('\n');
     this.stack = [lines[0], ...lines.slice(numLinesToRemove)].join('\n');
   }
