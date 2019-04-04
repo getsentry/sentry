@@ -533,6 +533,9 @@ class Exception(Interface):
 
         output = []
         for exc in self.values:
+            if not exc:
+                continue
+
             output.append(u'{0}: {1}\n'.format(exc.type, exc.value))
             if exc.stacktrace:
                 output.append(
