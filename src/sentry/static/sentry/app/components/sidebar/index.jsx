@@ -564,6 +564,7 @@ const StyledSidebar = styled('div')`
   top: 0;
   left: 0;
   bottom: 0;
+  overflow: auto;
   justify-content: space-between;
   z-index: ${p => p.theme.zIndex.sidebar};
   ${responsiveFlex};
