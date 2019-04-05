@@ -12,7 +12,7 @@ from django.utils import timezone
 
 from sentry.constants import MAX_TAG_KEY_LENGTH, MAX_TAG_VALUE_LENGTH
 from sentry.db.models import (
-    Model, BoundedPositiveIntegerField, GzippedDictField, BaseManager, sane_repr
+    Model, BoundedBigIntegerField, BoundedPositiveIntegerField, GzippedDictField, BaseManager, sane_repr
 )
 
 
@@ -22,7 +22,7 @@ class TagValue(Model):
     """
     __core__ = False
 
-    project_id = BoundedPositiveIntegerField(db_index=True, null=True)
+    project_id = BoundedBigIntegerField(db_index=True, null=True)
     key = models.CharField(max_length=MAX_TAG_KEY_LENGTH)
     value = models.CharField(max_length=MAX_TAG_VALUE_LENGTH)
     data = GzippedDictField(blank=True, null=True)
