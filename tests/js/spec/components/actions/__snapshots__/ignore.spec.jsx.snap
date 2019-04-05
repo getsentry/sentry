@@ -6314,6 +6314,7 @@ exports[`IgnoreActions without confirmation renders 1`] = `
       >
         <a
           className="btn btn-default btn-sm"
+          data-test-id="action-link-ignore"
           disabled={false}
           onClick={[Function]}
         >
@@ -6479,6 +6480,7 @@ exports[`IgnoreActions without confirmation renders 1`] = `
                             >
                               <a
                                 className=""
+                                data-test-id="action-link-ignore"
                                 disabled={false}
                                 onClick={[Function]}
                               >
@@ -6512,6 +6514,7 @@ exports[`IgnoreActions without confirmation renders 1`] = `
                             >
                               <a
                                 className=""
+                                data-test-id="action-link-ignore"
                                 disabled={false}
                                 onClick={[Function]}
                               >
@@ -6545,6 +6548,7 @@ exports[`IgnoreActions without confirmation renders 1`] = `
                             >
                               <a
                                 className=""
+                                data-test-id="action-link-ignore"
                                 disabled={false}
                                 onClick={[Function]}
                               >
@@ -6578,6 +6582,7 @@ exports[`IgnoreActions without confirmation renders 1`] = `
                             >
                               <a
                                 className=""
+                                data-test-id="action-link-ignore"
                                 disabled={false}
                                 onClick={[Function]}
                               >
@@ -6611,6 +6616,7 @@ exports[`IgnoreActions without confirmation renders 1`] = `
                             >
                               <a
                                 className=""
+                                data-test-id="action-link-ignore"
                                 disabled={false}
                                 onClick={[Function]}
                               >
@@ -6769,6 +6775,7 @@ exports[`IgnoreActions without confirmation renders 1`] = `
                                       >
                                         <a
                                           className=""
+                                          data-test-id="action-link-ignore"
                                           disabled={false}
                                           onClick={[Function]}
                                         >
@@ -6796,6 +6803,7 @@ exports[`IgnoreActions without confirmation renders 1`] = `
                                       >
                                         <a
                                           className=""
+                                          data-test-id="action-link-ignore"
                                           disabled={false}
                                           onClick={[Function]}
                                         >
@@ -6823,6 +6831,7 @@ exports[`IgnoreActions without confirmation renders 1`] = `
                                       >
                                         <a
                                           className=""
+                                          data-test-id="action-link-ignore"
                                           disabled={false}
                                           onClick={[Function]}
                                         >
@@ -6850,6 +6859,7 @@ exports[`IgnoreActions without confirmation renders 1`] = `
                                       >
                                         <a
                                           className=""
+                                          data-test-id="action-link-ignore"
                                           disabled={false}
                                           onClick={[Function]}
                                         >
@@ -6929,6 +6939,7 @@ exports[`IgnoreActions without confirmation renders 1`] = `
                                       >
                                         <a
                                           className=""
+                                          data-test-id="action-link-ignore"
                                           disabled={false}
                                           onClick={[Function]}
                                         >
@@ -6956,6 +6967,7 @@ exports[`IgnoreActions without confirmation renders 1`] = `
                                       >
                                         <a
                                           className=""
+                                          data-test-id="action-link-ignore"
                                           disabled={false}
                                           onClick={[Function]}
                                         >
@@ -6983,6 +6995,7 @@ exports[`IgnoreActions without confirmation renders 1`] = `
                                       >
                                         <a
                                           className=""
+                                          data-test-id="action-link-ignore"
                                           disabled={false}
                                           onClick={[Function]}
                                         >
@@ -7010,6 +7023,7 @@ exports[`IgnoreActions without confirmation renders 1`] = `
                                       >
                                         <a
                                           className=""
+                                          data-test-id="action-link-ignore"
                                           disabled={false}
                                           onClick={[Function]}
                                         >
@@ -7089,6 +7103,7 @@ exports[`IgnoreActions without confirmation renders 1`] = `
                                       >
                                         <a
                                           className=""
+                                          data-test-id="action-link-ignore"
                                           disabled={false}
                                           onClick={[Function]}
                                         >
@@ -7116,6 +7131,7 @@ exports[`IgnoreActions without confirmation renders 1`] = `
                                       >
                                         <a
                                           className=""
+                                          data-test-id="action-link-ignore"
                                           disabled={false}
                                           onClick={[Function]}
                                         >
@@ -7143,6 +7159,7 @@ exports[`IgnoreActions without confirmation renders 1`] = `
                                       >
                                         <a
                                           className=""
+                                          data-test-id="action-link-ignore"
                                           disabled={false}
                                           onClick={[Function]}
                                         >
@@ -7170,6 +7187,7 @@ exports[`IgnoreActions without confirmation renders 1`] = `
                                       >
                                         <a
                                           className=""
+                                          data-test-id="action-link-ignore"
                                           disabled={false}
                                           onClick={[Function]}
                                         >
@@ -7249,6 +7267,7 @@ exports[`IgnoreActions without confirmation renders 1`] = `
                                       >
                                         <a
                                           className=""
+                                          data-test-id="action-link-ignore"
                                           disabled={false}
                                           onClick={[Function]}
                                         >
@@ -7276,6 +7295,7 @@ exports[`IgnoreActions without confirmation renders 1`] = `
                                       >
                                         <a
                                           className=""
+                                          data-test-id="action-link-ignore"
                                           disabled={false}
                                           onClick={[Function]}
                                         >
@@ -7303,6 +7323,7 @@ exports[`IgnoreActions without confirmation renders 1`] = `
                                       >
                                         <a
                                           className=""
+                                          data-test-id="action-link-ignore"
                                           disabled={false}
                                           onClick={[Function]}
                                         >
@@ -7330,6 +7351,7 @@ exports[`IgnoreActions without confirmation renders 1`] = `
                                       >
                                         <a
                                           className=""
+                                          data-test-id="action-link-ignore"
                                           disabled={false}
                                           onClick={[Function]}
                                         >
@@ -7409,6 +7431,7 @@ exports[`IgnoreActions without confirmation renders 1`] = `
                                       >
                                         <a
                                           className=""
+                                          data-test-id="action-link-ignore"
                                           disabled={false}
                                           onClick={[Function]}
                                         >
@@ -7436,6 +7459,7 @@ exports[`IgnoreActions without confirmation renders 1`] = `
                                       >
                                         <a
                                           className=""
+                                          data-test-id="action-link-ignore"
                                           disabled={false}
                                           onClick={[Function]}
                                         >
@@ -7463,6 +7487,7 @@ exports[`IgnoreActions without confirmation renders 1`] = `
                                       >
                                         <a
                                           className=""
+                                          data-test-id="action-link-ignore"
                                           disabled={false}
                                           onClick={[Function]}
                                         >
@@ -7490,6 +7515,7 @@ exports[`IgnoreActions without confirmation renders 1`] = `
                                       >
                                         <a
                                           className=""
+                                          data-test-id="action-link-ignore"
                                           disabled={false}
                                           onClick={[Function]}
                                         >
@@ -7569,6 +7595,7 @@ exports[`IgnoreActions without confirmation renders 1`] = `
                                       >
                                         <a
                                           className=""
+                                          data-test-id="action-link-ignore"
                                           disabled={false}
                                           onClick={[Function]}
                                         >
@@ -7596,6 +7623,7 @@ exports[`IgnoreActions without confirmation renders 1`] = `
                                       >
                                         <a
                                           className=""
+                                          data-test-id="action-link-ignore"
                                           disabled={false}
                                           onClick={[Function]}
                                         >
@@ -7623,6 +7651,7 @@ exports[`IgnoreActions without confirmation renders 1`] = `
                                       >
                                         <a
                                           className=""
+                                          data-test-id="action-link-ignore"
                                           disabled={false}
                                           onClick={[Function]}
                                         >
@@ -7650,6 +7679,7 @@ exports[`IgnoreActions without confirmation renders 1`] = `
                                       >
                                         <a
                                           className=""
+                                          data-test-id="action-link-ignore"
                                           disabled={false}
                                           onClick={[Function]}
                                         >
@@ -7807,6 +7837,7 @@ exports[`IgnoreActions without confirmation renders 1`] = `
                                       >
                                         <a
                                           className=""
+                                          data-test-id="action-link-ignore"
                                           disabled={false}
                                           onClick={[Function]}
                                         >
@@ -7834,6 +7865,7 @@ exports[`IgnoreActions without confirmation renders 1`] = `
                                       >
                                         <a
                                           className=""
+                                          data-test-id="action-link-ignore"
                                           disabled={false}
                                           onClick={[Function]}
                                         >
@@ -7861,6 +7893,7 @@ exports[`IgnoreActions without confirmation renders 1`] = `
                                       >
                                         <a
                                           className=""
+                                          data-test-id="action-link-ignore"
                                           disabled={false}
                                           onClick={[Function]}
                                         >
@@ -7888,6 +7921,7 @@ exports[`IgnoreActions without confirmation renders 1`] = `
                                       >
                                         <a
                                           className=""
+                                          data-test-id="action-link-ignore"
                                           disabled={false}
                                           onClick={[Function]}
                                         >
@@ -7967,6 +8001,7 @@ exports[`IgnoreActions without confirmation renders 1`] = `
                                       >
                                         <a
                                           className=""
+                                          data-test-id="action-link-ignore"
                                           disabled={false}
                                           onClick={[Function]}
                                         >
@@ -7994,6 +8029,7 @@ exports[`IgnoreActions without confirmation renders 1`] = `
                                       >
                                         <a
                                           className=""
+                                          data-test-id="action-link-ignore"
                                           disabled={false}
                                           onClick={[Function]}
                                         >
@@ -8021,6 +8057,7 @@ exports[`IgnoreActions without confirmation renders 1`] = `
                                       >
                                         <a
                                           className=""
+                                          data-test-id="action-link-ignore"
                                           disabled={false}
                                           onClick={[Function]}
                                         >
@@ -8048,6 +8085,7 @@ exports[`IgnoreActions without confirmation renders 1`] = `
                                       >
                                         <a
                                           className=""
+                                          data-test-id="action-link-ignore"
                                           disabled={false}
                                           onClick={[Function]}
                                         >
@@ -8127,6 +8165,7 @@ exports[`IgnoreActions without confirmation renders 1`] = `
                                       >
                                         <a
                                           className=""
+                                          data-test-id="action-link-ignore"
                                           disabled={false}
                                           onClick={[Function]}
                                         >
@@ -8154,6 +8193,7 @@ exports[`IgnoreActions without confirmation renders 1`] = `
                                       >
                                         <a
                                           className=""
+                                          data-test-id="action-link-ignore"
                                           disabled={false}
                                           onClick={[Function]}
                                         >
@@ -8181,6 +8221,7 @@ exports[`IgnoreActions without confirmation renders 1`] = `
                                       >
                                         <a
                                           className=""
+                                          data-test-id="action-link-ignore"
                                           disabled={false}
                                           onClick={[Function]}
                                         >
@@ -8208,6 +8249,7 @@ exports[`IgnoreActions without confirmation renders 1`] = `
                                       >
                                         <a
                                           className=""
+                                          data-test-id="action-link-ignore"
                                           disabled={false}
                                           onClick={[Function]}
                                         >
@@ -8287,6 +8329,7 @@ exports[`IgnoreActions without confirmation renders 1`] = `
                                       >
                                         <a
                                           className=""
+                                          data-test-id="action-link-ignore"
                                           disabled={false}
                                           onClick={[Function]}
                                         >
@@ -8314,6 +8357,7 @@ exports[`IgnoreActions without confirmation renders 1`] = `
                                       >
                                         <a
                                           className=""
+                                          data-test-id="action-link-ignore"
                                           disabled={false}
                                           onClick={[Function]}
                                         >
@@ -8341,6 +8385,7 @@ exports[`IgnoreActions without confirmation renders 1`] = `
                                       >
                                         <a
                                           className=""
+                                          data-test-id="action-link-ignore"
                                           disabled={false}
                                           onClick={[Function]}
                                         >
@@ -8368,6 +8413,7 @@ exports[`IgnoreActions without confirmation renders 1`] = `
                                       >
                                         <a
                                           className=""
+                                          data-test-id="action-link-ignore"
                                           disabled={false}
                                           onClick={[Function]}
                                         >
@@ -8447,6 +8493,7 @@ exports[`IgnoreActions without confirmation renders 1`] = `
                                       >
                                         <a
                                           className=""
+                                          data-test-id="action-link-ignore"
                                           disabled={false}
                                           onClick={[Function]}
                                         >
@@ -8474,6 +8521,7 @@ exports[`IgnoreActions without confirmation renders 1`] = `
                                       >
                                         <a
                                           className=""
+                                          data-test-id="action-link-ignore"
                                           disabled={false}
                                           onClick={[Function]}
                                         >
@@ -8501,6 +8549,7 @@ exports[`IgnoreActions without confirmation renders 1`] = `
                                       >
                                         <a
                                           className=""
+                                          data-test-id="action-link-ignore"
                                           disabled={false}
                                           onClick={[Function]}
                                         >
@@ -8528,6 +8577,7 @@ exports[`IgnoreActions without confirmation renders 1`] = `
                                       >
                                         <a
                                           className=""
+                                          data-test-id="action-link-ignore"
                                           disabled={false}
                                           onClick={[Function]}
                                         >
@@ -8607,6 +8657,7 @@ exports[`IgnoreActions without confirmation renders 1`] = `
                                       >
                                         <a
                                           className=""
+                                          data-test-id="action-link-ignore"
                                           disabled={false}
                                           onClick={[Function]}
                                         >
@@ -8634,6 +8685,7 @@ exports[`IgnoreActions without confirmation renders 1`] = `
                                       >
                                         <a
                                           className=""
+                                          data-test-id="action-link-ignore"
                                           disabled={false}
                                           onClick={[Function]}
                                         >
@@ -8661,6 +8713,7 @@ exports[`IgnoreActions without confirmation renders 1`] = `
                                       >
                                         <a
                                           className=""
+                                          data-test-id="action-link-ignore"
                                           disabled={false}
                                           onClick={[Function]}
                                         >
@@ -8688,6 +8741,7 @@ exports[`IgnoreActions without confirmation renders 1`] = `
                                       >
                                         <a
                                           className=""
+                                          data-test-id="action-link-ignore"
                                           disabled={false}
                                           onClick={[Function]}
                                         >

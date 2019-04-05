@@ -121,6 +121,7 @@ export default class IgnoreActions extends React.Component {
         <div className="btn-group">
           <ActionLink
             {...actionLinkProps}
+            title="Ignore"
             className={linkClassName}
             onAction={() => onUpdate({status: 'ignored'})}
           >

@@ -73,6 +73,7 @@ export default class ResolveActions extends React.Component {
         <div className="btn-group">
           <Tooltip title={t('Unresolve')}>
             <a
+              data-test-id="button-unresolve"
               className={this.getButtonClass('active')}
               onClick={() => onUpdate({status: 'unresolved'})}
             >
@@ -128,7 +129,7 @@ export default class ResolveActions extends React.Component {
         <div className="btn-group">
           <ActionLink
             {...actionLinkProps}
-            title={'Resolve'}
+            title="Resolve"
             className={buttonClass}
             onAction={() => onUpdate({status: 'resolved'})}
           >

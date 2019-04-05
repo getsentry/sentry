@@ -798,6 +798,8 @@ class AcceptanceTestCase(TransactionTestCase):
             name=settings.SESSION_COOKIE_NAME,
             value=self.session.session_key,
         )
+        # Forward session cookie to django client.
+        self.client.cookies[settings.SESSION_COOKIE_NAME] = self.session.session_key
 
 
 class IntegrationTestCase(TestCase):
