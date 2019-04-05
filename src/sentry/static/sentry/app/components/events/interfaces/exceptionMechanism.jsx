@@ -6,6 +6,7 @@ import Pill from 'app/components/pill';
 import Hovercard from 'app/components/hovercard';
 import InlineSvg from 'app/components/inlineSvg';
 import {t} from 'app/locale';
+import {isUrl} from 'app/utils';
 
 class ExceptionMechanism extends React.Component {
   static propTypes = {
@@ -41,7 +42,7 @@ class ExceptionMechanism extends React.Component {
     const {type, description, help_link, handled, meta = {}, data = {}} = mechanism;
     const {errno, signal, mach_exception} = meta;
 
-    const linkElement = help_link && (
+    const linkElement = help_link && isUrl(help_link) && (
       <a href={help_link} className="external-icon">
         <em className="icon-open" />
       </a>

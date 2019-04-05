@@ -72,6 +72,37 @@ exports[`ExceptionMechanism basic attributes should add the help_link to the des
 </div>
 `;
 
+exports[`ExceptionMechanism basic attributes should not add the help_link if not starts with http(s) 1`] = `
+<div
+  className="exception-mechanism"
+>
+  <Pills>
+    <Pill
+      key="mechanism"
+      name="mechanism"
+      value="generic"
+    >
+      <Hovercard
+        body="Nothing to see here."
+        containerClassName="pill-icon"
+        displayTimeout={100}
+        header={
+          <span>
+            Details
+             
+          </span>
+        }
+      >
+        <InlineSvg
+          size="14px"
+          src="icon-circle-info"
+        />
+      </Hovercard>
+    </Pill>
+  </Pills>
+</div>
+`;
+
 exports[`ExceptionMechanism basic attributes should render a description hovercard 1`] = `
 <div
   className="exception-mechanism"
