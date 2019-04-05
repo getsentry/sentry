@@ -1,9 +1,9 @@
 from __future__ import absolute_import
 
-
+from exam import mock
 from sentry.models import Integration
 from sentry.testutils import AcceptanceTestCase
-from tests.acceptance.testutils import ExampleProviderElement, OrganizationIntegrationSettingsPage
+from tests.acceptance.page_objects.organization_integration_settings import OrganizationIntegrationSettingsPage
 
 
 class OrganizationIntegrationAcceptanceTestCase(AcceptanceTestCase):
@@ -64,15 +64,11 @@ class OrganizationIntegrationSettingsTest(OrganizationIntegrationAcceptanceTestC
         super(OrganizationIntegrationSettingsTest, self).setUp()
         self.browser.get(u'/settings/{}/integrations/'.format(self.organization.slug))
         self.browser.wait_until_not('.loading-indicator')
-        self.page = OrganizationIntegrationSettingsPage(self.browser)
-        self.provider_key = 'example'
-
-    def assert_can_setup_integration(self):
-        """
-        - Add information to setup steps and succefully add new integration
-        """
-        provider_element = ExampleProviderElement({'name': 'Example Installation'})
-        self.page.create_new_installation(provider_element)
+        self.provider = mock.Mock()
+        self.provider.key = 'example'
+        self.provider.name = 'Example Installation'
+        self.page = OrganizationIntegrationSettingsPage(
+            browser=self.browser, providers=[self.provider])
 
     def test_add_multiple_integrations_to_one_provider(self):
         pass
@@ -84,7 +80,8 @@ class OrganizationIntegrationSettingsTest(OrganizationIntegrationAcceptanceTestC
         - View that repository in list of repositories
         - View integration in Linked Issues section
         """
-        self.assert_can_setup_integration()
+        installation_data = {'name': self.provider.name}
+        self.page.create_new_installation(self.provider.key, installation_data)
 
     def test_setup_new_integration_with_issue_sync(self):
         """
