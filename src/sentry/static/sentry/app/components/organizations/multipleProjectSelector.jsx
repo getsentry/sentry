@@ -157,19 +157,17 @@ export default class MultipleProjectSelector extends React.PureComponent {
         onClose={this.handleClose}
         onMultiSelect={this.handleMultiSelect}
         rootClassName={rootContainerStyles}
-        menuFooter={({actions}) => {
-          return showSubmitButton && (
-              <SubmitButtonContainer>
-                <SubmitButton
-                  onClick={() => this.handleUpdate(actions)}
-                  size="xsmall"
-                  priority="primary"
-                >
-                  Apply
-                </SubmitButton>
-              </SubmitButtonContainer>
-          )
-        }}
+        menuFooter={({actions}) => showSubmitButton && (
+          <SubmitButtonContainer>
+            <SubmitButton
+              onClick={() => this.handleUpdate(actions)}
+              size="xsmall"
+              priority="primary"
+            >
+              Apply
+            </SubmitButton>
+          </SubmitButtonContainer>
+        )}
       >
         {({
           getActorProps,
