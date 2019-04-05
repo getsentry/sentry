@@ -83,19 +83,20 @@ class IssueDetailsTest(AcceptanceTestCase, SnubaTestCase):
             platform='javascript'
         )
 
-        self.dismiss_assistant()
-        self.browser.get(
-            u'/organizations/{}/issues/{}/events/{}/'.format(
-                self.org.slug,
-                event.group.id,
-                event.id
+        with self.feature('organizations:sentry10'):
+            self.dismiss_assistant()
+            self.browser.get(
+                u'/organizations/{}/issues/{}/events/{}/'.format(
+                    self.org.slug,
+                    event.group.id,
+                    event.id
+                )
             )
-        )
-        self.wait_until_loaded()
-        self.browser.snapshot('issue details javascript - event details')
+            self.wait_until_loaded()
+            self.browser.snapshot('issue details javascript - event details')
 
-        self.browser.find_element_by_xpath("//a//code[contains(text(), 'curl')]").click()
-        self.browser.snapshot('issue details javascript - event details - curl command')
+            self.browser.find_element_by_xpath("//a//code[contains(text(), 'curl')]").click()
+            self.browser.snapshot('issue details javascript - event details - curl command')
 
     def test_rust_event(self):
         # TODO: This should become its own "rust" platform type
