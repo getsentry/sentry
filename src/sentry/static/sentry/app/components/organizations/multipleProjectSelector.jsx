@@ -5,7 +5,6 @@ import Button from 'app/components/button';
 import {growIn} from 'app/styles/animations';
 import space from 'app/styles/space';
 
-
 import SentryTypes from 'app/sentryTypes';
 import {analytics} from 'app/utils/analytics';
 import getRouteStringFromRoutes from 'app/utils/getRouteStringFromRoutes';
@@ -157,17 +156,19 @@ export default class MultipleProjectSelector extends React.PureComponent {
         onClose={this.handleClose}
         onMultiSelect={this.handleMultiSelect}
         rootClassName={rootContainerStyles}
-        menuFooter={({actions}) => showSubmitButton && (
-          <SubmitButtonContainer>
-            <SubmitButton
-              onClick={() => this.handleUpdate(actions)}
-              size="xsmall"
-              priority="primary"
-            >
-              Apply
-            </SubmitButton>
-          </SubmitButtonContainer>
-        )}
+        menuFooter={({actions}) =>
+          showSubmitButton && (
+            <SubmitButtonContainer>
+              <SubmitButton
+                onClick={() => this.handleUpdate(actions)}
+                size="xsmall"
+                priority="primary"
+              >
+                Apply
+              </SubmitButton>
+            </SubmitButtonContainer>
+          )
+        }
       >
         {({
           getActorProps,
