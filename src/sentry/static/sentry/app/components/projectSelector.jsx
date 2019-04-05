@@ -6,7 +6,7 @@ import {Link} from 'react-router';
 import {analytics} from 'app/utils/analytics';
 import {sortArray} from 'app/utils';
 import {t} from 'app/locale';
-import {alertHighlight, growIn, pulse} from 'app/styles/animations';
+import {alertHighlight, pulse} from 'app/styles/animations';
 import Button from 'app/components/button';
 import ConfigStore from 'app/stores/configStore';
 import InlineSvg from 'app/components/inlineSvg';
@@ -232,25 +232,13 @@ class ProjectSelector extends React.Component {
           const renderedFooter =
             typeof menuFooter === 'function' ? menuFooter(renderProps) : menuFooter;
           const showCreateProjectButton = !hasProjects && hasProjectWrite;
-          const showSubmitButton = multi && hasChanges;
 
-          if (!renderedFooter && !showCreateProjectButton && !showSubmitButton) {
+          if (!renderedFooter && !showCreateProjectButton) {
             return null;
           }
 
           return (
             <React.Fragment>
-              {showSubmitButton && (
-                  <SubmitButtonContainer>
-                    <SubmitButton
-                      onClick={() => onUpdate(actions)}
-                      size="xsmall"
-                      priority="primary"
-                    >
-                      Submit
-                    </SubmitButton>
-                  </SubmitButtonContainer>
-              )}
               {showCreateProjectButton && (
                 <CreateProjectButton
                   priority="primary"
@@ -412,16 +400,6 @@ const AddButton = styled(Button)`
   &:hover {
     color: ${p => p.theme.gray3};
   }
-`;
-
-const SubmitButtonContainer = styled('div')`
-  display: flex;
-  justify-content: flex-end;
-`;
-
-const SubmitButton = styled(Button)`
-  animation: 0.1s ${growIn} ease-in;
-  margin: ${space(0.5)} 0;
 `;
 
 const BadgeWrapper = styled('div')`

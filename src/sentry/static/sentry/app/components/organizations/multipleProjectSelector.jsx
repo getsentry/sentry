@@ -1,6 +1,10 @@
 import PropTypes from 'prop-types';
 import React from 'react';
 import styled, {css} from 'react-emotion';
+import Button from 'app/components/button';
+import {growIn} from 'app/styles/animations';
+import space from 'app/styles/space';
+
 
 import SentryTypes from 'app/sentryTypes';
 import {analytics} from 'app/utils/analytics';
@@ -129,6 +133,7 @@ export default class MultipleProjectSelector extends React.PureComponent {
   render() {
     const {value, projects, multi, forceProject} = this.props;
     const selectedProjectIds = new Set(value);
+    const showSubmitButton = multi && this.state.hasChanges;
 
     const selected = projects.filter(project =>
       selectedProjectIds.has(parseInt(project.id, 10))
@@ -154,6 +159,19 @@ export default class MultipleProjectSelector extends React.PureComponent {
         onMultiSelect={this.handleMultiSelect}
         onUpdate={this.handleUpdate}
         rootClassName={rootContainerStyles}
+        menuFooter={({actions}) => {
+          return showSubmitButton && (
+              <SubmitButtonContainer>
+                <SubmitButton
+                  onClick={() => this.handleUpdate(actions)}
+                  size="xsmall"
+                  priority="primary"
+                >
+                  Apply
+                </SubmitButton>
+              </SubmitButtonContainer>
+          )
+        }}
       >
         {({
           getActorProps,
@@ -192,6 +210,16 @@ const StyledProjectSelector = styled(ProjectSelector)`
   margin: 1px 0 0 -1px;
   border-radius: 0 0 4px 4px;
   width: 110%;
+`;
+
+const SubmitButtonContainer = styled('div')`
+  display: flex;
+  justify-content: flex-end;
+`;
+
+const SubmitButton = styled(Button)`
+  animation: 0.1s ${growIn} ease-in;
+  margin: ${space(0.5)} 0;
 `;
 
 const StyledHeaderItem = styled(HeaderItem)`
