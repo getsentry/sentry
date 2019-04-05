@@ -164,7 +164,7 @@ export default class MultipleProjectSelector extends React.PureComponent {
                 size="xsmall"
                 priority="primary"
               >
-                Apply
+                {t('Apply')}
               </SubmitButton>
             </SubmitButtonContainer>
           )
