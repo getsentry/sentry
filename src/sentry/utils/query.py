@@ -324,17 +324,6 @@ def bulk_delete_objects(model, limit=10000, transaction_id=None,
             table=model._meta.db_table,
             limit=limit,
         )
-    elif db.is_mysql():
-        query = """
-            delete from %(table)s
-            where %(partition_query)s (%(query)s)
-            limit %(limit)d
-        """ % dict(
-            partition_query=(' AND '.join(partition_query)) + (' AND ' if partition_query else ''),
-            query=' AND '.join(query),
-            table=model._meta.db_table,
-            limit=limit,
-        )
     else:
         if logger is not None:
             logger.warning('Using slow deletion strategy due to unknown database')

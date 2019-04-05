@@ -108,7 +108,7 @@ def revoke_api_tokens(object_id, transaction_id=None, timestamp=None, **kwargs):
         queryset = queryset.filter(date_added__lte=timestamp)
 
     # we're using a slow deletion strategy to avoid a lot of custom code for
-    # mysql/postgres
+    # postgres
     has_more = False
     for obj in queryset[:1000]:
         obj.delete()

@@ -9,11 +9,6 @@ from __future__ import absolute_import
 from sentry.models import CommitFileChange
 
 
-def assert_date_resembles(one, two):
-    # this is mostly intended to handle discrepancies between mysql/postgres
-    assert one.replace(microsecond=0) == two.replace(microsecond=0)
-
-
 def assert_mock_called_once_with_partial(mock, *args, **kwargs):
     """
     Similar to ``mock.assert_called_once_with()``, but we dont require all

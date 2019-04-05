@@ -154,15 +154,7 @@ class TeamWithProjectsSerializerTest(TestCase):
         project2 = self.create_project(teams=[team], organization=organization, name='bar')
 
         result = serialize(team, user, TeamWithProjectsSerializer())
-        result.pop('dateCreated')
-
-        # don't compare dateCreated because of mysql
         serialized_projects = serialize([project2, project], user)
-        for p in serialized_projects:
-            p.pop('dateCreated')
-
-        for p in result['projects']:
-            p.pop('dateCreated')
 
         assert result == {
             'slug': team.slug,
@@ -176,5 +168,6 @@ class TeamWithProjectsSerializerTest(TestCase):
                 'avatarType': 'letter_avatar',
                 'avatarUuid': None,
             },
-            'memberCount': 0
+            'memberCount': 0,
+            'dateCreated': team.date_added,
         }

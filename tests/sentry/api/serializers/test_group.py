@@ -32,7 +32,7 @@ class GroupSerializerTest(TestCase):
         assert 'platform' in result['project']
 
     def test_is_ignored_with_expired_snooze(self):
-        now = timezone.now().replace(microsecond=0)
+        now = timezone.now()
 
         user = self.create_user()
         group = self.create_group(
@@ -48,7 +48,7 @@ class GroupSerializerTest(TestCase):
         assert result['statusDetails'] == {}
 
     def test_is_ignored_with_valid_snooze(self):
-        now = timezone.now().replace(microsecond=0)
+        now = timezone.now()
 
         user = self.create_user()
         group = self.create_group(
@@ -69,7 +69,7 @@ class GroupSerializerTest(TestCase):
         assert result['statusDetails']['actor'] is None
 
     def test_is_ignored_with_valid_snooze_and_actor(self):
-        now = timezone.now().replace(microsecond=0)
+        now = timezone.now()
 
         user = self.create_user()
         group = self.create_group(

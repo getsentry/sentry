@@ -119,13 +119,6 @@ class DatabaseOperations(object):
         connection = self._get_connection()
         if hasattr(connection.features, "confirm") and not connection.features._confirmed:
             connection.features.confirm()
-        # Django 1.3's MySQLdb backend doesn't raise DatabaseError
-        exceptions = (DatabaseError, )
-        try:
-            from MySQLdb import OperationalError
-            exceptions += (OperationalError, )
-        except ImportError:
-            pass
         # Now do the test
         if getattr(connection.features, 'supports_transactions', True):
             cursor = connection.cursor()
@@ -135,7 +128,7 @@ class DatabaseOperations(object):
             try:
                 try:
                     cursor.execute('CREATE TABLE DDL_TRANSACTION_TEST (X INT)')
-                except exceptions:
+                except DatabaseError:
                     return False
                 else:
                     return True
@@ -253,7 +246,7 @@ class DatabaseOperations(object):
     def connection_init(self):
         """
         Run before any SQL to let database-specific config be sent as a command,
-        e.g. which storage engine (MySQL) or transaction serialisability level.
+        e.g. which storage engine or transaction serialisability level.
         """
         pass
 
@@ -353,7 +346,7 @@ class DatabaseOperations(object):
         """
 
         if len(table_name) > 63:
-            print("   ! WARNING: You have a table name longer than 63 characters; this will not fully work on PostgreSQL or MySQL.")
+            print("   ! WARNING: You have a table name longer than 63 characters; this will not fully work on PostgreSQL.")
 
         # avoid default values in CREATE TABLE statements (#925)
         for field_name, field in fields:
@@ -550,7 +543,7 @@ class DatabaseOperations(object):
                 flatten(values),
             )
         else:
-            # Databases like e.g. MySQL don't like more than one alter at once.
+            # Some databases don't like more than one alter at once.
             for sql, values in sqls:
                 self.execute("ALTER TABLE %s %s;" % (self.quote_name(table_name), sql), values)
 
@@ -684,7 +677,7 @@ class DatabaseOperations(object):
         if hasattr(field, 'south_init'):
             field.south_init()
 
-        # Possible hook to fiddle with the fields (e.g. defaults & TEXT on MySQL)
+        # Possible hook to fiddle with the fields
         field = self._field_sanity(field)
 
         try:
@@ -780,8 +773,7 @@ class DatabaseOperations(object):
 
     def _field_sanity(self, field):
         """
-        Placeholder for DBMS-specific field alterations (some combos aren't valid,
-        e.g. DEFAULT and TEXT on MySQL)
+        Placeholder for DBMS-specific field alterations (some combos aren't valid)
         """
         return field
 

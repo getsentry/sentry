@@ -70,7 +70,7 @@ class GroupListTest(APITestCase):
         assert 'could not' in response.data['detail']
 
     def test_simple_pagination(self):
-        now = timezone.now().replace(microsecond=0)
+        now = timezone.now()
         group1 = self.create_group(
             checksum='a' * 32,
             last_seen=now - timedelta(seconds=1),
@@ -1267,10 +1267,8 @@ class GroupUpdateTest(APITestCase):
         assert response.status_code == 200
 
         snooze = GroupSnooze.objects.get(group=group)
-        snooze.until = snooze.until.replace(microsecond=0)
 
-        # Drop microsecond value for MySQL
-        now = timezone.now().replace(microsecond=0)
+        now = timezone.now()
 
         assert snooze.count is None
         assert snooze.until > now + timedelta(minutes=29)
@@ -1278,12 +1276,6 @@ class GroupUpdateTest(APITestCase):
         assert snooze.user_count is None
         assert snooze.user_window is None
         assert snooze.window is None
-
-        # Drop microsecond value for MySQL
-        response.data['statusDetails']['ignoreUntil'] = response.data['statusDetails'
-                                                                      ]['ignoreUntil'].replace(
-                                                                          microsecond=0
-                                                                      )  # noqa
 
         assert response.data['status'] == 'ignored'
         assert response.data['statusDetails']['ignoreCount'] == snooze.count

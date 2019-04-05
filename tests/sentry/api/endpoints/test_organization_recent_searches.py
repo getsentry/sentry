@@ -49,8 +49,8 @@ class RecentSearchesListTest(APITestCase):
             user=self.user,
             type=SearchType.EVENT.value,
             query='some test',
-            last_seen=timezone.now().replace(microsecond=0),
-            date_added=timezone.now().replace(microsecond=0),
+            last_seen=timezone.now(),
+            date_added=timezone.now(),
         )
         issue_recent_searches = [
             RecentSearch.objects.create(
@@ -58,24 +58,24 @@ class RecentSearchesListTest(APITestCase):
                 user=self.user,
                 type=SearchType.ISSUE.value,
                 query='some test',
-                last_seen=timezone.now().replace(microsecond=0),
-                date_added=timezone.now().replace(microsecond=0),
+                last_seen=timezone.now(),
+                date_added=timezone.now(),
             ),
             RecentSearch.objects.create(
                 organization=self.organization,
                 user=self.user,
                 type=SearchType.ISSUE.value,
                 query='older query',
-                last_seen=timezone.now().replace(microsecond=0) - timedelta(minutes=30),
-                date_added=timezone.now().replace(microsecond=0) - timedelta(minutes=30),
+                last_seen=timezone.now() - timedelta(minutes=30),
+                date_added=timezone.now() - timedelta(minutes=30),
             ),
             RecentSearch.objects.create(
                 organization=self.organization,
                 user=self.user,
                 type=SearchType.ISSUE.value,
                 query='oldest query',
-                last_seen=timezone.now().replace(microsecond=0) - timedelta(hours=1),
-                date_added=timezone.now().replace(microsecond=0) - timedelta(hours=1),
+                last_seen=timezone.now() - timedelta(hours=1),
+                date_added=timezone.now() - timedelta(hours=1),
             ),
         ]
         self.check_results(issue_recent_searches, search_type=SearchType.ISSUE)
@@ -103,24 +103,24 @@ class RecentSearchesListTest(APITestCase):
                 user=self.user,
                 type=SearchType.ISSUE.value,
                 query='some test',
-                last_seen=timezone.now().replace(microsecond=0),
-                date_added=timezone.now().replace(microsecond=0),
+                last_seen=timezone.now(),
+                date_added=timezone.now(),
             ),
             RecentSearch.objects.create(
                 organization=self.organization,
                 user=self.user,
                 type=SearchType.ISSUE.value,
                 query='older query',
-                last_seen=timezone.now().replace(microsecond=0) - timedelta(minutes=30),
-                date_added=timezone.now().replace(microsecond=0) - timedelta(minutes=30),
+                last_seen=timezone.now() - timedelta(minutes=30),
+                date_added=timezone.now() - timedelta(minutes=30),
             ),
             RecentSearch.objects.create(
                 organization=self.organization,
                 user=self.user,
                 type=SearchType.ISSUE.value,
                 query='oldest query',
-                last_seen=timezone.now().replace(microsecond=0) - timedelta(hours=1),
-                date_added=timezone.now().replace(microsecond=0) - timedelta(hours=1),
+                last_seen=timezone.now() - timedelta(hours=1),
+                date_added=timezone.now() - timedelta(hours=1),
             ),
         ]
         self.check_results(

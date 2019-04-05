@@ -27,7 +27,7 @@ class GroupSerializerSnubaTest(APITestCase, SnubaTestCase):
         self.week_ago = timezone.now() - timedelta(days=7)
 
     def test_is_ignored_with_expired_snooze(self):
-        now = timezone.now().replace(microsecond=0)
+        now = timezone.now()
 
         user = self.create_user()
         group = self.create_group(
@@ -43,7 +43,7 @@ class GroupSerializerSnubaTest(APITestCase, SnubaTestCase):
         assert result['statusDetails'] == {}
 
     def test_is_ignored_with_valid_snooze(self):
-        now = timezone.now().replace(microsecond=0)
+        now = timezone.now()
 
         user = self.create_user()
         group = self.create_group(
@@ -64,7 +64,7 @@ class GroupSerializerSnubaTest(APITestCase, SnubaTestCase):
         assert result['statusDetails']['actor'] is None
 
     def test_is_ignored_with_valid_snooze_and_actor(self):
-        now = timezone.now().replace(microsecond=0)
+        now = timezone.now()
 
         user = self.create_user()
         group = self.create_group(

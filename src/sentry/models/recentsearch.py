@@ -6,7 +6,6 @@ from django.dispatch import receiver
 from django.utils import timezone
 
 from sentry.db.models import FlexibleForeignKey, Model, sane_repr
-from sentry.utils.db import is_mysql
 from sentry.utils.hashlib import md5_text
 
 
@@ -46,9 +45,6 @@ def remove_excess_recent_searches(organization, user, search_type):
         user=user,
         type=search_type,
     ).order_by('-last_seen')[MAX_RECENT_SEARCHES:]
-    if is_mysql():
-        # Mysql doesn't support limits in these types of subqueries
-        recent_searches_to_remove = list(recent_searches_to_remove.values_list("id", flat=True))
     RecentSearch.objects.filter(id__in=recent_searches_to_remove).delete()
 
 

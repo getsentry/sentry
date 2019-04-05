@@ -265,7 +265,7 @@ class Factories(object):
             version = os.urandom(20).encode('hex')
 
         if date_added is None:
-            date_added = timezone.now().replace(microsecond=0)
+            date_added = timezone.now()
 
         release = Release.objects.create(
             version=version,

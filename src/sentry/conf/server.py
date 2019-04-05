@@ -135,8 +135,6 @@ if 'DATABASE_URL' in os.environ:
     if url.scheme == 'postgres':
         DATABASES['default']['ENGINE'] = 'sentry.db.postgres'
 
-    if url.scheme == 'mysql':
-        DATABASES['default']['ENGINE'] = 'django.db.backends.mysql'
 
 # This should always be UTC.
 TIME_ZONE = 'UTC'
