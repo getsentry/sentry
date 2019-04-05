@@ -11,7 +11,6 @@ class HeaderItem extends React.Component {
     allowClear: PropTypes.bool,
     icon: PropTypes.element,
     onClear: PropTypes.func,
-    onSubmit: PropTypes.func,
     hasChanges: PropTypes.bool,
     hasSelected: PropTypes.bool,
     isOpen: PropTypes.bool,
@@ -39,7 +38,6 @@ class HeaderItem extends React.Component {
       locked,
       lockedMessage,
       onClear, // eslint-disable-line no-unused-vars
-      onSubmit, // eslint-disable-line no-unused-vars
       ...props
     } = this.props;
 

@@ -310,14 +310,10 @@ class TimeRangeSelector extends React.PureComponent {
             <StyledHeaderItem
               icon={<StyledInlineSvg src="icon-calendar" />}
               isOpen={isOpen}
-              hasSelected={
-                (!!this.props.relative && this.props.relative !== DEFAULT_STATS_PERIOD) ||
-                isAbsoluteSelected
-              }
               hasChanges={this.state.hasChanges}
+              hasSelected={this.props.relative !== DEFAULT_STATS_PERIOD}
               onClear={this.handleClear}
               allowClear={true}
-              onSubmit={this.handleCloseMenu}
               {...getActorProps({isStyled: true})}
             >
               {getDynamicText({value: summary, fixed: 'start to end'})}

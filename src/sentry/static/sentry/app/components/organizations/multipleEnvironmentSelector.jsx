@@ -259,8 +259,6 @@ class MultipleEnvironmentSelector extends React.PureComponent {
             icon={<StyledInlineSvg src="icon-window" />}
             isOpen={isOpen}
             hasSelected={value && !!value.length}
-            hasChanges={this.state.hasChanges}
-            onSubmit={() => this.handleUpdate(actions)}
             onClear={this.handleClear}
             {...getActorProps({
               isStyled: true,
