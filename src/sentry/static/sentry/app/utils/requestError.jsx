@@ -1,7 +1,7 @@
 export default class RequestError extends Error {
   constructor(method, path) {
     super(`${method || 'GET'} ${path}`);
-    this.name = new.target.prototype.constructor.name;
+    this.name = 'RequestError';
     Object.setPrototypeOf(this, new.target.prototype);
   }
 

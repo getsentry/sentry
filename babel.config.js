@@ -14,7 +14,6 @@ module.exports = {
     // https://babeljs.io/docs/en/plugins#plugin-ordering
     ['@babel/plugin-proposal-decorators', {legacy: true}],
     ['@babel/plugin-proposal-class-properties', {loose: true}],
-    ['babel-plugin-transform-builtin-extend', {globals: ['Array', 'Error']}],
   ],
   env: {
     production: {},
