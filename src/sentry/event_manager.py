@@ -50,7 +50,7 @@ from sentry.utils.data_filters import (
     FilterStatKeys,
 )
 from sentry.utils.dates import to_timestamp
-from sentry.utils.db import is_postgres, is_mysql
+from sentry.utils.db import is_postgres
 from sentry.utils.safe import safe_execute, trim, get_path, setdefault_path
 from sentry.utils.geo import rust_geoip
 from sentry.utils.validators import is_float
@@ -237,11 +237,6 @@ def scoreclause_sql(sc, connection):
             sql = 'log(times_seen + %d) * 600 + %d' % (sc.times_seen, to_timestamp(sc.last_seen))
         else:
             sql = 'log(times_seen) * 600 + last_seen::abstime::int'
-    elif is_mysql(db):
-        if has_values:
-            sql = 'log(times_seen + %d) * 600 + %d' % (sc.times_seen, to_timestamp(sc.last_seen))
-        else:
-            sql = 'log(times_seen) * 600 + unix_timestamp(last_seen)'
     else:
         # XXX: if we cant do it atomically let's do it the best we can
         sql = int(sc)

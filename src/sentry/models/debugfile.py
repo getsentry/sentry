@@ -37,7 +37,6 @@ from sentry.models.file import File
 from sentry.reprocessing import resolve_processing_issue, \
     bump_reprocessing_revision
 from sentry.utils import metrics
-from sentry.utils.db import mysql_disabled_integrity
 from sentry.utils.zip import safe_extract_zip
 from sentry.utils.decorators import classproperty
 
@@ -205,27 +204,26 @@ class ProjectDebugFile(Model):
     def delete(self, *args, **kwargs):
         dif_id = self.id
 
-        with mysql_disabled_integrity(db=ProjectDebugFile.objects.db):
-            with transaction.atomic():
-                # First, delete the debug file entity. This ensures no other
-                # worker can attach caches to it. Integrity checks are deferred
-                # within this transaction, so existing caches stay intact.
-                super(ProjectDebugFile, self).delete(*args, **kwargs)
+        with transaction.atomic():
+            # First, delete the debug file entity. This ensures no other
+            # worker can attach caches to it. Integrity checks are deferred
+            # within this transaction, so existing caches stay intact.
+            super(ProjectDebugFile, self).delete(*args, **kwargs)
 
-                # Explicitly select referencing caches and delete them. Using
-                # the backref does not work, since `dif.id` is None after the
-                # delete.
-                symcaches = ProjectSymCacheFile.objects \
-                    .filter(debug_file_id=dif_id) \
-                    .select_related('cache_file')
-                for symcache in symcaches:
-                    symcache.delete()
+            # Explicitly select referencing caches and delete them. Using
+            # the backref does not work, since `dif.id` is None after the
+            # delete.
+            symcaches = ProjectSymCacheFile.objects \
+                .filter(debug_file_id=dif_id) \
+                .select_related('cache_file')
+            for symcache in symcaches:
+                symcache.delete()
 
-                cficaches = ProjectCfiCacheFile.objects \
-                    .filter(debug_file_id=dif_id) \
-                    .select_related('cache_file')
-                for cficache in cficaches:
-                    cficache.delete()
+            cficaches = ProjectCfiCacheFile.objects \
+                .filter(debug_file_id=dif_id) \
+                .select_related('cache_file')
+            for cficache in cficaches:
+                cficache.delete()
 
         self.file.delete()
 

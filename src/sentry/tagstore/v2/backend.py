@@ -157,7 +157,7 @@ class V2TagStorage(TagStorage):
 
                 # required to deal with custom SQL queries and the ORM
                 # in `bulk_delete_objects`
-                key_id_field_name = 'key_id' if (db.is_postgres() or db.is_mysql()) else '_key_id'
+                key_id_field_name = 'key_id' if (db.is_postgres()) else '_key_id'
 
                 relations = [
                     ModelRelation(m, query={

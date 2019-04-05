@@ -1,6 +1,5 @@
 from __future__ import absolute_import
 
-import os
 import pytest
 
 from collections import OrderedDict
@@ -16,13 +15,6 @@ from sentry.tagstore import TagKeyStatus
 from sentry.tagstore.v2 import models
 from sentry.tagstore.v2.backend import V2TagStorage, transformers
 from sentry.tagstore.exceptions import TagKeyNotFound, TagValueNotFound, GroupTagKeyNotFound, GroupTagValueNotFound
-
-
-def xfail_if_mysql(function):
-    return pytest.mark.xfail(
-        os.environ.get('TEST_SUITE') == 'mysql',
-        reason='mysql microsecond truncation breaks comparison',
-    )(function)
 
 
 class TagStorage(TestCase):
@@ -98,7 +90,6 @@ class TagStorage(TestCase):
         ).count() == 1
         assert models.TagKey.objects.all().count() == 1
 
-    @xfail_if_mysql
     def test_create_tag_value(self):
         with pytest.raises(TagValueNotFound):
             self.ts.get_tag_value(
@@ -246,7 +237,6 @@ class TagStorage(TestCase):
         ).count() == 1
         assert models.GroupTagKey.objects.all().count() == 1
 
-    @xfail_if_mysql
     def test_create_group_tag_value(self):
         with pytest.raises(GroupTagValueNotFound):
             self.ts.get_group_tag_value(
@@ -631,7 +621,6 @@ class TagStorage(TestCase):
             self.proj1group1.id,
         ) == '2.0'
 
-    @xfail_if_mysql
     def test_get_release_tags(self):
         tv, _ = self.ts.get_or_create_tag_value(
             self.proj1.id,
@@ -662,7 +651,6 @@ class TagStorage(TestCase):
             [self.proj1.id],
             [eu]) == set([self.proj1group1.id])
 
-    @xfail_if_mysql
     def test_get_group_tag_values_for_users(self):
         from sentry.models import EventUser
 

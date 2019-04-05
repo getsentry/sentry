@@ -74,7 +74,6 @@ class TestSentryAppAuthorizations(APITestCase):
             second=0,
             microsecond=0,
         )
-
         assert expires_at == expected_expires_at
 
     def test_incorrect_grant_type(self):
