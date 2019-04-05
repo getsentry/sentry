@@ -97,7 +97,12 @@ class TeamSelect extends React.Component {
         disabled={isDisabled}
       >
         {({isOpen}) => (
-          <DropdownButton isOpen={isOpen} size="xsmall" disabled={isDisabled}>
+          <DropdownButton
+            aria-label={t('Add Team')}
+            isOpen={isOpen}
+            size="xsmall"
+            disabled={isDisabled}
+          >
             {t('Add Team')}
           </DropdownButton>
         )}

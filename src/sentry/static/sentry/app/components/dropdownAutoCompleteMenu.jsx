@@ -405,7 +405,10 @@ class DropdownAutoCompleteMenu extends React.Component {
                   <div>
                     {menuHeader && <LabelWithPadding>{menuHeader}</LabelWithPadding>}
 
-                    <StyledItemList maxHeight={maxHeight}>
+                    <StyledItemList
+                      data-test-id="autocomplete-list"
+                      maxHeight={maxHeight}
+                    >
                       {showNoItems && <EmptyMessage>{emptyMessage}</EmptyMessage>}
                       {showNoResultsMessage && (
                         <EmptyMessage>
