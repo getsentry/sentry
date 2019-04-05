@@ -12,7 +12,7 @@ from django.db import connection, connections
 from django.db.models.signals import post_syncdb
 
 from sentry.db.models import (FlexibleForeignKey, Model, sane_repr, BoundedBigIntegerField)
-from sentry.utils.db import is_mysql, is_postgres, is_sqlite
+from sentry.utils.db import is_postgres, is_sqlite
 
 
 class Counter(Model):
@@ -75,18 +75,6 @@ def increment_project_counter(project, delta=1):
                 ).fetchone()[0]
                 if changes != 0:
                     return value + delta
-        elif is_mysql():
-            cur.execute(
-                '''
-                insert into sentry_projectcounter
-                            (project_id, value)
-                     values (%s, @new_val := %s)
-           on duplicate key
-                     update value = @new_val := value + %s
-            ''', [project.id, delta, delta]
-            )
-            cur.execute('select @new_val')
-            return cur.fetchone()[0]
         else:
             raise AssertionError("Not implemented database engine path")
     finally:

@@ -103,7 +103,7 @@ class Command(NoArgsCommand):
         if verbosity:
             self.stdout.write("Syncing...\n")
 
-        # This will allow the setting of the MySQL storage engine, for example.
+        # This will allow the setting of the storage engine, for example.
         for db in dbs.values():
             db.connection_init()
 

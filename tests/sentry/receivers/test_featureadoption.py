@@ -28,7 +28,7 @@ from sentry.testutils import TestCase
 class FeatureAdoptionTest(TestCase):
     def setUp(self):
         super(FeatureAdoptionTest, self).setUp()
-        self.now = timezone.now().replace(microsecond=0)
+        self.now = timezone.now()
         self.owner = self.create_user()
         self.organization = self.create_organization(owner=self.owner)
         self.team = self.create_team(organization=self.organization)

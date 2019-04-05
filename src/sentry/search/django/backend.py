@@ -20,8 +20,7 @@ from sentry.api.paginator import DateTimePaginator, Paginator, SequencePaginator
 from sentry.api.event_search import InvalidSearchQuery
 from sentry.search.base import SearchBackend
 from sentry.search.django.constants import (
-    MSSQL_ENGINES, MSSQL_SORT_CLAUSES, MYSQL_SORT_CLAUSES, ORACLE_SORT_CLAUSES, SORT_CLAUSES,
-    SQLITE_SORT_CLAUSES
+    SORT_CLAUSES, SQLITE_SORT_CLAUSES,
 )
 from sentry.utils.dates import to_timestamp
 from sentry.utils.db import get_db_engine, is_postgres
@@ -252,12 +251,6 @@ def get_sort_clause(sort_by):
     engine = get_db_engine('default')
     if engine.startswith('sqlite'):
         return SQLITE_SORT_CLAUSES[sort_by]
-    elif engine.startswith('mysql'):
-        return MYSQL_SORT_CLAUSES[sort_by]
-    elif engine.startswith('oracle'):
-        return ORACLE_SORT_CLAUSES[sort_by]
-    elif engine in MSSQL_ENGINES:
-        return MSSQL_SORT_CLAUSES[sort_by]
     else:
         return SORT_CLAUSES[sort_by]
 

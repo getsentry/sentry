@@ -38,17 +38,7 @@ def pytest_configure(config):
     if not settings.configured:
         # only configure the db if its not already done
         test_db = os.environ.get('DB', 'postgres')
-        if test_db == 'mysql':
-            settings.DATABASES['default'].update(
-                {
-                    'ENGINE': 'django.db.backends.mysql',
-                    'NAME': 'sentry',
-                    'USER': 'root',
-                    'HOST': '127.0.0.1',
-                }
-            )
-            # mysql requires running full migration all the time
-        elif test_db == 'postgres':
+        if test_db == 'postgres':
             settings.DATABASES['default'].update(
                 {
                     'ENGINE': 'sentry.db.postgres',

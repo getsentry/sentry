@@ -17,13 +17,6 @@ logger = logging.getLogger('sentry.errors')
 DB_ERRORS = []
 
 try:
-    import MySQLdb
-except ImportError:
-    pass
-else:
-    DB_ERRORS.append(MySQLdb.OperationalError)
-
-try:
     import psycopg2
 except ImportError:
     pass
