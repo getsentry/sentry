@@ -59,17 +59,12 @@ class SelectRequester(Mediator):
 
             response = json.loads(body)
         except Exception as e:
-            if self.project:
-                project = self.project.slug
-            else:
-                project = None
-
             logger.info(
                 'select-requester.error',
                 extra={
                     'sentry_app': self.sentry_app.slug,
                     'install': self.install.uuid,
-                    'project': project,
+                    'project': self.project and self.project.slug,
                     'uri': self.uri,
                     'error_message': e.message,
                 }

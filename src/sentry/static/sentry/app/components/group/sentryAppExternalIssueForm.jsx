@@ -61,7 +61,7 @@ class SentryAppExternalIssueForm extends React.Component {
   );
 
   fieldProps = field => {
-    return field.url
+    return field.uri
       ? {
           loadOptions: input => this.getOptions(field, input),
           async: true,
@@ -69,6 +69,7 @@ class SentryAppExternalIssueForm extends React.Component {
           onSelectResetsInput: false,
           onCloseResetsInput: false,
           onBlurResetsInput: false,
+          autoload: false,
         }
       : {};
   };

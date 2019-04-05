@@ -54,10 +54,7 @@ class Preparer(Mediator):
             field.update({'choices': field['options']})
 
         if 'uri' in field:
-            if 'async' in field:
-                # react-select expects a 'url' field
-                field.update({'url': field['uri']})
-            else:
+            if 'async' not in field:
                 field.update(self._request(field['uri']))
 
     def _request(self, uri):
