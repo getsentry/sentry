@@ -46,7 +46,7 @@ register_strategy_config(
     ],
     changelog='''
         * Traditional grouping algorithm
-        * Some known weeknesses with regards to grouping of native frames
+        * Some known weaknesses with regards to grouping of native frames
     '''
 )
 

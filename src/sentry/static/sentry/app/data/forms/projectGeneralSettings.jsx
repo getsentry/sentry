@@ -169,7 +169,7 @@ export const fields = {
         <code key={id}>{id}</code>,
       ]);
     },
-    help: t('The builtin base version of grouping enhancements.'),
+    help: t('The built-in base version of grouping enhancements.'),
   },
   groupingEnhancements: {
     name: 'groupingEnhancements',
