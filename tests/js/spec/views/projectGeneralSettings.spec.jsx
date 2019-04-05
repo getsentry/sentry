@@ -38,7 +38,7 @@ describe('projectGeneralSettings', function() {
       body: groupingConfigs,
     });
     MockApiClient.addMockResponse({
-      url: `/grouping-enhancements/`,
+      url: '/grouping-enhancements/',
       method: 'GET',
       body: groupingEnhancements,
     });

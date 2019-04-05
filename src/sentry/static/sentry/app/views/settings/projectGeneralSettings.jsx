@@ -51,8 +51,8 @@ class ProjectGeneralSettings extends AsyncView {
     const {orgId, projectId} = this.props.params;
     return [
       ['data', `/projects/${orgId}/${projectId}/`],
-      ['groupingConfigs', `/grouping-configs/`],
-      ['groupingEnhancementBases', `/grouping-enhancements/`],
+      ['groupingConfigs', '/grouping-configs/'],
+      ['groupingEnhancementBases', '/grouping-enhancements/'],
     ];
   }
 
