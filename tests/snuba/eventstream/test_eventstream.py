@@ -9,11 +9,11 @@ from mock import patch, Mock
 from sentry.event_manager import EventManager
 from sentry.eventstream.kafka import KafkaEventStream
 from sentry.eventstream.snuba import SnubaEventStream
-from sentry.testutils import SnubaTestCase
+from sentry.testutils import SnubaTestCase, TestCase
 from sentry.utils import snuba, json
 
 
-class SnubaEventStreamTest(SnubaTestCase):
+class SnubaEventStreamTest(TestCase, SnubaTestCase):
     def setUp(self):
         super(SnubaEventStreamTest, self).setUp()
 

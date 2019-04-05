@@ -19,8 +19,8 @@ class ProjectEventsTest(APITestCase, SnubaTestCase):
 
         project = self.create_project()
         group = self.create_group(project=project)
-        event_1 = self.create_event('a' * 32, group=group, datetime=self.min_ago)
-        event_2 = self.create_event('b' * 32, group=group, datetime=self.min_ago)
+        event_1 = self.create_event(event_id='a' * 32, group=group, datetime=self.min_ago)
+        event_2 = self.create_event(event_id='b' * 32, group=group, datetime=self.min_ago)
 
         url = reverse(
             'sentry-api-0-project-events',
@@ -45,9 +45,13 @@ class ProjectEventsTest(APITestCase, SnubaTestCase):
 
         project = self.create_project()
         group = self.create_group(project=project)
-        self.create_event('x' * 32, group=group, message="how to make fast", datetime=self.min_ago)
+        self.create_event(
+            event_id='x' * 32,
+            group=group,
+            message="how to make fast",
+            datetime=self.min_ago)
         event_2 = self.create_event(
-            'y' * 32,
+            event_id='y' * 32,
             group=group,
             message="Delet the Data",
             datetime=self.min_ago)
@@ -72,8 +76,8 @@ class ProjectEventsTest(APITestCase, SnubaTestCase):
         project = self.create_project()
         group = self.create_group(project=project)
         two_days_ago = timezone.now() - timedelta(days=2)
-        self.create_event('c' * 32, group=group, datetime=two_days_ago)
-        event_2 = self.create_event('d' * 32, group=group, datetime=self.min_ago)
+        self.create_event(event_id='c' * 32, group=group, datetime=two_days_ago)
+        event_2 = self.create_event(event_id='d' * 32, group=group, datetime=self.min_ago)
 
         with self.options({'system.event-retention-days': 1}):
             url = reverse(

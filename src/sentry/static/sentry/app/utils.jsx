@@ -132,6 +132,10 @@ export function nl2br(str) {
   return str.replace(/(?:\r\n|\r|\n)/g, '<br />');
 }
 
+/**
+ * This function has a critical security impact, make sure to check all usages before changing this function.
+ * In some parts of our code we rely on that this only really is a string starting with http(s).
+ */
 export function isUrl(str) {
   return (
     !!str &&

@@ -4,10 +4,10 @@ from datetime import timedelta
 from django.utils import timezone
 from sentry import options
 from sentry.models import Group
-from sentry.testutils import SnubaTestCase
+from sentry.testutils import SnubaTestCase, TestCase
 
 
-class GroupTestSnuba(SnubaTestCase):
+class GroupTestSnuba(TestCase, SnubaTestCase):
     def test_get_oldest_latest_for_environments(self):
         options.set('snuba.events-queries.enabled', True)
         project = self.create_project()

@@ -27,8 +27,8 @@ class OrganizationEventsEndpointTest(OrganizationEventsTestBase):
         project2 = self.create_project()
         group = self.create_group(project=project)
         group2 = self.create_group(project=project2)
-        event_1 = self.create_event('a' * 32, group=group, datetime=self.min_ago)
-        event_2 = self.create_event('b' * 32, group=group2, datetime=self.min_ago)
+        event_1 = self.create_event(event_id='a' * 32, group=group, datetime=self.min_ago)
+        event_2 = self.create_event(event_id='b' * 32, group=group2, datetime=self.min_ago)
 
         url = reverse(
             'sentry-api-0-organization-events',
@@ -50,8 +50,8 @@ class OrganizationEventsEndpointTest(OrganizationEventsTestBase):
         project2 = self.create_project()
         group = self.create_group(project=project)
         group2 = self.create_group(project=project2)
-        event_1 = self.create_event('a' * 32, group=group, datetime=self.min_ago)
-        event_2 = self.create_event('b' * 32, group=group2, datetime=self.min_ago)
+        event_1 = self.create_event(event_id='a' * 32, group=group, datetime=self.min_ago)
+        event_2 = self.create_event(event_id='b' * 32, group=group2, datetime=self.min_ago)
 
         url = reverse(
             'sentry-api-0-organization-events',
@@ -70,9 +70,14 @@ class OrganizationEventsEndpointTest(OrganizationEventsTestBase):
 
         project = self.create_project()
         group = self.create_group(project=project)
-        self.create_event('x' * 32, group=group, message="how to make fast", datetime=self.min_ago)
+        self.create_event(
+            event_id='x' * 32,
+            group=group,
+            message="how to make fast",
+            datetime=self.min_ago,
+        )
         event_2 = self.create_event(
-            'y' * 32,
+            event_id='y' * 32,
             group=group,
             message="Delet the Data",
             datetime=self.min_ago,
@@ -97,13 +102,13 @@ class OrganizationEventsEndpointTest(OrganizationEventsTestBase):
         project = self.create_project()
         group = self.create_group(project=project)
         event_1 = self.create_event(
-            'x' * 32,
+            event_id='x' * 32,
             group=group,
             message="how to make fast",
             datetime=self.min_ago,
         )
         event_2 = self.create_event(
-            'y' * 32,
+            event_id='y' * 32,
             group=group,
             message="Delet the Data",
             datetime=self.min_ago,
@@ -134,7 +139,11 @@ class OrganizationEventsEndpointTest(OrganizationEventsTestBase):
 
         project = self.create_project()
         group = self.create_group(project=project)
-        self.create_event('x' * 32, group=group, message="how to make fast", datetime=self.min_ago)
+        self.create_event(
+            event_id='x' * 32,
+            group=group,
+            message="how to make fast",
+            datetime=self.min_ago)
 
         url = reverse(
             'sentry-api-0-organization-events',
@@ -164,9 +173,9 @@ class OrganizationEventsEndpointTest(OrganizationEventsTestBase):
         group = self.create_group(project=project)
         group2 = self.create_group(project=project2)
         group3 = self.create_group(project=project3)
-        event_1 = self.create_event('a' * 32, group=group, datetime=self.min_ago)
-        event_2 = self.create_event('b' * 32, group=group2, datetime=self.min_ago)
-        self.create_event('c' * 32, group=group3, datetime=self.min_ago)
+        event_1 = self.create_event(event_id='a' * 32, group=group, datetime=self.min_ago)
+        event_2 = self.create_event(event_id='b' * 32, group=group2, datetime=self.min_ago)
+        self.create_event(event_id='c' * 32, group=group3, datetime=self.min_ago)
 
         base_url = reverse(
             'sentry-api-0-organization-events',
@@ -208,8 +217,8 @@ class OrganizationEventsEndpointTest(OrganizationEventsTestBase):
         project2 = self.create_project()
         group = self.create_group(project=project)
         group2 = self.create_group(project=project2)
-        event_1 = self.create_event('a' * 32, group=group, datetime=self.min_ago)
-        self.create_event('b' * 32, group=group2, datetime=self.day_ago)
+        event_1 = self.create_event(event_id='a' * 32, group=group, datetime=self.min_ago)
+        self.create_event(event_id='b' * 32, group=group2, datetime=self.day_ago)
 
         url = reverse(
             'sentry-api-0-organization-events',
@@ -231,8 +240,8 @@ class OrganizationEventsEndpointTest(OrganizationEventsTestBase):
         project2 = self.create_project()
         group = self.create_group(project=project)
         group2 = self.create_group(project=project2)
-        event_1 = self.create_event('a' * 32, group=group, datetime=self.min_ago)
-        self.create_event('b' * 32, group=group2, datetime=self.day_ago)
+        event_1 = self.create_event(event_id='a' * 32, group=group, datetime=self.min_ago)
+        self.create_event(event_id='b' * 32, group=group2, datetime=self.day_ago)
 
         now = timezone.now()
 
@@ -365,10 +374,10 @@ class OrganizationEventsEndpointTest(OrganizationEventsTestBase):
         group = self.create_group(project=project)
 
         event_1 = self.create_event(
-            'a' * 32, group=group, datetime=self.min_ago, tags={'fruit': 'apple'}
+            event_id='a' * 32, group=group, datetime=self.min_ago, tags={'fruit': 'apple'}
         )
         event_2 = self.create_event(
-            'b' * 32, group=group, datetime=self.min_ago, tags={'fruit': 'orange'}
+            event_id='b' * 32, group=group, datetime=self.min_ago, tags={'fruit': 'orange'}
         )
 
         base_url = reverse(
@@ -399,17 +408,17 @@ class OrganizationEventsEndpointTest(OrganizationEventsTestBase):
         group = self.create_group(project=project)
 
         event_1 = self.create_event(
-            'a' * 32, group=group, datetime=self.min_ago, tags={'sentry:release': '3.1.2'}
+            event_id='a' * 32, group=group, datetime=self.min_ago, tags={'sentry:release': '3.1.2'}
         )
         event_2 = self.create_event(
-            'b' * 32, group=group, datetime=self.min_ago, tags={'sentry:release': '4.1.2'}
+            event_id='b' * 32, group=group, datetime=self.min_ago, tags={'sentry:release': '4.1.2'}
         )
         event_3 = self.create_event(
-            'c' * 32, group=group, datetime=self.min_ago, user={'email': 'foo@example.com'}
+            event_id='c' * 32, group=group, datetime=self.min_ago, user={'email': 'foo@example.com'}
         )
 
         event_4 = self.create_event(
-            'd' * 32, group=group, datetime=self.min_ago, user={'email': 'foo@example.commmmmmmm'}
+            event_id='d' * 32, group=group, datetime=self.min_ago, user={'email': 'foo@example.commmmmmmm'}
         )
 
         base_url = reverse(
@@ -460,10 +469,10 @@ class OrganizationEventsEndpointTest(OrganizationEventsTestBase):
         group = self.create_group(project=project)
 
         event_1 = self.create_event(
-            'a' * 32, group=group, datetime=self.min_ago, user={'email': 'foo@example.com'},
+            event_id='a' * 32, group=group, datetime=self.min_ago, user={'email': 'foo@example.com'},
         )
         event_2 = self.create_event(
-            'b' * 32,
+            event_id='b' * 32,
             group=group,
             datetime=self.min_ago,
             tags={
@@ -523,7 +532,11 @@ class OrganizationEventsEndpointTest(OrganizationEventsTestBase):
 
         project = self.create_project(organization=org, teams=[team])
         group = self.create_group(project=project)
-        self.create_event('a' * 32, group=group, message="best event", datetime=self.min_ago)
+        self.create_event(
+            event_id='a' * 32,
+            group=group,
+            message="best event",
+            datetime=self.min_ago)
 
         url = reverse(
             'sentry-api-0-organization-events',
@@ -572,17 +585,17 @@ class OrganizationEventsStatsEndpointTest(OrganizationEventsTestBase):
         group = self.create_group(project=project)
         group2 = self.create_group(project=project2)
         self.create_event(
-            'a' * 32,
+            event_id='a' * 32,
             group=group,
             datetime=day_ago + timedelta(minutes=1)
         )
         self.create_event(
-            'b' * 32,
+            event_id='b' * 32,
             group=group2,
             datetime=day_ago + timedelta(hours=1, minutes=1)
         )
         self.create_event(
-            'c' * 32,
+            event_id='c' * 32,
             group=group2,
             datetime=day_ago + timedelta(hours=1, minutes=2)
         )
@@ -630,8 +643,8 @@ class OrganizationEventsMetaEndpoint(OrganizationEventsTestBase):
         project2 = self.create_project()
         group = self.create_group(project=project)
         group2 = self.create_group(project=project2)
-        self.create_event('a' * 32, group=group, datetime=self.min_ago)
-        self.create_event('m' * 32, group=group2, datetime=self.min_ago)
+        self.create_event(event_id='a' * 32, group=group, datetime=self.min_ago)
+        self.create_event(event_id='m' * 32, group=group2, datetime=self.min_ago)
 
         url = reverse(
             'sentry-api-0-organization-events-meta',
@@ -650,9 +663,13 @@ class OrganizationEventsMetaEndpoint(OrganizationEventsTestBase):
 
         project = self.create_project()
         group = self.create_group(project=project)
-        self.create_event('x' * 32, group=group, message="how to make fast", datetime=self.min_ago)
         self.create_event(
-            'm' * 32,
+            event_id='x' * 32,
+            group=group,
+            message="how to make fast",
+            datetime=self.min_ago)
+        self.create_event(
+            event_id='m' * 32,
             group=group,
             message="Delet the Data",
             datetime=self.min_ago,

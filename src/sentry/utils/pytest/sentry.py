@@ -129,6 +129,12 @@ def pytest_configure(config):
         }
     }
 
+    if os.environ.get('USE_SNUBA', False):
+        settings.SENTRY_SEARCH = 'sentry.search.snuba.SnubaSearchBackend'
+        settings.SENTRY_TAGSTORE = 'sentry.tagstore.snuba.SnubaCompatibilityTagStorage'
+        settings.SENTRY_TSDB = 'sentry.tsdb.redissnuba.RedisSnubaTSDB'
+        settings.SENTRY_EVENTSTREAM = 'sentry.eventstream.snuba.SnubaEventStream'
+
     if not hasattr(settings, 'SENTRY_OPTIONS'):
         settings.SENTRY_OPTIONS = {}
 
@@ -241,9 +247,10 @@ def register_extensions():
 
 
 def pytest_runtest_teardown(item):
-    from sentry import tsdb
-    # TODO(dcramer): this only works if this is the correct tsdb backend
-    tsdb.flush()
+    if not os.environ.get('USE_SNUBA', False):
+        from sentry import tsdb
+        # TODO(dcramer): this only works if this is the correct tsdb backend
+        tsdb.flush()
 
     # XXX(dcramer): only works with DummyNewsletter
     from sentry import newsletter
