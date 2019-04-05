@@ -31,7 +31,7 @@ env:
     - SENTRY_LIGHT_BUILD=1
     - SENTRY_SKIP_BACKEND_VALIDATION=1
     - SOUTH_TESTS_MIGRATE=1
-    - DJANGO_VERSION=">=1.6.11,<1.7"
+    - DJANGO_VERSION=">=1.8,<1.9"
     # node's version is pinned by .nvmrc and is autodetected by `nvm install`.
     - NODE_DIR="${HOME}/.nvm/versions/node/v$(< .nvmrc)"
     - YARN_VERSION="1.13.0"
@@ -129,22 +129,6 @@ matrix:
     - <<: *postgres_default
       name: 'Backend [Postgres] (2/2)'
       env: TEST_SUITE=postgres DB=postgres TOTAL_TEST_GROUPS=2 TEST_GROUP=1
-
-    # django 1.8 compatibility
-    - <<: *postgres_default
-      name: 'Backend [Postgres] (Django 1.8) (1/2)'
-      env: TEST_SUITE=postgres DB=postgres DJANGO_VERSION=">=1.8,<1.9" TOTAL_TEST_GROUPS=2 TEST_GROUP=0
-    - <<: *postgres_default
-      name: 'Backend [Postgres] (Django 1.8) (2/2)'
-      env: TEST_SUITE=postgres DB=postgres DJANGO_VERSION=">=1.8,<1.9" TOTAL_TEST_GROUPS=2 TEST_GROUP=1
-
-    # django 1.8 compatibility with migrations
-    - <<: *postgres_default
-      name: 'Backend [Postgres] (Django 1.8, No migrations) (1/2)'
-      env: TEST_SUITE=postgres DJANGO_VERSION=">=1.8,<1.9" SOUTH_TESTS_MIGRATE=0 TOTAL_TEST_GROUPS=2 TEST_GROUP=0
-    - <<: *postgres_default
-      name: 'Backend [Postgres] (Django 1.8, No migrations) (2/2)'
-      env: TEST_SUITE=postgres DJANGO_VERSION=">=1.8,<1.9" SOUTH_TESTS_MIGRATE=0 TOTAL_TEST_GROUPS=2 TEST_GROUP=1
 
     # XXX(markus): Remove after rust interfaces are done
     - <<: *postgres_default
