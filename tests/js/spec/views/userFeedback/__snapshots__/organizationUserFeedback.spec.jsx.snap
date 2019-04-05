@@ -685,6 +685,7 @@ exports[`OrganizationUserFeedback renders 1`] = `
                               >
                                 <StyledProjectSelector
                                   hasChanges={false}
+                                  menuFooter={[Function]}
                                   multi={false}
                                   multiProjects={Array []}
                                   onChange={[Function]}
@@ -741,6 +742,7 @@ exports[`OrganizationUserFeedback renders 1`] = `
                                   <withProjects(ProjectSelector)
                                     className="css-iw79rr-StyledProjectSelector ewlipse0"
                                     hasChanges={false}
+                                    menuFooter={[Function]}
                                     multi={false}
                                     multiProjects={Array []}
                                     onChange={[Function]}
@@ -797,6 +799,7 @@ exports[`OrganizationUserFeedback renders 1`] = `
                                     <ProjectSelector
                                       className="css-iw79rr-StyledProjectSelector ewlipse0"
                                       hasChanges={false}
+                                      menuFooter={[Function]}
                                       multi={false}
                                       multiProjects={Array []}
                                       onChange={[Function]}
@@ -989,7 +992,7 @@ exports[`OrganizationUserFeedback renders 1`] = `
                                                           <ForwardRef
                                                             active={false}
                                                             allowClear={false}
-                                                            className="css-12jjx2u-StyledHeaderItem ewlipse1"
+                                                            className="css-12jjx2u-StyledHeaderItem ewlipse3"
                                                             hasChanges={false}
                                                             hasSelected={false}
                                                             icon={
@@ -1013,7 +1016,7 @@ exports[`OrganizationUserFeedback renders 1`] = `
                                                             <HeaderItem
                                                               active={false}
                                                               allowClear={false}
-                                                              className="css-12jjx2u-StyledHeaderItem ewlipse1"
+                                                              className="css-12jjx2u-StyledHeaderItem ewlipse3"
                                                               hasChanges={false}
                                                               hasSelected={false}
                                                               icon={
@@ -1037,7 +1040,7 @@ exports[`OrganizationUserFeedback renders 1`] = `
                                                             >
                                                               <StyledHeaderItem
                                                                 active={false}
-                                                                className="css-12jjx2u-StyledHeaderItem ewlipse1"
+                                                                className="css-12jjx2u-StyledHeaderItem ewlipse3"
                                                                 hasChanges={false}
                                                                 hasSelected={false}
                                                                 innerRef={null}
@@ -1054,7 +1057,7 @@ exports[`OrganizationUserFeedback renders 1`] = `
                                                                 tabIndex={-1}
                                                               >
                                                                 <div
-                                                                  className="ewlipse1 css-11wumjj-StyledHeaderItem-StyledHeaderItem enk2k7v0"
+                                                                  className="ewlipse3 css-11wumjj-StyledHeaderItem-StyledHeaderItem enk2k7v0"
                                                                   onClick={[Function]}
                                                                   onKeyDown={[Function]}
                                                                   onMouseEnter={[Function]}
@@ -1076,17 +1079,17 @@ exports[`OrganizationUserFeedback renders 1`] = `
                                                                         src="icon-project"
                                                                       >
                                                                         <InlineSvg
-                                                                          className="css-1ibtmti-StyledInlineSvg ewlipse2"
+                                                                          className="css-1ibtmti-StyledInlineSvg ewlipse4"
                                                                           src="icon-project"
                                                                         >
                                                                           <StyledSvg
-                                                                            className="css-1ibtmti-StyledInlineSvg ewlipse2"
+                                                                            className="css-1ibtmti-StyledInlineSvg ewlipse4"
                                                                             height="1em"
                                                                             viewBox={Object {}}
                                                                             width="1em"
                                                                           >
                                                                             <svg
-                                                                              className="ewlipse2 css-1ux8cow-StyledSvg-StyledInlineSvg e2idor0"
+                                                                              className="ewlipse4 css-1ux8cow-StyledSvg-StyledInlineSvg e2idor0"
                                                                               height="1em"
                                                                               viewBox={Object {}}
                                                                               width="1em"
