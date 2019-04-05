@@ -152,7 +152,7 @@ class BroadcastIndexEndpoint(Endpoint):
                 message=result['message'],
                 link=result['link'],
                 is_active=result.get('isActive') or False,
-                date_expires=result.get('expiresAt'),
+                date_expires=result.get('dateExpires'),
             )
             logger.info('broadcasts.create', extra={
                 'ip_address': request.META['REMOTE_ADDR'],
