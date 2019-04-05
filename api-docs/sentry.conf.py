@@ -19,8 +19,11 @@ CONF_ROOT = os.path.dirname(__file__)
 
 DATABASES = {
     'default': {
-        'ENGINE': 'django.db.backends.sqlite3',
-        'NAME': '/tmp/sentry_apidocs.db',
+        'ENGINE': 'sentry.db.postgres',
+        'NAME': 'sentry_api_docs',
+        'USER': 'postgres',
+        'PASSWORD': '',
+        'HOST': '127.0.0.1',
     }
 }
 SENTRY_USE_BIG_INTS = True
