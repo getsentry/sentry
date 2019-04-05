@@ -345,11 +345,6 @@ SILENCED_SYSTEM_CHECKS = (
     "fields.W342"
 )
 
-import django
-
-if django.VERSION < (1, 9):
-    INSTALLED_APPS += ("south",)
-
 STATIC_ROOT = os.path.realpath(os.path.join(PROJECT_ROOT, "static"))
 STATIC_URL = "/_static/{version}/"
 
@@ -1496,8 +1491,6 @@ DEPRECATED_SDKS = {
     "sentry-raven": "raven-ruby",
 }
 
-SOUTH_TESTS_MIGRATE = os.environ.get("SOUTH_TESTS_MIGRATE", "0") == "1"
-
 TERMS_URL = None
 PRIVACY_URL = None
 
@@ -1667,3 +1660,24 @@ KAFKA_TOPICS = {
 # never need to switch this unless you created a workspace app before slack
 # disabled them.
 SLACK_INTEGRATION_USE_WST = False
+
+SOUTH_TESTS_MIGRATE = os.environ.get("SOUTH_TESTS_MIGRATE", "0") == "1"
+
+SOUTH_MIGRATION_CONVERSIONS = (
+    # app_name, migration, new_app_name, new_migration_label
+    ("sentry", "0472_auto__add_field_sentryapp_author", "sentry", "0001_initial"),
+    ("sentry.nodestore", "0001_initial", "nodestore", "0001_initial"),
+    # ('sentry.search', '0002_auto__del_searchtoken__del_unique_searchtoken_document_field_token__de'),
+    # ('sentry.tagstore', '0008_auto__chg_field_tagkey_environment_id'),
+    (
+        "social_auth",
+        "0004_auto__del_unique_usersocialauth_provider_uid__add_unique_usersocialaut",
+        "social_auth",
+        "0001_initial",
+    ),
+)
+
+import django
+
+if django.VERSION < (1, 9):
+    INSTALLED_APPS += ("south",)
