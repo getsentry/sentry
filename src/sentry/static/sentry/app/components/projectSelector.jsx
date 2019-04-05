@@ -22,7 +22,6 @@ import withProjects from 'app/utils/withProjects';
 
 class ProjectSelector extends React.Component {
   static propTypes = {
-    hasChanges: PropTypes.bool,
     // Accepts a project id (slug) and not a project *object* because ProjectSelector
     // is created from Django templates, and only organization is serialized
     projectId: PropTypes.string,
@@ -55,10 +54,6 @@ class ProjectSelector extends React.Component {
     // Callback when projects are selected via the multiple project selector
     // Calls back with (projects[], event)
     onMultiSelect: PropTypes.func,
-
-    // Callback to trigger a multiSelect update
-    onUpdate: PropTypes.func,
-
     rootClassName: PropTypes.string,
   };
 
@@ -180,11 +175,9 @@ class ProjectSelector extends React.Component {
       organization: org,
       menuFooter,
       multi,
-      hasChanges,
       className,
       rootClassName,
       onClose,
-      onUpdate,
     } = this.props;
     const {activeProject} = this.state;
     const access = new Set(org.access);
@@ -216,7 +209,7 @@ class ProjectSelector extends React.Component {
         noResultsMessage={t('No projects found')}
         virtualizedHeight={theme.headerSelectorRowHeight}
         emptyHidesInput
-        inputActions={({actions}) => (
+        inputActions={() => (
           <AddButton
             disabled={!hasProjectWrite}
             to={`/organizations/${org.slug}/projects/new/`}

@@ -154,10 +154,8 @@ export default class MultipleProjectSelector extends React.PureComponent {
         selectedProjects={selected}
         multiProjects={projects}
         onSelect={this.handleQuickSelect}
-        hasChanges={this.state.hasChanges}
         onClose={this.handleClose}
         onMultiSelect={this.handleMultiSelect}
-        onUpdate={this.handleUpdate}
         rootClassName={rootContainerStyles}
         menuFooter={({actions}) => {
           return showSubmitButton && (

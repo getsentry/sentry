@@ -363,7 +363,7 @@ class DropdownAutoCompleteMenu extends React.Component {
             typeof menuFooter === 'function' ? menuFooter({actions}) : menuFooter;
 
           const renderedInputActions =
-            typeof inputActions === 'function' ? inputActions({actions}) : inputActions;
+            typeof inputActions === 'function' ? inputActions() : inputActions;
 
           return (
             <AutoCompleteRoot {...getRootProps()} className={rootClassName}>

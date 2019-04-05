@@ -684,7 +684,6 @@ exports[`OrganizationUserFeedback renders 1`] = `
                                 value={Array []}
                               >
                                 <StyledProjectSelector
-                                  hasChanges={false}
                                   menuFooter={[Function]}
                                   multi={false}
                                   multiProjects={Array []}
@@ -741,7 +740,6 @@ exports[`OrganizationUserFeedback renders 1`] = `
                                 >
                                   <withProjects(ProjectSelector)
                                     className="css-iw79rr-StyledProjectSelector ewlipse0"
-                                    hasChanges={false}
                                     menuFooter={[Function]}
                                     multi={false}
                                     multiProjects={Array []}
@@ -798,7 +796,6 @@ exports[`OrganizationUserFeedback renders 1`] = `
                                   >
                                     <ProjectSelector
                                       className="css-iw79rr-StyledProjectSelector ewlipse0"
-                                      hasChanges={false}
                                       menuFooter={[Function]}
                                       multi={false}
                                       multiProjects={Array []}
