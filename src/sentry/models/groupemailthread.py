@@ -27,7 +27,7 @@ class GroupEmailThread(Model):
     """
     __core__ = False
 
-    email = models.EmailField()
+    email = models.EmailField(max_length=75)
     project = FlexibleForeignKey('sentry.Project', related_name="groupemail_set")
     group = FlexibleForeignKey('sentry.Group', related_name="groupemail_set")
     msgid = models.CharField(max_length=100)
