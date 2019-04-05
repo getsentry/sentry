@@ -21,7 +21,7 @@ from sentry.constants import (
     LOG_LEVELS, LOG_LEVELS_MAP, VALID_PLATFORMS, MAX_TAG_VALUE_LENGTH,
 )
 from sentry.grouping.api import get_grouping_config_dict_for_project, \
-    load_grouping_config
+    get_grouping_config_dict_for_event_data, load_grouping_config
 from sentry.coreapi import (
     APIError,
     APIForbidden,
@@ -692,7 +692,7 @@ class EventManager(object):
         # At this point we want to normalize the in_app values in case the
         # clients did not set this appropriately so far.
         grouping_config = load_grouping_config(
-            get_grouping_config_dict_for_project(data, project))
+            get_grouping_config_dict_for_event_data(data, project))
         normalize_stacktraces_for_grouping(data, grouping_config)
 
         for plugin in plugins.for_project(project, version=None):
