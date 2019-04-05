@@ -989,7 +989,7 @@ exports[`OrganizationUserFeedback renders 1`] = `
                                                           <ForwardRef
                                                             active={false}
                                                             allowClear={false}
-                                                            className="css-12jjx2u-StyledHeaderItem ewlipse3"
+                                                            className="css-12jjx2u-StyledHeaderItem ewlipse1"
                                                             hasChanges={false}
                                                             hasSelected={false}
                                                             icon={
@@ -1013,7 +1013,7 @@ exports[`OrganizationUserFeedback renders 1`] = `
                                                             <HeaderItem
                                                               active={false}
                                                               allowClear={false}
-                                                              className="css-12jjx2u-StyledHeaderItem ewlipse3"
+                                                              className="css-12jjx2u-StyledHeaderItem ewlipse1"
                                                               hasChanges={false}
                                                               hasSelected={false}
                                                               icon={
@@ -1037,7 +1037,7 @@ exports[`OrganizationUserFeedback renders 1`] = `
                                                             >
                                                               <StyledHeaderItem
                                                                 active={false}
-                                                                className="css-12jjx2u-StyledHeaderItem ewlipse3"
+                                                                className="css-12jjx2u-StyledHeaderItem ewlipse1"
                                                                 hasChanges={false}
                                                                 hasSelected={false}
                                                                 innerRef={null}
@@ -1054,7 +1054,7 @@ exports[`OrganizationUserFeedback renders 1`] = `
                                                                 tabIndex={-1}
                                                               >
                                                                 <div
-                                                                  className="ewlipse3 css-11wumjj-StyledHeaderItem-StyledHeaderItem enk2k7v0"
+                                                                  className="ewlipse1 css-11wumjj-StyledHeaderItem-StyledHeaderItem enk2k7v0"
                                                                   onClick={[Function]}
                                                                   onKeyDown={[Function]}
                                                                   onMouseEnter={[Function]}
@@ -1076,17 +1076,17 @@ exports[`OrganizationUserFeedback renders 1`] = `
                                                                         src="icon-project"
                                                                       >
                                                                         <InlineSvg
-                                                                          className="css-1ibtmti-StyledInlineSvg ewlipse4"
+                                                                          className="css-1ibtmti-StyledInlineSvg ewlipse2"
                                                                           src="icon-project"
                                                                         >
                                                                           <StyledSvg
-                                                                            className="css-1ibtmti-StyledInlineSvg ewlipse4"
+                                                                            className="css-1ibtmti-StyledInlineSvg ewlipse2"
                                                                             height="1em"
                                                                             viewBox={Object {}}
                                                                             width="1em"
                                                                           >
                                                                             <svg
-                                                                              className="ewlipse4 css-1ux8cow-StyledSvg-StyledInlineSvg e2idor0"
+                                                                              className="ewlipse2 css-1ux8cow-StyledSvg-StyledInlineSvg e2idor0"
                                                                               height="1em"
                                                                               viewBox={Object {}}
                                                                               width="1em"
@@ -1283,6 +1283,7 @@ exports[`OrganizationUserFeedback renders 1`] = `
                                     }
                                     items={Array []}
                                     maxHeight={500}
+                                    menuFooter={[Function]}
                                     menuProps={
                                       Object {
                                         "style": Object {
@@ -1316,6 +1317,7 @@ exports[`OrganizationUserFeedback renders 1`] = `
                                       }
                                       items={Array []}
                                       maxHeight={500}
+                                      menuFooter={[Function]}
                                       menuProps={
                                         Object {
                                           "style": Object {
@@ -1348,6 +1350,7 @@ exports[`OrganizationUserFeedback renders 1`] = `
                                         }
                                         items={Array []}
                                         maxHeight={500}
+                                        menuFooter={[Function]}
                                         menuProps={
                                           Object {
                                             "style": Object {
