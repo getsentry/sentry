@@ -6,12 +6,18 @@ from django.db.models.signals import post_syncdb
 from sentry.models import User
 
 
-def create_first_user(created_models, verbosity, db, app=None, **kwargs):
+def create_first_user(using=None, db=None, app=None, app_config=None, **kwargs):
+    if using is None:
+        using = db
+
     # this is super confusing
     if app and app.__name__ != "sentry.models":
         return
 
-    if User not in created_models:
+    if app_config and app_config.name != "sentry":
+        return
+
+    if User.objects.exists():
         return
 
     if hasattr(router, "allow_migrate"):
@@ -35,4 +41,11 @@ def create_first_user(created_models, verbosity, db, app=None, **kwargs):
     call_command("sentry.runner.commands.createuser.createuser", superuser=True)
 
 
-post_syncdb.connect(create_first_user, dispatch_uid="create_first_user", weak=False)
+try:
+    from django.db.models.signals import post_migrate
+except ImportError:
+    pass
+else:
+    post_migrate.connect(create_first_user, dispatch_uid="create_first_user", weak=False)
+
+post_syncdb.connect(create_first_user, dispatch_uid="create_first_user.syncdb", weak=False)

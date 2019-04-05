@@ -34,11 +34,11 @@ def handle_db_failure(func):
     return wrapped
 
 
-def create_default_projects(created_models, app=None, verbosity=2, **kwargs):
+def create_default_projects(app=None, app_config=None, verbosity=2, **kwargs):
     if app and app.__name__ != "sentry.models":
         return
 
-    if Project not in created_models:
+    if app_config and app_config.name != "sentry":
         return
 
     create_default_project(
@@ -134,9 +134,23 @@ def freeze_option_epoch_for_project(instance, created, app=None, **kwargs):
 
 # Anything that relies on default objects that may not exist with default
 # fields should be wrapped in handle_db_failure
+try:
+    from django.db.models.signals import post_migrate
+except ImportError:
+    pass
+else:
+    post_migrate.connect(
+        handle_db_failure(create_default_projects),
+        dispatch_uid="create_default_project",
+        weak=False,
+    )
+
 post_syncdb.connect(
-    handle_db_failure(create_default_projects), dispatch_uid="create_default_project", weak=False
+    handle_db_failure(create_default_projects),
+    dispatch_uid="create_default_project.syncdb",
+    weak=False,
 )
+
 post_save.connect(
     handle_db_failure(create_keys_for_project),
     sender=Project,
