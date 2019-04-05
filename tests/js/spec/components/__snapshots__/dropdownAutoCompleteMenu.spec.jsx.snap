@@ -114,10 +114,12 @@ exports[`DropdownAutoCompleteMenu renders with a group 1`] = `
                 </StyledInputWrapper>
                 <div>
                   <StyledItemList
+                    data-test-id="autocomplete-list"
                     maxHeight={300}
                   >
                     <div
                       className="css-5kh8cy-StyledItemList ejumqxq9"
+                      data-test-id="autocomplete-list"
                     >
                       <LabelWithBorder
                         key="countries"
@@ -291,10 +293,12 @@ exports[`DropdownAutoCompleteMenu renders without a group 1`] = `
                 </StyledInputWrapper>
                 <div>
                   <StyledItemList
+                    data-test-id="autocomplete-list"
                     maxHeight={300}
                   >
                     <div
                       className="css-5kh8cy-StyledItemList ejumqxq9"
+                      data-test-id="autocomplete-list"
                     >
                       <AutoCompleteItem
                         highlightedIndex={0}

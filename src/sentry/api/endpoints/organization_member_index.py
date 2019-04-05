@@ -159,7 +159,6 @@ class OrganizationMemberIndexEndpoint(OrganizationEndpoint):
             om.send_invite_email()
             member_invited.send_robust(member=om, user=request.user, sender=self,
                                        referrer=request.DATA.get('referrer'))
-
         self.create_audit_entry(
             request=request,
             organization_id=organization.id,
