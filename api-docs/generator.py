@@ -8,7 +8,7 @@ import logging
 import six
 
 from datetime import datetime
-from subprocess import Popen, PIPE
+from subprocess import Popen, PIPE, check_output
 from six.moves.urllib.parse import urlparse
 
 HERE = os.path.abspath(os.path.dirname(__file__))
@@ -87,17 +87,12 @@ def init_db():
 def drop_db():
     report('db', 'Dropping database')
     config = settings.DATABASES['default']
-    drop = Popen(
-        ['dropdb', '-U', config['USER'], '-h', config['HOST'], config['NAME']],
-        stdin=PIPE,
-        stdout=open(os.devnull, 'r+'))
-    drop.communicate()
-
-    create = Popen(
-        ['createdb', '-U', config['USER'], '-h', config['HOST'], config['NAME']],
-        stdin=PIPE,
-        stdout=open(os.devnull, 'r+'))
-    create.communicate()
+    check_output([
+        'dropdb', '-U', config['USER'], '-h', config['HOST'], config['NAME']
+    ])
+    check_output([
+        'createdb', '-U', config['USER'], '-h', config['HOST'], config['NAME']
+    ])
 
 
 class SentryBox(object):
@@ -122,7 +117,6 @@ class SentryBox(object):
             report('redis', 'Stopping redis server')
             self.redis.kill()
             self.redis.wait()
-        drop_db()
 
 
 def run_scenario(vars, scenario_ident, func):
