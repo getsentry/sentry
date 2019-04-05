@@ -39,6 +39,8 @@ class SentryAppExternalIssueForm extends React.Component {
   };
 
   debouncedOptionLoad = debounce(
+    // debounce is used to prevent making a request for every input change and
+    // instead makes the requests every 200ms
     (field, input, resolve) => {
       const install = this.props.sentryAppInstallation;
       const projectId = this.props.group.project.id;
