@@ -109,7 +109,7 @@ class Match(object):
 
         # all other matches are case sensitive
         if self.key == 'function':
-            from sentry.grouping.strategies.stacktrace import trim_function_name
+            from sentry.grouping.strategies.utils import trim_function_name
             value = trim_function_name(
                 frame_data.get('function') or '<unknown>',
                 frame_data.get('platform') or platform)

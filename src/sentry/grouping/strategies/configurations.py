@@ -47,16 +47,18 @@ register_strategy_config(
     changelog='''
         * Traditional grouping algorithm
         * Some known weaknesses with regards to grouping of native frames
+        * No support for grouping enhancements
     '''
 )
 
-# Newstyle grouping
+# Simple newstyle grouping
 #
-# This is the new grouping strategy but it's not yet versioned because
-# it's not available to customers yet.
+# This is a grouping strategy that applies very simple rules and will
+# become the new default at one point.  Optimized for native and
+# javascript but works for all platforms.
 
 register_strategy_config(
-    id='new:wip',
+    id='newstyle:2019-04-05',
     strategies=[
         'expect-ct:v1',
         'expect-staple:v1',
@@ -74,6 +76,34 @@ register_strategy_config(
         'single-exception:v1',
     ],
     changelog='''
-        * Work in progress grouping algorith that is not frozen in behavior yet
+        * New grouping strategy optimized for native and javascript
+        * Supports grouping enhancements.
+    '''
+)
+
+# This is a combined strategy that dispatches to legacy:2019-03-12 and
+# newstyle:2019-04-05 depending on the platform.
+
+register_strategy_config(
+    id='combined:2019-04-07',
+    strategies=[
+        'expect-ct:v1',
+        'expect-staple:v1',
+        'hpkp:v1',
+        'csp:v1',
+        'threads:v1',
+        'stacktrace:v1nl',
+        'chained-exception:v1nl',
+        'template:v1',
+        'message:v1',
+    ],
+    delegates=[
+        'frame:v1nl',
+        'stacktrace:v1nl',
+        'single-exception:v1nl',
+    ],
+    changelog='''
+        * Uses `newstyle:2019-04-05` for native platforms
+        * Uses `legacy:2019-03-12` for all other platforms
     '''
 )
