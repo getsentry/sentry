@@ -17,6 +17,7 @@ import LoadingError from 'app/components/loadingError';
 import LoadingIndicator from 'app/components/loadingIndicator';
 import ProjectsStore from 'app/stores/projectsStore';
 import SentryTypes from 'app/sentryTypes';
+import {analytics} from 'app/utils/analytics';
 
 import {ERROR_TYPES} from '../shared/constants';
 import GroupHeader from '../shared/header';
@@ -32,6 +33,10 @@ const GroupDetails = createReactClass({
     environments: PropTypes.arrayOf(PropTypes.string),
     enableSnuba: PropTypes.bool,
     showGlobalHeader: PropTypes.bool,
+  },
+
+  contextTypes: {
+    organization: SentryTypes.Organization,
   },
 
   childContextTypes: {
@@ -135,6 +140,16 @@ const GroupDetails = createReactClass({
         });
 
         GroupStore.loadInitialData([data]);
+
+        const organization = this.props.organization || this.context.organization;
+        const payload = {
+          group_id: parseInt(data.id, 10),
+          org_id: parseInt(organization.id, 10),
+        };
+        if (project) {
+          payload.project_id = parseInt(project.id, 10);
+        }
+        analytics('issue_page.viewed', payload);
       },
       error: (_, _textStatus, errorThrown) => {
         let errorType = null;
