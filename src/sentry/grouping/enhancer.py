@@ -173,14 +173,21 @@ class Action(object):
                 frame['in_app'] = self.flag
 
     def update_frame_components_contributions(self, components, idx):
-        if self.key != 'group':
-            return
         for component in self._slice_to_range(components, idx):
-            if self.flag != component.contributes:
+            if self.key == 'group' and self.flag != component.contributes:
                 component.update(
                     contributes=self.flag,
                     hint='%s by grouping enhancement rule' % (
                         self.flag and 'un-ignored' or 'ignored')
+                )
+            # The in app flag was set by `apply_modifications_to_frame`
+            # but we want to add a hint if there is none yet.
+            elif self.key == 'app' and \
+                    self.flag == component.contributes and \
+                    component.hint is None:
+                component.update(
+                    hint='marked %s by grouping enhancement rule' % (
+                        self.flag and 'in-app' or 'out of app')
                 )
 
     @classmethod
