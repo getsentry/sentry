@@ -393,9 +393,6 @@ class EnhancmentsVisitor(NodeVisitor):
     def visit_unquoted(self, node, children):
         return node.text
 
-    def visit_identifier(self, node, children):
-        return node.text
-
     def generic_visit(self, node, children):
         return children
 
