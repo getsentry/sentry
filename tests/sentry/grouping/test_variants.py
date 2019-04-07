@@ -48,7 +48,7 @@ def dump_variant(variant, lines=None, indent=0):
     return lines
 
 
-_fixture_path = os.path.join(os.path.dirname(__file__), 'inputs')
+_fixture_path = os.path.join(os.path.dirname(__file__), 'grouping_inputs')
 
 
 def load_configs():
