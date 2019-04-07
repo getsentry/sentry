@@ -49,11 +49,14 @@ class ProjectGeneralSettings extends AsyncView {
 
   getEndpoints() {
     const {orgId, projectId} = this.props.params;
-    return [
-      ['data', `/projects/${orgId}/${projectId}/`],
-      ['groupingConfigs', '/grouping-configs/'],
-      ['groupingEnhancementBases', '/grouping-enhancements/'],
-    ];
+    const endpoints = [['data', `/projects/${orgId}/${projectId}/`]];
+    const {organization} = this.context;
+    const features = new Set(organization.features);
+    if (features.has('set-grouping-config')) {
+      endpoints.push(['groupingConfigs', '/grouping-configs/']);
+      endpoints.push(['groupingEnhancementBases', '/grouping-enhancements/']);
+    }
+    return endpoints;
   }
 
   handleTransferFieldChange = (id, value) => {

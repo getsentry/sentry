@@ -1,4 +1,5 @@
 import {Flex} from 'grid-emotion';
+import PropTypes from 'prop-types';
 import styled from 'react-emotion';
 
 const HintPanelItem = styled(Flex)`
@@ -17,5 +18,12 @@ const HintPanelItem = styled(Flex)`
     border: 0;
   }
 `;
+
+HintPanelItem.propTypes = {
+  p: PropTypes.number,
+};
+HintPanelItem.defaultProps = {
+  p: 2,
+};
 
 export default HintPanelItem;
