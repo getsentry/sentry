@@ -197,7 +197,7 @@ def find_stacktraces_in_data(data, include_raw=False):
     return rv
 
 
-def normalize_stacktraces_for_grouping(data, grouping_config=None):
+def normalize_in_app(data):
     def _has_system_frames(frames):
         system_frames = 0
         for frame in frames:
@@ -205,24 +205,8 @@ def normalize_stacktraces_for_grouping(data, grouping_config=None):
                 system_frames += 1
         return bool(system_frames) and len(frames) != system_frames
 
-    stacktraces = []
-
     for stacktrace_info in find_stacktraces_in_data(data, include_raw=True):
         frames = get_path(stacktrace_info.stacktrace, 'frames', filter=True, default=())
-        if frames:
-            stacktraces.append(frames)
-
-    if not stacktraces:
-        return
-
-    # If a grouping config is available, run grouping enhancers
-    if grouping_config is not None:
-        platform = data.get('platform')
-        for frames in stacktraces:
-            grouping_config.enhancements.apply_modifications_to_frame(frames, platform)
-
-    # normalize in-app
-    for frames in stacktraces:
         has_system_frames = _has_system_frames(frames)
         for frame in frames:
             if not has_system_frames:
@@ -376,7 +360,7 @@ def dedup_errors(errors):
     return rv
 
 
-def process_stacktraces(data, make_processors=None, set_raw_stacktrace=True):
+def process_stacktraces(data, make_processors=None):
     infos = find_stacktraces_in_data(data)
     if make_processors is None:
         processors = get_processors_for_stacktraces(data, infos)
@@ -407,8 +391,7 @@ def process_stacktraces(data, make_processors=None, set_raw_stacktrace=True):
             if new_frames is not None:
                 stacktrace_info.stacktrace['frames'] = new_frames
                 changed = True
-            if set_raw_stacktrace and \
-               new_raw_frames is not None and \
+            if new_raw_frames is not None and \
                stacktrace_info.container is not None:
                 stacktrace_info.container['raw_stacktrace'] = dict(
                     stacktrace_info.stacktrace, frames=new_raw_frames

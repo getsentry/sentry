@@ -14,7 +14,6 @@ describe('projectGeneralSettings', function() {
   const org = TestStubs.Organization();
   const project = TestStubs.ProjectDetails();
   const groupingConfigs = TestStubs.GroupingConfigs();
-  const groupingEnhancements = TestStubs.GroupingEnhancements();
   let routerContext;
   let putMock;
 
@@ -36,11 +35,6 @@ describe('projectGeneralSettings', function() {
       url: '/grouping-configs/',
       method: 'GET',
       body: groupingConfigs,
-    });
-    MockApiClient.addMockResponse({
-      url: '/grouping-enhancements/',
-      method: 'GET',
-      body: groupingEnhancements,
     });
     MockApiClient.addMockResponse({
       url: `/projects/${org.slug}/${project.slug}/`,

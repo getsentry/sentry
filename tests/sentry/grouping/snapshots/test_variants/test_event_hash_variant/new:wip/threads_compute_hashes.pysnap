@@ -1,5 +1,5 @@
 ---
-created: '2019-03-14T17:12:37.589685Z'
+created: '2019-03-15T11:55:35.379089Z'
 creator: sentry
 source: tests/sentry/grouping/test_variants.py
 ---
@@ -11,22 +11,18 @@ app:
         stacktrace*
           frame*
             filename*
-              u'foo/baz.c'
+              u'baz.c'
             function*
               u'main'
-            lineno (function takes precedence)
-              1
 --------------------------------------------------------------------------
 system:
-  hash: '39db5b4edf187e89cec12245e5c9fb3c'
+  hash: '1a11687556cf74559f0ae90b1c87e2fd'
   component:
     system*
       threads*
         stacktrace*
           frame*
             filename*
-              u'foo/baz.c'
+              u'baz.c'
             function*
               u'main'
-            lineno (function takes precedence)
-              1

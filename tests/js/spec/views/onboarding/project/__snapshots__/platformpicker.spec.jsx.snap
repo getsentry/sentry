@@ -690,7 +690,7 @@ exports[`PlatformPicker render() should update State.tab onClick when particular
       </CategoryNav>
       <SearchBar>
         <div
-          className="css-otjzwm-SearchBar-inputStyles ewlrg791"
+          className="css-1e5tau1-SearchBar-inputStyles ewlrg791"
         >
           <InlineSvg
             src="icon-search"

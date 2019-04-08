@@ -23,10 +23,6 @@ TextAreaControl.propTypes = {
    * Number of rows to default to.
    */
   rows: PropTypes.number,
-  /**
-   * Requests monospace input
-   */
-  monospace: PropTypes.bool,
 };
 
 const propFilter = p => ['autosize', 'rows', 'maxRows'].includes(p) || isPropValid(p);

@@ -3,7 +3,6 @@ from __future__ import absolute_import
 import inspect
 
 from sentry.grouping.component import GroupingComponent
-from sentry.grouping.enhancer import Enhancements
 
 
 STRATEGIES = {}
@@ -164,12 +163,10 @@ class StrategyConfiguration(object):
     delegates = {}
     changelog = None
 
-    def __init__(self, enhancements=None):
-        if enhancements is None:
-            enhancements = Enhancements([])
-        else:
-            enhancements = Enhancements.loads(enhancements)
-        self.enhancements = enhancements
+    def __init__(self, options=None):
+        if options is None:
+            options = {}
+        self.options = options
 
     def __repr__(self):
         return '<%s %r>' % (
@@ -195,12 +192,11 @@ class StrategyConfiguration(object):
             hint='grouping algorithm does not consider this value',
         )
 
-    @classmethod
     def as_dict(self):
         return {
             'id': self.id,
+            'options': self.options,
             'strategies': sorted(self.strategies),
-            'changelog': self.changelog,
             'delegates': sorted(x.id for x in self.delegates.values()),
         }
 
