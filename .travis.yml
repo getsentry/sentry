@@ -147,17 +147,19 @@ matrix:
       name: 'Backend [Postgres] (Rust Interface Renormalization)'
       env: TEST_SUITE=postgres DB=postgres SENTRY_TEST_USE_RUST_INTERFACE_RENORMALIZATION=1
 
-    # only the sqlite suite runs riak tests
     - python: 2.7
-      name: 'Backend [SQLite]'
-      env: TEST_SUITE=sqlite DB=sqlite
+      name: 'Backend [Riak]'
+      env: TEST_SUITE=riak DB=postgres
       services:
         - memcached
-        - riak
         - redis-server
+        - postgresql
+        - riak
       install:
         - python setup.py install_egg_info
         - pip install -e ".[dev,tests,optional]"
+      before_script:
+        - psql -c 'create database sentry;' -U postgres
 
     - <<: *acceptance_default
       name: 'Acceptance (1/2)'
