@@ -94,7 +94,12 @@ describe('Configure should render correctly', function() {
         <Configure {...props} />,
         TestStubs.routerContext([
           {
-            organization: {id: '1337', slug: 'testOrg', teams: [['project-slug']]},
+            organization: {
+              id: '1337',
+              slug: 'testOrg',
+              teams: [['project-slug']],
+              projects: [],
+            },
           },
         ])
       );
@@ -127,7 +132,12 @@ describe('Configure should render correctly', function() {
         <Configure {...props} />,
         TestStubs.routerContext([
           {
-            organization: {id: '1337', slug: 'testOrg', teams: [['project-slug']]},
+            organization: {
+              id: '1337',
+              slug: 'testOrg',
+              teams: [['project-slug']],
+              projects: [],
+            },
           },
         ])
       );
