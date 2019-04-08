@@ -411,6 +411,7 @@ class DetailedProjectSerializer(ProjectWithTeamSerializer):
             'sentry:scrub_defaults',
             'sentry:safe_fields',
             'sentry:store_crash_reports',
+            'sentry:symbol_sources',
             'sentry:sensitive_fields',
             'sentry:csp_ignored_sources_defaults',
             'sentry:csp_ignored_sources',
@@ -556,6 +557,7 @@ class DetailedProjectSerializer(ProjectWithTeamSerializer):
                 'processingIssues': attrs['processing_issues'],
                 'defaultEnvironment': attrs['options'].get('sentry:default_environment'),
                 'relayPiiConfig': attrs['options'].get('sentry:relay_pii_config'),
+                'symbolSources': attrs['options'].get('sentry:symbol_sources'),
             }
         )
         return data

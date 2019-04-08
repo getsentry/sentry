@@ -201,6 +201,27 @@ export const fields = {
     ),
     visible: ({features}) => features.has('event-attachments'),
   },
+  symbolSources: {
+    name: 'symbolSources',
+    type: 'string',
+    label: t('Debug File Repositories'),
+    placeholder: t('Paste JSON here.'),
+    multiline: true,
+    autosize: true,
+    maxRows: 10,
+    help: t(
+      'Configures external repositories which Sentry uses to automatically download debug files from. At the moment, only Amazon S3 buckets are supported.'
+    ),
+    visible: ({ features }) => features.has('symbol-sources'),
+    validate: ({id, form}) => {
+      try {
+        JSON.parse(form[id]);
+      } catch (e) {
+        return [[id, e.toString().replace(/^SyntaxError: JSON.parse: /, '')]];
+      }
+      return [];
+    },
+  },
   relayPiiConfig: {
     name: 'relayPiiConfig',
     type: 'string',
@@ -227,7 +248,6 @@ export const fields = {
       return [];
     },
   },
-
   allowedDomains: {
     name: 'allowedDomains',
     type: 'string',

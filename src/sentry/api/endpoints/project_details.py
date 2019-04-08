@@ -20,12 +20,14 @@ from sentry.api.serializers import serialize
 from sentry.api.serializers.models.project import DetailedProjectSerializer
 from sentry.api.serializers.rest_framework import ListField, OriginField
 from sentry.constants import RESERVED_PROJECT_SLUGS
+from sentry.lang.native.symbolicator import parse_sources, InvalidSourcesError
 from sentry.models import (
     AuditLogEntryEvent, Group, GroupStatus, Project, ProjectBookmark, ProjectRedirect,
     ProjectStatus, ProjectTeam, UserOption,
 )
 from sentry.tasks.deletion import delete_project
 from sentry.utils.apidocs import scenario, attach_scenarios
+from sentry.utils import json
 
 delete_logger = logging.getLogger('sentry.deletions.api')
 
@@ -96,6 +98,7 @@ class ProjectAdminSerializer(ProjectMemberSerializer):
     safeFields = ListField(child=serializers.CharField(), required=False)
     storeCrashReports = serializers.BooleanField(required=False)
     relayPiiConfig = serializers.CharField(required=False)
+    symbolSources = serializers.CharField(required=False)
     scrubIPAddresses = serializers.BooleanField(required=False)
     groupingConfig = serializers.CharField(required=False)
     scrapeJavaScript = serializers.BooleanField(required=False)
@@ -166,6 +169,31 @@ class ProjectAdminSerializer(ProjectMemberSerializer):
             raise serializers.ValidationError(
                 'Organization does not have the relay feature enabled'
             )
+        return attrs
+
+    def validate_symbolSources(self, attrs, source):
+        sources_json = attrs[source]
+        if not sources_json:
+            return attrs
+
+        from sentry import features
+        organization = self.context['project'].organization
+        request = self.context["request"]
+        has_sources = features.has('organizations:symbol-sources',
+                                   organization,
+                                   actor=request.user)
+
+        if not has_sources:
+            raise serializers.ValidationError(
+                'Organization is not allowed to set symbol sources'
+            )
+
+        try:
+            sources = parse_sources(sources_json)
+            attrs[source] = json.dumps(sources)
+        except InvalidSourcesError as e:
+            raise serializers.ValidationError(e.message)
+
         return attrs
 
     def validate_copy_from_project(self, attrs, source):
@@ -408,6 +436,10 @@ class ProjectDetailsEndpoint(ProjectEndpoint):
             if project.update_option('sentry:relay_pii_config', result['relayPiiConfig']):
                 changed_proj_settings['sentry:relay_pii_config'] = result['relayPiiConfig'].strip(
                 ) or None
+        if result.get('symbolSources') is not None:
+            if project.update_option('sentry:symbol_sources', result['symbolSources']):
+                changed_proj_settings['sentry:symbol_sources'] = result['symbolSources'] \
+                    .strip() or None
         if 'defaultEnvironment' in result:
             if result['defaultEnvironment'] is None:
                 project.delete_option('sentry:default_environment')

@@ -308,6 +308,7 @@ class ProjectGeneralSettings extends AsyncView {
               fields.safeFields,
               fields.storeCrashReports,
               fields.relayPiiConfig,
+              fields.symbolSources,
             ]}
           />
 
