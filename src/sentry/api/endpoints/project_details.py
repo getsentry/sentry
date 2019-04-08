@@ -214,7 +214,7 @@ class ProjectAdminSerializer(ProjectMemberSerializer):
 
         try:
             sources = parse_sources(sources_json.strip())
-            attrs[source] = json.dumps(sources) if sources else None
+            attrs[source] = json.dumps(sources) if sources else ''
         except InvalidSourcesError as e:
             raise serializers.ValidationError(e.message)
 
@@ -499,7 +499,7 @@ class ProjectDetailsEndpoint(ProjectEndpoint):
                 changed_proj_settings['sentry:builtin_symbol_sources'] = result['builtinSymbolSources']
         if result.get('symbolSources') is not None:
             if project.update_option('sentry:symbol_sources', result['symbolSources']):
-                changed_proj_settings['sentry:symbol_sources'] = result['symbolSources']
+                changed_proj_settings['sentry:symbol_sources'] = result['symbolSources'] or None
         if 'defaultEnvironment' in result:
             if result['defaultEnvironment'] is None:
                 project.delete_option('sentry:default_environment')
