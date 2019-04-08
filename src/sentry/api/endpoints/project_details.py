@@ -25,6 +25,8 @@ from sentry.models import (
     AuditLogEntryEvent, Group, GroupStatus, Project, ProjectBookmark, ProjectRedirect,
     ProjectStatus, ProjectTeam, UserOption,
 )
+from sentry.grouping.enhancer import Enhancements, InvalidEnhancerConfig
+from sentry.grouping.fingerprinting import FingerprintingRules, InvalidFingerprintingConfig
 from sentry.tasks.deletion import delete_project
 from sentry.utils.apidocs import scenario, attach_scenarios
 from sentry.utils import json
@@ -102,6 +104,9 @@ class ProjectAdminSerializer(ProjectMemberSerializer):
     symbolSources = serializers.CharField(required=False)
     scrubIPAddresses = serializers.BooleanField(required=False)
     groupingConfig = serializers.CharField(required=False)
+    groupingEnhancements = serializers.CharField(required=False)
+    groupingEnhancementsBase = serializers.CharField(required=False)
+    fingerprintingRules = serializers.CharField(required=False)
     scrapeJavaScript = serializers.BooleanField(required=False)
     allowedDomains = ListField(child=OriginField(), required=False)
     resolveAge = serializers.IntegerField(required=False)
@@ -191,7 +196,7 @@ class ProjectAdminSerializer(ProjectMemberSerializer):
         return attrs
 
     def validate_symbolSources(self, attrs, source):
-        sources_json = (attrs[source] or '').strip()
+        sources_json = attrs[source]
         if not sources_json:
             return attrs
 
@@ -208,9 +213,31 @@ class ProjectAdminSerializer(ProjectMemberSerializer):
             )
 
         try:
-            sources = parse_sources(sources_json)
+            sources = parse_sources(sources_json.strip())
             attrs[source] = json.dumps(sources) if sources else None
         except InvalidSourcesError as e:
+            raise serializers.ValidationError(e.message)
+
+        return attrs
+
+    def validate_groupingEnhancements(self, attrs, source):
+        if not attrs[source]:
+            return attrs
+
+        try:
+            Enhancements.from_config_string(attrs[source])
+        except InvalidEnhancerConfig as e:
+            raise serializers.ValidationError(e.message)
+
+        return attrs
+
+    def validate_fingerprintingRules(self, attrs, source):
+        if not attrs[source]:
+            return attrs
+
+        try:
+            FingerprintingRules.from_config_string(attrs[source])
+        except InvalidFingerprintingConfig as e:
             raise serializers.ValidationError(e.message)
 
         return attrs
@@ -427,6 +454,17 @@ class ProjectDetailsEndpoint(ProjectEndpoint):
         if result.get('groupingConfig') is not None:
             if project.update_option('sentry:grouping_config', result['groupingConfig']):
                 changed_proj_settings['sentry:grouping_config'] = result['groupingConfig']
+        if result.get('groupingEnhancements') is not None:
+            if project.update_option('sentry:grouping_enhancements',
+                                     result['groupingEnhancements']):
+                changed_proj_settings['sentry:grouping_enhancements'] = result['groupingEnhancements']
+        if result.get('groupingEnhancementsBase') is not None:
+            if project.update_option('sentry:grouping_enhancements_base',
+                                     result['groupingEnhancementsBase']):
+                changed_proj_settings['sentry:grouping_enhancements_base'] = result['groupingEnhancementsBase']
+        if result.get('fingerprintingRules') is not None:
+            if project.update_option('sentry:fingerprinting_rules', result['fingerprintingRules']):
+                changed_proj_settings['sentry:fingerprinting_rules'] = result['fingerprintingRules']
         if result.get('securityToken') is not None:
             if project.update_option('sentry:token', result['securityToken']):
                 changed_proj_settings['sentry:token'] = result['securityToken']
@@ -535,6 +573,11 @@ class ProjectDetailsEndpoint(ProjectEndpoint):
                 project.update_option(
                     'sentry:grouping_config',
                     options['sentry:grouping_config'],
+                )
+            if 'sentry:fingerprinting_rules' in options:
+                project.update_option(
+                    'sentry:fingerprinting_rules',
+                    options['sentry:fingerprinting_rules'],
                 )
             if 'mail:subject_prefix' in options:
                 project.update_option(

@@ -21,7 +21,7 @@ import ConfigStore from 'app/stores/configStore';
 import EnvironmentStore from 'app/stores/environmentStore';
 import ErrorRobot from 'app/components/errorRobot';
 import {fetchProjectSavedSearches} from 'app/actionCreators/savedSearches';
-import {fetchTagValues} from 'app/actionCreators/tags';
+import {fetchProjectTagValues} from 'app/actionCreators/tags';
 import GroupStore from 'app/stores/groupStore';
 import LoadingError from 'app/components/loadingError';
 import LoadingIndicator from 'app/components/loadingIndicator';
@@ -662,7 +662,7 @@ const Stream = createReactClass({
   tagValueLoader(key, search) {
     const {orgId} = this.props.params;
     const project = this.getProject();
-    return fetchTagValues(this.api, orgId, key, search, project.id);
+    return fetchProjectTagValues(this.api, orgId, project.slug, key, search);
   },
 
   render() {

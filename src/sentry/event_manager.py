@@ -20,7 +20,9 @@ from sentry import buffer, eventtypes, eventstream, features, tagstore, tsdb, fi
 from sentry.constants import (
     LOG_LEVELS, LOG_LEVELS_MAP, VALID_PLATFORMS, MAX_TAG_VALUE_LENGTH,
 )
-from sentry.grouping.api import get_grouping_config_dict_for_project
+from sentry.grouping.api import get_grouping_config_dict_for_project, \
+    get_grouping_config_dict_for_event_data, load_grouping_config, \
+    apply_server_fingerprinting, get_fingerprinting_config_for_project
 from sentry.coreapi import (
     APIError,
     APIForbidden,
@@ -55,7 +57,7 @@ from sentry.utils.safe import safe_execute, trim, get_path, setdefault_path
 from sentry.utils.geo import rust_geoip
 from sentry.utils.validators import is_float
 from sentry.utils.contexts_normalization import normalize_user_agent
-from sentry.stacktraces import normalize_in_app
+from sentry.stacktraces import normalize_stacktraces_for_grouping
 from sentry.culprit import generate_culprit
 
 
@@ -690,7 +692,9 @@ class EventManager(object):
 
         # At this point we want to normalize the in_app values in case the
         # clients did not set this appropriately so far.
-        normalize_in_app(data)
+        grouping_config = load_grouping_config(
+            get_grouping_config_dict_for_event_data(data, project))
+        normalize_stacktraces_for_grouping(data, grouping_config)
 
         for plugin in plugins.for_project(project, version=None):
             added_tags = safe_execute(plugin.get_tags, event, _with_transaction=False)
@@ -713,6 +717,7 @@ class EventManager(object):
         # removed it from the payload.  The call to get_hashes will then
         # look at `grouping_config` to pick the right paramters.
         data['fingerprint'] = data.get('fingerprint') or ['{{ default }}']
+        apply_server_fingerprinting(data, get_fingerprinting_config_for_project(project))
         hashes = event.get_hashes()
         data['hashes'] = hashes
 
