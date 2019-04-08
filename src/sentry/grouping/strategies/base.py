@@ -164,7 +164,7 @@ class StrategyConfiguration(object):
     delegates = {}
     changelog = None
 
-    def __init__(self, enhancements=None):
+    def __init__(self, enhancements=None, **extra):
         if enhancements is None:
             enhancements = Enhancements([])
         else:
