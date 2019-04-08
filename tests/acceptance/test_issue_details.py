@@ -86,8 +86,9 @@ class IssueDetailsTest(AcceptanceTestCase, SnubaTestCase):
         # Don't enable sentry10 so we have coverage for sentry9 as well.
         self.dismiss_assistant()
         self.browser.get(
-            u'/organizations/{}/issues/{}/events/{}/'.format(
+            u'/{}/{}/issues/{}/events/{}/'.format(
                 self.org.slug,
+                self.project.slug,
                 event.group.id,
                 event.id
             )
