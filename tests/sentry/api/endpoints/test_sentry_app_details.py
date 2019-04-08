@@ -102,6 +102,7 @@ class UpdateSentryAppDetailsTest(SentryAppDetailsTest):
             self.url,
             data={
                 'name': self.published_app.name,
+                'author': 'A Company',
                 'webhookUrl': 'https://newurl.com',
                 'redirectUrl': 'https://newredirecturl.com',
                 'isAlertable': True,
@@ -110,7 +111,7 @@ class UpdateSentryAppDetailsTest(SentryAppDetailsTest):
         )
         assert json.loads(response.content) == {
             'name': self.published_app.name,
-            'author': self.published_app.author,
+            'author': 'A Company',
             'slug': self.published_app.slug,
             'scopes': [],
             'events': [],
