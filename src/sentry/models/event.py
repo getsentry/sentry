@@ -115,7 +115,10 @@ class EventCommon(object):
 
     @project.setter
     def project(self, project):
-        self.project_id = project.id
+        if project is None:
+            self.project_id = None
+        else:
+            self.project_id = project.id
         self._project_cache = project
 
     def get_interfaces(self):
@@ -160,9 +163,8 @@ class EventCommon(object):
 
     def get_grouping_config(self):
         """Returns the event grouping config."""
-        from sentry.grouping.api import get_grouping_config_dict_for_project
-        return self.data.get('grouping_config') \
-            or get_grouping_config_dict_for_project(self.project)
+        from sentry.grouping.api import get_grouping_config_dict_for_event_data
+        return get_grouping_config_dict_for_event_data(self.data, self.project)
 
     def get_hashes(self, force_config=None):
         """

@@ -1,5 +1,8 @@
 from __future__ import absolute_import
 
+import six
+
+
 PAIRS = {
     '(': ')',
     '{': '}',
@@ -62,3 +65,18 @@ def split_func_tokens(s):
         rv.append(buf)
 
     return [''.join(x) for x in rv]
+
+
+def trim_function_name(function, platform):
+    """This works similar to `get_function_component_v1` but returns a
+    string in all situations that was just trimmed.  This function is supposed
+    to be used for display purposes in the UI.
+
+    The return value of this function does not need to be kept stable so it
+    can be upgraded without breaking grouping.
+    """
+    from sentry.grouping.strategies.newstyle import get_function_component_v1
+    component = get_function_component_v1(function, platform)
+    if len(component.values) == 1 and isinstance(component.values[0], six.string_types):
+        return component.values[0]
+    return function
