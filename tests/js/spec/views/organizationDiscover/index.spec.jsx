@@ -169,7 +169,7 @@ describe('OrganizationDiscoverContainer', function() {
     });
   });
 
-  describe.only('updates results', function() {
+  describe('updates results', function() {
     let wrapper, request;
     const organization = TestStubs.Organization({
       projects: [TestStubs.Project()],
