@@ -84,6 +84,7 @@ class DeleteActions extends React.Component {
   render() {
     return (
       <div className="btn-group">
+        <GuideAnchor type="text" target="ignore_delete_discard" />
         <LinkWithConfirmation
           className="group-remove btn btn-default btn-sm"
           title={t('Delete')}
@@ -93,7 +94,6 @@ class DeleteActions extends React.Component {
           onConfirm={this.props.onDelete}
         >
           <span className="icon-trash" />
-          <GuideAnchor type="text" target="ignore_delete_discard" />
         </LinkWithConfirmation>
         <DropdownLink caret={true} className="group-delete btn btn-default btn-sm">
           <MenuItem onClick={this.openDiscardModal}>
