@@ -164,8 +164,12 @@ class StrategyConfiguration(object):
     delegates = {}
     changelog = None
 
-    def __init__(self, enhancements):
-        self.enhancements = Enhancements.loads(enhancements)
+    def __init__(self, enhancements=None):
+        if enhancements is None:
+            enhancements = Enhancements([])
+        else:
+            enhancements = Enhancements.loads(enhancements)
+        self.enhancements = enhancements
 
     def __repr__(self):
         return '<%s %r>' % (
