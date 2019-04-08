@@ -246,7 +246,6 @@ class ProjectDebugSymbols extends AsyncComponent {
     return (
       <React.Fragment>
         <SettingsPageHeader title={t('Debug Information Files')} />
-        <PermissionAlert />
 
         <TextBlock>
           {t(`
@@ -257,21 +256,25 @@ class ProjectDebugSymbols extends AsyncComponent {
         </TextBlock>
 
         {features.has('symbol-sources') && (
-          <Form
-            saveOnBlur
-            allowUndo
-            initialData={project}
-            apiMethod="PUT"
-            apiEndpoint={`/projects/${orgId}/${projectId}/`}
-          >
-            <JsonForm
-              access={access}
-              features={features}
-              title={t('External Sources')}
-              disabled={!access.has('project:write')}
-              fields={formFields}
-            />
-          </Form>
+          <>
+            <PermissionAlert />
+
+            <Form
+              saveOnBlur
+              allowUndo
+              initialData={project}
+              apiMethod="PUT"
+              apiEndpoint={`/projects/${orgId}/${projectId}/`}
+            >
+              <JsonForm
+                access={access}
+                features={features}
+                title={t('External Sources')}
+                disabled={!access.has('project:write')}
+                fields={formFields}
+              />
+            </Form>
+          </>
         )}
 
         <TextBlock>
