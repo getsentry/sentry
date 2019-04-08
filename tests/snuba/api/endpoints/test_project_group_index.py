@@ -143,15 +143,32 @@ class GroupListTest(APITestCase, SnubaTestCase):
         assert response.status_code == 400
 
     def test_environment(self):
-        self.create_event(tags={'environment': 'production'})
+        self.store_event(
+            data={
+                'fingerprint': ['put-me-in-group1'],
+                'timestamp': self.min_ago.isoformat()[:19],
+                'environment': 'production',
+            },
+            project_id=self.project.id
+        )
+        self.store_event(
+            data={
+                'fingerprint': ['put-me-in-group2'],
+                'timestamp': self.min_ago.isoformat()[:19],
+                'environment': 'staging',
+            },
+            project_id=self.project.id
+        )
 
         self.login_as(user=self.user)
 
         response = self.client.get(self.path + '?environment=production', format='json')
         assert response.status_code == 200
+        assert len(response.data) == 1
 
         response = self.client.get(self.path + '?environment=garbage', format='json')
         assert response.status_code == 200
+        assert len(response.data) == 0
 
     def test_auto_resolved(self):
         project = self.project
