@@ -122,6 +122,7 @@ export default class IgnoreActions extends React.Component {
           <GuideAnchor target="ignore_delete_discard" type="text" />
           <ActionLink
             {...actionLinkProps}
+            title="Ignore"
             className={linkClassName}
             onAction={() => onUpdate({status: 'ignored'})}
           >
