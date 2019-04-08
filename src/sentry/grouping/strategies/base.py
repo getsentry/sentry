@@ -163,7 +163,7 @@ class StrategyConfiguration(object):
     delegates = {}
     changelog = None
 
-    def __init__(self, options=None):
+    def __init__(self, options=None, **extra):
         if options is None:
             options = {}
         self.options = options
