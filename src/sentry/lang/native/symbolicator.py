@@ -12,10 +12,9 @@ from requests.exceptions import RequestException
 from sentry import options
 from sentry.auth.system import get_system_token
 from sentry.cache import default_cache
-from sentry.utils import metrics
+from sentry.utils import json, metrics
 from sentry.net.http import Session
 from sentry.tasks.store import RetrySymbolication
-from sentry.utils import json
 
 MAX_ATTEMPTS = 3
 REQUEST_CACHE_TIMEOUT = 3600
@@ -129,6 +128,9 @@ def parse_sources(config):
     """
     Parses the given sources in the config string (from JSON).
     """
+
+    if not config:
+        return []
 
     try:
         sources = json.loads(config)

@@ -82,7 +82,9 @@ const formFields = [
     ),
     validate: ({id, form}) => {
       try {
-        JSON.parse(form[id]);
+        if (form[id].trim()) {
+          JSON.parse(form[id]);
+        }
       } catch (e) {
         return [[id, e.toString().replace(/^SyntaxError: JSON.parse: /, '')]];
       }
