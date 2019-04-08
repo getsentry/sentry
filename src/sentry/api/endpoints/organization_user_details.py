@@ -4,7 +4,7 @@ from rest_framework.response import Response
 
 from sentry.api.bases.organization import OrganizationEndpoint
 from sentry.api.serializers import serialize
-from sentry.models import OrganizationMember
+from sentry.models import User
 from sentry.api.endpoints.organization_member_index import MemberPermission
 
 
@@ -13,11 +13,11 @@ class OrganizationUserDetailsEndpoint(OrganizationEndpoint):
 
     def get(self, request, organization, user_id):
         try:
-            org_member = OrganizationMember.objects.get(
-                user__id=user_id,
-                organization=organization,
+            user = User.objects.get(
+                id=user_id,
+                sentry_orgmember_set__organization_id=organization.id,
             )
-        except OrganizationMember.DoesNotExist:
+        except User.DoesNotExist:
             return Response(status=404)
 
-        return Response(serialize(org_member, request.user))
+        return Response(serialize(user, request.user))
