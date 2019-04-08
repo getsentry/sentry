@@ -15,7 +15,7 @@ def get_crash_location(exception, platform=None):
         if fn:
             func = frame.get('function')
             if func is not None:
-                from sentry.interfaces.stacktrace import trim_function_name
+                from sentry.grouping.strategies.utils import trim_function_name
                 func = trim_function_name(func, frame.get('platform') or platform)
             if frame.get('in_app'):
                 return fn, func

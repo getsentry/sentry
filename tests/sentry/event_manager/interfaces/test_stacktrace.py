@@ -7,10 +7,7 @@ import pytest
 import mock
 from django.conf import settings
 
-from sentry.interfaces.stacktrace import (
-    get_context, is_url,
-    trim_function_name
-)
+from sentry.interfaces.stacktrace import get_context, is_url
 from sentry.event_manager import EventManager
 from sentry.models import Event
 
@@ -24,16 +21,6 @@ def test_is_url():
     assert is_url('webpack:///./app/index.jsx') is False  # webpack bundle
     assert is_url('data:,') is False
     assert is_url('blob:\x00') is False
-
-
-def test_trim_function_name():
-    assert trim_function_name('+[foo:(bar)]', 'objc') == '+[foo:(bar)]'
-    assert trim_function_name('[foo:(bar)]', 'objc') == '[foo:(bar)]'
-    assert trim_function_name('-[foo:(bar)]', 'objc') == '-[foo:(bar)]'
-    assert trim_function_name(
-        '(anonymous namespace)::foo(int)',
-        'native') == '(anonymous namespace)::foo'
-    assert trim_function_name('foo::bar::foo(int)', 'native') == 'foo::bar::foo'
 
 
 def test_works_with_empty_filename():

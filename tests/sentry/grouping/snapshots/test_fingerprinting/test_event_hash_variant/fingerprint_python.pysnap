@@ -1,0 +1,17 @@
+---
+created: '2019-04-08T10:31:31.548578Z'
+creator: sentry
+source: tests/sentry/grouping/test_fingerprinting.py
+---
+config:
+  rules:
+  - fingerprint:
+    - timeout-in-requests
+    matchers:
+    - - type
+      - ReadTimeout
+    - - path
+      - '**/requests/adapters.py'
+  version: 1
+fingerprint:
+- timeout-in-requests

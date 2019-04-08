@@ -332,7 +332,7 @@ exports[`CreateProject should deal with incorrect platform name if its provided 
           </CategoryNav>
           <SearchBar>
             <div
-              className="css-1e5tau1-SearchBar-inputStyles ewlrg791"
+              className="css-otjzwm-SearchBar-inputStyles ewlrg791"
             >
               <InlineSvg
                 src="icon-search"
@@ -1190,7 +1190,7 @@ exports[`CreateProject should deal with incorrect platform name if its provided 
           </FormLabel>
           <ProjectNameInput>
             <div
-              className="css-1dtytc5-ProjectNameInput-inputStyles eovdm173"
+              className="css-1pwlbw7-ProjectNameInput-inputStyles eovdm173"
             >
               <ProjectPlatformicon
                 monoTone={true}
@@ -1837,7 +1837,7 @@ exports[`CreateProject should fill in platform name if its provided by url 1`] =
           </CategoryNav>
           <SearchBar>
             <div
-              className="css-1e5tau1-SearchBar-inputStyles ewlrg791"
+              className="css-otjzwm-SearchBar-inputStyles ewlrg791"
             >
               <InlineSvg
                 src="icon-search"
@@ -2149,7 +2149,7 @@ exports[`CreateProject should fill in platform name if its provided by url 1`] =
           </FormLabel>
           <ProjectNameInput>
             <div
-              className="css-1dtytc5-ProjectNameInput-inputStyles eovdm173"
+              className="css-1pwlbw7-ProjectNameInput-inputStyles eovdm173"
             >
               <ProjectPlatformicon
                 monoTone={true}
@@ -2796,7 +2796,7 @@ exports[`CreateProject should fill in project name if its empty when platform is
           </CategoryNav>
           <SearchBar>
             <div
-              className="css-1e5tau1-SearchBar-inputStyles ewlrg791"
+              className="css-otjzwm-SearchBar-inputStyles ewlrg791"
             >
               <InlineSvg
                 src="icon-search"
@@ -3758,7 +3758,7 @@ exports[`CreateProject should fill in project name if its empty when platform is
           </FormLabel>
           <ProjectNameInput>
             <div
-              className="css-1dtytc5-ProjectNameInput-inputStyles eovdm173"
+              className="css-1pwlbw7-ProjectNameInput-inputStyles eovdm173"
             >
               <ProjectPlatformicon
                 monoTone={true}

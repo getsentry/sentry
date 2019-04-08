@@ -1,5 +1,5 @@
 ---
-created: '2019-03-14T17:12:36.983119Z'
+created: '2019-04-03T22:37:14.837619Z'
 creator: sentry
 source: tests/sentry/grouping/test_variants.py
 ---
@@ -9,7 +9,7 @@ app:
     app (exception of system takes precedence)
       exception (ignored because hash matches system variant)
         stacktrace*
-          frame*
+          frame* (frame considered in-app because no frame is in-app)
             filename*
               u'foo/baz.py'
             lineno*

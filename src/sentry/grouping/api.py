@@ -7,6 +7,8 @@ from sentry.grouping.strategies.configurations import CONFIGURATIONS, DEFAULT_CO
 from sentry.grouping.component import GroupingComponent
 from sentry.grouping.variants import ChecksumVariant, FallbackVariant, \
     ComponentVariant, CustomFingerprintVariant, SaltedComponentVariant
+from sentry.grouping.enhancer import Enhancements, InvalidEnhancerConfig, \
+    DEFAULT_ENHANCEMENTS_CONFIG, DEFAULT_ENHANCEMENT_BASE, ENHANCEMENT_BASES
 from sentry.grouping.utils import DEFAULT_FINGERPRINT_VALUES, hash_from_values
 
 
@@ -29,9 +31,7 @@ def get_grouping_config_dict_for_project(project, silent=True):
     if config_id is None:
         config_id = DEFAULT_CONFIG
     else:
-        try:
-            CONFIGURATIONS[config_id]
-        except KeyError:
+        if config_id not in CONFIGURATIONS:
             if not silent:
                 raise ConfigNotFoundException(config_id)
             config_id = DEFAULT_CONFIG
@@ -40,13 +40,51 @@ def get_grouping_config_dict_for_project(project, silent=True):
     # such as frames that mark the end of a stacktrace and more.
     return {
         'id': config_id,
+        'enhancements': _get_project_enhancements_config(project),
     }
 
 
-def get_default_grouping_config_dict():
+def get_grouping_config_dict_for_event_data(data, project):
+    """Returns the grouping config for an event dictionary."""
+    return data.get('grouping_config') \
+        or get_grouping_config_dict_for_project(project)
+
+
+def _get_project_enhancements_config(project):
+    enhancements = project.get_option('sentry:grouping_enhancements')
+    enhancements_base = project.get_option('sentry:grouping_enhancements_base')
+    if not enhancements and not enhancements_base:
+        return DEFAULT_ENHANCEMENTS_CONFIG
+
+    if enhancements_base is None or enhancements_base not in ENHANCEMENT_BASES:
+        enhancements_base = DEFAULT_ENHANCEMENT_BASE
+
+    # Instead of parsing and dumping out config here, we can make a
+    # shortcut
+    from sentry.utils.cache import cache
+    from sentry.utils.hashlib import md5_text
+    cache_key = 'grouping-enhancements:' + \
+        md5_text('%s|%s' % (enhancements_base, enhancements)).hexdigest()
+    rv = cache.get(cache_key)
+    if rv is not None:
+        return rv
+
+    try:
+        rv = Enhancements.from_config_string(
+            enhancements or '', bases=[enhancements_base]).dumps()
+    except InvalidEnhancerConfig:
+        rv = DEFAULT_ENHANCEMENTS_CONFIG
+    cache.set(cache_key, rv)
+    return rv
+
+
+def get_default_grouping_config_dict(id=None):
     """Returns the default grouping config."""
+    if id is None:
+        id = DEFAULT_CONFIG
     return {
-        'id': DEFAULT_CONFIG,
+        'id': id,
+        'enhancements': DEFAULT_ENHANCEMENTS_CONFIG,
     }
 
 
@@ -61,6 +99,48 @@ def load_grouping_config(config_dict=None):
     if config_id not in CONFIGURATIONS:
         raise ConfigNotFoundException(config_id)
     return CONFIGURATIONS[config_id](**config_dict)
+
+
+def get_fingerprinting_config_for_project(project):
+    from sentry.grouping.fingerprinting import FingerprintingRules, \
+        InvalidFingerprintingConfig
+    rules = project.get_option('sentry:fingerprint_rules')
+    if not rules:
+        return FingerprintingRules([])
+
+    from sentry.utils.cache import cache
+    from sentry.utils.hashlib import md5_text
+    cache_key = 'fingerprinting-rules:' + md5_text(rules).hexdigest()
+    rv = cache.get(cache_key)
+    if rv is not None:
+        return FingerprintingRules.from_json(rv)
+
+    try:
+        rv = FingerprintingRules.from_config_string(
+            rules or '')
+    except InvalidFingerprintingConfig:
+        rv = FingerprintingRules([])
+    cache.set(cache_key, rv.to_json())
+    return rv
+
+
+def apply_server_fingerprinting(event, config):
+    fingerprint = event['fingerprint']
+    if not any(x in DEFAULT_FINGERPRINT_VALUES for x in fingerprint):
+        return
+
+    new_values = config.get_fingerprint_values_for_event(event)
+    if new_values is None:
+        return
+
+    new_fingerprint = []
+    for value in fingerprint:
+        if value in DEFAULT_FINGERPRINT_VALUES:
+            new_fingerprint.extend(new_values)
+        else:
+            new_fingerprint.append(value)
+
+    event['fingerprint'] = new_fingerprint
 
 
 def _get_calculated_grouping_variants_for_event(event, config):

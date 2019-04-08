@@ -1,0 +1,450 @@
+{
+  "_fingerprinting_rules": [
+    {
+      "matchers": [
+        ["type", "SymCacheError"],
+        ["function", "symbolicator::actors::symcaches::*"]
+      ],
+      "fingerprint": ["symcache-error"]
+    }
+  ],
+  "platform": "native",
+  "exception": {
+    "values": [
+      {
+        "type": "Custom",
+        "value": "out of range"
+      },
+      {
+        "stacktrace": {
+          "frames": [
+            {
+              "function": "<unknown> ",
+              "instruction_addr": "0x0",
+              "in_app": true
+            },
+            {
+              "function": "_start ",
+              "instruction_addr": "0x55b95be9f979",
+              "in_app": true
+            },
+            {
+              "function": "__libc_start_main ",
+              "instruction_addr": "0x7f9c5f4242e0",
+              "in_app": true
+            },
+            {
+              "function": "main ",
+              "instruction_addr": "0x55b95be9fab1",
+              "in_app": true
+            },
+            {
+              "function": "std::panicking::try::h72cb0fef6e9c0ab1 ",
+              "abs_path": "src/libstd/panicking.rs",
+              "package": "std",
+              "filename": "panicking.rs",
+              "lineno": 276,
+              "in_app": false,
+              "instruction_addr": "0x55b95c701ac5"
+            },
+            {
+              "function": "__rust_maybe_catch_panic ",
+              "abs_path": "src/libpanic_unwind/lib.rs",
+              "filename": "lib.rs",
+              "lineno": 92,
+              "in_app": false,
+              "instruction_addr": "0x55b95c706549"
+            },
+            {
+              "function": "std::rt::lang_start_internal::{{closure}}::h8ad4264c6b68797c ",
+              "abs_path": "src/libstd/rt.rs",
+              "package": "std",
+              "filename": "rt.rs",
+              "lineno": 49,
+              "in_app": false,
+              "instruction_addr": "0x55b95c700eb2"
+            },
+            {
+              "function": "std::rt::lang_start::{{closure}}::h4e8f5f76222f4872 ",
+              "package": "std",
+              "instruction_addr": "0x55b95be9fac2",
+              "in_app": false
+            },
+            {
+              "function": "symbolicator::main::h6f87bb5c61153edd ",
+              "package": "symbolicator",
+              "instruction_addr": "0x55b95be9fa86",
+              "in_app": true
+            },
+            {
+              "function": "symbolicator::app::main::h81af9cd0e252b957 ",
+              "package": "symbolicator",
+              "instruction_addr": "0x55b95bec77d3",
+              "in_app": true
+            },
+            {
+              "function": "actix::system::SystemRunner::run::hc8b42dd589d5f34d ",
+              "package": "actix",
+              "instruction_addr": "0x55b95c5c57ab",
+              "in_app": true
+            },
+            {
+              "function": "tokio::runtime::current_thread::runtime::Runtime::block_on::h1384999a7df7dbf5 ",
+              "package": "tokio",
+              "instruction_addr": "0x55b95c5907cf",
+              "in_app": true
+            },
+            {
+              "function": "<std::thread::local::LocalKey<T>>::with::h118d351120ec801c ",
+              "instruction_addr": "0x55b95c5b9832",
+              "in_app": false
+            },
+            {
+              "function": "<std::thread::local::LocalKey<T>>::with::h443d9baf3a401142 ",
+              "instruction_addr": "0x55b95c5ba56e",
+              "in_app": false
+            },
+            {
+              "function": "<std::thread::local::LocalKey<T>>::with::h899f4e1afe99ecb6 ",
+              "instruction_addr": "0x55b95c5bb735",
+              "in_app": false
+            },
+            {
+              "function": "<std::thread::local::LocalKey<T>>::with::h2befa73a071a6170 ",
+              "instruction_addr": "0x55b95c5b9f37",
+              "in_app": false
+            },
+            {
+              "function": "<tokio_current_thread::Entered<'a, P>>::block_on::h45ae18bcb1b8db5c ",
+              "instruction_addr": "0x55b95c588e13",
+              "in_app": true
+            },
+            {
+              "function": "<tokio_current_thread::Entered<'a, P>>::tick::hcea2e6d62cc2b7e5 ",
+              "instruction_addr": "0x55b95c588cf4",
+              "in_app": true
+            },
+            {
+              "function": "<tokio_current_thread::scheduler::Scheduler<U>>::tick::he19f21143658e3f0 ",
+              "instruction_addr": "0x55b95c5b3b19",
+              "in_app": true
+            },
+            {
+              "function": "tokio_current_thread::CurrentRunner::set_spawn::h9e70e2daaa86c968 ",
+              "package": "tokio_current_thread",
+              "instruction_addr": "0x55b95c585783",
+              "in_app": true
+            },
+            {
+              "function": "<futures::task_impl::Spawn<T>>::poll_future_notify::h1da2d19e6bf539c6 ",
+              "instruction_addr": "0x55b95c5b7055",
+              "in_app": true
+            },
+            {
+              "function": "futures::task_impl::std::set::h1cc47adb4a176e58 ",
+              "package": "futures",
+              "instruction_addr": "0x55b95c5914e1",
+              "in_app": true
+            },
+            {
+              "function": "<actix::contextimpl::ContextFut<A, C> as futures::future::Future>::poll::h9de5fbebc1652d47 ",
+              "instruction_addr": "0x55b95bebee0d",
+              "in_app": true
+            },
+            {
+              "function": "<futures::future::then::Then<A, B, F> as futures::future::Future>::poll::h67e771243743eb30 ",
+              "instruction_addr": "0x55b95bf8999f",
+              "in_app": true
+            },
+            {
+              "function": "<futures::future::lazy::Lazy<F, R> as futures::future::Future>::poll::h9b62d88151002ac4 ",
+              "instruction_addr": "0x55b95bef8608",
+              "in_app": true
+            },
+            {
+              "function": "<futures::future::then::Then<A, B, F> as futures::future::Future>::poll::h5567ae25991a6daa ",
+              "instruction_addr": "0x55b95bf89129",
+              "in_app": true
+            },
+            {
+              "function": "<futures::future::map_err::MapErr<A, F> as futures::future::Future>::poll::he74c1a2a9e15b1b7 ",
+              "instruction_addr": "0x55b95c04c4e3",
+              "in_app": true
+            },
+            {
+              "function": "<futures::future::chain::Chain<A, B, C>>::poll::h7a8ce6865477e15d ",
+              "instruction_addr": "0x55b95bf6c656",
+              "in_app": true
+            },
+            {
+              "function": "<futures::future::map::Map<A, F> as futures::future::Future>::poll::h8e9ff78b067eab2e ",
+              "instruction_addr": "0x55b95bfefa21",
+              "in_app": true
+            },
+            {
+              "function": "<futures::future::join_all::JoinAll<I> as futures::future::Future>::poll::hbb462bf2c5cac86c ",
+              "instruction_addr": "0x55b95c016474",
+              "in_app": true
+            },
+            {
+              "function": "<futures::future::chain::Chain<A, B, C>>::poll::hbc46b1836174f434 ",
+              "instruction_addr": "0x55b95bf75b51",
+              "in_app": true
+            },
+            {
+              "function": "symbolicator::actors::symcaches::SymCacheFile::parse::hdccb68bbe02b50a3 ",
+              "package": "symbolicator",
+              "instruction_addr": "0x55b95bec3b73",
+              "in_app": true
+            },
+            {
+              "function": "symbolic_symcache::cache::SymCache::parse::hb8a4e051c56bfdd0 ",
+              "package": "symbolic_symcache",
+              "instruction_addr": "0x55b95c41433f",
+              "in_app": true
+            },
+            {
+              "function": "symbolic_symcache::format::Header::parse::h9e4b9050799f7a0b ",
+              "package": "symbolic_symcache",
+              "instruction_addr": "0x55b95c4159b0",
+              "in_app": true
+            },
+            {
+              "function": "<failure::error::error_impl::ErrorImpl as core::convert::From<F>>::from::he5d6dd47a3a261a9 ",
+              "instruction_addr": "0x55b95c4167b5",
+              "in_app": false
+            },
+            {
+              "function": "<failure::backtrace::Backtrace as core::default::Default>::default::h493a6077db117c42 ",
+              "instruction_addr": "0x55b95c69a1cf",
+              "in_app": false
+            },
+            {
+              "function": "failure::backtrace::internal::InternalBacktrace::new::h5c964837d568bbe5 ",
+              "package": "failure",
+              "instruction_addr": "0x55b95c699f2f",
+              "in_app": false
+            }
+          ]
+        },
+        "type": "SymCacheError",
+        "value": "invalid symcache header"
+      },
+      {
+        "stacktrace": {
+          "frames": [
+            {
+              "function": "<unknown> ",
+              "instruction_addr": "0x0",
+              "in_app": true
+            },
+            {
+              "function": "_start ",
+              "instruction_addr": "0x55b95be9f979",
+              "in_app": true
+            },
+            {
+              "function": "__libc_start_main ",
+              "instruction_addr": "0x7f9c5f4242e0",
+              "in_app": true
+            },
+            {
+              "function": "main ",
+              "instruction_addr": "0x55b95be9fab1",
+              "in_app": true
+            },
+            {
+              "function": "std::panicking::try::h72cb0fef6e9c0ab1 ",
+              "abs_path": "src/libstd/panicking.rs",
+              "package": "std",
+              "filename": "panicking.rs",
+              "lineno": 276,
+              "in_app": false,
+              "instruction_addr": "0x55b95c701ac5"
+            },
+            {
+              "function": "__rust_maybe_catch_panic ",
+              "abs_path": "src/libpanic_unwind/lib.rs",
+              "filename": "lib.rs",
+              "lineno": 92,
+              "in_app": false,
+              "instruction_addr": "0x55b95c706549"
+            },
+            {
+              "function": "std::rt::lang_start_internal::{{closure}}::h8ad4264c6b68797c ",
+              "abs_path": "src/libstd/rt.rs",
+              "package": "std",
+              "filename": "rt.rs",
+              "lineno": 49,
+              "in_app": false,
+              "instruction_addr": "0x55b95c700eb2"
+            },
+            {
+              "function": "std::rt::lang_start::{{closure}}::h4e8f5f76222f4872 ",
+              "package": "std",
+              "instruction_addr": "0x55b95be9fac2",
+              "in_app": false
+            },
+            {
+              "function": "symbolicator::main::h6f87bb5c61153edd ",
+              "package": "symbolicator",
+              "instruction_addr": "0x55b95be9fa86",
+              "in_app": true
+            },
+            {
+              "function": "symbolicator::app::main::h81af9cd0e252b957 ",
+              "package": "symbolicator",
+              "instruction_addr": "0x55b95bec77d3",
+              "in_app": true
+            },
+            {
+              "function": "actix::system::SystemRunner::run::hc8b42dd589d5f34d ",
+              "package": "actix",
+              "instruction_addr": "0x55b95c5c57ab",
+              "in_app": true
+            },
+            {
+              "function": "tokio::runtime::current_thread::runtime::Runtime::block_on::h1384999a7df7dbf5 ",
+              "package": "tokio",
+              "instruction_addr": "0x55b95c5907cf",
+              "in_app": true
+            },
+            {
+              "function": "<std::thread::local::LocalKey<T>>::with::h118d351120ec801c ",
+              "instruction_addr": "0x55b95c5b9832",
+              "in_app": false
+            },
+            {
+              "function": "<std::thread::local::LocalKey<T>>::with::h443d9baf3a401142 ",
+              "instruction_addr": "0x55b95c5ba56e",
+              "in_app": false
+            },
+            {
+              "function": "<std::thread::local::LocalKey<T>>::with::h899f4e1afe99ecb6 ",
+              "instruction_addr": "0x55b95c5bb735",
+              "in_app": false
+            },
+            {
+              "function": "<std::thread::local::LocalKey<T>>::with::h2befa73a071a6170 ",
+              "instruction_addr": "0x55b95c5b9f37",
+              "in_app": false
+            },
+            {
+              "function": "<tokio_current_thread::Entered<'a, P>>::block_on::h45ae18bcb1b8db5c ",
+              "instruction_addr": "0x55b95c588e13",
+              "in_app": true
+            },
+            {
+              "function": "<tokio_current_thread::Entered<'a, P>>::tick::hcea2e6d62cc2b7e5 ",
+              "instruction_addr": "0x55b95c588cf4",
+              "in_app": true
+            },
+            {
+              "function": "<tokio_current_thread::scheduler::Scheduler<U>>::tick::he19f21143658e3f0 ",
+              "instruction_addr": "0x55b95c5b3b19",
+              "in_app": true
+            },
+            {
+              "function": "tokio_current_thread::CurrentRunner::set_spawn::h9e70e2daaa86c968 ",
+              "package": "tokio_current_thread",
+              "instruction_addr": "0x55b95c585783",
+              "in_app": true
+            },
+            {
+              "function": "<futures::task_impl::Spawn<T>>::poll_future_notify::h1da2d19e6bf539c6 ",
+              "instruction_addr": "0x55b95c5b7055",
+              "in_app": true
+            },
+            {
+              "function": "futures::task_impl::std::set::h1cc47adb4a176e58 ",
+              "package": "futures",
+              "instruction_addr": "0x55b95c5914e1",
+              "in_app": true
+            },
+            {
+              "function": "<actix::contextimpl::ContextFut<A, C> as futures::future::Future>::poll::h9de5fbebc1652d47 ",
+              "instruction_addr": "0x55b95bebee0d",
+              "in_app": true
+            },
+            {
+              "function": "<futures::future::then::Then<A, B, F> as futures::future::Future>::poll::h67e771243743eb30 ",
+              "instruction_addr": "0x55b95bf8999f",
+              "in_app": true
+            },
+            {
+              "function": "<futures::future::lazy::Lazy<F, R> as futures::future::Future>::poll::h9b62d88151002ac4 ",
+              "instruction_addr": "0x55b95bef8608",
+              "in_app": true
+            },
+            {
+              "function": "<futures::future::then::Then<A, B, F> as futures::future::Future>::poll::h5567ae25991a6daa ",
+              "instruction_addr": "0x55b95bf89129",
+              "in_app": true
+            },
+            {
+              "function": "<futures::future::map_err::MapErr<A, F> as futures::future::Future>::poll::he74c1a2a9e15b1b7 ",
+              "instruction_addr": "0x55b95c04c4e3",
+              "in_app": true
+            },
+            {
+              "function": "<futures::future::chain::Chain<A, B, C>>::poll::h7a8ce6865477e15d ",
+              "instruction_addr": "0x55b95bf6c656",
+              "in_app": true
+            },
+            {
+              "function": "<futures::future::map::Map<A, F> as futures::future::Future>::poll::h8e9ff78b067eab2e ",
+              "instruction_addr": "0x55b95bfefa21",
+              "in_app": true
+            },
+            {
+              "function": "<futures::future::join_all::JoinAll<I> as futures::future::Future>::poll::hbb462bf2c5cac86c ",
+              "instruction_addr": "0x55b95c016474",
+              "in_app": true
+            },
+            {
+              "function": "<futures::future::chain::Chain<A, B, C>>::poll::hbc46b1836174f434 ",
+              "instruction_addr": "0x55b95bf75b51",
+              "in_app": true
+            },
+            {
+              "function": "symbolicator::actors::symcaches::SymCacheFile::parse::hdccb68bbe02b50a3 ",
+              "package": "symbolicator",
+              "instruction_addr": "0x55b95bec3b73",
+              "in_app": true
+            },
+            {
+              "function": "symbolic_symcache::cache::SymCache::parse::hb8a4e051c56bfdd0 ",
+              "package": "symbolic_symcache",
+              "instruction_addr": "0x55b95c41433f",
+              "in_app": true
+            },
+            {
+              "function": "symbolic_symcache::format::Header::parse::h9e4b9050799f7a0b ",
+              "package": "symbolic_symcache",
+              "instruction_addr": "0x55b95c4159b0",
+              "in_app": true
+            },
+            {
+              "function": "<failure::error::error_impl::ErrorImpl as core::convert::From<F>>::from::he5d6dd47a3a261a9 ",
+              "instruction_addr": "0x55b95c4167b5",
+              "in_app": false
+            },
+            {
+              "function": "<failure::backtrace::Backtrace as core::default::Default>::default::h493a6077db117c42 ",
+              "instruction_addr": "0x55b95c69a1cf",
+              "in_app": false
+            },
+            {
+              "function": "failure::backtrace::internal::InternalBacktrace::new::h5c964837d568bbe5 ",
+              "package": "failure",
+              "instruction_addr": "0x55b95c699f2f",
+              "in_app": false
+            }
+          ]
+        },
+        "type": "SymCacheError",
+        "value": "failed to parse symcache"
+      }
+    ]
+  }
+}
