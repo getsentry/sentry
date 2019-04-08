@@ -112,12 +112,12 @@ class EventAccess(object):
 
         return self._frames
 
-    def get_values(self, container):
-        if container == 'message':
+    def get_values(self, interface):
+        if interface == 'message':
             return self.get_messages()
-        elif container == 'exception':
+        elif interface == 'exception':
             return self.get_exceptions()
-        elif container == 'frame':
+        elif interface == 'frame':
             return self.get_frames()
         return []
 
@@ -188,7 +188,7 @@ class Match(object):
         self.pattern = pattern
 
     @property
-    def container(self):
+    def interface(self):
         if self.key == 'message':
             return 'message'
         elif self.key in ('type', 'value'):
@@ -229,12 +229,12 @@ class Rule(object):
         self.fingerprint = fingerprint
 
     def get_fingerprint_values_for_event_access(self, access):
-        by_container = {}
+        by_interface = {}
         for matcher in self.matchers:
-            by_container.setdefault(matcher.container, []).append(matcher)
+            by_interface.setdefault(matcher.interface, []).append(matcher)
 
-        for container, matchers in six.iteritems(by_container):
-            for values in access.get_values(container):
+        for interface, matchers in six.iteritems(by_interface):
+            for values in access.get_values(interface):
                 if all(x.matches_value(values.get(x.key)) for x in matchers):
                     break
             else:

@@ -2,7 +2,7 @@
 
 # exclude common paths
 family:native path:/usr/lib/**                                    -app
-family:native path:/usr/local/lib/*                               -app
+family:native path:/usr/local/lib/**                              -app
 family:native path:/usr/local/Cellar/**                           -app
 
 # rust common modules
@@ -24,6 +24,7 @@ family:native function:__assert_rtn                               ^-group -group
 
 # Objective-C
 family:native function:_NSRaiseError                              ^-group -group -app
+family:native function:_mh_execute_header                         -group -app
 
 # Breakpad
 family:native function:google_breakpad::*                         -app -group
