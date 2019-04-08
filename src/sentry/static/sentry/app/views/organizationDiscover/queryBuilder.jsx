@@ -20,7 +20,6 @@ const DEFAULTS = {
   fields: ['id', 'issue.id', 'project.name', 'platform', 'timestamp'],
   conditions: [],
   aggregations: [],
-  range: DEFAULT_STATS_PERIOD,
   orderby: '-timestamp',
   limit: 1000,
 };
@@ -42,6 +41,11 @@ function applyDefaults(query) {
 export default function createQueryBuilder(initial = {}, organization) {
   const api = new Client();
   let query = applyDefaults(initial);
+
+  if (!query.start && !query.end && !query.range) {
+    query.range = DEFAULT_STATS_PERIOD;
+  }
+
   const defaultProjects = organization.projects
     .filter(projects => projects.isMember)
     .map(project => parseInt(project.id, 10));
