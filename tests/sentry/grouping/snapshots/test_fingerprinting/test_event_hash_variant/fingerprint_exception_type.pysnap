@@ -1,0 +1,16 @@
+---
+created: '2019-04-07T22:40:59.176960Z'
+creator: sentry
+source: tests/sentry/grouping/test_fingerprinting.py
+---
+config:
+  rules:
+  - fingerprint:
+    - database-unavailable
+    matchers:
+    - - type
+      - DatabaseUnavailable
+  version: 1
+fingerprint:
+- my-route
+- database-unavailable
