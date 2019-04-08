@@ -428,6 +428,7 @@ class DetailedProjectSerializer(ProjectWithTeamSerializer):
             'sentry:grouping_config',
             'sentry:grouping_enhancements',
             'sentry:grouping_enhancements_base',
+            'sentry:fingerprinting_rules',
             'sentry:relay_pii_config',
             'feedback:branding',
             'digests:mail:minimum_delay',
@@ -548,6 +549,7 @@ class DetailedProjectSerializer(ProjectWithTeamSerializer):
                 'groupingConfig': attrs['options'].get('sentry:grouping_config') or DEFAULT_GROUPING_CONFIG,
                 'groupingEnhancements': attrs['options'].get('sentry:grouping_enhancements') or u'',
                 'groupingEnhancementsBase': attrs['options'].get('sentry:grouping_enhancements_base') or DEFAULT_ENHANCEMENT_BASE,
+                'fingerprintingRules': attrs['options'].get('sentry:fingerprinting_rules') or u'',
                 'organization':
                 attrs['org'],
                 'plugins':

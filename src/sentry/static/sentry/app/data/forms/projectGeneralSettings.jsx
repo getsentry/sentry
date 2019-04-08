@@ -208,6 +208,42 @@ export const fields = {
       return [];
     },
   },
+  fingerprintingRules: {
+    name: 'fingerprintingRules',
+    type: 'string',
+    label: t('Server Side Fingerprinting'),
+    placeholder: t(
+      'type:MyException -> fingerprint-value\nfunction:some_panic_function -> fingerprint-value'
+    ),
+    multiline: true,
+    monospace: true,
+    autosize: true,
+    inline: false,
+    maxRows: 20,
+    saveOnBlur: false,
+    saveMessageAlertType: 'info',
+    saveMessage: t('Changing fingerprinting rules will apply to future events only.'),
+    formatMessageValue: false,
+    help: (
+      <React.Fragment>
+        <div style={{marginBottom: 3}}>
+          {tct(
+            `This can be used to modify the fingerprinting rules on the server with custom rules.
+        Rules follow the pattern [pattern].`,
+            {
+              pattern: <code>matcher:glob -> fingerprint, values</code>,
+            }
+          )}
+        </div>
+        <pre>
+          {'# force all errors of the same type to have the same fingerprint\n' +
+            'type:DatabaseUnavailable -> system-down\n' +
+            '# force all memory allocation errors to be grouped together\n' +
+            'family:native function:malloc -> memory-allocation-error\n'}
+        </pre>
+      </React.Fragment>
+    ),
+  },
 
   dataScrubber: {
     name: 'dataScrubber',

@@ -21,7 +21,8 @@ from sentry.constants import (
     LOG_LEVELS, LOG_LEVELS_MAP, VALID_PLATFORMS, MAX_TAG_VALUE_LENGTH,
 )
 from sentry.grouping.api import get_grouping_config_dict_for_project, \
-    get_grouping_config_dict_for_event_data, load_grouping_config
+    get_grouping_config_dict_for_event_data, load_grouping_config, \
+    apply_server_fingerprinting, get_fingerprinting_config_for_project
 from sentry.coreapi import (
     APIError,
     APIForbidden,
@@ -716,6 +717,7 @@ class EventManager(object):
         # removed it from the payload.  The call to get_hashes will then
         # look at `grouping_config` to pick the right paramters.
         data['fingerprint'] = data.get('fingerprint') or ['{{ default }}']
+        apply_server_fingerprinting(data, get_fingerprinting_config_for_project(project))
         hashes = event.get_hashes()
         data['hashes'] = hashes
 

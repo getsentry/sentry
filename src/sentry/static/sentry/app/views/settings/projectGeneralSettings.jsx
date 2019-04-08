@@ -296,6 +296,7 @@ class ProjectGeneralSettings extends AsyncView {
                 fields.groupingConfig,
                 fields.groupingEnhancementsBase,
                 fields.groupingEnhancements,
+                fields.fingerprintingRules,
               ]}
               renderHeader={() => (
                 <PanelAlert type="warning">

@@ -101,6 +101,7 @@ class ProjectAdminSerializer(ProjectMemberSerializer):
     groupingConfig = serializers.CharField(required=False)
     groupingEnhancements = serializers.CharField(required=False)
     groupingEnhancementsBase = serializers.CharField(required=False)
+    fingerprintingRules = serializers.CharField(required=False)
     scrapeJavaScript = serializers.BooleanField(required=False)
     allowedDomains = ListField(child=OriginField(), required=False)
     resolveAge = serializers.IntegerField(required=False)
@@ -395,6 +396,9 @@ class ProjectDetailsEndpoint(ProjectEndpoint):
             if project.update_option('sentry:grouping_enhancements_base',
                                      result['groupingEnhancementsBase']):
                 changed_proj_settings['sentry:grouping_enhancements_base'] = result['groupingEnhancementsBase']
+        if result.get('fingerprintingRules') is not None:
+            if project.update_option('sentry:fingerprinting_rules', result['fingerprintingRules']):
+                changed_proj_settings['sentry:fingerprinting_rules'] = result['fingerprintingRules']
         if result.get('securityToken') is not None:
             if project.update_option('sentry:token', result['securityToken']):
                 changed_proj_settings['sentry:token'] = result['securityToken']
@@ -496,6 +500,11 @@ class ProjectDetailsEndpoint(ProjectEndpoint):
                 project.update_option(
                     'sentry:grouping_config',
                     options['sentry:grouping_config'],
+                )
+            if 'sentry:fingerprinting_rules' in options:
+                project.update_option(
+                    'sentry:fingerprinting_rules',
+                    options['sentry:fingerprinting_rules'],
                 )
             if 'mail:subject_prefix' in options:
                 project.update_option(

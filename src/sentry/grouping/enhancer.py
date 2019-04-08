@@ -118,7 +118,7 @@ class Match(object):
         else:
             # should not happen :)
             value = '<unknown>'
-        return glob_match(value, self.pattern, doublestar=True)
+        return glob_match(value, self.pattern)
 
     def _to_config_structure(self):
         if self.key == 'family':
@@ -255,6 +255,8 @@ class Enhancements(object):
     @classmethod
     def _from_config_structure(cls, data):
         version, bases, rules = data
+        if version != VERSION:
+            raise ValueError('Unknown version')
         return cls(
             rules=[Rule._from_config_structure(x) for x in rules],
             version=version,
