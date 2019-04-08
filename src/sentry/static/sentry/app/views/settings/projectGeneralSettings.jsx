@@ -49,10 +49,14 @@ class ProjectGeneralSettings extends AsyncView {
 
   getEndpoints() {
     const {orgId, projectId} = this.props.params;
-    return [
-      ['data', `/projects/${orgId}/${projectId}/`],
-      ['groupingConfigs', '/grouping-configs/'],
-    ];
+    const endpoints = [['data', `/projects/${orgId}/${projectId}/`]];
+    const {organization} = this.context;
+    const features = new Set(organization.features);
+    if (features.has('set-grouping-config')) {
+      endpoints.push(['groupingConfigs', '/grouping-configs/']);
+      endpoints.push(['groupingEnhancementBases', '/grouping-enhancements/']);
+    }
+    return endpoints;
   }
 
   handleTransferFieldChange = (id, value) => {
@@ -232,7 +236,11 @@ class ProjectGeneralSettings extends AsyncView {
     const endpoint = `/projects/${orgId}/${projectId}/`;
     const access = new Set(organization.access);
     const jsonFormProps = {
-      additionalFieldProps: {organization, groupingConfigs: this.state.groupingConfigs},
+      additionalFieldProps: {
+        organization,
+        groupingConfigs: this.state.groupingConfigs,
+        groupingEnhancementBases: this.state.groupingEnhancementBases,
+      },
       features: new Set(organization.features),
       access,
       disabled: !access.has('project:write'),
@@ -284,7 +292,12 @@ class ProjectGeneralSettings extends AsyncView {
             <JsonForm
               {...jsonFormProps}
               title={t('Grouping Settings')}
-              fields={[fields.groupingConfig]}
+              fields={[
+                fields.groupingConfig,
+                fields.groupingEnhancementsBase,
+                fields.groupingEnhancements,
+                fields.fingerprintingRules,
+              ]}
               renderHeader={() => (
                 <PanelAlert type="warning">
                   <TextBlock noMargin>

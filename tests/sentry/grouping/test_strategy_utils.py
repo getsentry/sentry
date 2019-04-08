@@ -2,8 +2,8 @@ from __future__ import absolute_import
 
 import pytest
 
-from sentry.grouping.strategies.stacktrace import isolate_native_function_v1
-from sentry.grouping.strategies.utils import replace_enclosed_string, split_func_tokens
+from sentry.grouping.strategies.newstyle import isolate_native_function_v1
+from sentry.grouping.strategies.utils import replace_enclosed_string, split_func_tokens, trim_function_name
 
 
 @pytest.mark.parametrize(
@@ -73,10 +73,23 @@ from sentry.grouping.strategies.utils import replace_enclosed_string, split_func
             'unsigned int mynamespace::MyClass::operator()(std::__1::basic_ostream<char, std::__1::char_traits<char> >&, v8::internal::MaybeObjectBrief const&)',
             'mynamespace::MyClass::operator()',
         ],
+        [
+            '<actix::contextimpl::ContextFut<A, C> as futures::future::Future>::poll::h9de5fbebc1652d47',
+            '<actix::contextimpl::ContextFut<T> as futures::future::Future>::poll',
+        ],
+        [
+            'ThreadStartWhatever@16',
+            'ThreadStartWhatever',
+        ],
+        [
+            '@ThreadStartWhatever@16',
+            'ThreadStartWhatever',
+        ],
     ]
 )
 def test_isolate_native_function_v1(input, output):
     assert isolate_native_function_v1(input) == output
+    assert trim_function_name(input, 'native') == output
 
 
 def replace_group(value, start):
@@ -111,3 +124,13 @@ def test_enclosed_string_simple(input, start, end, replacement, output):
 )
 def test_split_func_tokens(input, output):
     assert split_func_tokens(input) == output
+
+
+def test_trim_function_name():
+    assert trim_function_name('+[foo:(bar)]', 'objc') == '+[foo:(bar)]'
+    assert trim_function_name('[foo:(bar)]', 'objc') == '[foo:(bar)]'
+    assert trim_function_name('-[foo:(bar)]', 'objc') == '-[foo:(bar)]'
+    assert trim_function_name(
+        '(anonymous namespace)::foo(int)',
+        'native') == '(anonymous namespace)::foo'
+    assert trim_function_name('foo::bar::foo(int)', 'native') == 'foo::bar::foo'

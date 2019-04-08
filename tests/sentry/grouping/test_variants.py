@@ -7,9 +7,12 @@ import json
 import pytest
 
 from sentry.models import Event
+from sentry.stacktraces import normalize_stacktraces_for_grouping
 from sentry.event_manager import EventManager
 from sentry.grouping.component import GroupingComponent
 from sentry.grouping.strategies.configurations import CONFIGURATIONS
+from sentry.grouping.enhancer import Enhancements
+from sentry.grouping.api import get_default_grouping_config_dict, load_grouping_config
 
 
 def dump_variant(variant, lines=None, indent=0):
@@ -45,7 +48,7 @@ def dump_variant(variant, lines=None, indent=0):
     return lines
 
 
-_fixture_path = os.path.join(os.path.dirname(__file__), 'inputs')
+_fixture_path = os.path.join(os.path.dirname(__file__), 'grouping_inputs')
 
 
 def load_configs():
@@ -71,13 +74,30 @@ def test_event_hash_variant(insta_snapshot, config_name, test_name, log):
     with open(os.path.join(_fixture_path, test_name + '.json')) as f:
         input = json.load(f)
 
-    grouping_config = {
-        'id': config_name,
-    }
+    # Cutomize grouping config from the _grouping config
+    grouping_config = get_default_grouping_config_dict(config_name)
+    grouping_info = input.pop('_grouping', None) or {}
+    enhancement_base = grouping_info.get('enhancement_base')
+    enhancements = grouping_info.get('enhancements')
+    if enhancement_base or enhancements:
+        enhancement_bases = [enhancement_base] if enhancement_base else []
+        e = Enhancements.from_config_string(
+            enhancements or '', bases=enhancement_bases)
+        grouping_config['enhancements'] = e.dumps()
+
+    # Noramlize the event
     mgr = EventManager(data=input, grouping_config=grouping_config)
     mgr.normalize()
     data = mgr.get_data()
+
+    # Normalize the stacktrace for grouping.  This normally happens in
+    # save()
+    normalize_stacktraces_for_grouping(data, load_grouping_config(grouping_config))
     evt = Event(data=data, platform=data['platform'])
+
+    # Make sure we don't need to touch the DB here because this would
+    # break stuff later on.
+    evt.project = None
 
     rv = []
     for (key, value) in sorted(evt.get_grouping_variants().items()):

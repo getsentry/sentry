@@ -5,7 +5,7 @@ from __future__ import absolute_import
 import pytest
 
 from sentry.interfaces.exception import Exception, slim_exception_data
-from sentry.stacktraces import normalize_in_app
+from sentry.stacktraces import normalize_stacktraces_for_grouping
 from sentry.models import Event
 from sentry.event_manager import EventManager
 
@@ -205,7 +205,7 @@ def test_context_with_only_app_frames(make_exception_snapshot):
         }
     ]
     exc = dict(values=values)
-    normalize_in_app({'exception': exc})
+    normalize_stacktraces_for_grouping({'exception': exc})
     make_exception_snapshot(exc)
 
 
