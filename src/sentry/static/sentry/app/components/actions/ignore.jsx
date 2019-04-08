@@ -119,13 +119,13 @@ export default class IgnoreActions extends React.Component {
           windowChoices={this.getIgnoreWindows()}
         />
         <div className="btn-group">
+          <GuideAnchor target="ignore_delete_discard" type="text" />
           <ActionLink
             {...actionLinkProps}
             className={linkClassName}
             onAction={() => onUpdate({status: 'ignored'})}
           >
             <span className="icon-ban hidden-xs" style={{marginRight: 5}} />
-            <GuideAnchor target="ignore_delete_discard" type="text" />
             {t('Ignore')}
           </ActionLink>
 

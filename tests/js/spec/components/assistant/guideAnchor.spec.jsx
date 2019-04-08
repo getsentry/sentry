@@ -28,4 +28,16 @@ describe('GuideAnchor', function() {
     expect(component.state).toEqual({active: true});
     expect(wrapper).toMatchSnapshot();
   });
+
+  it('renders no container when inactive', function() {
+    const wrapper = shallow(
+      <GuideAnchor target="target 1" type="text">
+        <span>A child</span>
+      </GuideAnchor>
+    );
+    const component = wrapper.instance();
+    wrapper.update();
+    expect(component.state).toEqual({active: false});
+    expect(wrapper.find('GuideAnchorContainer')).toHaveLength(0);
+  });
 });
