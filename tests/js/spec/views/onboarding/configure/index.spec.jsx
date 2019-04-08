@@ -47,7 +47,10 @@ describe('Configure should render correctly', function() {
       url: '/projects/testOrg/project-slug/docs/node/',
       body: {},
     });
-
+    MockApiClient.addMockResponse({
+      url: '/projects/testOrg/project-slug/docs/other/',
+      body: {},
+    });
     ProjectsStore.loadInitialData([
       {
         name: 'Test Project',
@@ -128,7 +131,7 @@ describe('Configure should render correctly', function() {
         Configure.prototype.__reactAutoBindPairs.indexOf('redirectToNeutralDocs') + 1;
       Configure.prototype.__reactAutoBindPairs[index] = handleSubmitStub;
 
-      const wrapper = shallow(
+      const wrapper = mount(
         <Configure {...props} />,
         TestStubs.routerContext([
           {

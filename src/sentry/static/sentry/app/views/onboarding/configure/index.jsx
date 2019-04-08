@@ -26,15 +26,6 @@ const Configure = createReactClass({
     };
   },
 
-  componentWillMount() {
-    const {platform} = this.props.params;
-    //redirect if platform is not known.
-    if (!platform || platform === 'other') {
-      this.redirectToNeutralDocs();
-    }
-    this.sentRealEvent();
-  },
-
   componentDidMount() {
     const {organization} = this.context;
     const {params} = this.props;
@@ -51,6 +42,12 @@ const Configure = createReactClass({
 
     data.org_id = parseInt(organization.id, 10);
     analytics('onboarding.configure_viewed', data);
+
+    //redirect if platform is not known.
+    if (!params.platform || params.platform === 'other') {
+      this.redirectToNeutralDocs();
+    }
+    this.sentRealEvent();
   },
 
   sentRealEvent() {
