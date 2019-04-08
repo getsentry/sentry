@@ -13,7 +13,7 @@ class Creator(Mediator):
     name = Param(six.string_types)
     author = Param(six.string_types)
     organization = Param('sentry.models.Organization')
-    scopes = Param(Iterable)
+    scopes = Param(Iterable, default=lambda self: [])
     events = Param(Iterable, default=lambda self: [])
     webhook_url = Param(six.string_types)
     redirect_url = Param(six.string_types, required=False)
