@@ -28,6 +28,7 @@ class SelectRequester(Mediator):
     install = Param('sentry.models.SentryAppInstallation')
     project = Param('sentry.models.Project', required=False)
     uri = Param(six.string_types)
+    query = Param(six.string_types, required=False)
 
     def call(self):
         return self._make_request()
@@ -40,6 +41,9 @@ class SelectRequester(Mediator):
 
         if self.project:
             query['projectSlug'] = self.project.slug
+
+        if self.query:
+            query['query'] = self.query
 
         urlparts[4] = urlencode(query)
         return urlunparse(urlparts)
@@ -54,14 +58,15 @@ class SelectRequester(Mediator):
             )
 
             response = json.loads(body)
-        except Exception:
+        except Exception as e:
             logger.info(
                 'select-requester.error',
                 extra={
                     'sentry_app': self.sentry_app.slug,
                     'install': self.install.uuid,
-                    'project': self.project.slug,
+                    'project': self.project and self.project.slug,
                     'uri': self.uri,
+                    'error_message': e.message,
                 }
             )
             response = {}

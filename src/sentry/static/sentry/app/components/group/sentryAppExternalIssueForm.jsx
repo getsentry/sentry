@@ -1,5 +1,6 @@
 import React from 'react';
 import PropTypes from 'prop-types';
+import {debounce} from 'lodash';
 
 import {addErrorMessage} from 'app/actionCreators/indicator';
 import {addQueryParamsToExistingUrl} from 'app/utils/queryString';
@@ -8,9 +9,11 @@ import Form from 'app/views/settings/components/forms/form';
 import SentryTypes from 'app/sentryTypes';
 import {t} from 'app/locale';
 import ExternalIssueStore from 'app/stores/externalIssueStore';
+import withApi from 'app/utils/withApi';
 
 class SentryAppExternalIssueForm extends React.Component {
   static propTypes = {
+    api: PropTypes.object.isRequired,
     group: SentryTypes.Group.isRequired,
     sentryAppInstallation: PropTypes.object,
     config: PropTypes.object.isRequired,
@@ -27,6 +30,50 @@ class SentryAppExternalIssueForm extends React.Component {
     const {action} = this.props;
     const appName = this.props.sentryAppInstallation.sentryApp.name;
     addErrorMessage(t('Unable to %s %s issue.', action, appName));
+  };
+
+  getOptions = (field, input) => {
+    return new Promise(resolve => {
+      this.debouncedOptionLoad(field, input, resolve);
+    });
+  };
+
+  debouncedOptionLoad = debounce(
+    // debounce is used to prevent making a request for every input change and
+    // instead makes the requests every 200ms
+    (field, input, resolve) => {
+      const install = this.props.sentryAppInstallation;
+      const projectId = this.props.group.project.id;
+
+      this.props.api
+        .requestPromise(`/sentry-app-installations/${install.uuid}/external-requests/`, {
+          query: {
+            projectId,
+            uri: field.uri,
+            query: input,
+          },
+        })
+        .then(data => {
+          const options = (data.choices || []).map(([value, label]) => ({value, label}));
+          return resolve({options});
+        });
+    },
+    200,
+    {trailing: true}
+  );
+
+  fieldProps = field => {
+    return field.uri
+      ? {
+          loadOptions: input => this.getOptions(field, input),
+          async: true,
+          cache: false,
+          onSelectResetsInput: false,
+          onCloseResetsInput: false,
+          onBlurResetsInput: false,
+          autoload: false,
+        }
+      : {};
   };
 
   getFieldDefault(field) {
@@ -108,6 +155,7 @@ class SentryAppExternalIssueForm extends React.Component {
               stacked
               flexibleControlStateSize
               required={true}
+              {...this.fieldProps(field)}
             />
           );
         })}
@@ -126,6 +174,7 @@ class SentryAppExternalIssueForm extends React.Component {
               inline={false}
               stacked
               flexibleControlStateSize
+              {...this.fieldProps(field)}
             />
           );
         })}
@@ -134,4 +183,5 @@ class SentryAppExternalIssueForm extends React.Component {
   }
 }
 
-export default SentryAppExternalIssueForm;
+export {SentryAppExternalIssueForm};
+export default withApi(SentryAppExternalIssueForm);

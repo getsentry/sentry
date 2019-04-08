@@ -54,7 +54,8 @@ class Preparer(Mediator):
             field.update({'choices': field['options']})
 
         if 'uri' in field:
-            field.update(self._request(field['uri']))
+            if 'async' not in field:
+                field.update(self._request(field['uri']))
 
     def _request(self, uri):
         return SelectRequester.run(

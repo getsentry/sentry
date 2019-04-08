@@ -26,7 +26,9 @@ class SentryAppInstallationExternalRequestsEndpoint(SentryAppInstallationBaseEnd
         kwargs = {
             'install': installation,
             'uri': request.GET.get('uri'),
+            'query': request.GET.get('query'),
         }
+
         if project:
             kwargs.update({'project': project})
 
