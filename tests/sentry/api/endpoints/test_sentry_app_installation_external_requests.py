@@ -48,7 +48,8 @@ class SentryAppInstallationExternalRequestsEndpointTest(APITestCase):
             status=200,
             content_type='application/json',
         )
-        url = self.url + u'?projectId={}&uri={}'.format(self.project.id, '/get-projects')
+        url = self.url + \
+            u'?projectId={}&uri={}&query={}'.format(self.project.id, '/get-projects', 'proj')
         response = self.client.get(url, format='json')
         assert response.status_code == 200
         assert response.data == {
