@@ -26,6 +26,7 @@ class Updater(Mediator):
 
     def call(self):
         self._update_name()
+        self._update_author()
         self._update_scopes()
         self._update_events()
         self._update_webhook_url()
@@ -39,6 +40,10 @@ class Updater(Mediator):
     @if_param('name')
     def _update_name(self):
         self.sentry_app.name = self.name
+
+    @if_param('author')
+    def _update_author(self):
+        self.sentry_app.author = self.author
 
     @if_param('scopes')
     def _update_scopes(self):
