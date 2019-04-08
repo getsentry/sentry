@@ -16,6 +16,7 @@ from django.utils import timezone
 
 from sentry import quotas
 from sentry.api.event_search import InvalidSearchQuery
+from sentry.search.base import SearchBackend
 from sentry.utils.db import is_postgres
 
 
