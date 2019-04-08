@@ -25,6 +25,7 @@ from sentry.models import (
     ProjectStatus, ProjectTeam, UserOption,
 )
 from sentry.grouping.enhancer import Enhancements, InvalidEnhancerConfig
+from sentry.grouping.fingerprinting import FingerprintingRules, InvalidFingerprintingConfig
 from sentry.tasks.deletion import delete_project
 from sentry.utils.apidocs import scenario, attach_scenarios
 
@@ -170,6 +171,28 @@ class ProjectAdminSerializer(ProjectMemberSerializer):
             raise serializers.ValidationError(
                 'Organization does not have the relay feature enabled'
             )
+        return attrs
+
+    def validate_groupingEnhancements(self, attrs, source):
+        if not attrs[source]:
+            return attrs
+
+        try:
+            Enhancements.from_config_string(attrs[source])
+        except InvalidEnhancerConfig as e:
+            raise serializers.ValidationError(e.message)
+
+        return attrs
+
+    def validate_fingerprintingRules(self, attrs, source):
+        if not attrs[source]:
+            return attrs
+
+        try:
+            FingerprintingRules.from_config_string(attrs[source])
+        except InvalidFingerprintingConfig as e:
+            raise serializers.ValidationError(e.message)
+
         return attrs
 
     def validate_copy_from_project(self, attrs, source):
@@ -385,10 +408,6 @@ class ProjectDetailsEndpoint(ProjectEndpoint):
             if project.update_option('sentry:grouping_config', result['groupingConfig']):
                 changed_proj_settings['sentry:grouping_config'] = result['groupingConfig']
         if result.get('groupingEnhancements') is not None:
-            try:
-                Enhancements.from_config_string(result['groupingEnhancements'])
-            except InvalidEnhancerConfig as e:
-                return Response({'groupingEnhancements': [e.message]}, status=400)
             if project.update_option('sentry:grouping_enhancements',
                                      result['groupingEnhancements']):
                 changed_proj_settings['sentry:grouping_enhancements'] = result['groupingEnhancements']
