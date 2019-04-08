@@ -1,10 +1,9 @@
 from __future__ import absolute_import
 
-import six
-
 import jsonschema
-import time
 import logging
+import six
+import time
 
 from django.core.urlresolvers import reverse
 
@@ -25,16 +24,16 @@ SYMBOLICATOR_TIMEOUT = 5
 logger = logging.getLogger(__name__)
 
 
-DEFAULT_SOURCES = [
-    {
+BUILTIN_SOURCES = {
+    'microsoft': {
         'type': 'http',
         'id': 'sentry:microsoft',
         'layout': 'symstore',
         'filetypes': ['pdb', 'pe'],
         'url': 'https://msdl.microsoft.com/download/symbols/',
         'is_public': True,
-    }
-]
+    },
+}
 
 VALID_LAYOUTS = (
     'native',
@@ -90,7 +89,7 @@ S3_SOURCE_SCHEMA = {
 SOURCES_SCHEMA = {
     'type': 'array',
     'items': {
-        'anyOf': [
+        'oneOf': [
             # TODO: Implement HTTP sources
             S3_SOURCE_SCHEMA,
         ],
@@ -175,9 +174,12 @@ def get_sources_for_project(project):
             # processing at this point.
             logger.error('Invalid symbolicator source config', exc_info=True)
 
-    # Add default sources last to ensure that custom sources have precedence
+    # Add builtin sources last to ensure that custom sources have precedence
     # over our defaults.
-    sources.extend(DEFAULT_SOURCES)
+    builtin_sources = project.get_option('sentry:builtin_symbol_sources') or []
+    for key, source in six.iteritems(BUILTIN_SOURCES):
+        if key in builtin_sources:
+            sources.push(source)
 
     return sources
 
