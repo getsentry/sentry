@@ -157,6 +157,7 @@ def yarn_check(file_list):
     This is a user prompt right now because there ARE cases where you can touch package.json
     without a Yarn lockfile change, e.g. Jest config changes, license changes, etc.
     """
+
     if file_list is None or os.environ.get('SKIP_YARN_CHECK'):
         return False
 
@@ -222,8 +223,16 @@ def js_lint_format(file_list=None):
     # manually exclude some bad files
     js_file_list = [x for x in js_file_list if '/javascript/example-project/' not in x]
 
-    return run_formatter([eslint_path, '--fix', ],
-                         js_file_list)
+    has_package_json_errors = False if 'package.json' not in file_list else run_formatter(
+        [
+            prettier_path,
+            '--write',
+        ], ['package.json']
+    )
+
+    has_errors = run_formatter([eslint_path, '--fix', ], js_file_list)
+
+    return has_errors or has_package_json_errors
 
 
 def js_test(file_list=None):
