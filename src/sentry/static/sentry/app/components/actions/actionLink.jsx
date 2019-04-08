@@ -32,6 +32,9 @@ export default class ActionLink extends React.Component {
       disabled,
       children,
     } = this.props;
+    const testId = title
+      ? 'action-link-' + title.toLowerCase().replace(/ /g, '-')
+      : 'action-link';
 
     if (shouldConfirm && !disabled) {
       return (
@@ -45,6 +48,7 @@ export default class ActionLink extends React.Component {
     } else {
       return (
         <a
+          data-test-id={testId}
           className={classNames(className, {disabled})}
           onClick={disabled ? undefined : onAction}
           disabled={disabled}

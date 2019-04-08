@@ -422,6 +422,7 @@ exports[`ResolveActions with confirmation step renders 1`] = `
                     >
                       <a
                         className="tip"
+                        data-test-id="action-link-set-up-release-tracking-in-order-to-use-this-feature."
                         disabled={false}
                         onClick={[Function]}
                       >
@@ -534,6 +535,7 @@ exports[`ResolveActions without confirmation renders 1`] = `
       >
         <a
           className="btn btn-default btn-sm"
+          data-test-id="action-link-resolve"
           disabled={false}
           onClick={[Function]}
         >
@@ -627,6 +629,7 @@ exports[`ResolveActions without confirmation renders 1`] = `
                     >
                       <a
                         className="tip"
+                        data-test-id="action-link-set-up-release-tracking-in-order-to-use-this-feature."
                         disabled={false}
                         onClick={[Function]}
                       >
@@ -647,6 +650,7 @@ exports[`ResolveActions without confirmation renders 1`] = `
                     >
                       <a
                         className="tip"
+                        data-test-id="action-link-set-up-release-tracking-in-order-to-use-this-feature."
                         disabled={false}
                         onClick={[Function]}
                       >
@@ -667,6 +671,7 @@ exports[`ResolveActions without confirmation renders 1`] = `
                     >
                       <a
                         className="tip"
+                        data-test-id="action-link-set-up-release-tracking-in-order-to-use-this-feature."
                         disabled={false}
                         onClick={[Function]}
                       >

@@ -43,7 +43,10 @@ class Note extends React.Component {
             </span>
           )}
         </div>
-        <div dangerouslySetInnerHTML={{__html: noteBody}} />
+        <div
+          data-test-id="activity-note-body"
+          dangerouslySetInnerHTML={{__html: noteBody}}
+        />
       </div>
     );
   }

@@ -200,6 +200,7 @@ const AssigneeSelectorComponent = createReactClass({
         searchKey: `${member.email} ${member.name} ${member.slug}`,
         label: ({inputValue}) => (
           <MenuItemWrapper
+            data-test-id="assignee-option"
             key={buildUserId(member.id)}
             onSelect={this.assignToUser.bind(this, member)}
           >
@@ -223,7 +224,11 @@ const AssigneeSelectorComponent = createReactClass({
         value: {type: 'team', assignee: team},
         searchKey: team.slug,
         label: ({inputValue}) => (
-          <MenuItemWrapper key={id} onSelect={this.assignToTeam.bind(this, team)}>
+          <MenuItemWrapper
+            data-test-id="assignee-option"
+            key={id}
+            onSelect={this.assignToTeam.bind(this, team)}
+          >
             <IconContainer>
               <Avatar team={team} size={size} />
             </IconContainer>
