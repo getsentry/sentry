@@ -835,8 +835,6 @@ SENTRY_FEATURES = {
     'organizations:sentry-apps': False,
 
     # DEPRECATED: pending removal.
-    'organizations:js-loader': False,
-    # DEPRECATED: pending removal.
     'organizations:new-teams': True,
     # Enable the relay functionality, for use with sentry semaphore. See
     # https://github.com/getsentry/semaphore.

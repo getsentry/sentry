@@ -386,44 +386,41 @@ const KeySettings = createReactClass({
               disabled={!hasAccess}
             />
 
-            <Feature features={['organizations:js-loader']}>
-              <Form
-                saveOnBlur
-                apiEndpoint={apiEndpoint}
-                apiMethod="PUT"
-                initialData={data}
-              >
-                <Panel>
-                  <PanelHeader>{t('JavaScript Loader')}</PanelHeader>
-                  <PanelBody>
-                    <Field
-                      help={tct(
-                        'Copy this script into your website to setup our JavaScript SDK without any additional configuration. [link]',
-                        {
-                          link: (
-                            <ExternalLink href="https://docs.sentry.io/platforms/javascript/browser/">
-                              What does the script provide?
-                            </ExternalLink>
-                          ),
-                        }
-                      )}
-                      inline={false}
-                      flexibleControlStateSize
-                    >
-                      <TextCopyInput>{`<script src='${loaderLink}' crossorigin="anonymous"></script>`}</TextCopyInput>
-                    </Field>
-                    <SelectField
-                      name="browserSdkVersion"
-                      choices={data.browserSdk ? data.browserSdk.choices : []}
-                      placeholder={t('4.x')}
-                      allowClear={false}
-                      enabled={!hasAccess}
-                      help={t('Select the version of the SDK that should be loaded')}
-                    />
-                  </PanelBody>
-                </Panel>
-              </Form>
-            </Feature>
+            <Form saveOnBlur apiEndpoint={apiEndpoint} apiMethod="PUT" initialData={data}>
+              <Panel>
+                <PanelHeader>{t('JavaScript Loader')}</PanelHeader>
+                <PanelBody>
+                  <Field
+                    help={tct(
+                      'Copy this script into your website to setup our JavaScript SDK without any additional configuration. [link]',
+                      {
+                        link: (
+                          <ExternalLink href="https://docs.sentry.io/platforms/javascript/browser/">
+                            What does the script provide?
+                          </ExternalLink>
+                        ),
+                      }
+                    )}
+                    inline={false}
+                    flexibleControlStateSize
+                  >
+                    <TextCopyInput>
+                      {`<script src='${loaderLink}' crossorigin="anonymous"></script>`}
+                    </TextCopyInput>
+                  </Field>
+                  <SelectField
+                    name="browserSdkVersion"
+                    choices={data.browserSdk ? data.browserSdk.choices : []}
+                    placeholder={t('4.x')}
+                    allowClear={false}
+                    enabled={!hasAccess}
+                    help={t(
+                      'Select the version of the SDK that should be loaded. Note that it can take a few minutes until this change is live.'
+                    )}
+                  />
+                </PanelBody>
+              </Panel>
+            </Form>
 
             <Panel>
               <PanelHeader>{t('Credentials')}</PanelHeader>
