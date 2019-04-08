@@ -99,7 +99,12 @@ describe('OrganizationDiscoverContainer', function() {
     beforeEach(async function() {
       savedQueries = [
         TestStubs.DiscoverSavedQuery({id: '1', name: 'one'}),
-        TestStubs.DiscoverSavedQuery({id: '2', name: 'two'}),
+        TestStubs.DiscoverSavedQuery({
+          id: '2',
+          name: 'two',
+          start: '2019-04-01T07:00:00.000Z',
+          end: '2019-04-04T06:59:59.000Z',
+        }),
       ];
 
       savedQueryMock = MockApiClient.addMockResponse({
@@ -119,14 +124,55 @@ describe('OrganizationDiscoverContainer', function() {
     });
 
     describe('Without Global Header Store', function() {
+      let request;
       beforeEach(async function() {
+        request = MockApiClient.addMockResponse({
+          url: '/organizations/org-slug/discover/query/?per_page=1000&cursor=0:0:1',
+          method: 'POST',
+          body: {timing: {}, data: [], meta: []},
+        });
         wrapper = await createWrapper();
       });
+
+      afterEach(function() {
+        MockApiClient.clearMockResponses();
+      });
+
       it('fetches saved query', function() {
         expect(savedQueryMock).toHaveBeenCalled();
       });
 
-      it('navigates to second query', function() {
+      it('navigates to and opens query with no date ranges saved', function() {
+        const nextQueryMock = MockApiClient.addMockResponse({
+          url: '/organizations/org-slug/discover/saved/1/',
+          body: savedQueries[0],
+        });
+
+        expect(wrapper.find('SavedQueryListItem')).toHaveLength(2);
+
+        wrapper.setProps({
+          params: {savedQueryId: '1'},
+        });
+
+        expect(savedQueryMock).toHaveBeenCalledTimes(1);
+        expect(nextQueryMock).toHaveBeenCalledTimes(1);
+        expect(request).toHaveBeenLastCalledWith(
+          expect.anything(),
+          expect.objectContaining({
+            data: {
+              aggregations: [],
+              conditions: [],
+              fields: ['test'],
+              limit: expect.any(Number),
+              orderby: expect.any(String),
+              projects: [2],
+              range: '14d',
+            },
+          })
+        );
+      });
+
+      it('navigates to and opens query with absolute dates saved', async function() {
         const nextQueryMock = MockApiClient.addMockResponse({
           url: '/organizations/org-slug/discover/saved/2/',
           body: savedQueries[1],
@@ -138,8 +184,28 @@ describe('OrganizationDiscoverContainer', function() {
           params: {savedQueryId: '2'},
         });
 
+        // This is needed because we are changing from savedQueryId: 1 --> 2,
+        // so unliked the above, this will hit cWRP (see `createWrapper()`)
+        await tick();
+        wrapper.update();
+
         expect(savedQueryMock).toHaveBeenCalledTimes(1);
         expect(nextQueryMock).toHaveBeenCalledTimes(1);
+        expect(request).toHaveBeenLastCalledWith(
+          expect.anything(),
+          expect.objectContaining({
+            data: {
+              aggregations: [],
+              conditions: [],
+              start: '2019-04-01T07:00:00.000Z',
+              end: '2019-04-04T06:59:59.000Z',
+              fields: ['test'],
+              limit: expect.any(Number),
+              orderby: expect.any(String),
+              projects: [2],
+            },
+          })
+        );
       });
 
       it('toggles edit mode', function() {
