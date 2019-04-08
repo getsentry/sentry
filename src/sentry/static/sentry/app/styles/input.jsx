@@ -20,8 +20,6 @@ const inputStyles = props => {
     transition: border 0.1s linear;
     resize: vertical;
 
-    ${props.monospace ? `font-family: ${props.theme.text.familyMono}` : ''};
-
     ${readOnlyStyle(props)};
 
     &:focus {

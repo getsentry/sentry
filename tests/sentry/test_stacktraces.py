@@ -1,6 +1,6 @@
 from __future__ import absolute_import
 
-from sentry.stacktraces import find_stacktraces_in_data, normalize_stacktraces_for_grouping
+from sentry.stacktraces import find_stacktraces_in_data, normalize_in_app
 from sentry.testutils import TestCase
 
 
@@ -181,7 +181,7 @@ class NormalizeInApptest(TestCase):
             }
         }
 
-        normalize_stacktraces_for_grouping(data)
+        normalize_in_app(data)
         assert data['stacktrace']['frames'][1]['in_app'] is True
         assert data['stacktrace']['frames'][2]['in_app'] is False
 
@@ -206,6 +206,6 @@ class NormalizeInApptest(TestCase):
             }
         }
 
-        normalize_stacktraces_for_grouping(data)
+        normalize_in_app(data)
         assert data['stacktrace']['frames'][1]['in_app'] is False
         assert data['stacktrace']['frames'][2]['in_app'] is False

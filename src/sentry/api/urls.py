@@ -217,7 +217,6 @@ from .endpoints.user_subscriptions import UserSubscriptionsEndpoint
 from .endpoints.event_file_committers import EventFileCommittersEndpoint
 from .endpoints.setup_wizard import SetupWizard
 from .endpoints.grouping_configs import GroupingConfigsEndpoint
-from .endpoints.grouping_enhancements import GroupingEnhancementsEndpoint
 
 
 urlpatterns = patterns(
@@ -1292,10 +1291,6 @@ urlpatterns = patterns(
     url(
         r'^grouping-configs/$', GroupingConfigsEndpoint.as_view(),
         name='sentry-api-0-grouping-configs'
-    ),
-    url(
-        r'^grouping-enhancements/$', GroupingEnhancementsEndpoint.as_view(),
-        name='sentry-api-0-grouping-enhancements'
     ),
 
     # Internal
