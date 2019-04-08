@@ -121,6 +121,11 @@ const OrganizationStream = createReactClass({
     const prevQuery = prevProps.location.query;
     const newQuery = this.props.location.query;
 
+    // Wait for saved searches to load before we attempt to fetch stream data
+    if (this.state.savedSearchLoading) {
+      return;
+    }
+
     // If any important url parameter changed or saved search changed
     // reload data.
     if (
