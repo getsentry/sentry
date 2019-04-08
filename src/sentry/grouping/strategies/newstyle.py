@@ -8,6 +8,8 @@ from sentry.grouping.strategies.base import strategy
 from sentry.grouping.strategies.utils import replace_enclosed_string, split_func_tokens
 
 
+_rust_hash = re.compile(r'::h[a-z0-9]{16}$')
+_windecl_hash = re.compile(r'^@?(.*?)@[0-9]+$')
 _ruby_erb_func = re.compile(r'__\d{4,}_\d{4,}$')
 _basename_re = re.compile(r'[/\\]')
 _cpp_trailer_re = re.compile(r'(\bconst\b|&)$')
@@ -196,10 +198,17 @@ def isolate_native_function_v1(function):
     # The last token is the function name.
     tokens = split_func_tokens(function)
     if tokens:
-        return tokens[-1].replace(u'⟨', '<').replace(u'◯', '()')
+        function = tokens[-1].replace(u'⟨', '<').replace(u'◯', '()')
 
     # This really should never happen
-    return original_function
+    else:
+        function = original_function
+
+    # trim off rust markers
+    function = _rust_hash.sub('', function)
+
+    # trim off windows decl markers
+    return _windecl_hash.sub('\\1', function)
 
 
 def get_function_component_v1(function, platform):

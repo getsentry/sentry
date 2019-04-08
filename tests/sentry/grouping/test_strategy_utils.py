@@ -73,6 +73,18 @@ from sentry.grouping.strategies.utils import replace_enclosed_string, split_func
             'unsigned int mynamespace::MyClass::operator()(std::__1::basic_ostream<char, std::__1::char_traits<char> >&, v8::internal::MaybeObjectBrief const&)',
             'mynamespace::MyClass::operator()',
         ],
+        [
+            '<actix::contextimpl::ContextFut<A, C> as futures::future::Future>::poll::h9de5fbebc1652d47',
+            '<actix::contextimpl::ContextFut<T> as futures::future::Future>::poll',
+        ],
+        [
+            'ThreadStartWhatever@16',
+            'ThreadStartWhatever',
+        ],
+        [
+            '@ThreadStartWhatever@16',
+            'ThreadStartWhatever',
+        ],
     ]
 )
 def test_isolate_native_function_v1(input, output):
