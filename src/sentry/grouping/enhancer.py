@@ -213,15 +213,15 @@ class Enhancements(object):
         """This applies the frame modifications to the frames itself.  This
         does not affect grouping.
         """
-        for idx, frame in enumerate(frames):
-            for rule in self.iter_rules():
+        for rule in self.iter_rules():
+            for idx, frame in enumerate(frames):
                 actions = rule.get_matching_frame_actions(frame, platform)
                 for action in actions or ():
                     action.apply_modifications_to_frame(frames, idx)
 
     def update_frame_components_contributions(self, components, frames, platform):
-        for idx, (component, frame) in enumerate(izip(components, frames)):
-            for rule in self.iter_rules():
+        for rule in self.iter_rules():
+            for idx, (component, frame) in enumerate(izip(components, frames)):
                 actions = rule.get_matching_frame_actions(frame, platform)
                 for action in actions or ():
                     action.update_frame_components_contributions(components, idx)
