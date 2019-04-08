@@ -1,5 +1,5 @@
 ---
-created: '2019-03-14T17:12:37.002186Z'
+created: '2019-04-03T22:37:14.859523Z'
 creator: sentry
 source: tests/sentry/grouping/test_variants.py
 ---
@@ -10,7 +10,7 @@ app:
       chained-exception (ignored because hash matches system variant)
         exception*
           stacktrace*
-            frame*
+            frame* (frame considered in-app because no frame is in-app)
               filename*
                 u'foo/baz.py'
               lineno*
@@ -21,7 +21,7 @@ app:
             u'hello world'
         exception*
           stacktrace*
-            frame*
+            frame* (frame considered in-app because no frame is in-app)
               filename*
                 u'foo/baz.py'
               lineno*

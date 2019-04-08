@@ -214,6 +214,11 @@ class FormField extends React.Component {
     saveMessageAlertType: PropTypes.oneOf(['', 'info', 'warning', 'success', 'error']),
 
     /**
+     * A function producing an optional component with extra information.
+     */
+    selectionInfoFunction: PropTypes.func,
+
+    /**
      * Should hide error message?
      */
     hideErrorMessage: PropTypes.bool,
@@ -364,6 +369,7 @@ class FormField extends React.Component {
       saveOnBlur,
       saveMessage,
       saveMessageAlertType,
+      selectionInfoFunction,
 
       // Don't pass `defaultValue` down to input fields, will be handled in form model
       // eslint-disable-next-line no-unused-vars
@@ -436,6 +442,15 @@ class FormField extends React.Component {
             </FieldControl>
           )}
         </Field>
+        {selectionInfoFunction && (
+          <Observer>
+            {() => {
+              const error = this.getError();
+              const value = model.getValue(name);
+              return selectionInfoFunction({...props, error, value});
+            }}
+          </Observer>
+        )}
         {saveOnBlurFieldOverride && (
           <Observer>
             {() => {

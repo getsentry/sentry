@@ -1,0 +1,28 @@
+---
+created: '2019-04-03T22:37:15.741137Z'
+creator: sentry
+source: tests/sentry/grouping/test_variants.py
+---
+app:
+  hash: '5a2cfd89b7b171fd7b4794b08023d04f'
+  component:
+    app*
+      exception*
+        stacktrace
+          frame (non app frame)
+            filename*
+              u'baz.py'
+        type*
+          u'ValueError'
+--------------------------------------------------------------------------
+system:
+  hash: '9509e122c6175606d52862fa4f64853c'
+  component:
+    system*
+      exception*
+        stacktrace*
+          frame*
+            filename*
+              u'baz.py'
+        type*
+          u'ValueError'
