@@ -1,6 +1,6 @@
 import PropTypes from 'prop-types';
 
-import {SAVED_SEARCH_TYPES} from 'app/constants';
+import {SEARCH_TYPES} from 'app/constants';
 
 export const Metadata = PropTypes.shape({
   value: PropTypes.string,
@@ -392,7 +392,7 @@ export const SavedSearch = PropTypes.shape({
   name: PropTypes.string,
   projectId: PropTypes.string,
   query: PropTypes.string,
-  type: PropTypes.oneOf([SAVED_SEARCH_TYPES.ISSUE, SAVED_SEARCH_TYPES.EVENTS]),
+  type: PropTypes.oneOf([SEARCH_TYPES.ISSUE, SEARCH_TYPES.EVENTS]),
 });
 
 export const GlobalSelection = PropTypes.shape({
