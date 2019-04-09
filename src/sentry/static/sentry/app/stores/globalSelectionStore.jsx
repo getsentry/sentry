@@ -81,9 +81,13 @@ const GlobalSelectionStore = Reflux.createStore({
     } else {
       try {
         const localStorageKey = `${LOCAL_STORAGE_KEY}:${organization.slug}`;
-        const storedValue = JSON.parse(localStorage.getItem(localStorageKey));
+
+        const storedValue = localStorage.getItem(localStorageKey);
+
+        const defaultDateTime = getDefaultSelection().datetime;
+
         if (storedValue) {
-          globalSelection = storedValue;
+          globalSelection = {datetime: defaultDateTime, ...JSON.parse(storedValue)};
         }
       } catch (ex) {
         // use default if invalid
@@ -149,7 +153,11 @@ const GlobalSelectionStore = Reflux.createStore({
 
     try {
       const localStorageKey = `${LOCAL_STORAGE_KEY}:${this.organization.slug}`;
-      localStorage.setItem(localStorageKey, JSON.stringify(this.selection));
+      const dataToSave = {
+        projects: this.selection.projects,
+        environments: this.selection.environments,
+      };
+      localStorage.setItem(localStorageKey, JSON.stringify(dataToSave));
     } catch (ex) {
       // Do nothing
     }
