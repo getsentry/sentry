@@ -110,24 +110,25 @@ const OpenInContainer = styled('div')`
   border-bottom: 1px solid ${p => p.theme.borderLight};
   background-color: white;
   color: ${p => p.theme.purple2};
+  box-shadow: 0 1px 0 0 rgba(0, 0, 0, 0.05);
 `;
 
 const OpenInIcon = styled(InlineSvg)`
   vertical-align: text-top;
-  height: 14px;
-  width: 14px;
-  margin-left: 2px;
+  height: 15px;
+  width: 15px;
+  margin-left: 10px;
 `;
 
 const OpenInLink = styled('a')`
-  padding-left: 5px;
+  color: ${p => p.theme.gray2};
   cursor: pointer;
 `;
 
 const OpenInName = styled('span')`
   font-weight: bold;
   color: ${p => p.theme.gray3};
-  margin-left: 2px;
+  margin-left: 5px;
 `;
 
 const ListItem = styled('li')`
@@ -138,6 +139,7 @@ const ListItem = styled('li')`
 const ActiveListItem = styled(ListItem)`
   padding: 0;
   text-indent: 20px;
+  z-index: 9999;
 `;
 
 const Context = styled('div')`
