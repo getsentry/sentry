@@ -4,6 +4,7 @@ import pytest
 import six
 
 from django.utils import timezone
+from freezegun import freeze_time
 from mock import patch
 
 from sentry.api.exceptions import InvalidRepository
@@ -322,6 +323,7 @@ class SetCommitsTestCase(TestCase):
         assert release.authors == [six.text_type(author.id)]
         assert release.last_commit_id == latest_commit.id
 
+    @freeze_time()
     def test_using_saved_data(self):
         org = self.create_organization()
         project = self.create_project(organization=org, name='foo')
