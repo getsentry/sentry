@@ -14,14 +14,12 @@ class Migration(SchemaMigration):
     def forwards(self, orm):
         # Adding field 'ProjectOwnership.auto_assignment'
         db.add_column('sentry_projectownership', 'auto_assignment',
-                      self.gf('django.db.models.fields.BooleanField')(default=False),
+                      self.gf('django.db.models.fields.BooleanField')(null=True),
                       keep_default=False)
-
 
     def backwards(self, orm):
         # Deleting field 'ProjectOwnership.auto_assignment'
         db.delete_column('sentry_projectownership', 'auto_assignment')
-
 
     models = {
         'sentry.activity': {
