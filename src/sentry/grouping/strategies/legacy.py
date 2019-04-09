@@ -1,11 +1,11 @@
 from __future__ import absolute_import
 
 import re
-import six
 import posixpath
 
 from sentry.grouping.component import GroupingComponent
 from sentry.grouping.strategies.base import strategy
+from sentry.grouping.strategies.utils import remove_non_stacktrace_variants
 
 
 _ruby_anon_func = re.compile(r'_\d{2,}')
@@ -248,38 +248,7 @@ def chained_exception_legacy(chained_exception, config, **meta):
 
 @chained_exception_legacy.variant_processor
 def chained_exception_legacy_variant_processor(variants, config, **meta):
-    if len(variants) <= 1:
-        return variants
-    any_stacktrace_contributes = False
-    non_contributing_components = []
-    stacktrace_variants = set()
-
-    # In case any of the variants has a contributing stacktrace, we want
-    # to make all other variants non contributing.  Thr e
-    for (key, component) in six.iteritems(variants):
-        if any(s.contributes for s in component.iter_subcomponents(
-                id='stacktrace', recursive=True)):
-            any_stacktrace_contributes = True
-            stacktrace_variants.add(key)
-        else:
-            non_contributing_components.append(component)
-
-    if any_stacktrace_contributes:
-        if len(stacktrace_variants) == 1:
-            hint_suffix = 'but the %s variant does' % next(iter(stacktrace_variants))
-        else:
-            # this branch is basically dead because we only have two
-            # variants right now, but this is so this does not break in
-            # the future.
-            hint_suffix = 'others do'
-        for component in non_contributing_components:
-            component.update(
-                contributes=False,
-                hint='ignored because this variant does not contain a '
-                'stacktrace, but %s' % hint_suffix
-            )
-
-    return variants
+    return remove_non_stacktrace_variants(variants)
 
 
 @strategy(
@@ -516,4 +485,33 @@ def stacktrace_legacy(stacktrace, config, variant, **meta):
         values=values,
         contributes=contributes,
         hint=hint,
+    )
+
+
+@strategy(
+    id='threads:legacy',
+    interfaces=['threads'],
+    variants=['!system', 'app'],
+    score=1900,
+)
+def threads_legacy(threads_interface, config, **meta):
+    thread_count = len(threads_interface.values)
+    if thread_count != 1:
+        return GroupingComponent(
+            id='threads',
+            contributes=False,
+            hint='ignored because contains %d threads' % thread_count,
+        )
+
+    stacktrace = threads_interface.values[0].get('stacktrace')
+    if not stacktrace:
+        return GroupingComponent(
+            id='threads',
+            contributes=False,
+            hint='thread has no stacktrace',
+        )
+
+    return GroupingComponent(
+        id='threads',
+        values=[config.get_grouping_component(stacktrace, **meta)],
     )

@@ -1,13 +1,13 @@
 ---
-created: '2019-03-15T11:58:33.182022Z'
+created: '2019-04-09T18:49:36.619808Z'
 creator: sentry
 source: tests/sentry/grouping/test_variants.py
 ---
 app:
-  hash: '83661bfca7422cbab6c9bb849514e26b'
+  hash: None
   component:
-    app*
-      exception*
+    app (exception of system takes precedence)
+      exception (ignored because this variant does not have a contributing stacktrace, but the system variant does)
         stacktrace
           frame (non app frame)
             module*
@@ -400,8 +400,8 @@ app:
 default:
   hash: None
   component:
-    default (exception of app takes precedence)
-      message (exception of app takes precedence)
+    default (exception of system takes precedence)
+      message (exception of system takes precedence)
         u'Servlet.service() for servlet [dispatcherServlet] in context with path [] threw exception [Request processing failed; nested exception is java.lang.ArithmeticException: / by zero] with root cause'
 --------------------------------------------------------------------------
 system:

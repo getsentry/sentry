@@ -5,7 +5,8 @@ import re
 
 from sentry.grouping.component import GroupingComponent
 from sentry.grouping.strategies.base import strategy
-from sentry.grouping.strategies.utils import replace_enclosed_string, split_func_tokens
+from sentry.grouping.strategies.utils import replace_enclosed_string, \
+    split_func_tokens, remove_non_stacktrace_variants
 
 
 _rust_hash = re.compile(r'::h[a-z0-9]{16}$')
@@ -353,6 +354,11 @@ def stacktrace_v1(stacktrace, config, variant, **meta):
     )
 
 
+@stacktrace_v1.variant_processor
+def stacktrace_v1_variant_processor(variants, config, **meta):
+    return remove_non_stacktrace_variants(variants)
+
+
 @strategy(
     id='single-exception:v1',
     interfaces=['singleexception'],
@@ -405,3 +411,42 @@ def chained_exception_v1(chained_exception, config, **meta):
         id='chained-exception',
         values=values,
     )
+
+
+@chained_exception_v1.variant_processor
+def chained_exception_v1_variant_processor(variants, config, **meta):
+    return remove_non_stacktrace_variants(variants)
+
+
+@strategy(
+    id='threads:v1',
+    interfaces=['threads'],
+    variants=['!system', 'app'],
+    score=1900,
+)
+def threads_v1(threads_interface, config, **meta):
+    thread_count = len(threads_interface.values)
+    if thread_count != 1:
+        return GroupingComponent(
+            id='threads',
+            contributes=False,
+            hint='ignored because contains %d threads' % thread_count,
+        )
+
+    stacktrace = threads_interface.values[0].get('stacktrace')
+    if not stacktrace:
+        return GroupingComponent(
+            id='threads',
+            contributes=False,
+            hint='thread has no stacktrace',
+        )
+
+    return GroupingComponent(
+        id='threads',
+        values=[config.get_grouping_component(stacktrace, **meta)],
+    )
+
+
+@threads_v1.variant_processor
+def threads_v1_variant_processor(variants, config, **meta):
+    return remove_non_stacktrace_variants(variants)
