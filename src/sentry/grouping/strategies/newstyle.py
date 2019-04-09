@@ -340,7 +340,7 @@ def stacktrace_v1(stacktrace, config, variant, **meta):
                 hint='frame considered in-app because no frame is in-app'
             )
         values.append(frame_component)
-        frames_for_filtering.append(frame._data)
+        frames_for_filtering.append(frame.get_raw_data())
         prev_frame = frame
 
     config.enhancements.update_frame_components_contributions(

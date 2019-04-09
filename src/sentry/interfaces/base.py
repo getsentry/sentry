@@ -148,6 +148,10 @@ class Interface(object):
         """
         return cls(**data) if data is not None else None
 
+    def get_raw_data(self):
+        """Returns the underlying raw data."""
+        return self._data
+
     def get_api_context(self, is_public=False):
         return self.to_json()
 
