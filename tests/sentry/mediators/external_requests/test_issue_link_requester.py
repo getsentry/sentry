@@ -56,6 +56,7 @@ class TestIssueLinkRequester(TestCase):
             group=self.group,
             uri='/link-issue',
             fields=fields,
+            user=self.user,
         )
         assert result == {
             'project': 'ProjectName',
@@ -77,6 +78,11 @@ class TestIssueLinkRequester(TestCase):
             'project': {
                 'id': self.project.id,
                 'slug': self.project.slug,
+            },
+            'actor': {
+                'type': 'user',
+                'id': self.user.id,
+                'name': self.user.name,
             }
         }
         payload = json.loads(request.body)
@@ -103,6 +109,7 @@ class TestIssueLinkRequester(TestCase):
                 group=self.group,
                 uri='/link-issue',
                 fields={},
+                user=self.user,
             )
 
     @responses.activate
@@ -121,4 +128,5 @@ class TestIssueLinkRequester(TestCase):
                 group=self.group,
                 uri='/link-issue',
                 fields={},
+                user=self.user,
             )

@@ -47,6 +47,7 @@ class SentryAppInstallationExternalIssuesEndpoint(SentryAppInstallationBaseEndpo
                 action=action,
                 fields=data,
                 uri=uri,
+                user=request.user,
             )
         except Exception:
             return Response({'error': 'Error communicating with Sentry App service'}, status=400)

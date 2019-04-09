@@ -116,6 +116,7 @@ from .endpoints.organization_tagkey_values import OrganizationTagKeyValuesEndpoi
 from .endpoints.organization_tags import OrganizationTagsEndpoint
 from .endpoints.organization_user_reports import OrganizationUserReportsEndpoint
 from .endpoints.organization_users import OrganizationUsersEndpoint
+from .endpoints.organization_user_details import OrganizationUserDetailsEndpoint
 from .endpoints.sentry_app_installations import SentryAppInstallationsEndpoint
 from .endpoints.sentry_app_installation_details import SentryAppInstallationDetailsEndpoint
 from .endpoints.sentry_app_installation_external_requests import SentryAppInstallationExternalRequestsEndpoint
@@ -730,6 +731,11 @@ urlpatterns = patterns(
         r'^organizations/(?P<organization_slug>[^\/]+)/users/$',
         OrganizationUsersEndpoint.as_view(),
         name='sentry-api-0-organization-users'
+    ),
+    url(
+        r'^organizations/(?P<organization_slug>[^\/]+)/users/(?P<user_id>[^\/]+)/$',
+        OrganizationUserDetailsEndpoint.as_view(),
+        name='sentry-api-0-organization-user-details'
     ),
     url(
         r'^organizations/(?P<organization_slug>[^\/]+)/sentry-app-installations/$',
