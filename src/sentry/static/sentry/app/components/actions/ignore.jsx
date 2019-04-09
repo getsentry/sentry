@@ -83,7 +83,11 @@ export default class IgnoreActions extends React.Component {
       return (
         <div className="btn-group">
           <Tooltip title={t('Change status to unresolved')}>
-            <a className={linkClassName} onClick={() => onUpdate({status: 'unresolved'})}>
+            <a
+              className={linkClassName}
+              data-test-id="button-unresolve"
+              onClick={() => onUpdate({status: 'unresolved'})}
+            >
               <span className="icon-ban" />
             </a>
           </Tooltip>

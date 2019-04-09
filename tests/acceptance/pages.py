@@ -41,13 +41,13 @@ class IssueDetailsPage(BasePage):
 
     def resolve_issue(self):
         self.browser.click('[data-test-id="action-link-resolve"]')
-        # Resolve should become active
-        self.browser.wait_until('.btn.active')
+        # Resolve should become unresolve
+        self.browser.wait_until('[data-test-id="button-unresolve"]')
 
     def ignore_issue(self):
         self.browser.click('[data-test-id="action-link-ignore"]')
-        # Ignore should become active
-        self.browser.wait_until('.btn.active')
+        # Ignore should become unresolve
+        self.browser.wait_until('[data-test-id="button-unresolve"]')
 
     def bookmark_issue(self):
         self.browser.click('.group-bookmark')
