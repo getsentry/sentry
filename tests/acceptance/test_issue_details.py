@@ -40,26 +40,26 @@ class IssueDetailsTest(AcceptanceTestCase, SnubaTestCase):
         )
         return event
 
+    def visit_issue(self, groupid):
+        self.dismiss_assistant()
+        with self.feature('organizations:sentry10'):
+            self.browser.get(
+                u'/organizations/{}/issues/{}/'.format(self.org.slug, groupid)
+            )
+            self.wait_until_loaded()
+
     def test_python_event(self):
         event = self.create_sample_event(
             platform='python',
         )
-
-        self.browser.get(
-            u'/{}/{}/issues/{}/'.format(self.org.slug, self.project.slug, event.group.id)
-        )
-        self.wait_until_loaded()
+        self.visit_issue(event.group.id)
         self.browser.snapshot('issue details python')
 
     def test_cocoa_event(self):
         event = self.create_sample_event(
             platform='cocoa',
         )
-
-        self.browser.get(
-            u'/{}/{}/issues/{}/'.format(self.org.slug, self.project.slug, event.group.id)
-        )
-        self.wait_until_loaded()
+        self.visit_issue(event.group.id)
         self.browser.snapshot('issue details cocoa')
 
     def test_unity_event(self):
@@ -67,11 +67,7 @@ class IssueDetailsTest(AcceptanceTestCase, SnubaTestCase):
             default='unity',
             platform='csharp'
         )
-
-        self.browser.get(
-            u'/{}/{}/issues/{}/'.format(self.org.slug, self.project.slug, event.group.id)
-        )
-        self.wait_until_loaded()
+        self.visit_issue(event.group.id)
         self.browser.snapshot('issue details unity')
 
     def test_aspnetcore_event(self):
@@ -79,11 +75,7 @@ class IssueDetailsTest(AcceptanceTestCase, SnubaTestCase):
             default='aspnetcore',
             platform='csharp'
         )
-
-        self.browser.get(
-            u'/{}/{}/issues/{}/'.format(self.org.slug, self.project.slug, event.group.id)
-        )
-        self.wait_until_loaded()
+        self.visit_issue(event.group.id)
         self.browser.snapshot('issue details aspnetcore')
 
     def test_javascript_specific_event(self):
@@ -91,10 +83,15 @@ class IssueDetailsTest(AcceptanceTestCase, SnubaTestCase):
             platform='javascript'
         )
 
+        # Don't enable sentry10 so we have coverage for sentry9 as well.
         self.dismiss_assistant()
         self.browser.get(
-            u'/{}/{}/issues/{}/events/{}/'.format(self.org.slug,
-                                                  self.project.slug, event.group.id, event.id)
+            u'/{}/{}/issues/{}/events/{}/'.format(
+                self.org.slug,
+                self.project.slug,
+                event.group.id,
+                event.id
+            )
         )
         self.wait_until_loaded()
         self.browser.snapshot('issue details javascript - event details')
@@ -108,66 +105,46 @@ class IssueDetailsTest(AcceptanceTestCase, SnubaTestCase):
             platform='native',
             sample_name='Rust',
         )
-
-        self.browser.get(
-            u'/{}/{}/issues/{}/'.format(self.org.slug, self.project.slug, event.group.id)
-        )
+        self.visit_issue(event.group.id)
         self.wait_until_loaded()
+
         self.browser.snapshot('issue details rust')
 
     def test_cordova_event(self):
         event = self.create_sample_event(
             platform='cordova'
         )
+        self.visit_issue(event.group.id)
 
-        self.dismiss_assistant()
-        self.browser.get(
-            u'/{}/{}/issues/{}/'.format(self.org.slug, self.project.slug, event.group.id)
-        )
-        self.wait_until_loaded()
         self.browser.snapshot('issue details cordova')
 
     def test_stripped_event(self):
         event = self.create_sample_event(
             platform='pii'
         )
-        self.browser.get(
-            u'/{}/{}/issues/{}/'.format(self.org.slug, self.project.slug, event.group.id)
-        )
-        self.wait_until_loaded()
+        self.visit_issue(event.group.id)
         self.browser.snapshot('issue details pii stripped')
 
     def test_empty_exception(self):
         event = self.create_sample_event(
             platform='empty-exception'
         )
-
-        self.browser.get(
-            u'/{}/{}/issues/{}/'.format(self.org.slug, self.project.slug, event.group.id)
-        )
-        self.wait_until_loaded()
+        self.visit_issue(event.group.id)
         self.browser.snapshot('issue details empty exception')
 
     def test_empty_stacktrace(self):
         event = self.create_sample_event(
             platform='empty-stacktrace'
         )
-
-        self.browser.get(
-            u'/{}/{}/issues/{}/'.format(self.org.slug, self.project.slug, event.group.id)
-        )
-        self.wait_until_loaded()
+        self.visit_issue(event.group.id)
         self.browser.snapshot('issue details empty stacktrace')
 
     def test_invalid_interfaces(self):
         event = self.create_sample_event(
             platform='invalid-interfaces'
         )
+        self.visit_issue(event.group.id)
 
-        self.browser.get(
-            u'/{}/{}/issues/{}/'.format(self.org.slug, self.project.slug, event.group.id)
-        )
-        self.wait_until_loaded()
         self.browser.click('.errors-toggle')
         self.browser.wait_until('.entries > .errors ul')
         self.browser.snapshot('issue details invalid interfaces')
