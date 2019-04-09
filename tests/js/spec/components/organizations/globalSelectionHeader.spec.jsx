@@ -53,19 +53,10 @@ describe('GlobalSelectionHeader', function() {
     expect(router.push).not.toHaveBeenCalled();
   });
 
-  it('replaces URL with values from store when mounted with no query params', function() {
+  it('does not replace URL with values from store when mounted with no query params', function() {
     mount(<GlobalSelectionHeader organization={organization} />, routerContext);
 
-    expect(router.replace).toHaveBeenCalledWith(
-      expect.objectContaining({
-        query: {
-          environment: [],
-          project: [],
-          statsPeriod: '14d',
-          utc: 'true',
-        },
-      })
-    );
+    expect(router.replace).not.toHaveBeenCalled();
   });
 
   it('only updates GlobalSelection store when mounted with query params', async function() {
@@ -165,6 +156,43 @@ describe('GlobalSelectionHeader', function() {
         end: null,
       },
       environments: ['prod'],
+      projects: [],
+    });
+  });
+
+  it('updates GlobalSelection store with empty date selections', async function() {
+    const wrapper = mount(
+      <GlobalSelectionHeader organization={organization} />,
+      changeQuery(routerContext, {
+        statsPeriod: '7d',
+      })
+    );
+
+    wrapper.setContext(
+      changeQuery(routerContext, {
+        statsPeriod: null,
+      }).context
+    );
+    await tick();
+    wrapper.update();
+
+    expect(globalActions.updateDateTime).toHaveBeenCalledWith({
+      period: null,
+      utc: null,
+      start: null,
+      end: null,
+    });
+    expect(globalActions.updateProjects).toHaveBeenCalledWith([]);
+    expect(globalActions.updateEnvironments).toHaveBeenCalledWith([]);
+
+    expect(GlobalSelectionStore.get()).toEqual({
+      datetime: {
+        period: null,
+        utc: null,
+        start: null,
+        end: null,
+      },
+      environments: [],
       projects: [],
     });
   });

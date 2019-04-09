@@ -473,27 +473,7 @@ exports[`OrganizationUserFeedback renders 1`] = `
                       "params": Object {
                         "orgId": "org-slug",
                       },
-                      "push": [MockFunction] {
-                        "calls": Array [
-                          Array [
-                            Object {
-                              "pathname": undefined,
-                              "query": Object {
-                                "environment": Array [],
-                                "project": Array [],
-                                "statsPeriod": "14d",
-                                "utc": "true",
-                              },
-                            },
-                          ],
-                        ],
-                        "results": Array [
-                          Object {
-                            "type": "return",
-                            "value": undefined,
-                          },
-                        ],
-                      },
+                      "push": [MockFunction],
                       "replace": [MockFunction],
                       "setRouteLeaveHook": [MockFunction],
                     }
@@ -623,27 +603,7 @@ exports[`OrganizationUserFeedback renders 1`] = `
                         "params": Object {
                           "orgId": "org-slug",
                         },
-                        "push": [MockFunction] {
-                          "calls": Array [
-                            Array [
-                              Object {
-                                "pathname": undefined,
-                                "query": Object {
-                                  "environment": Array [],
-                                  "project": Array [],
-                                  "statsPeriod": "14d",
-                                  "utc": "true",
-                                },
-                              },
-                            ],
-                          ],
-                          "results": Array [
-                            Object {
-                              "type": "return",
-                              "value": undefined,
-                            },
-                          ],
-                        },
+                        "push": [MockFunction],
                         "replace": [MockFunction],
                         "setRouteLeaveHook": [MockFunction],
                       }
@@ -652,9 +612,9 @@ exports[`OrganizationUserFeedback renders 1`] = `
                       Object {
                         "datetime": Object {
                           "end": null,
-                          "period": "14d",
+                          "period": null,
                           "start": null,
-                          "utc": true,
+                          "utc": null,
                         },
                         "environments": Array [],
                         "projects": Array [],
@@ -1671,7 +1631,7 @@ exports[`OrganizationUserFeedback renders 1`] = `
                             >
                               <TimeRangeSelector
                                 end={null}
-                                key="period:14d-start:null-end:null-utc:true"
+                                key="period:null-start:null-end:null-utc:null"
                                 onChange={[Function]}
                                 onUpdate={[Function]}
                                 organization={
@@ -1715,11 +1675,11 @@ exports[`OrganizationUserFeedback renders 1`] = `
                                     "teams": Array [],
                                   }
                                 }
-                                relative="14d"
+                                relative={null}
                                 showAbsolute={true}
                                 showRelative={true}
                                 start={null}
-                                utc={true}
+                                utc={null}
                               >
                                 <DropdownMenu
                                   closeOnEscape={true}

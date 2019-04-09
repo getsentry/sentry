@@ -398,7 +398,8 @@ describe('OrganizationEventsContainer', function() {
     expect(eventsMock).toHaveBeenLastCalledWith(
       '/organizations/org-slug/events/',
       expect.objectContaining({
-        query: {project: [2], statsPeriod: '14d'},
+        // This is not an array because of `mockRouterPush`
+        query: {project: '2', statsPeriod: '14d'},
       })
     );
   });

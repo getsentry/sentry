@@ -184,10 +184,10 @@ describe('Discover', function() {
 
       wrapper = mount(
         <Discover
-          location={{query: {}}}
           queryBuilder={queryBuilder}
           organization={organization}
           params={{}}
+          location={{query: {}, search: ''}}
           updateSavedQueryData={jest.fn()}
           toggleEditMode={jest.fn()}
           isLoading={false}
@@ -245,7 +245,8 @@ describe('Discover', function() {
 
       wrapper = mount(
         <Discover
-          location={{query: {}}}
+          params={{}}
+          location={{query: {}, search: ''}}
           queryBuilder={queryBuilder}
           organization={organization}
           updateSavedQueryData={jest.fn()}
@@ -316,7 +317,8 @@ describe('Discover', function() {
     it('can be saved', function() {
       const wrapper = mount(
         <Discover
-          location={{query: {}}}
+          params={{}}
+          location={{query: {}, search: ''}}
           queryBuilder={queryBuilder}
           organization={organization}
           updateSavedQueryData={jest.fn()}
@@ -532,7 +534,7 @@ describe('Discover', function() {
           organization={organization}
           location={{
             query: {},
-            location: '?fields=something',
+            search: '?fields=something',
           }}
           updateSavedQueryData={jest.fn()}
           toggleEditMode={jest.fn()}
@@ -586,8 +588,8 @@ describe('Discover', function() {
           organization={organization}
           location={{
             query: {},
-            location: '',
           }}
+          params={{}}
           updateSavedQueryData={jest.fn()}
           toggleEditMode={jest.fn()}
           isLoading={false}
@@ -629,16 +631,20 @@ describe('Discover', function() {
         method: 'POST',
         body: {timing: {}, data: [], meta: []},
       });
+
+      const routerContext = TestStubs.routerContext([{organization}]);
+
       wrapper = mount(
         <Discover
-          location={{query: {}}}
           queryBuilder={queryBuilder}
+          params={{}}
+          location={routerContext.context.location}
           organization={organization}
           updateSavedQueryData={jest.fn()}
           toggleEditMode={jest.fn()}
           isLoading={false}
         />,
-        TestStubs.routerContext([{organization}])
+        routerContext
       );
     });
 
@@ -674,7 +680,7 @@ describe('Discover', function() {
           data: expect.objectContaining({
             start: '2017-10-03T02:41:20',
             end: '2017-10-17T02:41:20',
-            utc: null,
+            utc: false,
           }),
         })
       );
@@ -694,8 +700,7 @@ describe('Discover', function() {
       // Hide date picker
       wrapper.find('TimeRangeSelector HeaderItem').simulate('click');
 
-      await tick();
-      wrapper.update();
+      await wrapper.update();
 
       // Should make request for the last day an absolute date range
       expect(query).toHaveBeenLastCalledWith(
@@ -704,7 +709,7 @@ describe('Discover', function() {
           data: expect.objectContaining({
             start: '2017-10-01T04:00:00',
             end: '2017-10-02T03:59:59',
-            utc: null,
+            utc: false,
           }),
         })
       );
@@ -715,6 +720,8 @@ describe('Discover', function() {
       wrapper.find('UtcPicker Checkbox').simulate('change');
       // Hide dropdown
       wrapper.find('TimeRangeSelector HeaderItem').simulate('click');
+
+      await wrapper.update();
 
       expect(query).toHaveBeenLastCalledWith(
         expect.anything(),

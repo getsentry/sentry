@@ -10,7 +10,6 @@ import {
 } from 'app/components/organizations/globalSelectionHeader/constants';
 import {DEFAULT_STATS_PERIOD} from 'app/constants';
 import {callIfFunction} from 'app/utils/callIfFunction';
-import {defined} from 'app/utils';
 import {isEqualWithDates} from 'app/utils/isEqualWithDates';
 import {t} from 'app/locale';
 import {
@@ -221,7 +220,7 @@ class GlobalSelectionHeader extends React.Component {
     const nextQuery = pick(nextProps.location.query, urlParamKeys);
 
     // If no next query is specified keep the previous global selection values
-    if (Object.keys(nextQuery).length === 0) {
+    if (Object.keys(prevQuery).length === 0 && Object.keys(nextQuery).length === 0) {
       return false;
     }
 
@@ -241,11 +240,7 @@ class GlobalSelectionHeader extends React.Component {
       nextProps.location.query
     );
 
-    if (start || end || period || utc) {
-      // Don't attempt to update date if all of these values are empty
-      updateDateTime({start, end, period, utc});
-    }
-
+    updateDateTime({start, end, period, utc});
     updateEnvironments(environment || []);
     updateProjects(project || []);
   };
@@ -281,7 +276,9 @@ class GlobalSelectionHeader extends React.Component {
 
   handleUpdateTime = ({relative: period, start, end, utc} = {}) => {
     const newValueObj = {
-      ...(defined(period) ? {period} : {start, end}),
+      period,
+      start,
+      end,
       utc,
     };
 

@@ -7,24 +7,20 @@ import {
   LOCAL_STORAGE_KEY,
 } from 'app/components/organizations/globalSelectionHeader/constants';
 import {getStateFromQuery} from 'app/components/organizations/globalSelectionHeader/utils';
-import {DEFAULT_STATS_PERIOD} from 'app/constants';
 import {isEqualWithDates} from 'app/utils/isEqualWithDates';
-import ConfigStore from 'app/stores/configStore';
 import OrganizationsStore from 'app/stores/organizationsStore';
 import GlobalSelectionActions from 'app/actions/globalSelectionActions';
 import localStorage from 'app/utils/localStorage';
 
 const getDefaultSelection = () => {
-  const user = ConfigStore.get('user');
-
   return {
     projects: [],
     environments: [],
     datetime: {
       [DATE_TIME.START]: null,
       [DATE_TIME.END]: null,
-      [DATE_TIME.PERIOD]: DEFAULT_STATS_PERIOD,
-      [DATE_TIME.UTC]: user?.options?.timezone === 'UTC' ? true : null,
+      [DATE_TIME.PERIOD]: null,
+      [DATE_TIME.UTC]: null,
     },
   };
 };

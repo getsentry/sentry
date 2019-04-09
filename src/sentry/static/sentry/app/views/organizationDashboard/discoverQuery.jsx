@@ -2,6 +2,7 @@ import {isEqual, omit} from 'lodash';
 import PropTypes from 'prop-types';
 import React from 'react';
 
+import {DEFAULT_STATS_PERIOD} from 'app/constants';
 import {getInterval} from 'app/components/charts/utils';
 import {getPeriod} from 'app/utils/getPeriod';
 import {parsePeriodToHours} from 'app/utils';
@@ -88,7 +89,12 @@ class DiscoverQuery extends React.Component {
     if (query.rollup) {
       // getInterval returns a period string depending on current datetime range selected
       // we then use a helper function to parse into hours and then convert back to seconds
-      query.rollup = parsePeriodToHours(getInterval(datetime)) * 60 * 60;
+      query.rollup =
+        parsePeriodToHours(
+          getInterval({...datetime, period: datetime.period || DEFAULT_STATS_PERIOD})
+        ) *
+        60 *
+        60;
     }
 
     return {

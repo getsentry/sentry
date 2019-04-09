@@ -76,12 +76,16 @@ class EventsChart extends React.Component {
     api: PropTypes.object,
     period: PropTypes.string,
     query: PropTypes.string,
+    start: PropTypes.instanceOf(Date),
+    end: PropTypes.instanceOf(Date),
     utc: PropTypes.bool,
     router: PropTypes.object,
   };
 
   render() {
-    const {api, period, utc, query, router, ...props} = this.props;
+    const {api, period, utc, query, router, start, end, ...props} = this.props;
+    // Include previous only on relative dates (defaults to relative if no start and end)
+    const includePrevious = !!period || (!start && !end);
 
     return (
       <ChartZoom router={router} period={period} utc={utc} {...props}>
@@ -90,11 +94,13 @@ class EventsChart extends React.Component {
             {...props}
             api={api}
             period={period}
+            start={start}
+            end={end}
             interval={getInterval(this.props, true)}
             showLoading={false}
             query={query}
             getCategory={DEFAULT_GET_CATEGORY}
-            includePrevious={!!period}
+            includePrevious={includePrevious}
           >
             {({loading, reloading, timeseriesData, previousTimeseriesData}) => {
               return (
