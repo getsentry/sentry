@@ -9,7 +9,6 @@ import Button from 'app/components/button';
 import Confirm from 'app/components/confirm';
 import MenuItem from 'app/components/menuItem';
 import DropdownLink from 'app/components/dropdownLink';
-import QueryCount from 'app/components/queryCount';
 import InlineSvg from 'app/components/inlineSvg';
 import SentryTypes from 'app/sentryTypes';
 import {TextField} from 'app/components/forms';
@@ -23,8 +22,6 @@ export default class OrganizationSavedSearchSelector extends React.Component {
     onSavedSearchSelect: PropTypes.func.isRequired,
     onSavedSearchDelete: PropTypes.func.isRequired,
     query: PropTypes.string.isRequired,
-    queryCount: PropTypes.number,
-    queryMaxCount: PropTypes.number,
     searchId: PropTypes.string,
   };
 
@@ -82,30 +79,25 @@ export default class OrganizationSavedSearchSelector extends React.Component {
   }
 
   render() {
-    const {organization, query, queryCount, queryMaxCount} = this.props;
+    const {organization, query} = this.props;
 
     return (
       <Container>
-        <StyledDropdownLink
-          title={
-            <span>
-              <span>{this.getTitle()}</span>
-              <QueryCount count={queryCount} max={queryMaxCount} />
-            </span>
-          }
-        >
-          {this.renderList()}
-          <Access
-            organization={organization}
-            access={['org:write']}
-            renderNoAccessMessage={false}
-          >
-            <StyledMenuItem divider={true} />
-            <ButtonBar>
-              <SaveSearchButton query={query} organization={organization} />
-            </ButtonBar>
-          </Access>
-        </StyledDropdownLink>
+        <div className="stream-dropdown">
+          <DropdownLink btnGroup={true} title={this.getTitle()}>
+            {this.renderList()}
+            <Access
+              organization={organization}
+              access={['org:write']}
+              renderNoAccessMessage={false}
+            >
+              <StyledMenuItem divider={true} />
+              <ButtonBar>
+                <SaveSearchButton query={query} organization={organization} />
+              </ButtonBar>
+            </Access>
+          </DropdownLink>
+        </div>
       </Container>
     );
   }
@@ -251,30 +243,6 @@ const StyledMenuItem = styled(MenuItem)`
     position: absolute;
     top: ${space(0.5)};
     right: ${space(1)};
-  }
-`;
-
-const StyledDropdownLink = styled(DropdownLink)`
-  display: inline-block;
-  font-size: 22px;
-  color: ${p => p.theme.gray5};
-  line-height: 36px;
-  margin-right: 10px;
-  max-width: 100%;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-  overflow: hidden;
-
-  & :hover,
-  & :focus {
-    color: ${p => p.theme.gray5};
-  }
-
-  & .icon-arrow-down {
-    display: inline-block;
-    margin-left: 5px;
-    top: 0;
-    vertical-align: middle;
   }
 `;
 
