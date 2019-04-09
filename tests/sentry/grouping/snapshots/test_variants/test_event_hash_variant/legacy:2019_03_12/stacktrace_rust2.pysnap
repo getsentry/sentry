@@ -1,5 +1,5 @@
 ---
-created: '2019-04-07T13:12:38.163514Z'
+created: '2019-04-09T07:38:26.571613Z'
 creator: sentry
 source: tests/sentry/grouping/test_variants.py
 ---
@@ -44,16 +44,16 @@ system:
           frame
             function (function name is used only if module or filename are available)
               u'_main'
-          frame
+          frame (marked out of app by grouping enhancement rule)
             function (function name is used only if module or filename are available)
               u'std::rt::lang_start_internal'
           frame
             function (function name is used only if module or filename are available)
               u'___rust_maybe_catch_panic'
-          frame
+          frame (marked out of app by grouping enhancement rule)
             function (function name is used only if module or filename are available)
               u'std::panicking::try::do_call'
-          frame
+          frame (marked out of app by grouping enhancement rule)
             function (function name is used only if module or filename are available)
               u'std::rt::lang_start::{{closure}}'
           frame

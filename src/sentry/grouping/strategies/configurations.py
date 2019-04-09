@@ -77,7 +77,7 @@ register_strategy_config(
     ],
     changelog='''
         * New grouping strategy optimized for native and javascript
-        * Supports grouping enhancements.
+        * Not compatible with the old legacy grouping
     '''
 )
 
