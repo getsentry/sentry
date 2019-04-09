@@ -808,6 +808,8 @@ SENTRY_FEATURES = {
     'organizations:discover': False,
     # Enable attaching arbitrary files to events.
     'organizations:event-attachments': False,
+    # Allow organizations to configure custom external symbol sources.
+    'organizations:symbol-sources': False,
     # Enable the events stream interface.
     'organizations:events': False,
     # Enable multi project selection

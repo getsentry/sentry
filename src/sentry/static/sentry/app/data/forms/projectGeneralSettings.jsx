@@ -352,7 +352,6 @@ export const fields = {
       return [];
     },
   },
-
   allowedDomains: {
     name: 'allowedDomains',
     type: 'string',

@@ -9,6 +9,10 @@ const ENDPOINT = '/projects/org/project/files/dsyms/';
 describe('ProjectDebugFiles', function() {
   beforeEach(function() {
     Client.clearMockResponses();
+    Client.addMockResponse({
+      url: '/projects/org/project/',
+      body: {},
+    });
   });
 
   it('renders empty', function() {
