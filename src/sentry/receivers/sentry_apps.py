@@ -1,6 +1,6 @@
 from __future__ import absolute_import
 
-from sentry.models import GroupAssignee, Organization
+from sentry.models import GroupAssignee
 from sentry.signals import (
     issue_ignored,
     issue_assigned,
@@ -35,19 +35,12 @@ def send_issue_assigned_webhook(project, group, user, **kwargs):
 
 @issue_resolved.connect(weak=False)
 def send_issue_resolved_webhook(organization_id, project, group, user, resolution_type, **kwargs):
-    if resolution_type in ('in_next_release', 'in_release'):
-        data_resolution_type = 'resolved_in_release'
-    elif resolution_type == 'in_commit':
-        data_resolution_type = 'resolved_in_commit'
-    else:
-        data_resolution_type = 'resolved'
-
     send_workflow_webhooks(
         project.organization,
         group,
         user,
         'issue.resolved',
-        data={'resolution_type': data_resolution_type},
+        data={'resolution_type': resolution_type},
     )
 
 
