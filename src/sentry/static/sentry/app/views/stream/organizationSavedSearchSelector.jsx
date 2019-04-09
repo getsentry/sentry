@@ -14,8 +14,8 @@ import SentryTypes from 'app/sentryTypes';
 import {TextField} from 'app/components/forms';
 import space from 'app/styles/space';
 import withApi from 'app/utils/withApi';
-import {SEARCH_TYPES} from 'app/constants';
 import {addLoadingMessage, clearIndicators} from 'app/actionCreators/indicator';
+import {createSavedSearch} from 'app/actionCreators/savedSearches';
 
 export default class OrganizationSavedSearchSelector extends React.Component {
   static propTypes = {
@@ -139,22 +139,17 @@ const SaveSearchButton = withApi(
 
       addLoadingMessage(t('Saving Changes'));
 
-      api.request(`/organizations/${organization.slug}/searches/`, {
-        method: 'POST',
-        data: {
-          type: SEARCH_TYPES.ISSUE,
-          query: this.state.query,
-          name: this.state.name,
-        },
-        success: data => {
+      createSavedSearch(api, organization.slug, this.state.name, this.state.query)
+        .then(data => {
           onSave(data);
           this.onToggle();
           this.setState({
             error: null,
             isSaving: false,
           });
-        },
-        error: err => {
+          clearIndicators();
+        })
+        .catch(err => {
           let error = t('Unable to save your changes.');
           if (err.responseJSON && err.responseJSON.detail) {
             error = err.responseJSON.detail;
@@ -163,11 +158,8 @@ const SaveSearchButton = withApi(
             error,
             isSaving: false,
           });
-        },
-        complete: () => {
           clearIndicators();
-        },
-      });
+        });
     };
 
     onToggle = () => {

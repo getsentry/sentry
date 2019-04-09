@@ -151,6 +151,7 @@ describe('OrganizationSavedSearchSelector', function() {
         .find('Button[priority="primary"]')
         .simulate('submit');
 
+      await tick();
       expect(createMock).toHaveBeenCalled();
       expect(onCreate).toHaveBeenCalled();
     });
