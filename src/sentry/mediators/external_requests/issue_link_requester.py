@@ -49,6 +49,7 @@ class IssueLinkRequester(Mediator):
     uri = Param(six.string_types)
     group = Param('sentry.models.Group')
     fields = Param(object)
+    user = Param('sentry.models.User')
 
     def call(self):
         return self._make_request()
@@ -111,6 +112,11 @@ class IssueLinkRequester(Mediator):
         body['project'] = {
             'slug': project.slug,
             'id': project.id,
+        }
+        body['actor'] = {
+            'type': 'user',
+            'id': self.user.id,
+            'name': self.user.name,
         }
         return json.dumps(body)
 
