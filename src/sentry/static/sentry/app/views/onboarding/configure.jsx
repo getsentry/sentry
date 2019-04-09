@@ -1,7 +1,7 @@
 import React from 'react';
 import createReactClass from 'create-react-class';
 import {browserHistory} from 'react-router';
-import * as Sentry from '@sentry/browser';
+import styled from 'react-emotion';
 
 import {analytics, amplitude} from 'app/utils/analytics';
 import ApiMixin from 'app/mixins/apiMixin';
@@ -10,8 +10,8 @@ import ProjectContext from 'app/views/projects/projectContext';
 import ProjectDocsContext from 'app/views/projectInstall/docsContext';
 import ProjectInstallPlatform from 'app/views/projectInstall/platform';
 import SentryTypes from 'app/sentryTypes';
-import Waiting from 'app/views/onboarding/waiting';
 import {t} from 'app/locale';
+import Button from 'app/components/button';
 
 const Configure = createReactClass({
   displayName: 'Configure',
@@ -22,21 +22,8 @@ const Configure = createReactClass({
 
   getInitialState() {
     return {
-      isFirstTimePolling: true,
       hasSentRealEvent: false,
     };
-  },
-
-  componentWillMount() {
-    const {platform} = this.props.params;
-    //redirect if platform is not known.
-    if (!platform || platform === 'other') {
-      this.redirectToNeutralDocs();
-    }
-    this.fetchEventData();
-    this.timer = setInterval(() => {
-      this.fetchEventData();
-    }, 2000);
   },
 
   componentDidMount() {
@@ -55,29 +42,23 @@ const Configure = createReactClass({
 
     data.org_id = parseInt(organization.id, 10);
     analytics('onboarding.configure_viewed', data);
-  },
 
-  componentWillUpdate(nextProps, nextState) {
-    if (
-      !this.state.isFirstTimePolling &&
-      nextState.hasSentRealEvent == true &&
-      this.state.hasSentRealEvent == false
-    ) {
-      this.redirectUrl();
+    //redirect if platform is not known.
+    if (!params.platform || params.platform === 'other') {
+      this.redirectToNeutralDocs();
     }
+    this.sentRealEvent();
   },
 
-  componentWillUnmount() {
-    clearInterval(this.timer);
-  },
-
-  sentRealEvent(data) {
-    if (data.length == 1) {
-      const firstError = data[0];
-      return !firstError.message.includes('This is an example');
-    } else {
-      return data.length > 1;
+  sentRealEvent() {
+    const project = this.context.organization.projects.find(
+      p => p.slug == this.props.params.projectId
+    );
+    let hasSentRealEvent = false;
+    if (project && project.firstEvent) {
+      hasSentRealEvent = true;
     }
+    this.setState({hasSentRealEvent});
   },
 
   redirectUrl() {
@@ -90,27 +71,6 @@ const Configure = createReactClass({
       ? `/organizations/${orgId}/issues/#welcome`
       : `/${orgId}/${projectId}/#welcome`;
     browserHistory.push(url);
-  },
-
-  fetchEventData() {
-    const {orgId, projectId} = this.props.params;
-
-    this.api.request(`/projects/${orgId}/${projectId}/events/`, {
-      method: 'GET',
-      success: data => {
-        this.setState({
-          isFirstTimePolling: false,
-          hasSentRealEvent: this.sentRealEvent(data),
-        });
-      },
-
-      error: err => {
-        Sentry.withScope(scope => {
-          scope.setExtra('err', err);
-          Sentry.captureMessage('Polling for events in onboarding configure failed');
-        });
-      },
-    });
   },
 
   submit() {
@@ -162,11 +122,26 @@ const Configure = createReactClass({
               />
             </ProjectDocsContext>
           </ProjectContext>
-          <Waiting skip={this.submit} hasEvent={hasSentRealEvent} />
+          <DoneButton>
+            <Button
+              priority="primary"
+              data-test-id="configure-done"
+              onClick={this.submit}
+            >
+              {t('All done!')}
+            </Button>
+          </DoneButton>
         </div>
       </div>
     );
   },
 });
+
+const DoneButton = styled('div')`
+  display: grid;
+  grid-template-columns: max-content;
+  place-content: end;
+  margin-bottom: 20px;
+`;
 
 export default Configure;

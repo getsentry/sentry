@@ -222,7 +222,6 @@ const globals = {
     Tooltip: require('app/components/tooltip').default,
     U2fEnrollment: require('app/components/u2fenrollment').default,
     U2fSign: require('app/components/u2fsign').default,
-    Waiting: require('app/views/onboarding/waiting').default,
     Badge: require('app/components/badge').default,
     Tag: require('app/views/settings/components/tag').default,
     Switch: require('app/components/switch').default,
