@@ -71,105 +71,20 @@ exports[`Sentry App Installations when Apps exist displays all Apps owned by the
                 className="css-14n192s-StyledFlex eac2pqx1"
                 is={null}
               >
-                <SentryAppAvatar
-                  sentryApp={
-                    Object {
-                      "author": "Sentry",
-                      "clientId": "client-id",
-                      "clientSecret": "client-secret",
-                      "events": Array [],
-                      "isAlertable": false,
-                      "name": "Sample App",
-                      "overview": "This is an app.",
-                      "redirectUrl": "https://example/com/setup",
-                      "schema": Object {},
-                      "scopes": Array [
-                        "project:read",
-                      ],
-                      "slug": "sample-app",
-                      "status": "unpublished",
-                      "uuid": "123456123456123456123456",
-                      "webhookUrl": "https://example.com/webhook",
-                    }
-                  }
+                <PluginIcon
+                  pluginId="sample-app"
                   size={36}
                 >
-                  <BaseAvatar
-                    hasTooltip={false}
-                    letterId="123456123456123456123456"
+                  <IntegrationIcon
+                    image={Object {}}
                     size={36}
-                    style={Object {}}
-                    title="Sample App"
-                    tooltip="Sample App"
-                    type="letter_avatar"
-                    uploadId=""
-                    uploadPath="avatar"
                   >
-                    <Tooltip
-                      disabled={true}
-                      title="Sample App"
-                    >
-                      <StyledBaseAvatar
-                        className="avatar"
-                        loaded={true}
-                        style={
-                          Object {
-                            "height": "36px",
-                            "width": "36px",
-                          }
-                        }
-                      >
-                        <span
-                          className="avatar css-1i62700-StyledBaseAvatar e1z0ohzl0"
-                          style={
-                            Object {
-                              "height": "36px",
-                              "width": "36px",
-                            }
-                          }
-                        >
-                          <LetterAvatar
-                            displayName="Sample App"
-                            identifier="123456123456123456123456"
-                          >
-                            <Svg
-                              viewBox="0 0 120 120"
-                            >
-                              <svg
-                                className="css-123ijso-Svg e1knxa8x0"
-                                viewBox="0 0 120 120"
-                              >
-                                <rect
-                                  fill="#4674ca"
-                                  height="120"
-                                  rx="15"
-                                  ry="15"
-                                  width="120"
-                                  x="0"
-                                  y="0"
-                                />
-                                <text
-                                  fill="#FFFFFF"
-                                  fontSize="65"
-                                  style={
-                                    Object {
-                                      "dominantBaseline": "central",
-                                    }
-                                  }
-                                  textAnchor="middle"
-                                  x="50%"
-                                  y="50%"
-                                >
-                                  SA
-                                </text>
-                              </svg>
-                            </Svg>
-                          </LetterAvatar>
-                        </span>
-                      </StyledBaseAvatar>
-                    </Tooltip>
-                  </BaseAvatar>
-                </SentryAppAvatar>
+                    <div
+                      className="css-5iptpn-IntegrationIcon e1bhjds90"
+                      size={36}
+                    />
+                  </IntegrationIcon>
+                </PluginIcon>
                 <SentryAppBox>
                   <Base
                     className="css-161g25b-SentryAppBox eac2pqx2"
