@@ -1,41 +1,29 @@
 // Jest Snapshot v1, https://goo.gl/fbAQLP
 
 exports[`Configure should render correctly render() should redirect to if no matching platform 1`] = `
-<div>
-  <div
-    className="onboarding-Configure"
-  >
-    <h2
-      style={
-        Object {
-          "marginBottom": 30,
-        }
-      }
+<Configure
+  next={[Function]}
+  params={
+    Object {
+      "orgId": "testOrg",
+      "platform": "other",
+      "projectId": "project-slug",
+    }
+  }
+>
+  <div>
+    <div
+      className="onboarding-Configure"
     >
-      Configure your application
-      <withApi(CreateSampleEvent)
-        params={
+      <h2
+        style={
           Object {
-            "orgId": "testOrg",
-            "platform": "other",
-            "projectId": "project-slug",
+            "marginBottom": 30,
           }
         }
-        source="header"
-      />
-    </h2>
-    <withProjects(withRouter(ProjectContext))
-      orgId="testOrg"
-      projectId="project-slug"
-      style={
-        Object {
-          "marginBottom": 30,
-        }
-      }
-    >
-      <ProjectDocsContext>
-        <WithOrganizationMockWrapper
-          linkPath={[Function]}
+      >
+        Configure your application
+        <withApi(CreateSampleEvent)
           params={
             Object {
               "orgId": "testOrg",
@@ -43,20 +31,250 @@ exports[`Configure should render correctly render() should redirect to if no mat
               "projectId": "project-slug",
             }
           }
-          platformData={
+          source="header"
+        >
+          <CreateSampleEvent
+            api={Client {}}
+            params={
+              Object {
+                "orgId": "testOrg",
+                "platform": "other",
+                "projectId": "project-slug",
+              }
+            }
+            source="header"
+          >
+            <div
+              className="pull-right"
+            >
+              <StyledButton
+                onClick={[Function]}
+                priority="primary"
+              >
+                <Button
+                  className="css-1lewl16-StyledButton eadl9o50"
+                  disabled={false}
+                  onClick={[Function]}
+                  priority="primary"
+                >
+                  <StyledButton
+                    aria-disabled={false}
+                    aria-label="Or See Sample Event"
+                    className="css-1lewl16-StyledButton eadl9o50"
+                    disabled={false}
+                    onClick={[Function]}
+                    priority="primary"
+                    role="button"
+                  >
+                    <Component
+                      aria-disabled={false}
+                      aria-label="Or See Sample Event"
+                      className="eadl9o50 css-w2sk1s-StyledButton-getColors-StyledButton eqrebog0"
+                      onClick={[Function]}
+                      role="button"
+                    >
+                      <button
+                        aria-disabled={false}
+                        aria-label="Or See Sample Event"
+                        className="eadl9o50 css-w2sk1s-StyledButton-getColors-StyledButton eqrebog0"
+                        onClick={[Function]}
+                        role="button"
+                      >
+                        <ButtonLabel
+                          priority="primary"
+                        >
+                          <Component
+                            className="css-ga4b18-ButtonLabel eqrebog1"
+                            priority="primary"
+                          >
+                            <span
+                              className="css-ga4b18-ButtonLabel eqrebog1"
+                            >
+                              Or See Sample Event
+                            </span>
+                          </Component>
+                        </ButtonLabel>
+                      </button>
+                    </Component>
+                  </StyledButton>
+                </Button>
+              </StyledButton>
+            </div>
+          </CreateSampleEvent>
+        </withApi(CreateSampleEvent)>
+      </h2>
+      <withProjects(withRouter(ProjectContext))
+        orgId="testOrg"
+        projectId="project-slug"
+        style={
+          Object {
+            "marginBottom": 30,
+          }
+        }
+      >
+        <withRouter(ProjectContext)
+          orgId="testOrg"
+          projectId="project-slug"
+          projects={
+            Array [
+              Object {
+                "hasAccess": true,
+                "id": "testProject",
+                "isBookmarked": false,
+                "isMember": true,
+                "name": "Test Project",
+                "slug": "project-slug",
+                "teams": Array [
+                  Object {
+                    "hasAccess": true,
+                    "id": "coolid",
+                    "slug": "coolteam",
+                  },
+                ],
+              },
+            ]
+          }
+          style={
             Object {
-              "hack": "actually set by ProjectDocsContext, this object is here to avoid proptypes warnings",
+              "marginBottom": 30,
             }
           }
-        />
-      </ProjectDocsContext>
-    </withProjects(withRouter(ProjectContext))>
-    <Waiting
-      hasEvent={false}
-      skip={[Function]}
-    />
+        >
+          <ProjectContext
+            location={
+              Object {
+                "query": Object {},
+              }
+            }
+            orgId="testOrg"
+            projectId="project-slug"
+            projects={
+              Array [
+                Object {
+                  "hasAccess": true,
+                  "id": "testProject",
+                  "isBookmarked": false,
+                  "isMember": true,
+                  "name": "Test Project",
+                  "slug": "project-slug",
+                  "teams": Array [
+                    Object {
+                      "hasAccess": true,
+                      "id": "coolid",
+                      "slug": "coolteam",
+                    },
+                  ],
+                },
+              ]
+            }
+            router={
+              Object {
+                "createHref": [MockFunction],
+                "go": [MockFunction],
+                "goBack": [MockFunction],
+                "goForward": [MockFunction],
+                "isActive": [MockFunction],
+                "listen": [MockFunction],
+                "location": Object {
+                  "query": Object {},
+                },
+                "push": [MockFunction],
+                "replace": [MockFunction],
+                "setRouteLeaveHook": [MockFunction],
+              }
+            }
+            style={
+              Object {
+                "marginBottom": 30,
+              }
+            }
+          >
+            <SideEffect(DocumentTitle)
+              title="project-slug"
+            >
+              <DocumentTitle
+                title="project-slug"
+              >
+                <div
+                  className="loading-full-layout"
+                >
+                  <LoadingIndicator>
+                    <div
+                      className="loading"
+                    >
+                      <div
+                        className="loading-indicator"
+                        style={Object {}}
+                      />
+                      <div
+                        className="loading-message"
+                      />
+                    </div>
+                  </LoadingIndicator>
+                </div>
+              </DocumentTitle>
+            </SideEffect(DocumentTitle)>
+          </ProjectContext>
+        </withRouter(ProjectContext)>
+      </withProjects(withRouter(ProjectContext))>
+      <DoneButton>
+        <div
+          className="css-5mss3k-DoneButton e1chtmge0"
+        >
+          <Button
+            data-test-id="configure-done"
+            disabled={false}
+            onClick={[Function]}
+            priority="primary"
+          >
+            <StyledButton
+              aria-disabled={false}
+              aria-label="All done!"
+              data-test-id="configure-done"
+              disabled={false}
+              onClick={[Function]}
+              priority="primary"
+              role="button"
+            >
+              <Component
+                aria-disabled={false}
+                aria-label="All done!"
+                className="css-1msljz8-StyledButton-getColors eqrebog0"
+                data-test-id="configure-done"
+                onClick={[Function]}
+                role="button"
+              >
+                <button
+                  aria-disabled={false}
+                  aria-label="All done!"
+                  className="css-1msljz8-StyledButton-getColors eqrebog0"
+                  data-test-id="configure-done"
+                  onClick={[Function]}
+                  role="button"
+                >
+                  <ButtonLabel
+                    priority="primary"
+                  >
+                    <Component
+                      className="css-ga4b18-ButtonLabel eqrebog1"
+                      priority="primary"
+                    >
+                      <span
+                        className="css-ga4b18-ButtonLabel eqrebog1"
+                      >
+                        All done!
+                      </span>
+                    </Component>
+                  </ButtonLabel>
+                </button>
+              </Component>
+            </StyledButton>
+          </Button>
+        </div>
+      </DoneButton>
+    </div>
   </div>
-</div>
+</Configure>
 `;
 
 exports[`Configure should render correctly render() should render platform docs 1`] = `
@@ -651,100 +869,61 @@ exports[`Configure should render correctly render() should render platform docs 
           </ProjectContext>
         </withRouter(ProjectContext)>
       </withProjects(withRouter(ProjectContext))>
-      <Waiting
-        hasEvent={false}
-        skip={[Function]}
-      >
+      <DoneButton>
         <div
-          className="awaiting-event"
+          className="css-5mss3k-DoneButton e1chtmge0"
         >
-          <div
-            className="row"
+          <Button
+            data-test-id="configure-done"
+            disabled={false}
+            onClick={[Function]}
+            priority="primary"
           >
-            <div
-              className="col-sm-10"
+            <StyledButton
+              aria-disabled={false}
+              aria-label="All done!"
+              data-test-id="configure-done"
+              disabled={false}
+              onClick={[Function]}
+              priority="primary"
+              role="button"
             >
-              <div
-                className="wrap waiting-text"
+              <Component
+                aria-disabled={false}
+                aria-label="All done!"
+                className="css-1msljz8-StyledButton-getColors eqrebog0"
+                data-test-id="configure-done"
+                onClick={[Function]}
+                role="button"
               >
-                <h3
-                  className="animated-ellipsis"
+                <button
+                  aria-disabled={false}
+                  aria-label="All done!"
+                  className="css-1msljz8-StyledButton-getColors eqrebog0"
+                  data-test-id="configure-done"
+                  onClick={[Function]}
+                  role="button"
                 >
-                  Waiting to receive an error
-                </h3>
-                <div
-                  className="robot"
-                >
-                  <span
-                    className="eye"
-                  />
-                </div>
-              </div>
-            </div>
-            <CenteredButtons
-              className="col-sm-2"
-            >
-              <div
-                className="col-sm-2 css-mm32tp-CenteredButtons e1p80ulz0"
-              >
-                <div
-                  className="pull-right"
-                >
-                  <Button
-                    data-test-id="configure-done"
-                    disabled={false}
-                    onClick={[Function]}
+                  <ButtonLabel
                     priority="primary"
                   >
-                    <StyledButton
-                      aria-disabled={false}
-                      aria-label="All done!"
-                      data-test-id="configure-done"
-                      disabled={false}
-                      onClick={[Function]}
+                    <Component
+                      className="css-ga4b18-ButtonLabel eqrebog1"
                       priority="primary"
-                      role="button"
                     >
-                      <Component
-                        aria-disabled={false}
-                        aria-label="All done!"
-                        className="css-1msljz8-StyledButton-getColors eqrebog0"
-                        data-test-id="configure-done"
-                        onClick={[Function]}
-                        role="button"
+                      <span
+                        className="css-ga4b18-ButtonLabel eqrebog1"
                       >
-                        <button
-                          aria-disabled={false}
-                          aria-label="All done!"
-                          className="css-1msljz8-StyledButton-getColors eqrebog0"
-                          data-test-id="configure-done"
-                          onClick={[Function]}
-                          role="button"
-                        >
-                          <ButtonLabel
-                            priority="primary"
-                          >
-                            <Component
-                              className="css-ga4b18-ButtonLabel eqrebog1"
-                              priority="primary"
-                            >
-                              <span
-                                className="css-ga4b18-ButtonLabel eqrebog1"
-                              >
-                                All done!
-                              </span>
-                            </Component>
-                          </ButtonLabel>
-                        </button>
-                      </Component>
-                    </StyledButton>
-                  </Button>
-                </div>
-              </div>
-            </CenteredButtons>
-          </div>
+                        All done!
+                      </span>
+                    </Component>
+                  </ButtonLabel>
+                </button>
+              </Component>
+            </StyledButton>
+          </Button>
         </div>
-      </Waiting>
+      </DoneButton>
     </div>
   </div>
 </Configure>
@@ -801,10 +980,16 @@ exports[`Configure should render correctly render() shouldn't redirect for a fou
         />
       </ProjectDocsContext>
     </withProjects(withRouter(ProjectContext))>
-    <Waiting
-      hasEvent={false}
-      skip={[Function]}
-    />
+    <DoneButton>
+      <Button
+        data-test-id="configure-done"
+        disabled={false}
+        onClick={[Function]}
+        priority="primary"
+      >
+        All done!
+      </Button>
+    </DoneButton>
   </div>
 </div>
 `;
