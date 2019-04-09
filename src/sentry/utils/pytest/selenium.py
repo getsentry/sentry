@@ -445,7 +445,7 @@ def percy(request):
     percy = percy.Runner(loader=loader, config=percy_config)
     percy.initialize_build()
 
-    request.addfinalizer(percy.finalize_build)
+    request.session._percy = percy
     return percy
 
 
