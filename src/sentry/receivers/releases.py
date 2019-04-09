@@ -146,8 +146,8 @@ def resolved_in_commit(instance, created, **kwargs):
                     user=user,
                     group=group,
                     project=group.project,
-                    resolution_type='in_commit',
-                    sender='resolved_in_commit',
+                    resolution_type='with_commit',
+                    sender='resolved_with_commit',
                 )
 
 

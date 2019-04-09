@@ -149,21 +149,18 @@ def record_issue_assigned(project, group, user, **kwargs):
 def record_issue_resolved(organization_id, project, group, user, resolution_type, **kwargs):
     """ There are three main types of ways to resolve issues
         1) via a release (the next release, or other (either current or another version which are indistinguishable))
-        2) via commit
+        2) via commit (in the UI with the commit hash "in_commit" or tagging it in a commit "with_commit")
         3) now
     """
+    # current analytics types: in_release, in_next_release, now, with_commit
     if resolution_type in ('in_next_release', 'in_release'):
-        data_resolution_type = resolution_type
         FeatureAdoption.objects.record(
             organization_id=organization_id, feature_slug="resolved_in_release", complete=True
         )
-    elif resolution_type == 'in_commit':
-        data_resolution_type = 'with_commit'
+    if resolution_type == 'with_commit':
         FeatureAdoption.objects.record(
             organization_id=organization_id, feature_slug="resolved_with_commit", complete=True
         )
-    else:
-        data_resolution_type = 'now'
 
     if user and user.is_authenticated():
         user_id = default_user_id = user.id
@@ -177,7 +174,7 @@ def record_issue_resolved(organization_id, project, group, user, resolution_type
         default_user_id=default_user_id,
         organization_id=organization_id,
         group_id=group.id,
-        resolution_type=data_resolution_type,
+        resolution_type=resolution_type,
     )
 
 

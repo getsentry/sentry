@@ -579,7 +579,7 @@ class Release(Model):
                 user=actor,
                 group=group,
                 project=group.project,
-                resolution_type='in_commit',
+                resolution_type='with_commit',
                 sender=type(self),
             )
 
