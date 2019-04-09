@@ -8,8 +8,8 @@ import {getUtcDateString} from 'app/utils/dates';
 import {t, tct} from 'app/locale';
 import {updateProjects, updateDateTime} from 'app/actionCreators/globalSelection';
 import BetaTag from 'app/components/betaTag';
-import SentryTypes from 'app/sentryTypes';
 import PageHeading from 'app/components/pageHeading';
+import SentryTypes from 'app/sentryTypes';
 
 import {
   DiscoverContainer,
@@ -116,34 +116,27 @@ export default class OrganizationDiscover extends React.Component {
       // This indicates navigation changes (e.g. back button on browser)
       // We need to update our search store and probably runQuery
       const {projects, range, start, end, utc} = newQuery;
-      let hasChange = false;
 
       if (projects) {
         this.updateProjects(projects);
-        hasChange = true;
       }
 
-      if (range || (end && start)) {
-        this.updateDateTime({
-          period: range || null,
-          start: start || null,
-          end: end || null,
-          utc: typeof utc !== 'undefined' ? utc : null,
-        });
+      this.updateDateTime({
+        period: range || null,
+        start: start || null,
+        end: end || null,
+        utc: typeof utc !== 'undefined' ? utc : null,
+      });
 
-        // These props come from URL string, so will always be in UTC
-        updateDateTime({
-          start: start && new Date(moment.utc(start).local()),
-          end: end && new Date(moment.utc(end).local()),
-          period: range,
-          utc,
-        });
-        hasChange = true;
-      }
+      // These props come from URL string, so will always be in UTC
+      updateDateTime({
+        start: (start && new Date(moment.utc(start).local())) || null,
+        end: (end && new Date(moment.utc(end).local())) || null,
+        period: range || null,
+        utc: typeof utc !== 'undefined' ? utc : null,
+      });
 
-      if (hasChange) {
-        this.runQuery();
-      }
+      this.runQuery();
     }
   }
 
@@ -154,7 +147,7 @@ export default class OrganizationDiscover extends React.Component {
 
   getDateTimeFields = ({period, start, end, utc}) => ({
     range: period || null,
-    utc,
+    utc: typeof utc !== 'undefined' ? utc : null,
     start: (start && getUtcDateString(start)) || null,
     end: (end && getUtcDateString(end)) || null,
   });
@@ -166,6 +159,12 @@ export default class OrganizationDiscover extends React.Component {
   updateDateTime = datetime => {
     const {start, end, range, utc} = this.getDateTimeFields(datetime);
 
+    updateDateTime({
+      start,
+      end,
+      period: range,
+      utc,
+    });
     this.updateFields({start, end, range, utc});
   };
 
