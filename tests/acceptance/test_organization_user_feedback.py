@@ -1,7 +1,5 @@
 from __future__ import absolute_import
 
-from datetime import datetime
-
 from django.utils import timezone
 
 from sentry.testutils import AcceptanceTestCase
@@ -30,10 +28,7 @@ class OrganizationUserFeedbackTest(AcceptanceTestCase):
     def test(self):
         with self.feature('organizations:sentry10'):
             self.create_userreport(
-                date_added=datetime(
-                    2013,
-                    5,
-                    7),
+                date_added=timezone.now(),
                 group=self.group,
                 project=self.project)
             self.browser.get(self.path)
