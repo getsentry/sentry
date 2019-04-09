@@ -48,7 +48,6 @@ class IssueDetailsWorkflowTest(AcceptanceTestCase, SnubaTestCase):
         )
         with self.feature('organizations:sentry10'):
             self.page.visit_issue(self.org.slug, event.group.id)
-            self.browser.save_screenshot('resolve.png')
             self.page.resolve_issue()
 
             res = self.page.api_issue_get(event.group.id)
