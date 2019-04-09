@@ -104,6 +104,7 @@ class StreamFilters extends React.Component {
             <OrganizationSavedSearchSelector
               organization={organization}
               savedSearchList={savedSearchList}
+              onSavedSearchCreate={onSavedSearchCreate}
               onSavedSearchSelect={onSavedSearchSelect}
               onSavedSearchDelete={onSavedSearchDelete}
               query={query}

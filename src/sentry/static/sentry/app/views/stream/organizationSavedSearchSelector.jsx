@@ -14,11 +14,14 @@ import SentryTypes from 'app/sentryTypes';
 import {TextField} from 'app/components/forms';
 import space from 'app/styles/space';
 import withApi from 'app/utils/withApi';
+import {addLoadingMessage, clearIndicators} from 'app/actionCreators/indicator';
+import {createSavedSearch} from 'app/actionCreators/savedSearches';
 
 export default class OrganizationSavedSearchSelector extends React.Component {
   static propTypes = {
     organization: SentryTypes.Organization.isRequired,
     savedSearchList: PropTypes.array.isRequired,
+    onSavedSearchCreate: PropTypes.func.isRequired,
     onSavedSearchSelect: PropTypes.func.isRequired,
     onSavedSearchDelete: PropTypes.func.isRequired,
     query: PropTypes.string.isRequired,
@@ -79,7 +82,7 @@ export default class OrganizationSavedSearchSelector extends React.Component {
   }
 
   render() {
-    const {organization, query} = this.props;
+    const {organization, query, onSavedSearchCreate} = this.props;
 
     return (
       <Container>
@@ -93,7 +96,11 @@ export default class OrganizationSavedSearchSelector extends React.Component {
             >
               <StyledMenuItem divider={true} />
               <ButtonBar>
-                <SaveSearchButton query={query} organization={organization} />
+                <SaveSearchButton
+                  query={query}
+                  organization={organization}
+                  onSave={onSavedSearchCreate}
+                />
               </ButtonBar>
             </Access>
           </DropdownLink>
@@ -106,9 +113,10 @@ export default class OrganizationSavedSearchSelector extends React.Component {
 const SaveSearchButton = withApi(
   class SaveSearchButton extends React.Component {
     static propTypes = {
-      // api: PropTypes.object.isRequired,
+      api: PropTypes.object.isRequired,
       query: PropTypes.string.isRequired,
-      // organization: SentryTypes.Organization.isRequired,
+      organization: SentryTypes.Organization.isRequired,
+      onSave: PropTypes.func.isRequired,
     };
 
     constructor(props) {
@@ -118,13 +126,40 @@ const SaveSearchButton = withApi(
         isSaving: false,
         query: props.query,
         name: '',
+        error: null,
       };
     }
 
     onSubmit = e => {
+      const {api, organization, onSave} = this.props;
+
       e.preventDefault();
 
-      // TODO: implement saving
+      this.setState({isSaving: true});
+
+      addLoadingMessage(t('Saving Changes'));
+
+      createSavedSearch(api, organization.slug, this.state.name, this.state.query)
+        .then(data => {
+          onSave(data);
+          this.onToggle();
+          this.setState({
+            error: null,
+            isSaving: false,
+          });
+          clearIndicators();
+        })
+        .catch(err => {
+          let error = t('Unable to save your changes.');
+          if (err.responseJSON && err.responseJSON.detail) {
+            error = err.responseJSON.detail;
+          }
+          this.setState({
+            error,
+            isSaving: false,
+          });
+          clearIndicators();
+        });
     };
 
     onToggle = () => {
@@ -146,7 +181,11 @@ const SaveSearchButton = withApi(
 
       return (
         <React.Fragment>
-          <Button size="xsmall" onClick={this.onToggle}>
+          <Button
+            size="xsmall"
+            onClick={this.onToggle}
+            data-test-id="save-current-search"
+          >
             {t('Save Current Search')}
           </Button>
           <Modal show={isModalOpen} animation={false} onHide={this.onToggle}>
@@ -156,6 +195,10 @@ const SaveSearchButton = withApi(
               </div>
 
               <div className="modal-body">
+                {this.state.error && (
+                  <div className="alert alert-error alert-block">{this.state.error}</div>
+                )}
+
                 <p>{t('All team members will now have access to this search.')}</p>
                 <TextField
                   key="name"
