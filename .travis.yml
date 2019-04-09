@@ -162,11 +162,8 @@ matrix:
         - psql -c 'create database sentry;' -U postgres
 
     - <<: *acceptance_default
-      name: 'Acceptance (1/2)'
-      env: TEST_SUITE=acceptance USE_SNUBA=1 TOTAL_TEST_GROUPS=2 TEST_GROUP=0 PERCY_PARALLEL_NONCE=${TRAVIS_BUILD_ID} PERCY_PARALLEL_TOTAL=2
-    - <<: *acceptance_default
-      name: 'Acceptance (2/2)'
-      env: TEST_SUITE=acceptance USE_SNUBA=1 TOTAL_TEST_GROUPS=2 TEST_GROUP=1 PERCY_PARALLEL_NONCE=${TRAVIS_BUILD_ID} PERCY_PARALLEL_TOTAL=2
+      name: 'Acceptance'
+      env: TEST_SUITE=acceptance USE_SNUBA=1
 
     # XXX(markus): Remove after rust interfaces are done
     - <<: *acceptance_default
