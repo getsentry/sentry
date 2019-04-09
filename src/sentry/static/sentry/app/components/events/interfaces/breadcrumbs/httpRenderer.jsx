@@ -1,6 +1,8 @@
 import PropTypes from 'prop-types';
 import React from 'react';
+import * as Sentry from '@sentry/browser';
 
+import {t} from 'app/locale';
 import CrumbTable from 'app/components/events/interfaces/breadcrumbs/crumbTable';
 import SummaryLine from 'app/components/events/interfaces/breadcrumbs/summaryLine';
 
@@ -10,11 +12,17 @@ class HttpRenderer extends React.Component {
   };
 
   renderUrl = url => {
-    return typeof url === 'string' && url.match(/^https?:\/\//) ? (
-      <a href={url}>{url}</a>
-    ) : (
-      <em>{url}</em>
-    );
+    if (typeof url === 'string') {
+      return url.match(/^https?:\/\//) ? <a href={url}>{url}</a> : <em>{url}</em>;
+    }
+
+    Sentry.withScope(scope => {
+      scope.setExtra('url', url);
+      scope.setLevel('info');
+      Sentry.captureException(new Error('Invalid breadcrumb URL'));
+    });
+
+    return t('Invalid URL');
   };
 
   render() {
