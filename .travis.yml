@@ -146,8 +146,11 @@ matrix:
       env: TEST_SUITE=postgres DB=postgres TOTAL_TEST_GROUPS=2 TEST_GROUP=1 MIGRATIONS_TEST_MIGRATE=1
 
     - <<: *acceptance_default
-      name: 'Acceptance'
-      env: TEST_SUITE=acceptance USE_SNUBA=1
+      name: 'Acceptance (1/2)'
+      env: TEST_SUITE=acceptance USE_SNUBA=1 TOTAL_TEST_GROUPS=2 TEST_GROUP=0 PERCY_PARALLEL_NONCE=${TRAVIS_BUILD_ID} PERCY_PARALLEL_TOTAL=2
+    - <<: *acceptance_default
+      name: 'Acceptance (2/2)'
+      env: TEST_SUITE=acceptance USE_SNUBA=1 TOTAL_TEST_GROUPS=2 TEST_GROUP=1 PERCY_PARALLEL_NONCE=${TRAVIS_BUILD_ID} PERCY_PARALLEL_TOTAL=2
 
     - <<: *acceptance_default
       name: 'Plugins'
