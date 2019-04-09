@@ -1,7 +1,7 @@
 import PropTypes from 'prop-types';
 import React from 'react';
 
-import {RECENT_SEARCH_TYPES} from 'app/constants';
+import {SEARCH_TYPES} from 'app/constants';
 import {fetchRecentSearches} from 'app/actionCreators/savedSearches';
 import {t} from 'app/locale';
 import SentryTypes from 'app/sentryTypes';
@@ -125,12 +125,7 @@ class SearchBar extends React.Component {
 
   getRecentSearches = async fullQuery => {
     const {api, orgId} = this.props;
-    const recent = await fetchRecentSearches(
-      api,
-      orgId,
-      RECENT_SEARCH_TYPES.ISSUE,
-      fullQuery
-    );
+    const recent = await fetchRecentSearches(api, orgId, SEARCH_TYPES.ISSUE, fullQuery);
     return (recent && recent.map(({query}) => query)) || [];
   };
 
@@ -155,7 +150,7 @@ class SearchBar extends React.Component {
         onGetTagValues={this.getTagValues}
         defaultSearchItems={this.state.defaultSearchItems}
         maxSearchItems={5}
-        recentSearchType={RECENT_SEARCH_TYPES.ISSUE}
+        recentSearchType={SEARCH_TYPES.ISSUE}
         displayRecentSearches={this.hasRecentSearches()}
         onSavedRecentSearch={this.handleSavedRecentSearch}
         {...props}

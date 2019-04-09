@@ -1,4 +1,4 @@
-import {MAX_RECENT_SEARCHES} from 'app/constants';
+import {MAX_RECENT_SEARCHES, SEARCH_TYPES} from 'app/constants';
 import handleXhrErrorResponse from 'app/utils/handleXhrErrorResponse';
 
 export function fetchSavedSearches(api, orgId, useOrgSavedSearches = false) {
@@ -45,6 +45,28 @@ export function saveRecentSearch(api, orgId, type, query) {
     .catch(handleXhrErrorResponse('Unable to save a recent search'));
 
   return promise;
+}
+
+/**
+ * Creates a saved search
+ *
+ * @param {Object} api API client
+ * @param {String} orgId Organization slug
+ * @param {String} name Saved search name
+ * @param {String} query Query to save
+ *
+ * @returns {Promise<Object>}
+ */
+
+export function createSavedSearch(api, orgId, name, query) {
+  return api.requestPromise(`/organizations/${orgId}/searches/`, {
+    method: 'POST',
+    data: {
+      type: SEARCH_TYPES.ISSUE,
+      query,
+      name,
+    },
+  });
 }
 
 /**
