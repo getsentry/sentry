@@ -805,11 +805,12 @@ class Factories(object):
         return service_hooks.Creator.run(**_kwargs)
 
     @staticmethod
-    def create_userreport(group, project=None, **kwargs):
+    def create_userreport(group, project=None, date_added=None, **kwargs):
         return UserReport.objects.create(
             group=group,
             event_id='a' * 32,
             project=project or group.project,
+            date_added=date_added,
             name='Jane Doe',
             email='jane@example.com',
             comments="the application crashed"

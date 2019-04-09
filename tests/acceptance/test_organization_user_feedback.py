@@ -1,5 +1,7 @@
 from __future__ import absolute_import
 
+from datetime import datetime
+
 from django.utils import timezone
 
 from sentry.testutils import AcceptanceTestCase
@@ -27,11 +29,13 @@ class OrganizationUserFeedbackTest(AcceptanceTestCase):
 
     def test(self):
         with self.feature('organizations:sentry10'):
-            self.create_group(
-                project=self.project,
-                message='Foo bar',
-            )
-            self.create_userreport(group=self.group, project=self.project, event=self.event)
+            self.create_userreport(
+                date_added=datetime(
+                    2013,
+                    5,
+                    7),
+                group=self.group,
+                project=self.project)
             self.browser.get(self.path)
             self.browser.wait_until_not('.loading-indicator')
             self.browser.wait_until('[data-test-id="user-feedback-list"]')
