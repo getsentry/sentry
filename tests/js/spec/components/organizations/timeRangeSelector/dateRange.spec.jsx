@@ -101,7 +101,7 @@ describe('DateRange', function() {
     it('changes start time for existing date', function() {
       wrapper
         .find('input[data-test-id="startTime"]')
-        .simulate('change', {target: {value: '11:00'}});
+        .simulate('blur', {target: {value: '11:00'}});
 
       expect(onChange).toHaveBeenLastCalledWith({
         start: new Date('2017-10-13T15:00:00.000Z'),
@@ -112,7 +112,7 @@ describe('DateRange', function() {
     it('changes end time for existing date', function() {
       wrapper
         .find('input[data-test-id="endTime"]')
-        .simulate('change', {target: {value: '12:00'}});
+        .simulate('blur', {target: {value: '12:00'}});
 
       expect(onChange).toHaveBeenLastCalledWith({
         start: new Date('2017-10-14T02:38:00.000Z'),
@@ -172,7 +172,7 @@ describe('DateRange', function() {
     it('changes utc start time for existing date', function() {
       wrapper
         .find('input[data-test-id="startTime"]')
-        .simulate('change', {target: {value: '11:00'}});
+        .simulate('blur', {target: {value: '11:00'}});
 
       // Initial start date  is 2017-10-13T22:38:00-0400
       expect(onChange).toHaveBeenLastCalledWith({
@@ -184,7 +184,7 @@ describe('DateRange', function() {
     it('changes end time for existing date', function() {
       wrapper
         .find('input[data-test-id="endTime"]')
-        .simulate('change', {target: {value: '12:00'}});
+        .simulate('blur', {target: {value: '12:00'}});
 
       // Initial end time is 2017-10-16T22:38:00-0400
       // Setting this to 12:00 means 2017-10-16T12:00-0400

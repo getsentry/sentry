@@ -44,7 +44,7 @@ const getInternalDate = (date, utc) => {
     return getUtcToSystem(date);
   } else {
     return new Date(
-      moment.tz(moment.utc(date), getUserTimezone()).format('YYYY-MM-DD HH:mm:ss')
+      moment.tz(moment.utc(date), getUserTimezone()).format('YYYY/MM/DD HH:mm:ss')
     );
   }
 };
