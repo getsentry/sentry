@@ -43,7 +43,7 @@ class DiscoverQuerySerializer(serializers.Serializer):
     )
     limit = serializers.IntegerField(min_value=0, max_value=10000, required=False)
     rollup = serializers.IntegerField(required=False)
-    orderby = serializers.CharField(required=False)
+    orderby = serializers.CharField(required=False, default="")
     conditions = ListField(
         child=ListField(),
         required=False,
