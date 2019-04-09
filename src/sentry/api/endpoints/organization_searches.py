@@ -110,7 +110,7 @@ class OrganizationSearchesEndpoint(OrganizationEndpoint):
                 query=result['query'],
             )
             analytics.record(
-                'organization-search.created',
+                'organization-saved-search.created',
                 type=saved_search.type,
                 organization_id=organization.id,
                 id=saved_search.id,

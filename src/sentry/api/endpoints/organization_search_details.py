@@ -34,7 +34,7 @@ class OrganizationSearchDetailsEndpoint(OrganizationEndpoint):
 
         search.delete()
         analytics.record(
-            'organization-search.deleted',
+            'organization-saved-search.deleted',
             type=search.type,
             organization_id=organization.id,
             id=search.id,
