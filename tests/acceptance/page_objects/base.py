@@ -65,8 +65,3 @@ class TextBoxElement(BaseElement):
 
 class ModalElement(BaseElement):
     pass
-
-
-class TableElement(BaseElement):
-    def create_rows(self):
-        pass

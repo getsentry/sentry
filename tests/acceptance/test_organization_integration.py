@@ -1,9 +1,12 @@
 from __future__ import absolute_import
 
 from exam import mock
+
 from sentry.models import Integration
 from sentry.testutils import AcceptanceTestCase
-from tests.acceptance.page_objects.organization_integration_settings import OrganizationIntegrationSettingsPage
+from tests.acceptance.page_objects.organization_integration_settings import (
+    OrganizationIntegrationSettingsPage, InstallationElement
+)
 
 
 class OrganizationIntegrationAcceptanceTestCase(AcceptanceTestCase):
@@ -38,8 +41,6 @@ class OrganizationIntegrationAcceptanceTestCase(AcceptanceTestCase):
         self.login_as(self.user)
 
         self.integration_settings_path = 'sentry-api-0-organization-integrations'
-        self.issue_details_path = ''
-        self.issue_stream_path = ''
 
     def create_user_with_role(self, role, organization=None, teams=None):
         """
@@ -54,75 +55,51 @@ class OrganizationIntegrationAcceptanceTestCase(AcceptanceTestCase):
         )
         return user
 
+    def load_page(self, url):
+        self.browser.get(url)
+        self.browser.wait_until_not('.loading-indicator')
+
 
 class OrganizationIntegrationSettingsTest(OrganizationIntegrationAcceptanceTestCase):
     """
     As a user(type?), I can setup, configure, and remove an integration.
     """
+    # TODO(lb): Tests to be written
+    # test_setup_new_integration_with_repository
+    # test_setup_new_integration_with_issue_sync
+    # test_remove_existing_integration_installation
+    # test_update_legacy_integration
+    # test_user_permissions_for_integration_settings
+    # test_add_multiple_integrations_to_one_provider
 
     def setUp(self):
         super(OrganizationIntegrationSettingsTest, self).setUp()
-        self.browser.get(u'/settings/{}/integrations/'.format(self.organization.slug))
-        self.browser.wait_until_not('.loading-indicator')
+        self.org_integration_settings_path = u'/settings/{}/integrations/'.format(
+            self.organization.slug)
+
         self.provider = mock.Mock()
         self.provider.key = 'example'
         self.provider.name = 'Example Installation'
-        self.page = OrganizationIntegrationSettingsPage(
-            browser=self.browser, providers=[self.provider])
 
-    def test_add_multiple_integrations_to_one_provider(self):
-        pass
+    def assert_can_create_new_installation(self):
+        self.load_page(self.org_integration_settings_path)
+        org_settings_page = OrganizationIntegrationSettingsPage(
+            browser=self.browser,
+            providers=[self.provider]
+        )
+        installation_element = org_settings_page.create_new_installation(
+            self.provider.key, {'name': self.provider.name}
+        )
+        integration = Integration.objects.get(
+            provider=self.provider.key,
+            external_id=self.provider.name)
+        installation_element = InstallationElement(
+            selector='[data-testid="%s"]' % integration.id,
+            element=installation_element,
+        )
 
-    def test_setup_new_integration_with_repository(self):
-        """
-        - Add information to a setup steps and succefully add new integration
-        - Configure the integration by adding a repository
-        - View that repository in list of repositories
-        - View integration in Linked Issues section
-        """
-        installation_data = {'name': self.provider.name}
-        self.page.create_new_installation(self.provider.key, installation_data)
+        # TODO(lb): check issues details page and see that integration shows in linked issues
+        return installation_element
 
-    def test_setup_new_integration_with_issue_sync(self):
-        """
-        - Add information to a setup steps and succefully add new integration
-        - Configure the Integration by adding sync settings
-        - View integration in Linked Issues section
-        """
-
-    def test_remove_existing_integration(self):
-        pass
-
-    def test_update_legacy_integration(self):
-        pass
-
-    def test_user_permissions_for_integration_settings(self):
-        """
-        Different types of users see different things...
-        not sure what that is but this test is for that
-        """
-        pass
-
-
-class OrganizationIntegrationIssuesTest(OrganizationIntegrationAcceptanceTestCase):
-
-    def test_user_can_create_external_issue_from_sentry_issue(self):
-        """
-        - View integration in Linked Issues section
-        - Default fields filled in
-        - Default project filled in
-        - Fill in missing information on create form
-        - Create issue successfully
-        - view log in comments
-        - (I think) view linked issue in issue stream
-         ** missing testing issue sync in some way
-        """
-        pass
-
-    def test_user_can_link_external_issue_to_sentry_issue(self):
-        """
-        - View integration in Linked Issues section
-        -
-        ** note integrations with repos tend to have a more complex issue link form
-        """
-        pass
+    def test_can_create_new_integration(self):
+        self.assert_can_create_new_installation()

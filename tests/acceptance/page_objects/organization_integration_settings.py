@@ -1,23 +1,5 @@
 from __future__ import absolute_import
-from .base import BaseElement, BasePage, ButtonElement, ModalElement, TableElement
-
-
-class IntegrationProvidersTableElement(TableElement):
-    def __init__(self, providers):
-        self.providers = providers
-        self.rows = self.create_rows()
-
-    def create_rows(self):
-        self.rows = [
-            IntegrationProviderRowElement(provider=provider)
-            for provider in self.providers
-        ]
-
-    def assert_integration_provider_visible(self, provider_key):
-        assert self.get_integration_provider(provider_key)
-
-    def assert_integration_installation_visible(self, provider_key, installation_name):
-        assert self.get_integration_installation(provider_key, installation_name)
+from .base import BaseElement, BasePage, ButtonElement, ButtonWithIconElement, ModalElement
 
 
 class IntegrationProviderRowElement(BaseElement):
@@ -31,7 +13,7 @@ class IntegrationProviderRowElement(BaseElement):
         self.provider = provider
 
         button_selector = '[role="button"]'
-        self.install_button = ButtonElement(
+        self.install_button = ButtonWithIconElement(
             selector=button_selector,
             element=self.element.find_element_by_css_selector(button_selector)
         )
@@ -47,11 +29,43 @@ class IntegrationProviderRowElement(BaseElement):
         return installation
 
     def assert_appearance(self, *args, **kwargs):
-        # TODO(lb): assert provider name at least
+        # TODO(lb): assert provider name
         self.install_button.assert_appearance(
             label='Install',
             is_disabled=False,
             icon='#icon-circle-add'
+        )
+
+
+class InstallationElement(BaseElement):
+    configure_button_selector = '[data-testid="integration-configure-button"]'
+    remove_button_selector = '[data-testid="integration-configure-button"]'
+
+    def __init__(self, integration, *args, **kwargs):
+        super(InstallationElement, self).__init__(
+            selector='[data-testid="%s"]' % integration.id,
+            *args, **kwargs
+        )
+        self.integration = integration
+        self.configure_button = ButtonWithIconElement(
+            selector=self.configure_button_selector,
+            element=self.element.find_element_by_css_selector(self.configure_button_selector),
+        )
+        self.remove_button = ButtonWithIconElement(
+            selector=self.remove_button_selector,
+            element=self.element.find_element_by_css_selector(self.remove_button_selector)
+        )
+
+    def assert_appearance(self):
+        self.configure_button.assert_appearance(
+            icon='#icon-settings',
+            label='Configure',
+            is_disabled=False,
+        )
+        self.remove_button.assert_appearance(
+            icon='#icon-trash',
+            label='Remove',
+            is_disabled=False,
         )
 
 
@@ -116,7 +130,6 @@ class OrganizationIntegrationSettingsPage(BasePage):
         self.create_providers(providers)
 
     def create_providers(self, providers):
-        # TODO(lb): Doesn't use providers table above
         self.providers = []
         for provider in providers:
             selector = IntegrationProviderRowElement.get_selector(provider.key)
@@ -156,5 +169,5 @@ class OrganizationIntegrationSettingsPage(BasePage):
         integration_setup_window.continue_button.click()
 
         self.driver.switch_to_window(self.driver.window_handles[0])
-        installation = provider_element.assert_installation_added(installation_data)
-        return installation
+        installation_element = provider_element.assert_installation_added(installation_data)
+        return installation_element

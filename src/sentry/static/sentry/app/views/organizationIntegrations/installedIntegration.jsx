@@ -137,9 +137,8 @@ export default class InstalledIntegration extends React.Component {
                     borderless
                     icon="icon-settings"
                     disabled={!this.hasConfiguration() || !hasAccess}
-                    to={`/settings/${orgId}/integrations/${provider.key}/${
-                      integration.id
-                    }/`}
+                    to={`/settings/${orgId}/integrations/${provider.key}/${integration.id}/`}
+                    data-testid="integration-configure-button"
                   >
                     Configure
                   </StyledButton>
@@ -148,7 +147,7 @@ export default class InstalledIntegration extends React.Component {
             </Box>
             <Box>
               <Confirm priority="danger" disabled={!hasAccess} {...removeConfirmProps}>
-                <StyledButton disabled={!hasAccess} borderless icon="icon-trash">
+                <StyledButton disabled={!hasAccess} borderless icon="icon-trash" data-testid="integration-remove-button">
                   Uninstall
                 </StyledButton>
               </Confirm>
