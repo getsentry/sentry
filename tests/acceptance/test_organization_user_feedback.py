@@ -34,6 +34,7 @@ class OrganizationUserFeedbackTest(AcceptanceTestCase):
             self.create_userreport(group=self.group, project=self.project, event=self.event)
             self.browser.get(self.path)
             self.browser.wait_until_not('.loading-indicator')
+            self.browser.wait_until('[data-test-id="user-feedback-list"]')
             self.browser.snapshot('organization user feedback')
 
     def test_empty(self):
