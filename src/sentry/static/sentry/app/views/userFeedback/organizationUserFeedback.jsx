@@ -61,14 +61,6 @@ class OrganizationUserFeedback extends AsyncView {
     });
   }
 
-  renderList() {
-    if (this.state.reportList.length === 0) {
-      return this.renderEmpty();
-    }
-
-    return this.renderResults();
-  }
-
   renderEmpty() {
     return (
       <EmptyStateWarning>
