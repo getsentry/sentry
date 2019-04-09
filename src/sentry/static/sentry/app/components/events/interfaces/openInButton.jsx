@@ -89,9 +89,9 @@ class OpenInButton extends React.Component {
         </Context>
         <OpenInContainer>
           <span>Open this line in:</span>
-          <OpenInLink href={url}>
+          <OpenInLink data-test-id="stacktrace-link" href={url}>
             <OpenInIcon src="icon-generic-box" />
-            <OpenInName> {t(`${components[0].sentryApp.name}`)}</OpenInName>
+            <OpenInName>{t(`${components[0].sentryApp.name}`)}</OpenInName>
           </OpenInLink>
         </OpenInContainer>
       </ActiveListItem>

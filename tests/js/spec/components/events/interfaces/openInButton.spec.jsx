@@ -13,6 +13,11 @@ describe('OpenInButton', function() {
   const group = TestStubs.Group();
   const install = TestStubs.SentryAppInstallation();
 
+  let lineWs = '';
+  let lineCode = '';
+  const line = [233, "    crashed_thread['crashed'] = True"];
+  [, lineWs, lineCode] = line[1].match(/^(\s*)(.*?)$/m);
+
   beforeEach(() => {
     Client.clearMockResponses();
   });
@@ -49,6 +54,8 @@ describe('OpenInButton', function() {
           group={group}
           filename={filename}
           lineNo={lineNo}
+          lineWs={lineWs}
+          lineCode={lineCode}
         />,
         TestStubs.routerContext()
       );
@@ -67,8 +74,8 @@ describe('OpenInButton', function() {
         filename,
       };
       const url = addQueryParamsToExistingUrl(baseUrl, queryParams);
-      expect(wrapper.find('Button').prop('href')).toEqual(url);
-      expect(wrapper.find('Button').text()).toEqual('Debug In Foo');
+      expect(wrapper.find('a[data-test-id="stacktrace-link"]').prop('href')).toEqual(url);
+      expect(wrapper.find('a[data-test-id="stacktrace-link"]').text()).toEqual('Foo');
     });
   });
 
@@ -88,13 +95,18 @@ describe('OpenInButton', function() {
           group={group}
           filename={filename}
           lineNo={lineNo}
+          lineWs={lineWs}
+          lineCode={lineCode}
         />,
         TestStubs.routerContext()
       );
       await tick();
       wrapper.update();
       expect(wrapper.state().components).toEqual([]);
-      expect(wrapper.find('Button').exists()).toEqual(false);
+      expect(wrapper.find('[data-test-id="stacktrace-link"]').exists()).toEqual(false);
+
+      expect(wrapper.find('.ws').exists()).toEqual(true);
+      expect(wrapper.find('.contextline').text()).toEqual(lineCode);
     });
   });
 
@@ -108,14 +120,24 @@ describe('OpenInButton', function() {
         body: [],
       });
       const wrapper = mount(
-        <OpenInButton api={api} organization={org} filename={filename} lineNo={lineNo} />,
+        <OpenInButton
+          api={api}
+          organization={org}
+          filename={filename}
+          lineNo={lineNo}
+          lineWs={lineWs}
+          lineCode={lineCode}
+        />,
         TestStubs.routerContext()
       );
       await tick();
       wrapper.update();
       expect(wrapper.state().components).toEqual([]);
-      expect(wrapper.find('Button').exists()).toEqual(false);
+      expect(wrapper.find('[data-test-id="stacktrace-link"]').exists()).toEqual(false);
       expect(response).not.toHaveBeenCalled();
+
+      expect(wrapper.find('.ws').exists()).toEqual(true);
+      expect(wrapper.find('.contextline').text()).toEqual(lineCode);
     });
   });
 
@@ -129,14 +151,23 @@ describe('OpenInButton', function() {
         body: [],
       });
       const wrapper = mount(
-        <OpenInButton api={api} filename={filename} lineNo={lineNo} />,
+        <OpenInButton
+          api={api}
+          filename={filename}
+          lineNo={lineNo}
+          lineWs={lineWs}
+          lineCode={lineCode}
+        />,
         TestStubs.routerContext()
       );
       await tick();
       wrapper.update();
       expect(wrapper.state().components).toEqual([]);
-      expect(wrapper.find('Button').exists()).toEqual(false);
+      expect(wrapper.find('[data-test-id="stacktrace-link"]').exists()).toEqual(false);
       expect(response).not.toHaveBeenCalled();
+
+      expect(wrapper.find('.ws').exists()).toEqual(true);
+      expect(wrapper.find('.contextline').text()).toEqual(lineCode);
     });
   });
 });
