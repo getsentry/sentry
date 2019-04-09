@@ -21,9 +21,7 @@ from sentry.models import (
     GroupHash, GroupLink, GroupRelease, GroupResolution, GroupStatus,
     GroupTombstone, EventMapping, Integration, Release,
     ReleaseProjectEnvironment, OrganizationIntegration, UserReport,
-    ProjectOwnership
 )
-from sentry.ownership.grammar import Rule, Matcher, Owner, dump_schema
 from sentry.signals import event_discarded, event_saved
 from sentry.testutils import assert_mock_called_once_with_partial, TestCase
 from sentry.utils.data_filters import FilterStatKeys
@@ -39,17 +37,6 @@ def make_event(**kwargs):
     }
     result.update(kwargs)
     return result
-
-
-def make_event_stacktrace():
-    return {
-        'stacktrace': {
-            'frames': [
-                {'filename': 'src/file.py'},
-                {'abs_path': '/usr/local/app/src/file.py'},
-            ],
-        }
-    }
 
 
 class EventManagerTest(TestCase):
@@ -1337,63 +1324,6 @@ class EventManagerTest(TestCase):
         assert event.data.get('server_name') is None
         tags = dict(event.tags)
         assert tags['server_name'] == 'foo.com'
-
-    def make_ownership(self):
-        rule_a = Rule(
-            Matcher('path', 'src/*'), [
-                Owner('user', self.user.email),
-            ])
-        rule_b = Rule(
-            Matcher('path', 'src/*'), [
-                Owner('team', self.team.name),
-            ])
-
-        ProjectOwnership.objects.create(
-            project_id=self.project.id,
-            schema=dump_schema([rule_a, rule_b]),
-            fallthrough=True,
-            auto_assignment=True,
-        )
-
-    def test_owner_assignment(self):
-        self.make_ownership()
-
-        event_data = make_event(**make_event_stacktrace())
-        manager = EventManager(event_data)
-        manager.normalize()
-        event = manager.save(self.project.id)
-
-        assert event.group is not None
-        assert event.group.assignee_set.first().team == self.team
-
-    def test_owner_assignment_ownership_does_not_exist(self):
-        event_data = make_event(**make_event_stacktrace())
-        manager = EventManager(event_data)
-        manager.normalize()
-        event = manager.save(self.project.id)
-
-        assert event.group is not None
-        assert event.group.assignee_set.first() is None
-
-    def test_owner_assignment_already_assigned(self):
-        event_data = make_event()
-        manager = EventManager(event_data)
-        manager.normalize()
-        event = manager.save(self.project.id)
-        event.group.assignee_set.create(
-            user=self.user,
-            project=self.project
-        )
-
-        self.make_ownership()
-
-        event_data = make_event(**make_event_stacktrace())
-        manager = EventManager(event_data)
-        manager.normalize()
-        event = manager.save(self.project.id)
-
-        assert event.group is not None
-        assert event.group.assignee_set.first().user == self.user
 
 
 class ReleaseIssueTest(TestCase):
