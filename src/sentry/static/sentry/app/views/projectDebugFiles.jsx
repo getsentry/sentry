@@ -75,8 +75,14 @@ const formFields = [
     label: t('Custom Repositories'),
     placeholder: t('Paste JSON here.'),
     multiline: true,
+    monospace: true,
     autosize: true,
+    inline: false,
     maxRows: 10,
+    saveOnBlur: false,
+    saveMessageAlertType: 'info',
+    saveMessage: t('Updates will apply to future events only.'),
+    formatMessageValue: false,
     help: t(
       'Configures custom repositories containing debug files. At the moment, only Amazon S3 buckets are supported.'
     ),
