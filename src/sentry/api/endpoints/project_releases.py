@@ -8,7 +8,7 @@ from sentry.api.base import EnvironmentMixin
 from sentry.api.bases.project import ProjectEndpoint, ProjectReleasePermission
 from sentry.api.paginator import OffsetPaginator
 from sentry.api.serializers import serialize
-from sentry.api.serializers.rest_framework import ReleaseSerializer
+from sentry.api.serializers.rest_framework import ReleaseWithVersionSerializer
 from sentry.models import (
     Activity,
     Environment,
@@ -104,7 +104,7 @@ class ProjectReleasesEndpoint(ProjectEndpoint, EnvironmentMixin):
                                       the current time is assumed.
         :auth: required
         """
-        serializer = ReleaseSerializer(data=request.DATA)
+        serializer = ReleaseWithVersionSerializer(data=request.DATA)
 
         if serializer.is_valid():
             result = serializer.object
