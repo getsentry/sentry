@@ -97,7 +97,8 @@ class Release(Model):
     @staticmethod
     def is_valid_version(value):
         return not (any(c in value for c in BAD_RELEASE_CHARS)
-                    or value in ('.', '..') or not value)
+                    or value in ('.', '..') or not value
+                    or value.lower() == 'latest')
 
     @classmethod
     def get_cache_key(cls, organization_id, version):

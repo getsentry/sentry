@@ -2,7 +2,8 @@ from __future__ import absolute_import
 
 from rest_framework import serializers
 
-from sentry.api.serializers.rest_framework import CommitSerializer, ListField, UserField
+from sentry.api.serializers.rest_framework import CommitSerializer, ListField
+from sentry.api.fields.user import UserField
 from sentry.constants import VERSION_LENGTH
 from sentry.models import Release
 
@@ -26,13 +27,11 @@ class ReleaseSerializer(serializers.Serializer):
     commits = ListField(child=CommitSerializer(), required=False, allow_null=False)
 
     def validate_ref(self, attrs, source):
-        value = attrs[source]
-        if not self.check_release_name(value):
-            raise serializers.ValidationError('Release with name %s is not allowed' % value)
+        if source in attrs:
+            value = attrs[source]
+            if not Release.is_valid_version(value):
+                raise serializers.ValidationError('Release with name %s is not allowed' % value)
         return attrs
-
-    def check_release_name(self, name):
-        return name.lower() != 'latest'
 
 
 class ReleaseWithVersionSerializer(ReleaseSerializer):
@@ -41,6 +40,6 @@ class ReleaseWithVersionSerializer(ReleaseSerializer):
 
     def validate_version(self, attrs, source):
         value = attrs[source]
-        if not Release.is_valid_version(value) or self.check_release_name(value):
-            raise serializers.ValidationError('Invalid value for release')
+        if not Release.is_valid_version(value):
+            raise serializers.ValidationError('Release with name %s is not allowed' % value)
         return attrs
