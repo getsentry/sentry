@@ -606,6 +606,8 @@ const SidebarSectionGroupPrimary = styled(SidebarSectionGroup)`
 const PrimaryItems = styled('div')`
   overflow: auto;
   flex: 1;
+  display: flex;
+  flex-direction: column;
 
   @media (max-height: 600px) and (min-width: ${p => p.theme.breakpoints[0]}) {
     border-bottom: 1px solid ${p => p.theme.gray3};
@@ -624,8 +626,8 @@ const PrimaryItems = styled('div')`
   }
 
   @media (max-width: ${p => p.theme.breakpoints[0]}) {
-    display: flex;
     overflow-y: visible;
+    flex-direction: row;
     height: 100%;
     align-items: center;
     border-right: 1px solid ${p => p.theme.gray3};
