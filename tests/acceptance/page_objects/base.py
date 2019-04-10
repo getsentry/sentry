@@ -2,6 +2,7 @@ from __future__ import absolute_import
 
 
 class BasePage(object):
+    """Base class for PageObjects"""
     page_name = 'base'
 
     def __init__(self, browser):
@@ -18,7 +19,7 @@ class BasePage(object):
         return self.browser.driver
 
     def assert_correct_page(self):
-        raise NotImplementedError
+        pass
 
 
 class BaseElement(object):
