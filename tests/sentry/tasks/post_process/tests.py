@@ -211,7 +211,7 @@ class PostProcessGroupTest(TestCase):
             is_sample=False,
             is_new_group_environment=False,
         )
-        assert event.group.assignee_set.first() is None
+        assert not event.group.assignee_set.exists()
 
     def test_owner_assignment_existing_assignment(self):
         self.make_ownership()
