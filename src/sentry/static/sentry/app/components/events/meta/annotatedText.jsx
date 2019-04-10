@@ -1,4 +1,4 @@
-import _ from 'lodash';
+import {isNull} from 'lodash';
 import PropTypes from 'prop-types';
 import React from 'react';
 import styled from 'react-emotion';
@@ -72,7 +72,7 @@ function renderValue(value, chunks, errors, remarks) {
   }
 
   let element = null;
-  if (!_.isNull(value)) {
+  if (!isNull(value)) {
     element = <Redaction>{value}</Redaction>;
   } else if (errors && errors.length) {
     element = <Placeholder>invalid</Placeholder>;

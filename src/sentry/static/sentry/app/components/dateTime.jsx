@@ -1,7 +1,7 @@
 import PropTypes from 'prop-types';
 import React from 'react';
 import moment from 'moment-timezone';
-import _ from 'lodash';
+import {isNumber, isString} from 'lodash';
 
 import ConfigStore from 'app/stores/configStore';
 
@@ -50,7 +50,7 @@ class DateTime extends React.Component {
     const options = user ? user.options : {};
     const format = this.getFormat(options);
 
-    const coercedDate = _.isString(date) || _.isNumber(date) ? new Date(date) : date;
+    const coercedDate = isString(date) || isNumber(date) ? new Date(date) : date;
 
     return (
       <time {...carriedProps}>

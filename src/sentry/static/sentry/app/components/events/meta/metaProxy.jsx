@@ -1,13 +1,13 @@
-import _ from 'lodash';
+import {isEmpty, isNull} from 'lodash';
 
 const GET_META = Symbol('GET_META');
 const IS_PROXY = Symbol('IS_PROXY');
 
 function isAnnotated(meta) {
-  if (_.isEmpty(meta)) {
+  if (isEmpty(meta)) {
     return false;
   }
-  return !_.isEmpty(meta.rem) || !_.isEmpty(meta.err);
+  return !isEmpty(meta.rem) || !isEmpty(meta.err);
 }
 
 export class MetaProxy {
@@ -38,11 +38,7 @@ export class MetaProxy {
     }
 
     const value = Reflect.get(obj, prop, receiver);
-    if (
-      !Reflect.has(obj, prop, receiver) ||
-      typeof value !== 'object' ||
-      _.isNull(value)
-    ) {
+    if (!Reflect.has(obj, prop, receiver) || typeof value !== 'object' || isNull(value)) {
       return value;
     }
 

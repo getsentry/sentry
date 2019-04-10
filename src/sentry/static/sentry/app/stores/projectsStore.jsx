@@ -1,5 +1,4 @@
 import Reflux from 'reflux';
-import _ from 'lodash';
 
 import ProjectActions from 'app/actions/projectActions';
 import TeamActions from 'app/actions/teamActions';
@@ -80,7 +79,7 @@ const ProjectsStore = Reflux.createStore({
 
   onStatsLoadSuccess(data) {
     const touchedIds = [];
-    _.each(data || [], (stats, projectId) => {
+    (data || []).forEach((stats, projectId) => {
       if (projectId in this.itemsById) {
         this.itemsById[projectId].stats = stats;
         touchedIds.push(projectId);

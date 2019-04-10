@@ -1,5 +1,5 @@
 import React from 'react';
-import _ from 'lodash';
+import {isEqual, uniqWith} from 'lodash';
 
 import EventDataSection from 'app/components/events/eventDataSection';
 import EventErrorItem from 'app/components/events/errorItem';
@@ -33,7 +33,7 @@ class EventErrors extends React.Component {
   };
 
   uniqueErrors = errors => {
-    return _.uniqWith(errors, _.isEqual);
+    return uniqWith(errors, isEqual);
   };
 
   render() {

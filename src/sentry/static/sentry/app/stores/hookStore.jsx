@@ -1,5 +1,5 @@
 import Reflux from 'reflux';
-import _ from 'lodash';
+import {isUndefined} from 'lodash';
 import * as Sentry from '@sentry/browser';
 
 const validHookNames = new Set([
@@ -79,7 +79,7 @@ const HookStore = Reflux.createStore({
         Sentry.captureException(new Error('Invalid hook name'));
       });
     }
-    if (_.isUndefined(this.hooks[hookName])) {
+    if (isUndefined(this.hooks[hookName])) {
       this.hooks[hookName] = [];
     }
     this.hooks[hookName].push(callback);
@@ -87,7 +87,7 @@ const HookStore = Reflux.createStore({
   },
 
   remove(hookName, callback) {
-    if (_.isUndefined(this.hooks[hookName])) {
+    if (isUndefined(this.hooks[hookName])) {
       return;
     }
     this.hooks[hookName] = this.hooks[hookName].filter(cb => {

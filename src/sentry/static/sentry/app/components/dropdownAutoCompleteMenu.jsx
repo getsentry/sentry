@@ -2,7 +2,7 @@ import {AutoSizer, List} from 'react-virtualized';
 import {Flex} from 'grid-emotion';
 import PropTypes from 'prop-types';
 import React from 'react';
-import _ from 'lodash';
+import {flatMap} from 'lodash';
 import styled, {css} from 'react-emotion';
 
 import {t} from 'app/locale';
@@ -197,7 +197,7 @@ class DropdownAutoCompleteMenu extends React.Component {
 
     if (items[0] && items[0].items) {
       //if the first item has children, we assume it is a group
-      return _.flatMap(this.filterGroupedItems(items, inputValue), item => {
+      return flatMap(this.filterGroupedItems(items, inputValue), item => {
         const groupItems = item.items.map(groupedItem => ({
           ...groupedItem,
           index: itemCount++,

@@ -1,7 +1,7 @@
 import PropTypes from 'prop-types';
 import SentryTypes from 'app/sentryTypes';
 import React from 'react';
-import _ from 'lodash';
+import {escape} from 'lodash';
 import classNames from 'classnames';
 import createReactClass from 'create-react-class';
 import styled from 'react-emotion';
@@ -96,9 +96,9 @@ const Frame = createReactClass({
 
     // mapUrl not always present; e.g. uploaded source maps
     if (data.mapUrl) {
-      out += `${_.escape(data.mapUrl)}<br/>`;
+      out += `${escape(data.mapUrl)}<br/>`;
     } else {
-      out += `${_.escape(data.map)}<br/>`;
+      out += `${escape(data.map)}<br/>`;
     }
 
     out += '</div>';
@@ -150,7 +150,7 @@ const Frame = createReactClass({
       // we want to show a litle (?) icon that on hover shows the actual filename
       if (shouldPrioritizeModuleName && data.filename) {
         title.push(
-          <Tooltip title={_.escape(data.filename)} tooltipOptions={{html: true}}>
+          <Tooltip title={escape(data.filename)} tooltipOptions={{html: true}}>
             <a className="in-at real-filename">
               <span className="icon-question" />
             </a>
@@ -416,7 +416,7 @@ const Frame = createReactClass({
                 </span>
               )}
               {hint !== null ? (
-                <Tooltip title={_.escape(hint)}>
+                <Tooltip title={escape(hint)}>
                   <a key="inline">
                     <span className="icon-question" />
                   </a>

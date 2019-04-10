@@ -1,6 +1,6 @@
 import PropTypes from 'prop-types';
 import React from 'react';
-import _ from 'lodash';
+import {isObject, map} from 'lodash';
 
 import Category from 'app/components/events/interfaces/breadcrumbs/category';
 
@@ -15,12 +15,12 @@ class CrumbTable extends React.Component {
     if (!this.props.kvData) {
       return null;
     }
-    return _.map(this.props.kvData, (val, key) => {
+    return map(this.props.kvData, (val, key) => {
       return (
         <tr key={key}>
           <td className="key">{key}</td>
           <td className="value">
-            <pre>{_.isObject(val) ? JSON.stringify(val) : val}</pre>
+            <pre>{isObject(val) ? JSON.stringify(val) : val}</pre>
           </td>
         </tr>
       );

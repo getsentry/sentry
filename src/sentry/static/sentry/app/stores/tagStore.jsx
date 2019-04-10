@@ -1,5 +1,4 @@
 import Reflux from 'reflux';
-import _ from 'lodash';
 
 import TagActions from 'app/actions/tagActions';
 import MemberListStore from 'app/stores/memberListStore';
@@ -113,27 +112,23 @@ const TagStore = Reflux.createStore({
   onLoadTagsSuccess(data) {
     Object.assign(
       this.tags,
-      _.reduce(
-        data,
-        (obj, tag) => {
-          tag = Object.assign(
-            {
-              values: [],
-            },
-            tag
-          );
+      data.reduce((obj, tag) => {
+        tag = Object.assign(
+          {
+            values: [],
+          },
+          tag
+        );
 
-          const old = this.tags[tag.key];
+        const old = this.tags[tag.key];
 
-          // Don't override predefined filters (e.g. "is")
-          if (!old || !old.predefined) {
-            obj[tag.key] = tag;
-          }
+        // Don't override predefined filters (e.g. "is")
+        if (!old || !old.predefined) {
+          obj[tag.key] = tag;
+        }
 
-          return obj;
-        },
-        {}
-      )
+        return obj;
+      }, {})
     );
     this.tags.has.values = data.map(tag => tag.key);
     this.trigger(this.tags);
