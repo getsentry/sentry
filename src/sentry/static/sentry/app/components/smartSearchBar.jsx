@@ -663,7 +663,12 @@ class SmartSearchBar extends React.Component {
             {this.state.query !== '' && (
               <React.Fragment>
                 {this.props.hasPinnedSearch && (
-                  <PinButton borderless size="zero" onClick={this.onTogglePinnedSearch}>
+                  <PinButton
+                    type="button"
+                    borderless
+                    size="zero"
+                    onClick={this.onTogglePinnedSearch}
+                  >
                     <PinIcon isPinned={!!this.props.pinnedSearch} src="icon-pin" />
                   </PinButton>
                 )}
