@@ -178,6 +178,24 @@ describe('Feature', function() {
     });
   });
 
+  describe('no children', function() {
+    it('should display renderDisabled with no feature', function() {
+      const wrapper = mount(
+        <Feature features={['nope']} renderDisabled={() => <span>disabled</span>} />,
+        routerContext
+      );
+      expect(wrapper.find('Feature span').text()).toBe('disabled');
+    });
+
+    it('should display be empty when on', function() {
+      const wrapper = mount(
+        <Feature features={['org-bar']} renderDisabled={() => <span>disabled</span>} />,
+        routerContext
+      );
+      expect(wrapper.find('Feature').text()).toBeNull();
+    });
+  });
+
   describe('as React node', function() {
     it('has features', function() {
       const wrapper = mount(

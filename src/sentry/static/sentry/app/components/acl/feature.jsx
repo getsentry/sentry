@@ -185,7 +185,7 @@ class Feature extends React.Component {
       return children(renderProps);
     }
 
-    return hasFeature ? children : null;
+    return hasFeature && children ? children : null;
   }
 }
 
