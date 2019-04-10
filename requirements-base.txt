@@ -38,7 +38,7 @@ percy>=1.1.2
 petname>=2.0,<2.1
 Pillow>=3.2.0,<=4.2.1
 progressbar2>=3.10,<3.11
-psycopg2>=2.6.0,<2.8.0
+psycopg2-binary>=2.6.0,<2.8.0
 PyJWT>=1.5.0,<1.6.0
 pytest-django>=2.9.1,<2.10.0
 pytest-html>=1.9.0,<1.10.0
