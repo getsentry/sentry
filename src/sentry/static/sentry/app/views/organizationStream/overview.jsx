@@ -687,6 +687,7 @@ const OrganizationStream = createReactClass({
             projectId={projectId}
             searchId={params.searchId}
             query={query}
+            savedSearch={this.state.savedSearch}
             sort={this.getSort()}
             queryCount={this.state.queryCount}
             queryMaxCount={this.state.queryMaxCount}

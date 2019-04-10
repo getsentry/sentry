@@ -62,6 +62,7 @@ class SearchBar extends React.Component {
   static propTypes = {
     ...SmartSearchBar.propTypes,
 
+    savedSearch: SentryTypes.SavedSearch,
     organization: SentryTypes.Organization.isRequired,
     tagValueLoader: PropTypes.func.isRequired,
   };
@@ -80,6 +81,11 @@ class SearchBar extends React.Component {
   hasRecentSearches = () => {
     const {organization} = this.props;
     return organization && organization.features.includes('recent-searches');
+  };
+
+  hasOrgSavedSearches = () => {
+    const {organization} = this.props;
+    return organization && organization.features.includes('org-saved-searches');
   };
 
   fetchData = async () => {
@@ -142,6 +148,7 @@ class SearchBar extends React.Component {
   render() {
     const {
       tagValueLoader, // eslint-disable-line no-unused-vars
+      savedSearch,
       ...props
     } = this.props;
 
@@ -150,9 +157,11 @@ class SearchBar extends React.Component {
         onGetTagValues={this.getTagValues}
         defaultSearchItems={this.state.defaultSearchItems}
         maxSearchItems={5}
-        recentSearchType={SEARCH_TYPES.ISSUE}
+        hasPinnedSearch={this.hasOrgSavedSearches()}
+        savedSearchType={SEARCH_TYPES.ISSUE}
         displayRecentSearches={this.hasRecentSearches()}
         onSavedRecentSearch={this.handleSavedRecentSearch}
+        pinnedSearch={savedSearch && savedSearch.isPinned ? savedSearch : null}
         {...props}
       />
     );

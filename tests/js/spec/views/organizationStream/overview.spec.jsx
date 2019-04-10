@@ -312,7 +312,7 @@ describe('OrganizationStream', function() {
     });
 
     it('fetches data on savedSearch change', function() {
-      savedSearch = {id: 1, query: 'is:resolved'};
+      savedSearch = {id: '1', query: 'is:resolved'};
       wrapper.setState({savedSearch});
 
       expect(fetchDataMock).toHaveBeenCalled();
