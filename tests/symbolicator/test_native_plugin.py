@@ -1,6 +1,7 @@
 from __future__ import absolute_import
 
 import os
+import sys
 import pytest
 import zipfile
 from mock import patch
@@ -1308,13 +1309,20 @@ class SymbolicResolvingIntegrationTest(ResolvingIntegrationTestBase, TestCase):
 
 
 class SymbolicatorResolvingIntegrationTest(ResolvingIntegrationTestBase, TransactionTestCase):
+    # For these tests to run, write `symbolicator.enabled: true` into your
+    # `~/.sentry/config.yml` and run `sentry devservices up`
+
     @pytest.fixture(autouse=True)
     def initialize(self, live_server):
+        new_prefix = live_server.url
+        if sys.platform == 'darwin':
+            new_prefix = new_prefix.replace('localhost', 'host.docker.internal')
+
         with patch('sentry.lang.native.symbolizer.Symbolizer._symbolize_app_frame') \
             as symbolize_app_frame, \
                 patch('sentry.lang.native.plugin._is_symbolicator_enabled', return_value=True), \
                 patch('sentry.auth.system.is_internal_ip', return_value=True), \
-                self.options({"system.url-prefix": live_server.url}):
+                self.options({"system.internal-url-prefix": new_prefix}):
 
             # Run test case:
             yield
