@@ -862,6 +862,10 @@
   margin-right: 5px;
   z-index: 1001;
 
+  .dropdown {
+    display: inline-block;
+  }
+
   .dropdown-toggle {
     .btn-default;
     width: 176px;
@@ -890,16 +894,14 @@
     overflow: hidden;
   }
 
+  // Hide the caret
   .dropdown-menu {
-    top: 0;
+    top: auto;
     left: 1px;
     width: 163px;
 
+    &:after,
     &:before {
-      display: none;
-    }
-
-    &:after {
       display: none;
     }
   }
