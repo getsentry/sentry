@@ -65,13 +65,13 @@ class UserNotificationDetailsTest(APITestCase):
             key="deploy-emails",
             value=1)
 
-        # default is 0
+        # default is 1
         UserOption.objects.create(
             user=user,
             project=None,
             organization=org,
             key="workflow:notifications",
-            value=1)
+            value=2)
 
         self.login_as(user=user)
 
@@ -86,7 +86,7 @@ class UserNotificationDetailsTest(APITestCase):
         assert resp.data.get('personalActivityNotifications') is False
         assert resp.data.get('selfAssignOnResolve') is False
         assert resp.data.get('subscribeByDefault') is True
-        assert resp.data.get('workflowNotifications') == 0
+        assert resp.data.get('workflowNotifications') == 1
 
     def test_saves_and_returns_values(self):
         user = self.create_user(email='a@example.com')
@@ -110,7 +110,7 @@ class UserNotificationDetailsTest(APITestCase):
         assert resp.data.get('personalActivityNotifications') is True
         assert resp.data.get('selfAssignOnResolve') is True
         assert resp.data.get('subscribeByDefault') is True
-        assert resp.data.get('workflowNotifications') == 0
+        assert resp.data.get('workflowNotifications') == 1
 
         assert UserOption.objects.get(user=user,
                                       project=None,
