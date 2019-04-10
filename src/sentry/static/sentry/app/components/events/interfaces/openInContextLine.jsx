@@ -1,25 +1,17 @@
 import PropTypes from 'prop-types';
 import React from 'react';
-import {ContextLineItem} from 'app/components/events/interfaces/contextLine';
-import SentryTypes from 'app/sentryTypes';
-import InlineSvg from 'app/components/inlineSvg';
+import SentryAppIcon from 'app/components/sentryAppIcon';
 import {addQueryParamsToExistingUrl} from 'app/utils/queryString';
+import {defined} from 'app/utils';
 import styled from 'react-emotion';
 import space from 'app/styles/space';
 import {t} from 'app/locale';
 
-import withApi from 'app/utils/withApi';
-import withLatestContext from 'app/utils/withLatestContext';
-
-class OpenInButton extends React.Component {
+class OpenInContextLine extends React.Component {
   static propTypes = {
-    api: PropTypes.object,
-    organization: SentryTypes.Organization,
-    lineNo: PropTypes.number,
-    lineWs: PropTypes.string,
-    lineCode: PropTypes.string,
+    line: PropTypes.array,
     filename: PropTypes.string,
-    group: SentryTypes.Group,
+    components: PropTypes.array,
   };
 
   constructor(props) {
@@ -27,41 +19,12 @@ class OpenInButton extends React.Component {
     this.state = {
       loading: false,
       error: false,
-      components: [],
     };
   }
 
-  componentWillMount() {
-    this.fetchIssueLinkComponents();
-  }
-
-  fetchIssueLinkComponents() {
-    const {api, organization, group} = this.props;
-    const hasOrganization = !!organization;
-    const hasSentryApps =
-      hasOrganization && new Set(organization.features).has('sentry-apps');
-
-    if (hasSentryApps && group && group.project && group.project.id) {
-      api
-        .requestPromise(
-          `/organizations/${
-            organization.slug
-          }/sentry-app-components/?filter=stacktrace-link&projectId=${group.project.id}`
-        )
-        .then(data => {
-          if (data.length) {
-            this.setState({components: data});
-          }
-        })
-        .catch(error => {
-          return;
-        });
-    }
-  }
-
   getUrl() {
-    const {components} = this.state;
-    const {filename, lineNo} = this.props;
+    const {filename, line, components} = this.props;
+    const lineNo = line[0];
 
     const queryParams = {
       lineNo,
@@ -71,18 +34,13 @@ class OpenInButton extends React.Component {
   }
 
   render() {
-    const {components} = this.state;
-    const {lineNo, lineWs, lineCode} = this.props;
+    const {components, line} = this.props;
+    const lineNo = line[0];
 
-    if (!components.length) {
-      return (
-        <ContextLineItem
-          liClassName="expandable active"
-          lineNo={lineNo}
-          lineWs={lineWs}
-          lineCode={lineCode}
-        />
-      );
+    let lineWs = '';
+    let lineCode = '';
+    if (defined(line[1]) && line[1].match) {
+      [, lineWs, lineCode] = line[1].match(/^(\s*)(.*?)$/m);
     }
     const url = this.getUrl();
     return (
@@ -94,7 +52,7 @@ class OpenInButton extends React.Component {
         <OpenInContainer>
           <span>Open this line in:</span>
           <OpenInLink data-test-id="stacktrace-link" href={url}>
-            <OpenInIcon src="icon-generic-box" />
+            <OpenInIcon slug={components[0].sentryApp.name} />
             <OpenInName>{t(`${components[0].sentryApp.name}`)}</OpenInName>
           </OpenInLink>
         </OpenInContainer>
@@ -103,9 +61,7 @@ class OpenInButton extends React.Component {
   }
 }
 
-export {OpenInButton};
-const OpenInButtonComponent = withLatestContext(OpenInButton);
-export default withApi(OpenInButtonComponent);
+export default OpenInContextLine;
 
 const OpenInContainer = styled('div')`
   font-family: 'Rubik', 'Avenir Next', 'Helvetica Neue', sans-serif;
@@ -117,10 +73,10 @@ const OpenInContainer = styled('div')`
   box-shadow: 0 1px 0 0 rgba(0, 0, 0, 0.05);
 `;
 
-const OpenInIcon = styled(InlineSvg)`
+const OpenInIcon = styled(SentryAppIcon)`
   vertical-align: text-top;
-  height: 15px;
-  width: 15px;
+  height: 16px;
+  width: 16px;
   margin-left: ${space(1)};
 `;
 

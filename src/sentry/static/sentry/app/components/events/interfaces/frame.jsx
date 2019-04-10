@@ -16,6 +16,8 @@ import FrameVariables from 'app/components/events/interfaces/frameVariables';
 import StrictClick from 'app/components/strictClick';
 import Tooltip from 'app/components/tooltip';
 import Truncate from 'app/components/truncate';
+import OpenInContextLine from 'app/components/events/interfaces/openInContextLine';
+import SentryAppComponentsStore from 'app/stores/sentryAppComponentsStore';
 import space from 'app/styles/space';
 
 export function trimPackage(pkg) {
@@ -124,6 +126,10 @@ const Frame = createReactClass({
 
   preventCollapse(evt) {
     evt.stopPropagation();
+  },
+
+  getSentryAppComponents() {
+    return SentryAppComponentsStore.getStacktraceLinkComponents();
   },
 
   renderDefaultTitle() {
@@ -266,15 +272,22 @@ const Frame = createReactClass({
 
           {data.context &&
             contextLines.map((line, index) => {
-              return (
-                <ContextLine
-                  key={index}
-                  line={line}
-                  isActive={data.lineNo === line[0]}
-                  filename={data.filename}
-                  group={group}
-                />
-              );
+              const isActive = data.lineNo === line[0];
+              const components = this.getSentryAppComponents();
+              if (isActive && components.length > 0) {
+                return (
+                  <OpenInContextLine
+                    key={index}
+                    line={line}
+                    isActive={isActive}
+                    filename={data.filename}
+                    group={group}
+                    components={components}
+                  />
+                );
+              } else {
+                return <ContextLine key={index} line={line} isActive={isActive} />;
+              }
             })}
 
           {(hasContextRegisters || hasContextVars) && (
