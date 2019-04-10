@@ -22,6 +22,7 @@ export function getChartData(data, query) {
   return query.aggregations.map(aggregation => {
     return {
       seriesName: aggregation[2],
+      animation: false,
       data: data.map(res => {
         return {
           value: res[aggregation[2]],
