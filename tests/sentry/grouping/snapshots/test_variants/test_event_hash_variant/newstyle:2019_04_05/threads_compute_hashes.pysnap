@@ -1,5 +1,5 @@
 ---
-created: '2019-04-03T22:37:16.384086Z'
+created: '2019-04-09T18:57:09.573418Z'
 creator: sentry
 source: tests/sentry/grouping/test_variants.py
 ---
@@ -7,7 +7,7 @@ app:
   hash: None
   component:
     app (threads of system takes precedence)
-      threads
+      threads (ignored because this variant does not have a contributing stacktrace, but the system variant does)
         stacktrace
           frame (non app frame)
             filename*
