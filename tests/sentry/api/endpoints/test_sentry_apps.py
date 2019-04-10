@@ -140,7 +140,7 @@ class PostSentryAppsTest(SentryAppsTest):
             name='Foo Bar',
             organization=self.org,
         )
-        sentry_apps.Destroyer.run(sentry_app=sentry_app)
+        sentry_apps.Destroyer.run(sentry_app=sentry_app, user=self.user)
         response = self._post(**{'name': sentry_app.name})
         assert response.status_code == 422
         assert response.data == \

@@ -5,6 +5,7 @@ import pytz
 
 from datetime import datetime
 
+from sentry import analytics
 from sentry.coreapi import APIUnauthorized
 from sentry.mediators import Mediator, Param
 from sentry.mediators.token_exchange.validator import Validator
@@ -29,11 +30,20 @@ class GrantExchanger(Mediator):
         # exchangable, so we delete it.
         self._delete_grant()
 
-        return ApiToken.objects.create(
+        self.token = ApiToken.objects.create(
             user=self.user,
             application=self.application,
             scope_list=self.sentry_app.scope_list,
             expires_at=token_expiration()
+        )
+
+        return self.token
+
+    def record_analytics(self):
+        analytics.record(
+            'sentry_app.token_exchanged',
+            sentry_app_installation_id=self.install.id,
+            exchange_type='authorization',
         )
 
     def _validate(self):

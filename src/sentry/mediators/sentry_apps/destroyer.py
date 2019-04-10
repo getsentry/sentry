@@ -1,5 +1,6 @@
 from __future__ import absolute_import
 
+from sentry import analytics
 from sentry.mediators import Mediator, Param
 from sentry.mediators import sentry_app_installations
 from sentry.models import AuditLogEntryEvent
@@ -44,3 +45,11 @@ class Destroyer(Mediator):
                     'sentry_app': self.sentry_app.name,
                 },
             )
+
+    def record_analytics(self):
+        analytics.record(
+            'sentry_app.deleted',
+            user_id=self.user.id,
+            organization_id=self.sentry_app.owner.id,
+            sentry_app=self.sentry_app.slug,
+        )
