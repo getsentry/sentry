@@ -581,7 +581,7 @@ const StyledSidebar = styled('div')`
     height: ${p => p.theme.sidebar.mobileHeight};
     bottom: auto;
     width: auto;
-    padding: 0;
+    padding: 0 ${space(1)};
     align-items: center;
   }
 `;
@@ -593,6 +593,13 @@ const SidebarSectionGroup = styled('div')`
 const SidebarSectionGroupPrimary = styled(SidebarSectionGroup)`
   /* necessary for child flexing on msedge and ff */
   min-height: 0;
+  min-width: 0;
+
+  /* expand to fill the entire height on mobile */
+  @media (max-width: ${p => p.theme.breakpoints[0]}) {
+    height: 100%;
+    align-items: center;
+  }
 `;
 
 const PrimaryItems = styled('div')`
@@ -601,8 +608,8 @@ const PrimaryItems = styled('div')`
 
   @media (max-height: 600px) and (min-width: ${p => p.theme.breakpoints[0]}) {
     border-bottom: 1px solid ${p => p.theme.gray3};
-    padding-bottom: 1em;
-    box-shadow: rgba(0, 0, 0, 0.25) 0px -10px 20px inset;
+    padding-bottom: ${p => space(1)};
+    box-shadow: rgba(0, 0, 0, 0.15) 0px -10px 10px inset;
 
     &::-webkit-scrollbar {
       background-color: transparent;
@@ -618,6 +625,16 @@ const PrimaryItems = styled('div')`
 
   @media (max-width: ${p => p.theme.breakpoints[0]}) {
     display: flex;
+    overflow-y: visible;
+    height: 100%;
+    align-items: center;
+    border-right: 1px solid ${p => p.theme.gray3};
+    padding-right: ${p => space(1)};
+    box-shadow: rgba(0, 0, 0, 0.15) -10px 0px 10px inset;
+
+    ::-webkit-scrollbar {
+      display: none;
+    }
   }
 `;
 
@@ -626,7 +643,8 @@ const SidebarSection = styled(SidebarSectionGroup)`
   padding: 0 19px;
 
   @media (max-width: ${p => p.theme.breakpoints[0]}) {
-    margin: 0 ${space(1)};
+    margin: 0;
+    padding: 0;
   }
 
   &:empty {
