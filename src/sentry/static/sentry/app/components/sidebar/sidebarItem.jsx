@@ -97,7 +97,7 @@ class SidebarItem extends React.Component {
         >
           <SidebarItemWrapper>
             <SidebarItemIcon>{icon}</SidebarItemIcon>
-            {!collapsed && !isTop && (
+            {!(collapsed || isTop) && (
               <SidebarItemLabel>
                 <LabelHook id={this.props.id}>
                   <TextOverflow>{label}</TextOverflow>
