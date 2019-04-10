@@ -34,15 +34,15 @@ const getRecentSearchUrl = orgId => `/organizations/${orgId}/recent-searches/`;
  */
 export function saveRecentSearch(api, orgId, type, query) {
   const url = getRecentSearchUrl(orgId);
-  const promise = api
-    .requestPromise(url, {
-      method: 'POST',
-      data: {
-        query,
-        type,
-      },
-    })
-    .catch(handleXhrErrorResponse('Unable to save a recent search'));
+  const promise = api.requestPromise(url, {
+    method: 'POST',
+    data: {
+      query,
+      type,
+    },
+  });
+
+  promise.catch(handleXhrErrorResponse('Unable to save a recent search'));
 
   return promise;
 }
@@ -81,15 +81,46 @@ export function createSavedSearch(api, orgId, name, query) {
  */
 export function fetchRecentSearches(api, orgId, type, query) {
   const url = getRecentSearchUrl(orgId);
-  const promise = api
-    .requestPromise(url, {
-      query: {
-        query,
-        type,
-        limit: MAX_RECENT_SEARCHES,
-      },
-    })
-    .catch(handleXhrErrorResponse('Unable to fetch recent searches'));
+  const promise = api.requestPromise(url, {
+    query: {
+      query,
+      type,
+      limit: MAX_RECENT_SEARCHES,
+    },
+  });
+
+  promise.catch(handleXhrErrorResponse('Unable to fetch recent searches'));
+
+  return promise;
+}
+
+const getPinSearchUrl = orgId => `/organizations/${orgId}/pinned-searches/`;
+
+export function pinSearch(api, orgId, type, query) {
+  const url = getPinSearchUrl(orgId);
+  const promise = api.requestPromise(url, {
+    method: 'PUT',
+    data: {
+      query,
+      type,
+    },
+  });
+
+  promise.catch(handleXhrErrorResponse('Unable to pin search'));
+
+  return promise;
+}
+
+export function unpinSearch(api, orgId, type) {
+  const url = getPinSearchUrl(orgId);
+  const promise = api.requestPromise(url, {
+    method: 'DELETE',
+    data: {
+      type,
+    },
+  });
+
+  promise.catch(handleXhrErrorResponse('Unable to un-pin search'));
 
   return promise;
 }
