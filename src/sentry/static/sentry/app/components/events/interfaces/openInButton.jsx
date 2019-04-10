@@ -5,6 +5,7 @@ import SentryTypes from 'app/sentryTypes';
 import InlineSvg from 'app/components/inlineSvg';
 import {addQueryParamsToExistingUrl} from 'app/utils/queryString';
 import styled from 'react-emotion';
+import space from 'app/styles/space';
 import {t} from 'app/locale';
 
 import withApi from 'app/utils/withApi';
@@ -120,7 +121,7 @@ const OpenInIcon = styled(InlineSvg)`
   vertical-align: text-top;
   height: 15px;
   width: 15px;
-  margin-left: 10px;
+  margin-left: ${space(1)};
 `;
 
 const OpenInLink = styled('a')`

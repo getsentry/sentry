@@ -66,7 +66,7 @@ ContextLineItem.propTypes = {
   lineCode: PropTypes.string.isRequired,
 };
 
-export {ContextLineItem}
+export {ContextLineItem};
 
 const ListItem = styled('li')`
   padding: 0 20px;
