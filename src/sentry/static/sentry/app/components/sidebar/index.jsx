@@ -598,23 +598,26 @@ const SidebarSectionGroupPrimary = styled(SidebarSectionGroup)`
 const PrimaryItems = styled('div')`
   overflow: auto;
   flex: 1;
-  -ms-autohiding-scrollbar: -ms-autohiding-scrollbar;
 
-  &::-webkit-scrollbar {
-    background-color: transparent;
-    width: 8px;
-    margin: 4px;
-  }
-
-  &::-webkit-scrollbar-thumb {
-    background: ${p => p.theme.gray3};
-    border-radius: 8px;
-  }
-
-  @media (max-height: 600px) {
+  @media (max-height: 600px) and (min-width: ${p => p.theme.breakpoints[0]}) {
     border-bottom: 1px solid ${p => p.theme.gray3};
     padding-bottom: 1em;
     box-shadow: rgba(0, 0, 0, 0.25) 0px -10px 20px inset;
+
+    &::-webkit-scrollbar {
+      background-color: transparent;
+      width: 8px;
+      margin: 4px;
+    }
+
+    &::-webkit-scrollbar-thumb {
+      background: ${p => p.theme.gray3};
+      border-radius: 8px;
+    }
+  }
+
+  @media (max-width: ${p => p.theme.breakpoints[0]}) {
+    display: flex;
   }
 `;
 
