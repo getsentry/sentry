@@ -594,6 +594,7 @@ const SidebarSectionGroupPrimary = styled(SidebarSectionGroup)`
   /* necessary for child flexing on msedge and ff */
   min-height: 0;
   min-width: 0;
+  flex: 1;
 
   /* expand to fill the entire height on mobile */
   @media (max-width: ${p => p.theme.breakpoints[0]}) {
@@ -614,7 +615,6 @@ const PrimaryItems = styled('div')`
     &::-webkit-scrollbar {
       background-color: transparent;
       width: 8px;
-      margin: 4px;
     }
 
     &::-webkit-scrollbar-thumb {
@@ -630,6 +630,7 @@ const PrimaryItems = styled('div')`
     align-items: center;
     border-right: 1px solid ${p => p.theme.gray3};
     padding-right: ${p => space(1)};
+    margin-right: ${p => space(0.5)};
     box-shadow: rgba(0, 0, 0, 0.15) -10px 0px 10px inset;
 
     ::-webkit-scrollbar {
