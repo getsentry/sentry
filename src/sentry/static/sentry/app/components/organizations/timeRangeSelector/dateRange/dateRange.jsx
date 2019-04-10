@@ -4,16 +4,23 @@ import 'react-date-range/dist/theme/default.css';
 import {DateRangePicker} from 'react-date-range';
 import PropTypes from 'prop-types';
 import React from 'react';
+import * as Sentry from '@sentry/browser';
 import moment from 'moment';
 import styled from 'react-emotion';
 
+import {addErrorMessage} from 'app/actionCreators/indicator';
 import {analytics} from 'app/utils/analytics';
-import {getEndOfDay, getStartOfPeriodAgo, setDateToTime} from 'app/utils/dates';
-import getRouteStringFromRoutes from 'app/utils/getRouteStringFromRoutes';
+import {
+  getEndOfDay,
+  getStartOfPeriodAgo,
+  isValidTime,
+  setDateToTime,
+} from 'app/utils/dates';
 import {t} from 'app/locale';
 import Checkbox from 'app/components/checkbox';
 import SentryTypes from 'app/sentryTypes';
 import TimePicker from 'app/components/organizations/timeRangeSelector/timePicker';
+import getRouteStringFromRoutes from 'app/utils/getRouteStringFromRoutes';
 import space from 'app/styles/space';
 import theme from 'app/utils/theme';
 
@@ -105,42 +112,63 @@ class DateRange extends React.Component {
     const {start, end, onChange} = this.props;
     const startTime = e.target.value;
 
-    if (!startTime) {
-      return;
+    try {
+      if (!startTime || !isValidTime(startTime)) {
+        throw new Error('Invalid start time');
+      }
+      const newTime = setDateToTime(start, startTime, {local: true});
+
+      analytics('dateselector.time_changed', {
+        field_changed: 'start',
+        time: startTime,
+        path: getRouteStringFromRoutes(this.context.router.routes),
+        org_id: parseInt(this.props.organization.id, 10),
+      });
+
+      onChange({
+        start: newTime,
+        end,
+      });
+    } catch (err) {
+      Sentry.withScope(scope => {
+        scope.setExtra('startTime', startTime);
+        Sentry.captureException(err);
+      });
+
+      addErrorMessage(t('Invalid start time'));
     }
-
-    analytics('dateselector.time_changed', {
-      field_changed: 'start',
-      time: startTime,
-      path: getRouteStringFromRoutes(this.context.router.routes),
-      org_id: parseInt(this.props.organization.id, 10),
-    });
-
-    onChange({
-      start: setDateToTime(start, startTime, {local: true}),
-      end,
-    });
   };
 
   handleChangeEnd = e => {
     const {start, end, onChange} = this.props;
     const endTime = e.target.value;
 
-    if (!endTime) {
-      return;
+    try {
+      if (!endTime || !isValidTime(endTime)) {
+        throw new Error('Invalid end time');
+      }
+
+      const newTime = setDateToTime(end, endTime, {local: true});
+
+      analytics('dateselector.time_changed', {
+        field_changed: 'end',
+        time: endTime,
+        path: getRouteStringFromRoutes(this.context.router.routes),
+        org_id: parseInt(this.props.organization.id, 10),
+      });
+
+      onChange({
+        start,
+        end: newTime,
+      });
+    } catch (err) {
+      Sentry.withScope(scope => {
+        scope.setExtra('endTime', endTime);
+        Sentry.captureException(err);
+      });
+
+      addErrorMessage(t('Invalid end time'));
     }
-
-    analytics('dateselector.time_changed', {
-      field_changed: 'end',
-      time: endTime,
-      path: getRouteStringFromRoutes(this.context.router.routes),
-      org_id: parseInt(this.props.organization.id, 10),
-    });
-
-    onChange({
-      start,
-      end: setDateToTime(end, endTime, {local: true}),
-    });
   };
 
   render() {
