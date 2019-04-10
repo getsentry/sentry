@@ -1,5 +1,6 @@
 import PropTypes from 'prop-types';
 import React from 'react';
+import {ContextLineItem} from 'app/components/events/interfaces/contextLine';
 import SentryTypes from 'app/sentryTypes';
 import InlineSvg from 'app/components/inlineSvg';
 import {addQueryParamsToExistingUrl} from 'app/utils/queryString';
@@ -74,10 +75,12 @@ class OpenInButton extends React.Component {
 
     if (!components.length) {
       return (
-        <ListItem className="expandable active" key={lineNo}>
-          <span className="ws">{lineWs}</span>
-          <span className="contextline">{lineCode}</span>
-        </ListItem>
+        <ContextLineItem
+          liClassName="expandable active"
+          lineNo={lineNo}
+          lineWs={lineWs}
+          lineCode={lineCode}
+        />
       );
     }
     const url = this.getUrl();

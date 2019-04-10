@@ -29,10 +29,12 @@ const ContextLine = function(props) {
           lineCode={lineCode}
         />
       ) : (
-        <ListItem className={liClassName} key={line[0]}>
-          <span className="ws">{lineWs}</span>
-          <span className="contextline">{lineCode}</span>
-        </ListItem>
+        <ContextLineItem
+          liClassName={liClassName}
+          lineNo={line[0]}
+          lineWs={lineWs}
+          lineCode={lineCode}
+        />
       )}
     </React.Fragment>
   );
@@ -46,6 +48,25 @@ ContextLine.propTypes = {
 };
 
 export default ContextLine;
+
+const ContextLineItem = function(props) {
+  const {liClassName, lineNo, lineWs, lineCode} = props;
+  return (
+    <ListItem className={liClassName} key={lineNo}>
+      <span className="ws">{lineWs}</span>
+      <span className="contextline">{lineCode}</span>
+    </ListItem>
+  );
+};
+
+ContextLineItem.propTypes = {
+  lineNo: PropTypes.number.isRequired,
+  lineWs: PropTypes.string.isRequired,
+  liClassName: PropTypes.string.isRequired,
+  lineCode: PropTypes.string.isRequired,
+};
+
+export {ContextLineItem}
 
 const ListItem = styled('li')`
   padding: 0 20px;
