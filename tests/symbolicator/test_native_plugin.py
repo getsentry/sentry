@@ -1091,6 +1091,12 @@ class InAppHonoringResolvingIntegrationTest(TestCase):
 
 
 class ResolvingIntegrationTestBase(object):
+    def snapshot_stacktrace_data(self, event):
+        self.insta_snapshot({
+            "stacktrace": event.get('stacktrace'),
+            "exception": event.get('exception'),
+        })
+
     def test_real_resolving(self):
         url = reverse(
             'sentry-api-0-dsym-files',
@@ -1123,13 +1129,7 @@ class ResolvingIntegrationTestBase(object):
 
         event = Event.objects.get()
         assert event.data['culprit'] == 'main'
-        snapshot_data = dict(event.data)
-        del snapshot_data['event_id']
-        del snapshot_data['timestamp']
-        del snapshot_data['received']
-        del snapshot_data['key_id']
-        del snapshot_data['project']
-        self.insta_snapshot(snapshot_data)
+        self.snapshot_stacktrace_data(event.data)
 
     def test_debug_id_resolving(self):
         file = File.objects.create(
@@ -1198,13 +1198,7 @@ class ResolvingIntegrationTestBase(object):
 
         event = Event.objects.get()
         assert event.data['culprit'] == 'main'
-        snapshot_data = dict(event.data)
-        del snapshot_data['event_id']
-        del snapshot_data['timestamp']
-        del snapshot_data['received']
-        del snapshot_data['key_id']
-        del snapshot_data['project']
-        self.insta_snapshot(snapshot_data)
+        self.snapshot_stacktrace_data(event.data)
 
     def test_missing_dsym(self):
         self.login_as(user=self.user)
@@ -1214,13 +1208,7 @@ class ResolvingIntegrationTestBase(object):
 
         event = Event.objects.get()
         assert event.data['culprit'] == 'unknown'
-        snapshot_data = dict(event.data)
-        del snapshot_data['event_id']
-        del snapshot_data['timestamp']
-        del snapshot_data['received']
-        del snapshot_data['key_id']
-        del snapshot_data['project']
-        self.insta_snapshot(snapshot_data)
+        self.snapshot_stacktrace_data(event.data)
 
 
 class SymbolicResolvingIntegrationTest(ResolvingIntegrationTestBase, TestCase):
