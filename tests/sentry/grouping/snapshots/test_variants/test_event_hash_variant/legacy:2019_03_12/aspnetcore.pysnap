@@ -1,5 +1,5 @@
 ---
-created: '2019-03-14T17:12:36.873840Z'
+created: '2019-04-09T18:49:35.432802Z'
 creator: sentry
 source: tests/sentry/grouping/test_variants.py
 ---
@@ -7,7 +7,7 @@ app:
   hash: None
   component:
     app (exception of system takes precedence)
-      exception (ignored because this variant does not contain a stacktrace, but but the system variant does)
+      exception (ignored because this variant does not have a contributing stacktrace, but the system variant does)
         stacktrace (less than 10% of frames are in-app)
           frame (non app frame)
             module*

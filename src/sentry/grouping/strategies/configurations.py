@@ -33,7 +33,7 @@ register_strategy_config(
         'expect-staple:v1',
         'hpkp:v1',
         'csp:v1',
-        'threads:v1',
+        'threads:legacy',
         'stacktrace:legacy',
         'chained-exception:legacy',
         'template:v1',

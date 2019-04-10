@@ -6,7 +6,6 @@ def _import_all():
     strategy_modules = [
         'message',
         'security',
-        'threads',
         'template',
         'legacy',
         'newstyle',
