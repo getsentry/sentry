@@ -4,7 +4,7 @@ from sentry import analytics
 
 
 class OrganizationSavedSearchCreatedEvent(analytics.Event):
-    type = 'organization-saved-search.created'
+    type = 'organization_saved_search.created'
 
     attributes = (
         analytics.Attribute('organization_id'),
@@ -15,7 +15,7 @@ class OrganizationSavedSearchCreatedEvent(analytics.Event):
 
 
 class OrganizationSavedSearchDeletedEvent(analytics.Event):
-    type = 'organization-saved-search.deleted'
+    type = 'organization_saved_search.deleted'
 
     attributes = (
         analytics.Attribute('organization_id'),
