@@ -57,6 +57,7 @@ const EVENT_TYPES = [
   'ondemand.edit',
   'trial.started',
   'plan.changed',
+  'plan.cancelled',
 ].sort();
 
 class OrganizationAuditLog extends AsyncView {
