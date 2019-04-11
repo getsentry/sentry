@@ -25,7 +25,7 @@ rule = _ matchers _ follow _ fingerprint
 
 matchers       = matcher+
 matcher        = _ matcher_type sep argument
-matcher_type   = "path" / "function" / "module" / "family" / "type" / "value" / "message"
+matcher_type   = "path" / "function" / "module" / "family" / "type" / "value" / "message" / "package"
 argument       = quoted / unquoted
 
 fingerprint    = fp_value+
@@ -93,6 +93,7 @@ class EventAccess(object):
                     'path': frame.get('abs_path') or frame.get('filename'),
                     'module': frame.get('module'),
                     'family': get_grouping_family_for_platform(frame.get('platform') or self.event.get('platform')),
+                    'package': frame.get('package'),
                 })
 
             have_errors = False
@@ -200,7 +201,7 @@ class Match(object):
     def matches_value(self, value):
         if value is None:
             return False
-        if self.key == 'path':
+        if self.key in ('path', 'package'):
             if glob_match(value, self.pattern, ignorecase=True,
                           doublestar=True, path_normalize=True):
                 return True
