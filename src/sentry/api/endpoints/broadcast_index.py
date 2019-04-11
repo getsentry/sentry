@@ -26,10 +26,8 @@ class BroadcastIndexEndpoint(Endpoint):
 
     def _get_serializer(self, request):
         if is_active_superuser(request):
-            serializer_cls = AdminBroadcastSerializer
-        else:
-            serializer_cls = BroadcastSerializer
-        return serializer_cls
+            return AdminBroadcastSerializer
+        return BroadcastSerializer
 
     def _serialize_objects(self, items, request):
         serializer_cls = self._get_serializer(request)
