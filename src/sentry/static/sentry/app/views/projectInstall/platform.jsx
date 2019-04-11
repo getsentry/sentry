@@ -1,10 +1,10 @@
 import {Box, Flex} from 'grid-emotion';
+import {browserHistory} from 'react-router';
 import PropTypes from 'prop-types';
 import React from 'react';
 import createReactClass from 'create-react-class';
 import styled from 'react-emotion';
 
-import SentryTypes from 'app/sentryTypes';
 import {Panel, PanelBody, PanelHeader} from 'app/components/panels';
 import {t, tct} from 'app/locale';
 import ApiMixin from 'app/mixins/apiMixin';
@@ -13,6 +13,7 @@ import Link from 'app/components/link';
 import LoadingError from 'app/components/loadingError';
 import LoadingIndicator from 'app/components/loadingIndicator';
 import NotFound from 'app/components/errors/notFound';
+import SentryTypes from 'app/sentryTypes';
 import TextBlock from 'app/views/settings/components/text/textBlock';
 import withOrganization from 'app/utils/withOrganization';
 
@@ -67,6 +68,13 @@ const ProjectInstallPlatform = createReactClass({
   componentDidMount() {
     this.fetchData();
     window.scrollTo(0, 0);
+
+    const {platform} = this.props.params;
+
+    //redirect if platform is not known.
+    if (!platform || platform === 'other') {
+      this.redirectToNeutralDocs();
+    }
   },
 
   componentWillReceiveProps(nextProps) {
@@ -107,6 +115,17 @@ const ProjectInstallPlatform = createReactClass({
         {display || platform}
       </Link>
     );
+  },
+
+  redirectToNeutralDocs() {
+    const {orgId, projectId} = this.props.params;
+    const {organization} = this.props;
+
+    const url = new Set(organization.features).has('sentry10')
+      ? `/organizations/${orgId}/projects/${projectId}/getting-started/`
+      : `/${orgId}/${projectId}/getting-started/`;
+
+    browserHistory.push(url);
   },
 
   render() {
