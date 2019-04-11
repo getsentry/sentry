@@ -1,7 +1,7 @@
 import Reflux from 'reflux';
 
 export default Reflux.createActions([
-  'fetchSavedSearches',
+  'startFetchSavedSearches',
   'fetchSavedSearchesSuccess',
   'fetchSavedSearchesError',
   'createSavedSearchSuccess',

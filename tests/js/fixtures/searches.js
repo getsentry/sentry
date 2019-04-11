@@ -6,14 +6,15 @@ export function Searches(params = []) {
       name: 'Needs Triage',
       query: 'is:unresolved is:unassigned',
       id: '2',
+      isGlobal: true,
     }),
     Search({
       name: 'Unresolved Issues',
-      isUserDefault: true,
+      isUserDefault: false,
       isPrivate: false,
       query: 'is:unresolved',
       id: '1',
-      isDefault: false,
+      isGlobal: true,
     }),
     ...params,
   ];

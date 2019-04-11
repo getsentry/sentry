@@ -29,7 +29,7 @@ const withSavedSearches = WrappedComponent =>
             const {searchId} = params;
             const {savedSearches, isLoading} = this.state;
             let savedSearch = null;
-            // Switch to the the current saved search or pinned result if available
+            // Switch to the current saved search or pinned result if available
             if (!isLoading && savedSearches) {
               if (searchId) {
                 const match = savedSearches.find(search => search.id === searchId);

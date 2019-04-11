@@ -1,4 +1,6 @@
 import {MAX_RECENT_SEARCHES, SEARCH_TYPES} from 'app/constants';
+import {addErrorMessage} from 'app/actionCreators/indicator';
+import {t} from 'app/locale';
 import SavedSearchesActions from 'app/actions/savedSearchesActions';
 import handleXhrErrorResponse from 'app/utils/handleXhrErrorResponse';
 
@@ -10,7 +12,7 @@ export function fetchSavedSearches(api, orgId, useOrgSavedSearches = false) {
     data.use_org_level = '1';
   }
 
-  SavedSearchesActions.fetchSavedSearches();
+  SavedSearchesActions.startFetchSavedSearches();
 
   const promise = api.requestPromise(url, {
     method: 'GET',
@@ -23,7 +25,7 @@ export function fetchSavedSearches(api, orgId, useOrgSavedSearches = false) {
     })
     .catch(err => {
       SavedSearchesActions.fetchSavedSearchesError(err);
-      // TODO: Add error toast?
+      addErrorMessage(t('Unable to load saved searches'));
     });
 
   return promise;
@@ -134,7 +136,7 @@ export function pinSearch(api, orgId, type, query) {
 
   promise.catch(handleXhrErrorResponse('Unable to pin search'));
 
-  promise.catch(() => {
+  promise.catch(err => {
     SavedSearchesActions.unpinSearch(type);
   });
 

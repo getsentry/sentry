@@ -1,3 +1,4 @@
+import {findIndex} from 'lodash';
 import Reflux from 'reflux';
 
 import SavedSearchesActions from 'app/actions/savedSearchesActions';
@@ -5,7 +6,7 @@ import SavedSearchesActions from 'app/actions/savedSearchesActions';
 const SavedSearchesStore = Reflux.createStore({
   init() {
     const {
-      fetchSavedSearches,
+      startFetchSavedSearches,
       fetchSavedSearchesSuccess,
       fetchSavedSearchesError,
       createSavedSearchSuccess,
@@ -14,22 +15,23 @@ const SavedSearchesStore = Reflux.createStore({
       unpinSearch,
     } = SavedSearchesActions;
 
+    this.listenTo(startFetchSavedSearches, this.onStartFetchSavedSearches);
+    this.listenTo(fetchSavedSearchesSuccess, this.onFetchSavedSearchesSuccess);
+    this.listenTo(fetchSavedSearchesError, this.onFetchSavedSearchesError);
+    this.listenTo(createSavedSearchSuccess, this.onCreateSavedSearchSuccess);
+    this.listenTo(deleteSavedSearchSuccess, this.onDeleteSavedSearchSuccess);
+    this.listenTo(pinSearch, this.onPinSearch);
+    this.listenTo(unpinSearch, this.onUnpinSearch);
+
     this.reset();
-    Reflux.listenTo(fetchSavedSearches, this.onFetchSavedSearches);
-    Reflux.listenTo(fetchSavedSearchesSuccess, this.onFetchSavedSearchesSuccess);
-    Reflux.listenTo(fetchSavedSearchesError, this.onFetchSavedSearchesError);
-    Reflux.listenTo(createSavedSearchSuccess, this.onCreateSavedSearchSuccess);
-    Reflux.listenTo(deleteSavedSearchSuccess, this.onDeleteSavedSearchSuccess);
-    Reflux.listenTo(pinSearch, this.onPinSearch);
-    Reflux.listenTo(unpinSearch, this.onUnpinSearch);
   },
 
   reset() {
     this.state = {
       savedSearches: [],
+      hasError: false,
       isLoading: true,
     };
-    this.trigger(this.state);
   },
 
   get() {
@@ -37,15 +39,55 @@ const SavedSearchesStore = Reflux.createStore({
   },
 
   /**
-   * Return only unpinned searches for `type`
+   * If pinned search, remove from list if `isPrivate` is true (meaning user created as pin).
+   * Otherwise change `isPinned` to false (e.g. if it's default or org saved search)
    */
-  getUnpinned(type) {
-    return this.state.savedSearches.filter(
-      savedSearch => !(savedSearch.isPinned && savedSearch.type === type)
-    );
+  getFilteredSearches(type, existingSearchId) {
+    return this.state.savedSearches
+      .filter(
+        savedSearch =>
+          !(savedSearch.isPinned && savedSearch.type === type && savedSearch.isPrivate)
+      )
+      .map(savedSearch => {
+        if (
+          typeof existingSearchId !== 'undefined' &&
+          existingSearchId === savedSearch.id
+        ) {
+          // Do not update existing search
+          return savedSearch;
+        }
+
+        return {...savedSearch, isPinned: false};
+      });
   },
 
-  onFetchSavedSearches() {
+  updateExistingSearch(id, updateObj) {
+    const index = findIndex(
+      this.state.savedSearches,
+      savedSearch => savedSearch.id === id
+    );
+
+    if (index === -1) {
+      return null;
+    }
+
+    const existingSavedSearch = this.state.savedSearches[index];
+    const newSavedSearch = {
+      ...existingSavedSearch,
+      ...updateObj,
+    };
+    this.state.savedSearches[index] = newSavedSearch;
+    return newSavedSearch;
+  },
+
+  /**
+   * Find saved search by query string
+   */
+  findByQuery(query) {
+    return this.state.savedSearches.find(savedSearch => query === savedSearch.query);
+  },
+
+  onStartFetchSavedSearches() {
     this.state = {
       ...this.state,
       isLoading: true,
@@ -54,7 +96,6 @@ const SavedSearchesStore = Reflux.createStore({
   },
 
   onFetchSavedSearchesSuccess(data) {
-    this.reset();
     this.state = {
       ...this.state,
       savedSearches: data,
@@ -68,7 +109,7 @@ const SavedSearchesStore = Reflux.createStore({
       ...this.state,
       savedSearches: [],
       isLoading: false,
-      savedSearchError: true,
+      hasError: true,
     };
     this.trigger(this.state);
   },
@@ -83,22 +124,34 @@ const SavedSearchesStore = Reflux.createStore({
   },
 
   onPinSearch(type, query, ...args) {
-    this.state = {
-      ...this.state,
-      savedSearches: [
+    const existingSearch = this.findByQuery(query);
+
+    if (existingSearch) {
+      this.updateExistingSearch(existingSearch.id, {isPinned: true});
+    }
+
+    const newPinnedSearch =
+      (!existingSearch && [
         {
           id: null,
-          isPinned: true,
           name: 'My Pinned Search',
           type,
           query,
-          ...args,
+          isPinned: true,
         },
-        // There can only be 1 pinned search, so unpin currently pinned search
-        ...this.getUnpinned(type),
+      ]) ||
+      [];
+
+    this.state = {
+      ...this.state,
+      savedSearches: [
+        ...newPinnedSearch,
+
+        // There can only be 1 pinned search, so the rest must be unpinned
+        // Also if we are pinning an existing search, then filter that out too
+        ...this.getFilteredSearches(type, existingSearch && existingSearch.id),
       ],
     };
-
     this.trigger(this.state);
   },
 
@@ -106,7 +159,7 @@ const SavedSearchesStore = Reflux.createStore({
     this.state = {
       ...this.state,
       // Design decision that there can only be 1 pinned search per `type`
-      savedSearches: this.getUnpinned(type),
+      savedSearches: this.getFilteredSearches(type),
     };
     this.trigger(this.state);
   },

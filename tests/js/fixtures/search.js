@@ -4,6 +4,7 @@ export function Search(params = {}) {
     isUserDefault: false,
     isPrivate: false,
     isDefault: true,
+    type: 0,
 
     name: 'Needs Triage',
     query: 'is:unresolved is:unassigned',
