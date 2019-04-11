@@ -35,9 +35,9 @@ class OrganizationSearchDetailsEndpoint(OrganizationEndpoint):
         search.delete()
         analytics.record(
             'organization_saved_search.deleted',
-            type=search.type,
+            search_type=search.type,
             organization_id=organization.id,
-            id=search.id,
+            id=search_id,
             user_id=request.user.id,
         )
         return Response(status=204)

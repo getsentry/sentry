@@ -111,7 +111,7 @@ class OrganizationSearchesEndpoint(OrganizationEndpoint):
             )
             analytics.record(
                 'organization_saved_search.created',
-                type=saved_search.type,
+                search_type=saved_search.type,
                 organization_id=organization.id,
                 id=saved_search.id,
                 user_id=request.user.id,
