@@ -10,12 +10,20 @@ describe('ProjectSavedSearches', function() {
   const project = routerContext.context.project;
 
   beforeEach(function() {
+    const searches = TestStubs.Searches();
+    searches[1] = {
+      ...searches[1],
+      isDefault: false,
+      isGlobal: false,
+      isUserDefault: true,
+    };
+
     MockApiClient.mockAsync = false;
     MockApiClient.clearMockResponses();
     MockApiClient.addMockResponse({
       url: `/projects/${org.slug}/${project.slug}/searches/`,
       method: 'GET',
-      body: TestStubs.Searches(),
+      body: searches,
     });
 
     wrapper = mount(
