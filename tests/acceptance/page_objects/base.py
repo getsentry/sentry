@@ -27,37 +27,24 @@ class BaseElement(object):
         self.selector = selector
         self.element = element
 
-    def assert_appearance(self, *args, **kwargs):
-        pass
-
 
 class ButtonElement(BaseElement):
     label_attr = 'aria-label'
     disabled_attr = 'aria-disabled'
 
-    def assert_diabled(self, is_disabled=False):
-        disabled = 'true' if is_disabled else 'false'
-        assert self.element.get_attribute(self.disabled_attr) == disabled
+    def get_diabled(self):
+        return self.element.get_attribute(self.disabled_attr)
 
-    def assert_label(self, label):
-        assert self.element.get_attribute(self.label_attr) == label
+    def get_label(self):
+        return self.element.get_attribute(self.label_attr)
 
     def click(self):
         self.element.click()
 
-    def assert_appearance(self, label, is_disabled=False, *args, **kwargs):
-        self.assert_label(label)
-        self.assert_diabled(is_disabled)
-
 
 class ButtonWithIconElement(ButtonElement):
-    def assert_icon(self, icon):
-        icon = self.element.find_element_by_tag_name('use')
-        assert icon.get_attribute('href') == icon
-
-    def assert_appearance(self, icon, *args, **kwargs):
-        super(ButtonWithIconElement, self).assert_appearance(*args, **kwargs)
-        self.assert_icon(icon)
+    def get_icon_href(self):
+        return self.element.find_element_by_tag_name('use').get_attribute('href')
 
 
 class TextBoxElement(BaseElement):

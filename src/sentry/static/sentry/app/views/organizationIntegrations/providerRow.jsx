@@ -90,7 +90,7 @@ export default class ProviderRow extends React.Component {
         onRemove={this.props.onRemove}
         onDisable={this.props.onDisable}
         onReinstallIntegration={this.props.onReinstall}
-        data-testid={this.integration.id}
+        data-testid={integration.id}
       />
     ));
   }

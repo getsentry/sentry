@@ -22,19 +22,16 @@ class IntegrationProviderRowElement(BaseElement):
     def get_selector(cls, provider_key):
         return '[data-testid="%s"]' % provider_key
 
-    def assert_installation_added(self, installation_data):
-        installation = self.element.find_elements_by_css_selector(
-            self.integration_name_selector)[-1]
-        assert installation.get_attribute("innerText") == installation_data['name']
-        return installation
-
-    def assert_appearance(self, *args, **kwargs):
-        # TODO(lb): assert provider name
-        self.install_button.assert_appearance(
-            label='Install',
-            is_disabled=False,
-            icon='#icon-circle-add'
+    def get_installations(self):
+        return self.element.find_elements_by_css_selector(
+            self.integration_name_selector
         )
+
+    def get_installation_with_name(self, name):
+        for installation in self.get_installations():
+            if installation.get_attribute("innerText") == name:
+                return installation
+        return None
 
 
 class InstallationElement(BaseElement):
@@ -56,18 +53,6 @@ class InstallationElement(BaseElement):
             element=self.element.find_element_by_css_selector(self.remove_button_selector)
         )
 
-    def assert_appearance(self):
-        self.configure_button.assert_appearance(
-            icon='#icon-settings',
-            label='Configure',
-            is_disabled=False,
-        )
-        self.remove_button.assert_appearance(
-            icon='#icon-trash',
-            label='Remove',
-            is_disabled=False,
-        )
-
 
 class IntegrationDetailsModal(ModalElement):
     title_selector = '[data-testid="provider-name"]'
@@ -86,14 +71,10 @@ class IntegrationDetailsModal(ModalElement):
         )
         self.provider = provider
 
-    def assert_title(self, provider_name):
-        title = self.element.find_element_by_css_selector(self.title_selector)
-        assert title.get_attribute("innerText") == '%s Integration' % provider_name
-
-    def assert_appearance(self, *args, **kwargs):
-        self.cancel_button.assert_appearance(label='Cancel')
-        self.add_button.assert_appearance(label='Add %s' % self.provider.key)
-        self.assert_title(self.provider.key.title())
+    @property
+    def title(self):
+        return self.element.find_element_by_css_selector(
+            self.title_selector).get_attribute("innerText")
 
 
 class IntegrationSetupWindowElement(ModalElement):
@@ -117,9 +98,6 @@ class ExampleIntegrationSetupWindowElement(IntegrationSetupWindowElement):
     def fill_in_setup_form(self, installation_data):
         self.name.send_keys(installation_data['name'])
 
-    def assert_appearance(self):
-        assert self.continue_button.element.get_attribute('value') == 'Continue'
-
 
 class OrganizationIntegrationSettingsPage(BasePage):
     page_name = 'organization-integration-settings'
@@ -127,47 +105,33 @@ class OrganizationIntegrationSettingsPage(BasePage):
 
     def __init__(self, providers=None, *args, **kwargs):
         super(OrganizationIntegrationSettingsPage, self).__init__(*args, **kwargs)
-        self.create_providers(providers)
-
-    def create_providers(self, providers):
-        self.providers = []
-        for provider in providers:
-            selector = IntegrationProviderRowElement.get_selector(provider.key)
-            element = self.browser.find_element_by_css_selector(selector)
-            self.providers.append(
-                IntegrationProviderRowElement(
-                    provider=provider,
-                    element=element,
-                )
-            )
 
     def assert_correct_page(self):
         url = self.driver.current_url
         assert 'settings' in url
         assert 'integrations' in url
 
-    def create_new_installation(self, provider_key, installation_data):
-        provider_element = [p for p in self.providers if p.provider.key == provider_key][0]
-        provider_element.assert_appearance()
-        provider_element.install_button.click()
+    def get_provider(self, provider):
+        selector = IntegrationProviderRowElement.get_selector(provider.key)
+        return IntegrationProviderRowElement(
+            provider=provider,
+            element=self.browser.find_element_by_css_selector(selector),
+        )
 
+    def click_install_button(self, provider_element):
+        provider_element.install_button.click()
         self.browser.wait_until(self.modal_selector)
         integration_details_modal = IntegrationDetailsModal(
             selector=self.modal_selector,
             provider=provider_element.provider,
             element=self.browser,
         )
-        integration_details_modal.assert_appearance()
-        integration_details_modal.add_button.click()
+        return integration_details_modal
 
+    def click_through_integration_setup(
+            self, integration_details_modal, setup_window_cls, installation_data):
         self.driver.switch_to_window(self.driver.window_handles[1])
-        integration_setup_window = ExampleIntegrationSetupWindowElement(
-            element=self.browser, selector=None,
-        )
-        integration_setup_window.assert_appearance()
+        integration_setup_window = setup_window_cls(element=self.browser, selector=None)
         integration_setup_window.fill_in_setup_form(installation_data)
         integration_setup_window.continue_button.click()
-
         self.driver.switch_to_window(self.driver.window_handles[0])
-        installation_element = provider_element.assert_installation_added(installation_data)
-        return installation_element

@@ -5,7 +5,7 @@ from exam import mock
 from sentry.models import Integration
 from sentry.testutils import AcceptanceTestCase
 from tests.acceptance.page_objects.organization_integration_settings import (
-    OrganizationIntegrationSettingsPage, InstallationElement
+    OrganizationIntegrationSettingsPage, ExampleIntegrationSetupWindowElement
 )
 
 
@@ -59,6 +59,13 @@ class OrganizationIntegrationAcceptanceTestCase(AcceptanceTestCase):
         self.browser.get(url)
         self.browser.wait_until_not('.loading-indicator')
 
+    def assert_button_element(self, button, label, disabled=False, icon=None):
+        disabled = 'true' if disabled else 'false'
+        assert button.get_disabled() == disabled
+        assert button.get_label() == label
+        if icon:
+            assert button.get_icon_href() == icon
+
 
 class OrganizationIntegrationSettingsTest(OrganizationIntegrationAcceptanceTestCase):
     """
@@ -84,22 +91,60 @@ class OrganizationIntegrationSettingsTest(OrganizationIntegrationAcceptanceTestC
     def assert_can_create_new_installation(self):
         self.load_page(self.org_integration_settings_path)
         org_settings_page = OrganizationIntegrationSettingsPage(
-            browser=self.browser,
-            providers=[self.provider]
+            browser=self.browser
         )
-        installation_element = org_settings_page.create_new_installation(
-            self.provider.key, {'name': self.provider.name}
+        provider_element = org_settings_page.get_provider(self.provider)
+
+        integration_details_modal = org_settings_page.click_install_button(provider_element)
+        integration_details_modal.add_button.click()
+        org_settings_page.click_through_integration_setup(
+            integration_details_modal,
+            ExampleIntegrationSetupWindowElement,
+            {'name': self.provider.name}
         )
-        integration = Integration.objects.get(
+
+        installation_element = provider_element.get_installation_with_name(self.provider.name)
+        assert installation_element
+        assert Integration.objects.filter(
             provider=self.provider.key,
-            external_id=self.provider.name)
-        installation_element = InstallationElement(
-            selector='[data-testid="%s"]' % integration.id,
-            element=installation_element,
-        )
+            external_id=self.provider.name
+        ).exists()
 
         # TODO(lb): check issues details page and see that integration shows in linked issues
         return installation_element
+
+    def assert_has_installation_button(self, provider_row_element):
+        self.assert_button_element(
+            button=provider_row_element.install_button,
+            label='Install',
+            disabled=False,
+            icon='#icon-circle-add'
+        )
+
+    def assert_installation_element(self, installation_element):
+        self.assert_button_element(
+            button=installation_element.configure_button,
+            icon='#icon-settings',
+            label='Configure',
+            disabled=False,
+        )
+        self.assert_button_element(
+            button=installation_element.remove_button,
+            icon='#icon-trash',
+            label='Remove',
+            disabled=False,
+        )
+
+    def assert_installation_details_modal(self, installation_modal):
+        self.assert_button_element(
+            button=installation_modal.cancel_button,
+            label='Cancel'
+        )
+        self.assert_button_element(
+            button=installation_modal.add_button,
+            label='Add %s' % self.provider.key,
+        )
+        assert installation_modal.title == '%s Integration' % self.provider.key
 
     def test_can_create_new_integration(self):
         self.assert_can_create_new_installation()
