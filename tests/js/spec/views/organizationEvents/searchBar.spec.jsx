@@ -8,7 +8,7 @@ const focusInput = el => el.find('input[name="query"]').simulate('focus');
 const selectFirstAutocompleteItem = el => {
   focusInput(el);
 
-  el.find('.search-autocomplete-item')
+  el.find('[data-test-id="search-autocomplete-item"]')
     .first()
     .simulate('click');
   const input = el.find('input');
@@ -129,8 +129,8 @@ describe('SearchBar', function() {
     await tick();
     wrapper.update();
 
-    expect(wrapper.find('.search-autocomplete-item')).toHaveLength(1);
-    expect(wrapper.find('.search-autocomplete-item').text()).toBe('gpu:');
+    expect(wrapper.find('[data-test-id="search-autocomplete-item"]')).toHaveLength(1);
+    expect(wrapper.find('[data-test-id="search-autocomplete-item"]').text()).toBe('gpu:');
   });
 
   it('ignores wildcard ("*") at the beginning of tag value query', async function() {
