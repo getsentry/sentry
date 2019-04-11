@@ -67,7 +67,7 @@ describe('OrganizationSavedSearchSelector', function() {
 
   describe('selecting an option', function() {
     it('calls onSelect when clicked', async function() {
-      wrapper.find('DropdownLink').simulate('click');
+      wrapper.find('DropdownButton').simulate('click');
       await wrapper.update();
 
       const item = wrapper.find('StyledMenuItem a').first();
@@ -80,7 +80,7 @@ describe('OrganizationSavedSearchSelector', function() {
 
   describe('removing a saved search', function() {
     it('shows a delete button with access', async function() {
-      wrapper.find('DropdownLink').simulate('click');
+      wrapper.find('DropdownButton').simulate('click');
       await wrapper.update();
 
       // Second item should have a delete button as it is not a global search
@@ -95,7 +95,7 @@ describe('OrganizationSavedSearchSelector', function() {
       organization.access = [];
       wrapper.setProps({organization});
 
-      wrapper.find('DropdownLink').simulate('click');
+      wrapper.find('DropdownButton').simulate('click');
       await wrapper.update();
 
       const button = wrapper
@@ -106,7 +106,7 @@ describe('OrganizationSavedSearchSelector', function() {
     });
 
     it('does not show a delete button for global search', async function() {
-      wrapper.find('DropdownLink').simulate('click');
+      wrapper.find('DropdownButton').simulate('click');
       await wrapper.update();
 
       // First item should not have a delete button as it is a global search
@@ -118,7 +118,7 @@ describe('OrganizationSavedSearchSelector', function() {
     });
 
     it('sends a request when delete button is clicked', async function() {
-      wrapper.find('DropdownLink').simulate('click');
+      wrapper.find('DropdownButton').simulate('click');
       await wrapper.update();
 
       // Second item should have a delete button as it is not a global search
@@ -136,14 +136,14 @@ describe('OrganizationSavedSearchSelector', function() {
 
   describe('saves a search', function() {
     it('clicking save search opens modal', function() {
-      wrapper.find('DropdownLink').simulate('click');
+      wrapper.find('DropdownButton').simulate('click');
       expect(wrapper.find('ModalDialog')).toHaveLength(0);
       wrapper.find('Button[data-test-id="save-current-search"]').simulate('click');
       expect(wrapper.find('ModalDialog')).toHaveLength(1);
     });
 
     it('saves a search', async function() {
-      wrapper.find('DropdownLink').simulate('click');
+      wrapper.find('DropdownButton').simulate('click');
       wrapper.find('Button[data-test-id="save-current-search"]').simulate('click');
       wrapper.find('#id-name').simulate('change', {target: {value: 'test'}});
       wrapper
@@ -161,7 +161,7 @@ describe('OrganizationSavedSearchSelector', function() {
 
       wrapper.setProps({organization: orgWithoutAccess});
 
-      const button = wrapper.find('button');
+      const button = wrapper.find('SaveSearchButton');
 
       expect(button).toHaveLength(0);
     });
