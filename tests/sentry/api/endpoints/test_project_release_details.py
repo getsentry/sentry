@@ -302,9 +302,3 @@ class ReleaseSerializerTest(unittest.TestCase):
             'ref': 'a' * (VERSION_LENGTH + 1),
         })
         assert not serializer.is_valid()
-
-    def test_version_cannot_be_latest(self):
-        serializer = ReleaseSerializer(data={
-            'version': 'Latest',
-        })
-        assert not serializer.is_valid()
