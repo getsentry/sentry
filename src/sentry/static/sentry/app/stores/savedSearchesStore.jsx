@@ -1,12 +1,12 @@
 import Reflux from 'reflux';
 
-import SavedSearchActions from 'app/actions/savedSearchActions';
+import SavedSearchesActions from 'app/actions/savedSearchesActions';
 
 const SavedSearchesStore = Reflux.createStore({
   init() {
     this.reset();
-    this.listenTo(SavedSearchActions.loadSavedSearches, this.onLoadSavedSearches);
-    this.listenTo(SavedSearchActions.updateSavedSearches, this.onUpdateSavedSearches);
+    this.listenTo(SavedSearchesActions.loadSavedSearches, this.onLoadSavedSearches);
+    this.listenTo(SavedSearchesActions.updateSavedSearches, this.onUpdateSavedSearches);
   },
 
   reset() {
