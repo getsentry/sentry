@@ -14,7 +14,7 @@ from sentry.signals import (
     plugin_enabled,
     user_feedback_received,
     issue_assigned,
-    issue_resolved_in_release,
+    issue_resolved,
     advanced_search,
     save_search_created,
     inbound_filter_toggled,
@@ -651,7 +651,22 @@ class FeatureAdoptionTest(TestCase):
         assert feature_complete
 
     def test_resolved_in_release(self):
-        issue_resolved_in_release.send(
+        issue_resolved.send(
+            organization_id=self.organization.id,
+            project=self.project,
+            group=self.group,
+            user=self.user,
+            resolution_type='in_next_release',
+            sender=type(
+                self.project))
+        feature_complete = FeatureAdoption.objects.get_by_slug(
+            organization=self.organization, slug="resolved_in_release"
+        )
+        assert feature_complete
+
+    def test_resolved_manually(self):
+        issue_resolved.send(
+            organization_id=self.organization.id,
             project=self.project,
             group=self.group,
             user=self.user,
@@ -661,7 +676,7 @@ class FeatureAdoptionTest(TestCase):
         feature_complete = FeatureAdoption.objects.get_by_slug(
             organization=self.organization, slug="resolved_in_release"
         )
-        assert feature_complete
+        assert not feature_complete
 
     def test_advanced_search(self):
         advanced_search.send(project=self.project, sender=type(self.project))

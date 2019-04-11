@@ -9,31 +9,30 @@ from sentry.plugins import IssueTrackingPlugin, IssueTrackingPlugin2
 from sentry.plugins.bases.notify import NotificationPlugin
 from sentry.receivers.rules import DEFAULT_RULE_LABEL, DEFAULT_RULE_DATA
 from sentry.signals import (
+    advanced_search,
     alert_rule_created,
+    data_scrubber_enabled,
+    deploy_created,
     event_processed,
     first_event_received,
-    project_created,
-    member_joined,
-    plugin_enabled,
-    user_feedback_received,
-    issue_assigned,
-    issue_resolved_in_release,
-    advanced_search,
-    save_search_created,
     inbound_filter_toggled,
-    sso_enabled,
-    data_scrubber_enabled,
-    repo_linked,
-    release_created,
-    deploy_created,
-    resolved_with_commit,
-    ownership_rule_created,
-    issue_ignored,
-    team_created,
-    issue_deleted,
     integration_added,
     integration_issue_created,
     integration_issue_linked,
+    issue_assigned,
+    issue_resolved,
+    issue_ignored,
+    issue_deleted,
+    member_joined,
+    ownership_rule_created,
+    plugin_enabled,
+    project_created,
+    release_created,
+    repo_linked,
+    save_search_created,
+    sso_enabled,
+    team_created,
+    user_feedback_received,
 )
 from sentry.utils.javascript import has_sourcemap
 
@@ -146,11 +145,22 @@ def record_issue_assigned(project, group, user, **kwargs):
     )
 
 
-@issue_resolved_in_release.connect(weak=False)
-def record_issue_resolved_in_release(project, group, user, resolution_type, **kwargs):
-    FeatureAdoption.objects.record(
-        organization_id=project.organization_id, feature_slug="resolved_in_release", complete=True
-    )
+@issue_resolved.connect(weak=False)
+def record_issue_resolved(organization_id, project, group, user, resolution_type, **kwargs):
+    """ There are three main types of ways to resolve issues
+        1) via a release (current release, next release, or other)
+        2) via commit (in the UI with the commit hash (marked as "in_commit")
+            or tagging the issue in a commit (marked as "with_commit"))
+        3) now
+    """
+    if resolution_type in ('in_next_release', 'in_release'):
+        FeatureAdoption.objects.record(
+            organization_id=organization_id, feature_slug="resolved_in_release", complete=True
+        )
+    if resolution_type == 'with_commit':
+        FeatureAdoption.objects.record(
+            organization_id=organization_id, feature_slug="resolved_with_commit", complete=True
+        )
 
     if user and user.is_authenticated():
         user_id = default_user_id = user.id
@@ -162,7 +172,7 @@ def record_issue_resolved_in_release(project, group, user, resolution_type, **kw
         'issue.resolved',
         user_id=user_id,
         default_user_id=default_user_id,
-        organization_id=project.organization_id,
+        organization_id=organization_id,
         group_id=group.id,
         resolution_type=resolution_type,
     )
@@ -306,28 +316,6 @@ def record_release_created(release, **kwargs):
 def record_deploy_created(deploy, **kwargs):
     FeatureAdoption.objects.record(
         organization_id=deploy.organization_id, feature_slug="deploy_created", complete=True
-    )
-
-
-@resolved_with_commit.connect(weak=False)
-def record_resolved_with_commit(organization_id, user, group, **kwargs):
-    FeatureAdoption.objects.record(
-        organization_id=organization_id, feature_slug="resolved_with_commit", complete=True
-    )
-
-    if user and user.is_authenticated():
-        user_id = default_user_id = user.id
-    else:
-        user_id = None
-        default_user_id = group.organization.get_default_owner().id
-
-    analytics.record(
-        'issue.resolved',
-        user_id=user_id,
-        default_user_id=default_user_id,
-        organization_id=organization_id,
-        group_id=group.id,
-        resolution_type='with_commit',
     )
 
 

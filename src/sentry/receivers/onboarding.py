@@ -11,13 +11,13 @@ from sentry.models import (
 from sentry.plugins import IssueTrackingPlugin, IssueTrackingPlugin2, NotificationPlugin
 from sentry.signals import (
     event_processed,
-    project_created,
     first_event_pending,
     first_event_received,
+    issue_tracker_used,
     member_invited,
     member_joined,
     plugin_enabled,
-    issue_tracker_used,
+    project_created,
 )
 from sentry.utils.javascript import has_sourcemap
 
