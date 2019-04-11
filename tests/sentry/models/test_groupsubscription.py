@@ -112,6 +112,12 @@ class GetParticipantsTest(TestCase):
         self.create_member(user=user, organization=org, teams=[team])
         self.create_member(user=user2, organization=org)
 
+        UserOption.objects.set_value(
+            user=user,
+            key='workflow:notifications',
+            value=UserOptionValue.all_conversations,
+        )
+
         # implicit membership
         users = GroupSubscription.objects.get_participants(group=group)
 
@@ -171,6 +177,11 @@ class GetParticipantsTest(TestCase):
         self.create_member(user=user, organization=org, teams=[team])
 
         user_option_sequence = itertools.count(300)  # prevent accidental overlap with user id
+        UserOption.objects.set_value(
+            user=user,
+            key='workflow:notifications',
+            value=UserOptionValue.all_conversations,
+        )
 
         def clear_workflow_options():
             UserOption.objects.filter(
@@ -290,6 +301,11 @@ class GetParticipantsTest(TestCase):
         group = self.create_group(project=project)
         user = self.create_user()
         self.create_member(user=user, organization=org, teams=[team])
+        UserOption.objects.set_value(
+            user=user,
+            key='workflow:notifications',
+            value=UserOptionValue.all_conversations,
+        )
 
         user_option_sequence = itertools.count(300)  # prevent accidental overlap with user id
 
