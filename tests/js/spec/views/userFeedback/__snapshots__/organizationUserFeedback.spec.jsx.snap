@@ -1686,6 +1686,7 @@ exports[`OrganizationUserFeedback renders 1`] = `
                                     >
                                       <StyledHeaderItem
                                         allowClear={true}
+                                        hasChanges={false}
                                         hasSelected={false}
                                         icon={
                                           <StyledInlineSvg
@@ -1709,6 +1710,7 @@ exports[`OrganizationUserFeedback renders 1`] = `
                                         <ForwardRef
                                           allowClear={true}
                                           className="css-22y332-StyledHeaderItem e1u8612l1"
+                                          hasChanges={false}
                                           hasSelected={false}
                                           icon={
                                             <StyledInlineSvg
@@ -1731,6 +1733,7 @@ exports[`OrganizationUserFeedback renders 1`] = `
                                           <HeaderItem
                                             allowClear={true}
                                             className="css-22y332-StyledHeaderItem e1u8612l1"
+                                            hasChanges={false}
                                             hasSelected={false}
                                             icon={
                                               <StyledInlineSvg
@@ -1753,6 +1756,7 @@ exports[`OrganizationUserFeedback renders 1`] = `
                                           >
                                             <StyledHeaderItem
                                               className="css-22y332-StyledHeaderItem e1u8612l1"
+                                              hasChanges={false}
                                               hasSelected={false}
                                               innerRef={[Function]}
                                               isOpen={false}
