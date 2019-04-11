@@ -246,7 +246,10 @@ function routes() {
         component={errorHandler(LazyLoad)}
       />
       <Route name="Alerts" path="alerts/">
-        <IndexRoute
+        <IndexRedirect to="rules/" />
+        <Route
+          path="settings/"
+          name="Settings"
           component={errorHandler(LazyLoad)}
           componentPromise={() =>
             import(/* webpackChunkName: "ProjectAlertSettings" */ './views/settings/projectAlerts/projectAlertSettings')
