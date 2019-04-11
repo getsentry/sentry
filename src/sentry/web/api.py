@@ -37,8 +37,10 @@ from sentry.coreapi import (
 from sentry.event_manager import EventManager
 from sentry.interfaces import schemas
 from sentry.interfaces.base import get_interface
-from sentry.lang.native.unreal import process_unreal_crash, merge_apple_crash_report, unreal_attachment_type, merge_unreal_context_event, merge_unreal_logs_event
-from sentry.lang.native.minidump import merge_process_state_event, process_minidump, merge_attached_event, merge_attached_breadcrumbs, MINIDUMP_ATTACHMENT_TYPE
+from sentry.lang.native.unreal import process_unreal_crash, merge_apple_crash_report, \
+    unreal_attachment_type, merge_unreal_context_event, merge_unreal_logs_event
+from sentry.lang.native.minidump import merge_process_state_event, process_minidump, \
+    merge_attached_event, merge_attached_breadcrumbs, MINIDUMP_ATTACHMENT_TYPE
 from sentry.models import Project, OrganizationOption, Organization
 from sentry.signals import (
     event_accepted, event_dropped, event_filtered, event_received)
@@ -698,23 +700,25 @@ class MinidumpView(StoreView):
         attachments = []
         minidump.seek(0)
         attachments.append(CachedAttachment.from_upload(minidump, type=MINIDUMP_ATTACHMENT_TYPE))
+        has_event_attachments = features.has('organizations:event-attachments',
+                                             project.organization, actor=request.user)
 
         # Append all other files as generic attachments. We can skip this if the
         # feature is disabled since they won't be saved.
-        if features.has('organizations:event-attachments',
-                        project.organization, actor=request.user):
-            for name, file in six.iteritems(request.FILES):
-                if name == 'upload_file_minidump':
-                    continue
-                # Known attachment: msgpack event
-                if name == "__sentry-event":
-                    merge_attached_event(file, data)
-                    continue
-                if name == "__sentry-breadcrumb1" or name == "__sentry-breadcrumb2":
-                    merge_attached_breadcrumbs(file, data)
-                    continue
+        for name, file in six.iteritems(request.FILES):
+            if name == 'upload_file_minidump':
+                continue
 
-                # Add any other file as attachment
+            # Known attachment: msgpack event
+            if name == "__sentry-event":
+                merge_attached_event(file, data)
+                continue
+            if name in ("__sentry-breadcrumb1", "__sentry-breadcrumb2"):
+                merge_attached_breadcrumbs(file, data)
+                continue
+
+            # Add any other file as attachment
+            if has_event_attachments:
                 attachments.append(CachedAttachment.from_upload(file))
 
         try:
@@ -808,6 +812,14 @@ class UnrealView(StoreView):
             minidumps_logger.exception(e)
 
         for file in unreal.files():
+            # Known attachment: msgpack event
+            if file.name == "__sentry-event":
+                merge_attached_event(file.open_stream(), event)
+                continue
+            if file.name in ("__sentry-breadcrumb1", "__sentry-breadcrumb2"):
+                merge_attached_breadcrumbs(file.open_stream(), event)
+                continue
+
             # Always store the minidump in attachments so we can access it during
             # processing, regardless of the event-attachments feature. This will
             # allow us to stack walk again with CFI once symbols are loaded.
