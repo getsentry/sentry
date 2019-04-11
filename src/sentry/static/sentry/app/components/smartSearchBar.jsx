@@ -532,7 +532,7 @@ class SmartSearchBar extends React.Component {
     }
 
     if (!!pinnedSearch) {
-      unpinSearch(api, organization.slug, savedSearchType);
+      unpinSearch(api, organization.slug, savedSearchType, pinnedSearch);
     } else {
       pinSearch(api, organization.slug, savedSearchType, this.state.query);
     }
