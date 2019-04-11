@@ -21,7 +21,8 @@ from sentry.api.serializers import (
 from sentry.digests.notifications import build_digest, event_to_record
 from sentry.models import (
     Activity, Event, Group, GroupSubscription, Organization, OrganizationMember,
-    OrganizationMemberTeam, ProjectOwnership, Rule, UserOption, UserReport
+    OrganizationMemberTeam, ProjectOwnership, Rule, UserOption, UserOptionValue,
+    UserReport
 )
 from sentry.ownership.grammar import Owner, Matcher, dump_schema
 from sentry.plugins import Notification
@@ -311,6 +312,11 @@ class MailPluginTest(TestCase):
         assert msg.subject.startswith('[Example prefix]')
 
     def test_assignment(self):
+        UserOption.objects.set_value(
+            user=self.user,
+            key='workflow:notifications',
+            value=UserOptionValue.all_conversations,
+        )
         activity = Activity.objects.create(
             project=self.project,
             group=self.group,
@@ -333,6 +339,12 @@ class MailPluginTest(TestCase):
         assert msg.to == [self.user.email]
 
     def test_assignment_team(self):
+        UserOption.objects.set_value(
+            user=self.user,
+            key='workflow:notifications',
+            value=UserOptionValue.all_conversations,
+        )
+
         activity = Activity.objects.create(
             project=self.project,
             group=self.group,
@@ -356,6 +368,11 @@ class MailPluginTest(TestCase):
 
     def test_note(self):
         user_foo = self.create_user('foo@example.com')
+        UserOption.objects.set_value(
+            user=self.user,
+            key='workflow:notifications',
+            value=UserOptionValue.all_conversations,
+        )
 
         activity = Activity.objects.create(
             project=self.project,
@@ -414,6 +431,11 @@ class MailPluginSignalsTest(TestCase):
 
     def test_user_feedback(self):
         report = self.create_report()
+        UserOption.objects.set_value(
+            user=self.user,
+            key='workflow:notifications',
+            value=UserOptionValue.all_conversations,
+        )
 
         with self.tasks():
             self.plugin.handle_signal(
@@ -439,6 +461,11 @@ class MailPluginSignalsTest(TestCase):
     def test_user_feedback__enhanced_privacy(self):
         self.organization.update(flags=F('flags').bitor(Organization.flags.enhanced_privacy))
         assert self.organization.flags.enhanced_privacy.is_set is True
+        UserOption.objects.set_value(
+            user=self.user,
+            key='workflow:notifications',
+            value=UserOptionValue.all_conversations,
+        )
 
         report = self.create_report()
 

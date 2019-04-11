@@ -177,7 +177,7 @@ class GroupSubscriptionManager(BaseManager):
             'workflow:notifications',
             users.keys(),
             group.project,
-            UserOptionValue.all_conversations,
+            UserOptionValue.participating_only,
         )
 
         for user_id, option in options.items():
