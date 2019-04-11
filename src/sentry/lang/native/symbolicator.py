@@ -6,7 +6,6 @@ import logging
 import six
 import time
 
-from django.conf import settings
 from django.core.urlresolvers import reverse
 
 from requests.exceptions import RequestException
@@ -107,9 +106,9 @@ def get_internal_source(project):
     Returns the source configuration for a Sentry project.
     """
     internal_url_prefix = options.get('system.internal-url-prefix')
-    if internal_url_prefix is None:
+    if not internal_url_prefix:
         internal_url_prefix = options.get('system.url-prefix')
-        if sys.platform == 'darwin' and settings.DEBUG:
+        if sys.platform == 'darwin':
             internal_url_prefix = internal_url_prefix \
                 .replace("localhost", "host.docker.internal") \
                 .replace("127.0.0.1", "host.docker.internal")
