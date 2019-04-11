@@ -34,5 +34,6 @@ class OrganizationEventsTest(AcceptanceTestCase):
     def test_events_empty(self):
         with self.feature(FEATURE_NAME):
             self.browser.get(self.path)
+            self.browser.wait_until_not('.loading-indicator')
             self.browser.wait_until_not('[data-test-id="events-request-loading"]')
             self.browser.snapshot('global events - empty')

@@ -44,4 +44,5 @@ class OrganizationUserFeedbackTest(AcceptanceTestCase):
 
     def test_no_access(self):
         self.browser.get(self.path)
+        self.browser.wait_until_not('.loading-indicator')
         self.browser.snapshot('organization user feedback - no access')
