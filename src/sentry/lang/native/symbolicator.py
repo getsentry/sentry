@@ -6,11 +6,12 @@ import logging
 import six
 import time
 
+from django.conf import settings
 from django.core.urlresolvers import reverse
 
 from requests.exceptions import RequestException
 
-from sentry import options, settings
+from sentry import options
 from sentry.auth.system import get_system_token
 from sentry.cache import default_cache
 from sentry.utils import json, metrics
