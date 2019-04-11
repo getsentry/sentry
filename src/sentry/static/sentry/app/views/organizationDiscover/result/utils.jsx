@@ -1,4 +1,3 @@
-/*eslint no-use-before-define: ["error", { "functions": false }]*/
 import {orderBy} from 'lodash';
 import Papa from 'papaparse';
 import React from 'react';

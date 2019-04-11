@@ -7,9 +7,7 @@ import PendingChangeQueue from 'app/utils/pendingChangeQueue';
 import CursorPoller from 'app/utils/cursorPoller';
 import StreamManager from 'app/utils/streamManager';
 
-/*eslint no-use-before-define:0*/
-
-const arrayIsEqual = function(arr, other, deep) {
+function arrayIsEqual(arr, other, deep) {
   // if the other array is a falsy value, return
   if (!arr && !other) {
     return true;
@@ -25,9 +23,9 @@ const arrayIsEqual = function(arr, other, deep) {
   }
 
   return arr.every((val, idx) => valueIsEqual(val, other[idx], deep));
-};
+}
 
-export const valueIsEqual = function(value, other, deep) {
+export function valueIsEqual(value, other, deep) {
   if (value === other) {
     return true;
   } else if (_.isArray(value) || _.isArray(other)) {
@@ -40,9 +38,9 @@ export const valueIsEqual = function(value, other, deep) {
     }
   }
   return false;
-};
+}
 
-const objectMatchesSubset = function(obj, other, deep) {
+function objectMatchesSubset(obj, other, deep) {
   let k;
 
   if (obj === other) {
@@ -68,21 +66,21 @@ const objectMatchesSubset = function(obj, other, deep) {
     }
   }
   return true;
-};
+}
 
 // XXX(dcramer): the previous mechanism of using _.map here failed
 // miserably if a param was named 'length'
-export const objectToArray = function(obj) {
+export function objectToArray(obj) {
   const result = [];
   for (const key in obj) {
     result.push([key, obj[key]]);
   }
   return result;
-};
+}
 
-export const intcomma = function(x) {
+export function intcomma(x) {
   return x.toString().replace(/\B(?=(\d{3})+(?!\d))/g, ',');
-};
+}
 
 export function sortArray(arr, score_fn) {
   arr.sort((a, b) => {

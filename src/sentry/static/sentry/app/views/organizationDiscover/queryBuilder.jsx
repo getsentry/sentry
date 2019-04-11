@@ -1,4 +1,3 @@
-/*eslint no-use-before-define: ["error", { "functions": false }]*/
 import React from 'react';
 import {uniq, partition} from 'lodash';
 import moment from 'moment-timezone';
