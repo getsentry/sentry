@@ -26,13 +26,6 @@ class ReleaseSerializer(serializers.Serializer):
     dateReleased = serializers.DateTimeField(required=False)
     commits = ListField(child=CommitSerializer(), required=False, allow_null=False)
 
-    def validate_ref(self, attrs, source):
-        if source in attrs:
-            value = attrs[source]
-            if not Release.is_valid_version(value):
-                raise serializers.ValidationError('Release with name %s is not allowed' % value)
-        return attrs
-
 
 class ReleaseWithVersionSerializer(ReleaseSerializer):
     version = serializers.CharField(max_length=VERSION_LENGTH, required=True)
