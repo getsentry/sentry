@@ -11,16 +11,6 @@ OBJECT_NAME = (
     "SentryTest.app/SentryTest"
 )
 
-# FRAMEWORK_OBJECT_NAME = (
-#     "/var/containers/Bundle/Application/B33C37A8-F933-4B6B-9FFA-152282BFDF13/"
-#     "SentryTest.app/Frameworks/foo.dylib"
-# )
-
-# SWIFT_OBJECT_NAME = (
-#     "/var/containers/Bundle/Application/B33C37A8-F933-4B6B-9FFA-152282BFDF13/"
-#     "SentryTest.app/Frameworks/libswiftCore.dylib"
-# )
-
 SDK_INFO = {"sdk_name": "iOS", "version_major": 9,
             "version_minor": 3, "version_patchlevel": 0}
 

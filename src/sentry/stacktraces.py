@@ -215,26 +215,28 @@ def _normalize_in_app(stacktrace, platform=None, sdk_info=None):
     """
     Ensures consistent values of in_app across a stacktrace.
     """
+    # Native frames have special rules regarding in_app. Apply them before other
+    # normalization, just like grouping enhancers.
+    # TODO(ja): Clean up those rules and put them in enhancers instead
+    for frame in stacktrace:
+        if frame.get('in_app') is not None:
+            continue
+
+        family = get_grouping_family_for_platform(frame.get('platform') or platform)
+        if family == 'native':
+            frame_package = frame.get('package')
+            frame['in_app'] = bool(frame_package) and \
+                not is_known_third_party(frame_package, sdk_info=sdk_info)
+
     has_system_frames = _has_system_frames(stacktrace)
     for frame in stacktrace:
         # If all frames are in_app, flip all of them. This is expected by the UI
         if not has_system_frames:
             frame['in_app'] = False
 
-        # In all other cases, respect whatever value has been set in processing
-        # or by grouping enhancers
-        elif frame.get('in_app') is not None:
-            continue
-
-        # Native frames have special rules regarding in_app
-        # TODO(ja): Clean up those rules and put them in enhancers instead
-        elif get_grouping_family_for_platform(frame.get('platform') or platform) == 'native':
-            frame_package = frame.get('package')
-            frame['in_app'] = bool(frame_package) and \
-                not is_known_third_party(frame_package, sdk_info=sdk_info)
-
-        # Default to false in all other cases
-        else:
+        # Default to false in all cases where processors or grouping enhancers
+        # have not yet set in_app.
+        elif frame.get('in_app') is None:
             frame['in_app'] = False
 
 
@@ -254,8 +256,8 @@ def normalize_stacktraces_for_grouping(data, grouping_config=None):
         return
 
     # If a grouping config is available, run grouping enhancers
+    platform = data.get('platform')
     if grouping_config is not None:
-        platform = data.get('platform')
         for frames in stacktraces:
             grouping_config.enhancements.apply_modifications_to_frame(frames, platform)
 
