@@ -1096,6 +1096,8 @@ class ResolvingIntegrationTestBase(object):
         self.insta_snapshot({
             "stacktrace": event.get('stacktrace'),
             "exception": event.get('exception'),
+            "threads": event.get('threads'),
+            "debug_meta": event.get('debug_meta'),
         })
 
     def test_real_resolving(self):

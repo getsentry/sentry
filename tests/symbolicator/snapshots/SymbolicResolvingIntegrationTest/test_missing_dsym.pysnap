@@ -1,8 +1,22 @@
 ---
-created: '2019-04-10T16:29:42.214589Z'
+created: '2019-04-11T15:46:33.888941Z'
 creator: sentry
 source: tests/symbolicator/test_native_plugin.py
 ---
+debug_meta:
+  images:
+  - arch: x86_64
+    code_file: Foo.app/Contents/Foo
+    debug_id: 502fc0a5-1ec1-3e47-9998-684fa139dca7
+    image_addr: '0x100000000'
+    image_size: 4096
+    image_vmaddr: '0x100000000'
+    type: macho
+  sdk_info:
+    sdk_name: macOS
+    version_major: 10
+    version_minor: 12
+    version_patchlevel: 4
 exception:
   values:
   - raw_stacktrace:
@@ -17,3 +31,4 @@ exception:
     type: Fail
     value: fail
 stacktrace: null
+threads: null
