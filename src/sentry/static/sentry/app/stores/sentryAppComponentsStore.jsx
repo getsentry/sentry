@@ -22,8 +22,11 @@ const SentryAppComponentsStore = Reflux.createStore({
     return this.items;
   },
 
-  getStacktraceLinkComponents() {
-    return this.items.filter(item => item.type == 'stacktrace-link');
+  getComponentByType(type) {
+    if (!type) {
+      return this.getAll();
+    }
+    return this.items.filter(item => item.type == type);
   },
 });
 

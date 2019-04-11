@@ -129,7 +129,7 @@ const Frame = createReactClass({
   },
 
   getSentryAppComponents() {
-    return SentryAppComponentsStore.getStacktraceLinkComponents();
+    return SentryAppComponentsStore.getComponentByType('stacktrace-link');
   },
 
   renderDefaultTitle() {
