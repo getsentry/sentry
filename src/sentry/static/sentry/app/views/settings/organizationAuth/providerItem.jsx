@@ -1,4 +1,4 @@
-import {Box, Flex} from 'grid-emotion';
+import {Box, Flex} from '@rebass/grid/emotion';
 import PropTypes from 'prop-types';
 import React from 'react';
 import styled from 'react-emotion';
@@ -58,7 +58,7 @@ export default class ProviderItem extends React.PureComponent {
         }
       >
         {({hasFeature, features, organization, renderDisabled, renderInstallButton}) => (
-          <PanelItem align="center">
+          <PanelItem alignItems="center">
             <Flex flex={1}>
               <ProviderLogo className={`provider-logo ${provider.name.toLowerCase()}`} />
               <Box px={2} flex={1}>

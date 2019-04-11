@@ -1,7 +1,7 @@
 import PropTypes from 'prop-types';
 import React from 'react';
 import styled from 'react-emotion';
-import {Box} from 'grid-emotion';
+import {Box} from '@rebass/grid/emotion';
 
 import {addErrorMessage, addSuccessMessage} from 'app/actionCreators/indicator';
 import {t} from 'app/locale';
@@ -24,7 +24,7 @@ class GroupTombstoneRow extends React.Component {
       actor = data.actor;
 
     return (
-      <PanelItem align="center">
+      <PanelItem alignItems="center">
         <StyledBox>
           <EventOrGroupHeader
             includeLink={false}
@@ -33,14 +33,14 @@ class GroupTombstoneRow extends React.Component {
             data={data}
           />
         </StyledBox>
-        <Box w={20} mx={30}>
+        <Box width={20} mx={30}>
           {actor && (
             <Tooltip title={t('Discarded by %s', actor.name || actor.email)}>
               <Avatar user={data.actor} />
             </Tooltip>
           )}
         </Box>
-        <Box w={30}>
+        <Box width={30}>
           <Tooltip title={t('Undiscard')}>
             <LinkWithConfirmation
               className="group-remove btn btn-default btn-sm"

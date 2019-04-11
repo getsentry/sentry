@@ -1,4 +1,4 @@
-import {Box, Flex} from 'grid-emotion';
+import {Box, Flex} from '@rebass/grid/emotion';
 import PropTypes from 'prop-types';
 import React from 'react';
 import styled from 'react-emotion';
@@ -47,7 +47,7 @@ class RecoveryCodes extends React.Component {
     return (
       <Panel css={{marginTop: 30}}>
         <PanelHeader hasButtons>
-          <Flex align="center">
+          <Flex alignItems="center">
             <Box>{t('Unused Codes')}</Box>
           </Flex>
           <Flex>
@@ -88,7 +88,7 @@ class RecoveryCodes extends React.Component {
         </PanelHeader>
         <PanelBody>
           <PanelAlert type="warning">
-            <Flex align="center" ml={1} flex="1">
+            <Flex alignItems="center" ml={1} flex="1">
               {t(
                 'Make sure to save a copy of your recovery codes and store them in a safe place.'
               )}

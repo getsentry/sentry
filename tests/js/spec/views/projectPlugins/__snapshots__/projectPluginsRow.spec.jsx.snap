@@ -121,20 +121,19 @@ exports[`ProjectPluginRow renders 1`] = `
         renderNoAccessMessage={false}
         requireAll={true}
       >
-        <Flex
-          align="center"
+        <ForwardRef
+          alignItems="center"
           className="amazon-sqs"
           flex="1"
           key="amazon-sqs"
         >
-          <Base
-            align="center"
-            className="amazon-sqs css-1yrw3fm"
+          <Styled(div)
+            alignItems="center"
+            className="amazon-sqs"
             flex="1"
           >
             <div
               className="amazon-sqs css-1yrw3fm"
-              is={null}
             >
               <PluginInfo>
                 <div
@@ -161,18 +160,16 @@ exports[`ProjectPluginRow renders 1`] = `
                       </IntegrationIcon>
                     </PluginIcon>
                   </StyledPluginIcon>
-                  <Flex
-                    direction="column"
-                    justify="center"
+                  <ForwardRef
+                    flexDirection="column"
+                    justifyContent="center"
                   >
-                    <Base
-                      className="css-11zjqd3"
-                      direction="column"
-                      justify="center"
+                    <Styled(div)
+                      flexDirection="column"
+                      justifyContent="center"
                     >
                       <div
                         className="css-11zjqd3"
-                        is={null}
                       >
                         <PluginName>
                           <div
@@ -240,8 +237,8 @@ exports[`ProjectPluginRow renders 1`] = `
                           </span>
                         </div>
                       </div>
-                    </Base>
-                  </Flex>
+                    </Styled(div)>
+                  </ForwardRef>
                 </div>
               </PluginInfo>
               <Switch
@@ -281,8 +278,8 @@ exports[`ProjectPluginRow renders 1`] = `
                 </SwitchContainer>
               </Switch>
             </div>
-          </Base>
-        </Flex>
+          </Styled(div)>
+        </ForwardRef>
       </Access>
     </AccessContainer>
   </withConfig(AccessContainer)>

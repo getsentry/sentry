@@ -3,7 +3,7 @@ import LazyLoad from 'react-lazyload';
 import React from 'react';
 import PropTypes from 'prop-types';
 import createReactClass from 'create-react-class';
-import {Flex} from 'grid-emotion';
+import {Flex} from '@rebass/grid/emotion';
 import styled from 'react-emotion';
 
 import SentryTypes from 'app/sentryTypes';
@@ -119,7 +119,7 @@ const OrganizationDashboard = createReactClass({
 
   render() {
     return (
-      <Flex flex="1" direction="column">
+      <Flex flex="1" flexDirection="column">
         {!this.getFeatures().has('sentry10') && <ProjectNav />}
         <Dashboard organization={this.context.organization} {...this.props} />
       </Flex>

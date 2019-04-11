@@ -1,4 +1,4 @@
-import {Flex, Box} from 'grid-emotion';
+import {Flex, Box} from '@rebass/grid/emotion';
 import {keyframes} from 'emotion';
 import React from 'react';
 import styled from 'react-emotion';
@@ -85,7 +85,7 @@ export const DownloadCsvButton = styled(Button)`
 `;
 
 export const Sidebar = styled(props => (
-  <Flex {...props} direction="column" w={[300, 300, 300, 360]} />
+  <Flex {...props} flexDirection="column" width={[300, 300, 300, 360]} />
 ))`
   border-right: 1px solid ${p => p.theme.borderDark};
   background: #fff;

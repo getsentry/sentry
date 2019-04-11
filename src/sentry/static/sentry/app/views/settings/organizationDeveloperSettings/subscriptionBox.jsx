@@ -6,7 +6,7 @@ import {DESCRIPTIONS} from 'app/views/settings/organizationDeveloperSettings/con
 import styled from 'react-emotion';
 import Checkbox from 'app/components/checkbox';
 import Tooltip from 'app/components/tooltip';
-import {Flex} from 'grid-emotion';
+import {Flex} from '@rebass/grid/emotion';
 
 export default class SubscriptionBox extends React.Component {
   static propTypes = {

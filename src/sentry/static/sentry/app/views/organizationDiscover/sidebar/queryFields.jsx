@@ -1,6 +1,6 @@
 import PropTypes from 'prop-types';
 import React from 'react';
-import {Flex} from 'grid-emotion';
+import {Flex} from '@rebass/grid/emotion';
 
 import SentryTypes from 'app/sentryTypes';
 import {t} from 'app/locale';
@@ -52,7 +52,7 @@ export default class QueryFields extends React.Component {
 
   optionRenderer = ({label, isTag}) => {
     return (
-      <Flex align="center">
+      <Flex alignItems="center">
         {label}
         {isTag && <Badge text="tag" />}
       </Flex>

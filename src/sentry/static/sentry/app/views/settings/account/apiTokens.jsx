@@ -1,4 +1,4 @@
-import {Box, Flex} from 'grid-emotion';
+import {Box, Flex} from '@rebass/grid/emotion';
 import React from 'react';
 
 import {t, tct} from 'app/locale';
@@ -95,7 +95,7 @@ class ApiTokens extends AsyncView {
         </TextBlock>
         <Panel>
           <PanelHeader disablePadding>
-            <Flex align="center">
+            <Flex alignItems="center">
               <Box px={2} flex="1">
                 {t('Auth Token')}
               </Box>

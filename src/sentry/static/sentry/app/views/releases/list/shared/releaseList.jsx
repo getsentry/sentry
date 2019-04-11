@@ -1,6 +1,6 @@
 import PropTypes from 'prop-types';
 import React from 'react';
-import {Box} from 'grid-emotion';
+import {Box} from '@rebass/grid/emotion';
 
 import {PanelItem} from 'app/components/panels';
 import ReleaseStats from 'app/components/releaseStats';
@@ -23,7 +23,7 @@ class ReleaseList extends React.Component {
       <div>
         {this.props.releaseList.map(release => {
           return (
-            <PanelItem key={release.version} align="center" px={2} py={1}>
+            <PanelItem key={release.version} alignItems="center" px={2} py={1}>
               <Box flex="1">
                 <div>
                   <div style={{fontWeight: 'bold', marginBottom: 2}}>
@@ -36,13 +36,13 @@ class ReleaseList extends React.Component {
                   <LatestDeployOrReleaseTime orgId={orgId} release={release} />
                 </div>
               </Box>
-              <Box w={4 / 12} pl={2} className="hidden-xs">
+              <Box width={4 / 12} pl={2} className="hidden-xs">
                 <ReleaseStats release={release} />
               </Box>
-              <Box w={2 / 12} pl={2}>
+              <Box width={2 / 12} pl={2}>
                 <Count className="release-count" value={release.newGroups || 0} />
               </Box>
-              <Box w={2 / 12} pl={2}>
+              <Box width={2 / 12} pl={2}>
                 {release.lastEvent ? (
                   <TimeSince date={release.lastEvent} style={{fontSize: 13}} />
                 ) : (

@@ -1,4 +1,4 @@
-import {Flex} from 'grid-emotion';
+import {Flex} from '@rebass/grid/emotion';
 import React from 'react';
 import styled from 'react-emotion';
 import marked from 'marked';

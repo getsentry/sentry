@@ -1,4 +1,4 @@
-import {Box, Flex} from 'grid-emotion';
+import {Box, Flex} from '@rebass/grid/emotion';
 import {withTheme} from 'emotion-theming';
 import PropTypes from 'prop-types';
 import React from 'react';
@@ -96,8 +96,8 @@ export default class ProviderRow extends React.Component {
 
   render() {
     return (
-      <PanelItem p={0} direction="column">
-        <Flex align="center" p={2}>
+      <PanelItem p={0} flexDirection="column">
+        <Flex alignItems="center" p={2}>
           <PluginIcon size={36} pluginId={this.props.provider.key} />
           <Box px={2} flex={1}>
             <ProviderName>{this.props.provider.name}</ProviderName>
@@ -130,7 +130,7 @@ const Status = styled(
   withTheme(props => {
     const {enabled, ...p} = props;
     return (
-      <Flex align="center">
+      <Flex alignItems="center">
         <CircleIndicator size={6} color={enabled ? p.theme.success : p.theme.gray2} />
         <div {...p}>{enabled ? t('Installed') : t('Not Installed')}</div>
       </Flex>

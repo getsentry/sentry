@@ -2,7 +2,7 @@ import PropTypes from 'prop-types';
 import React from 'react';
 import {Link, withRouter} from 'react-router';
 import styled from 'react-emotion';
-import {Flex, Box} from 'grid-emotion';
+import {Flex, Box} from '@rebass/grid/emotion';
 
 import TimeSince from 'app/components/timeSince';
 import ShortId from 'app/components/shortId';
@@ -58,7 +58,7 @@ class EventOrGroupExtraDetails extends React.Component {
     const issuesPath = this.getIssuesPath();
 
     return (
-      <GroupExtra align="center">
+      <GroupExtra alignItems="center">
         {shortId && (
           <GroupShortId
             shortId={shortId}

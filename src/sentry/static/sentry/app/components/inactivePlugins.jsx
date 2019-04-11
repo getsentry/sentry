@@ -1,4 +1,4 @@
-import {Box, Flex} from 'grid-emotion';
+import {Box, Flex} from '@rebass/grid/emotion';
 import PropTypes from 'prop-types';
 import React from 'react';
 import styled from 'react-emotion';
@@ -46,7 +46,7 @@ class InactivePlugins extends React.Component {
         <PanelHeader>{t('Inactive Integrations')}</PanelHeader>
 
         <PanelBody>
-          <Flex p={1} flex="1" wrap="wrap">
+          <Flex p={1} flex="1" flexWrap="wrap">
             {plugins.map(plugin => {
               return (
                 <Box m={1} key={plugin.id}>
@@ -54,8 +54,8 @@ class InactivePlugins extends React.Component {
                     onClick={this.enablePlugin.bind(this, plugin)}
                     className={`ref-plugin-enable-${plugin.id}`}
                   >
-                    <Flex justify="center" align="center">
-                      <Flex align="center" mr={1}>
+                    <Flex justifyContent="center" alignItems="center">
+                      <Flex alignItems="center" mr={1}>
                         <PluginIcon pluginId={plugin.id} />
                       </Flex>
                       <TextOverflow>{plugin.shortName || plugin.name}</TextOverflow>

@@ -121,22 +121,22 @@ exports[`ProjectSecurityHeaders renders 1`] = `
         flex={false}
       >
         <PanelItem
-          direction="column"
+          flexDirection="column"
           key="csp/"
           p={0}
         >
-          <Flex
-            align="center"
+          <ForwardRef
+            alignItems="center"
             flex="1"
             p={2}
           >
-            <Box
+            <ForwardRef
               flex="1"
             >
               <HeaderName>
                 Content Security Policy (CSP)
               </HeaderName>
-            </Box>
+            </ForwardRef>
             <Button
               disabled={false}
               priority="primary"
@@ -144,25 +144,25 @@ exports[`ProjectSecurityHeaders renders 1`] = `
             >
               Instructions
             </Button>
-          </Flex>
+          </ForwardRef>
         </PanelItem>
         <PanelItem
-          direction="column"
+          flexDirection="column"
           key="expect-ct/"
           p={0}
         >
-          <Flex
-            align="center"
+          <ForwardRef
+            alignItems="center"
             flex="1"
             p={2}
           >
-            <Box
+            <ForwardRef
               flex="1"
             >
               <HeaderName>
                 Certificate Transparency (Expect-CT)
               </HeaderName>
-            </Box>
+            </ForwardRef>
             <Button
               disabled={false}
               priority="primary"
@@ -170,25 +170,25 @@ exports[`ProjectSecurityHeaders renders 1`] = `
             >
               Instructions
             </Button>
-          </Flex>
+          </ForwardRef>
         </PanelItem>
         <PanelItem
-          direction="column"
+          flexDirection="column"
           key="hpkp/"
           p={0}
         >
-          <Flex
-            align="center"
+          <ForwardRef
+            alignItems="center"
             flex="1"
             p={2}
           >
-            <Box
+            <ForwardRef
               flex="1"
             >
               <HeaderName>
                 HTTP Public Key Pinning (HPKP)
               </HeaderName>
-            </Box>
+            </ForwardRef>
             <Button
               disabled={false}
               priority="primary"
@@ -196,7 +196,7 @@ exports[`ProjectSecurityHeaders renders 1`] = `
             >
               Instructions
             </Button>
-          </Flex>
+          </ForwardRef>
         </PanelItem>
       </PanelBody>
     </Panel>

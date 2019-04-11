@@ -1,4 +1,4 @@
-import {Flex} from 'grid-emotion';
+import {Flex} from '@rebass/grid/emotion';
 import PropTypes from 'prop-types';
 import React from 'react';
 import styled from 'react-emotion';
@@ -163,7 +163,7 @@ class OwnerInput extends React.Component {
             autoCorrect="off"
             autoCapitalize="off"
           />
-          <Flex align="center" justify="space-between">
+          <Flex alignItems="center" justifyContent="space-between">
             <div>{this.parseError(error)}</div>
             <SaveButton>
               <Button

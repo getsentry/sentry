@@ -3,7 +3,7 @@ import {storiesOf} from '@storybook/react';
 import {withInfo} from '@storybook/addon-info';
 import {number, boolean} from '@storybook/addon-knobs';
 import styled from 'react-emotion';
-import {Flex} from 'grid-emotion';
+import {Flex} from '@rebass/grid/emotion';
 
 import CheckboxFancy from 'app/components/checkboxFancy';
 

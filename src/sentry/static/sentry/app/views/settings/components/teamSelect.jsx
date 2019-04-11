@@ -3,7 +3,7 @@ import React from 'react';
 import styled from 'react-emotion';
 import {debounce} from 'lodash';
 
-import {Box} from 'grid-emotion';
+import {Box} from '@rebass/grid/emotion';
 import {t} from 'app/locale';
 import Button from 'app/components/button';
 import Confirm from 'app/components/confirm';
@@ -157,7 +157,7 @@ class TeamSelect extends React.Component {
 const TeamRow = props => {
   const {orgId, team, onRemove, disabled, confirmMessage} = props;
   return (
-    <PanelItem p={2} align="center">
+    <PanelItem p={2} alignItems="center">
       <Box flex={1}>
         <Link to={`/settings/${orgId}/teams/${team}/`}>#{team}</Link>
       </Box>

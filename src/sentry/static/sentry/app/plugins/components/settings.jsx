@@ -1,4 +1,4 @@
-import {Flex} from 'grid-emotion';
+import {Flex} from '@rebass/grid/emotion';
 import PropTypes from 'prop-types';
 import React from 'react';
 import _ from 'lodash';
@@ -151,7 +151,7 @@ class PluginSettings extends PluginComponentBase {
         onSubmit={this.onSubmit}
         submitDisabled={isSaving || !hasChanges}
       >
-        <Flex direction="column">
+        <Flex flexDirection="column">
           {this.state.errors.__all__ && (
             <div className="alert alert-block alert-error">
               <ul>

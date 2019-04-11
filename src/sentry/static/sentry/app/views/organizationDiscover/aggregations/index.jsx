@@ -1,6 +1,6 @@
 import React from 'react';
 import PropTypes from 'prop-types';
-import {Box} from 'grid-emotion';
+import {Box} from '@rebass/grid/emotion';
 
 import Link from 'app/components/link';
 import InlineSvg from 'app/components/inlineSvg';

@@ -1,4 +1,4 @@
-import {Flex} from 'grid-emotion';
+import {Flex} from '@rebass/grid/emotion';
 import PropTypes from 'prop-types';
 import React from 'react';
 import Reflux from 'reflux';
@@ -150,7 +150,7 @@ const ActionColumn = styled(Flex)`
 `;
 
 const Controls = styled(({expanded, ...props}) => (
-  <Flex justify="space-between" {...props} />
+  <Flex justifyContent="space-between" {...props} />
 ))`
   border-top: 1px solid ${p => p.theme.borderLight};
   background-color: #f3f1f6;

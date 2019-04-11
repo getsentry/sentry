@@ -1,4 +1,4 @@
-import {Box, Flex} from 'grid-emotion';
+import {Box, Flex} from '@rebass/grid/emotion';
 import PropTypes from 'prop-types';
 import React from 'react';
 import _ from 'lodash';
@@ -109,14 +109,14 @@ const PluginConfig = createReactClass({
     return (
       <Panel className={`plugin-config ref-plugin-config-${data.id}`}>
         <PanelHeader hasButtons>
-          <Flex align="center" flex="1">
-            <Flex align="center" mr={1}>
+          <Flex alignItems="center" flex="1">
+            <Flex alignItems="center" mr={1}>
               <PluginIcon pluginId={data.id} />
             </Flex>
             <span>{data.name}</span>
           </Flex>
           {data.canDisable && enabled && (
-            <Flex align="center">
+            <Flex alignItems="center">
               <Box mr={1}>
                 {data.isTestable && (
                   <Button onClick={this.testPlugin} size="small">
@@ -132,7 +132,7 @@ const PluginConfig = createReactClass({
             </Flex>
           )}
         </PanelHeader>
-        <PanelBody px={2} pt={2} flex wrap="wrap">
+        <PanelBody px={2} pt={2}>
           {data.status === 'beta' ? (
             <div className="alert alert-block alert-warning">
               <strong>

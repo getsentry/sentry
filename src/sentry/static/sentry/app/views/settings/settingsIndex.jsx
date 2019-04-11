@@ -1,4 +1,4 @@
-import {Flex, Box} from 'grid-emotion';
+import {Flex, Box} from '@rebass/grid/emotion';
 import DocumentTitle from 'react-document-title';
 import PropTypes from 'prop-types';
 import React from 'react';
@@ -82,7 +82,7 @@ class SettingsIndex extends React.Component {
       <DocumentTitle title={organization ? `${organization.slug} Settings` : 'Settings'}>
         <SettingsLayout {...this.props}>
           <Flex mx={-2} wrap>
-            <Box w={1 / 3} px={2}>
+            <Box width={1 / 3} px={2}>
               <Panel>
                 <HomePanelHeader>
                   <HomeLinkIcon to="/settings/account/">
@@ -114,7 +114,7 @@ class SettingsIndex extends React.Component {
               </Panel>
             </Box>
 
-            <Box w={1 / 3} px={2}>
+            <Box width={1 / 3} px={2}>
               {/* if admin */}
               <Panel>
                 {!organization && <LoadingIndicator overlay hideSpinner />}
@@ -157,7 +157,7 @@ class SettingsIndex extends React.Component {
               </Panel>
             </Box>
 
-            <Box w={1 / 3} px={2}>
+            <Box width={1 / 3} px={2}>
               <Panel>
                 <HomePanelHeader>
                   <ExternalHomeLink css={flexCenter} href={LINKS.DOCUMENTATION}>
@@ -193,7 +193,7 @@ class SettingsIndex extends React.Component {
               </Panel>
             </Box>
 
-            <Box w={1 / 3} px={2}>
+            <Box width={1 / 3} px={2}>
               <Panel>
                 <HomePanelHeader>
                   <SupportLinkComponent css={flexCenter} {...supportLinkProps}>
@@ -227,7 +227,7 @@ class SettingsIndex extends React.Component {
               </Panel>
             </Box>
 
-            <Box w={1 / 3} px={2}>
+            <Box width={1 / 3} px={2}>
               <Panel>
                 <HomePanelHeader>
                   <HomeLinkIcon to={LINKS.API}>
@@ -258,7 +258,7 @@ class SettingsIndex extends React.Component {
             </Box>
 
             {isSuperuser && (
-              <Box w={1 / 3} px={2}>
+              <Box width={1 / 3} px={2}>
                 <Panel>
                   <HomePanelHeader>
                     <HomeLinkIcon href={LINKS.MANAGE}>

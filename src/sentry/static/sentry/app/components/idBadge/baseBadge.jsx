@@ -1,4 +1,4 @@
-import {Flex} from 'grid-emotion';
+import {Flex} from '@rebass/grid/emotion';
 import React from 'react';
 import PropTypes from 'prop-types';
 import styled from 'react-emotion';
@@ -68,7 +68,7 @@ class BaseBadge extends React.PureComponent {
     };
 
     return (
-      <Flex align="center" className={className}>
+      <Flex alignItems="center" className={className}>
         {!hideAvatar && (
           <StyledAvatar
             css={avatarClassName}

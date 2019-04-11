@@ -48,7 +48,7 @@ class PlatformList extends React.Component {
     const platformsPreview = platforms.slice(0, max);
     return (
       <PlatformIcons
-        direction={direction}
+        flexDirection={direction}
         max={max}
         size={size}
         consistentWidth={consistentWidth}

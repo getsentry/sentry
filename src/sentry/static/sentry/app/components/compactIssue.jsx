@@ -2,7 +2,7 @@ import PropTypes from 'prop-types';
 import React from 'react';
 import createReactClass from 'create-react-class';
 import Reflux from 'reflux';
-import {Flex, Box} from 'grid-emotion';
+import {Flex, Box} from '@rebass/grid/emotion';
 
 import ApiMixin from 'app/mixins/apiMixin';
 import IndicatorStore from 'app/stores/indicatorStore';
@@ -86,7 +86,7 @@ class CompactIssueHeader extends React.Component {
 
     return (
       <React.Fragment>
-        <Flex align="center">
+        <Flex alignItems="center">
           <Box mr={1}>
             <span className="error-level truncate" title={data.level} />
           </Box>
@@ -223,7 +223,7 @@ const CompactIssue = createReactClass({
       <PanelItem
         className={className}
         onClick={this.toggleSelect}
-        direction="column"
+        flexDirection="column"
         style={{paddingTop: '12px', paddingBottom: '6px'}}
       >
         <CompactIssueHeader

@@ -34,13 +34,13 @@ exports[`SettingsIndex renders 1`] = `
       }
     }
   >
-    <Flex
+    <ForwardRef
       mx={-2}
       wrap={true}
     >
-      <Box
+      <ForwardRef
         px={2}
-        w={0.3333333333333333}
+        width={0.3333333333333333}
       >
         <Panel>
           <HomePanelHeader>
@@ -103,10 +103,10 @@ exports[`SettingsIndex renders 1`] = `
             </ul>
           </HomePanelBody>
         </Panel>
-      </Box>
-      <Box
+      </ForwardRef>
+      <ForwardRef
         px={2}
-        w={0.3333333333333333}
+        width={0.3333333333333333}
       >
         <Panel>
           <HomePanelHeader>
@@ -184,10 +184,10 @@ exports[`SettingsIndex renders 1`] = `
             </ul>
           </HomePanelBody>
         </Panel>
-      </Box>
-      <Box
+      </ForwardRef>
+      <ForwardRef
         px={2}
-        w={0.3333333333333333}
+        width={0.3333333333333333}
       >
         <Panel>
           <HomePanelHeader>
@@ -240,10 +240,10 @@ exports[`SettingsIndex renders 1`] = `
             </ul>
           </HomePanelBody>
         </Panel>
-      </Box>
-      <Box
+      </ForwardRef>
+      <ForwardRef
         px={2}
-        w={0.3333333333333333}
+        width={0.3333333333333333}
       >
         <Panel>
           <HomePanelHeader>
@@ -294,10 +294,10 @@ exports[`SettingsIndex renders 1`] = `
             </ul>
           </HomePanelBody>
         </Panel>
-      </Box>
-      <Box
+      </ForwardRef>
+      <ForwardRef
         px={2}
-        w={0.3333333333333333}
+        width={0.3333333333333333}
       >
         <Panel>
           <HomePanelHeader>
@@ -343,8 +343,8 @@ exports[`SettingsIndex renders 1`] = `
             </ul>
           </HomePanelBody>
         </Panel>
-      </Box>
-    </Flex>
+      </ForwardRef>
+    </ForwardRef>
   </SettingsLayout>
 </SideEffect(DocumentTitle)>
 `;

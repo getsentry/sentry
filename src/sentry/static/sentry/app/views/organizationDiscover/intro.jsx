@@ -1,7 +1,7 @@
 import React from 'react';
 import PropTypes from 'prop-types';
 import styled from 'react-emotion';
-import {Box} from 'grid-emotion';
+import {Box} from '@rebass/grid/emotion';
 
 import {tct, t} from 'app/locale';
 
@@ -53,7 +53,7 @@ export default class Intro extends React.Component {
   render() {
     return (
       <IntroContainer>
-        <Box w={560}>
+        <Box width={560}>
           <Heading>{t('Discover lets you query raw event data in Sentry')}</Heading>
           <TextBlock>
             {tct(

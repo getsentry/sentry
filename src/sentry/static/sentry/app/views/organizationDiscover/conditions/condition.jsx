@@ -1,7 +1,7 @@
 import React from 'react';
 import {Value} from 'react-select';
 import PropTypes from 'prop-types';
-import {Box} from 'grid-emotion';
+import {Box} from '@rebass/grid/emotion';
 import {t} from 'app/locale';
 import SelectControl from 'app/components/forms/selectControl';
 
@@ -196,7 +196,7 @@ export default class Condition extends React.Component {
 
   render() {
     return (
-      <Box w={1}>
+      <Box width={1}>
         <SelectControl
           innerRef={ref => (this.select = ref)}
           value={getInternal(this.props.value)}

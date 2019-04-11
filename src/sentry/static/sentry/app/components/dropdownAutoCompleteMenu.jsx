@@ -1,5 +1,5 @@
 import {AutoSizer, List} from 'react-virtualized';
-import {Flex} from 'grid-emotion';
+import {Flex} from '@rebass/grid/emotion';
 import PropTypes from 'prop-types';
 import React from 'react';
 import _ from 'lodash';
@@ -416,7 +416,7 @@ class DropdownAutoCompleteMenu extends React.Component {
                         </EmptyMessage>
                       )}
                       {busy && (
-                        <Flex justify="center" p={1}>
+                        <Flex justifyContent="center" p={1}>
                           <EmptyMessage>{t('Searching...')}</EmptyMessage>
                         </Flex>
                       )}

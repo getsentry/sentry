@@ -67,16 +67,16 @@ exports[`ApiTokens renders empty result 1`] = `
       <PanelHeader
         disablePadding={true}
       >
-        <Flex
-          align="center"
+        <ForwardRef
+          alignItems="center"
         >
-          <Box
+          <ForwardRef
             flex="1"
             px={2}
           >
             Auth Token
-          </Box>
-        </Flex>
+          </ForwardRef>
+        </ForwardRef>
       </PanelHeader>
       <PanelBody
         direction="column"
@@ -159,16 +159,16 @@ exports[`ApiTokens renders with result 1`] = `
       <PanelHeader
         disablePadding={true}
       >
-        <Flex
-          align="center"
+        <ForwardRef
+          alignItems="center"
         >
-          <Box
+          <ForwardRef
             flex="1"
             px={2}
           >
             Auth Token
-          </Box>
-        </Flex>
+          </ForwardRef>
+        </ForwardRef>
       </PanelHeader>
       <PanelBody
         direction="column"

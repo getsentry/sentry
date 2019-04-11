@@ -1,7 +1,7 @@
 import React from 'react';
 import PropTypes from 'prop-types';
 import {Link} from 'react-router';
-import {Box, Flex} from 'grid-emotion';
+import {Box, Flex} from '@rebass/grid/emotion';
 
 import SentryTypes from 'app/sentryTypes';
 import Count from 'app/components/count';
@@ -140,7 +140,7 @@ class GroupTags extends React.Component {
 
     return (
       <div>
-        <Flex wrap="wrap">{children}</Flex>
+        <Flex flexWrap="wrap">{children}</Flex>
         <Alert type="info">
           {tct(
             'Tags are automatically indexed for searching and breakdown charts. Learn how to [link: add custom tags to issues]',

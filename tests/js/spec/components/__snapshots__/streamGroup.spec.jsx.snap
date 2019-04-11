@@ -2,7 +2,7 @@
 
 exports[`StreamGroup renders with anchors 1`] = `
 <Group
-  align="center"
+  alignItems="center"
   onClick={[Function]}
   px={0}
   py={1}
@@ -22,7 +22,7 @@ exports[`StreamGroup renders with anchors 1`] = `
     flex="1"
     ml={1}
     mr={1}
-    w={
+    width={
       Array [
         0.6666666666666666,
         0.6666666666666666,
@@ -103,10 +103,10 @@ exports[`StreamGroup renders with anchors 1`] = `
       type="error"
     />
   </GroupSummary>
-  <Box
+  <ForwardRef
     className="hidden-xs hidden-sm"
-    mx={2}
-    w={160}
+    mx={3}
+    width={160}
   >
     <GroupChart
       data={
@@ -146,11 +146,11 @@ exports[`StreamGroup renders with anchors 1`] = `
       id="1337"
       statsPeriod="24h"
     />
-  </Box>
-  <Flex
-    justify="flex-end"
-    mx={2}
-    w={
+  </ForwardRef>
+  <ForwardRef
+    justifyContent="flex-end"
+    mx={3}
+    width={
       Array [
         40,
         60,
@@ -164,11 +164,11 @@ exports[`StreamGroup renders with anchors 1`] = `
       type="text"
     />
     <StyledCount />
-  </Flex>
-  <Flex
-    justify="flex-end"
-    mx={2}
-    w={
+  </ForwardRef>
+  <ForwardRef
+    justifyContent="flex-end"
+    mx={3}
+    width={
       Array [
         40,
         60,
@@ -182,15 +182,15 @@ exports[`StreamGroup renders with anchors 1`] = `
       type="text"
     />
     <StyledCount />
-  </Flex>
-  <Box
+  </ForwardRef>
+  <ForwardRef
     className="hidden-xs hidden-sm"
-    mx={2}
-    w={80}
+    mx={3}
+    width={80}
   >
     <AssigneeSelector
       id="1337"
     />
-  </Box>
+  </ForwardRef>
 </Group>
 `;

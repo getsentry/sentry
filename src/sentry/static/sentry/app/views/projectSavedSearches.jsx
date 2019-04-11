@@ -1,4 +1,4 @@
-import {Flex} from 'grid-emotion';
+import {Flex} from '@rebass/grid/emotion';
 import PropTypes from 'prop-types';
 import React from 'react';
 import styled from 'react-emotion';
@@ -14,7 +14,7 @@ import NotFound from 'app/components/errors/notFound';
 import SentryTypes from 'app/sentryTypes';
 import SettingsPageHeader from 'app/views/settings/components/settingsPageHeader';
 
-const InputColumn = props => <Flex flex="1" justify="center" {...props} />;
+const InputColumn = props => <Flex flex="1" justifyContent="center" {...props} />;
 
 const SearchTitle = styled.div`
   font-size: 18px;
@@ -56,8 +56,8 @@ class SavedSearchRow extends React.Component {
     const deleteDisabled = !canModify && !data.isPrivate;
 
     return (
-      <PanelItem p={0} py={2} align="center">
-        <Flex flex="1" px={2} direction="column">
+      <PanelItem p={0} py={2} alignItems="center">
+        <Flex flex="1" px={2} flexDirection="column">
           <SearchTitle>{data.name}</SearchTitle>
           <code>{data.query}</code>
         </Flex>

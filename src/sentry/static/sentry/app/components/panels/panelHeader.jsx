@@ -1,4 +1,4 @@
-import {Flex} from 'grid-emotion';
+import {Flex} from '@rebass/grid/emotion';
 import PropTypes from 'prop-types';
 import React from 'react';
 import styled, {css} from 'react-emotion';
@@ -14,7 +14,7 @@ const getPadding = ({disablePadding, hasButtons}) => css`
 `;
 
 const PanelHeader = styled(({disablePadding, hasButtons, ...props}) => (
-  <Flex align="center" justify="space-between" {...props} />
+  <Flex alignItems="center" justifyContent="space-between" {...props} />
 ))`
   color: ${p => (p.lightText ? p.theme.gray2 : p.theme.gray3)};
   font-size: 13px;

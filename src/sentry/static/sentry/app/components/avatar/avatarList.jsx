@@ -1,7 +1,7 @@
 import React from 'react';
 import PropTypes from 'prop-types';
 import styled, {css} from 'react-emotion';
-import {Flex} from 'grid-emotion';
+import {Flex} from '@rebass/grid/emotion';
 
 import SentryTypes from 'app/sentryTypes';
 import Avatar from 'app/components/avatar';
@@ -42,7 +42,7 @@ export default class AvatarList extends React.Component {
     }
 
     return (
-      <Flex direction="row-reverse">
+      <Flex flexDirection="row-reverse">
         {!!numCollapsedUsers && (
           <Tooltip title={`${numCollapsedUsers} other ${typeMembers}`}>
             <CollapsedUsers size={avatarSize}>

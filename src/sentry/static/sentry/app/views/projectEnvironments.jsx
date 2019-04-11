@@ -1,4 +1,4 @@
-import {Flex} from 'grid-emotion';
+import {Flex} from '@rebass/grid/emotion';
 import PropTypes from 'prop-types';
 import React from 'react';
 import Reflux from 'reflux';
@@ -388,8 +388,8 @@ class EnvironmentRow extends React.Component {
     } = this.props;
 
     return (
-      <PanelItem align="center" justify="space-between">
-        <Flex align="center">
+      <PanelItem alignItems="center" justifyContent="space-between">
+        <Flex alignItems="center">
           {isSystemRow ? environment.displayName : environment.name}
           {isDefault && (
             <Tag priority="success" ml={1}>

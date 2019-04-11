@@ -2,6 +2,7 @@ import CHART_PALETTE from 'app/constants/chartPalette';
 
 const theme = {
   breakpoints: ['768px', '992px', '1200px'],
+  space: [0, 8, 16, 32, 64, 128, 256, 512],
 
   // Colors
   offWhite: '#FAF9FB',

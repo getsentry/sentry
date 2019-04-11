@@ -1,4 +1,4 @@
-import {Box} from 'grid-emotion';
+import {Box} from '@rebass/grid/emotion';
 import {Link} from 'react-router';
 import PropTypes from 'prop-types';
 import React from 'react';
@@ -124,7 +124,7 @@ const AllTeamsRow = createReactClass({
     );
 
     return (
-      <PanelItem p={0} align="center">
+      <PanelItem p={0} alignItems="center">
         <Box flex="1" p={2}>
           {access.has('team:read') ? (
             <Link to={`${urlPrefix}teams/${team.slug}/`}>{display}</Link>

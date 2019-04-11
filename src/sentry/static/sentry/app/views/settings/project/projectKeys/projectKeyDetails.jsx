@@ -1,4 +1,4 @@
-import {Box, Flex} from 'grid-emotion';
+import {Box, Flex} from '@rebass/grid/emotion';
 import {browserHistory} from 'react-router';
 import PropTypes from 'prop-types';
 import React from 'react';
@@ -250,7 +250,7 @@ class KeyRateLimitsForm extends React.Component {
                 >
                   {({onChange, onBlur, value}) => (
                     <Flex>
-                      <Flex flex="2" align="center">
+                      <Flex flex="2" alignItems="center">
                         <InputControl
                           type="number"
                           name="rateLimit.count"
@@ -262,7 +262,7 @@ class KeyRateLimitsForm extends React.Component {
                           onBlur={this.handleChangeCount.bind(this, onBlur, value)}
                         />
                       </Flex>
-                      <Flex justify="center" align="center" mx={10} flex="1">
+                      <Flex justifyContent="center" alignItems="center" mx={10} flex="1">
                         <small css={{whiteSpace: 'nowrap'}}>event(s) in</small>
                       </Flex>
                       <Box flex="2">

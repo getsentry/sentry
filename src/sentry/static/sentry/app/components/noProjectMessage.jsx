@@ -1,5 +1,5 @@
 import React from 'react';
-import {Flex} from 'grid-emotion';
+import {Flex} from '@rebass/grid/emotion';
 import styled from 'react-emotion';
 import PropTypes from 'prop-types';
 
@@ -37,15 +37,15 @@ export default class NoProjectMessage extends React.Component {
     return hasProjects ? (
       children
     ) : (
-      <Flex flex="1" align="center" justify="center" className={className}>
+      <Flex flex="1" alignItems="center" justifyContent="center" className={className}>
         <Wrapper>
           <img src={img} height={350} alt="Nothing to see" />
-          <Content direction="column" justify="center">
+          <Content flexDirection="column" justifyContent="center">
             <StyledPageHeading>{t('Remain Calm')}</StyledPageHeading>
             <HelpMessage>
               {t('You need at least one project to use this view')}
             </HelpMessage>
-            <Flex align="center">
+            <Flex alignItems="center">
               <CallToAction>
                 <Tooltip
                   disabled={canJoinTeam}

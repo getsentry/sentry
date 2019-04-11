@@ -1,4 +1,4 @@
-import {Box, Flex} from 'grid-emotion';
+import {Box, Flex} from '@rebass/grid/emotion';
 import PropTypes from 'prop-types';
 import React from 'react';
 import styled from 'react-emotion';
@@ -76,7 +76,7 @@ class RepositoryRow extends React.Component {
       <Access access={['org:admin']}>
         {({hasAccess}) => (
           <StyledRow status={repository.status}>
-            <Flex direction="column">
+            <Flex flexDirection="column">
               <RepositoryTitle>
                 <strong>{repository.name}</strong>
                 {!isActive && <small> &mdash; {this.getStatusLabel(repository)}</small>}

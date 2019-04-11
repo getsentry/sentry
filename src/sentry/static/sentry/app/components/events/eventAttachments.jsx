@@ -1,7 +1,7 @@
 import PropTypes from 'prop-types';
 import React from 'react';
 import createReactClass from 'create-react-class';
-import {Box} from 'grid-emotion';
+import {Box} from '@rebass/grid/emotion';
 
 import ApiMixin from 'app/mixins/apiMixin';
 import FileSize from 'app/components/fileSize';
@@ -88,7 +88,7 @@ export default createReactClass({
             <PanelBody>
               {attachmentList.map(attachment => {
                 return (
-                  <PanelItem key={attachment.id} align="center">
+                  <PanelItem key={attachment.id} alignItems="center">
                     <Box
                       flex={10}
                       pr={1}

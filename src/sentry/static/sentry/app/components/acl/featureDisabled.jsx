@@ -1,4 +1,4 @@
-import {Box, Flex} from 'grid-emotion';
+import {Box, Flex} from '@rebass/grid/emotion';
 import PropTypes from 'prop-types';
 import React from 'react';
 import styled from 'react-emotion';
@@ -74,7 +74,7 @@ class FeatureDisabled extends React.Component {
 
     const featureDisabled = (
       <React.Fragment>
-        <Flex justify="space-between" data-test-id="feature-message">
+        <Flex justifyContent="space-between" data-test-id="feature-message">
           {message}
           {!hideHelpToggle && (
             <HelpButton

@@ -1,5 +1,5 @@
 import React from 'react';
-import {Box, Flex} from 'grid-emotion';
+import {Box, Flex} from '@rebass/grid/emotion';
 import {Link} from 'react-router';
 import Access from 'app/components/acl/access';
 import Button from 'app/components/button';
@@ -180,7 +180,7 @@ const StyledButton = styled(Button)`
 const Status = styled(
   withTheme(({enabled, ...props}) => {
     return (
-      <Flex align="center">
+      <Flex alignItems="center">
         <CircleIndicator
           size={6}
           color={enabled ? props.theme.success : props.theme.gray2}
@@ -204,7 +204,7 @@ const Status = styled(
 
 const PublishStatus = styled(({published, ...props}) => {
   return (
-    <Flex align="center">
+    <Flex alignItems="center">
       <div {...props}>{published ? t('published') : t('unpublished')}</div>
     </Flex>
   );

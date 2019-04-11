@@ -1,6 +1,6 @@
 import React from 'react';
 import styled from 'react-emotion';
-import {Flex} from 'grid-emotion';
+import {Flex} from '@rebass/grid/emotion';
 
 import {t} from 'app/locale';
 
@@ -8,7 +8,7 @@ export default class NoEvents extends React.Component {
   render() {
     return (
       <Container>
-        <EmptyText align="center" justify="center">
+        <EmptyText alignItems="center" justifyContent="center">
           {t('No activity yet.')}
         </EmptyText>
       </Container>

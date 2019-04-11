@@ -1,4 +1,4 @@
-import {Flex} from 'grid-emotion';
+import {Flex} from '@rebass/grid/emotion';
 import PropTypes from 'prop-types';
 import React from 'react';
 import styled from 'react-emotion';
@@ -186,7 +186,7 @@ export const TableChart = styled(
         } = p;
 
         return (
-          <Cell justify={justify} width={width} key={`${rowIndex}-${columnIndex}`}>
+          <Cell justifyContent={justify} width={width} key={`${rowIndex}-${columnIndex}`}>
             {isTableHeader
               ? renderTableHeaderCell(p)
               : isHeader

@@ -1,4 +1,4 @@
-import {Flex} from 'grid-emotion';
+import {Flex} from '@rebass/grid/emotion';
 import {browserHistory} from 'react-router';
 import PropTypes from 'prop-types';
 import React from 'react';
@@ -37,7 +37,7 @@ class OrganizationCrumb extends React.Component {
               params: {...params, orgId: organization.slug},
             })}
           >
-            <Flex align="center">
+            <Flex alignItems="center">
               <IdBadge avatarSize={18} organization={organization} />
             </Flex>
           </TextLink>

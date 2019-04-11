@@ -21,11 +21,11 @@ exports[`ProjectChooser renders 1`] = `
       flex={false}
     >
       <PanelItem
-        align="center"
+        alignItems="center"
         key="another-project"
         p={0}
       >
-        <Box
+        <ForwardRef
           flex="1"
           p={2}
         >
@@ -58,14 +58,14 @@ exports[`ProjectChooser renders 1`] = `
               }
             />
           </Link>
-        </Box>
+        </ForwardRef>
       </PanelItem>
       <PanelItem
-        align="center"
+        alignItems="center"
         key="test-project"
         p={0}
       >
-        <Box
+        <ForwardRef
           flex="1"
           p={2}
         >
@@ -98,7 +98,7 @@ exports[`ProjectChooser renders 1`] = `
               }
             />
           </Link>
-        </Box>
+        </ForwardRef>
       </PanelItem>
     </PanelBody>
   </Panel>

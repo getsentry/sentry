@@ -1,5 +1,5 @@
 import * as Sentry from '@sentry/browser';
-import {Flex} from 'grid-emotion';
+import {Flex} from '@rebass/grid/emotion';
 import {isEqual} from 'lodash';
 import PropTypes from 'prop-types';
 import React from 'react';
@@ -200,7 +200,7 @@ class OrganizationEvents extends AsyncView {
         />
 
         {!loading && !reloading && !error && (
-          <Flex align="center" justify="space-between">
+          <Flex alignItems="center" justifyContent="space-between">
             <RowDisplay>
               {events.length ? t(`Results ${this.renderRowCounts()}`) : t('No Results')}
               {!!events.length && eventsPageLinks && (

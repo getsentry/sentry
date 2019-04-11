@@ -1,4 +1,4 @@
-import {Flex, Box} from 'grid-emotion';
+import {Flex, Box} from '@rebass/grid/emotion';
 import PropTypes from 'prop-types';
 import React from 'react';
 import Reflux from 'reflux';
@@ -95,29 +95,34 @@ const StreamGroup = createReactClass({
     const {query, hasGuideAnchor, canSelect, memberList} = this.props;
 
     return (
-      <Group onClick={this.toggleSelect} py={1} px={0} align="center">
+      <Group onClick={this.toggleSelect} py={1} px={0} alignItems="center">
         {canSelect && (
           <GroupCheckbox ml={2}>
             {hasGuideAnchor && <GuideAnchor target="issues" type="text" />}
             <GroupCheckBox id={data.id} />
           </GroupCheckbox>
         )}
-        <GroupSummary w={[8 / 12, 8 / 12, 6 / 12]} ml={canSelect ? 1 : 2} mr={1} flex="1">
+        <GroupSummary
+          width={[8 / 12, 8 / 12, 6 / 12]}
+          ml={canSelect ? 1 : 2}
+          mr={1}
+          flex="1"
+        >
           <EventOrGroupHeader data={data} query={query} />
           <EventOrGroupExtraDetails {...data} />
         </GroupSummary>
-        <Box w={160} mx={2} className="hidden-xs hidden-sm">
+        <Box width={160} mx={3} className="hidden-xs hidden-sm">
           <GroupChart id={data.id} statsPeriod={this.props.statsPeriod} data={data} />
         </Box>
-        <Flex w={[40, 60, 80, 80]} mx={2} justify="flex-end">
+        <Flex width={[40, 60, 80, 80]} mx={3} justifyContent="flex-end">
           {hasGuideAnchor && <GuideAnchor target="events" type="text" />}
           <StyledCount value={data.count} />
         </Flex>
-        <Flex w={[40, 60, 80, 80]} mx={2} justify="flex-end">
+        <Flex width={[40, 60, 80, 80]} mx={3} justifyContent="flex-end">
           {hasGuideAnchor && <GuideAnchor target="users" type="text" />}
           <StyledCount value={data.userCount} />
         </Flex>
-        <Box w={80} mx={2} className="hidden-xs hidden-sm">
+        <Box width={80} mx={3} className="hidden-xs hidden-sm">
           <AssigneeSelector id={data.id} memberList={memberList} />
         </Box>
       </Group>

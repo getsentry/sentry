@@ -81,15 +81,14 @@ exports[`ConfirmDelete renders 1`] = `
               <Component
                 className="css-11ihpht-FieldWrapper-getPadding-borderStyle-inlineStyle etqqcs20"
               >
-                <Flex
+                <ForwardRef
                   className="css-11ihpht-FieldWrapper-getPadding-borderStyle-inlineStyle etqqcs20"
                 >
-                  <Base
-                    className="etqqcs20 css-1uohzo7-FieldWrapper-getPadding-borderStyle-inlineStyle"
+                  <Styled(div)
+                    className="css-11ihpht-FieldWrapper-getPadding-borderStyle-inlineStyle etqqcs20"
                   >
                     <div
-                      className="etqqcs20 css-1uohzo7-FieldWrapper-getPadding-borderStyle-inlineStyle"
-                      is={null}
+                      className="css-11ihpht-FieldWrapper-getPadding-borderStyle-inlineStyle etqqcs20 css-sncxrr"
                     >
                       <FieldDescription
                         inline={false}
@@ -133,29 +132,27 @@ exports[`ConfirmDelete renders 1`] = `
                             className="css-1ge7tqf-FieldControlErrorWrapper e78b1iv0"
                             inline={false}
                           >
-                            <Box
+                            <ForwardRef
                               className="css-1ge7tqf-FieldControlErrorWrapper e78b1iv0"
                             >
-                              <Base
-                                className="e78b1iv0 css-nnn2ut-FieldControlErrorWrapper"
+                              <Styled(div)
+                                className="css-1ge7tqf-FieldControlErrorWrapper e78b1iv0"
                               >
                                 <div
-                                  className="e78b1iv0 css-nnn2ut-FieldControlErrorWrapper"
-                                  is={null}
+                                  className="css-1ge7tqf-FieldControlErrorWrapper e78b1iv0 css-roynbj"
                                 >
                                   <FieldControlWrapper>
                                     <Component
                                       className="css-1ke1xob-FieldControlWrapper e78b1iv2"
                                     >
-                                      <Flex
+                                      <ForwardRef
                                         className="css-1ke1xob-FieldControlWrapper e78b1iv2"
                                       >
-                                        <Base
-                                          className="e78b1iv2 css-w4o1g8-FieldControlWrapper"
+                                        <Styled(div)
+                                          className="css-1ke1xob-FieldControlWrapper e78b1iv2"
                                         >
                                           <div
-                                            className="e78b1iv2 css-w4o1g8-FieldControlWrapper"
-                                            is={null}
+                                            className="css-1ke1xob-FieldControlWrapper e78b1iv2 css-sncxrr"
                                           >
                                             <FieldControlStyled
                                               alignRight={false}
@@ -164,15 +161,14 @@ exports[`ConfirmDelete renders 1`] = `
                                                 alignRight={false}
                                                 className="css-1pkvhmy-FieldControlStyled e78b1iv1"
                                               >
-                                                <Box
+                                                <ForwardRef
                                                   className="css-1pkvhmy-FieldControlStyled e78b1iv1"
                                                 >
-                                                  <Base
-                                                    className="e78b1iv1 css-wkkbba-FieldControlStyled"
+                                                  <Styled(div)
+                                                    className="css-1pkvhmy-FieldControlStyled e78b1iv1"
                                                   >
                                                     <div
-                                                      className="e78b1iv1 css-wkkbba-FieldControlStyled"
-                                                      is={null}
+                                                      className="css-1pkvhmy-FieldControlStyled e78b1iv1 css-roynbj"
                                                     >
                                                       <Input
                                                         onChange={[Function]}
@@ -189,8 +185,8 @@ exports[`ConfirmDelete renders 1`] = `
                                                         />
                                                       </Input>
                                                     </div>
-                                                  </Base>
-                                                </Box>
+                                                  </Styled(div)>
+                                                </ForwardRef>
                                               </Component>
                                             </FieldControlStyled>
                                             <FieldControlState
@@ -200,34 +196,33 @@ exports[`ConfirmDelete renders 1`] = `
                                                 className="css-1x60lk6-FieldControlState e1rziqw00"
                                                 flexibleControlStateSize={true}
                                               >
-                                                <Flex
+                                                <ForwardRef
                                                   className="css-1x60lk6-FieldControlState e1rziqw00"
                                                 >
-                                                  <Base
-                                                    className="e1rziqw00 css-dgyrfj-FieldControlState"
+                                                  <Styled(div)
+                                                    className="css-1x60lk6-FieldControlState e1rziqw00"
                                                   >
                                                     <div
-                                                      className="e1rziqw00 css-dgyrfj-FieldControlState"
-                                                      is={null}
+                                                      className="css-1x60lk6-FieldControlState e1rziqw00 css-sncxrr"
                                                     />
-                                                  </Base>
-                                                </Flex>
+                                                  </Styled(div)>
+                                                </ForwardRef>
                                               </Component>
                                             </FieldControlState>
                                           </div>
-                                        </Base>
-                                      </Flex>
+                                        </Styled(div)>
+                                      </ForwardRef>
                                     </Component>
                                   </FieldControlWrapper>
                                 </div>
-                              </Base>
-                            </Box>
+                              </Styled(div)>
+                            </ForwardRef>
                           </Component>
                         </FieldControlErrorWrapper>
                       </FieldControl>
                     </div>
-                  </Base>
-                </Flex>
+                  </Styled(div)>
+                </ForwardRef>
               </Component>
             </FieldWrapper>
           </Field>

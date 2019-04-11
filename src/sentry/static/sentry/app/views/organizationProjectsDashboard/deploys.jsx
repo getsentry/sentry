@@ -1,6 +1,6 @@
 import React from 'react';
 import styled from 'react-emotion';
-import {Flex, Box} from 'grid-emotion';
+import {Flex, Box} from '@rebass/grid/emotion';
 import moment from 'moment-timezone';
 
 import SentryTypes from 'app/sentryTypes';
@@ -64,7 +64,7 @@ class Deploy extends React.Component {
     const hasSentry10 = new Set(organization.features).has('sentry10');
 
     return (
-      <DeployRow justify="space-between">
+      <DeployRow justifyContent="space-between">
         <Environment>{deploy.environment}</Environment>
         <Version>
           <StyledLink
@@ -79,7 +79,7 @@ class Deploy extends React.Component {
             {getShortVersion(deploy.version)}
           </StyledLink>
         </Version>
-        <Flex w={90} justify="flex-end">
+        <Flex width={90} justifyContent="flex-end">
           <StyledDynamicWrapper
             value={moment(deploy.dateFinished).fromNow()}
             fixed="3 hours ago"
@@ -129,7 +129,7 @@ class NoDeploys extends React.Component {
   render() {
     return (
       <DeployBox p={2}>
-        <Background align="center" justify="center">
+        <Background alignItems="center" justifyContent="center">
           <Button size="xsmall" href="https://docs.sentry.io/learn/releases/" external>
             {t('Track deploys')}
           </Button>

@@ -12,12 +12,12 @@ exports[`InactivePlugins renders plugins list 1`] = `
     disablePadding={true}
     flex={false}
   >
-    <Flex
+    <ForwardRef
       flex="1"
+      flexWrap="wrap"
       p={1}
-      wrap="wrap"
     >
-      <Box
+      <ForwardRef
         key="amazon-sqs"
         m={1}
       >
@@ -25,26 +25,26 @@ exports[`InactivePlugins renders plugins list 1`] = `
           className="ref-plugin-enable-amazon-sqs"
           onClick={[Function]}
         >
-          <Flex
-            align="center"
-            justify="center"
+          <ForwardRef
+            alignItems="center"
+            justifyContent="center"
           >
-            <Flex
-              align="center"
+            <ForwardRef
+              alignItems="center"
               mr={1}
             >
               <PluginIcon
                 pluginId="amazon-sqs"
                 size={20}
               />
-            </Flex>
+            </ForwardRef>
             <TextOverflow>
               Amazon SQS
             </TextOverflow>
-          </Flex>
+          </ForwardRef>
         </IntegrationButton>
-      </Box>
-      <Box
+      </ForwardRef>
+      <ForwardRef
         key="github"
         m={1}
       >
@@ -52,26 +52,26 @@ exports[`InactivePlugins renders plugins list 1`] = `
           className="ref-plugin-enable-github"
           onClick={[Function]}
         >
-          <Flex
-            align="center"
-            justify="center"
+          <ForwardRef
+            alignItems="center"
+            justifyContent="center"
           >
-            <Flex
-              align="center"
+            <ForwardRef
+              alignItems="center"
               mr={1}
             >
               <PluginIcon
                 pluginId="github"
                 size={20}
               />
-            </Flex>
+            </ForwardRef>
             <TextOverflow>
               GitHub
             </TextOverflow>
-          </Flex>
+          </ForwardRef>
         </IntegrationButton>
-      </Box>
-      <Box
+      </ForwardRef>
+      <ForwardRef
         key="hidden-plugin"
         m={1}
       >
@@ -79,26 +79,26 @@ exports[`InactivePlugins renders plugins list 1`] = `
           className="ref-plugin-enable-hidden-plugin"
           onClick={[Function]}
         >
-          <Flex
-            align="center"
-            justify="center"
+          <ForwardRef
+            alignItems="center"
+            justifyContent="center"
           >
-            <Flex
-              align="center"
+            <ForwardRef
+              alignItems="center"
               mr={1}
             >
               <PluginIcon
                 pluginId="hidden-plugin"
                 size={20}
               />
-            </Flex>
+            </ForwardRef>
             <TextOverflow>
               Hidden Plugin
             </TextOverflow>
-          </Flex>
+          </ForwardRef>
         </IntegrationButton>
-      </Box>
-    </Flex>
+      </ForwardRef>
+    </ForwardRef>
   </PanelBody>
 </Panel>
 `;

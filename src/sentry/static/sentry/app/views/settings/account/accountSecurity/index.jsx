@@ -1,7 +1,7 @@
 /**
  * Lists 2fa devices + password change form
  */
-import {Box, Flex} from 'grid-emotion';
+import {Box, Flex} from '@rebass/grid/emotion';
 import React from 'react';
 import styled from 'react-emotion';
 import PropTypes from 'prop-types';
@@ -123,8 +123,8 @@ class AccountSecurity extends AsyncView {
                   name,
                 } = auth;
                 return (
-                  <PanelItem key={id} p={0} direction="column">
-                    <Flex flex="1" p={2} align="center">
+                  <PanelItem key={id} p={0} flexDirection="column">
+                    <Flex flex="1" p={2} alignItems="center">
                       <Box flex="1">
                         <CircleIndicator css={{marginRight: 6}} enabled={isEnrolled} />
                         <AuthenticatorName>{name}</AuthenticatorName>

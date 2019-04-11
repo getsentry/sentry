@@ -104,34 +104,31 @@ exports[`Docs Search Modal can open help search modal and complete a search 1`] 
                 }
               }
             >
-              <Flex
-                align="center"
-                justify="space-between"
+              <ForwardRef
+                alignItems="center"
+                justifyContent="space-between"
               >
-                <Base
-                  align="center"
-                  className="css-v7pzd9"
-                  justify="space-between"
+                <Styled(div)
+                  alignItems="center"
+                  justifyContent="space-between"
                 >
                   <div
                     className="css-v7pzd9"
-                    is={null}
                   >
                     <Content>
                       <Component
                         className="css-17yjk7u-Content e1deq8q73"
                       >
-                        <Flex
+                        <ForwardRef
                           className="css-17yjk7u-Content e1deq8q73"
-                          direction="column"
+                          flexDirection="column"
                         >
-                          <Base
-                            className="e1deq8q73 css-1j7ynie-Content"
-                            direction="column"
+                          <Styled(div)
+                            className="css-17yjk7u-Content e1deq8q73"
+                            flexDirection="column"
                           >
                             <div
-                              className="e1deq8q73 css-1j7ynie-Content"
-                              is={null}
+                              className="css-17yjk7u-Content e1deq8q73 css-9skeys"
                             >
                               <div>
                                 <SearchTitle>
@@ -158,8 +155,8 @@ exports[`Docs Search Modal can open help search modal and complete a search 1`] 
                                 </div>
                               </SearchDetail>
                             </div>
-                          </Base>
-                        </Flex>
+                          </Styled(div)>
+                        </ForwardRef>
                       </Component>
                     </Content>
                     <DocsBadge>
@@ -178,8 +175,8 @@ exports[`Docs Search Modal can open help search modal and complete a search 1`] 
                       </Component>
                     </DocsBadge>
                   </div>
-                </Base>
-              </Flex>
+                </Styled(div)>
+              </ForwardRef>
             </SearchResult>
           </withRouter(SearchResult)>
         </div>
@@ -282,34 +279,31 @@ exports[`Docs Search Modal can open help search modal and complete a search 1`] 
                 }
               }
             >
-              <Flex
-                align="center"
-                justify="space-between"
+              <ForwardRef
+                alignItems="center"
+                justifyContent="space-between"
               >
-                <Base
-                  align="center"
-                  className="css-v7pzd9"
-                  justify="space-between"
+                <Styled(div)
+                  alignItems="center"
+                  justifyContent="space-between"
                 >
                   <div
                     className="css-v7pzd9"
-                    is={null}
                   >
                     <Content>
                       <Component
                         className="css-17yjk7u-Content e1deq8q73"
                       >
-                        <Flex
+                        <ForwardRef
                           className="css-17yjk7u-Content e1deq8q73"
-                          direction="column"
+                          flexDirection="column"
                         >
-                          <Base
-                            className="e1deq8q73 css-1j7ynie-Content"
-                            direction="column"
+                          <Styled(div)
+                            className="css-17yjk7u-Content e1deq8q73"
+                            flexDirection="column"
                           >
                             <div
-                              className="e1deq8q73 css-1j7ynie-Content"
-                              is={null}
+                              className="css-17yjk7u-Content e1deq8q73 css-9skeys"
                             >
                               <div>
                                 <SearchTitle>
@@ -336,8 +330,8 @@ exports[`Docs Search Modal can open help search modal and complete a search 1`] 
                                 </div>
                               </SearchDetail>
                             </div>
-                          </Base>
-                        </Flex>
+                          </Styled(div)>
+                        </ForwardRef>
                       </Component>
                     </Content>
                     <FaqsBadge>
@@ -356,8 +350,8 @@ exports[`Docs Search Modal can open help search modal and complete a search 1`] 
                       </Component>
                     </FaqsBadge>
                   </div>
-                </Base>
-              </Flex>
+                </Styled(div)>
+              </ForwardRef>
             </SearchResult>
           </withRouter(SearchResult)>
         </div>

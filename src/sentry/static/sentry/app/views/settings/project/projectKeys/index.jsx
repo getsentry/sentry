@@ -1,4 +1,4 @@
-import {Box, Flex} from 'grid-emotion';
+import {Box, Flex} from '@rebass/grid/emotion';
 import {Link} from 'react-router';
 import DocumentTitle from 'react-document-title';
 import PropTypes from 'prop-types';
@@ -159,7 +159,7 @@ const KeyRow = createReactClass({
               </small>
             )}
           </Box>
-          <Flex align="center">
+          <Flex alignItems="center">
             {controls.map((c, n) => (
               <KeyControl key={n}> {c}</KeyControl>
             ))}

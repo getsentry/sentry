@@ -1,4 +1,4 @@
-import {Box, Flex} from 'grid-emotion';
+import {Box, Flex} from '@rebass/grid/emotion';
 import PropTypes from 'prop-types';
 import React from 'react';
 import styled from 'react-emotion';
@@ -74,7 +74,7 @@ class ApiTokenRow extends React.Component {
                   <TextCopyInput
                     flexValueContainer={false}
                     renderer={({value, ref}) => (
-                      <Flex align="center" ref={ref}>
+                      <Flex alignItems="center" ref={ref}>
                         {value}
                       </Flex>
                     )}

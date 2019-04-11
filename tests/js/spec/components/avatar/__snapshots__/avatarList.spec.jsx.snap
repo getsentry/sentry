@@ -99,16 +99,14 @@ exports[`AvatarList renders with collapsed avatar count if > 5 users 1`] = `
     ]
   }
 >
-  <Flex
-    direction="row-reverse"
+  <ForwardRef
+    flexDirection="row-reverse"
   >
-    <Base
-      className="css-1go71fn"
-      direction="row-reverse"
+    <Styled(div)
+      flexDirection="row-reverse"
     >
       <div
         className="css-1go71fn"
-        is={null}
       >
         <Tooltip
           title="1 other users"
@@ -1005,8 +1003,8 @@ exports[`AvatarList renders with collapsed avatar count if > 5 users 1`] = `
           </Avatar>
         </StyledAvatar>
       </div>
-    </Base>
-  </Flex>
+    </Styled(div)>
+  </ForwardRef>
 </AvatarList>
 `;
 
@@ -1053,16 +1051,14 @@ exports[`AvatarList renders with user avatars 1`] = `
     ]
   }
 >
-  <Flex
-    direction="row-reverse"
+  <ForwardRef
+    flexDirection="row-reverse"
   >
-    <Base
-      className="css-1go71fn"
-      direction="row-reverse"
+    <Styled(div)
+      flexDirection="row-reverse"
     >
       <div
         className="css-1go71fn"
-        is={null}
       >
         <StyledAvatar
           hasTooltip={true}
@@ -1413,7 +1409,7 @@ exports[`AvatarList renders with user avatars 1`] = `
           </Avatar>
         </StyledAvatar>
       </div>
-    </Base>
-  </Flex>
+    </Styled(div)>
+  </ForwardRef>
 </AvatarList>
 `;

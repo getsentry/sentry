@@ -1,6 +1,6 @@
 import React from 'react';
 import PropTypes from 'prop-types';
-import {Flex, Box} from 'grid-emotion';
+import {Flex, Box} from '@rebass/grid/emotion';
 
 import {t, tct} from 'app/locale';
 import Button from 'app/components/button';
@@ -58,7 +58,7 @@ class OrganizationAccessRequests extends React.Component {
               member.user &&
               (member.user.name || member.user.email || member.user.username);
             return (
-              <PanelItem p={0} key={id} align="center">
+              <PanelItem p={0} key={id} alignItems="center">
                 <Box p={2} flex="1">
                   {tct('[name] requests access to the [team] team.', {
                     name: <strong>{displayName}</strong>,

@@ -1,6 +1,6 @@
 import React from 'react';
 import moment from 'moment';
-import {Flex} from 'grid-emotion';
+import {Flex} from '@rebass/grid/emotion';
 
 import SentryTypes from 'app/sentryTypes';
 import getDynamicText from 'app/utils/getDynamicText';
@@ -72,7 +72,7 @@ export default class SavedQueries extends React.Component {
   renderLoading() {
     return (
       <Fieldset>
-        <Flex justify="center">
+        <Flex justifyContent="center">
           <LoadingIndicator mini />
         </Flex>
       </Fieldset>

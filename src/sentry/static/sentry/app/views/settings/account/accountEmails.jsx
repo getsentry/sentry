@@ -1,4 +1,4 @@
-import {Flex, Box} from 'grid-emotion';
+import {Flex, Box} from '@rebass/grid/emotion';
 import PropTypes from 'prop-types';
 import React from 'react';
 
@@ -45,8 +45,8 @@ class EmailRow extends React.Component {
     const {email, isPrimary, isVerified, hideRemove} = this.props;
 
     return (
-      <PanelItem justify="space-between">
-        <Flex align="center">
+      <PanelItem justifyContent="space-between">
+        <Flex alignItems="center">
           {email}
           {!isVerified && (
             <Tag ml={1} priority="warning">

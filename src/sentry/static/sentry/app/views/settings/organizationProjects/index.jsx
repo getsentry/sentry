@@ -1,4 +1,4 @@
-import {Box} from 'grid-emotion';
+import {Box} from '@rebass/grid/emotion';
 import PropTypes from 'prop-types';
 import React from 'react';
 
@@ -109,14 +109,14 @@ export default class OrganizationProjects extends AsyncView {
           </PanelHeader>
           <PanelBody css={{width: '100%'}}>
             {sortProjects(projectList).map((project, i) => (
-              <PanelItem p={0} key={project.id} align="center">
+              <PanelItem p={0} key={project.id} alignItems="center">
                 <Box p={2} flex="1">
                   <ProjectListItem
                     project={project}
                     organization={this.context.organization}
                   />
                 </Box>
-                <Box w={3 / 12} p={2}>
+                <Box width={3 / 12} p={2}>
                   <ProjectStatsGraph
                     key={project.id}
                     project={project}
@@ -124,7 +124,7 @@ export default class OrganizationProjects extends AsyncView {
                   />
                 </Box>
                 {!hasNewRoutes && (
-                  <Box p={2} align="right">
+                  <Box p={2} alignItems="right">
                     <Button
                       icon="icon-settings"
                       size="small"

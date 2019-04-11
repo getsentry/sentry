@@ -48,13 +48,13 @@ const getFields = ({authenticator, hasSentCode, onSmsReset, onSmsSubmit, onU2fTa
   if (qrcode) {
     return [
       () => (
-        <PanelItem key="qrcode" justify="center" p={2}>
+        <PanelItem key="qrcode" justifyContent="center" p={2}>
           <Qrcode code={authenticator.qrcode} />
         </PanelItem>
       ),
       ...form,
       () => (
-        <PanelItem key="confirm" justify="flex-end" p={2}>
+        <PanelItem key="confirm" justifyContent="flex-end" p={2}>
           <Button priority="primary" type="submit">
             {t('Confirm')}
           </Button>
@@ -78,7 +78,7 @@ const getFields = ({authenticator, hasSentCode, onSmsReset, onSmsSubmit, onU2fTa
         visible: () => hasSentCode,
       },
       () => (
-        <PanelItem key="sms-footer" justify="flex-end" p={2} pr={'36px'}>
+        <PanelItem key="sms-footer" justifyContent="flex-end" p={2} pr={'36px'}>
           {hasSentCode && (
             <Button css={{marginRight: 6}} onClick={onSmsReset}>
               {t('Start Over')}

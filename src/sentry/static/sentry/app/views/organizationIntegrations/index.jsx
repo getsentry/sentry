@@ -1,4 +1,4 @@
-import {Box} from 'grid-emotion';
+import {Box} from '@rebass/grid/emotion';
 import {compact, groupBy, keyBy} from 'lodash';
 import React from 'react';
 import styled from 'react-emotion';

@@ -2,7 +2,7 @@ import React from 'react';
 import createReactClass from 'create-react-class';
 import {browserHistory} from 'react-router';
 import $ from 'jquery';
-import {Box} from 'grid-emotion';
+import {Box} from '@rebass/grid/emotion';
 import styled from 'react-emotion';
 
 import {t} from 'app/locale';
@@ -66,7 +66,7 @@ const ProjectChooser = createReactClass({
           <PanelHeader hasButtons>{t('Projects')}</PanelHeader>
           <PanelBody css={{width: '100%'}}>
             {sortProjects(org.projects).map((project, i) => (
-              <PanelItem p={0} key={project.slug} align="center">
+              <PanelItem p={0} key={project.slug} alignItems="center">
                 <Box p={2} flex="1">
                   <Link
                     to={`/${org.slug}/${project.slug}/${task.location}`}

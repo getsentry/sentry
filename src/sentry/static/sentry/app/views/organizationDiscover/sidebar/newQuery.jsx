@@ -1,6 +1,6 @@
 import PropTypes from 'prop-types';
 import React from 'react';
-import {Flex, Box} from 'grid-emotion';
+import {Flex, Box} from '@rebass/grid/emotion';
 import {browserHistory} from 'react-router';
 
 import Button from 'app/components/button';
@@ -60,7 +60,7 @@ export default class NewQuery extends React.Component {
           onUpdateField={onUpdateField}
           isLoading={isLoading}
           actions={
-            <Flex justify="space-between">
+            <Flex justifyContent="space-between">
               <Flex>
                 <Box mr={1}>
                   <Button

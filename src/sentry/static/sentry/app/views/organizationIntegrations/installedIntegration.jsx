@@ -1,4 +1,4 @@
-import {Box, Flex} from 'grid-emotion';
+import {Box, Flex} from '@rebass/grid/emotion';
 import PropTypes from 'prop-types';
 import React from 'react';
 import styled from 'react-emotion';
@@ -112,7 +112,7 @@ export default class InstalledIntegration extends React.Component {
     return (
       <Access access={['org:integrations']}>
         {({hasAccess}) => (
-          <Flex align="center" key={integration.id} className={className}>
+          <Flex alignItems="center" key={integration.id} className={className}>
             <Box flex={1}>
               <IntegrationItem compact integration={integration} />
             </Box>

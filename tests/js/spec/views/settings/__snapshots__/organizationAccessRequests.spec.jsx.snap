@@ -7,14 +7,14 @@ exports[`OrganizationAccessRequests renders list 1`] = `
   <PanelHeader
     disablePadding={true}
   >
-    <Flex>
-      <Box
+    <ForwardRef>
+      <ForwardRef
         flex="1"
         px={2}
       >
         Pending Access Requests
-      </Box>
-    </Flex>
+      </ForwardRef>
+    </ForwardRef>
   </PanelHeader>
   <PanelBody
     direction="column"
@@ -22,11 +22,11 @@ exports[`OrganizationAccessRequests renders list 1`] = `
     flex={false}
   >
     <PanelItem
-      align="center"
+      alignItems="center"
       key="id"
       p={0}
     >
-      <Box
+      <ForwardRef
         flex="1"
         p={2}
       >
@@ -55,8 +55,8 @@ exports[`OrganizationAccessRequests renders list 1`] = `
              team.
           </span>
         </span>
-      </Box>
-      <Box
+      </ForwardRef>
+      <ForwardRef
         p={2}
       >
         <Button
@@ -79,7 +79,7 @@ exports[`OrganizationAccessRequests renders list 1`] = `
         >
           Deny
         </Button>
-      </Box>
+      </ForwardRef>
     </PanelItem>
   </PanelBody>
 </Panel>

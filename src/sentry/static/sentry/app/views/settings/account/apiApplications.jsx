@@ -1,4 +1,4 @@
-import {Box, Flex} from 'grid-emotion';
+import {Box, Flex} from '@rebass/grid/emotion';
 import {Link} from 'react-router';
 import PropTypes from 'prop-types';
 import React from 'react';
@@ -81,7 +81,7 @@ const ApiApplicationRow = createReactClass({
     }
 
     return (
-      <PanelItem justify="space-between" px={2} py={2}>
+      <PanelItem justifyContent="space-between" px={2} py={2}>
         <Box flex="1">
           <h4 style={{marginBottom: 5}}>
             <Link to={`${ROUTE_PREFIX}applications/${app.id}/`}>
@@ -93,7 +93,7 @@ const ApiApplicationRow = createReactClass({
           </small>
         </Box>
 
-        <Flex align="center">
+        <Flex alignItems="center">
           <Box pl={2}>
             <a
               onClick={this.handleRemove}
@@ -165,7 +165,7 @@ class ApiApplications extends AsyncView {
 
         <Panel>
           <PanelHeader disablePadding>
-            <Flex align="center">
+            <Flex alignItems="center">
               <Box px={2} flex="1">
                 {t('Application Name')}
               </Box>

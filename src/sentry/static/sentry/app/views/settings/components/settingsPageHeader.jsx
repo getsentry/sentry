@@ -1,7 +1,7 @@
 import PropTypes from 'prop-types';
 import React from 'react';
 import styled from 'react-emotion';
-import {Flex, Box} from 'grid-emotion';
+import {Flex, Box} from '@rebass/grid/emotion';
 
 import space from 'app/styles/space';
 import {HeaderTitle} from 'app/styles/organization';
@@ -23,7 +23,7 @@ class SettingsPageHeading extends React.Component {
   render() {
     return (
       <Wrapper tabs={this.props.tabs}>
-        <Flex align="center">
+        <Flex alignItems="center">
           {this.props.icon && <Box pr={1}>{this.props.icon}</Box>}
           {this.props.title && (
             <Title tabs={this.props.tabs} styled={this.props.noTitleStyles}>

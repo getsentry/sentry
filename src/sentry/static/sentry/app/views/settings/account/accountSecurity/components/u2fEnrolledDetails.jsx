@@ -1,4 +1,4 @@
-import {Box, Flex} from 'grid-emotion';
+import {Box, Flex} from '@rebass/grid/emotion';
 import PropTypes from 'prop-types';
 import React from 'react';
 
@@ -50,7 +50,7 @@ class U2fEnrolledDetails extends React.Component {
           {hasDevices &&
             devices.map(device => (
               <PanelItem p={0} key={device.name}>
-                <Flex p={2} pr={0} align="center" flex="1">
+                <Flex p={2} pr={0} alignItems="center" flex="1">
                   <Box flex="1">{device.name}</Box>
                   <div css={{fontSize: '0.8em', opacity: 0.6}}>
                     <DateTime date={device.timestamp} />
@@ -88,7 +88,7 @@ class U2fEnrolledDetails extends React.Component {
                 </Box>
               </PanelItem>
             ))}
-          <PanelItem justify="flex-end" p={2}>
+          <PanelItem justifyContent="flex-end" p={2}>
             <Button type="button" to="/settings/account/security/mfa/u2f/enroll/">
               {t('Add Another Device')}
             </Button>

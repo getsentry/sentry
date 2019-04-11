@@ -1,5 +1,5 @@
 import React from 'react';
-import {Flex} from 'grid-emotion';
+import {Flex} from '@rebass/grid/emotion';
 import styled from 'react-emotion';
 
 import {analytics} from 'app/utils/analytics';
@@ -27,7 +27,7 @@ export default class Resources extends React.Component {
         </RobotPanel>
         <ResourcesSection>
           <h4>{t('Resources')}</h4>
-          <Flex justify={'space-between'}>
+          <Flex justifyContent={'space-between'}>
             <Flex width={3 / 10}>
               <ResourceCard
                 link={'https://blog.sentry.io/2018/03/06/the-sentry-workflow'}

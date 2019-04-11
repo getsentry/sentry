@@ -2,7 +2,7 @@ import React from 'react';
 import {Link, withRouter} from 'react-router';
 import PropTypes from 'prop-types';
 import styled from 'react-emotion';
-import {Box} from 'grid-emotion';
+import {Box} from '@rebass/grid/emotion';
 
 import AsyncView from 'app/views/asyncView';
 import BetaTag from 'app/components/betaTag';
@@ -97,7 +97,12 @@ class OrganizationMonitors extends AsyncView {
             {this.state.monitorList.map(monitor => {
               return (
                 <PanelItem key={monitor.id}>
-                  <Box style={{width: 16}} align="center" justify="center" mr={2}>
+                  <Box
+                    style={{width: 16}}
+                    alignItems="center"
+                    justifyContent="center"
+                    mr={2}
+                  >
                     <MonitorIcon status={monitor.status} size={16} />
                   </Box>
                   <Box flex="1" mr={2}>

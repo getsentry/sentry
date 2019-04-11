@@ -493,20 +493,18 @@ exports[`RuleBuilder renders 1`] = `
           </StyledSvg>
         </InlineSvg>
       </Divider>
-      <Flex
-        align="center"
+      <ForwardRef
+        alignItems="center"
         flex="1"
         mr={1}
       >
-        <Base
-          align="center"
-          className="css-1q48dzo"
+        <Styled(div)
+          alignItems="center"
           flex="1"
           mr={1}
         >
           <div
-            className="css-1q48dzo"
-            is={null}
+            className="css-hi79ae"
           >
             <SelectOwners
               onChange={[Function]}
@@ -782,8 +780,8 @@ exports[`RuleBuilder renders 1`] = `
                                     "type": "team",
                                   },
                                   "disabled": true,
-                                  "label": <Flex
-                                    justify="space-between"
+                                  "label": <ForwardRef
+                                    justifyContent="space-between"
                                   >
                                     <DisabledLabel>
                                       <Tooltip
@@ -822,7 +820,7 @@ exports[`RuleBuilder renders 1`] = `
                                         />
                                       </AddToProjectButton>
                                     </Tooltip>
-                                  </Flex>,
+                                  </ForwardRef>,
                                   "searchKey": "#team-not-in-project",
                                   "value": "team:4",
                                 },
@@ -973,8 +971,8 @@ exports[`RuleBuilder renders 1`] = `
               </MultiSelectControl>
             </SelectOwners>
           </div>
-        </Base>
-      </Flex>
+        </Styled(div)>
+      </ForwardRef>
       <AddButton
         disabled={true}
         icon="icon-circle-add"
@@ -1790,20 +1788,18 @@ exports[`RuleBuilder renders with suggestions 1`] = `
           </StyledSvg>
         </InlineSvg>
       </Divider>
-      <Flex
-        align="center"
+      <ForwardRef
+        alignItems="center"
         flex="1"
         mr={1}
       >
-        <Base
-          align="center"
-          className="css-1q48dzo"
+        <Styled(div)
+          alignItems="center"
           flex="1"
           mr={1}
         >
           <div
-            className="css-1q48dzo"
-            is={null}
+            className="css-hi79ae"
           >
             <SelectOwners
               onChange={[Function]}
@@ -2345,8 +2341,8 @@ exports[`RuleBuilder renders with suggestions 1`] = `
                                     "type": "team",
                                   },
                                   "disabled": true,
-                                  "label": <Flex
-                                    justify="space-between"
+                                  "label": <ForwardRef
+                                    justifyContent="space-between"
                                   >
                                     <DisabledLabel>
                                       <Tooltip
@@ -2385,7 +2381,7 @@ exports[`RuleBuilder renders with suggestions 1`] = `
                                         />
                                       </AddToProjectButton>
                                     </Tooltip>
-                                  </Flex>,
+                                  </ForwardRef>,
                                   "searchKey": "#team-not-in-project",
                                   "value": "team:4",
                                 },
@@ -2790,8 +2786,8 @@ exports[`RuleBuilder renders with suggestions 1`] = `
               </MultiSelectControl>
             </SelectOwners>
           </div>
-        </Base>
-      </Flex>
+        </Styled(div)>
+      </ForwardRef>
       <AddButton
         disabled={false}
         icon="icon-circle-add"

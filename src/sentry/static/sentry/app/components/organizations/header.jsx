@@ -1,5 +1,5 @@
 import styled from 'react-emotion';
-import {Flex} from 'grid-emotion';
+import {Flex} from '@rebass/grid/emotion';
 
 const Header = styled(Flex)`
   border-bottom: 1px solid ${p => p.theme.borderDark};

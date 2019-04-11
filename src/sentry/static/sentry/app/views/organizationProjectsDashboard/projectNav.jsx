@@ -1,7 +1,7 @@
 import {browserHistory} from 'react-router';
 import React from 'react';
 import createReactClass from 'create-react-class';
-import {Flex, Box} from 'grid-emotion';
+import {Flex, Box} from '@rebass/grid/emotion';
 import styled from 'react-emotion';
 
 import space from 'app/styles/space';
@@ -95,7 +95,7 @@ const ProjectNav = createReactClass({
     );
 
     return (
-      <StyledNav justify="space-between" align="center">
+      <StyledNav justifyContent="space-between" alignItems="center">
         <Box>
           <ProjectSelector organization={org} />
         </Box>

@@ -16,20 +16,20 @@ exports[`OrganizationRepositories renders with a repository 1`] = `
     <PanelHeader
       disablePadding={true}
     >
-      <Flex>
-        <Box
+      <ForwardRef>
+        <ForwardRef
           px={2}
         >
           Added Repositories
-        </Box>
-      </Flex>
+        </ForwardRef>
+      </ForwardRef>
     </PanelHeader>
     <PanelBody
       direction="column"
       disablePadding={true}
       flex={false}
     >
-      <Box>
+      <ForwardRef>
         <RepositoryRow
           api={Client {}}
           key="4"
@@ -46,7 +46,7 @@ exports[`OrganizationRepositories renders with a repository 1`] = `
           }
           showProvider={true}
         />
-      </Box>
+      </ForwardRef>
     </PanelBody>
   </Panel>
 </div>
@@ -99,21 +99,21 @@ exports[`OrganizationRepositories renders with github provider 1`] = `
   <Panel
     className="align-center p-x-2 p-y-1"
   >
-    <Box
+    <ForwardRef
       mb={1}
     >
       <HeroIcon
         size="72px"
         src="icon-commit"
       />
-    </Box>
+    </ForwardRef>
     <h3>
       Sentry is better with commit data
     </h3>
     <TextBlock>
       Adding one or more repositories will enable enhanced releases and the ability to resolve Sentry Issues via git message.
     </TextBlock>
-    <Box
+    <ForwardRef
       mb={1}
     >
       <Button
@@ -122,7 +122,7 @@ exports[`OrganizationRepositories renders with github provider 1`] = `
       >
         Learn more
       </Button>
-    </Box>
+    </ForwardRef>
   </Panel>
 </div>
 `;
@@ -174,21 +174,21 @@ exports[`OrganizationRepositories renders without providers 1`] = `
   <Panel
     className="align-center p-x-2 p-y-1"
   >
-    <Box
+    <ForwardRef
       mb={1}
     >
       <HeroIcon
         size="72px"
         src="icon-commit"
       />
-    </Box>
+    </ForwardRef>
     <h3>
       Sentry is better with commit data
     </h3>
     <TextBlock>
       Adding one or more repositories will enable enhanced releases and the ability to resolve Sentry Issues via git message.
     </TextBlock>
-    <Box
+    <ForwardRef
       mb={1}
     >
       <Button
@@ -197,7 +197,7 @@ exports[`OrganizationRepositories renders without providers 1`] = `
       >
         Learn more
       </Button>
-    </Box>
+    </ForwardRef>
   </Panel>
 </div>
 `;

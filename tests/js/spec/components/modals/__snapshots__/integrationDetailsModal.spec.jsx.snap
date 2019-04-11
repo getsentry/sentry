@@ -68,18 +68,16 @@ exports[`IntegrationDetailsModal renders simple integration 1`] = `
     }
   }
 >
-  <Flex
-    align="center"
+  <ForwardRef
+    alignItems="center"
     mb={2}
   >
-    <Base
-      align="center"
-      className="css-oc829x"
+    <Styled(div)
+      alignItems="center"
       mb={2}
     >
       <div
-        className="css-oc829x"
-        is={null}
+        className="css-1fuk9y7"
       >
         <PluginIcon
           pluginId="github"
@@ -95,61 +93,55 @@ exports[`IntegrationDetailsModal renders simple integration 1`] = `
             />
           </IntegrationIcon>
         </PluginIcon>
-        <Flex
-          align="flex-start"
-          direction="column"
-          justify="center"
+        <ForwardRef
+          alignItems="flex-start"
+          flexDirection="column"
+          justifyContent="center"
           pl={1}
         >
-          <Base
-            align="flex-start"
-            className="css-1wqjzd8"
-            direction="column"
-            justify="center"
+          <Styled(div)
+            alignItems="flex-start"
+            flexDirection="column"
+            justifyContent="center"
             pl={1}
           >
             <div
-              className="css-1wqjzd8"
-              is={null}
+              className="css-172ghq6"
             >
               <ProviderName>
                 <Component
                   className="css-1pygq0m-ProviderName e1rf4mlr1"
                 >
-                  <Box
+                  <ForwardRef
                     className="css-1pygq0m-ProviderName e1rf4mlr1"
                   >
-                    <Base
-                      className="e1rf4mlr1 css-cswdqk-ProviderName"
+                    <Styled(div)
+                      className="css-1pygq0m-ProviderName e1rf4mlr1"
                     >
                       <div
-                        className="e1rf4mlr1 css-cswdqk-ProviderName"
-                        is={null}
+                        className="css-1pygq0m-ProviderName e1rf4mlr1 css-roynbj"
                       >
                         GitHub Integration
                       </div>
-                    </Base>
-                  </Box>
+                    </Styled(div)>
+                  </ForwardRef>
                 </Component>
               </ProviderName>
-              <Flex>
-                <Base
-                  className="css-sncxrr"
-                >
+              <ForwardRef>
+                <Styled(div)>
                   <div
                     className="css-sncxrr"
-                    is={null}
                   >
                     0
                   </div>
-                </Base>
-              </Flex>
+                </Styled(div)>
+              </ForwardRef>
             </div>
-          </Base>
-        </Flex>
+          </Styled(div)>
+        </ForwardRef>
       </div>
-    </Base>
-  </Flex>
+    </Styled(div)>
+  </ForwardRef>
   <Description
     dangerouslySetInnerHTML={
       Object {
@@ -262,67 +254,53 @@ exports[`IntegrationDetailsModal renders simple integration 1`] = `
     </ul>
   </FeatureList>
   <Metadata>
-    <Base
+    <div
       className="css-xm93tv-Metadata e1rf4mlr3"
     >
-      <div
-        className="css-xm93tv-Metadata e1rf4mlr3"
-        is={null}
+      <AuthorName
+        flex={1}
       >
-        <AuthorName
-          flex={1}
+        <div
+          className="css-1uwqb6n-AuthorName e1rf4mlr4"
         >
-          <Base
-            className="css-1uwqb6n-AuthorName e1rf4mlr4"
-            flex={1}
-          >
-            <div
-              className="css-1uwqb6n-AuthorName e1rf4mlr4"
-              is={null}
-            >
-              By Morty
-            </div>
-          </Base>
-        </AuthorName>
-        <Box>
-          <Base
+          By Morty
+        </div>
+      </AuthorName>
+      <ForwardRef>
+        <Styled(div)>
+          <div
             className="css-roynbj"
           >
-            <div
-              className="css-roynbj"
-              is={null}
+            <ExternalLink
+              href="http://example.com/integration_source_url"
+              rel="noreferrer noopener"
+              target="_blank"
             >
-              <ExternalLink
+              <a
                 href="http://example.com/integration_source_url"
                 rel="noreferrer noopener"
                 target="_blank"
               >
-                <a
-                  href="http://example.com/integration_source_url"
-                  rel="noreferrer noopener"
-                  target="_blank"
-                >
-                  View Source
-                </a>
-              </ExternalLink>
-              <ExternalLink
+                View Source
+              </a>
+            </ExternalLink>
+            <ExternalLink
+              href="http://example.com/integration_issue_url"
+              rel="noreferrer noopener"
+              target="_blank"
+            >
+              <a
                 href="http://example.com/integration_issue_url"
                 rel="noreferrer noopener"
                 target="_blank"
               >
-                <a
-                  href="http://example.com/integration_issue_url"
-                  rel="noreferrer noopener"
-                  target="_blank"
-                >
-                  Report Issue
-                </a>
-              </ExternalLink>
-            </div>
-          </Base>
-        </Box>
-      </div>
-    </Base>
+                Report Issue
+              </a>
+            </ExternalLink>
+          </div>
+        </Styled(div)>
+      </ForwardRef>
+    </div>
   </Metadata>
   <Alert
     iconSize="24px"

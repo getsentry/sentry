@@ -5,8 +5,8 @@ exports[`ApiTokenRow renders 1`] = `
   p={2}
 >
   <div>
-    <Flex>
-      <Box
+    <ForwardRef>
+      <ForwardRef
         flex="1"
       >
         <div
@@ -26,7 +26,7 @@ exports[`ApiTokenRow renders 1`] = `
             </TextCopyInput>
           </small>
         </div>
-      </Box>
+      </ForwardRef>
       <Action
         pl={2}
       >
@@ -42,10 +42,10 @@ exports[`ApiTokenRow renders 1`] = `
           </span>
         </StyledButton>
       </Action>
-    </Flex>
+    </ForwardRef>
   </div>
   <Details>
-    <Box
+    <ForwardRef
       flex="1"
     >
       <Heading>
@@ -54,8 +54,8 @@ exports[`ApiTokenRow renders 1`] = `
       <ScopeList>
         scope1, scope2
       </ScopeList>
-    </Box>
-    <Box>
+    </ForwardRef>
+    <ForwardRef>
       <Heading>
         Created
       </Heading>
@@ -65,7 +65,7 @@ exports[`ApiTokenRow renders 1`] = `
           seconds={true}
         />
       </Time>
-    </Box>
+    </ForwardRef>
   </Details>
 </StyledPanelItem>
 `;

@@ -225,7 +225,7 @@ class OrganizationMemberDetail extends AsyncView {
           <PanelHeader>{t('Basics')}</PanelHeader>
 
           <PanelBody>
-            <PanelItem direction="column">
+            <PanelItem flexDirection="column">
               <div className="row" style={{width: '100%'}}>
                 <div className="col-md-6">
                   <div className="control-group">

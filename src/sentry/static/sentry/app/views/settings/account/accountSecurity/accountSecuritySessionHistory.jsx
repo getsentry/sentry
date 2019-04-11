@@ -1,4 +1,4 @@
-import {Flex, Box} from 'grid-emotion';
+import {Flex, Box} from '@rebass/grid/emotion';
 import {withRouter} from 'react-router';
 import PropTypes from 'prop-types';
 import React from 'react';
@@ -25,8 +25,8 @@ class SessionRow extends React.Component {
     const {ipAddress, countryCode, regionCode, lastSeen, firstSeen} = this.props;
 
     return (
-      <PanelItem justify="space-between">
-        <Flex align="center" flex={1}>
+      <PanelItem justifyContent="space-between">
+        <Flex alignItems="center" flex={1}>
           <Box flex="1">
             <div style={{marginBottom: 5}}>
               <strong>{ipAddress}</strong>
@@ -40,12 +40,12 @@ class SessionRow extends React.Component {
             )}
           </Box>
         </Flex>
-        <Flex align="center" w={140} mx={2}>
+        <Flex alignItems="center" width={140} mx={3}>
           <small>
             <TimeSince date={firstSeen} />
           </small>
         </Flex>
-        <Flex align="center" w={140} mx={2}>
+        <Flex alignItems="center" width={140} mx={3}>
           <small>
             <TimeSince date={lastSeen} />
           </small>
@@ -88,13 +88,13 @@ class AccountSecuritySessionHistory extends AsyncView {
 
         <Panel>
           <PanelHeader>
-            <Flex align="center" flex={1}>
+            <Flex alignItems="center" flex={1}>
               {t('Sessions')}
             </Flex>
-            <Flex w={140} mx={2}>
+            <Flex width={140} mx={3}>
               {t('First Seen')}
             </Flex>
-            <Flex w={140} mx={2}>
+            <Flex width={140} mx={3}>
               {t('Last Seen')}
             </Flex>
           </PanelHeader>

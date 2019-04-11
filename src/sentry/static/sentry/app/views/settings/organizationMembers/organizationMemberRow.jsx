@@ -1,4 +1,4 @@
-import {Box} from 'grid-emotion';
+import {Box} from '@rebass/grid/emotion';
 import PropTypes from 'prop-types';
 import React from 'react';
 import styled from 'react-emotion';
@@ -111,7 +111,7 @@ export default class OrganizationMemberRow extends React.PureComponent {
     const canResend = !expired && canAddMembers && (pending || needsSso);
 
     return (
-      <PanelItem align="center" p={0} py={2}>
+      <PanelItem alignItems="center" p={0} py={2}>
         <Box pl={2}>
           <Avatar size={32} user={user ? user : {id: email, email}} />
         </Box>
@@ -123,7 +123,7 @@ export default class OrganizationMemberRow extends React.PureComponent {
           <Email>{email}</Email>
         </Box>
 
-        <Box px={2} w={180}>
+        <Box px={2} width={180}>
           {conditionalGuideAnchor(
             this.props.firstRow,
             'member_status',
@@ -171,12 +171,12 @@ export default class OrganizationMemberRow extends React.PureComponent {
           )}
         </Box>
 
-        <Box px={2} w={140}>
+        <Box px={2} width={140}>
           {conditionalGuideAnchor(this.props.firstRow, 'member_role', 'text', roleName)}
         </Box>
 
         {showRemoveButton || showLeaveButton ? (
-          <Box px={2} w={140}>
+          <Box px={2} width={140}>
             {showRemoveButton && canRemoveMember && (
               <Confirm
                 message={tct('Are you sure you want to remove [name] from [orgName]?', {

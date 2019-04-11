@@ -1,4 +1,4 @@
-import {Box, Flex} from 'grid-emotion';
+import {Box, Flex} from '@rebass/grid/emotion';
 import PropTypes from 'prop-types';
 import React from 'react';
 import styled from 'react-emotion';
@@ -28,7 +28,7 @@ class AuthorizationRow extends React.Component {
     return (
       <PanelItem>
         <Flex flex="1">
-          <Flex p={2} flex="1" direction="column">
+          <Flex p={2} flex="1" flexDirection="column">
             <h5 style={{marginBottom: 5}}>{authorization.application.name}</h5>
             {authorization.homepageUrl && (
               <div style={{marginBottom: 5}}>
@@ -41,7 +41,7 @@ class AuthorizationRow extends React.Component {
               <small style={{color: '#999'}}>{authorization.scopes.join(', ')}</small>
             </div>
           </Flex>
-          <Flex p={2} align="center">
+          <Flex p={2} alignItems="center">
             <Button onClick={this.handleRevoke}>
               <span className="icon icon-trash" />
             </Button>
@@ -108,7 +108,7 @@ class AccountAuthorizations extends AsyncView {
 
         <Panel>
           <PanelHeader disablePadding={true}>
-            <Flex align="center">
+            <Flex alignItems="center">
               <Box px={2} flex="1">
                 {t('Approved Applications')}
               </Box>

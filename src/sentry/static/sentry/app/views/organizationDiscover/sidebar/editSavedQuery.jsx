@@ -1,6 +1,6 @@
 import PropTypes from 'prop-types';
 import React from 'react';
-import {Flex, Box} from 'grid-emotion';
+import {Flex, Box} from '@rebass/grid/emotion';
 import {isEqual} from 'lodash';
 
 import SentryTypes from 'app/sentryTypes';
@@ -67,7 +67,7 @@ export default class EditSavedQuery extends React.Component {
         savedQueryName={this.state.savedQueryName}
         onUpdateName={name => this.handleUpdateName(name)}
         actions={
-          <Flex justify="space-between">
+          <Flex justifyContent="space-between">
             <Flex>
               <Box mr={1}>
                 <Button

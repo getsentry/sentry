@@ -1,4 +1,4 @@
-import {Box} from 'grid-emotion';
+import {Box} from '@rebass/grid/emotion';
 import styled from 'react-emotion';
 
 import space from 'app/styles/space';

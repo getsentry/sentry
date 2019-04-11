@@ -1,4 +1,4 @@
-import {Flex} from 'grid-emotion';
+import {Flex} from '@rebass/grid/emotion';
 import {withRouter} from 'react-router';
 import PropTypes from 'prop-types';
 import React from 'react';
@@ -145,7 +145,7 @@ class SearchResult extends React.Component {
 
   render() {
     return (
-      <Flex justify="space-between" align="center">
+      <Flex justifyContent="space-between" alignItems="center">
         <Content>{this.renderContent()}</Content>
         {this.renderResultType()}
       </Flex>
@@ -172,7 +172,7 @@ const BadgeDetail = styled.div`
   color: ${p => (p.highlighted ? p.theme.purpleDarkest : null)};
 `;
 
-const Content = styled(props => <Flex direction="column" {...props} />)`
+const Content = styled(props => <Flex flexDirection="column" {...props} />)`
   /* stylelint-disable-next-line no-empty-block */
 `;
 

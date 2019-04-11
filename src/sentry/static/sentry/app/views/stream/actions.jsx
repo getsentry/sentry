@@ -1,4 +1,4 @@
-import {Flex, Box} from 'grid-emotion';
+import {Flex, Box} from '@rebass/grid/emotion';
 import {capitalize} from 'lodash';
 import PropTypes from 'prop-types';
 import React from 'react';
@@ -338,7 +338,7 @@ const StreamActions = createReactClass({
           <ActionsCheckbox pl={2}>
             <Checkbox onChange={this.onSelectAll} checked={pageSelected} />
           </ActionsCheckbox>
-          <ActionSet w={[8 / 12, 8 / 12, 6 / 12]} mx={1} flex="1">
+          <ActionSet width={[8 / 12, 8 / 12, 6 / 12]} mx={1} flex="1">
             <ResolveActions
               hasRelease={hasReleases}
               latestRelease={latestRelease}
@@ -482,7 +482,7 @@ const StreamActions = createReactClass({
               </Tooltip>
             </div>
           </ActionSet>
-          <Box w={160} mx={2} className="hidden-xs hidden-sm">
+          <Box width={160} mx={3} className="hidden-xs hidden-sm">
             <Flex>
               <StyledToolbarHeader>{t('Graph:')}</StyledToolbarHeader>
               <GraphToggle
@@ -500,13 +500,13 @@ const StreamActions = createReactClass({
               </GraphToggle>
             </Flex>
           </Box>
-          <Box w={[40, 60, 80, 80]} mx={2} className="align-right">
+          <Box width={[40, 60, 80, 80]} mx={3} className="align-right">
             <ToolbarHeader>{t('Events')}</ToolbarHeader>
           </Box>
-          <Box w={[40, 60, 80, 80]} mx={2} className="align-right">
+          <Box width={[40, 60, 80, 80]} mx={3} className="align-right">
             <ToolbarHeader>{t('Users')}</ToolbarHeader>
           </Box>
-          <Box w={80} mx={2} className="align-right hidden-xs hidden-sm">
+          <Box width={80} mx={3} className="align-right hidden-xs hidden-sm">
             <ToolbarHeader>{t('Assignee')}</ToolbarHeader>
           </Box>
         </StyledFlex>

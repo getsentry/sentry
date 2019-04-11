@@ -61,7 +61,7 @@ class ResultTable extends React.Component {
 
     if (rowIndex === 0) {
       return (
-        <TableHeader key={key} style={style} align={align}>
+        <TableHeader key={key} style={style} alignItems={align}>
           <strong>{colName}</strong>
         </TableHeader>
       );
@@ -80,7 +80,7 @@ class ResultTable extends React.Component {
     }
 
     return (
-      <Cell key={key} style={style} isOddRow={rowIndex % 2 === 1} align={align}>
+      <Cell key={key} style={style} isOddRow={rowIndex % 2 === 1} alignItems={align}>
         {value}
       </Cell>
     );

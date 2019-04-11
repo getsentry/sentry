@@ -1,6 +1,6 @@
 import React from 'react';
 import PropTypes from 'prop-types';
-import {Box} from 'grid-emotion';
+import {Box} from '@rebass/grid/emotion';
 
 import AsyncComponent from 'app/components/asyncComponent';
 import Duration from 'app/components/duration';
@@ -34,10 +34,10 @@ export default class MonitorCheckIns extends AsyncComponent {
               <Box style={{width: 16}} mr={2}>
                 <CheckInIcon status={checkIn.status} size={16} />
               </Box>
-              <Box flex="1" direction="column" mr={2}>
+              <Box flex="1" flexDirection="column" mr={2}>
                 <TimeSince date={checkIn.dateCreated} />
               </Box>
-              <Box direction="column">
+              <Box flexDirection="column">
                 {checkIn.duration && <Duration seconds={checkIn.duration / 100} />}
               </Box>
             </PanelItem>

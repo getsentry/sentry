@@ -624,20 +624,68 @@ exports[`OrganizationUserFeedback renders 1`] = `
                     showEnvironmentSelector={true}
                   >
                     <Header>
-                      <Base
+                      <div
                         className="css-14hw0r3-Header e10yv9i90"
                       >
-                        <div
-                          className="css-14hw0r3-Header e10yv9i90"
-                          is={null}
-                        >
-                          <HeaderItemPosition>
-                            <div
-                              className="css-5udiwc-HeaderItemPosition e165b9e40"
+                        <HeaderItemPosition>
+                          <div
+                            className="css-5udiwc-HeaderItemPosition e165b9e40"
+                          >
+                            <MultipleProjectSelector
+                              multi={false}
+                              onChange={[Function]}
+                              onUpdate={[Function]}
+                              organization={
+                                Object {
+                                  "access": Array [
+                                    "org:read",
+                                    "org:write",
+                                    "org:admin",
+                                    "org:integrations",
+                                    "project:read",
+                                    "project:write",
+                                    "project:admin",
+                                    "team:read",
+                                    "team:write",
+                                    "team:admin",
+                                  ],
+                                  "features": Array [
+                                    "sentry10",
+                                  ],
+                                  "id": "3",
+                                  "name": "Organization Name",
+                                  "onboardingTasks": Array [],
+                                  "projects": Array [
+                                    Object {
+                                      "environments": Array [],
+                                      "hasAccess": true,
+                                      "id": "2",
+                                      "isBookmarked": false,
+                                      "isMember": true,
+                                      "name": "Project Name",
+                                      "slug": "project-slug",
+                                      "teams": Array [],
+                                    },
+                                  ],
+                                  "scrapeJavaScript": true,
+                                  "slug": "org-slug",
+                                  "status": Object {
+                                    "id": "active",
+                                    "name": "active",
+                                  },
+                                  "teams": Array [],
+                                }
+                              }
+                              projects={Array []}
+                              value={Array []}
                             >
-                              <MultipleProjectSelector
+                              <StyledProjectSelector
                                 multi={false}
+                                multiProjects={Array []}
                                 onChange={[Function]}
+                                onClose={[Function]}
+                                onMultiSelect={[Function]}
+                                onSelect={[Function]}
                                 onUpdate={[Function]}
                                 organization={
                                   Object {
@@ -681,9 +729,12 @@ exports[`OrganizationUserFeedback renders 1`] = `
                                   }
                                 }
                                 projects={Array []}
+                                rootClassName="css-h5t9nh-rootContainerStyles"
+                                selectedProjects={Array []}
                                 value={Array []}
                               >
-                                <StyledProjectSelector
+                                <withProjects(ProjectSelector)
+                                  className="css-iw79rr-StyledProjectSelector ewlipse0"
                                   multi={false}
                                   multiProjects={Array []}
                                   onChange={[Function]}
@@ -737,7 +788,7 @@ exports[`OrganizationUserFeedback renders 1`] = `
                                   selectedProjects={Array []}
                                   value={Array []}
                                 >
-                                  <withProjects(ProjectSelector)
+                                  <ProjectSelector
                                     className="css-iw79rr-StyledProjectSelector ewlipse0"
                                     multi={false}
                                     multiProjects={Array []}
@@ -787,70 +838,42 @@ exports[`OrganizationUserFeedback renders 1`] = `
                                         "teams": Array [],
                                       }
                                     }
+                                    projectId={null}
                                     projects={Array []}
                                     rootClassName="css-h5t9nh-rootContainerStyles"
                                     selectedProjects={Array []}
                                     value={Array []}
                                   >
-                                    <ProjectSelector
-                                      className="css-iw79rr-StyledProjectSelector ewlipse0"
-                                      multi={false}
-                                      multiProjects={Array []}
-                                      onChange={[Function]}
-                                      onClose={[Function]}
-                                      onMultiSelect={[Function]}
-                                      onSelect={[Function]}
-                                      onUpdate={[Function]}
-                                      organization={
+                                    <DropdownAutoComplete
+                                      alignMenu="left"
+                                      allowActorToggle={true}
+                                      blendCorner={false}
+                                      className="ewlipse0 css-11ijjr3-StyledProjectSelector"
+                                      closeOnSelect={true}
+                                      emptyHidesInput={true}
+                                      emptyMessage="You have no projects"
+                                      inputActions={[Function]}
+                                      inputProps={
                                         Object {
-                                          "access": Array [
-                                            "org:read",
-                                            "org:write",
-                                            "org:admin",
-                                            "org:integrations",
-                                            "project:read",
-                                            "project:write",
-                                            "project:admin",
-                                            "team:read",
-                                            "team:write",
-                                            "team:admin",
-                                          ],
-                                          "features": Array [
-                                            "sentry10",
-                                          ],
-                                          "id": "3",
-                                          "name": "Organization Name",
-                                          "onboardingTasks": Array [],
-                                          "projects": Array [
-                                            Object {
-                                              "environments": Array [],
-                                              "hasAccess": true,
-                                              "id": "2",
-                                              "isBookmarked": false,
-                                              "isMember": true,
-                                              "name": "Project Name",
-                                              "slug": "project-slug",
-                                              "teams": Array [],
-                                            },
-                                          ],
-                                          "scrapeJavaScript": true,
-                                          "slug": "org-slug",
-                                          "status": Object {
-                                            "id": "active",
-                                            "name": "active",
+                                          "style": Object {
+                                            "padding": 8,
+                                            "paddingLeft": 10,
                                           },
-                                          "teams": Array [],
                                         }
                                       }
-                                      projectId={null}
-                                      projects={Array []}
+                                      items={Array []}
+                                      maxHeight={500}
+                                      menuFooter={[Function]}
+                                      noResultsMessage="No projects found"
+                                      onClose={[Function]}
+                                      onSelect={[Function]}
                                       rootClassName="css-h5t9nh-rootContainerStyles"
-                                      selectedProjects={Array []}
-                                      value={Array []}
+                                      searchPlaceholder="Filter projects"
+                                      virtualizedHeight={44}
+                                      zIndex={1001}
                                     >
-                                      <DropdownAutoComplete
+                                      <DropdownAutoCompleteMenu
                                         alignMenu="left"
-                                        allowActorToggle={true}
                                         blendCorner={false}
                                         className="ewlipse0 css-11ijjr3-StyledProjectSelector"
                                         closeOnSelect={true}
@@ -876,495 +899,6 @@ exports[`OrganizationUserFeedback renders 1`] = `
                                         virtualizedHeight={44}
                                         zIndex={1001}
                                       >
-                                        <DropdownAutoCompleteMenu
-                                          alignMenu="left"
-                                          blendCorner={false}
-                                          className="ewlipse0 css-11ijjr3-StyledProjectSelector"
-                                          closeOnSelect={true}
-                                          emptyHidesInput={true}
-                                          emptyMessage="You have no projects"
-                                          inputActions={[Function]}
-                                          inputProps={
-                                            Object {
-                                              "style": Object {
-                                                "padding": 8,
-                                                "paddingLeft": 10,
-                                              },
-                                            }
-                                          }
-                                          items={Array []}
-                                          maxHeight={500}
-                                          menuFooter={[Function]}
-                                          noResultsMessage="No projects found"
-                                          onClose={[Function]}
-                                          onSelect={[Function]}
-                                          rootClassName="css-h5t9nh-rootContainerStyles"
-                                          searchPlaceholder="Filter projects"
-                                          virtualizedHeight={44}
-                                          zIndex={1001}
-                                        >
-                                          <AutoComplete
-                                            closeOnSelect={true}
-                                            disabled={false}
-                                            inputIsActor={false}
-                                            itemToString={[Function]}
-                                            onClose={[Function]}
-                                            onSelect={[Function]}
-                                            resetInputOnClose={true}
-                                            shouldSelectWithEnter={true}
-                                            shouldSelectWithTab={false}
-                                            virtualizedHeight={44}
-                                            zIndex={1001}
-                                          >
-                                            <DropdownMenu
-                                              closeOnEscape={true}
-                                              isOpen={false}
-                                              keepMenuOpen={false}
-                                              onClickOutside={[Function]}
-                                            >
-                                              <AutoCompleteRoot
-                                                className="css-h5t9nh-rootContainerStyles"
-                                              >
-                                                <Component
-                                                  className="css-1ppsre-AutoCompleteRoot-rootContainerStyles ejumqxq0"
-                                                >
-                                                  <div
-                                                    className="css-1ppsre-AutoCompleteRoot-rootContainerStyles ejumqxq0"
-                                                  >
-                                                    <Actor
-                                                      innerRef={[Function]}
-                                                      isOpen={false}
-                                                      onClick={[Function]}
-                                                      onKeyDown={[Function]}
-                                                      onMouseEnter={[Function]}
-                                                      onMouseLeave={[Function]}
-                                                      role="button"
-                                                      style={
-                                                        Object {
-                                                          "outline": "none",
-                                                        }
-                                                      }
-                                                      tabIndex={-1}
-                                                    >
-                                                      <div
-                                                        className="css-17fe80j-Actor e53us8t0"
-                                                        onClick={[Function]}
-                                                        onKeyDown={[Function]}
-                                                        onMouseEnter={[Function]}
-                                                        onMouseLeave={[Function]}
-                                                        role="button"
-                                                        style={
-                                                          Object {
-                                                            "outline": "none",
-                                                          }
-                                                        }
-                                                        tabIndex={-1}
-                                                      >
-                                                        <StyledHeaderItem
-                                                          active={false}
-                                                          allowClear={false}
-                                                          hasChanges={false}
-                                                          hasSelected={false}
-                                                          icon={
-                                                            <StyledInlineSvg
-                                                              src="icon-project"
-                                                            />
-                                                          }
-                                                          isOpen={false}
-                                                          onClear={[Function]}
-                                                          onClick={[Function]}
-                                                          onKeyDown={[Function]}
-                                                          onMouseEnter={[Function]}
-                                                          onMouseLeave={[Function]}
-                                                          onSubmit={[Function]}
-                                                          style={
-                                                            Object {
-                                                              "outline": "none",
-                                                            }
-                                                          }
-                                                          tabIndex={-1}
-                                                        >
-                                                          <ForwardRef
-                                                            active={false}
-                                                            allowClear={false}
-                                                            className="css-12jjx2u-StyledHeaderItem ewlipse1"
-                                                            hasChanges={false}
-                                                            hasSelected={false}
-                                                            icon={
-                                                              <StyledInlineSvg
-                                                                src="icon-project"
-                                                              />
-                                                            }
-                                                            isOpen={false}
-                                                            onClear={[Function]}
-                                                            onClick={[Function]}
-                                                            onKeyDown={[Function]}
-                                                            onMouseEnter={[Function]}
-                                                            onMouseLeave={[Function]}
-                                                            onSubmit={[Function]}
-                                                            style={
-                                                              Object {
-                                                                "outline": "none",
-                                                              }
-                                                            }
-                                                            tabIndex={-1}
-                                                          >
-                                                            <HeaderItem
-                                                              active={false}
-                                                              allowClear={false}
-                                                              className="css-12jjx2u-StyledHeaderItem ewlipse1"
-                                                              hasChanges={false}
-                                                              hasSelected={false}
-                                                              icon={
-                                                                <StyledInlineSvg
-                                                                  src="icon-project"
-                                                                />
-                                                              }
-                                                              innerRef={null}
-                                                              isOpen={false}
-                                                              onClear={[Function]}
-                                                              onClick={[Function]}
-                                                              onKeyDown={[Function]}
-                                                              onMouseEnter={[Function]}
-                                                              onMouseLeave={[Function]}
-                                                              onSubmit={[Function]}
-                                                              style={
-                                                                Object {
-                                                                  "outline": "none",
-                                                                }
-                                                              }
-                                                              tabIndex={-1}
-                                                            >
-                                                              <StyledHeaderItem
-                                                                active={false}
-                                                                className="css-12jjx2u-StyledHeaderItem ewlipse1"
-                                                                hasSelected={false}
-                                                                innerRef={null}
-                                                                isOpen={false}
-                                                                onClick={[Function]}
-                                                                onKeyDown={[Function]}
-                                                                onMouseEnter={[Function]}
-                                                                onMouseLeave={[Function]}
-                                                                style={
-                                                                  Object {
-                                                                    "outline": "none",
-                                                                  }
-                                                                }
-                                                                tabIndex={-1}
-                                                              >
-                                                                <div
-                                                                  className="ewlipse1 css-11wumjj-StyledHeaderItem-StyledHeaderItem enk2k7v0"
-                                                                  onClick={[Function]}
-                                                                  onKeyDown={[Function]}
-                                                                  onMouseEnter={[Function]}
-                                                                  onMouseLeave={[Function]}
-                                                                  style={
-                                                                    Object {
-                                                                      "outline": "none",
-                                                                    }
-                                                                  }
-                                                                  tabIndex={-1}
-                                                                >
-                                                                  <IconContainer
-                                                                    hasSelected={false}
-                                                                  >
-                                                                    <span
-                                                                      className="css-1g4tz50-IconContainer enk2k7v2"
-                                                                    >
-                                                                      <StyledInlineSvg
-                                                                        src="icon-project"
-                                                                      >
-                                                                        <InlineSvg
-                                                                          className="css-1ibtmti-StyledInlineSvg ewlipse2"
-                                                                          src="icon-project"
-                                                                        >
-                                                                          <StyledSvg
-                                                                            className="css-1ibtmti-StyledInlineSvg ewlipse2"
-                                                                            height="1em"
-                                                                            viewBox={Object {}}
-                                                                            width="1em"
-                                                                          >
-                                                                            <svg
-                                                                              className="ewlipse2 css-1ux8cow-StyledSvg-StyledInlineSvg e2idor0"
-                                                                              height="1em"
-                                                                              viewBox={Object {}}
-                                                                              width="1em"
-                                                                            >
-                                                                              <use
-                                                                                href="#test"
-                                                                                xlinkHref="#test"
-                                                                              />
-                                                                            </svg>
-                                                                          </StyledSvg>
-                                                                        </InlineSvg>
-                                                                      </StyledInlineSvg>
-                                                                    </span>
-                                                                  </IconContainer>
-                                                                  <Content>
-                                                                    <div
-                                                                      className="css-1yquznf-Content enk2k7v1"
-                                                                    >
-                                                                      All Projects
-                                                                    </div>
-                                                                  </Content>
-                                                                  <StyledChevron
-                                                                    hasChanges={false}
-                                                                    isOpen={false}
-                                                                    onClick={[Function]}
-                                                                  >
-                                                                    <div
-                                                                      className="css-ft4nwy-StyledChevron enk2k7v4"
-                                                                      onClick={[Function]}
-                                                                    >
-                                                                      <InlineSvg
-                                                                        src="icon-chevron-down"
-                                                                      >
-                                                                        <StyledSvg
-                                                                          height="1em"
-                                                                          viewBox={Object {}}
-                                                                          width="1em"
-                                                                        >
-                                                                          <svg
-                                                                            className="css-ryh69w-StyledSvg e2idor0"
-                                                                            height="1em"
-                                                                            viewBox={Object {}}
-                                                                            width="1em"
-                                                                          >
-                                                                            <use
-                                                                              href="#test"
-                                                                              xlinkHref="#test"
-                                                                            />
-                                                                          </svg>
-                                                                        </StyledSvg>
-                                                                      </InlineSvg>
-                                                                    </div>
-                                                                  </StyledChevron>
-                                                                </div>
-                                                              </StyledHeaderItem>
-                                                            </HeaderItem>
-                                                          </ForwardRef>
-                                                        </StyledHeaderItem>
-                                                      </div>
-                                                    </Actor>
-                                                  </div>
-                                                </Component>
-                                              </AutoCompleteRoot>
-                                            </DropdownMenu>
-                                          </AutoComplete>
-                                        </DropdownAutoCompleteMenu>
-                                      </DropdownAutoComplete>
-                                    </ProjectSelector>
-                                  </withProjects(ProjectSelector)>
-                                </StyledProjectSelector>
-                              </MultipleProjectSelector>
-                            </div>
-                          </HeaderItemPosition>
-                          <HeaderSeparator>
-                            <Base
-                              className="css-zkrb0n-HeaderSeparator elp5f3l0"
-                            >
-                              <div
-                                className="css-zkrb0n-HeaderSeparator elp5f3l0"
-                                is={null}
-                              />
-                            </Base>
-                          </HeaderSeparator>
-                          <HeaderItemPosition>
-                            <div
-                              className="css-5udiwc-HeaderItemPosition e165b9e40"
-                            >
-                              <withApi(MultipleEnvironmentSelector)
-                                onChange={[Function]}
-                                onUpdate={[Function]}
-                                organization={
-                                  Object {
-                                    "access": Array [
-                                      "org:read",
-                                      "org:write",
-                                      "org:admin",
-                                      "org:integrations",
-                                      "project:read",
-                                      "project:write",
-                                      "project:admin",
-                                      "team:read",
-                                      "team:write",
-                                      "team:admin",
-                                    ],
-                                    "features": Array [
-                                      "sentry10",
-                                    ],
-                                    "id": "3",
-                                    "name": "Organization Name",
-                                    "onboardingTasks": Array [],
-                                    "projects": Array [
-                                      Object {
-                                        "environments": Array [],
-                                        "hasAccess": true,
-                                        "id": "2",
-                                        "isBookmarked": false,
-                                        "isMember": true,
-                                        "name": "Project Name",
-                                        "slug": "project-slug",
-                                        "teams": Array [],
-                                      },
-                                    ],
-                                    "scrapeJavaScript": true,
-                                    "slug": "org-slug",
-                                    "status": Object {
-                                      "id": "active",
-                                      "name": "active",
-                                    },
-                                    "teams": Array [],
-                                  }
-                                }
-                                selectedProjects={Array []}
-                                value={Array []}
-                              >
-                                <MultipleEnvironmentSelector
-                                  api={Client {}}
-                                  onChange={[Function]}
-                                  onUpdate={[Function]}
-                                  organization={
-                                    Object {
-                                      "access": Array [
-                                        "org:read",
-                                        "org:write",
-                                        "org:admin",
-                                        "org:integrations",
-                                        "project:read",
-                                        "project:write",
-                                        "project:admin",
-                                        "team:read",
-                                        "team:write",
-                                        "team:admin",
-                                      ],
-                                      "features": Array [
-                                        "sentry10",
-                                      ],
-                                      "id": "3",
-                                      "name": "Organization Name",
-                                      "onboardingTasks": Array [],
-                                      "projects": Array [
-                                        Object {
-                                          "environments": Array [],
-                                          "hasAccess": true,
-                                          "id": "2",
-                                          "isBookmarked": false,
-                                          "isMember": true,
-                                          "name": "Project Name",
-                                          "slug": "project-slug",
-                                          "teams": Array [],
-                                        },
-                                      ],
-                                      "scrapeJavaScript": true,
-                                      "slug": "org-slug",
-                                      "status": Object {
-                                        "id": "active",
-                                        "name": "active",
-                                      },
-                                      "teams": Array [],
-                                    }
-                                  }
-                                  selectedProjects={Array []}
-                                  value={Array []}
-                                >
-                                  <StyledDropdownAutoComplete
-                                    alignMenu="left"
-                                    allowActorToggle={true}
-                                    blendCorner={false}
-                                    closeOnSelect={true}
-                                    emptyHidesInput={true}
-                                    emptyMessage="You have no environments"
-                                    inputProps={
-                                      Object {
-                                        "style": Object {
-                                          "padding": 8,
-                                          "paddingLeft": 14,
-                                        },
-                                      }
-                                    }
-                                    items={Array []}
-                                    maxHeight={500}
-                                    menuProps={
-                                      Object {
-                                        "style": Object {
-                                          "position": "relative",
-                                        },
-                                      }
-                                    }
-                                    noResultsMessage="No environments found"
-                                    onClose={[Function]}
-                                    onSelect={[Function]}
-                                    rootClassName="css-1utm1zz-rootClassName"
-                                    searchPlaceholder="Filter environments"
-                                    virtualizedHeight={44}
-                                    zIndex={1001}
-                                  >
-                                    <DropdownAutoComplete
-                                      alignMenu="left"
-                                      allowActorToggle={true}
-                                      blendCorner={false}
-                                      className="css-qn89t6-StyledDropdownAutoComplete e1gsuvme2"
-                                      closeOnSelect={true}
-                                      emptyHidesInput={true}
-                                      emptyMessage="You have no environments"
-                                      inputProps={
-                                        Object {
-                                          "style": Object {
-                                            "padding": 8,
-                                            "paddingLeft": 14,
-                                          },
-                                        }
-                                      }
-                                      items={Array []}
-                                      maxHeight={500}
-                                      menuProps={
-                                        Object {
-                                          "style": Object {
-                                            "position": "relative",
-                                          },
-                                        }
-                                      }
-                                      noResultsMessage="No environments found"
-                                      onClose={[Function]}
-                                      onSelect={[Function]}
-                                      rootClassName="css-1utm1zz-rootClassName"
-                                      searchPlaceholder="Filter environments"
-                                      virtualizedHeight={44}
-                                      zIndex={1001}
-                                    >
-                                      <DropdownAutoCompleteMenu
-                                        alignMenu="left"
-                                        blendCorner={false}
-                                        className="css-qn89t6-StyledDropdownAutoComplete e1gsuvme2"
-                                        closeOnSelect={true}
-                                        emptyHidesInput={true}
-                                        emptyMessage="You have no environments"
-                                        inputProps={
-                                          Object {
-                                            "style": Object {
-                                              "padding": 8,
-                                              "paddingLeft": 14,
-                                            },
-                                          }
-                                        }
-                                        items={Array []}
-                                        maxHeight={500}
-                                        menuProps={
-                                          Object {
-                                            "style": Object {
-                                              "position": "relative",
-                                            },
-                                          }
-                                        }
-                                        noResultsMessage="No environments found"
-                                        onClose={[Function]}
-                                        onSelect={[Function]}
-                                        rootClassName="css-1utm1zz-rootClassName"
-                                        searchPlaceholder="Filter environments"
-                                        virtualizedHeight={44}
-                                        zIndex={1001}
-                                      >
                                         <AutoComplete
                                           closeOnSelect={true}
                                           disabled={false}
@@ -1385,13 +919,13 @@ exports[`OrganizationUserFeedback renders 1`] = `
                                             onClickOutside={[Function]}
                                           >
                                             <AutoCompleteRoot
-                                              className="css-1utm1zz-rootClassName"
+                                              className="css-h5t9nh-rootContainerStyles"
                                             >
                                               <Component
-                                                className="css-qocd3e-AutoCompleteRoot-rootClassName ejumqxq0"
+                                                className="css-1ppsre-AutoCompleteRoot-rootContainerStyles ejumqxq0"
                                               >
                                                 <div
-                                                  className="css-qocd3e-AutoCompleteRoot-rootClassName ejumqxq0"
+                                                  className="css-1ppsre-AutoCompleteRoot-rootContainerStyles ejumqxq0"
                                                 >
                                                   <Actor
                                                     innerRef={[Function]}
@@ -1423,14 +957,15 @@ exports[`OrganizationUserFeedback renders 1`] = `
                                                       tabIndex={-1}
                                                     >
                                                       <StyledHeaderItem
+                                                        active={false}
+                                                        allowClear={false}
                                                         hasChanges={false}
                                                         hasSelected={false}
                                                         icon={
                                                           <StyledInlineSvg
-                                                            src="icon-window"
+                                                            src="icon-project"
                                                           />
                                                         }
-                                                        innerRef={[Function]}
                                                         isOpen={false}
                                                         onClear={[Function]}
                                                         onClick={[Function]}
@@ -1446,12 +981,14 @@ exports[`OrganizationUserFeedback renders 1`] = `
                                                         tabIndex={-1}
                                                       >
                                                         <ForwardRef
-                                                          className="css-22y332-StyledHeaderItem e1gsuvme0"
+                                                          active={false}
+                                                          allowClear={false}
+                                                          className="css-12jjx2u-StyledHeaderItem ewlipse1"
                                                           hasChanges={false}
                                                           hasSelected={false}
                                                           icon={
                                                             <StyledInlineSvg
-                                                              src="icon-window"
+                                                              src="icon-project"
                                                             />
                                                           }
                                                           isOpen={false}
@@ -1469,16 +1006,17 @@ exports[`OrganizationUserFeedback renders 1`] = `
                                                           tabIndex={-1}
                                                         >
                                                           <HeaderItem
-                                                            allowClear={true}
-                                                            className="css-22y332-StyledHeaderItem e1gsuvme0"
+                                                            active={false}
+                                                            allowClear={false}
+                                                            className="css-12jjx2u-StyledHeaderItem ewlipse1"
                                                             hasChanges={false}
                                                             hasSelected={false}
                                                             icon={
                                                               <StyledInlineSvg
-                                                                src="icon-window"
+                                                                src="icon-project"
                                                               />
                                                             }
-                                                            innerRef={[Function]}
+                                                            innerRef={null}
                                                             isOpen={false}
                                                             onClear={[Function]}
                                                             onClick={[Function]}
@@ -1494,9 +1032,10 @@ exports[`OrganizationUserFeedback renders 1`] = `
                                                             tabIndex={-1}
                                                           >
                                                             <StyledHeaderItem
-                                                              className="css-22y332-StyledHeaderItem e1gsuvme0"
+                                                              active={false}
+                                                              className="css-12jjx2u-StyledHeaderItem ewlipse1"
                                                               hasSelected={false}
-                                                              innerRef={[Function]}
+                                                              innerRef={null}
                                                               isOpen={false}
                                                               onClick={[Function]}
                                                               onKeyDown={[Function]}
@@ -1510,7 +1049,7 @@ exports[`OrganizationUserFeedback renders 1`] = `
                                                               tabIndex={-1}
                                                             >
                                                               <div
-                                                                className="e1gsuvme0 css-1v6igws-StyledHeaderItem-StyledHeaderItem enk2k7v0"
+                                                                className="ewlipse1 css-11wumjj-StyledHeaderItem-StyledHeaderItem enk2k7v0"
                                                                 onClick={[Function]}
                                                                 onKeyDown={[Function]}
                                                                 onMouseEnter={[Function]}
@@ -1529,20 +1068,20 @@ exports[`OrganizationUserFeedback renders 1`] = `
                                                                     className="css-1g4tz50-IconContainer enk2k7v2"
                                                                   >
                                                                     <StyledInlineSvg
-                                                                      src="icon-window"
+                                                                      src="icon-project"
                                                                     >
                                                                       <InlineSvg
-                                                                        className="css-1ctth4-StyledInlineSvg e1gsuvme1"
-                                                                        src="icon-window"
+                                                                        className="css-1ibtmti-StyledInlineSvg ewlipse2"
+                                                                        src="icon-project"
                                                                       >
                                                                         <StyledSvg
-                                                                          className="css-1ctth4-StyledInlineSvg e1gsuvme1"
+                                                                          className="css-1ibtmti-StyledInlineSvg ewlipse2"
                                                                           height="1em"
                                                                           viewBox={Object {}}
                                                                           width="1em"
                                                                         >
                                                                           <svg
-                                                                            className="e1gsuvme1 css-1vh2z4q-StyledSvg-StyledInlineSvg e2idor0"
+                                                                            className="ewlipse2 css-1ux8cow-StyledSvg-StyledInlineSvg e2idor0"
                                                                             height="1em"
                                                                             viewBox={Object {}}
                                                                             width="1em"
@@ -1561,7 +1100,7 @@ exports[`OrganizationUserFeedback renders 1`] = `
                                                                   <div
                                                                     className="css-1yquznf-Content enk2k7v1"
                                                                   >
-                                                                    All Environments
+                                                                    All Projects
                                                                   </div>
                                                                 </Content>
                                                                 <StyledChevron
@@ -1610,28 +1149,70 @@ exports[`OrganizationUserFeedback renders 1`] = `
                                         </AutoComplete>
                                       </DropdownAutoCompleteMenu>
                                     </DropdownAutoComplete>
-                                  </StyledDropdownAutoComplete>
-                                </MultipleEnvironmentSelector>
-                              </withApi(MultipleEnvironmentSelector)>
-                            </div>
-                          </HeaderItemPosition>
-                          <HeaderSeparator>
-                            <Base
-                              className="css-zkrb0n-HeaderSeparator elp5f3l0"
+                                  </ProjectSelector>
+                                </withProjects(ProjectSelector)>
+                              </StyledProjectSelector>
+                            </MultipleProjectSelector>
+                          </div>
+                        </HeaderItemPosition>
+                        <HeaderSeparator>
+                          <div
+                            className="css-zkrb0n-HeaderSeparator elp5f3l0"
+                          />
+                        </HeaderSeparator>
+                        <HeaderItemPosition>
+                          <div
+                            className="css-5udiwc-HeaderItemPosition e165b9e40"
+                          >
+                            <withApi(MultipleEnvironmentSelector)
+                              onChange={[Function]}
+                              onUpdate={[Function]}
+                              organization={
+                                Object {
+                                  "access": Array [
+                                    "org:read",
+                                    "org:write",
+                                    "org:admin",
+                                    "org:integrations",
+                                    "project:read",
+                                    "project:write",
+                                    "project:admin",
+                                    "team:read",
+                                    "team:write",
+                                    "team:admin",
+                                  ],
+                                  "features": Array [
+                                    "sentry10",
+                                  ],
+                                  "id": "3",
+                                  "name": "Organization Name",
+                                  "onboardingTasks": Array [],
+                                  "projects": Array [
+                                    Object {
+                                      "environments": Array [],
+                                      "hasAccess": true,
+                                      "id": "2",
+                                      "isBookmarked": false,
+                                      "isMember": true,
+                                      "name": "Project Name",
+                                      "slug": "project-slug",
+                                      "teams": Array [],
+                                    },
+                                  ],
+                                  "scrapeJavaScript": true,
+                                  "slug": "org-slug",
+                                  "status": Object {
+                                    "id": "active",
+                                    "name": "active",
+                                  },
+                                  "teams": Array [],
+                                }
+                              }
+                              selectedProjects={Array []}
+                              value={Array []}
                             >
-                              <div
-                                className="css-zkrb0n-HeaderSeparator elp5f3l0"
-                                is={null}
-                              />
-                            </Base>
-                          </HeaderSeparator>
-                          <HeaderItemPosition>
-                            <div
-                              className="css-5udiwc-HeaderItemPosition e165b9e40"
-                            >
-                              <TimeRangeSelector
-                                end={null}
-                                key="period:null-start:null-end:null-utc:null"
+                              <MultipleEnvironmentSelector
+                                api={Client {}}
                                 onChange={[Function]}
                                 onUpdate={[Function]}
                                 organization={
@@ -1675,25 +1256,455 @@ exports[`OrganizationUserFeedback renders 1`] = `
                                     "teams": Array [],
                                   }
                                 }
-                                relative={null}
-                                showAbsolute={true}
-                                showRelative={true}
-                                start={null}
-                                utc={null}
+                                selectedProjects={Array []}
+                                value={Array []}
                               >
-                                <DropdownMenu
-                                  closeOnEscape={true}
-                                  isOpen={false}
-                                  keepMenuOpen={true}
+                                <StyledDropdownAutoComplete
+                                  alignMenu="left"
+                                  allowActorToggle={true}
+                                  blendCorner={false}
+                                  closeOnSelect={true}
+                                  emptyHidesInput={true}
+                                  emptyMessage="You have no environments"
+                                  inputProps={
+                                    Object {
+                                      "style": Object {
+                                        "padding": 8,
+                                        "paddingLeft": 14,
+                                      },
+                                    }
+                                  }
+                                  items={Array []}
+                                  maxHeight={500}
+                                  menuProps={
+                                    Object {
+                                      "style": Object {
+                                        "position": "relative",
+                                      },
+                                    }
+                                  }
+                                  noResultsMessage="No environments found"
                                   onClose={[Function]}
-                                  onOpen={[Function]}
+                                  onSelect={[Function]}
+                                  rootClassName="css-1utm1zz-rootClassName"
+                                  searchPlaceholder="Filter environments"
+                                  virtualizedHeight={44}
+                                  zIndex={1001}
                                 >
-                                  <TimeRangeRoot>
-                                    <div
-                                      className="css-1lz3nth-TimeRangeRoot e1u8612l0"
+                                  <DropdownAutoComplete
+                                    alignMenu="left"
+                                    allowActorToggle={true}
+                                    blendCorner={false}
+                                    className="css-qn89t6-StyledDropdownAutoComplete e1gsuvme2"
+                                    closeOnSelect={true}
+                                    emptyHidesInput={true}
+                                    emptyMessage="You have no environments"
+                                    inputProps={
+                                      Object {
+                                        "style": Object {
+                                          "padding": 8,
+                                          "paddingLeft": 14,
+                                        },
+                                      }
+                                    }
+                                    items={Array []}
+                                    maxHeight={500}
+                                    menuProps={
+                                      Object {
+                                        "style": Object {
+                                          "position": "relative",
+                                        },
+                                      }
+                                    }
+                                    noResultsMessage="No environments found"
+                                    onClose={[Function]}
+                                    onSelect={[Function]}
+                                    rootClassName="css-1utm1zz-rootClassName"
+                                    searchPlaceholder="Filter environments"
+                                    virtualizedHeight={44}
+                                    zIndex={1001}
+                                  >
+                                    <DropdownAutoCompleteMenu
+                                      alignMenu="left"
+                                      blendCorner={false}
+                                      className="css-qn89t6-StyledDropdownAutoComplete e1gsuvme2"
+                                      closeOnSelect={true}
+                                      emptyHidesInput={true}
+                                      emptyMessage="You have no environments"
+                                      inputProps={
+                                        Object {
+                                          "style": Object {
+                                            "padding": 8,
+                                            "paddingLeft": 14,
+                                          },
+                                        }
+                                      }
+                                      items={Array []}
+                                      maxHeight={500}
+                                      menuProps={
+                                        Object {
+                                          "style": Object {
+                                            "position": "relative",
+                                          },
+                                        }
+                                      }
+                                      noResultsMessage="No environments found"
+                                      onClose={[Function]}
+                                      onSelect={[Function]}
+                                      rootClassName="css-1utm1zz-rootClassName"
+                                      searchPlaceholder="Filter environments"
+                                      virtualizedHeight={44}
+                                      zIndex={1001}
                                     >
-                                      <StyledHeaderItem
+                                      <AutoComplete
+                                        closeOnSelect={true}
+                                        disabled={false}
+                                        inputIsActor={false}
+                                        itemToString={[Function]}
+                                        onClose={[Function]}
+                                        onSelect={[Function]}
+                                        resetInputOnClose={true}
+                                        shouldSelectWithEnter={true}
+                                        shouldSelectWithTab={false}
+                                        virtualizedHeight={44}
+                                        zIndex={1001}
+                                      >
+                                        <DropdownMenu
+                                          closeOnEscape={true}
+                                          isOpen={false}
+                                          keepMenuOpen={false}
+                                          onClickOutside={[Function]}
+                                        >
+                                          <AutoCompleteRoot
+                                            className="css-1utm1zz-rootClassName"
+                                          >
+                                            <Component
+                                              className="css-qocd3e-AutoCompleteRoot-rootClassName ejumqxq0"
+                                            >
+                                              <div
+                                                className="css-qocd3e-AutoCompleteRoot-rootClassName ejumqxq0"
+                                              >
+                                                <Actor
+                                                  innerRef={[Function]}
+                                                  isOpen={false}
+                                                  onClick={[Function]}
+                                                  onKeyDown={[Function]}
+                                                  onMouseEnter={[Function]}
+                                                  onMouseLeave={[Function]}
+                                                  role="button"
+                                                  style={
+                                                    Object {
+                                                      "outline": "none",
+                                                    }
+                                                  }
+                                                  tabIndex={-1}
+                                                >
+                                                  <div
+                                                    className="css-17fe80j-Actor e53us8t0"
+                                                    onClick={[Function]}
+                                                    onKeyDown={[Function]}
+                                                    onMouseEnter={[Function]}
+                                                    onMouseLeave={[Function]}
+                                                    role="button"
+                                                    style={
+                                                      Object {
+                                                        "outline": "none",
+                                                      }
+                                                    }
+                                                    tabIndex={-1}
+                                                  >
+                                                    <StyledHeaderItem
+                                                      hasChanges={false}
+                                                      hasSelected={false}
+                                                      icon={
+                                                        <StyledInlineSvg
+                                                          src="icon-window"
+                                                        />
+                                                      }
+                                                      innerRef={[Function]}
+                                                      isOpen={false}
+                                                      onClear={[Function]}
+                                                      onClick={[Function]}
+                                                      onKeyDown={[Function]}
+                                                      onMouseEnter={[Function]}
+                                                      onMouseLeave={[Function]}
+                                                      onSubmit={[Function]}
+                                                      style={
+                                                        Object {
+                                                          "outline": "none",
+                                                        }
+                                                      }
+                                                      tabIndex={-1}
+                                                    >
+                                                      <ForwardRef
+                                                        className="css-22y332-StyledHeaderItem e1gsuvme0"
+                                                        hasChanges={false}
+                                                        hasSelected={false}
+                                                        icon={
+                                                          <StyledInlineSvg
+                                                            src="icon-window"
+                                                          />
+                                                        }
+                                                        isOpen={false}
+                                                        onClear={[Function]}
+                                                        onClick={[Function]}
+                                                        onKeyDown={[Function]}
+                                                        onMouseEnter={[Function]}
+                                                        onMouseLeave={[Function]}
+                                                        onSubmit={[Function]}
+                                                        style={
+                                                          Object {
+                                                            "outline": "none",
+                                                          }
+                                                        }
+                                                        tabIndex={-1}
+                                                      >
+                                                        <HeaderItem
+                                                          allowClear={true}
+                                                          className="css-22y332-StyledHeaderItem e1gsuvme0"
+                                                          hasChanges={false}
+                                                          hasSelected={false}
+                                                          icon={
+                                                            <StyledInlineSvg
+                                                              src="icon-window"
+                                                            />
+                                                          }
+                                                          innerRef={[Function]}
+                                                          isOpen={false}
+                                                          onClear={[Function]}
+                                                          onClick={[Function]}
+                                                          onKeyDown={[Function]}
+                                                          onMouseEnter={[Function]}
+                                                          onMouseLeave={[Function]}
+                                                          onSubmit={[Function]}
+                                                          style={
+                                                            Object {
+                                                              "outline": "none",
+                                                            }
+                                                          }
+                                                          tabIndex={-1}
+                                                        >
+                                                          <StyledHeaderItem
+                                                            className="css-22y332-StyledHeaderItem e1gsuvme0"
+                                                            hasSelected={false}
+                                                            innerRef={[Function]}
+                                                            isOpen={false}
+                                                            onClick={[Function]}
+                                                            onKeyDown={[Function]}
+                                                            onMouseEnter={[Function]}
+                                                            onMouseLeave={[Function]}
+                                                            style={
+                                                              Object {
+                                                                "outline": "none",
+                                                              }
+                                                            }
+                                                            tabIndex={-1}
+                                                          >
+                                                            <div
+                                                              className="e1gsuvme0 css-1v6igws-StyledHeaderItem-StyledHeaderItem enk2k7v0"
+                                                              onClick={[Function]}
+                                                              onKeyDown={[Function]}
+                                                              onMouseEnter={[Function]}
+                                                              onMouseLeave={[Function]}
+                                                              style={
+                                                                Object {
+                                                                  "outline": "none",
+                                                                }
+                                                              }
+                                                              tabIndex={-1}
+                                                            >
+                                                              <IconContainer
+                                                                hasSelected={false}
+                                                              >
+                                                                <span
+                                                                  className="css-1g4tz50-IconContainer enk2k7v2"
+                                                                >
+                                                                  <StyledInlineSvg
+                                                                    src="icon-window"
+                                                                  >
+                                                                    <InlineSvg
+                                                                      className="css-1ctth4-StyledInlineSvg e1gsuvme1"
+                                                                      src="icon-window"
+                                                                    >
+                                                                      <StyledSvg
+                                                                        className="css-1ctth4-StyledInlineSvg e1gsuvme1"
+                                                                        height="1em"
+                                                                        viewBox={Object {}}
+                                                                        width="1em"
+                                                                      >
+                                                                        <svg
+                                                                          className="e1gsuvme1 css-1vh2z4q-StyledSvg-StyledInlineSvg e2idor0"
+                                                                          height="1em"
+                                                                          viewBox={Object {}}
+                                                                          width="1em"
+                                                                        >
+                                                                          <use
+                                                                            href="#test"
+                                                                            xlinkHref="#test"
+                                                                          />
+                                                                        </svg>
+                                                                      </StyledSvg>
+                                                                    </InlineSvg>
+                                                                  </StyledInlineSvg>
+                                                                </span>
+                                                              </IconContainer>
+                                                              <Content>
+                                                                <div
+                                                                  className="css-1yquznf-Content enk2k7v1"
+                                                                >
+                                                                  All Environments
+                                                                </div>
+                                                              </Content>
+                                                              <StyledChevron
+                                                                hasChanges={false}
+                                                                isOpen={false}
+                                                                onClick={[Function]}
+                                                              >
+                                                                <div
+                                                                  className="css-ft4nwy-StyledChevron enk2k7v4"
+                                                                  onClick={[Function]}
+                                                                >
+                                                                  <InlineSvg
+                                                                    src="icon-chevron-down"
+                                                                  >
+                                                                    <StyledSvg
+                                                                      height="1em"
+                                                                      viewBox={Object {}}
+                                                                      width="1em"
+                                                                    >
+                                                                      <svg
+                                                                        className="css-ryh69w-StyledSvg e2idor0"
+                                                                        height="1em"
+                                                                        viewBox={Object {}}
+                                                                        width="1em"
+                                                                      >
+                                                                        <use
+                                                                          href="#test"
+                                                                          xlinkHref="#test"
+                                                                        />
+                                                                      </svg>
+                                                                    </StyledSvg>
+                                                                  </InlineSvg>
+                                                                </div>
+                                                              </StyledChevron>
+                                                            </div>
+                                                          </StyledHeaderItem>
+                                                        </HeaderItem>
+                                                      </ForwardRef>
+                                                    </StyledHeaderItem>
+                                                  </div>
+                                                </Actor>
+                                              </div>
+                                            </Component>
+                                          </AutoCompleteRoot>
+                                        </DropdownMenu>
+                                      </AutoComplete>
+                                    </DropdownAutoCompleteMenu>
+                                  </DropdownAutoComplete>
+                                </StyledDropdownAutoComplete>
+                              </MultipleEnvironmentSelector>
+                            </withApi(MultipleEnvironmentSelector)>
+                          </div>
+                        </HeaderItemPosition>
+                        <HeaderSeparator>
+                          <div
+                            className="css-zkrb0n-HeaderSeparator elp5f3l0"
+                          />
+                        </HeaderSeparator>
+                        <HeaderItemPosition>
+                          <div
+                            className="css-5udiwc-HeaderItemPosition e165b9e40"
+                          >
+                            <TimeRangeSelector
+                              end={null}
+                              key="period:null-start:null-end:null-utc:null"
+                              onChange={[Function]}
+                              onUpdate={[Function]}
+                              organization={
+                                Object {
+                                  "access": Array [
+                                    "org:read",
+                                    "org:write",
+                                    "org:admin",
+                                    "org:integrations",
+                                    "project:read",
+                                    "project:write",
+                                    "project:admin",
+                                    "team:read",
+                                    "team:write",
+                                    "team:admin",
+                                  ],
+                                  "features": Array [
+                                    "sentry10",
+                                  ],
+                                  "id": "3",
+                                  "name": "Organization Name",
+                                  "onboardingTasks": Array [],
+                                  "projects": Array [
+                                    Object {
+                                      "environments": Array [],
+                                      "hasAccess": true,
+                                      "id": "2",
+                                      "isBookmarked": false,
+                                      "isMember": true,
+                                      "name": "Project Name",
+                                      "slug": "project-slug",
+                                      "teams": Array [],
+                                    },
+                                  ],
+                                  "scrapeJavaScript": true,
+                                  "slug": "org-slug",
+                                  "status": Object {
+                                    "id": "active",
+                                    "name": "active",
+                                  },
+                                  "teams": Array [],
+                                }
+                              }
+                              relative={null}
+                              showAbsolute={true}
+                              showRelative={true}
+                              start={null}
+                              utc={null}
+                            >
+                              <DropdownMenu
+                                closeOnEscape={true}
+                                isOpen={false}
+                                keepMenuOpen={true}
+                                onClose={[Function]}
+                                onOpen={[Function]}
+                              >
+                                <TimeRangeRoot>
+                                  <div
+                                    className="css-1lz3nth-TimeRangeRoot e1u8612l0"
+                                  >
+                                    <StyledHeaderItem
+                                      allowClear={true}
+                                      hasChanges={false}
+                                      hasSelected={false}
+                                      icon={
+                                        <StyledInlineSvg
+                                          src="icon-calendar"
+                                        />
+                                      }
+                                      innerRef={[Function]}
+                                      isOpen={false}
+                                      onClear={[Function]}
+                                      onClick={[Function]}
+                                      onKeyDown={[Function]}
+                                      onMouseEnter={[Function]}
+                                      onMouseLeave={[Function]}
+                                      onSubmit={[Function]}
+                                      style={
+                                        Object {
+                                          "outline": "none",
+                                        }
+                                      }
+                                      tabIndex={-1}
+                                    >
+                                      <ForwardRef
                                         allowClear={true}
+                                        className="css-22y332-StyledHeaderItem e1u8612l1"
                                         hasChanges={false}
                                         hasSelected={false}
                                         icon={
@@ -1701,7 +1712,6 @@ exports[`OrganizationUserFeedback renders 1`] = `
                                             src="icon-calendar"
                                           />
                                         }
-                                        innerRef={[Function]}
                                         isOpen={false}
                                         onClear={[Function]}
                                         onClick={[Function]}
@@ -1716,7 +1726,7 @@ exports[`OrganizationUserFeedback renders 1`] = `
                                         }
                                         tabIndex={-1}
                                       >
-                                        <ForwardRef
+                                        <HeaderItem
                                           allowClear={true}
                                           className="css-22y332-StyledHeaderItem e1u8612l1"
                                           hasChanges={false}
@@ -1726,6 +1736,7 @@ exports[`OrganizationUserFeedback renders 1`] = `
                                               src="icon-calendar"
                                             />
                                           }
+                                          innerRef={[Function]}
                                           isOpen={false}
                                           onClear={[Function]}
                                           onClick={[Function]}
@@ -1740,24 +1751,15 @@ exports[`OrganizationUserFeedback renders 1`] = `
                                           }
                                           tabIndex={-1}
                                         >
-                                          <HeaderItem
-                                            allowClear={true}
+                                          <StyledHeaderItem
                                             className="css-22y332-StyledHeaderItem e1u8612l1"
-                                            hasChanges={false}
                                             hasSelected={false}
-                                            icon={
-                                              <StyledInlineSvg
-                                                src="icon-calendar"
-                                              />
-                                            }
                                             innerRef={[Function]}
                                             isOpen={false}
-                                            onClear={[Function]}
                                             onClick={[Function]}
                                             onKeyDown={[Function]}
                                             onMouseEnter={[Function]}
                                             onMouseLeave={[Function]}
-                                            onSubmit={[Function]}
                                             style={
                                               Object {
                                                 "outline": "none",
@@ -1765,11 +1767,8 @@ exports[`OrganizationUserFeedback renders 1`] = `
                                             }
                                             tabIndex={-1}
                                           >
-                                            <StyledHeaderItem
-                                              className="css-22y332-StyledHeaderItem e1u8612l1"
-                                              hasSelected={false}
-                                              innerRef={[Function]}
-                                              isOpen={false}
+                                            <div
+                                              className="e1u8612l1 css-1v6igws-StyledHeaderItem-StyledHeaderItem enk2k7v0"
                                               onClick={[Function]}
                                               onKeyDown={[Function]}
                                               onMouseEnter={[Function]}
@@ -1781,80 +1780,27 @@ exports[`OrganizationUserFeedback renders 1`] = `
                                               }
                                               tabIndex={-1}
                                             >
-                                              <div
-                                                className="e1u8612l1 css-1v6igws-StyledHeaderItem-StyledHeaderItem enk2k7v0"
-                                                onClick={[Function]}
-                                                onKeyDown={[Function]}
-                                                onMouseEnter={[Function]}
-                                                onMouseLeave={[Function]}
-                                                style={
-                                                  Object {
-                                                    "outline": "none",
-                                                  }
-                                                }
-                                                tabIndex={-1}
+                                              <IconContainer
+                                                hasSelected={false}
                                               >
-                                                <IconContainer
-                                                  hasSelected={false}
+                                                <span
+                                                  className="css-1g4tz50-IconContainer enk2k7v2"
                                                 >
-                                                  <span
-                                                    className="css-1g4tz50-IconContainer enk2k7v2"
-                                                  >
-                                                    <StyledInlineSvg
-                                                      src="icon-calendar"
-                                                    >
-                                                      <InlineSvg
-                                                        className="css-1ctth4-StyledInlineSvg e1u8612l2"
-                                                        src="icon-calendar"
-                                                      >
-                                                        <StyledSvg
-                                                          className="css-1ctth4-StyledInlineSvg e1u8612l2"
-                                                          height="1em"
-                                                          viewBox={Object {}}
-                                                          width="1em"
-                                                        >
-                                                          <svg
-                                                            className="e1u8612l2 css-1vh2z4q-StyledSvg-StyledInlineSvg e2idor0"
-                                                            height="1em"
-                                                            viewBox={Object {}}
-                                                            width="1em"
-                                                          >
-                                                            <use
-                                                              href="#test"
-                                                              xlinkHref="#test"
-                                                            />
-                                                          </svg>
-                                                        </StyledSvg>
-                                                      </InlineSvg>
-                                                    </StyledInlineSvg>
-                                                  </span>
-                                                </IconContainer>
-                                                <Content>
-                                                  <div
-                                                    className="css-1yquznf-Content enk2k7v1"
-                                                  >
-                                                    Last 14 days
-                                                  </div>
-                                                </Content>
-                                                <StyledChevron
-                                                  hasChanges={false}
-                                                  isOpen={false}
-                                                  onClick={[Function]}
-                                                >
-                                                  <div
-                                                    className="css-ft4nwy-StyledChevron enk2k7v4"
-                                                    onClick={[Function]}
+                                                  <StyledInlineSvg
+                                                    src="icon-calendar"
                                                   >
                                                     <InlineSvg
-                                                      src="icon-chevron-down"
+                                                      className="css-1ctth4-StyledInlineSvg e1u8612l2"
+                                                      src="icon-calendar"
                                                     >
                                                       <StyledSvg
+                                                        className="css-1ctth4-StyledInlineSvg e1u8612l2"
                                                         height="1em"
                                                         viewBox={Object {}}
                                                         width="1em"
                                                       >
                                                         <svg
-                                                          className="css-ryh69w-StyledSvg e2idor0"
+                                                          className="e1u8612l2 css-1vh2z4q-StyledSvg-StyledInlineSvg e2idor0"
                                                           height="1em"
                                                           viewBox={Object {}}
                                                           width="1em"
@@ -1866,21 +1812,60 @@ exports[`OrganizationUserFeedback renders 1`] = `
                                                         </svg>
                                                       </StyledSvg>
                                                     </InlineSvg>
-                                                  </div>
-                                                </StyledChevron>
-                                              </div>
-                                            </StyledHeaderItem>
-                                          </HeaderItem>
-                                        </ForwardRef>
-                                      </StyledHeaderItem>
-                                    </div>
-                                  </TimeRangeRoot>
-                                </DropdownMenu>
-                              </TimeRangeSelector>
-                            </div>
-                          </HeaderItemPosition>
-                        </div>
-                      </Base>
+                                                  </StyledInlineSvg>
+                                                </span>
+                                              </IconContainer>
+                                              <Content>
+                                                <div
+                                                  className="css-1yquznf-Content enk2k7v1"
+                                                >
+                                                  Last 14 days
+                                                </div>
+                                              </Content>
+                                              <StyledChevron
+                                                hasChanges={false}
+                                                isOpen={false}
+                                                onClick={[Function]}
+                                              >
+                                                <div
+                                                  className="css-ft4nwy-StyledChevron enk2k7v4"
+                                                  onClick={[Function]}
+                                                >
+                                                  <InlineSvg
+                                                    src="icon-chevron-down"
+                                                  >
+                                                    <StyledSvg
+                                                      height="1em"
+                                                      viewBox={Object {}}
+                                                      width="1em"
+                                                    >
+                                                      <svg
+                                                        className="css-ryh69w-StyledSvg e2idor0"
+                                                        height="1em"
+                                                        viewBox={Object {}}
+                                                        width="1em"
+                                                      >
+                                                        <use
+                                                          href="#test"
+                                                          xlinkHref="#test"
+                                                        />
+                                                      </svg>
+                                                    </StyledSvg>
+                                                  </InlineSvg>
+                                                </div>
+                                              </StyledChevron>
+                                            </div>
+                                          </StyledHeaderItem>
+                                        </HeaderItem>
+                                      </ForwardRef>
+                                    </StyledHeaderItem>
+                                  </div>
+                                </TimeRangeRoot>
+                              </DropdownMenu>
+                            </TimeRangeSelector>
+                          </div>
+                        </HeaderItemPosition>
+                      </div>
                     </Header>
                   </GlobalSelectionHeader>
                 </withGlobalSelection(GlobalSelectionHeader)>
@@ -2148,7 +2133,7 @@ exports[`OrganizationUserFeedback renders 1`] = `
                                     >
                                       <PanelItem
                                         className="issue level-undefined"
-                                        direction="column"
+                                        flexDirection="column"
                                         p={2}
                                         style={
                                           Object {
@@ -2157,10 +2142,8 @@ exports[`OrganizationUserFeedback renders 1`] = `
                                           }
                                         }
                                       >
-                                        <Base
+                                        <div
                                           className="issue level-undefined css-1cf8lr1-PanelItem eo8n7lk0"
-                                          direction="column"
-                                          p={2}
                                           style={
                                             Object {
                                               "paddingBottom": "6px",
@@ -2168,19 +2151,195 @@ exports[`OrganizationUserFeedback renders 1`] = `
                                             }
                                           }
                                         >
-                                          <div
-                                            className="issue level-undefined css-1cf8lr1-PanelItem eo8n7lk0"
-                                            is={null}
-                                            style={
+                                          <CompactIssueHeader
+                                            data={
                                               Object {
-                                                "paddingBottom": "6px",
-                                                "paddingTop": "12px",
+                                                "assignedTo": null,
+                                                "id": "1",
+                                                "project": Object {
+                                                  "id": "2",
+                                                  "slug": "project-slug",
+                                                },
+                                                "stats": Object {
+                                                  "24h": Array [
+                                                    Array [
+                                                      1517281200,
+                                                      2,
+                                                    ],
+                                                    Array [
+                                                      1517310000,
+                                                      1,
+                                                    ],
+                                                  ],
+                                                  "30d": Array [
+                                                    Array [
+                                                      1514764800,
+                                                      1,
+                                                    ],
+                                                    Array [
+                                                      1515024000,
+                                                      122,
+                                                    ],
+                                                  ],
+                                                },
+                                                "tags": Array [],
                                               }
                                             }
+                                            eventId="12345678901234567890123456789012"
+                                            organization={
+                                              Object {
+                                                "access": Array [
+                                                  "org:read",
+                                                  "org:write",
+                                                  "org:admin",
+                                                  "org:integrations",
+                                                  "project:read",
+                                                  "project:write",
+                                                  "project:admin",
+                                                  "team:read",
+                                                  "team:write",
+                                                  "team:admin",
+                                                ],
+                                                "features": Array [],
+                                                "id": "3",
+                                                "name": "Organization Name",
+                                                "onboardingTasks": Array [],
+                                                "projects": Array [],
+                                                "scrapeJavaScript": true,
+                                                "slug": "org-slug",
+                                                "status": Object {
+                                                  "id": "active",
+                                                  "name": "active",
+                                                },
+                                                "teams": Array [],
+                                              }
+                                            }
+                                            projectId="project-slug"
                                           >
-                                            <CompactIssueHeader
-                                              data={
-                                                Object {
+                                            <ForwardRef
+                                              alignItems="center"
+                                            >
+                                              <Styled(div)
+                                                alignItems="center"
+                                              >
+                                                <div
+                                                  className="css-5ipae5"
+                                                >
+                                                  <ForwardRef
+                                                    mr={1}
+                                                  >
+                                                    <Styled(div)
+                                                      mr={1}
+                                                    >
+                                                      <div
+                                                        className="css-1v2pt2d"
+                                                      >
+                                                        <span
+                                                          className="error-level truncate"
+                                                        />
+                                                      </div>
+                                                    </Styled(div)>
+                                                  </ForwardRef>
+                                                  <h3
+                                                    className="truncate"
+                                                  >
+                                                    <Link
+                                                      to="/organizations/org-slug/projects/project-slug/events/12345678901234567890123456789012/"
+                                                    >
+                                                      <Link
+                                                        onlyActiveOnIndex={false}
+                                                        style={Object {}}
+                                                        to="/organizations/org-slug/projects/project-slug/events/12345678901234567890123456789012/"
+                                                      >
+                                                        <a
+                                                          onClick={[Function]}
+                                                          style={Object {}}
+                                                        >
+                                                          <span
+                                                            className="icon icon-soundoff"
+                                                          />
+                                                          <span
+                                                            className="icon icon-star-solid"
+                                                          />
+                                                          <span />
+                                                        </a>
+                                                      </Link>
+                                                    </Link>
+                                                  </h3>
+                                                </div>
+                                              </Styled(div)>
+                                            </ForwardRef>
+                                            <div
+                                              className="event-extra"
+                                            >
+                                              <span
+                                                className="project-name"
+                                              >
+                                                <ProjectLink
+                                                  to="/org-slug/project-slug/"
+                                                >
+                                                  <Link
+                                                    onlyActiveOnIndex={false}
+                                                    style={Object {}}
+                                                    to="/org-slug/project-slug/"
+                                                  >
+                                                    <a
+                                                      onClick={[Function]}
+                                                      style={Object {}}
+                                                    >
+                                                      project-slug
+                                                    </a>
+                                                  </Link>
+                                                </ProjectLink>
+                                              </span>
+                                              <span>
+                                                <Link
+                                                  className="comments"
+                                                  to="/org-slug/project-slug/issues/1/activity/"
+                                                >
+                                                  <Link
+                                                    className="comments"
+                                                    onlyActiveOnIndex={false}
+                                                    style={Object {}}
+                                                    to="/org-slug/project-slug/issues/1/activity/"
+                                                  >
+                                                    <a
+                                                      className="comments"
+                                                      onClick={[Function]}
+                                                      style={Object {}}
+                                                    >
+                                                      <span
+                                                        className="icon icon-comments"
+                                                        style={Object {}}
+                                                      />
+                                                      <span
+                                                        className="tag-count"
+                                                      />
+                                                    </a>
+                                                  </Link>
+                                                </Link>
+                                              </span>
+                                              <span
+                                                className="culprit"
+                                              />
+                                            </div>
+                                          </CompactIssueHeader>
+                                          <EventUserFeedback
+                                            issueId="1"
+                                            orgId="org-slug"
+                                            report={
+                                              Object {
+                                                "comments": "Something bad happened",
+                                                "dateCreated": "2018-12-20T00:00:00.000Z",
+                                                "email": "lyn@sentry.io",
+                                                "event": Object {
+                                                  "eventID": "12345678901234567890123456789012",
+                                                  "groupID": "1",
+                                                  "id": "1",
+                                                  "message": "ApiException",
+                                                },
+                                                "id": "123",
+                                                "issue": Object {
                                                   "assignedTo": null,
                                                   "id": "1",
                                                   "project": Object {
@@ -2210,215 +2369,77 @@ exports[`OrganizationUserFeedback renders 1`] = `
                                                     ],
                                                   },
                                                   "tags": Array [],
-                                                }
+                                                },
+                                                "name": "Lyn",
                                               }
-                                              eventId="12345678901234567890123456789012"
-                                              organization={
-                                                Object {
-                                                  "access": Array [
-                                                    "org:read",
-                                                    "org:write",
-                                                    "org:admin",
-                                                    "org:integrations",
-                                                    "project:read",
-                                                    "project:write",
-                                                    "project:admin",
-                                                    "team:read",
-                                                    "team:write",
-                                                    "team:admin",
-                                                  ],
-                                                  "features": Array [],
-                                                  "id": "3",
-                                                  "name": "Organization Name",
-                                                  "onboardingTasks": Array [],
-                                                  "projects": Array [],
-                                                  "scrapeJavaScript": true,
-                                                  "slug": "org-slug",
-                                                  "status": Object {
-                                                    "id": "active",
-                                                    "name": "active",
-                                                  },
-                                                  "teams": Array [],
-                                                }
-                                              }
-                                              projectId="project-slug"
-                                            >
-                                              <Flex
-                                                align="center"
-                                              >
-                                                <Base
-                                                  align="center"
-                                                  className="css-5ipae5"
-                                                >
-                                                  <div
-                                                    className="css-5ipae5"
-                                                    is={null}
-                                                  >
-                                                    <Box
-                                                      mr={1}
-                                                    >
-                                                      <Base
-                                                        className="css-xgysgc"
-                                                        mr={1}
-                                                      >
-                                                        <div
-                                                          className="css-xgysgc"
-                                                          is={null}
-                                                        >
-                                                          <span
-                                                            className="error-level truncate"
-                                                          />
-                                                        </div>
-                                                      </Base>
-                                                    </Box>
-                                                    <h3
-                                                      className="truncate"
-                                                    >
-                                                      <Link
-                                                        to="/organizations/org-slug/projects/project-slug/events/12345678901234567890123456789012/"
-                                                      >
-                                                        <Link
-                                                          onlyActiveOnIndex={false}
-                                                          style={Object {}}
-                                                          to="/organizations/org-slug/projects/project-slug/events/12345678901234567890123456789012/"
-                                                        >
-                                                          <a
-                                                            onClick={[Function]}
-                                                            style={Object {}}
-                                                          >
-                                                            <span
-                                                              className="icon icon-soundoff"
-                                                            />
-                                                            <span
-                                                              className="icon icon-star-solid"
-                                                            />
-                                                            <span />
-                                                          </a>
-                                                        </Link>
-                                                      </Link>
-                                                    </h3>
-                                                  </div>
-                                                </Base>
-                                              </Flex>
-                                              <div
-                                                className="event-extra"
-                                              >
-                                                <span
-                                                  className="project-name"
-                                                >
-                                                  <ProjectLink
-                                                    to="/org-slug/project-slug/"
-                                                  >
-                                                    <Link
-                                                      onlyActiveOnIndex={false}
-                                                      style={Object {}}
-                                                      to="/org-slug/project-slug/"
-                                                    >
-                                                      <a
-                                                        onClick={[Function]}
-                                                        style={Object {}}
-                                                      >
-                                                        project-slug
-                                                      </a>
-                                                    </Link>
-                                                  </ProjectLink>
-                                                </span>
-                                                <span>
-                                                  <Link
-                                                    className="comments"
-                                                    to="/org-slug/project-slug/issues/1/activity/"
-                                                  >
-                                                    <Link
-                                                      className="comments"
-                                                      onlyActiveOnIndex={false}
-                                                      style={Object {}}
-                                                      to="/org-slug/project-slug/issues/1/activity/"
-                                                    >
-                                                      <a
-                                                        className="comments"
-                                                        onClick={[Function]}
-                                                        style={Object {}}
-                                                      >
-                                                        <span
-                                                          className="icon icon-comments"
-                                                          style={Object {}}
-                                                        />
-                                                        <span
-                                                          className="tag-count"
-                                                        />
-                                                      </a>
-                                                    </Link>
-                                                  </Link>
-                                                </span>
-                                                <span
-                                                  className="culprit"
-                                                />
-                                              </div>
-                                            </CompactIssueHeader>
-                                            <EventUserFeedback
-                                              issueId="1"
-                                              orgId="org-slug"
-                                              report={
-                                                Object {
-                                                  "comments": "Something bad happened",
-                                                  "dateCreated": "2018-12-20T00:00:00.000Z",
-                                                  "email": "lyn@sentry.io",
-                                                  "event": Object {
-                                                    "eventID": "12345678901234567890123456789012",
-                                                    "groupID": "1",
-                                                    "id": "1",
-                                                    "message": "ApiException",
-                                                  },
-                                                  "id": "123",
-                                                  "issue": Object {
-                                                    "assignedTo": null,
-                                                    "id": "1",
-                                                    "project": Object {
-                                                      "id": "2",
-                                                      "slug": "project-slug",
-                                                    },
-                                                    "stats": Object {
-                                                      "24h": Array [
-                                                        Array [
-                                                          1517281200,
-                                                          2,
-                                                        ],
-                                                        Array [
-                                                          1517310000,
-                                                          1,
-                                                        ],
-                                                      ],
-                                                      "30d": Array [
-                                                        Array [
-                                                          1514764800,
-                                                          1,
-                                                        ],
-                                                        Array [
-                                                          1515024000,
-                                                          122,
-                                                        ],
-                                                      ],
-                                                    },
-                                                    "tags": Array [],
-                                                  },
-                                                  "name": "Lyn",
-                                                }
-                                              }
+                                            }
+                                          >
+                                            <div
+                                              className="user-report"
                                             >
                                               <div
-                                                className="user-report"
+                                                className="activity-container"
                                               >
-                                                <div
-                                                  className="activity-container"
+                                                <ul
+                                                  className="activity"
                                                 >
-                                                  <ul
-                                                    className="activity"
+                                                  <li
+                                                    className="activity-note"
                                                   >
-                                                    <li
-                                                      className="activity-note"
+                                                    <Avatar
+                                                      className="avatar"
+                                                      hasTooltip={false}
+                                                      size={38}
+                                                      user={
+                                                        Object {
+                                                          "comments": "Something bad happened",
+                                                          "dateCreated": "2018-12-20T00:00:00.000Z",
+                                                          "email": "lyn@sentry.io",
+                                                          "event": Object {
+                                                            "eventID": "12345678901234567890123456789012",
+                                                            "groupID": "1",
+                                                            "id": "1",
+                                                            "message": "ApiException",
+                                                          },
+                                                          "id": "123",
+                                                          "issue": Object {
+                                                            "assignedTo": null,
+                                                            "id": "1",
+                                                            "project": Object {
+                                                              "id": "2",
+                                                              "slug": "project-slug",
+                                                            },
+                                                            "stats": Object {
+                                                              "24h": Array [
+                                                                Array [
+                                                                  1517281200,
+                                                                  2,
+                                                                ],
+                                                                Array [
+                                                                  1517310000,
+                                                                  1,
+                                                                ],
+                                                              ],
+                                                              "30d": Array [
+                                                                Array [
+                                                                  1514764800,
+                                                                  1,
+                                                                ],
+                                                                Array [
+                                                                  1515024000,
+                                                                  122,
+                                                                ],
+                                                              ],
+                                                            },
+                                                            "tags": Array [],
+                                                          },
+                                                          "name": "Lyn",
+                                                        }
+                                                      }
                                                     >
-                                                      <Avatar
+                                                      <UserAvatar
                                                         className="avatar"
+                                                        gravatar={false}
                                                         hasTooltip={false}
                                                         size={38}
                                                         user={
@@ -2468,79 +2489,36 @@ exports[`OrganizationUserFeedback renders 1`] = `
                                                           }
                                                         }
                                                       >
-                                                        <UserAvatar
+                                                        <BaseAvatar
                                                           className="avatar"
-                                                          gravatar={false}
+                                                          gravatarId="lyn@sentry.io"
                                                           hasTooltip={false}
+                                                          letterId="lyn@sentry.io"
+                                                          round={true}
                                                           size={38}
-                                                          user={
-                                                            Object {
-                                                              "comments": "Something bad happened",
-                                                              "dateCreated": "2018-12-20T00:00:00.000Z",
-                                                              "email": "lyn@sentry.io",
-                                                              "event": Object {
-                                                                "eventID": "12345678901234567890123456789012",
-                                                                "groupID": "1",
-                                                                "id": "1",
-                                                                "message": "ApiException",
-                                                              },
-                                                              "id": "123",
-                                                              "issue": Object {
-                                                                "assignedTo": null,
-                                                                "id": "1",
-                                                                "project": Object {
-                                                                  "id": "2",
-                                                                  "slug": "project-slug",
-                                                                },
-                                                                "stats": Object {
-                                                                  "24h": Array [
-                                                                    Array [
-                                                                      1517281200,
-                                                                      2,
-                                                                    ],
-                                                                    Array [
-                                                                      1517310000,
-                                                                      1,
-                                                                    ],
-                                                                  ],
-                                                                  "30d": Array [
-                                                                    Array [
-                                                                      1514764800,
-                                                                      1,
-                                                                    ],
-                                                                    Array [
-                                                                      1515024000,
-                                                                      122,
-                                                                    ],
-                                                                  ],
-                                                                },
-                                                                "tags": Array [],
-                                                              },
-                                                              "name": "Lyn",
-                                                            }
-                                                          }
+                                                          style={Object {}}
+                                                          title="Lyn"
+                                                          tooltip="Lyn (lyn@sentry.io)"
+                                                          type="letter_avatar"
+                                                          uploadPath="avatar"
                                                         >
-                                                          <BaseAvatar
-                                                            className="avatar"
-                                                            gravatarId="lyn@sentry.io"
-                                                            hasTooltip={false}
-                                                            letterId="lyn@sentry.io"
-                                                            round={true}
-                                                            size={38}
-                                                            style={Object {}}
-                                                            title="Lyn"
-                                                            tooltip="Lyn (lyn@sentry.io)"
-                                                            type="letter_avatar"
-                                                            uploadPath="avatar"
+                                                          <Tooltip
+                                                            disabled={true}
+                                                            title="Lyn (lyn@sentry.io)"
                                                           >
-                                                            <Tooltip
-                                                              disabled={true}
-                                                              title="Lyn (lyn@sentry.io)"
+                                                            <StyledBaseAvatar
+                                                              className="avatar avatar"
+                                                              loaded={true}
+                                                              round={true}
+                                                              style={
+                                                                Object {
+                                                                  "height": "38px",
+                                                                  "width": "38px",
+                                                                }
+                                                              }
                                                             >
-                                                              <StyledBaseAvatar
-                                                                className="avatar avatar"
-                                                                loaded={true}
-                                                                round={true}
+                                                              <span
+                                                                className="avatar avatar css-3f9bmx-StyledBaseAvatar e1z0ohzl0"
                                                                 style={
                                                                   Object {
                                                                     "height": "38px",
@@ -2548,117 +2526,107 @@ exports[`OrganizationUserFeedback renders 1`] = `
                                                                   }
                                                                 }
                                                               >
-                                                                <span
-                                                                  className="avatar avatar css-3f9bmx-StyledBaseAvatar e1z0ohzl0"
-                                                                  style={
-                                                                    Object {
-                                                                      "height": "38px",
-                                                                      "width": "38px",
-                                                                    }
-                                                                  }
+                                                                <LetterAvatar
+                                                                  displayName="Lyn"
+                                                                  identifier="lyn@sentry.io"
+                                                                  round={true}
                                                                 >
-                                                                  <LetterAvatar
-                                                                    displayName="Lyn"
-                                                                    identifier="lyn@sentry.io"
+                                                                  <Svg
                                                                     round={true}
+                                                                    viewBox="0 0 120 120"
                                                                   >
-                                                                    <Svg
-                                                                      round={true}
+                                                                    <svg
+                                                                      className="css-1r4mnb9-Svg e1knxa8x0"
                                                                       viewBox="0 0 120 120"
                                                                     >
-                                                                      <svg
-                                                                        className="css-1r4mnb9-Svg e1knxa8x0"
-                                                                        viewBox="0 0 120 120"
-                                                                      >
-                                                                        <rect
-                                                                          fill="#57b1be"
-                                                                          height="120"
-                                                                          rx="15"
-                                                                          ry="15"
-                                                                          width="120"
-                                                                          x="0"
-                                                                          y="0"
-                                                                        />
-                                                                        <text
-                                                                          fill="#FFFFFF"
-                                                                          fontSize="65"
-                                                                          style={
-                                                                            Object {
-                                                                              "dominantBaseline": "central",
-                                                                            }
+                                                                      <rect
+                                                                        fill="#57b1be"
+                                                                        height="120"
+                                                                        rx="15"
+                                                                        ry="15"
+                                                                        width="120"
+                                                                        x="0"
+                                                                        y="0"
+                                                                      />
+                                                                      <text
+                                                                        fill="#FFFFFF"
+                                                                        fontSize="65"
+                                                                        style={
+                                                                          Object {
+                                                                            "dominantBaseline": "central",
                                                                           }
-                                                                          textAnchor="middle"
-                                                                          x="50%"
-                                                                          y="50%"
-                                                                        >
-                                                                          L
-                                                                        </text>
-                                                                      </svg>
-                                                                    </Svg>
-                                                                  </LetterAvatar>
-                                                                </span>
-                                                              </StyledBaseAvatar>
-                                                            </Tooltip>
-                                                          </BaseAvatar>
-                                                        </UserAvatar>
-                                                      </Avatar>
-                                                      <div
-                                                        className="activity-bubble"
-                                                      >
-                                                        <div>
-                                                          <TimeSince
-                                                            date="2018-12-20T00:00:00.000Z"
-                                                            suffix="ago"
+                                                                        }
+                                                                        textAnchor="middle"
+                                                                        x="50%"
+                                                                        y="50%"
+                                                                      >
+                                                                        L
+                                                                      </text>
+                                                                    </svg>
+                                                                  </Svg>
+                                                                </LetterAvatar>
+                                                              </span>
+                                                            </StyledBaseAvatar>
+                                                          </Tooltip>
+                                                        </BaseAvatar>
+                                                      </UserAvatar>
+                                                    </Avatar>
+                                                    <div
+                                                      className="activity-bubble"
+                                                    >
+                                                      <div>
+                                                        <TimeSince
+                                                          date="2018-12-20T00:00:00.000Z"
+                                                          suffix="ago"
+                                                        >
+                                                          <time
+                                                            dateTime="2018-12-20T00:00:00.000Z"
+                                                            title="December 20, 2018 12:00 AM UTC"
                                                           >
-                                                            <time
-                                                              dateTime="2018-12-20T00:00:00.000Z"
-                                                              title="December 20, 2018 12:00 AM UTC"
+                                                            in a year
+                                                          </time>
+                                                        </TimeSince>
+                                                        <div
+                                                          className="activity-author"
+                                                        >
+                                                          Lyn
+                                                          <small>
+                                                            lyn@sentry.io
+                                                          </small>
+                                                          <small>
+                                                            <Link
+                                                              to="/organizations/org-slug/issues/1/events/12345678901234567890123456789012/"
                                                             >
-                                                              in a year
-                                                            </time>
-                                                          </TimeSince>
-                                                          <div
-                                                            className="activity-author"
-                                                          >
-                                                            Lyn
-                                                            <small>
-                                                              lyn@sentry.io
-                                                            </small>
-                                                            <small>
                                                               <Link
+                                                                onlyActiveOnIndex={false}
+                                                                style={Object {}}
                                                                 to="/organizations/org-slug/issues/1/events/12345678901234567890123456789012/"
                                                               >
-                                                                <Link
-                                                                  onlyActiveOnIndex={false}
+                                                                <a
+                                                                  onClick={[Function]}
                                                                   style={Object {}}
-                                                                  to="/organizations/org-slug/issues/1/events/12345678901234567890123456789012/"
                                                                 >
-                                                                  <a
-                                                                    onClick={[Function]}
-                                                                    style={Object {}}
-                                                                  >
-                                                                    View event
-                                                                  </a>
-                                                                </Link>
+                                                                  View event
+                                                                </a>
                                                               </Link>
-                                                            </small>
-                                                          </div>
-                                                          <p
-                                                            dangerouslySetInnerHTML={
-                                                              Object {
-                                                                "__html": "Something bad happened",
-                                                              }
-                                                            }
-                                                          />
+                                                            </Link>
+                                                          </small>
                                                         </div>
+                                                        <p
+                                                          dangerouslySetInnerHTML={
+                                                            Object {
+                                                              "__html": "Something bad happened",
+                                                            }
+                                                          }
+                                                        />
                                                       </div>
-                                                    </li>
-                                                  </ul>
-                                                </div>
+                                                    </div>
+                                                  </li>
+                                                </ul>
                                               </div>
-                                            </EventUserFeedback>
-                                          </div>
-                                        </Base>
+                                            </div>
+                                          </EventUserFeedback>
+                                        </div>
                                       </PanelItem>
                                     </CompactIssue>
                                   </WithOrganizationMockWrapper>

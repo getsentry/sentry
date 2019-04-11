@@ -1,4 +1,4 @@
-import {Flex} from 'grid-emotion';
+import {Flex} from '@rebass/grid/emotion';
 import {Link} from 'react-router';
 import PropTypes from 'prop-types';
 import React from 'react';
@@ -99,7 +99,7 @@ const RuleRow = withApi(
 
       return (
         <Panel>
-          <PanelHeader align="center" justify="space-between" hasButtons>
+          <PanelHeader alignItems="center" justifyContent="space-between" hasButtons>
             <TextColorLink to={editLink}>
               {data.name} - {environmentName}
             </TextColorLink>

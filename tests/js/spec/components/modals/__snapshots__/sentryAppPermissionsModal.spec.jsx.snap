@@ -90,22 +90,16 @@ exports[`SentryAppPermissionsModal installs the application 1`] = `
               key="read"
               p={2}
             >
-              <Base
+              <div
                 className="css-125s2dx-PanelItem eo8n7lk0"
-                p={2}
               >
-                <div
-                  className="css-125s2dx-PanelItem eo8n7lk0"
-                  is={null}
-                >
-                  <p>
-                    <strong>
-                      Read
-                    </strong>
-                     access to Project
-                  </p>
-                </div>
-              </Base>
+                <p>
+                  <strong>
+                    Read
+                  </strong>
+                   access to Project
+                </p>
+              </div>
             </PanelItem>
           </div>
         </Component>
@@ -314,22 +308,16 @@ exports[`SentryAppPermissionsModal renders permissions modal 1`] = `
               key="read"
               p={2}
             >
-              <Base
+              <div
                 className="css-125s2dx-PanelItem eo8n7lk0"
-                p={2}
               >
-                <div
-                  className="css-125s2dx-PanelItem eo8n7lk0"
-                  is={null}
-                >
-                  <p>
-                    <strong>
-                      Read
-                    </strong>
-                     access to Project
-                  </p>
-                </div>
-              </Base>
+                <p>
+                  <strong>
+                    Read
+                  </strong>
+                   access to Project
+                </p>
+              </div>
             </PanelItem>
           </div>
         </Component>

@@ -1,4 +1,4 @@
-import {Flex} from 'grid-emotion';
+import {Flex} from '@rebass/grid/emotion';
 import {debounce} from 'lodash';
 import {withRouter} from 'react-router';
 import PropTypes from 'prop-types';
@@ -203,7 +203,7 @@ class Search extends React.Component {
                   {({isLoading, results, hasAnyResults}) => (
                     <DropdownBox css={dropdownStyle}>
                       {isLoading && (
-                        <Flex justify="center" align="center" p={1}>
+                        <Flex justifyContent="center" alignItems="center" p={1}>
                           <LoadingIndicator mini hideMessage relative />
                         </Flex>
                       )}

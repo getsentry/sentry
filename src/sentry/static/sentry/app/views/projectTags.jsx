@@ -1,4 +1,4 @@
-import {Box, Flex} from 'grid-emotion';
+import {Box, Flex} from '@rebass/grid/emotion';
 import React from 'react';
 
 import {Panel, PanelBody, PanelHeader, PanelItem} from 'app/components/panels';
@@ -82,11 +82,16 @@ export default class ProjectTags extends AsyncView {
                 tags.map(({key, canDelete}, idx) => {
                   const enabled = canDelete && hasAccess;
                   return (
-                    <PanelItem p={0} align="center" key={key} className="ref-tag-row">
-                      <Box align="flex-end" flex="1" p={2}>
+                    <PanelItem
+                      p={0}
+                      alignItems="center"
+                      key={key}
+                      className="ref-tag-row"
+                    >
+                      <Box alignItems="flex-end" flex="1" p={2}>
                         <span>{key}</span>
                       </Box>
-                      <Flex align="center" p={2}>
+                      <Flex alignItems="center" p={2}>
                         <Tooltip
                           disabled={enabled}
                           title={

@@ -520,20 +520,18 @@ exports[`Project Ownership Input renders 1`] = `
             </StyledSvg>
           </InlineSvg>
         </Divider>
-        <Flex
-          align="center"
+        <ForwardRef
+          alignItems="center"
           flex="1"
           mr={1}
         >
-          <Base
-            align="center"
-            className="css-1q48dzo"
+          <Styled(div)
+            alignItems="center"
             flex="1"
             mr={1}
           >
             <div
-              className="css-1q48dzo"
-              is={null}
+              className="css-hi79ae"
             >
               <SelectOwners
                 onChange={[Function]}
@@ -857,8 +855,8 @@ exports[`Project Ownership Input renders 1`] = `
                 </MultiSelectControl>
               </SelectOwners>
             </div>
-          </Base>
-        </Flex>
+          </Styled(div)>
+        </ForwardRef>
         <AddButton
           disabled={true}
           icon="icon-circle-add"
@@ -1020,18 +1018,16 @@ url:http://example.com/settings/* #product"
         />
       </TextareaAutosize>
     </StyledTextArea>
-    <Flex
-      align="center"
-      justify="space-between"
+    <ForwardRef
+      alignItems="center"
+      justifyContent="space-between"
     >
-      <Base
-        align="center"
-        className="css-v7pzd9"
-        justify="space-between"
+      <Styled(div)
+        alignItems="center"
+        justifyContent="space-between"
       >
         <div
           className="css-v7pzd9"
-          is={null}
         >
           <div />
           <SaveButton>
@@ -1092,8 +1088,8 @@ url:http://example.com/settings/* #product"
             </div>
           </SaveButton>
         </div>
-      </Base>
-    </Flex>
+      </Styled(div)>
+    </ForwardRef>
   </div>
 </OwnerInput>
 `;

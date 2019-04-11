@@ -34,36 +34,29 @@ exports[`Organization Developer Settings when no Apps exist displays empty state
             <div
               className="css-1r5ylk7-Wrapper e1kblvez2"
             >
-              <Flex
-                align="center"
+              <ForwardRef
+                alignItems="center"
               >
-                <Base
-                  align="center"
-                  className="css-5ipae5"
+                <Styled(div)
+                  alignItems="center"
                 >
                   <div
                     className="css-5ipae5"
-                    is={null}
                   >
                     <Title
                       styled={false}
                     >
-                      <Base
+                      <div
                         className="css-1ky52ze-Title e1kblvez0"
                       >
-                        <div
-                          className="css-1ky52ze-Title e1kblvez0"
-                          is={null}
-                        >
-                          <HeaderTitle>
-                            <h4
-                              className="css-1w8ttcn-HeaderTitle e6lvex72"
-                            >
-                              Developer Settings
-                            </h4>
-                          </HeaderTitle>
-                        </div>
-                      </Base>
+                        <HeaderTitle>
+                          <h4
+                            className="css-1w8ttcn-HeaderTitle e6lvex72"
+                          >
+                            Developer Settings
+                          </h4>
+                        </HeaderTitle>
+                      </div>
                     </Title>
                     <Action>
                       <div
@@ -184,8 +177,8 @@ exports[`Organization Developer Settings when no Apps exist displays empty state
                       </div>
                     </Action>
                   </div>
-                </Base>
-              </Flex>
+                </Styled(div)>
+              </ForwardRef>
             </div>
           </Wrapper>
         </SettingsPageHeading>
@@ -200,24 +193,23 @@ exports[`Organization Developer Settings when no Apps exist displays empty state
                 <Component
                   className="css-xhx6pj-PanelHeader-getPadding e1p8v8nv0"
                 >
-                  <Flex
-                    align="center"
+                  <ForwardRef
+                    alignItems="center"
                     className="css-xhx6pj-PanelHeader-getPadding e1p8v8nv0"
-                    justify="space-between"
+                    justifyContent="space-between"
                   >
-                    <Base
-                      align="center"
-                      className="e1p8v8nv0 css-b7ices-PanelHeader-getPadding"
-                      justify="space-between"
+                    <Styled(div)
+                      alignItems="center"
+                      className="css-xhx6pj-PanelHeader-getPadding e1p8v8nv0"
+                      justifyContent="space-between"
                     >
                       <div
-                        className="e1p8v8nv0 css-b7ices-PanelHeader-getPadding"
-                        is={null}
+                        className="css-xhx6pj-PanelHeader-getPadding e1p8v8nv0 css-v7pzd9"
                       >
                         Applications
                       </div>
-                    </Base>
-                  </Flex>
+                    </Styled(div)>
+                  </ForwardRef>
                 </Component>
               </PanelHeader>
               <PanelBody
@@ -295,36 +287,29 @@ exports[`Organization Developer Settings with published apps trash button is dis
             <div
               className="css-1r5ylk7-Wrapper e1kblvez2"
             >
-              <Flex
-                align="center"
+              <ForwardRef
+                alignItems="center"
               >
-                <Base
-                  align="center"
-                  className="css-5ipae5"
+                <Styled(div)
+                  alignItems="center"
                 >
                   <div
                     className="css-5ipae5"
-                    is={null}
                   >
                     <Title
                       styled={false}
                     >
-                      <Base
+                      <div
                         className="css-1ky52ze-Title e1kblvez0"
                       >
-                        <div
-                          className="css-1ky52ze-Title e1kblvez0"
-                          is={null}
-                        >
-                          <HeaderTitle>
-                            <h4
-                              className="css-1w8ttcn-HeaderTitle e6lvex72"
-                            >
-                              Developer Settings
-                            </h4>
-                          </HeaderTitle>
-                        </div>
-                      </Base>
+                        <HeaderTitle>
+                          <h4
+                            className="css-1w8ttcn-HeaderTitle e6lvex72"
+                          >
+                            Developer Settings
+                          </h4>
+                        </HeaderTitle>
+                      </div>
                     </Title>
                     <Action>
                       <div
@@ -445,8 +430,8 @@ exports[`Organization Developer Settings with published apps trash button is dis
                       </div>
                     </Action>
                   </div>
-                </Base>
-              </Flex>
+                </Styled(div)>
+              </ForwardRef>
             </div>
           </Wrapper>
         </SettingsPageHeading>
@@ -461,24 +446,23 @@ exports[`Organization Developer Settings with published apps trash button is dis
                 <Component
                   className="css-xhx6pj-PanelHeader-getPadding e1p8v8nv0"
                 >
-                  <Flex
-                    align="center"
+                  <ForwardRef
+                    alignItems="center"
                     className="css-xhx6pj-PanelHeader-getPadding e1p8v8nv0"
-                    justify="space-between"
+                    justifyContent="space-between"
                   >
-                    <Base
-                      align="center"
-                      className="e1p8v8nv0 css-b7ices-PanelHeader-getPadding"
-                      justify="space-between"
+                    <Styled(div)
+                      alignItems="center"
+                      className="css-xhx6pj-PanelHeader-getPadding e1p8v8nv0"
+                      justifyContent="space-between"
                     >
                       <div
-                        className="e1p8v8nv0 css-b7ices-PanelHeader-getPadding"
-                        is={null}
+                        className="css-xhx6pj-PanelHeader-getPadding e1p8v8nv0 css-v7pzd9"
                       >
                         Applications
                       </div>
-                    </Base>
-                  </Flex>
+                    </Styled(div)>
+                  </ForwardRef>
                 </Component>
               </PanelHeader>
               <PanelBody
@@ -516,219 +500,216 @@ exports[`Organization Developer Settings with published apps trash button is dis
                     showPublishStatus={true}
                   >
                     <SentryAppItem>
-                      <Base
+                      <div
                         className="css-h9gjd5-PanelItem-SentryAppItem eac2pqx0"
                       >
-                        <div
-                          className="css-h9gjd5-PanelItem-SentryAppItem eac2pqx0"
-                          is={null}
-                        >
-                          <StyledFlex>
-                            <Base
-                              className="css-14n192s-StyledFlex eac2pqx1"
+                        <StyledFlex>
+                          <div
+                            className="css-14n192s-StyledFlex eac2pqx1"
+                          >
+                            <SentryAppAvatar
+                              sentryApp={
+                                Object {
+                                  "author": "Sentry",
+                                  "clientId": "client-id",
+                                  "clientSecret": "client-secret",
+                                  "events": Array [],
+                                  "isAlertable": false,
+                                  "name": "Sample App",
+                                  "overview": "This is an app.",
+                                  "redirectUrl": "https://example/com/setup",
+                                  "schema": Object {},
+                                  "scopes": Array [
+                                    "project:read",
+                                  ],
+                                  "slug": "sample-app",
+                                  "status": "published",
+                                  "uuid": "123456123456123456123456",
+                                  "webhookUrl": "https://example.com/webhook",
+                                }
+                              }
+                              size={36}
                             >
-                              <div
-                                className="css-14n192s-StyledFlex eac2pqx1"
-                                is={null}
+                              <BaseAvatar
+                                hasTooltip={false}
+                                letterId="123456123456123456123456"
+                                size={36}
+                                style={Object {}}
+                                title="Sample App"
+                                tooltip="Sample App"
+                                type="letter_avatar"
+                                uploadId=""
+                                uploadPath="avatar"
                               >
-                                <SentryAppAvatar
-                                  sentryApp={
-                                    Object {
-                                      "author": "Sentry",
-                                      "clientId": "client-id",
-                                      "clientSecret": "client-secret",
-                                      "events": Array [],
-                                      "isAlertable": false,
-                                      "name": "Sample App",
-                                      "overview": "This is an app.",
-                                      "redirectUrl": "https://example/com/setup",
-                                      "schema": Object {},
-                                      "scopes": Array [
-                                        "project:read",
-                                      ],
-                                      "slug": "sample-app",
-                                      "status": "published",
-                                      "uuid": "123456123456123456123456",
-                                      "webhookUrl": "https://example.com/webhook",
-                                    }
-                                  }
-                                  size={36}
+                                <Tooltip
+                                  disabled={true}
+                                  title="Sample App"
                                 >
-                                  <BaseAvatar
-                                    hasTooltip={false}
-                                    letterId="123456123456123456123456"
-                                    size={36}
-                                    style={Object {}}
-                                    title="Sample App"
-                                    tooltip="Sample App"
-                                    type="letter_avatar"
-                                    uploadId=""
-                                    uploadPath="avatar"
+                                  <StyledBaseAvatar
+                                    className="avatar"
+                                    loaded={true}
+                                    style={
+                                      Object {
+                                        "height": "36px",
+                                        "width": "36px",
+                                      }
+                                    }
                                   >
-                                    <Tooltip
-                                      disabled={true}
-                                      title="Sample App"
-                                    >
-                                      <StyledBaseAvatar
-                                        className="avatar"
-                                        loaded={true}
-                                        style={
-                                          Object {
-                                            "height": "36px",
-                                            "width": "36px",
-                                          }
+                                    <span
+                                      className="avatar css-1i62700-StyledBaseAvatar e1z0ohzl0"
+                                      style={
+                                        Object {
+                                          "height": "36px",
+                                          "width": "36px",
                                         }
-                                      >
-                                        <span
-                                          className="avatar css-1i62700-StyledBaseAvatar e1z0ohzl0"
-                                          style={
-                                            Object {
-                                              "height": "36px",
-                                              "width": "36px",
-                                            }
-                                          }
-                                        >
-                                          <LetterAvatar
-                                            displayName="Sample App"
-                                            identifier="123456123456123456123456"
-                                          >
-                                            <Svg
-                                              viewBox="0 0 120 120"
-                                            >
-                                              <svg
-                                                className="css-123ijso-Svg e1knxa8x0"
-                                                viewBox="0 0 120 120"
-                                              >
-                                                <rect
-                                                  fill="#4674ca"
-                                                  height="120"
-                                                  rx="15"
-                                                  ry="15"
-                                                  width="120"
-                                                  x="0"
-                                                  y="0"
-                                                />
-                                                <text
-                                                  fill="#FFFFFF"
-                                                  fontSize="65"
-                                                  style={
-                                                    Object {
-                                                      "dominantBaseline": "central",
-                                                    }
-                                                  }
-                                                  textAnchor="middle"
-                                                  x="50%"
-                                                  y="50%"
-                                                >
-                                                  SA
-                                                </text>
-                                              </svg>
-                                            </Svg>
-                                          </LetterAvatar>
-                                        </span>
-                                      </StyledBaseAvatar>
-                                    </Tooltip>
-                                  </BaseAvatar>
-                                </SentryAppAvatar>
-                                <SentryAppBox>
-                                  <Base
-                                    className="css-161g25b-SentryAppBox eac2pqx2"
-                                  >
-                                    <div
-                                      className="css-161g25b-SentryAppBox eac2pqx2"
-                                      is={null}
+                                      }
                                     >
-                                      <SentryAppName>
-                                        <div
-                                          className="css-uiwo8x-SentryAppName eac2pqx4"
+                                      <LetterAvatar
+                                        displayName="Sample App"
+                                        identifier="123456123456123456123456"
+                                      >
+                                        <Svg
+                                          viewBox="0 0 120 120"
                                         >
-                                          <SentryAppLink
-                                            to="/settings/org-slug/developer-settings/sample-app/"
+                                          <svg
+                                            className="css-123ijso-Svg e1knxa8x0"
+                                            viewBox="0 0 120 120"
                                           >
-                                            <Link
-                                              className="css-gg019v-SentryAppLink eac2pqx6"
-                                              onlyActiveOnIndex={false}
-                                              style={Object {}}
-                                              to="/settings/org-slug/developer-settings/sample-app/"
+                                            <rect
+                                              fill="#4674ca"
+                                              height="120"
+                                              rx="15"
+                                              ry="15"
+                                              width="120"
+                                              x="0"
+                                              y="0"
+                                            />
+                                            <text
+                                              fill="#FFFFFF"
+                                              fontSize="65"
+                                              style={
+                                                Object {
+                                                  "dominantBaseline": "central",
+                                                }
+                                              }
+                                              textAnchor="middle"
+                                              x="50%"
+                                              y="50%"
                                             >
-                                              <a
-                                                className="css-gg019v-SentryAppLink eac2pqx6"
-                                                onClick={[Function]}
-                                                style={Object {}}
-                                              >
-                                                Sample App
-                                              </a>
-                                            </Link>
-                                          </SentryAppLink>
-                                        </div>
-                                      </SentryAppName>
-                                      <SentryAppDetails>
-                                        <Base
-                                          className="css-f0t6d-SentryAppDetails eac2pqx3"
-                                        >
-                                          <div
-                                            className="css-f0t6d-SentryAppDetails eac2pqx3"
-                                            is={null}
-                                          >
-                                            <PublishStatus
-                                              published={true}
-                                            >
-                                              <Component
-                                                className="css-ziyhwp-PublishStatus eac2pqx9"
-                                                published={true}
-                                              >
-                                                <Flex
-                                                  align="center"
-                                                >
-                                                  <Base
-                                                    align="center"
-                                                    className="css-5ipae5"
-                                                  >
-                                                    <div
-                                                      className="css-5ipae5"
-                                                      is={null}
-                                                    >
-                                                      <div
-                                                        className="css-ziyhwp-PublishStatus eac2pqx9"
-                                                      >
-                                                        published
-                                                      </div>
-                                                    </div>
-                                                  </Base>
-                                                </Flex>
-                                              </Component>
-                                            </PublishStatus>
-                                          </div>
-                                        </Base>
-                                      </SentryAppDetails>
-                                    </div>
-                                  </Base>
-                                </SentryAppBox>
-                                <Box>
-                                  <Base
-                                    className="css-roynbj"
+                                              SA
+                                            </text>
+                                          </svg>
+                                        </Svg>
+                                      </LetterAvatar>
+                                    </span>
+                                  </StyledBaseAvatar>
+                                </Tooltip>
+                              </BaseAvatar>
+                            </SentryAppAvatar>
+                            <SentryAppBox>
+                              <div
+                                className="css-161g25b-SentryAppBox eac2pqx2"
+                              >
+                                <SentryAppName>
+                                  <div
+                                    className="css-uiwo8x-SentryAppName eac2pqx4"
                                   >
-                                    <div
-                                      className="css-roynbj"
-                                      is={null}
+                                    <SentryAppLink
+                                      to="/settings/org-slug/developer-settings/sample-app/"
+                                    >
+                                      <Link
+                                        className="css-gg019v-SentryAppLink eac2pqx6"
+                                        onlyActiveOnIndex={false}
+                                        style={Object {}}
+                                        to="/settings/org-slug/developer-settings/sample-app/"
+                                      >
+                                        <a
+                                          className="css-gg019v-SentryAppLink eac2pqx6"
+                                          onClick={[Function]}
+                                          style={Object {}}
+                                        >
+                                          Sample App
+                                        </a>
+                                      </Link>
+                                    </SentryAppLink>
+                                  </div>
+                                </SentryAppName>
+                                <SentryAppDetails>
+                                  <div
+                                    className="css-f0t6d-SentryAppDetails eac2pqx3"
+                                  >
+                                    <PublishStatus
+                                      published={true}
+                                    >
+                                      <Component
+                                        className="css-ziyhwp-PublishStatus eac2pqx9"
+                                        published={true}
+                                      >
+                                        <ForwardRef
+                                          alignItems="center"
+                                        >
+                                          <Styled(div)
+                                            alignItems="center"
+                                          >
+                                            <div
+                                              className="css-5ipae5"
+                                            >
+                                              <div
+                                                className="css-ziyhwp-PublishStatus eac2pqx9"
+                                              >
+                                                published
+                                              </div>
+                                            </div>
+                                          </Styled(div)>
+                                        </ForwardRef>
+                                      </Component>
+                                    </PublishStatus>
+                                  </div>
+                                </SentryAppDetails>
+                              </div>
+                            </SentryAppBox>
+                            <ForwardRef>
+                              <Styled(div)>
+                                <div
+                                  className="css-roynbj"
+                                >
+                                  <Tooltip
+                                    title="Published apps cannot be removed."
+                                  >
+                                    <Button
+                                      className="tip"
+                                      disabled={true}
+                                      icon="icon-trash"
+                                      size="small"
+                                      title="Published apps cannot be removed."
                                     >
                                       <Tooltip
                                         title="Published apps cannot be removed."
                                       >
-                                        <Button
-                                          className="tip"
+                                        <StyledButton
+                                          aria-disabled={true}
+                                          className="tip tip"
                                           disabled={true}
-                                          icon="icon-trash"
+                                          href={null}
+                                          onClick={[Function]}
+                                          role="button"
                                           size="small"
                                           title="Published apps cannot be removed."
+                                          to={null}
                                         >
-                                          <Tooltip
+                                          <Component
+                                            aria-disabled={true}
+                                            className="tip tip css-1ujzp8g-StyledButton-getColors eqrebog0"
+                                            href={null}
+                                            onClick={[Function]}
+                                            role="button"
+                                            size="small"
                                             title="Published apps cannot be removed."
+                                            to={null}
                                           >
-                                            <StyledButton
+                                            <button
                                               aria-disabled={true}
-                                              className="tip tip"
-                                              disabled={true}
+                                              className="tip tip css-1ujzp8g-StyledButton-getColors eqrebog0"
                                               href={null}
                                               onClick={[Function]}
                                               role="button"
@@ -736,98 +717,76 @@ exports[`Organization Developer Settings with published apps trash button is dis
                                               title="Published apps cannot be removed."
                                               to={null}
                                             >
-                                              <Component
-                                                aria-disabled={true}
-                                                className="tip tip css-1ujzp8g-StyledButton-getColors eqrebog0"
-                                                href={null}
-                                                onClick={[Function]}
-                                                role="button"
+                                              <ButtonLabel
                                                 size="small"
-                                                title="Published apps cannot be removed."
-                                                to={null}
                                               >
-                                                <button
-                                                  aria-disabled={true}
-                                                  className="tip tip css-1ujzp8g-StyledButton-getColors eqrebog0"
-                                                  href={null}
-                                                  onClick={[Function]}
-                                                  role="button"
+                                                <Component
+                                                  className="css-7ui8bl-ButtonLabel eqrebog1"
                                                   size="small"
-                                                  title="Published apps cannot be removed."
-                                                  to={null}
                                                 >
-                                                  <ButtonLabel
-                                                    size="small"
+                                                  <span
+                                                    className="css-7ui8bl-ButtonLabel eqrebog1"
                                                   >
-                                                    <Component
-                                                      className="css-7ui8bl-ButtonLabel eqrebog1"
+                                                    <Icon
+                                                      hasChildren={false}
                                                       size="small"
                                                     >
-                                                      <span
-                                                        className="css-7ui8bl-ButtonLabel eqrebog1"
+                                                      <Component
+                                                        className="css-ljhpxy-Icon eqrebog2"
+                                                        hasChildren={false}
+                                                        size="small"
                                                       >
-                                                        <Icon
-                                                          hasChildren={false}
+                                                        <span
+                                                          className="css-ljhpxy-Icon eqrebog2"
                                                           size="small"
                                                         >
-                                                          <Component
-                                                            className="css-ljhpxy-Icon eqrebog2"
-                                                            hasChildren={false}
-                                                            size="small"
+                                                          <StyledInlineSvg
+                                                            size="12px"
+                                                            src="icon-trash"
                                                           >
-                                                            <span
-                                                              className="css-ljhpxy-Icon eqrebog2"
-                                                              size="small"
+                                                            <InlineSvg
+                                                              className="css-1ov3rcq-StyledInlineSvg eqrebog3"
+                                                              size="12px"
+                                                              src="icon-trash"
                                                             >
-                                                              <StyledInlineSvg
-                                                                size="12px"
-                                                                src="icon-trash"
+                                                              <StyledSvg
+                                                                className="css-1ov3rcq-StyledInlineSvg eqrebog3"
+                                                                height="12px"
+                                                                viewBox={Object {}}
+                                                                width="12px"
                                                               >
-                                                                <InlineSvg
-                                                                  className="css-1ov3rcq-StyledInlineSvg eqrebog3"
-                                                                  size="12px"
-                                                                  src="icon-trash"
+                                                                <svg
+                                                                  className="eqrebog3 css-1jjmnki-StyledSvg-StyledInlineSvg e2idor0"
+                                                                  height="12px"
+                                                                  viewBox={Object {}}
+                                                                  width="12px"
                                                                 >
-                                                                  <StyledSvg
-                                                                    className="css-1ov3rcq-StyledInlineSvg eqrebog3"
-                                                                    height="12px"
-                                                                    viewBox={Object {}}
-                                                                    width="12px"
-                                                                  >
-                                                                    <svg
-                                                                      className="eqrebog3 css-1jjmnki-StyledSvg-StyledInlineSvg e2idor0"
-                                                                      height="12px"
-                                                                      viewBox={Object {}}
-                                                                      width="12px"
-                                                                    >
-                                                                      <use
-                                                                        href="#test"
-                                                                        xlinkHref="#test"
-                                                                      />
-                                                                    </svg>
-                                                                  </StyledSvg>
-                                                                </InlineSvg>
-                                                              </StyledInlineSvg>
-                                                            </span>
-                                                          </Component>
-                                                        </Icon>
-                                                      </span>
-                                                    </Component>
-                                                  </ButtonLabel>
-                                                </button>
-                                              </Component>
-                                            </StyledButton>
-                                          </Tooltip>
-                                        </Button>
+                                                                  <use
+                                                                    href="#test"
+                                                                    xlinkHref="#test"
+                                                                  />
+                                                                </svg>
+                                                              </StyledSvg>
+                                                            </InlineSvg>
+                                                          </StyledInlineSvg>
+                                                        </span>
+                                                      </Component>
+                                                    </Icon>
+                                                  </span>
+                                                </Component>
+                                              </ButtonLabel>
+                                            </button>
+                                          </Component>
+                                        </StyledButton>
                                       </Tooltip>
-                                    </div>
-                                  </Base>
-                                </Box>
-                              </div>
-                            </Base>
-                          </StyledFlex>
-                        </div>
-                      </Base>
+                                    </Button>
+                                  </Tooltip>
+                                </div>
+                              </Styled(div)>
+                            </ForwardRef>
+                          </div>
+                        </StyledFlex>
+                      </div>
                     </SentryAppItem>
                   </SentryApplicationRow>
                 </div>
@@ -875,36 +834,29 @@ exports[`Organization Developer Settings with unpublished apps displays all Apps
             <div
               className="css-1r5ylk7-Wrapper e1kblvez2"
             >
-              <Flex
-                align="center"
+              <ForwardRef
+                alignItems="center"
               >
-                <Base
-                  align="center"
-                  className="css-5ipae5"
+                <Styled(div)
+                  alignItems="center"
                 >
                   <div
                     className="css-5ipae5"
-                    is={null}
                   >
                     <Title
                       styled={false}
                     >
-                      <Base
+                      <div
                         className="css-1ky52ze-Title e1kblvez0"
                       >
-                        <div
-                          className="css-1ky52ze-Title e1kblvez0"
-                          is={null}
-                        >
-                          <HeaderTitle>
-                            <h4
-                              className="css-1w8ttcn-HeaderTitle e6lvex72"
-                            >
-                              Developer Settings
-                            </h4>
-                          </HeaderTitle>
-                        </div>
-                      </Base>
+                        <HeaderTitle>
+                          <h4
+                            className="css-1w8ttcn-HeaderTitle e6lvex72"
+                          >
+                            Developer Settings
+                          </h4>
+                        </HeaderTitle>
+                      </div>
                     </Title>
                     <Action>
                       <div
@@ -1025,8 +977,8 @@ exports[`Organization Developer Settings with unpublished apps displays all Apps
                       </div>
                     </Action>
                   </div>
-                </Base>
-              </Flex>
+                </Styled(div)>
+              </ForwardRef>
             </div>
           </Wrapper>
         </SettingsPageHeading>
@@ -1041,24 +993,23 @@ exports[`Organization Developer Settings with unpublished apps displays all Apps
                 <Component
                   className="css-xhx6pj-PanelHeader-getPadding e1p8v8nv0"
                 >
-                  <Flex
-                    align="center"
+                  <ForwardRef
+                    alignItems="center"
                     className="css-xhx6pj-PanelHeader-getPadding e1p8v8nv0"
-                    justify="space-between"
+                    justifyContent="space-between"
                   >
-                    <Base
-                      align="center"
-                      className="e1p8v8nv0 css-b7ices-PanelHeader-getPadding"
-                      justify="space-between"
+                    <Styled(div)
+                      alignItems="center"
+                      className="css-xhx6pj-PanelHeader-getPadding e1p8v8nv0"
+                      justifyContent="space-between"
                     >
                       <div
-                        className="e1p8v8nv0 css-b7ices-PanelHeader-getPadding"
-                        is={null}
+                        className="css-xhx6pj-PanelHeader-getPadding e1p8v8nv0 css-v7pzd9"
                       >
                         Applications
                       </div>
-                    </Base>
-                  </Flex>
+                    </Styled(div)>
+                  </ForwardRef>
                 </Component>
               </PanelHeader>
               <PanelBody
@@ -1096,518 +1047,493 @@ exports[`Organization Developer Settings with unpublished apps displays all Apps
                     showPublishStatus={true}
                   >
                     <SentryAppItem>
-                      <Base
+                      <div
                         className="css-h9gjd5-PanelItem-SentryAppItem eac2pqx0"
                       >
-                        <div
-                          className="css-h9gjd5-PanelItem-SentryAppItem eac2pqx0"
-                          is={null}
-                        >
-                          <StyledFlex>
-                            <Base
-                              className="css-14n192s-StyledFlex eac2pqx1"
+                        <StyledFlex>
+                          <div
+                            className="css-14n192s-StyledFlex eac2pqx1"
+                          >
+                            <SentryAppAvatar
+                              sentryApp={
+                                Object {
+                                  "author": "Sentry",
+                                  "clientId": "client-id",
+                                  "clientSecret": "client-secret",
+                                  "events": Array [],
+                                  "isAlertable": false,
+                                  "name": "Sample App",
+                                  "overview": "This is an app.",
+                                  "redirectUrl": "https://example/com/setup",
+                                  "schema": Object {},
+                                  "scopes": Array [
+                                    "project:read",
+                                  ],
+                                  "slug": "sample-app",
+                                  "status": "unpublished",
+                                  "uuid": "123456123456123456123456",
+                                  "webhookUrl": "https://example.com/webhook",
+                                }
+                              }
+                              size={36}
                             >
-                              <div
-                                className="css-14n192s-StyledFlex eac2pqx1"
-                                is={null}
+                              <BaseAvatar
+                                hasTooltip={false}
+                                letterId="123456123456123456123456"
+                                size={36}
+                                style={Object {}}
+                                title="Sample App"
+                                tooltip="Sample App"
+                                type="letter_avatar"
+                                uploadId=""
+                                uploadPath="avatar"
                               >
-                                <SentryAppAvatar
-                                  sentryApp={
-                                    Object {
-                                      "author": "Sentry",
-                                      "clientId": "client-id",
-                                      "clientSecret": "client-secret",
-                                      "events": Array [],
-                                      "isAlertable": false,
-                                      "name": "Sample App",
-                                      "overview": "This is an app.",
-                                      "redirectUrl": "https://example/com/setup",
-                                      "schema": Object {},
-                                      "scopes": Array [
-                                        "project:read",
-                                      ],
-                                      "slug": "sample-app",
-                                      "status": "unpublished",
-                                      "uuid": "123456123456123456123456",
-                                      "webhookUrl": "https://example.com/webhook",
-                                    }
-                                  }
-                                  size={36}
+                                <Tooltip
+                                  disabled={true}
+                                  title="Sample App"
                                 >
-                                  <BaseAvatar
-                                    hasTooltip={false}
-                                    letterId="123456123456123456123456"
-                                    size={36}
-                                    style={Object {}}
-                                    title="Sample App"
-                                    tooltip="Sample App"
-                                    type="letter_avatar"
-                                    uploadId=""
-                                    uploadPath="avatar"
+                                  <StyledBaseAvatar
+                                    className="avatar"
+                                    loaded={true}
+                                    style={
+                                      Object {
+                                        "height": "36px",
+                                        "width": "36px",
+                                      }
+                                    }
                                   >
-                                    <Tooltip
-                                      disabled={true}
-                                      title="Sample App"
-                                    >
-                                      <StyledBaseAvatar
-                                        className="avatar"
-                                        loaded={true}
-                                        style={
-                                          Object {
-                                            "height": "36px",
-                                            "width": "36px",
-                                          }
+                                    <span
+                                      className="avatar css-1i62700-StyledBaseAvatar e1z0ohzl0"
+                                      style={
+                                        Object {
+                                          "height": "36px",
+                                          "width": "36px",
                                         }
+                                      }
+                                    >
+                                      <LetterAvatar
+                                        displayName="Sample App"
+                                        identifier="123456123456123456123456"
                                       >
-                                        <span
-                                          className="avatar css-1i62700-StyledBaseAvatar e1z0ohzl0"
-                                          style={
-                                            Object {
-                                              "height": "36px",
-                                              "width": "36px",
-                                            }
-                                          }
+                                        <Svg
+                                          viewBox="0 0 120 120"
                                         >
-                                          <LetterAvatar
-                                            displayName="Sample App"
-                                            identifier="123456123456123456123456"
+                                          <svg
+                                            className="css-123ijso-Svg e1knxa8x0"
+                                            viewBox="0 0 120 120"
                                           >
-                                            <Svg
-                                              viewBox="0 0 120 120"
+                                            <rect
+                                              fill="#4674ca"
+                                              height="120"
+                                              rx="15"
+                                              ry="15"
+                                              width="120"
+                                              x="0"
+                                              y="0"
+                                            />
+                                            <text
+                                              fill="#FFFFFF"
+                                              fontSize="65"
+                                              style={
+                                                Object {
+                                                  "dominantBaseline": "central",
+                                                }
+                                              }
+                                              textAnchor="middle"
+                                              x="50%"
+                                              y="50%"
                                             >
-                                              <svg
-                                                className="css-123ijso-Svg e1knxa8x0"
-                                                viewBox="0 0 120 120"
-                                              >
-                                                <rect
-                                                  fill="#4674ca"
-                                                  height="120"
-                                                  rx="15"
-                                                  ry="15"
-                                                  width="120"
-                                                  x="0"
-                                                  y="0"
-                                                />
-                                                <text
-                                                  fill="#FFFFFF"
-                                                  fontSize="65"
-                                                  style={
-                                                    Object {
-                                                      "dominantBaseline": "central",
-                                                    }
-                                                  }
-                                                  textAnchor="middle"
-                                                  x="50%"
-                                                  y="50%"
-                                                >
-                                                  SA
-                                                </text>
-                                              </svg>
-                                            </Svg>
-                                          </LetterAvatar>
-                                        </span>
-                                      </StyledBaseAvatar>
-                                    </Tooltip>
-                                  </BaseAvatar>
-                                </SentryAppAvatar>
-                                <SentryAppBox>
-                                  <Base
-                                    className="css-161g25b-SentryAppBox eac2pqx2"
+                                              SA
+                                            </text>
+                                          </svg>
+                                        </Svg>
+                                      </LetterAvatar>
+                                    </span>
+                                  </StyledBaseAvatar>
+                                </Tooltip>
+                              </BaseAvatar>
+                            </SentryAppAvatar>
+                            <SentryAppBox>
+                              <div
+                                className="css-161g25b-SentryAppBox eac2pqx2"
+                              >
+                                <SentryAppName>
+                                  <div
+                                    className="css-uiwo8x-SentryAppName eac2pqx4"
                                   >
-                                    <div
-                                      className="css-161g25b-SentryAppBox eac2pqx2"
-                                      is={null}
+                                    <SentryAppLink
+                                      to="/settings/org-slug/developer-settings/sample-app/"
                                     >
-                                      <SentryAppName>
-                                        <div
-                                          className="css-uiwo8x-SentryAppName eac2pqx4"
+                                      <Link
+                                        className="css-gg019v-SentryAppLink eac2pqx6"
+                                        onlyActiveOnIndex={false}
+                                        style={Object {}}
+                                        to="/settings/org-slug/developer-settings/sample-app/"
+                                      >
+                                        <a
+                                          className="css-gg019v-SentryAppLink eac2pqx6"
+                                          onClick={[Function]}
+                                          style={Object {}}
                                         >
-                                          <SentryAppLink
-                                            to="/settings/org-slug/developer-settings/sample-app/"
-                                          >
-                                            <Link
-                                              className="css-gg019v-SentryAppLink eac2pqx6"
-                                              onlyActiveOnIndex={false}
-                                              style={Object {}}
-                                              to="/settings/org-slug/developer-settings/sample-app/"
-                                            >
-                                              <a
-                                                className="css-gg019v-SentryAppLink eac2pqx6"
-                                                onClick={[Function]}
-                                                style={Object {}}
-                                              >
-                                                Sample App
-                                              </a>
-                                            </Link>
-                                          </SentryAppLink>
-                                        </div>
-                                      </SentryAppName>
-                                      <SentryAppDetails>
-                                        <Base
-                                          className="css-f0t6d-SentryAppDetails eac2pqx3"
+                                          Sample App
+                                        </a>
+                                      </Link>
+                                    </SentryAppLink>
+                                  </div>
+                                </SentryAppName>
+                                <SentryAppDetails>
+                                  <div
+                                    className="css-f0t6d-SentryAppDetails eac2pqx3"
+                                  >
+                                    <PublishStatus
+                                      published={false}
+                                    >
+                                      <Component
+                                        className="css-1h03aoe-PublishStatus eac2pqx9"
+                                        published={false}
+                                      >
+                                        <ForwardRef
+                                          alignItems="center"
                                         >
-                                          <div
-                                            className="css-f0t6d-SentryAppDetails eac2pqx3"
-                                            is={null}
+                                          <Styled(div)
+                                            alignItems="center"
                                           >
-                                            <PublishStatus
-                                              published={false}
+                                            <div
+                                              className="css-5ipae5"
                                             >
-                                              <Component
+                                              <div
                                                 className="css-1h03aoe-PublishStatus eac2pqx9"
-                                                published={false}
                                               >
-                                                <Flex
-                                                  align="center"
-                                                >
-                                                  <Base
-                                                    align="center"
-                                                    className="css-5ipae5"
-                                                  >
-                                                    <div
-                                                      className="css-5ipae5"
-                                                      is={null}
-                                                    >
-                                                      <div
-                                                        className="css-1h03aoe-PublishStatus eac2pqx9"
-                                                      >
-                                                        unpublished
-                                                      </div>
-                                                    </div>
-                                                  </Base>
-                                                </Flex>
-                                              </Component>
-                                            </PublishStatus>
-                                          </div>
-                                        </Base>
-                                      </SentryAppDetails>
-                                    </div>
-                                  </Base>
-                                </SentryAppBox>
-                                <Box>
-                                  <Base
-                                    className="css-roynbj"
+                                                unpublished
+                                              </div>
+                                            </div>
+                                          </Styled(div)>
+                                        </ForwardRef>
+                                      </Component>
+                                    </PublishStatus>
+                                  </div>
+                                </SentryAppDetails>
+                              </div>
+                            </SentryAppBox>
+                            <ForwardRef>
+                              <Styled(div)>
+                                <div
+                                  className="css-roynbj"
+                                >
+                                  <withConfig(AccessContainer)
+                                    access={
+                                      Array [
+                                        "org:admin",
+                                      ]
+                                    }
                                   >
-                                    <div
-                                      className="css-roynbj"
-                                      is={null}
+                                    <AccessContainer
+                                      access={
+                                        Array [
+                                          "org:admin",
+                                        ]
+                                      }
+                                      config={
+                                        Object {
+                                          "features": Set {},
+                                          "messages": Array [],
+                                          "user": Object {
+                                            "email": "foo@example.com",
+                                            "flags": Object {
+                                              "newsletter_consent_prompt": false,
+                                            },
+                                            "hasPasswordAuth": true,
+                                            "id": "1",
+                                            "isAuthenticated": true,
+                                            "name": "Foo Bar",
+                                            "options": Object {
+                                              "timezone": "UTC",
+                                            },
+                                            "permissions": Set {},
+                                            "username": "foo@example.com",
+                                          },
+                                        }
+                                      }
                                     >
-                                      <withConfig(AccessContainer)
+                                      <Access
                                         access={
                                           Array [
                                             "org:admin",
                                           ]
                                         }
-                                      >
-                                        <AccessContainer
-                                          access={
-                                            Array [
-                                              "org:admin",
-                                            ]
-                                          }
-                                          config={
-                                            Object {
-                                              "features": Set {},
-                                              "messages": Array [],
-                                              "user": Object {
-                                                "email": "foo@example.com",
-                                                "flags": Object {
-                                                  "newsletter_consent_prompt": false,
-                                                },
-                                                "hasPasswordAuth": true,
-                                                "id": "1",
-                                                "isAuthenticated": true,
-                                                "name": "Foo Bar",
-                                                "options": Object {
-                                                  "timezone": "UTC",
-                                                },
-                                                "permissions": Set {},
-                                                "username": "foo@example.com",
+                                        config={
+                                          Object {
+                                            "features": Set {},
+                                            "messages": Array [],
+                                            "user": Object {
+                                              "email": "foo@example.com",
+                                              "flags": Object {
+                                                "newsletter_consent_prompt": false,
                                               },
-                                            }
+                                              "hasPasswordAuth": true,
+                                              "id": "1",
+                                              "isAuthenticated": true,
+                                              "name": "Foo Bar",
+                                              "options": Object {
+                                                "timezone": "UTC",
+                                              },
+                                              "permissions": Set {},
+                                              "username": "foo@example.com",
+                                            },
                                           }
+                                        }
+                                        configUser={
+                                          Object {
+                                            "email": "foo@example.com",
+                                            "flags": Object {
+                                              "newsletter_consent_prompt": false,
+                                            },
+                                            "hasPasswordAuth": true,
+                                            "id": "1",
+                                            "isAuthenticated": true,
+                                            "name": "Foo Bar",
+                                            "options": Object {
+                                              "timezone": "UTC",
+                                            },
+                                            "permissions": Set {},
+                                            "username": "foo@example.com",
+                                          }
+                                        }
+                                        organization={
+                                          Object {
+                                            "access": Array [
+                                              "org:read",
+                                              "org:write",
+                                              "org:admin",
+                                              "org:integrations",
+                                              "project:read",
+                                              "project:write",
+                                              "project:admin",
+                                              "team:read",
+                                              "team:write",
+                                              "team:admin",
+                                            ],
+                                            "features": Array [],
+                                            "id": "3",
+                                            "name": "Organization Name",
+                                            "onboardingTasks": Array [],
+                                            "projects": Array [],
+                                            "scrapeJavaScript": true,
+                                            "slug": "org-slug",
+                                            "status": Object {
+                                              "id": "active",
+                                              "name": "active",
+                                            },
+                                            "teams": Array [],
+                                          }
+                                        }
+                                        renderNoAccessMessage={false}
+                                        requireAll={true}
+                                      >
+                                        <ConfirmDelete
+                                          cancelText="Cancel"
+                                          confirmInput="sample-app"
+                                          confirmText="Confirm"
+                                          message="Deleting sample-app will also delete any and all of its installations.        This is a permanent action. Do you wish to continue?"
+                                          onConfirm={[Function]}
+                                          priority="danger"
                                         >
-                                          <Access
-                                            access={
-                                              Array [
-                                                "org:admin",
-                                              ]
-                                            }
-                                            config={
-                                              Object {
-                                                "features": Set {},
-                                                "messages": Array [],
-                                                "user": Object {
-                                                  "email": "foo@example.com",
-                                                  "flags": Object {
-                                                    "newsletter_consent_prompt": false,
-                                                  },
-                                                  "hasPasswordAuth": true,
-                                                  "id": "1",
-                                                  "isAuthenticated": true,
-                                                  "name": "Foo Bar",
-                                                  "options": Object {
-                                                    "timezone": "UTC",
-                                                  },
-                                                  "permissions": Set {},
-                                                  "username": "foo@example.com",
-                                                },
-                                              }
-                                            }
-                                            configUser={
-                                              Object {
-                                                "email": "foo@example.com",
-                                                "flags": Object {
-                                                  "newsletter_consent_prompt": false,
-                                                },
-                                                "hasPasswordAuth": true,
-                                                "id": "1",
-                                                "isAuthenticated": true,
-                                                "name": "Foo Bar",
-                                                "options": Object {
-                                                  "timezone": "UTC",
-                                                },
-                                                "permissions": Set {},
-                                                "username": "foo@example.com",
-                                              }
-                                            }
-                                            organization={
-                                              Object {
-                                                "access": Array [
-                                                  "org:read",
-                                                  "org:write",
-                                                  "org:admin",
-                                                  "org:integrations",
-                                                  "project:read",
-                                                  "project:write",
-                                                  "project:admin",
-                                                  "team:read",
-                                                  "team:write",
-                                                  "team:admin",
-                                                ],
-                                                "features": Array [],
-                                                "id": "3",
-                                                "name": "Organization Name",
-                                                "onboardingTasks": Array [],
-                                                "projects": Array [],
-                                                "scrapeJavaScript": true,
-                                                "slug": "org-slug",
-                                                "status": Object {
-                                                  "id": "active",
-                                                  "name": "active",
-                                                },
-                                                "teams": Array [],
-                                              }
-                                            }
-                                            renderNoAccessMessage={false}
-                                            requireAll={true}
-                                          >
-                                            <ConfirmDelete
-                                              cancelText="Cancel"
-                                              confirmInput="sample-app"
-                                              confirmText="Confirm"
-                                              message="Deleting sample-app will also delete any and all of its installations.        This is a permanent action. Do you wish to continue?"
-                                              onConfirm={[Function]}
-                                              priority="danger"
-                                            >
-                                              <Confirm
-                                                bypass={false}
-                                                cancelText="Cancel"
-                                                confirmText="Confirm"
-                                                disableConfirmButton={true}
-                                                message={
-                                                  <React.Fragment>
-                                                    <Alert
-                                                      iconSize="24px"
-                                                      type="error"
-                                                    >
-                                                      Deleting sample-app will also delete any and all of its installations.        This is a permanent action. Do you wish to continue?
-                                                    </Alert>
-                                                    <Field
-                                                      alignRight={false}
-                                                      disabled={false}
-                                                      flexibleControlStateSize={true}
-                                                      inline={false}
-                                                      label={
-                                                        <div>
-                                                          Please enter 
-                                                          <code>
-                                                            sample-app
-                                                          </code>
-                                                           to confirm the deletion
-                                                        </div>
-                                                      }
-                                                      p={0}
-                                                      required={false}
-                                                      visible={true}
-                                                    >
-                                                      <Input
-                                                        onChange={[Function]}
-                                                        placeholder="sample-app"
-                                                        type="text"
-                                                        value=""
-                                                      />
-                                                    </Field>
-                                                  </React.Fragment>
-                                                }
-                                                onConfirm={[Function]}
-                                                priority="danger"
-                                                stopPropagation={false}
-                                              >
-                                                <Button
+                                          <Confirm
+                                            bypass={false}
+                                            cancelText="Cancel"
+                                            confirmText="Confirm"
+                                            disableConfirmButton={true}
+                                            message={
+                                              <React.Fragment>
+                                                <Alert
+                                                  iconSize="24px"
+                                                  type="error"
+                                                >
+                                                  Deleting sample-app will also delete any and all of its installations.        This is a permanent action. Do you wish to continue?
+                                                </Alert>
+                                                <Field
+                                                  alignRight={false}
                                                   disabled={false}
-                                                  icon="icon-trash"
+                                                  flexibleControlStateSize={true}
+                                                  inline={false}
+                                                  label={
+                                                    <div>
+                                                      Please enter 
+                                                      <code>
+                                                        sample-app
+                                                      </code>
+                                                       to confirm the deletion
+                                                    </div>
+                                                  }
+                                                  p={0}
+                                                  required={false}
+                                                  visible={true}
+                                                >
+                                                  <Input
+                                                    onChange={[Function]}
+                                                    placeholder="sample-app"
+                                                    type="text"
+                                                    value=""
+                                                  />
+                                                </Field>
+                                              </React.Fragment>
+                                            }
+                                            onConfirm={[Function]}
+                                            priority="danger"
+                                            stopPropagation={false}
+                                          >
+                                            <Button
+                                              disabled={false}
+                                              icon="icon-trash"
+                                              onClick={[Function]}
+                                              size="small"
+                                            >
+                                              <StyledButton
+                                                aria-disabled={false}
+                                                disabled={false}
+                                                onClick={[Function]}
+                                                role="button"
+                                                size="small"
+                                              >
+                                                <Component
+                                                  aria-disabled={false}
+                                                  className="css-dkprmi-StyledButton-getColors eqrebog0"
                                                   onClick={[Function]}
+                                                  role="button"
                                                   size="small"
                                                 >
-                                                  <StyledButton
+                                                  <button
                                                     aria-disabled={false}
-                                                    disabled={false}
+                                                    className="css-dkprmi-StyledButton-getColors eqrebog0"
                                                     onClick={[Function]}
                                                     role="button"
                                                     size="small"
                                                   >
-                                                    <Component
-                                                      aria-disabled={false}
-                                                      className="css-dkprmi-StyledButton-getColors eqrebog0"
-                                                      onClick={[Function]}
-                                                      role="button"
+                                                    <ButtonLabel
                                                       size="small"
                                                     >
-                                                      <button
-                                                        aria-disabled={false}
-                                                        className="css-dkprmi-StyledButton-getColors eqrebog0"
-                                                        onClick={[Function]}
-                                                        role="button"
+                                                      <Component
+                                                        className="css-7ui8bl-ButtonLabel eqrebog1"
                                                         size="small"
                                                       >
-                                                        <ButtonLabel
-                                                          size="small"
+                                                        <span
+                                                          className="css-7ui8bl-ButtonLabel eqrebog1"
                                                         >
-                                                          <Component
-                                                            className="css-7ui8bl-ButtonLabel eqrebog1"
+                                                          <Icon
+                                                            hasChildren={false}
                                                             size="small"
                                                           >
-                                                            <span
-                                                              className="css-7ui8bl-ButtonLabel eqrebog1"
+                                                            <Component
+                                                              className="css-ljhpxy-Icon eqrebog2"
+                                                              hasChildren={false}
+                                                              size="small"
                                                             >
-                                                              <Icon
-                                                                hasChildren={false}
+                                                              <span
+                                                                className="css-ljhpxy-Icon eqrebog2"
                                                                 size="small"
                                                               >
-                                                                <Component
-                                                                  className="css-ljhpxy-Icon eqrebog2"
-                                                                  hasChildren={false}
-                                                                  size="small"
+                                                                <StyledInlineSvg
+                                                                  size="12px"
+                                                                  src="icon-trash"
                                                                 >
-                                                                  <span
-                                                                    className="css-ljhpxy-Icon eqrebog2"
-                                                                    size="small"
+                                                                  <InlineSvg
+                                                                    className="css-1ov3rcq-StyledInlineSvg eqrebog3"
+                                                                    size="12px"
+                                                                    src="icon-trash"
                                                                   >
-                                                                    <StyledInlineSvg
-                                                                      size="12px"
-                                                                      src="icon-trash"
+                                                                    <StyledSvg
+                                                                      className="css-1ov3rcq-StyledInlineSvg eqrebog3"
+                                                                      height="12px"
+                                                                      viewBox={Object {}}
+                                                                      width="12px"
                                                                     >
-                                                                      <InlineSvg
-                                                                        className="css-1ov3rcq-StyledInlineSvg eqrebog3"
-                                                                        size="12px"
-                                                                        src="icon-trash"
+                                                                      <svg
+                                                                        className="eqrebog3 css-1jjmnki-StyledSvg-StyledInlineSvg e2idor0"
+                                                                        height="12px"
+                                                                        viewBox={Object {}}
+                                                                        width="12px"
                                                                       >
-                                                                        <StyledSvg
-                                                                          className="css-1ov3rcq-StyledInlineSvg eqrebog3"
-                                                                          height="12px"
-                                                                          viewBox={Object {}}
-                                                                          width="12px"
-                                                                        >
-                                                                          <svg
-                                                                            className="eqrebog3 css-1jjmnki-StyledSvg-StyledInlineSvg e2idor0"
-                                                                            height="12px"
-                                                                            viewBox={Object {}}
-                                                                            width="12px"
-                                                                          >
-                                                                            <use
-                                                                              href="#test"
-                                                                              xlinkHref="#test"
-                                                                            />
-                                                                          </svg>
-                                                                        </StyledSvg>
-                                                                      </InlineSvg>
-                                                                    </StyledInlineSvg>
-                                                                  </span>
-                                                                </Component>
-                                                              </Icon>
-                                                            </span>
-                                                          </Component>
-                                                        </ButtonLabel>
-                                                      </button>
-                                                    </Component>
-                                                  </StyledButton>
-                                                </Button>
-                                                <Modal
-                                                  animation={false}
-                                                  autoFocus={true}
-                                                  backdrop={true}
-                                                  bsClass="modal"
-                                                  dialogComponentClass={[Function]}
-                                                  enforceFocus={true}
-                                                  keyboard={true}
-                                                  manager={
-                                                    ModalManager {
-                                                      "add": [Function],
-                                                      "containers": Array [],
-                                                      "data": Array [],
-                                                      "handleContainerOverflow": true,
-                                                      "hideSiblingNodes": true,
-                                                      "isTopModal": [Function],
-                                                      "modals": Array [],
-                                                      "remove": [Function],
-                                                    }
+                                                                        <use
+                                                                          href="#test"
+                                                                          xlinkHref="#test"
+                                                                        />
+                                                                      </svg>
+                                                                    </StyledSvg>
+                                                                  </InlineSvg>
+                                                                </StyledInlineSvg>
+                                                              </span>
+                                                            </Component>
+                                                          </Icon>
+                                                        </span>
+                                                      </Component>
+                                                    </ButtonLabel>
+                                                  </button>
+                                                </Component>
+                                              </StyledButton>
+                                            </Button>
+                                            <Modal
+                                              animation={false}
+                                              autoFocus={true}
+                                              backdrop={true}
+                                              bsClass="modal"
+                                              dialogComponentClass={[Function]}
+                                              enforceFocus={true}
+                                              keyboard={true}
+                                              manager={
+                                                ModalManager {
+                                                  "add": [Function],
+                                                  "containers": Array [],
+                                                  "data": Array [],
+                                                  "handleContainerOverflow": true,
+                                                  "hideSiblingNodes": true,
+                                                  "isTopModal": [Function],
+                                                  "modals": Array [],
+                                                  "remove": [Function],
+                                                }
+                                              }
+                                              onHide={[Function]}
+                                              renderBackdrop={[Function]}
+                                              restoreFocus={true}
+                                              show={false}
+                                            >
+                                              <Modal
+                                                autoFocus={true}
+                                                backdrop={true}
+                                                backdropClassName="modal-backdrop"
+                                                containerClassName="modal-open"
+                                                enforceFocus={true}
+                                                keyboard={true}
+                                                manager={
+                                                  ModalManager {
+                                                    "add": [Function],
+                                                    "containers": Array [],
+                                                    "data": Array [],
+                                                    "handleContainerOverflow": true,
+                                                    "hideSiblingNodes": true,
+                                                    "isTopModal": [Function],
+                                                    "modals": Array [],
+                                                    "remove": [Function],
                                                   }
-                                                  onHide={[Function]}
-                                                  renderBackdrop={[Function]}
-                                                  restoreFocus={true}
-                                                  show={false}
-                                                >
-                                                  <Modal
-                                                    autoFocus={true}
-                                                    backdrop={true}
-                                                    backdropClassName="modal-backdrop"
-                                                    containerClassName="modal-open"
-                                                    enforceFocus={true}
-                                                    keyboard={true}
-                                                    manager={
-                                                      ModalManager {
-                                                        "add": [Function],
-                                                        "containers": Array [],
-                                                        "data": Array [],
-                                                        "handleContainerOverflow": true,
-                                                        "hideSiblingNodes": true,
-                                                        "isTopModal": [Function],
-                                                        "modals": Array [],
-                                                        "remove": [Function],
-                                                      }
-                                                    }
-                                                    onEntering={[Function]}
-                                                    onExited={[Function]}
-                                                    onHide={[Function]}
-                                                    renderBackdrop={[Function]}
-                                                    restoreFocus={true}
-                                                    show={false}
-                                                  />
-                                                </Modal>
-                                              </Confirm>
-                                            </ConfirmDelete>
-                                          </Access>
-                                        </AccessContainer>
-                                      </withConfig(AccessContainer)>
-                                    </div>
-                                  </Base>
-                                </Box>
-                              </div>
-                            </Base>
-                          </StyledFlex>
-                        </div>
-                      </Base>
+                                                }
+                                                onEntering={[Function]}
+                                                onExited={[Function]}
+                                                onHide={[Function]}
+                                                renderBackdrop={[Function]}
+                                                restoreFocus={true}
+                                                show={false}
+                                              />
+                                            </Modal>
+                                          </Confirm>
+                                        </ConfirmDelete>
+                                      </Access>
+                                    </AccessContainer>
+                                  </withConfig(AccessContainer)>
+                                </div>
+                              </Styled(div)>
+                            </ForwardRef>
+                          </div>
+                        </StyledFlex>
+                      </div>
                     </SentryAppItem>
                   </SentryApplicationRow>
                 </div>
@@ -1655,36 +1581,29 @@ exports[`Organization Developer Settings without Owner permissions trash button 
             <div
               className="css-1r5ylk7-Wrapper e1kblvez2"
             >
-              <Flex
-                align="center"
+              <ForwardRef
+                alignItems="center"
               >
-                <Base
-                  align="center"
-                  className="css-5ipae5"
+                <Styled(div)
+                  alignItems="center"
                 >
                   <div
                     className="css-5ipae5"
-                    is={null}
                   >
                     <Title
                       styled={false}
                     >
-                      <Base
+                      <div
                         className="css-1ky52ze-Title e1kblvez0"
                       >
-                        <div
-                          className="css-1ky52ze-Title e1kblvez0"
-                          is={null}
-                        >
-                          <HeaderTitle>
-                            <h4
-                              className="css-1w8ttcn-HeaderTitle e6lvex72"
-                            >
-                              Developer Settings
-                            </h4>
-                          </HeaderTitle>
-                        </div>
-                      </Base>
+                        <HeaderTitle>
+                          <h4
+                            className="css-1w8ttcn-HeaderTitle e6lvex72"
+                          >
+                            Developer Settings
+                          </h4>
+                        </HeaderTitle>
+                      </div>
                     </Title>
                     <Action>
                       <div
@@ -1805,8 +1724,8 @@ exports[`Organization Developer Settings without Owner permissions trash button 
                       </div>
                     </Action>
                   </div>
-                </Base>
-              </Flex>
+                </Styled(div)>
+              </ForwardRef>
             </div>
           </Wrapper>
         </SettingsPageHeading>
@@ -1821,24 +1740,23 @@ exports[`Organization Developer Settings without Owner permissions trash button 
                 <Component
                   className="css-xhx6pj-PanelHeader-getPadding e1p8v8nv0"
                 >
-                  <Flex
-                    align="center"
+                  <ForwardRef
+                    alignItems="center"
                     className="css-xhx6pj-PanelHeader-getPadding e1p8v8nv0"
-                    justify="space-between"
+                    justifyContent="space-between"
                   >
-                    <Base
-                      align="center"
-                      className="e1p8v8nv0 css-b7ices-PanelHeader-getPadding"
-                      justify="space-between"
+                    <Styled(div)
+                      alignItems="center"
+                      className="css-xhx6pj-PanelHeader-getPadding e1p8v8nv0"
+                      justifyContent="space-between"
                     >
                       <div
-                        className="e1p8v8nv0 css-b7ices-PanelHeader-getPadding"
-                        is={null}
+                        className="css-xhx6pj-PanelHeader-getPadding e1p8v8nv0 css-v7pzd9"
                       >
                         Applications
                       </div>
-                    </Base>
-                  </Flex>
+                    </Styled(div)>
+                  </ForwardRef>
                 </Component>
               </PanelHeader>
               <PanelBody
@@ -1876,320 +1794,317 @@ exports[`Organization Developer Settings without Owner permissions trash button 
                     showPublishStatus={true}
                   >
                     <SentryAppItem>
-                      <Base
+                      <div
                         className="css-h9gjd5-PanelItem-SentryAppItem eac2pqx0"
                       >
-                        <div
-                          className="css-h9gjd5-PanelItem-SentryAppItem eac2pqx0"
-                          is={null}
-                        >
-                          <StyledFlex>
-                            <Base
-                              className="css-14n192s-StyledFlex eac2pqx1"
+                        <StyledFlex>
+                          <div
+                            className="css-14n192s-StyledFlex eac2pqx1"
+                          >
+                            <SentryAppAvatar
+                              sentryApp={
+                                Object {
+                                  "author": "Sentry",
+                                  "clientId": "client-id",
+                                  "clientSecret": "client-secret",
+                                  "events": Array [],
+                                  "isAlertable": false,
+                                  "name": "Sample App",
+                                  "overview": "This is an app.",
+                                  "redirectUrl": "https://example/com/setup",
+                                  "schema": Object {},
+                                  "scopes": Array [
+                                    "project:read",
+                                  ],
+                                  "slug": "sample-app",
+                                  "status": "unpublished",
+                                  "uuid": "123456123456123456123456",
+                                  "webhookUrl": "https://example.com/webhook",
+                                }
+                              }
+                              size={36}
                             >
-                              <div
-                                className="css-14n192s-StyledFlex eac2pqx1"
-                                is={null}
+                              <BaseAvatar
+                                hasTooltip={false}
+                                letterId="123456123456123456123456"
+                                size={36}
+                                style={Object {}}
+                                title="Sample App"
+                                tooltip="Sample App"
+                                type="letter_avatar"
+                                uploadId=""
+                                uploadPath="avatar"
                               >
-                                <SentryAppAvatar
-                                  sentryApp={
-                                    Object {
-                                      "author": "Sentry",
-                                      "clientId": "client-id",
-                                      "clientSecret": "client-secret",
-                                      "events": Array [],
-                                      "isAlertable": false,
-                                      "name": "Sample App",
-                                      "overview": "This is an app.",
-                                      "redirectUrl": "https://example/com/setup",
-                                      "schema": Object {},
-                                      "scopes": Array [
-                                        "project:read",
-                                      ],
-                                      "slug": "sample-app",
-                                      "status": "unpublished",
-                                      "uuid": "123456123456123456123456",
-                                      "webhookUrl": "https://example.com/webhook",
-                                    }
-                                  }
-                                  size={36}
+                                <Tooltip
+                                  disabled={true}
+                                  title="Sample App"
                                 >
-                                  <BaseAvatar
-                                    hasTooltip={false}
-                                    letterId="123456123456123456123456"
-                                    size={36}
-                                    style={Object {}}
-                                    title="Sample App"
-                                    tooltip="Sample App"
-                                    type="letter_avatar"
-                                    uploadId=""
-                                    uploadPath="avatar"
+                                  <StyledBaseAvatar
+                                    className="avatar"
+                                    loaded={true}
+                                    style={
+                                      Object {
+                                        "height": "36px",
+                                        "width": "36px",
+                                      }
+                                    }
                                   >
-                                    <Tooltip
-                                      disabled={true}
-                                      title="Sample App"
-                                    >
-                                      <StyledBaseAvatar
-                                        className="avatar"
-                                        loaded={true}
-                                        style={
-                                          Object {
-                                            "height": "36px",
-                                            "width": "36px",
-                                          }
+                                    <span
+                                      className="avatar css-1i62700-StyledBaseAvatar e1z0ohzl0"
+                                      style={
+                                        Object {
+                                          "height": "36px",
+                                          "width": "36px",
                                         }
+                                      }
+                                    >
+                                      <LetterAvatar
+                                        displayName="Sample App"
+                                        identifier="123456123456123456123456"
                                       >
-                                        <span
-                                          className="avatar css-1i62700-StyledBaseAvatar e1z0ohzl0"
-                                          style={
-                                            Object {
-                                              "height": "36px",
-                                              "width": "36px",
-                                            }
-                                          }
+                                        <Svg
+                                          viewBox="0 0 120 120"
                                         >
-                                          <LetterAvatar
-                                            displayName="Sample App"
-                                            identifier="123456123456123456123456"
+                                          <svg
+                                            className="css-123ijso-Svg e1knxa8x0"
+                                            viewBox="0 0 120 120"
                                           >
-                                            <Svg
-                                              viewBox="0 0 120 120"
+                                            <rect
+                                              fill="#4674ca"
+                                              height="120"
+                                              rx="15"
+                                              ry="15"
+                                              width="120"
+                                              x="0"
+                                              y="0"
+                                            />
+                                            <text
+                                              fill="#FFFFFF"
+                                              fontSize="65"
+                                              style={
+                                                Object {
+                                                  "dominantBaseline": "central",
+                                                }
+                                              }
+                                              textAnchor="middle"
+                                              x="50%"
+                                              y="50%"
                                             >
-                                              <svg
-                                                className="css-123ijso-Svg e1knxa8x0"
-                                                viewBox="0 0 120 120"
-                                              >
-                                                <rect
-                                                  fill="#4674ca"
-                                                  height="120"
-                                                  rx="15"
-                                                  ry="15"
-                                                  width="120"
-                                                  x="0"
-                                                  y="0"
-                                                />
-                                                <text
-                                                  fill="#FFFFFF"
-                                                  fontSize="65"
-                                                  style={
-                                                    Object {
-                                                      "dominantBaseline": "central",
-                                                    }
-                                                  }
-                                                  textAnchor="middle"
-                                                  x="50%"
-                                                  y="50%"
-                                                >
-                                                  SA
-                                                </text>
-                                              </svg>
-                                            </Svg>
-                                          </LetterAvatar>
-                                        </span>
-                                      </StyledBaseAvatar>
-                                    </Tooltip>
-                                  </BaseAvatar>
-                                </SentryAppAvatar>
-                                <SentryAppBox>
-                                  <Base
-                                    className="css-161g25b-SentryAppBox eac2pqx2"
+                                              SA
+                                            </text>
+                                          </svg>
+                                        </Svg>
+                                      </LetterAvatar>
+                                    </span>
+                                  </StyledBaseAvatar>
+                                </Tooltip>
+                              </BaseAvatar>
+                            </SentryAppAvatar>
+                            <SentryAppBox>
+                              <div
+                                className="css-161g25b-SentryAppBox eac2pqx2"
+                              >
+                                <SentryAppName>
+                                  <div
+                                    className="css-uiwo8x-SentryAppName eac2pqx4"
                                   >
-                                    <div
-                                      className="css-161g25b-SentryAppBox eac2pqx2"
-                                      is={null}
+                                    <SentryAppLink
+                                      to="/settings/org-slug/developer-settings/sample-app/"
                                     >
-                                      <SentryAppName>
-                                        <div
-                                          className="css-uiwo8x-SentryAppName eac2pqx4"
+                                      <Link
+                                        className="css-gg019v-SentryAppLink eac2pqx6"
+                                        onlyActiveOnIndex={false}
+                                        style={Object {}}
+                                        to="/settings/org-slug/developer-settings/sample-app/"
+                                      >
+                                        <a
+                                          className="css-gg019v-SentryAppLink eac2pqx6"
+                                          onClick={[Function]}
+                                          style={Object {}}
                                         >
-                                          <SentryAppLink
-                                            to="/settings/org-slug/developer-settings/sample-app/"
-                                          >
-                                            <Link
-                                              className="css-gg019v-SentryAppLink eac2pqx6"
-                                              onlyActiveOnIndex={false}
-                                              style={Object {}}
-                                              to="/settings/org-slug/developer-settings/sample-app/"
-                                            >
-                                              <a
-                                                className="css-gg019v-SentryAppLink eac2pqx6"
-                                                onClick={[Function]}
-                                                style={Object {}}
-                                              >
-                                                Sample App
-                                              </a>
-                                            </Link>
-                                          </SentryAppLink>
-                                        </div>
-                                      </SentryAppName>
-                                      <SentryAppDetails>
-                                        <Base
-                                          className="css-f0t6d-SentryAppDetails eac2pqx3"
+                                          Sample App
+                                        </a>
+                                      </Link>
+                                    </SentryAppLink>
+                                  </div>
+                                </SentryAppName>
+                                <SentryAppDetails>
+                                  <div
+                                    className="css-f0t6d-SentryAppDetails eac2pqx3"
+                                  >
+                                    <PublishStatus
+                                      published={false}
+                                    >
+                                      <Component
+                                        className="css-1h03aoe-PublishStatus eac2pqx9"
+                                        published={false}
+                                      >
+                                        <ForwardRef
+                                          alignItems="center"
                                         >
-                                          <div
-                                            className="css-f0t6d-SentryAppDetails eac2pqx3"
-                                            is={null}
+                                          <Styled(div)
+                                            alignItems="center"
                                           >
-                                            <PublishStatus
-                                              published={false}
+                                            <div
+                                              className="css-5ipae5"
                                             >
-                                              <Component
+                                              <div
                                                 className="css-1h03aoe-PublishStatus eac2pqx9"
-                                                published={false}
                                               >
-                                                <Flex
-                                                  align="center"
-                                                >
-                                                  <Base
-                                                    align="center"
-                                                    className="css-5ipae5"
-                                                  >
-                                                    <div
-                                                      className="css-5ipae5"
-                                                      is={null}
-                                                    >
-                                                      <div
-                                                        className="css-1h03aoe-PublishStatus eac2pqx9"
-                                                      >
-                                                        unpublished
-                                                      </div>
-                                                    </div>
-                                                  </Base>
-                                                </Flex>
-                                              </Component>
-                                            </PublishStatus>
-                                          </div>
-                                        </Base>
-                                      </SentryAppDetails>
-                                    </div>
-                                  </Base>
-                                </SentryAppBox>
-                                <Box>
-                                  <Base
-                                    className="css-roynbj"
+                                                unpublished
+                                              </div>
+                                            </div>
+                                          </Styled(div)>
+                                        </ForwardRef>
+                                      </Component>
+                                    </PublishStatus>
+                                  </div>
+                                </SentryAppDetails>
+                              </div>
+                            </SentryAppBox>
+                            <ForwardRef>
+                              <Styled(div)>
+                                <div
+                                  className="css-roynbj"
+                                >
+                                  <withConfig(AccessContainer)
+                                    access={
+                                      Array [
+                                        "org:admin",
+                                      ]
+                                    }
                                   >
-                                    <div
-                                      className="css-roynbj"
-                                      is={null}
+                                    <AccessContainer
+                                      access={
+                                        Array [
+                                          "org:admin",
+                                        ]
+                                      }
+                                      config={
+                                        Object {
+                                          "features": Set {},
+                                          "messages": Array [],
+                                          "user": Object {
+                                            "email": "foo@example.com",
+                                            "flags": Object {
+                                              "newsletter_consent_prompt": false,
+                                            },
+                                            "hasPasswordAuth": true,
+                                            "id": "1",
+                                            "isAuthenticated": true,
+                                            "name": "Foo Bar",
+                                            "options": Object {
+                                              "timezone": "UTC",
+                                            },
+                                            "permissions": Set {},
+                                            "username": "foo@example.com",
+                                          },
+                                        }
+                                      }
                                     >
-                                      <withConfig(AccessContainer)
+                                      <Access
                                         access={
                                           Array [
                                             "org:admin",
                                           ]
                                         }
-                                      >
-                                        <AccessContainer
-                                          access={
-                                            Array [
-                                              "org:admin",
-                                            ]
-                                          }
-                                          config={
-                                            Object {
-                                              "features": Set {},
-                                              "messages": Array [],
-                                              "user": Object {
-                                                "email": "foo@example.com",
-                                                "flags": Object {
-                                                  "newsletter_consent_prompt": false,
-                                                },
-                                                "hasPasswordAuth": true,
-                                                "id": "1",
-                                                "isAuthenticated": true,
-                                                "name": "Foo Bar",
-                                                "options": Object {
-                                                  "timezone": "UTC",
-                                                },
-                                                "permissions": Set {},
-                                                "username": "foo@example.com",
+                                        config={
+                                          Object {
+                                            "features": Set {},
+                                            "messages": Array [],
+                                            "user": Object {
+                                              "email": "foo@example.com",
+                                              "flags": Object {
+                                                "newsletter_consent_prompt": false,
                                               },
-                                            }
+                                              "hasPasswordAuth": true,
+                                              "id": "1",
+                                              "isAuthenticated": true,
+                                              "name": "Foo Bar",
+                                              "options": Object {
+                                                "timezone": "UTC",
+                                              },
+                                              "permissions": Set {},
+                                              "username": "foo@example.com",
+                                            },
                                           }
+                                        }
+                                        configUser={
+                                          Object {
+                                            "email": "foo@example.com",
+                                            "flags": Object {
+                                              "newsletter_consent_prompt": false,
+                                            },
+                                            "hasPasswordAuth": true,
+                                            "id": "1",
+                                            "isAuthenticated": true,
+                                            "name": "Foo Bar",
+                                            "options": Object {
+                                              "timezone": "UTC",
+                                            },
+                                            "permissions": Set {},
+                                            "username": "foo@example.com",
+                                          }
+                                        }
+                                        organization={
+                                          Object {
+                                            "access": Array [
+                                              "org:read",
+                                            ],
+                                            "features": Array [],
+                                            "id": "3",
+                                            "name": "Organization Name",
+                                            "onboardingTasks": Array [],
+                                            "projects": Array [],
+                                            "scrapeJavaScript": true,
+                                            "slug": "org-slug",
+                                            "status": Object {
+                                              "id": "active",
+                                              "name": "active",
+                                            },
+                                            "teams": Array [],
+                                          }
+                                        }
+                                        renderNoAccessMessage={false}
+                                        requireAll={true}
+                                      >
+                                        <Tooltip
+                                          title="Owner permissions are required for this action."
                                         >
-                                          <Access
-                                            access={
-                                              Array [
-                                                "org:admin",
-                                              ]
-                                            }
-                                            config={
-                                              Object {
-                                                "features": Set {},
-                                                "messages": Array [],
-                                                "user": Object {
-                                                  "email": "foo@example.com",
-                                                  "flags": Object {
-                                                    "newsletter_consent_prompt": false,
-                                                  },
-                                                  "hasPasswordAuth": true,
-                                                  "id": "1",
-                                                  "isAuthenticated": true,
-                                                  "name": "Foo Bar",
-                                                  "options": Object {
-                                                    "timezone": "UTC",
-                                                  },
-                                                  "permissions": Set {},
-                                                  "username": "foo@example.com",
-                                                },
-                                              }
-                                            }
-                                            configUser={
-                                              Object {
-                                                "email": "foo@example.com",
-                                                "flags": Object {
-                                                  "newsletter_consent_prompt": false,
-                                                },
-                                                "hasPasswordAuth": true,
-                                                "id": "1",
-                                                "isAuthenticated": true,
-                                                "name": "Foo Bar",
-                                                "options": Object {
-                                                  "timezone": "UTC",
-                                                },
-                                                "permissions": Set {},
-                                                "username": "foo@example.com",
-                                              }
-                                            }
-                                            organization={
-                                              Object {
-                                                "access": Array [
-                                                  "org:read",
-                                                ],
-                                                "features": Array [],
-                                                "id": "3",
-                                                "name": "Organization Name",
-                                                "onboardingTasks": Array [],
-                                                "projects": Array [],
-                                                "scrapeJavaScript": true,
-                                                "slug": "org-slug",
-                                                "status": Object {
-                                                  "id": "active",
-                                                  "name": "active",
-                                                },
-                                                "teams": Array [],
-                                              }
-                                            }
-                                            renderNoAccessMessage={false}
-                                            requireAll={true}
+                                          <Button
+                                            className="tip"
+                                            disabled={true}
+                                            icon="icon-trash"
+                                            size="small"
+                                            title="Owner permissions are required for this action."
                                           >
                                             <Tooltip
                                               title="Owner permissions are required for this action."
                                             >
-                                              <Button
-                                                className="tip"
+                                              <StyledButton
+                                                aria-disabled={true}
+                                                className="tip tip"
                                                 disabled={true}
-                                                icon="icon-trash"
+                                                href={null}
+                                                onClick={[Function]}
+                                                role="button"
                                                 size="small"
                                                 title="Owner permissions are required for this action."
+                                                to={null}
                                               >
-                                                <Tooltip
+                                                <Component
+                                                  aria-disabled={true}
+                                                  className="tip tip css-1ujzp8g-StyledButton-getColors eqrebog0"
+                                                  href={null}
+                                                  onClick={[Function]}
+                                                  role="button"
+                                                  size="small"
                                                   title="Owner permissions are required for this action."
+                                                  to={null}
                                                 >
-                                                  <StyledButton
+                                                  <button
                                                     aria-disabled={true}
-                                                    className="tip tip"
-                                                    disabled={true}
+                                                    className="tip tip css-1ujzp8g-StyledButton-getColors eqrebog0"
                                                     href={null}
                                                     onClick={[Function]}
                                                     role="button"
@@ -2197,101 +2112,79 @@ exports[`Organization Developer Settings without Owner permissions trash button 
                                                     title="Owner permissions are required for this action."
                                                     to={null}
                                                   >
-                                                    <Component
-                                                      aria-disabled={true}
-                                                      className="tip tip css-1ujzp8g-StyledButton-getColors eqrebog0"
-                                                      href={null}
-                                                      onClick={[Function]}
-                                                      role="button"
+                                                    <ButtonLabel
                                                       size="small"
-                                                      title="Owner permissions are required for this action."
-                                                      to={null}
                                                     >
-                                                      <button
-                                                        aria-disabled={true}
-                                                        className="tip tip css-1ujzp8g-StyledButton-getColors eqrebog0"
-                                                        href={null}
-                                                        onClick={[Function]}
-                                                        role="button"
+                                                      <Component
+                                                        className="css-7ui8bl-ButtonLabel eqrebog1"
                                                         size="small"
-                                                        title="Owner permissions are required for this action."
-                                                        to={null}
                                                       >
-                                                        <ButtonLabel
-                                                          size="small"
+                                                        <span
+                                                          className="css-7ui8bl-ButtonLabel eqrebog1"
                                                         >
-                                                          <Component
-                                                            className="css-7ui8bl-ButtonLabel eqrebog1"
+                                                          <Icon
+                                                            hasChildren={false}
                                                             size="small"
                                                           >
-                                                            <span
-                                                              className="css-7ui8bl-ButtonLabel eqrebog1"
+                                                            <Component
+                                                              className="css-ljhpxy-Icon eqrebog2"
+                                                              hasChildren={false}
+                                                              size="small"
                                                             >
-                                                              <Icon
-                                                                hasChildren={false}
+                                                              <span
+                                                                className="css-ljhpxy-Icon eqrebog2"
                                                                 size="small"
                                                               >
-                                                                <Component
-                                                                  className="css-ljhpxy-Icon eqrebog2"
-                                                                  hasChildren={false}
-                                                                  size="small"
+                                                                <StyledInlineSvg
+                                                                  size="12px"
+                                                                  src="icon-trash"
                                                                 >
-                                                                  <span
-                                                                    className="css-ljhpxy-Icon eqrebog2"
-                                                                    size="small"
+                                                                  <InlineSvg
+                                                                    className="css-1ov3rcq-StyledInlineSvg eqrebog3"
+                                                                    size="12px"
+                                                                    src="icon-trash"
                                                                   >
-                                                                    <StyledInlineSvg
-                                                                      size="12px"
-                                                                      src="icon-trash"
+                                                                    <StyledSvg
+                                                                      className="css-1ov3rcq-StyledInlineSvg eqrebog3"
+                                                                      height="12px"
+                                                                      viewBox={Object {}}
+                                                                      width="12px"
                                                                     >
-                                                                      <InlineSvg
-                                                                        className="css-1ov3rcq-StyledInlineSvg eqrebog3"
-                                                                        size="12px"
-                                                                        src="icon-trash"
+                                                                      <svg
+                                                                        className="eqrebog3 css-1jjmnki-StyledSvg-StyledInlineSvg e2idor0"
+                                                                        height="12px"
+                                                                        viewBox={Object {}}
+                                                                        width="12px"
                                                                       >
-                                                                        <StyledSvg
-                                                                          className="css-1ov3rcq-StyledInlineSvg eqrebog3"
-                                                                          height="12px"
-                                                                          viewBox={Object {}}
-                                                                          width="12px"
-                                                                        >
-                                                                          <svg
-                                                                            className="eqrebog3 css-1jjmnki-StyledSvg-StyledInlineSvg e2idor0"
-                                                                            height="12px"
-                                                                            viewBox={Object {}}
-                                                                            width="12px"
-                                                                          >
-                                                                            <use
-                                                                              href="#test"
-                                                                              xlinkHref="#test"
-                                                                            />
-                                                                          </svg>
-                                                                        </StyledSvg>
-                                                                      </InlineSvg>
-                                                                    </StyledInlineSvg>
-                                                                  </span>
-                                                                </Component>
-                                                              </Icon>
-                                                            </span>
-                                                          </Component>
-                                                        </ButtonLabel>
-                                                      </button>
-                                                    </Component>
-                                                  </StyledButton>
-                                                </Tooltip>
-                                              </Button>
+                                                                        <use
+                                                                          href="#test"
+                                                                          xlinkHref="#test"
+                                                                        />
+                                                                      </svg>
+                                                                    </StyledSvg>
+                                                                  </InlineSvg>
+                                                                </StyledInlineSvg>
+                                                              </span>
+                                                            </Component>
+                                                          </Icon>
+                                                        </span>
+                                                      </Component>
+                                                    </ButtonLabel>
+                                                  </button>
+                                                </Component>
+                                              </StyledButton>
                                             </Tooltip>
-                                          </Access>
-                                        </AccessContainer>
-                                      </withConfig(AccessContainer)>
-                                    </div>
-                                  </Base>
-                                </Box>
-                              </div>
-                            </Base>
-                          </StyledFlex>
-                        </div>
-                      </Base>
+                                          </Button>
+                                        </Tooltip>
+                                      </Access>
+                                    </AccessContainer>
+                                  </withConfig(AccessContainer)>
+                                </div>
+                              </Styled(div)>
+                            </ForwardRef>
+                          </div>
+                        </StyledFlex>
+                      </div>
                     </SentryAppItem>
                   </SentryApplicationRow>
                 </div>

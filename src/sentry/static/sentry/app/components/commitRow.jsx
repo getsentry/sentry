@@ -1,7 +1,7 @@
 import PropTypes from 'prop-types';
 import React from 'react';
 import styled from 'react-emotion';
-import {Box} from 'grid-emotion';
+import {Box} from '@rebass/grid/emotion';
 
 import Avatar from 'app/components/avatar';
 import TimeSince from 'app/components/timeSince';
@@ -29,11 +29,11 @@ export default class CommitRow extends React.Component {
   render() {
     const {id, dateCreated, message, author, repository} = this.props.commit;
     return (
-      <PanelItem key={id} align="center">
+      <PanelItem key={id} alignItems="center">
         <AvatarWrapper mr={2}>
           <Avatar size={36} user={author} />
         </AvatarWrapper>
-        <Box flex="1" direction="column" style={{minWidth: 0}} mr={2}>
+        <Box flex="1" flexDirection="column" style={{minWidth: 0}} mr={2}>
           <Message>{this.renderMessage(message)}</Message>
           <Meta>
             {tct('[author] committed [timeago]', {
