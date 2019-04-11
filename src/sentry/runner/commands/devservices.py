@@ -1,6 +1,5 @@
 from __future__ import absolute_import, print_function
 
-import sys
 import os
 import click
 from six import text_type
@@ -101,19 +100,6 @@ def up(project, exclude):
 
     if not sentry_options.get('symbolicator.enabled'):
         exclude |= {'symbolicator'}
-    elif sys.platform == 'darwin' and 'host.docker.internal' not in (sentry_options.get('system.internal-url-prefix') or ''):
-        click.secho(
-            '!! Symbolicator in Docker for Mac only works properly if you write\n'
-            '!! the following into `~/.sentry/config.yml`:\n'
-            '!!\n'
-            '!! system.internal-url-prefix: http://host.docker.internal:{}/\n'
-            '!!\n'
-            '!! Replace the port with the port Sentry is actually listening to\n'
-            '!! (might differ for devserver).'
-            .format(settings.SENTRY_WEB_PORT),
-            err=True,
-            fg='red'
-        )
 
     get_or_create(client, 'network', project)
 

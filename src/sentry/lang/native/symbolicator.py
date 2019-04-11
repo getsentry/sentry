@@ -1,5 +1,6 @@
 from __future__ import absolute_import
 
+import sys
 import jsonschema
 import logging
 import six
@@ -9,7 +10,7 @@ from django.core.urlresolvers import reverse
 
 from requests.exceptions import RequestException
 
-from sentry import options
+from sentry import options, settings
 from sentry.auth.system import get_system_token
 from sentry.cache import default_cache
 from sentry.utils import json, metrics
@@ -104,8 +105,13 @@ def get_internal_source(project):
     """
     Returns the source configuration for a Sentry project.
     """
-    internal_url_prefix = options.get('system.internal-url-prefix') \
-        or options.get('system.url-prefix')
+    internal_url_prefix = options.get('system.internal-url-prefix')
+    if internal_url_prefix is None:
+        internal_url_prefix = options.get('system.url-prefix')
+        if sys.platform == 'darwin' and settings.DEBUG:
+            internal_url_prefix = internal_url_prefix \
+                .replace("localhost", "host.docker.internal") \
+                .replace("127.0.0.1", "host.docker.internal")
 
     assert internal_url_prefix
     sentry_source_url = '%s%s' % (
