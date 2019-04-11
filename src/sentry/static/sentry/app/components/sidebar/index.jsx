@@ -608,6 +608,7 @@ const PrimaryItems = styled('div')`
   flex: 1;
   display: flex;
   flex-direction: column;
+  -ms-overflow-style: -ms-autohiding-scrollbar;
 
   @media (max-height: 600px) and (min-width: ${p => p.theme.breakpoints[0]}) {
     border-bottom: 1px solid ${p => p.theme.gray3};
