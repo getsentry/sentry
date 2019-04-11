@@ -20,8 +20,8 @@ class EventUserFeedback extends React.Component {
     const {report, orgId, projectId, issueId} = this.props;
 
     return projectId
-      ? `/${orgId}/${projectId}/issues/${issueId}/events/${report.event.id}/`
-      : `/organizations/${orgId}/issues/${issueId}/events/${report.event.id}/`;
+      ? `/${orgId}/${projectId}/issues/${issueId}/events/${report.event.eventID}/`
+      : `/organizations/${orgId}/issues/${issueId}/events/${report.event.eventID}/`;
   }
 
   render() {
@@ -39,8 +39,8 @@ class EventUserFeedback extends React.Component {
                   <div className="activity-author">
                     {report.name}
                     <small>{report.email}</small>
-                    {/* event_id might be undefined for legacy accounts */}
-                    {report.event.id && (
+                    {/* event.eventID might be undefined for legacy accounts */}
+                    {report.event.eventID && (
                       <small>
                         <Link to={this.getUrl()}>{t('View event')}</Link>
                       </small>
