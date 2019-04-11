@@ -42,11 +42,6 @@ const Configure = createReactClass({
 
     data.org_id = parseInt(organization.id, 10);
     analytics('onboarding.configure_viewed', data);
-
-    //redirect if platform is not known.
-    if (!params.platform || params.platform === 'other') {
-      this.redirectToNeutralDocs();
-    }
     this.sentRealEvent();
   },
 
@@ -83,17 +78,6 @@ const Configure = createReactClass({
       {projectId}
     );
     this.redirectUrl();
-  },
-
-  redirectToNeutralDocs() {
-    const {orgId, projectId} = this.props.params;
-    const {organization} = this.context;
-
-    const url = new Set(organization.features).has('sentry10')
-      ? `/organizations/${orgId}/projects/${projectId}/getting-started/`
-      : `/${orgId}/${projectId}/getting-started/`;
-
-    browserHistory.push(url);
   },
 
   render() {

@@ -1,5 +1,5 @@
 import React from 'react';
-import {shallow, mount} from 'enzyme';
+import {mount} from 'enzyme';
 
 import Configure from 'app/views/onboarding/configure';
 import ProjectsStore from 'app/stores/projectsStore';
@@ -86,68 +86,6 @@ describe('Configure should render correctly', function() {
         orgId: 'testOrg',
       },
     };
-
-    it("shouldn't redirect for a found platform", function() {
-      const props = {
-        ...baseProps,
-      };
-      props.params.platform = 'node';
-
-      const wrapper = shallow(
-        <Configure {...props} />,
-        TestStubs.routerContext([
-          {
-            organization: {
-              id: '1337',
-              slug: 'testOrg',
-              teams: [['project-slug']],
-              projects: [],
-            },
-          },
-        ])
-      );
-
-      const component = wrapper.instance();
-
-      const handleSubmitStub = jest
-        .spyOn(component, 'redirectToNeutralDocs')
-        .mockImplementation(() => {});
-
-      wrapper.update();
-      expect(wrapper).toMatchSnapshot();
-      expect(handleSubmitStub).toHaveBeenCalledTimes(0);
-    });
-
-    it('should redirect to if no matching platform', function() {
-      const props = {
-        ...baseProps,
-      };
-      props.params.platform = 'other';
-
-      const handleSubmitStub = jest.spyOn(Configure.prototype, 'redirectToNeutralDocs');
-
-      // 👺 ⚠️ this is a hack to defeat the method auto binding so we can fully stub the method. It would not be neccessary with es6 class components and it relies on react internals so it's fragile - maxbittker
-      const index =
-        Configure.prototype.__reactAutoBindPairs.indexOf('redirectToNeutralDocs') + 1;
-      Configure.prototype.__reactAutoBindPairs[index] = handleSubmitStub;
-
-      const wrapper = mount(
-        <Configure {...props} />,
-        TestStubs.routerContext([
-          {
-            organization: {
-              id: '1337',
-              slug: 'testOrg',
-              teams: [['project-slug']],
-              projects: [],
-            },
-          },
-        ])
-      );
-
-      expect(wrapper).toMatchSnapshot();
-      expect(handleSubmitStub).toHaveBeenCalledTimes(1);
-    });
 
     it('should render platform docs', async function() {
       const props = {
