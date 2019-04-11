@@ -8,6 +8,8 @@ from django.utils import timezone
 from collections import namedtuple, OrderedDict
 
 from sentry.models import Project, Release
+from sentry.grouping.utils import get_grouping_family_for_platform
+from sentry.utils.in_app import is_known_third_party
 from sentry.utils.cache import cache
 from sentry.utils.hashlib import hash_values
 from sentry.utils.safe import get_path, safe_execute
@@ -197,13 +199,49 @@ def find_stacktraces_in_data(data, include_raw=False):
     return rv
 
 
+def _has_system_frames(frames):
+    """
+    Determines whether there are any frames in the stacktrace with in_app=false.
+    """
+
+    system_frames = 0
+    for frame in frames:
+        if not frame.get('in_app'):
+            system_frames += 1
+    return bool(system_frames) and len(frames) != system_frames
+
+
+def _normalize_in_app(stacktrace, platform=None, sdk_info=None):
+    """
+    Ensures consistent values of in_app across a stacktrace.
+    """
+    has_system_frames = _has_system_frames(stacktrace)
+    for frame in stacktrace:
+        # If all frames are in_app, flip all of them. This is expected by the UI
+        if not has_system_frames:
+            frame['in_app'] = False
+
+        # In all other cases, respect whatever value has been set in processing
+        # or by grouping enhancers
+        elif frame.get('in_app') is not None:
+            continue
+
+        # Native frames have special rules regarding in_app
+        # TODO(ja): Clean up those rules and put them in enhancers instead
+        elif get_grouping_family_for_platform(frame.get('platform') or platform) == 'native':
+            frame_package = frame.get('package')
+            frame['in_app'] = bool(frame_package) and \
+                not is_known_third_party(frame_package, sdk_info=sdk_info)
+
+        # Default to false in all other cases
+        else:
+            frame['in_app'] = False
+
+
 def normalize_stacktraces_for_grouping(data, grouping_config=None):
-    def _has_system_frames(frames):
-        system_frames = 0
-        for frame in frames:
-            if not frame.get('in_app'):
-                system_frames += 1
-        return bool(system_frames) and len(frames) != system_frames
+    """
+    Applies grouping enhancement rules and ensure in_app is set on all frames.
+    """
 
     stacktraces = []
 
@@ -222,13 +260,8 @@ def normalize_stacktraces_for_grouping(data, grouping_config=None):
             grouping_config.enhancements.apply_modifications_to_frame(frames, platform)
 
     # normalize in-app
-    for frames in stacktraces:
-        has_system_frames = _has_system_frames(frames)
-        for frame in frames:
-            if not has_system_frames:
-                frame['in_app'] = False
-            elif frame.get('in_app') is None:
-                frame['in_app'] = False
+    for stacktrace in stacktraces:
+        _normalize_in_app(stacktrace, platform=platform)
 
 
 def should_process_for_stacktraces(data):
@@ -310,6 +343,9 @@ def process_single_stacktrace(processing_task, stacktrace_info, processable_fram
 
         if expand_processed is not None:
             processed_frames.extend(expand_processed)
+            changed_processed = True
+        elif expand_raw:  # is not empty
+            processed_frames.extend(expand_raw)
             changed_processed = True
         else:
             processed_frames.append(processable_frame.frame)

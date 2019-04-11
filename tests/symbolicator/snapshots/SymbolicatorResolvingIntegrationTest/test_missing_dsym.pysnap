@@ -1,5 +1,5 @@
 ---
-created: '2019-04-08T15:19:12.541376Z'
+created: '2019-04-11T16:28:56.333251Z'
 creator: sentry
 source: tests/symbolicator/test_native_plugin.py
 ---
@@ -28,14 +28,14 @@ exception:
   values:
   - raw_stacktrace:
       frames:
-      - function: unknown
+      - &id001
+        function: unknown
         in_app: false
         instruction_addr: '0x100000fa0'
+        package: Foo.app/Contents/Foo
     stacktrace:
       frames:
-      - function: unknown
-        in_app: false
-        instruction_addr: '0x100000fa0'
+      - *id001
     type: Fail
     value: fail
 fingerprint:

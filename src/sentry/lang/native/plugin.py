@@ -19,6 +19,7 @@ from sentry.lang.native.utils import get_sdk_from_event, cpu_name_from_data, \
 from sentry.lang.native.systemsymbols import lookup_system_symbols
 from sentry.models.eventerror import EventError
 from sentry.utils import metrics
+from sentry.utils.in_app import is_known_third_party
 from sentry.utils.safe import get_path
 from sentry.stacktraces import StacktraceProcessor
 from sentry.reprocessing import report_processing_issue
@@ -180,7 +181,7 @@ class NativeStacktraceProcessor(StacktraceProcessor):
         )
 
         if options.get('symbolserver.enabled'):
-            self.fetch_system_symbols(processing_task)
+            self.fetch_ios_system_symbols(processing_task)
 
         if self.use_symbolicator:
             self.run_symbolicator(processing_task)
@@ -293,13 +294,17 @@ class NativeStacktraceProcessor(StacktraceProcessor):
                 pf = pf_list[symbolicated_frame['original_index']]
                 pf.data['symbolicator_match'].append(symbolicated_frame)
 
-    def fetch_system_symbols(self, processing_task):
+    def fetch_ios_system_symbols(self, processing_task):
         to_lookup = []
         pf_list = []
         for pf in processing_task.iter_processable_frames(self):
+            if pf.cache_value is not None:
+                continue
+
             obj = pf.data['obj']
-            if pf.cache_value is not None or obj is None or \
-               self.sym.is_image_from_app_bundle(obj):
+            package = obj and obj.code_file
+            # TODO(ja): This should check for iOS specifically
+            if not package or not is_known_third_party(package):
                 continue
 
             # We can only look up objects in the symbol server that have a
@@ -313,7 +318,7 @@ class NativeStacktraceProcessor(StacktraceProcessor):
             to_lookup.append(
                 {
                     'object_uuid': obj.debug_id,
-                    'object_name': obj.name or '<unknown>',
+                    'object_name': obj.code_file or '<unknown>',
                     'addr': '0x%x' % rebase_addr(pf.data['instruction_addr'], obj)
                 }
             )
@@ -363,21 +368,16 @@ class NativeStacktraceProcessor(StacktraceProcessor):
         raw_frame = dict(frame)
         errors = []
 
+        # Ensure that package is set in the raw frame, mapped from the
+        # debug_images array in the payload. Grouping and UI can use this code
+        # to
+        if raw_frame.get('package') is None:
+            raw_frame['package'] = processable_frame.data['obj'].code_file
+
         if processable_frame.cache_value is None:
             # Construct a raw frame that is used by the symbolizer
             # backend.  We only assemble the bare minimum we need here.
             instruction_addr = processable_frame.data['instruction_addr']
-            in_app = self.sym.is_in_app(
-                instruction_addr,
-                sdk_info=self.sdk_info
-            )
-
-            if in_app and raw_frame.get('function') is not None:
-                in_app = not self.sym.is_internal_function(
-                    raw_frame['function'])
-
-            if raw_frame.get('in_app') is None:
-                raw_frame['in_app'] = in_app
 
             debug_id = processable_frame.data['debug_id']
             if debug_id is not None:
@@ -400,15 +400,15 @@ class NativeStacktraceProcessor(StacktraceProcessor):
                 errors = self._handle_symbolication_failed(e)
                 return [raw_frame], [raw_frame], errors
 
-            processable_frame.set_cache_value([in_app, symbolicated_frames])
+            _ignored = None  # Used to be in_app
+            processable_frame.set_cache_value([_ignored, symbolicated_frames])
 
         else:  # processable_frame.cache_value is present
-            in_app, symbolicated_frames = processable_frame.cache_value
-            raw_frame['in_app'] = in_app
+            _ignored, symbolicated_frames = processable_frame.cache_value
 
         new_frames = []
         for sfrm in symbolicated_frames:
-            new_frame = dict(frame)
+            new_frame = dict(raw_frame)
             new_frame['function'] = sfrm['function']
             if sfrm.get('symbol'):
                 new_frame['symbol'] = sfrm['symbol']
@@ -420,12 +420,8 @@ class NativeStacktraceProcessor(StacktraceProcessor):
                 new_frame['lineno'] = sfrm['lineno']
             if sfrm.get('colno'):
                 new_frame['colno'] = sfrm['colno']
-            if sfrm.get('package') or processable_frame.data['obj'] is not None:
-                new_frame['package'] = sfrm.get(
-                    'package', processable_frame.data['obj'].name)
-            if new_frame.get('in_app') is None:
-                new_frame['in_app'] = in_app and \
-                    not self.sym.is_internal_function(new_frame['function'])
+            if sfrm.get('package'):
+                new_frame['package'] = sfrm['package']
             new_frames.append(new_frame)
 
         return new_frames, [raw_frame], []
