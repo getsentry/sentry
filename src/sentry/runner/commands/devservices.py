@@ -80,6 +80,9 @@ def up(project, exclude):
     if 'bigtable' not in settings.SENTRY_NODESTORE:
         exclude |= {'bigtable'}
 
+    if 'riak' not in settings.SENTRY_NODESTORE:
+        exclude |= {'riak'}
+
     if 'memcached' not in settings.CACHES.get('default', {}).get('BACKEND'):
         exclude |= {'memcached'}
 

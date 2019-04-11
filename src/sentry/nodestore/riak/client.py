@@ -187,7 +187,7 @@ class ConnectionManager(object):
 
     def __init__(
         self,
-        hosts=DEFAULT_NODES,
+        hosts=None,
         strategy=RoundRobinStrategy,
         randomize=True,
         timeout=3,
@@ -195,6 +195,7 @@ class ConnectionManager(object):
         max_retries=None,
         tcp_keepalive=True
     ):
+        hosts = hosts or DEFAULT_NODES
         assert hosts
         self.dead_connections = []
         self.timeout = timeout

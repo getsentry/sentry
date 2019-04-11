@@ -1425,7 +1425,15 @@ SENTRY_DEVSERVICES = {
         'pull': True,
         'ports': {'3021/tcp': 3021},
         'command': ['run'],
-    }
+    },
+    'riak': {
+        'image': 'basho/riak-kv:2.1.4',
+        'ports': {'8098/tcp': 8098},
+        'volumes': {
+            'riak_data': {'bind': '/var/lib/riak'},
+            'riak_schemas': {'bind': '/etc/riak/schemas'},
+        },
+    },
 }
 
 # Max file size for avatar photo uploads

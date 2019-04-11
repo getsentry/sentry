@@ -40,7 +40,7 @@ class RiakNodeStorage(NodeStorage):
 
     def __init__(
         self,
-        nodes,
+        nodes=None,
         bucket='nodes',
         timeout=1,
         cooldown=5,
