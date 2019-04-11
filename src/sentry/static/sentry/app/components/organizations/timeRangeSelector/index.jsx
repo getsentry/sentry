@@ -311,7 +311,10 @@ class TimeRangeSelector extends React.PureComponent {
               icon={<StyledInlineSvg src="icon-calendar" />}
               isOpen={isOpen}
               hasChanges={this.state.hasChanges}
-              hasSelected={this.props.relative !== DEFAULT_STATS_PERIOD}
+              hasSelected={
+                (!!this.props.relative && this.props.relative !== DEFAULT_STATS_PERIOD) ||
+                isAbsoluteSelected
+              }
               onClear={this.handleClear}
               allowClear={true}
               {...getActorProps({isStyled: true})}
