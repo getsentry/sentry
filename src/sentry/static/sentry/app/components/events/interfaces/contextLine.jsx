@@ -1,10 +1,11 @@
 import PropTypes from 'prop-types';
 import React from 'react';
+import classNames from 'classnames';
 import {defined} from 'app/utils';
 import styled from 'react-emotion';
 
 const ContextLine = function(props) {
-  const {line, isActive} = props;
+  const {line, isActive, className} = props;
   let liClassName = 'expandable';
   if (isActive) {
     liClassName += ' active';
@@ -17,10 +18,20 @@ const ContextLine = function(props) {
   }
 
   return (
-    <ListItem className={liClassName} key={line[0]}>
-      <span className="ws">{lineWs}</span>
-      <span className="contextline">{lineCode}</span>
-    </ListItem>
+    <li className={classNames(className, liClassName)} key={line[0]}>
+      {props.children === null ? (
+        <React.Fragment>
+          <span className="ws">{lineWs}</span>
+          <span className="contextline">{lineCode}</span>
+        </React.Fragment>
+      ) : (
+        <Context>
+          <span className="ws">{lineWs}</span>
+          <span className="contextline">{lineCode}</span>
+        </Context>
+      )}
+      {props.children}
+    </li>
   );
 };
 
@@ -31,7 +42,6 @@ ContextLine.propTypes = {
 
 export default ContextLine;
 
-const ListItem = styled('li')`
-  padding: 0 20px;
-  background: inherit;
+const Context = styled('div')`
+  display: inline;
 `;

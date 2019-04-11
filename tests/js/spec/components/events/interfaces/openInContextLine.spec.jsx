@@ -26,12 +26,12 @@ describe('OpenInContextLine', function() {
     },
   ];
 
-  const line = [233, "    crashed_thread['crashed'] = True"];
+  const lineNo = 233;
 
   describe('with stacktrace-link component', function() {
     it('renders button', function() {
       const wrapper = mount(
-        <OpenInContextLine filename={filename} line={line} components={components} />,
+        <OpenInContextLine filename={filename} lineNo={lineNo} components={components} />,
         TestStubs.routerContext()
       );
       expect(wrapper.props().components[0].schema.url).toEqual(
@@ -43,7 +43,7 @@ describe('OpenInContextLine', function() {
       const queryParams = {
         installationId: install.uuid,
         projectSlug: group.project.slug,
-        lineNo: line[0],
+        lineNo,
         filename,
       };
       const url = addQueryParamsToExistingUrl(baseUrl, queryParams);

@@ -2,14 +2,13 @@ import PropTypes from 'prop-types';
 import React from 'react';
 import SentryAppIcon from 'app/components/sentryAppIcon';
 import {addQueryParamsToExistingUrl} from 'app/utils/queryString';
-import {defined} from 'app/utils';
 import styled from 'react-emotion';
 import space from 'app/styles/space';
 import {t} from 'app/locale';
 
 class OpenInContextLine extends React.Component {
   static propTypes = {
-    line: PropTypes.array,
+    lineNo: PropTypes.number,
     filename: PropTypes.string,
     components: PropTypes.array,
   };
@@ -23,8 +22,7 @@ class OpenInContextLine extends React.Component {
   }
 
   getUrl() {
-    const {filename, line, components} = this.props;
-    const lineNo = line[0];
+    const {filename, lineNo, components} = this.props;
 
     const queryParams = {
       lineNo,
@@ -34,29 +32,16 @@ class OpenInContextLine extends React.Component {
   }
 
   render() {
-    const {components, line} = this.props;
-    const lineNo = line[0];
-
-    let lineWs = '';
-    let lineCode = '';
-    if (defined(line[1]) && line[1].match) {
-      [, lineWs, lineCode] = line[1].match(/^(\s*)(.*?)$/m);
-    }
+    const {components} = this.props;
     const url = this.getUrl();
     return (
-      <ActiveListItem className="expandable active" key={lineNo}>
-        <Context>
-          <span className="ws">{lineWs}</span>
-          <span className="contextline">{lineCode}</span>
-        </Context>
-        <OpenInContainer>
-          <span>Open this line in:</span>
-          <OpenInLink data-test-id="stacktrace-link" href={url}>
-            <OpenInIcon slug={components[0].sentryApp.name} />
-            <OpenInName>{t(`${components[0].sentryApp.name}`)}</OpenInName>
-          </OpenInLink>
-        </OpenInContainer>
-      </ActiveListItem>
+      <OpenInContainer>
+        <span>Open this line in:</span>
+        <OpenInLink data-test-id="stacktrace-link" href={url}>
+          <OpenInIcon slug={components[0].sentryApp.name} />
+          <OpenInName>{t(`${components[0].sentryApp.name}`)}</OpenInName>
+        </OpenInLink>
+      </OpenInContainer>
     );
   }
 }
@@ -89,19 +74,4 @@ const OpenInName = styled('span')`
   font-weight: bold;
   color: ${p => p.theme.gray3};
   margin-left: 5px;
-`;
-
-const ListItem = styled('li')`
-  padding: 0 20px;
-  background: inherit;
-`;
-
-const ActiveListItem = styled(ListItem)`
-  padding: 0;
-  text-indent: 20px;
-  z-index: 9999;
-`;
-
-const Context = styled('div')`
-  display: inline;
 `;

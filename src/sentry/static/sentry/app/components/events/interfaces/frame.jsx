@@ -4,7 +4,7 @@ import React from 'react';
 import _ from 'lodash';
 import classNames from 'classnames';
 import createReactClass from 'create-react-class';
-import styled from 'react-emotion';
+import styled, {css} from 'react-emotion';
 
 import {defined, objectIsEmpty, isUrl} from 'app/utils';
 import {t} from 'app/locale';
@@ -274,20 +274,37 @@ const Frame = createReactClass({
             contextLines.map((line, index) => {
               const isActive = data.lineNo === line[0];
               const components = this.getSentryAppComponents();
-              if (isActive && components.length > 0) {
-                return (
-                  <OpenInContextLine
-                    key={index}
-                    line={line}
-                    isActive={isActive}
-                    filename={data.filename}
-                    group={group}
-                    components={components}
-                  />
-                );
-              } else {
-                return <ContextLine key={index} line={line} isActive={isActive} />;
-              }
+              const hasComponents = isActive && components.length > 0;
+              const className = hasComponents
+                ? css`
+                    background: inherit;
+                    padding: 0;
+                    text-indent: 20px;
+                    z-index: 9999;
+                  `
+                : css`
+                    background: inherit;
+                    padding: 0 20px;
+                  `;
+              return (
+                <ContextLine
+                  key={index}
+                  line={line}
+                  isActive={isActive}
+                  className={className}
+                >
+                  {hasComponents && (
+                    <OpenInContextLine
+                      key={index}
+                      lineNo={line[0]}
+                      isActive={isActive}
+                      filename={data.filename}
+                      group={group}
+                      components={components}
+                    />
+                  )}
+                </ContextLine>
+              );
             })}
 
           {(hasContextRegisters || hasContextVars) && (
