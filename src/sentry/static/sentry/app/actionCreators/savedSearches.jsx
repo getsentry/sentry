@@ -1,5 +1,6 @@
 import {MAX_RECENT_SEARCHES, SEARCH_TYPES} from 'app/constants';
 import handleXhrErrorResponse from 'app/utils/handleXhrErrorResponse';
+import SavedSearchActions from 'app/actions/savedSearchActions';
 
 export function fetchSavedSearches(api, orgId, useOrgSavedSearches = false) {
   const url = `/organizations/${orgId}/searches/`;
@@ -9,10 +10,16 @@ export function fetchSavedSearches(api, orgId, useOrgSavedSearches = false) {
     data.use_org_level = '1';
   }
 
-  return api.requestPromise(url, {
+  const promise = api.requestPromise(url, {
     method: 'GET',
     data,
   });
+
+  promise.then(res => {
+    SavedSearchActions.updateSavedSearches(res);
+  });
+
+  return promise;
 }
 
 export function fetchProjectSavedSearches(api, orgId, projectId) {
