@@ -12,7 +12,7 @@ describe('SubscriptionBox', () => {
     onChange = jest.fn();
     wrapper = mount(
       <SubscriptionBox
-        resource={'issue'}
+        resource="issue"
         checked={false}
         disabled={false}
         onChange={onChange}

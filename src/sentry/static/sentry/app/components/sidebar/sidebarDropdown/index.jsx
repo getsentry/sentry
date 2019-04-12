@@ -143,13 +143,11 @@ const SidebarDropdown = withApi(
                           <SidebarMenuItem to="/settings/account/">
                             {t('User settings')}
                           </SidebarMenuItem>
-                          <SidebarMenuItem to={'/settings/account/api/'}>
+                          <SidebarMenuItem to="/settings/account/api/">
                             {t('API keys')}
                           </SidebarMenuItem>
                           {user.isSuperuser && (
-                            <SidebarMenuItem to={'/manage/'}>
-                              {t('Admin')}
-                            </SidebarMenuItem>
+                            <SidebarMenuItem to="/manage/">{t('Admin')}</SidebarMenuItem>
                           )}
                           <SidebarMenuItem
                             data-test-id="sidebarSignout"

@@ -78,7 +78,7 @@ const getFields = ({authenticator, hasSentCode, onSmsReset, onSmsSubmit, onU2fTa
         visible: () => hasSentCode,
       },
       () => (
-        <PanelItem key="sms-footer" justify="flex-end" p={2} pr={'36px'}>
+        <PanelItem key="sms-footer" justify="flex-end" p={2} pr="36px">
           {hasSentCode && (
             <Button css={{marginRight: 6}} onClick={onSmsReset}>
               {t('Start Over')}

@@ -27,7 +27,7 @@ class AdminOrganizations extends React.Component {
         <h3>{t('Organizations')}</h3>
         <ResultGrid
           path="/manage/organizations/"
-          endpoint={'/organizations/?show=all'}
+          endpoint="/organizations/?show=all"
           method="GET"
           columns={columns}
           columnsForRow={this.getRow}

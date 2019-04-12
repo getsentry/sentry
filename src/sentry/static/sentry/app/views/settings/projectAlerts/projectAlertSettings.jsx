@@ -77,7 +77,7 @@ export default class ProjectAlertSettings extends AsyncView {
           <React.Fragment>
             <ProjectAlertHeader projectId={projectId} />
             <PermissionAlert />
-            <AlertLink to={'/settings/account/notifications/'} icon="icon-mail">
+            <AlertLink to="/settings/account/notifications/" icon="icon-mail">
               {t(
                 'Looking to fine-tune your personal notification preferences? Visit your Account Settings'
               )}

@@ -173,7 +173,7 @@ const VersionHoverCard = createReactClass({
                 users={release.authors}
                 avatarSize={25}
                 tooltipOptions={{container: 'body'}}
-                typeMembers={'authors'}
+                typeMembers="authors"
               />
             </div>
           </div>

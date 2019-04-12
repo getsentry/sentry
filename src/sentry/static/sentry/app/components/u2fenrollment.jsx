@@ -11,7 +11,7 @@ class U2fEnrollment extends React.Component {
 
   render() {
     return (
-      <U2fInterface challengeData={this.props.enrollmentData} flowMode={'enroll'}>
+      <U2fInterface challengeData={this.props.enrollmentData} flowMode="enroll">
         <p>
           {t(
             `

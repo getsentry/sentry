@@ -9,8 +9,8 @@ describe('ResolutionBox', function() {
       const wrapper = shallow(
         <ResolutionBox
           statusDetails={{inNextRelease: true}}
-          orgId={'org'}
-          projectId={'project'}
+          orgId="org"
+          projectId="project"
         />
       );
       expect(wrapper).toMatchSnapshot();
@@ -22,8 +22,8 @@ describe('ResolutionBox', function() {
             inNextRelease: true,
             actor: {id: '111', name: 'David Cramer', email: 'david@sentry.io'},
           }}
-          orgId={'org'}
-          projectId={'project'}
+          orgId="org"
+          projectId="project"
         />
       );
       expect(wrapper).toMatchSnapshot();
@@ -34,8 +34,8 @@ describe('ResolutionBox', function() {
           statusDetails={{
             inRelease: '1.0',
           }}
-          orgId={'org'}
-          projectId={'project'}
+          orgId="org"
+          projectId="project"
         />
       );
       expect(wrapper).toMatchSnapshot();
@@ -47,15 +47,15 @@ describe('ResolutionBox', function() {
             inRelease: '1.0',
             actor: {id: '111', name: 'David Cramer', email: 'david@sentry.io'},
           }}
-          orgId={'org'}
-          projectId={'project'}
+          orgId="org"
+          projectId="project"
         />
       );
       expect(wrapper).toMatchSnapshot();
     });
     it('handles default', function() {
       const wrapper = shallow(
-        <ResolutionBox statusDetails={{}} orgId={'org'} projectId={'project'} />
+        <ResolutionBox statusDetails={{}} orgId="org" projectId="project" />
       );
       expect(wrapper).toMatchSnapshot();
     });
@@ -65,8 +65,8 @@ describe('ResolutionBox', function() {
           statusDetails={{
             inCommit: TestStubs.Commit(),
           }}
-          orgId={'org'}
-          projectId={'project'}
+          orgId="org"
+          projectId="project"
         />
       );
       expect(wrapper).toMatchSnapshot();

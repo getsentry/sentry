@@ -76,7 +76,7 @@ class InstallPromptBanner extends React.Component {
     return (
       <React.Fragment>
         {!hideBanner && (
-          <StyledAlert type="warning" icon="icon-circle-exclamation" system={'system'}>
+          <StyledAlert type="warning" icon="icon-circle-exclamation" system="system">
             <a onClick={() => this.recordAnalytics()} href={this.getUrl()}>
               {t(
                 "You're almost there! Start capturing errors with just a few lines of code."

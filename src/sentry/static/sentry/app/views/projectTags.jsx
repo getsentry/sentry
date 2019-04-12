@@ -96,8 +96,8 @@ export default class ProjectTags extends AsyncView {
                           }
                         >
                           <LinkWithConfirmation
-                            title={'Remove tag?'}
-                            message={'Are you sure you want to remove this tag?'}
+                            title="Remove tag?"
+                            message="Are you sure you want to remove this tag?"
                             onConfirm={() => this.onDelete(key, idx)}
                             disabled={!enabled}
                           >

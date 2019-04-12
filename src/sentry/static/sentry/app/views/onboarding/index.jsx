@@ -14,7 +14,7 @@ class OnboardingWizard extends React.Component {
     return (
       <OnboardingBackground>
         <div className="onboarding-container">
-          <DocumentTitle title={'Sentry'} />
+          <DocumentTitle title="Sentry" />
           <div className="step-container">
             <ProgressNodes params={this.props.params} />
             <div>{this.props.children}</div>

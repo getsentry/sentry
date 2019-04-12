@@ -55,7 +55,7 @@ describe('Issues Similar View', function() {
     const wrapper = mount(
       <GroupSimilar
         project={project}
-        query={''}
+        query=""
         params={{orgId: 'org-slug', projectId: 'project-slug', groupId: 'group-id'}}
         location={{}}
       />,

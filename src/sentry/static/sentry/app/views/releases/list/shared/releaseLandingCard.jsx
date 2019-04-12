@@ -42,7 +42,7 @@ class ReleaseLandingCard extends React.Component {
           <p>{card.message}</p>
           {finalStep ? (
             <Button
-              href={'https://docs.sentry.io/learn/releases/'}
+              href="https://docs.sentry.io/learn/releases/"
               onClick={this.props.onClick}
             >
               {this.getMessage()}

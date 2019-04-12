@@ -12,7 +12,7 @@ describe('orderBy', function() {
     columns = [{value: 'timestamp', label: 'timestamp'}, {value: 'id', label: 'id'}];
 
     wrapper = mount(
-      <Orderby value={'-timestamp'} columns={columns} onChange={onChangeMock} />,
+      <Orderby value="-timestamp" columns={columns} onChange={onChangeMock} />,
       TestStubs.routerContext([{organization}])
     );
   });
