@@ -38,7 +38,7 @@ class OpenInContextLine extends React.Component {
       <OpenInContainer>
         <span>{t('Open this line in:')}</span>
         <OpenInLink data-test-id="stacktrace-link" href={url}>
-          <OpenInIcon slug={components[0].sentryApp.name} />
+          <OpenInIcon slug={components[0].sentryApp.slug} />
           <OpenInName>{t(`${components[0].sentryApp.name}`)}</OpenInName>
         </OpenInLink>
       </OpenInContainer>
