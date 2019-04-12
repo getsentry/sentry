@@ -23,6 +23,7 @@ export function Group(params = {}) {
     numComments: 0,
     participants: [],
     permalink: 'https://foo.io/organizations/foo/issues/1234/',
+    platform: 'javascript',
     pluginActions: [],
     pluginContexts: [],
     pluginIssues: [],
