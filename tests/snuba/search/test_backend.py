@@ -759,11 +759,7 @@ class SnubaSearchTest(TestCase, SnubaTestCase):
             },
             project_id=self.project.id
         )
-        # GroupEnvironment.objects.get(group=self.group1, environment__name='development').first_seen
-        # Group.objects.filter(groupenvironment__environment__id=1).filter(groupenvironment__first_seen__gt=value)
-        # Group.objects.filter(groupenvironment__first_seen__gt=value,groupenvironment__environment__id=1)
-        # Group.objects.filter(groupenvironment__first_seen__gt=value)
-        # import pdb; pdb.set_trace()
+
         results = self.make_query(
             environments=[self.environments['production']],
             age_from=group1_first_seen,
