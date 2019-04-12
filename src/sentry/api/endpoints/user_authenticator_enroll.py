@@ -131,6 +131,12 @@ class UserAuthenticatorEnrollEndpoint(UserEndpoint):
 
         if interface_id == 'u2f':
             response['challenge'] = interface.start_enrollment()
+            # XXX: Upgrading python-u2flib-server to 5.0.0 changes the response
+            # format. Our current js u2f library expects the old format, so
+            # massaging the data to include appId here
+            app_id = response['challenge']['appId']
+            for register_request in response['challenge']['registerRequests']:
+                register_request['appId'] = app_id
 
         return Response(response)
 
