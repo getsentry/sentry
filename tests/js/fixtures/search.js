@@ -6,6 +6,11 @@ export function Search(params = {}) {
     isPinned: false,
     type: 0,
 
+    // deprecated props
+    isUserDefault: false,
+    isDefault: true,
+    isPrivate: false,
+
     name: 'Needs Triage',
     query: 'is:unresolved is:unassigned',
     id: '2',
