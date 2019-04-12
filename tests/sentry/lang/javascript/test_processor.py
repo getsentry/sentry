@@ -535,41 +535,6 @@ class TrimLineTest(TestCase):
 
 
 class GenerateModulesTest(TestCase):
-    def test_get_culprit_is_patched(self):
-        from sentry.lang.javascript.plugin import fix_culprit, generate_modules
-
-        data = {
-            'message': 'hello',
-            'platform': 'javascript',
-            'exception': {
-                'values': [
-                    {
-                        'type': 'Error',
-                        'stacktrace': {
-                            'frames': [
-                                {
-                                    'abs_path': 'http://example.com/foo.js',
-                                    'filename': 'foo.js',
-                                    'lineno': 4,
-                                    'colno': 0,
-                                    'function': 'thing',
-                                },
-                                {
-                                    'abs_path': 'http://example.com/bar.js',
-                                    'filename': 'bar.js',
-                                    'lineno': 1,
-                                    'colno': 0,
-                                    'function': 'oops',
-                                },
-                            ],
-                        },
-                    }
-                ],
-            }
-        }
-        generate_modules(data)
-        fix_culprit(data)
-        assert data['culprit'] == 'oops(bar)'
 
     def test_ensure_module_names(self):
         from sentry.lang.javascript.plugin import generate_modules
@@ -606,7 +571,7 @@ class GenerateModulesTest(TestCase):
         assert exc['stacktrace']['frames'][1]['module'] == 'foo/bar'
 
     def test_generate_modules_skips_none(self):
-        from sentry.lang.javascript.plugin import fix_culprit, generate_modules
+        from sentry.lang.javascript.plugin import generate_modules
 
         expected = {
             'culprit': '',
@@ -638,7 +603,6 @@ class GenerateModulesTest(TestCase):
 
         actual = deepcopy(expected)
         generate_modules(actual)
-        fix_culprit(actual)
         assert actual == expected
 
 
