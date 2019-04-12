@@ -75,6 +75,10 @@ base_postgres: &postgres_default
     - pip install -e ".[dev,tests,optional]"
   before_script:
     - psql -c 'create database sentry;' -U postgres
+  before_install:
+    - docker run -d --network host --name clickhouse-server --ulimit nofile=262144:262144 yandex/clickhouse-server:18.14.9
+    - docker run -d --network host --name snuba --env SNUBA_SETTINGS=test --env CLICKHOUSE_SERVER=localhost:9000 getsentry/snuba
+    - docker ps -a
 
 base_acceptance: &acceptance_default
   python: 2.7
@@ -160,6 +164,10 @@ matrix:
         - pip install -e ".[dev,tests,optional]"
       before_script:
         - psql -c 'create database sentry;' -U postgres
+      before_install:
+        - docker run -d --network host --name clickhouse-server --ulimit nofile=262144:262144 yandex/clickhouse-server:18.14.9
+        - docker run -d --network host --name snuba --env SNUBA_SETTINGS=test --env CLICKHOUSE_SERVER=localhost:9000 getsentry/snuba
+        - docker ps -a
 
     - <<: *acceptance_default
       name: 'Acceptance'

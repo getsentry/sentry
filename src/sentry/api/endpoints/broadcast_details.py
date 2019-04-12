@@ -39,11 +39,13 @@ class BroadcastDetailsEndpoint(Endpoint):
             return AdminBroadcastValidator
         return BroadcastValidator
 
-    def _serialize_response(self, request, broadcast):
+    def _get_serializer(self, request):
         if is_active_superuser(request):
-            serializer_cls = AdminBroadcastSerializer
-        else:
-            serializer_cls = BroadcastSerializer
+            return AdminBroadcastSerializer
+        return BroadcastSerializer
+
+    def _serialize_response(self, request, broadcast):
+        serializer_cls = self._get_serializer(request)
         return self.respond(serialize(broadcast, request.user, serializer=serializer_cls()))
 
     def get(self, request, broadcast_id):
