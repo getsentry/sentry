@@ -96,8 +96,10 @@ const StyledDropdownButton = styled(DropdownButton)`
   font-weight: normal;
 
   /* Hack but search input, and sort dropdown are not standard size buttons yet */
+  height: 38px;
   & > span {
     padding: 11px 16px;
+    font-size: ${p => p.theme.fontSizeMedium};
   }
   & em {
     font-style: normal;
