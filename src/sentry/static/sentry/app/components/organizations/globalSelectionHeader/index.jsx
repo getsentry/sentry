@@ -42,7 +42,7 @@ class GlobalSelectionHeader extends React.Component {
     /**
      * List of projects to display in project selector
      */
-    projects: PropTypes.arrayOf(SentryTypes.Project),
+    projects: PropTypes.arrayOf(SentryTypes.Project).isRequired,
     /**
      * If a forced project is passed, selection is disabled
      */
@@ -302,14 +302,13 @@ class GlobalSelectionHeader extends React.Component {
 
   getProjects = () => {
     const {isSuperuser} = ConfigStore.get('user');
-    const {projects, organization} = this.props;
-    const unfilteredProjects = projects || organization.projects;
+    const {projects} = this.props;
 
     if (isSuperuser) {
-      return unfilteredProjects;
+      return projects;
     }
 
-    return unfilteredProjects.filter(project => project.isMember);
+    return projects.filter(project => project.isMember);
   };
 
   getFirstProject = () => {
