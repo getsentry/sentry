@@ -129,7 +129,7 @@ describe('OrganizationStream', function() {
 
     /* helpers */
     const getSavedSearchTitle = w =>
-      w.find('OrganizationSavedSearchSelector .dropdown-actor-title').text();
+      w.find('OrganizationSavedSearchSelector DropdownMenu ButtonTitle').text();
 
     const getSearchBarValue = w =>
       w
@@ -189,6 +189,8 @@ describe('OrganizationStream', function() {
       // Update stores with saved searches
       await tick();
       wrapper.update();
+
+      expect(recentSearchesRequest).toHaveBeenCalledTimes(1);
 
       // Check for fetch tags req
       // Check for fetch member list req
