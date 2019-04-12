@@ -11,7 +11,6 @@ class HeaderItem extends React.Component {
     allowClear: PropTypes.bool,
     icon: PropTypes.element,
     onClear: PropTypes.func,
-    onSubmit: PropTypes.func,
     hasChanges: PropTypes.bool,
     hasSelected: PropTypes.bool,
     isOpen: PropTypes.bool,
@@ -28,28 +27,17 @@ class HeaderItem extends React.Component {
     this.props.onClear();
   };
 
-  handleChevronClick = e => {
-    if (!this.props.hasChanges) {
-      return;
-    }
-
-    e.stopPropagation();
-    this.props.onSubmit();
-  };
-
   render() {
     const {
       className,
       children,
       isOpen,
       hasSelected,
-      hasChanges,
       allowClear,
       icon,
       locked,
       lockedMessage,
       onClear, // eslint-disable-line no-unused-vars
-      onSubmit, // eslint-disable-line no-unused-vars
       ...props
     } = this.props;
 
@@ -74,11 +62,7 @@ class HeaderItem extends React.Component {
           />
         )}
         {!locked && (
-          <StyledChevron
-            isOpen={isOpen}
-            hasChanges={hasChanges}
-            onClick={this.handleChevronClick}
-          >
+          <StyledChevron isOpen={isOpen}>
             <InlineSvg src="icon-chevron-down" />
           </StyledChevron>
         )}
@@ -143,17 +127,6 @@ const StyledChevron = styled('div')`
   display: flex;
   align-items: center;
   justify-content: center;
-  ${p =>
-    p.hasChanges
-      ? `
-    background: ${p.theme.purple};
-    border-radius: 2em;
-    width: 20px;
-    height: 20px;
-    color: #fff;
-    transform: rotate(270deg);
-  `
-      : ''};
 `;
 
 const StyledLock = styled(InlineSvg)`

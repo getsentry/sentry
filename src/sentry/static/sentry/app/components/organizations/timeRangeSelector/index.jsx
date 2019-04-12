@@ -20,9 +20,11 @@ import DateSummary from 'app/components/organizations/timeRangeSelector/dateSumm
 import DropdownMenu from 'app/components/dropdownMenu';
 import HeaderItem from 'app/components/organizations/headerItem';
 import InlineSvg from 'app/components/inlineSvg';
+import MultipleSelectorSubmitRow from 'app/components/organizations/multipleSelectorSubmitRow';
 import RelativeSelector from 'app/components/organizations/timeRangeSelector/dateRange/relativeSelector';
 import SelectorItem from 'app/components/organizations/timeRangeSelector/dateRange/selectorItem';
 import SentryTypes from 'app/sentryTypes';
+import space from 'app/styles/space';
 import getDynamicText from 'app/utils/getDynamicText';
 import getRouteStringFromRoutes from 'app/utils/getRouteStringFromRoutes';
 
@@ -315,7 +317,6 @@ class TimeRangeSelector extends React.PureComponent {
               hasChanges={this.state.hasChanges}
               onClear={this.handleClear}
               allowClear={true}
-              onSubmit={this.handleCloseMenu}
               {...getActorProps({isStyled: true})}
             >
               {getDynamicText({value: summary, fixed: 'start to end'})}
@@ -344,15 +345,24 @@ class TimeRangeSelector extends React.PureComponent {
                   )}
                 </SelectorList>
                 {isAbsoluteSelected && (
-                  <DateRange
-                    showTimePicker
-                    utc={this.state.utc}
-                    start={start}
-                    end={end}
-                    onChange={this.handleSelectDateRange}
-                    onChangeUtc={this.handleUseUtc}
-                    organization={organization}
-                  />
+                  <div>
+                    <DateRange
+                      showTimePicker
+                      utc={this.state.utc}
+                      start={start}
+                      end={end}
+                      onChange={this.handleSelectDateRange}
+                      onChangeUtc={this.handleUseUtc}
+                      organization={organization}
+                    />
+                    {this.state.hasChanges && (
+                      <SubmitRow>
+                        <MultipleSelectorSubmitRow
+                          onSubmit={() => this.handleCloseMenu()}
+                        />
+                      </SubmitRow>
+                    )}
+                  </div>
                 )}
               </Menu>
             )}
@@ -399,6 +409,12 @@ const SelectorList = styled(({isAbsoluteSelected, ...props}) => <Flex {...props}
   flex-shrink: 0;
   width: ${p => (p.isAbsoluteSelected ? '160px' : '220px')};
   min-height: 305px;
+`;
+
+const SubmitRow = styled('div')`
+  padding: ${space(0.5)} ${space(1)};
+  border-top: 1px solid ${p => p.theme.borderLight};
+  border-left: 1px solid ${p => p.theme.borderLight};
 `;
 
 export default TimeRangeSelector;

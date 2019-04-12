@@ -227,6 +227,7 @@ class DropdownAutoCompleteMenu extends React.Component {
           {({width}) => (
             <List
               width={width}
+              style={{outline: 'none'}}
               height={Math.min(items.length * virtualizedHeight, maxHeight)}
               rowCount={items.length}
               rowHeight={virtualizedHeight}

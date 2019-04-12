@@ -69,8 +69,8 @@ const Checkbox = styled(CheckboxFancy)`
 `;
 
 const CheckboxWrapper = styled('div')`
-  margin: 0 -${space(0.5)} 0 0; /* pushes the click box to be flush with the edge of the menu */
-  padding: 0 ${space(1.25)} 0 ${space(1)};
+  margin: 0 -${space(1)} 0 0; /* pushes the click box to be flush with the edge of the menu */
+  padding: 0 ${space(1.5)} 0 ${space(1.25)};
   height: 100%;
   display: flex;
   justify-content: flex-end;

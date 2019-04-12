@@ -4,9 +4,11 @@ import theme from 'app/utils/theme';
 
 export const growIn = keyframes`
   0% {
-    transform: scale(0);
+    opacity: 0;
+    transform: scale(0.75);
   }
   100% {
+    opacity: 1;
     transform: scale(1);
   }
 `;
