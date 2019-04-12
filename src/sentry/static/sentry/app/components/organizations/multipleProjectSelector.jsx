@@ -10,6 +10,7 @@ import ProjectSelector from 'app/components/projectSelector';
 import InlineSvg from 'app/components/inlineSvg';
 
 import HeaderItem from 'app/components/organizations/headerItem';
+import MultipleSelectorSubmitRow from 'app/components/organizations/multipleSelectorSubmitRow';
 
 const rootContainerStyles = css`
   display: flex;
@@ -152,6 +153,11 @@ export default class MultipleProjectSelector extends React.PureComponent {
         onClose={this.handleClose}
         onMultiSelect={this.handleMultiSelect}
         rootClassName={rootContainerStyles}
+        menuFooter={({actions}) =>
+          this.state.hasChanges && (
+            <MultipleSelectorSubmitRow onSubmit={() => this.handleUpdate(actions)} />
+          )
+        }
       >
         {({
           getActorProps,
@@ -173,7 +179,6 @@ export default class MultipleProjectSelector extends React.PureComponent {
               hasSelected={hasSelected}
               hasChanges={this.state.hasChanges}
               isOpen={isOpen}
-              onSubmit={() => this.handleUpdate(actions)}
               onClear={this.handleClear}
               allowClear={multi}
               {...getActorProps()}
