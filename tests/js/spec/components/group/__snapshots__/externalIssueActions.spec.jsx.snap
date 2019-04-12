@@ -29,6 +29,7 @@ exports[`ExternalIssueActions with no external issues linked renders 1`] = `
       "numComments": 0,
       "participants": Array [],
       "permalink": "https://foo.io/organizations/foo/issues/1234/",
+      "platform": "javascript",
       "pluginActions": Array [],
       "pluginContexts": Array [],
       "pluginIssues": Array [],
