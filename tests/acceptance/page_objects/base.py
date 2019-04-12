@@ -32,10 +32,12 @@ class ButtonElement(BaseElement):
     label_attr = 'aria-label'
     disabled_attr = 'aria-disabled'
 
-    def get_diabled(self):
+    @property
+    def disabled(self):
         return self.element.get_attribute(self.disabled_attr)
 
-    def get_label(self):
+    @property
+    def label(self):
         return self.element.get_attribute(self.label_attr)
 
     def click(self):
@@ -43,7 +45,8 @@ class ButtonElement(BaseElement):
 
 
 class ButtonWithIconElement(ButtonElement):
-    def get_icon_href(self):
+    @property
+    def icon_href(self):
         return self.element.find_element_by_tag_name('use').get_attribute('href')
 
 

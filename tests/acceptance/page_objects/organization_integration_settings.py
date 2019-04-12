@@ -22,13 +22,14 @@ class IntegrationProviderRowElement(BaseElement):
     def get_selector(cls, provider_key):
         return '[data-testid="%s"]' % provider_key
 
-    def get_installations(self):
+    @property
+    def installations(self):
         return self.element.find_elements_by_css_selector(
             self.integration_name_selector
         )
 
     def get_installation_with_name(self, name):
-        for installation in self.get_installations():
+        for installation in self.installations:
             if installation.get_attribute("innerText") == name:
                 return installation
         return None

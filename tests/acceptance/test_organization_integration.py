@@ -59,13 +59,6 @@ class OrganizationIntegrationAcceptanceTestCase(AcceptanceTestCase):
         self.browser.get(url)
         self.browser.wait_until_not('.loading-indicator')
 
-    def assert_button_element(self, button, label, disabled=False, icon=None):
-        disabled = 'true' if disabled else 'false'
-        assert button.get_disabled() == disabled
-        assert button.get_label() == label
-        if icon:
-            assert button.get_icon_href() == icon
-
 
 class OrganizationIntegrationSettingsTest(OrganizationIntegrationAcceptanceTestCase):
     """
@@ -78,6 +71,7 @@ class OrganizationIntegrationSettingsTest(OrganizationIntegrationAcceptanceTestC
     # test_update_legacy_integration
     # test_user_permissions_for_integration_settings
     # test_add_multiple_integrations_to_one_provider
+    # TODO(lb): check issues details page and see that integration shows in linked issues
 
     def setUp(self):
         super(OrganizationIntegrationSettingsTest, self).setUp()
@@ -88,14 +82,19 @@ class OrganizationIntegrationSettingsTest(OrganizationIntegrationAcceptanceTestC
         self.provider.key = 'example'
         self.provider.name = 'Example Installation'
 
-    def assert_can_create_new_installation(self):
+    def test_can_create_new_integration(self):
         self.load_page(self.org_integration_settings_path)
         org_settings_page = OrganizationIntegrationSettingsPage(
             browser=self.browser
         )
         provider_element = org_settings_page.get_provider(self.provider)
+        # assert installation rather than upgrade button
+        assert provider_element.install_button.label == 'Install'
+        assert provider_element.install_button.icon_href == '#icon-circle-add'
 
         integration_details_modal = org_settings_page.click_install_button(provider_element)
+        assert integration_details_modal.add_button.label == 'Add %s' % self.provider.key
+        assert integration_details_modal.title == '%s Integration' % self.provider.key.capitalize()
         integration_details_modal.add_button.click()
         org_settings_page.click_through_integration_setup(
             integration_details_modal,
@@ -110,41 +109,4 @@ class OrganizationIntegrationSettingsTest(OrganizationIntegrationAcceptanceTestC
             external_id=self.provider.name
         ).exists()
 
-        # TODO(lb): check issues details page and see that integration shows in linked issues
         return installation_element
-
-    def assert_has_installation_button(self, provider_row_element):
-        self.assert_button_element(
-            button=provider_row_element.install_button,
-            label='Install',
-            disabled=False,
-            icon='#icon-circle-add'
-        )
-
-    def assert_installation_element(self, installation_element):
-        self.assert_button_element(
-            button=installation_element.configure_button,
-            icon='#icon-settings',
-            label='Configure',
-            disabled=False,
-        )
-        self.assert_button_element(
-            button=installation_element.remove_button,
-            icon='#icon-trash',
-            label='Remove',
-            disabled=False,
-        )
-
-    def assert_installation_details_modal(self, installation_modal):
-        self.assert_button_element(
-            button=installation_modal.cancel_button,
-            label='Cancel'
-        )
-        self.assert_button_element(
-            button=installation_modal.add_button,
-            label='Add %s' % self.provider.key,
-        )
-        assert installation_modal.title == '%s Integration' % self.provider.key
-
-    def test_can_create_new_integration(self):
-        self.assert_can_create_new_installation()
