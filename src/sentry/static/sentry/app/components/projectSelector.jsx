@@ -335,11 +335,13 @@ class ProjectSelectorItem extends React.PureComponent {
       <BadgeAndActionsWrapper
         bookmarkHasChanged={this.state.bookmarkHasChanged}
         onAnimationEnd={this.clearAnimation}
+        isProjectMember={project.isMember}
       >
         <GlobalSelectionHeaderRow
           checked={isChecked}
           onCheckClick={this.handleClick}
           multi={multi}
+          priority="secondary"
         >
           <BadgeWrapper multi={multi}>
             <IdBadge
@@ -427,13 +429,13 @@ const SettingsIcon = styled(InlineSvg)`
 `;
 
 const BadgeAndActionsWrapper = styled('div')`
+  background-color: ${p => (p.isProjectMember ? p.theme.white : p.theme.offWhite2)};
   animation: ${p => (p.bookmarkHasChanged ? `1s ${alertHighlight('info')}` : 'none')};
   z-index: ${p => (p.bookmarkHasChanged ? 1 : 'inherit')};
   position: relative;
   border-style: solid;
   border-width: 1px 0;
   border-color: transparent;
-
   &:hover ${StyledBookmarkStar}, &:hover ${SettingsIconLink} {
     opacity: 1;
   }

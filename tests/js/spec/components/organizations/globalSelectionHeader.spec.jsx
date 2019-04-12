@@ -6,6 +6,7 @@ import GlobalSelectionHeader from 'app/components/organizations/globalSelectionH
 import GlobalSelectionStore from 'app/stores/globalSelectionStore';
 import * as globalActions from 'app/actionCreators/globalSelection';
 import ProjectsStore from 'app/stores/projectsStore';
+import ConfigStore from 'app/stores/configStore';
 
 const changeQuery = (routerContext, query) => ({
   ...routerContext,
@@ -305,6 +306,51 @@ describe('GlobalSelectionHeader', function() {
       const items = wrapper.find('MultipleEnvironmentSelector EnvironmentSelectorItem');
       expect(items.length).toEqual(1);
       expect(items.at(0).text()).toBe('staging');
+    });
+  });
+
+  describe('projects list', function() {
+    let wrapper, memberProject, nonMemberProject, initialData;
+    beforeEach(function() {
+      memberProject = TestStubs.Project({id: '3', isMember: true});
+      nonMemberProject = TestStubs.Project({id: '4', isMember: false});
+      const org = TestStubs.Organization({projects: [memberProject, nonMemberProject]});
+      ProjectsStore.loadInitialData(org.projects);
+
+      initialData = initializeOrg({
+        organization: org,
+        router: {
+          location: {query: {}},
+        },
+      });
+
+      wrapper = mount(
+        <GlobalSelectionHeader organization={initialData.organization} />,
+        initialData.routerContext
+      );
+    });
+    it('gets member projects', function() {
+      expect(wrapper.find('MultipleProjectSelector').prop('projects')).toEqual([
+        memberProject,
+      ]);
+    });
+
+    it('gets all projects if superuser', function() {
+      ConfigStore.config = {
+        user: {
+          isSuperuser: true,
+        },
+      };
+
+      wrapper = mount(
+        <GlobalSelectionHeader organization={initialData.organization} />,
+        initialData.routerContext
+      );
+
+      expect(wrapper.find('MultipleProjectSelector').prop('projects')).toEqual([
+        memberProject,
+        nonMemberProject,
+      ]);
     });
   });
 });
