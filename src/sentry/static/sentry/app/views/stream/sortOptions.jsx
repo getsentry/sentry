@@ -66,7 +66,10 @@ class SortOptions extends React.PureComponent {
           {({isOpen, getMenuProps, getActorProps}) => {
             return (
               <React.Fragment>
-                <StyledDropdownButton {...getActorProps()} isOpen={isOpen}>
+                <StyledDropdownButton
+                  {...getActorProps({isStyled: true})}
+                  isOpen={isOpen}
+                >
                   <em>{t('Sort by')}: &nbsp; </em>
                   {this.getSortLabel(this.state.sortKey)}
                 </StyledDropdownButton>

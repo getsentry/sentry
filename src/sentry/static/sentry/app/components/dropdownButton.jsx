@@ -4,19 +4,20 @@ import styled from 'react-emotion';
 import Button from 'app/components/button';
 import InlineSvg from 'app/components/inlineSvg';
 
-const DropdownButton = ({isOpen, children, ...props}) => {
-  return (
-    <StyledButton isOpen={isOpen} {...props}>
-      {children}
-      <StyledChevronDown />
-    </StyledButton>
-  );
-};
-
-DropdownButton.displayName = 'DropdownButton';
-DropdownButton.propTypes = {
-  isOpen: PropTypes.bool,
-};
+class DropdownButton extends React.Component {
+  static propTypes = {
+    isOpen: PropTypes.bool,
+  };
+  render() {
+    const {isOpen, children, ...otherProps} = this.props;
+    return (
+      <StyledButton isOpen={isOpen} {...otherProps}>
+        {children}
+        <StyledChevronDown />
+      </StyledButton>
+    );
+  }
+}
 
 const StyledChevronDown = styled(props => (
   <InlineSvg src="icon-chevron-down" {...props} />
