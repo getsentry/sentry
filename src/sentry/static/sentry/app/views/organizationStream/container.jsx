@@ -1,4 +1,3 @@
-import {withRouter} from 'react-router';
 import React from 'react';
 import DocumentTitle from 'react-document-title';
 
@@ -34,5 +33,5 @@ class OrganizationStreamContainer extends React.Component {
     );
   }
 }
-export default withRouter(withOrganization(OrganizationStreamContainer));
+export default withOrganization(OrganizationStreamContainer);
 export {OrganizationStreamContainer};
