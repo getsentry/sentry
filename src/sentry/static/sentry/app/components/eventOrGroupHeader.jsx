@@ -9,6 +9,7 @@ import ProjectLink from 'app/components/projectLink';
 import {Metadata} from 'app/sentryTypes';
 import EventOrGroupTitle from 'app/components/eventOrGroupTitle';
 import Tooltip from 'app/components/tooltip';
+import {isNativePlatform} from 'app/utils/platform';
 
 /**
  * Displays an event or group/issue title (i.e. in Stream)
@@ -63,7 +64,7 @@ class EventOrGroupHeader extends React.Component {
 
   getLocation() {
     const {data} = this.props;
-    if (data.type === 'error') {
+    if (data.type === 'error' && isNativePlatform(data.platform)) {
       const {metadata} = data || {};
       return metadata.filename || null;
     }

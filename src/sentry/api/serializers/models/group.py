@@ -371,6 +371,7 @@ class GroupSerializerBase(Serializer):
             'status': status_label,
             'statusDetails': status_details,
             'isPublic': share_id is not None,
+            'platform': obj.platform,
             'project': {
                 'id': six.text_type(obj.project.id),
                 'name': obj.project.name,
