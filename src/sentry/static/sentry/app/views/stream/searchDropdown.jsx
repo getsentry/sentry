@@ -44,7 +44,7 @@ class SearchDropdown extends React.PureComponent {
       <div className={classNames('search-dropdown', this.props.className)}>
         <ul className="search-helper search-autocomplete-list">
           {this.props.loading ? (
-            <li key="loading" className="search-autocomplete-item">
+            <li key="loading" data-test-id="search-autocomplete-item">
               <LoadingIndicator mini={true} />
             </li>
           ) : (
@@ -52,10 +52,8 @@ class SearchDropdown extends React.PureComponent {
               return (
                 <li
                   key={item.value || item.desc}
-                  className={classNames(
-                    'search-autocomplete-item',
-                    item.active && 'active'
-                  )}
+                  className={item.active ? 'active' : null}
+                  data-test-id="search-autocomplete-item"
                   onClick={this.props.onClick.bind(this, item.value, item)}
                 >
                   <span className={classNames('icon', item.className)} />
