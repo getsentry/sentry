@@ -33,7 +33,7 @@ describe('OrganizationSavedSearchSelector', function() {
         onSavedSearchCreate={onCreate}
         onSavedSearchSelect={onSelect}
         onSavedSearchDelete={onDelete}
-        query={'is:unresolved assigned:lyn@sentry.io'}
+        query="is:unresolved assigned:lyn@sentry.io"
       />,
       TestStubs.routerContext()
     );
