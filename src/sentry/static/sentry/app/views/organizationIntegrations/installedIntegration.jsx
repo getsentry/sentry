@@ -149,7 +149,7 @@ export default class InstalledIntegration extends React.Component {
             <Box>
               <Confirm priority="danger" disabled={!hasAccess} {...removeConfirmProps}>
                 <StyledButton disabled={!hasAccess} borderless icon="icon-trash">
-                  Remove
+                  Uninstall
                 </StyledButton>
               </Confirm>
             </Box>

@@ -61,7 +61,7 @@ export default class SentryApplicationRow extends React.PureComponent {
         onConfirm={() => this.props.onUninstall(install)}
       >
         <StyledButton borderless icon="icon-trash" data-test-id="sentry-app-uninstall">
-          {t('Remove')}
+          {t('Uninstall')}
         </StyledButton>
       </Confirm>
     );

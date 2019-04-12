@@ -621,7 +621,7 @@ function routes() {
           component={errorHandler(LazyLoad)}
         />
         <Route
-          name="New Application"
+          name="New Integration"
           path="new/"
           componentPromise={() =>
             import(/* webpackChunkName: "sentryApplicationDetails" */ './views/settings/organizationDeveloperSettings/sentryApplicationDetails')
@@ -629,7 +629,7 @@ function routes() {
           component={errorHandler(LazyLoad)}
         />
         <Route
-          name="Edit Application"
+          name="Edit Integration"
           path=":appSlug/"
           componentPromise={() =>
             import(/* webpackChunkName: "sentryApplicationDetails" */ './views/settings/organizationDeveloperSettings/sentryApplicationDetails')

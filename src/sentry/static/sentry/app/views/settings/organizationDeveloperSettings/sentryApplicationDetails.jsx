@@ -68,7 +68,7 @@ export default class SentryApplicationDetails extends AsyncView {
   }
 
   getTitle() {
-    return t('Sentry Application Details');
+    return t('Sentry Integration Details');
   }
 
   // Events may come from the API as "issue.created" when we just want "issue" here.
