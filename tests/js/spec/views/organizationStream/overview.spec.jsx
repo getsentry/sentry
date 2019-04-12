@@ -109,6 +109,10 @@ describe('OrganizationStream', function() {
 
   afterEach(function() {
     MockApiClient.clearMockResponses();
+    if (wrapper) {
+      wrapper.unmount();
+    }
+    wrapper = null;
   });
 
   describe('withStores', function() {
@@ -137,7 +141,24 @@ describe('OrganizationStream', function() {
         .prop('value')
         .trim();
 
-    beforeAll(function() {});
+    const createWrapper = ({params, location, ...p} = {}) => {
+      const newRouter = {
+        ...router,
+        params: {
+          ...router.params,
+          ...params,
+        },
+        location: {
+          ...router.location,
+          ...location,
+        },
+      };
+
+      wrapper = mount(
+        <OrganizationStreamWithStores {...newRouter} {...defaultProps} {...p} />,
+        routerContext
+      );
+    };
 
     beforeEach(function() {
       StreamGroup.mockClear();
@@ -160,29 +181,8 @@ describe('OrganizationStream', function() {
       });
     });
 
-    const createWrapper = ({params, location, ...p} = {}) => {
-      const newRouter = {
-        ...router,
-        params: {
-          ...router.params,
-          ...params,
-        },
-        location: {
-          ...router.location,
-          ...location,
-        },
-      };
-
-      const wrap = mount(
-        <OrganizationStreamWithStores {...newRouter} {...defaultProps} {...p} />,
-        routerContext
-      );
-
-      return wrap;
-    };
-
     it('loads group rows with default query (no pinned queries, and no query in URL)', async function() {
-      wrapper = createWrapper();
+      createWrapper();
 
       // Loading saved searches
       expect(savedSearchesRequest).toHaveBeenCalledTimes(1);
@@ -227,7 +227,7 @@ describe('OrganizationStream', function() {
         ],
       });
 
-      wrapper = createWrapper({
+      createWrapper({
         location: {
           query: {
             query: 'level:foo',
@@ -269,7 +269,7 @@ describe('OrganizationStream', function() {
           }),
         ],
       });
-      wrapper = createWrapper();
+      createWrapper();
 
       await tick();
       wrapper.update();
@@ -303,7 +303,7 @@ describe('OrganizationStream', function() {
           }),
         ],
       });
-      wrapper = createWrapper();
+      createWrapper();
 
       await tick();
       wrapper.update();
@@ -337,7 +337,7 @@ describe('OrganizationStream', function() {
           }),
         ],
       });
-      wrapper = createWrapper({params: {searchId: '123'}});
+      createWrapper({params: {searchId: '123'}});
 
       await tick();
       wrapper.update();
@@ -371,7 +371,7 @@ describe('OrganizationStream', function() {
           }),
         ],
       });
-      wrapper = createWrapper({location: {query: {query: 'level:error'}}});
+      createWrapper({location: {query: {query: 'level:error'}}});
 
       await tick();
       wrapper.update();
@@ -404,7 +404,9 @@ describe('OrganizationStream', function() {
   describe('transitionTo', function() {
     let instance;
     beforeEach(function() {
-      wrapper = shallow(<OrganizationStream {...props} />);
+      wrapper = shallow(<OrganizationStream {...props} />, {
+        disableLifecycleMethods: false,
+      });
       instance = wrapper.instance();
     });
 
@@ -481,7 +483,9 @@ describe('OrganizationStream', function() {
 
   describe('getEndpointParams', function() {
     beforeEach(function() {
-      wrapper = shallow(<OrganizationStream {...props} />);
+      wrapper = shallow(<OrganizationStream {...props} />, {
+        disableLifecycleMethods: false,
+      });
     });
 
     it('omits null values', function() {
@@ -669,7 +673,9 @@ describe('OrganizationStream', function() {
 
   describe('render states', function() {
     beforeEach(function() {
-      wrapper = shallow(<OrganizationStream {...props} />);
+      wrapper = shallow(<OrganizationStream {...props} />, {
+        disableLifecycleMethods: false,
+      });
     });
 
     it('displays the loading icon', function() {
@@ -717,7 +723,9 @@ describe('OrganizationStream', function() {
         }),
         ...moreProps,
       };
-      const localWrapper = shallow(<OrganizationStream {...defaultProps} />);
+      const localWrapper = shallow(<OrganizationStream {...defaultProps} />, {
+        disableLifecycleMethods: false,
+      });
       localWrapper.setState({
         error: false,
         issuesLoading: false,
