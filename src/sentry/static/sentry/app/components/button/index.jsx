@@ -201,24 +201,23 @@ const shouldForwardProp = p =>
   (p !== 'disabled' && isPropValid(p)) || customProps.includes(p);
 
 const StyledButton = styled(
-  ({external, ...props}) => {
+  React.forwardRef((props, ref) => {
     // Get component to use based on existance of `to` or `href` properties
     // Can be react-router `Link`, `a`, or `button`
     if (props.to) {
-      return <Link {...props} />;
+      return <Link ref={ref} {...props} />;
     }
 
     if (!props.href) {
-      return <button {...props} />;
+      return <button ref={ref} {...props} />;
     }
 
     if (external) {
-      return <ExternalLink {...props} />;
+      return <ExternalLink ref={ref} {...props} />;
     }
 
-    return <a {...props} />;
-  },
-  {shouldForwardProp}
+    return <a ref={ref} {...props} />;
+  })
 )`
   display: inline-block;
   line-height: 1;

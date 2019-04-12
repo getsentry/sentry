@@ -25,7 +25,9 @@ const StyledChevronDown = styled(props => (
   margin-left: 0.33em;
 `;
 
-const StyledButton = styled(({isOpen, ...props}) => <Button {...props} />)`
+const StyledButton = styled(
+  React.forwardRef((props, ref) => <Button innerRef={ref} {...props} />)
+)`
   border-bottom-right-radius: ${p => (p.isOpen ? 0 : p.theme.borderRadius)};
   border-bottom-left-radius: ${p => (p.isOpen ? 0 : p.theme.borderRadius)};
   position: relative;
