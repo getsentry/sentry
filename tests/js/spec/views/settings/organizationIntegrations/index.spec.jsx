@@ -108,10 +108,6 @@ describe('OrganizationIntegrations', function() {
         expect(sentryInstallsRequest).not.toHaveBeenCalled();
       });
 
-      it('Displays integration providers', function() {
-        expect(wrapper).toMatchSnapshot();
-      });
-
       it('Opens the integration dialog on install', function() {
         const options = {
           provider: githubProvider,
@@ -158,7 +154,11 @@ describe('OrganizationIntegrations', function() {
       });
 
       it('Displays InstalledIntegration', function() {
-        expect(wrapper).toMatchSnapshot();
+        const github = wrapper.find('ProviderRow').first();
+        expect(github.find('ProviderName').text()).toEqual(githubProvider.name);
+        expect(github.find('IntegrationItem IntegrationName').text()).toEqual(
+          githubIntegration.name
+        );
       });
 
       it('Merges installed integrations', function() {

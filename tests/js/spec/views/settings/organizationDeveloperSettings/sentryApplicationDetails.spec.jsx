@@ -38,7 +38,6 @@ describe('Sentry Application Details', function() {
 
     describe('renders()', () => {
       it('it shows empty scopes and no credentials', function() {
-        expect(wrapper).toMatchSnapshot();
         // new app starts off with no scopes selected
         expect(wrapper.find('PermissionsObserver').prop('scopes')).toEqual([]);
         expect(
@@ -116,8 +115,6 @@ describe('Sentry Application Details', function() {
 
     describe('renders()', () => {
       it('it shows application data and credentials', function() {
-        expect(wrapper).toMatchSnapshot();
-
         // data should be filled out
         expect(wrapper.find('PermissionsObserver').prop('scopes')).toEqual([
           'project:read',
