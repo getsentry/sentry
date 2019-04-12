@@ -37,6 +37,12 @@ exports[`SharedGroupDetails renders 1`] = `
                   className="icon-sentry-logo-full"
                 />
               </a>
+              <a
+                className="details"
+                href="https://foo.io/organizations/foo/issues/1234/"
+              >
+                Details
+              </a>
             </div>
             <div
               className="box-content"
@@ -47,8 +53,20 @@ exports[`SharedGroupDetails renders 1`] = `
                 <SharedGroupHeader
                   group={
                     Object {
+                      "activity": Array [],
+                      "annotations": Array [],
                       "assignedTo": null,
+                      "count": "327482",
+                      "culprit": "fetchData(app/components/group/suggestedOwners)",
+                      "firstRelease": null,
+                      "firstSeen": "2019-04-05T19:44:05.963Z",
+                      "hasSeen": false,
                       "id": "1",
+                      "isBookmarked": false,
+                      "isPublic": false,
+                      "isSubscribed": false,
+                      "lastRelease": null,
+                      "lastSeen": "2019-04-11T01:08:59Z",
                       "latestEvent": Object {
                         "entries": Array [
                           Object {
@@ -64,6 +82,18 @@ exports[`SharedGroupDetails renders 1`] = `
                         "id": "1",
                         "message": "ApiException",
                       },
+                      "level": "warning",
+                      "logger": null,
+                      "metadata": Object {
+                        "function": "fetchData",
+                        "type": "RequestError",
+                      },
+                      "numComments": 0,
+                      "participants": Array [],
+                      "permalink": "https://foo.io/organizations/foo/issues/1234/",
+                      "pluginActions": Array [],
+                      "pluginContexts": Array [],
+                      "pluginIssues": Array [],
                       "project": Object {
                         "environments": Array [],
                         "hasAccess": true,
@@ -77,6 +107,9 @@ exports[`SharedGroupDetails renders 1`] = `
                         "slug": "project-slug",
                         "teams": Array [],
                       },
+                      "seenBy": Array [],
+                      "shareId": null,
+                      "shortId": "JAVASCRIPT-6QS",
                       "stats": Object {
                         "24h": Array [
                           Array [
@@ -99,8 +132,14 @@ exports[`SharedGroupDetails renders 1`] = `
                           ],
                         ],
                       },
+                      "status": "unresolved",
+                      "statusDetails": Object {},
+                      "subscriptionDetails": null,
                       "tags": Array [],
                       "title": "ZeroDivisionError",
+                      "type": "error",
+                      "userCount": 35097,
+                      "userReportCount": 0,
                     }
                   }
                 >
@@ -123,7 +162,9 @@ exports[`SharedGroupDetails renders 1`] = `
                       >
                         <span
                           className="message"
-                        />
+                        >
+                          fetchData(app/components/group/suggestedOwners)
+                        </span>
                       </div>
                     </div>
                   </div>
@@ -154,8 +195,20 @@ exports[`SharedGroupDetails renders 1`] = `
                       }
                       group={
                         Object {
+                          "activity": Array [],
+                          "annotations": Array [],
                           "assignedTo": null,
+                          "count": "327482",
+                          "culprit": "fetchData(app/components/group/suggestedOwners)",
+                          "firstRelease": null,
+                          "firstSeen": "2019-04-05T19:44:05.963Z",
+                          "hasSeen": false,
                           "id": "1",
+                          "isBookmarked": false,
+                          "isPublic": false,
+                          "isSubscribed": false,
+                          "lastRelease": null,
+                          "lastSeen": "2019-04-11T01:08:59Z",
                           "latestEvent": Object {
                             "entries": Array [
                               Object {
@@ -171,6 +224,18 @@ exports[`SharedGroupDetails renders 1`] = `
                             "id": "1",
                             "message": "ApiException",
                           },
+                          "level": "warning",
+                          "logger": null,
+                          "metadata": Object {
+                            "function": "fetchData",
+                            "type": "RequestError",
+                          },
+                          "numComments": 0,
+                          "participants": Array [],
+                          "permalink": "https://foo.io/organizations/foo/issues/1234/",
+                          "pluginActions": Array [],
+                          "pluginContexts": Array [],
+                          "pluginIssues": Array [],
                           "project": Object {
                             "environments": Array [],
                             "hasAccess": true,
@@ -184,6 +249,9 @@ exports[`SharedGroupDetails renders 1`] = `
                             "slug": "project-slug",
                             "teams": Array [],
                           },
+                          "seenBy": Array [],
+                          "shareId": null,
+                          "shortId": "JAVASCRIPT-6QS",
                           "stats": Object {
                             "24h": Array [
                               Array [
@@ -206,8 +274,14 @@ exports[`SharedGroupDetails renders 1`] = `
                               ],
                             ],
                           },
+                          "status": "unresolved",
+                          "statusDetails": Object {},
+                          "subscriptionDetails": null,
                           "tags": Array [],
                           "title": "ZeroDivisionError",
+                          "type": "error",
+                          "userCount": 35097,
+                          "userReportCount": 0,
                         }
                       }
                       isShare={true}
@@ -248,8 +322,20 @@ exports[`SharedGroupDetails renders 1`] = `
                         }
                         group={
                           Object {
+                            "activity": Array [],
+                            "annotations": Array [],
                             "assignedTo": null,
+                            "count": "327482",
+                            "culprit": "fetchData(app/components/group/suggestedOwners)",
+                            "firstRelease": null,
+                            "firstSeen": "2019-04-05T19:44:05.963Z",
+                            "hasSeen": false,
                             "id": "1",
+                            "isBookmarked": false,
+                            "isPublic": false,
+                            "isSubscribed": false,
+                            "lastRelease": null,
+                            "lastSeen": "2019-04-11T01:08:59Z",
                             "latestEvent": Object {
                               "entries": Array [
                                 Object {
@@ -265,6 +351,18 @@ exports[`SharedGroupDetails renders 1`] = `
                               "id": "1",
                               "message": "ApiException",
                             },
+                            "level": "warning",
+                            "logger": null,
+                            "metadata": Object {
+                              "function": "fetchData",
+                              "type": "RequestError",
+                            },
+                            "numComments": 0,
+                            "participants": Array [],
+                            "permalink": "https://foo.io/organizations/foo/issues/1234/",
+                            "pluginActions": Array [],
+                            "pluginContexts": Array [],
+                            "pluginIssues": Array [],
                             "project": Object {
                               "environments": Array [],
                               "hasAccess": true,
@@ -278,6 +376,9 @@ exports[`SharedGroupDetails renders 1`] = `
                               "slug": "project-slug",
                               "teams": Array [],
                             },
+                            "seenBy": Array [],
+                            "shareId": null,
+                            "shortId": "JAVASCRIPT-6QS",
                             "stats": Object {
                               "24h": Array [
                                 Array [
@@ -300,8 +401,14 @@ exports[`SharedGroupDetails renders 1`] = `
                                 ],
                               ],
                             },
+                            "status": "unresolved",
+                            "statusDetails": Object {},
+                            "subscriptionDetails": null,
                             "tags": Array [],
                             "title": "ZeroDivisionError",
+                            "type": "error",
+                            "userCount": 35097,
+                            "userReportCount": 0,
                           }
                         }
                         isShare={true}
@@ -374,8 +481,20 @@ exports[`SharedGroupDetails renders 1`] = `
                             }
                             group={
                               Object {
+                                "activity": Array [],
+                                "annotations": Array [],
                                 "assignedTo": null,
+                                "count": "327482",
+                                "culprit": "fetchData(app/components/group/suggestedOwners)",
+                                "firstRelease": null,
+                                "firstSeen": "2019-04-05T19:44:05.963Z",
+                                "hasSeen": false,
                                 "id": "1",
+                                "isBookmarked": false,
+                                "isPublic": false,
+                                "isSubscribed": false,
+                                "lastRelease": null,
+                                "lastSeen": "2019-04-11T01:08:59Z",
                                 "latestEvent": Object {
                                   "entries": Array [
                                     Object {
@@ -391,6 +510,18 @@ exports[`SharedGroupDetails renders 1`] = `
                                   "id": "1",
                                   "message": "ApiException",
                                 },
+                                "level": "warning",
+                                "logger": null,
+                                "metadata": Object {
+                                  "function": "fetchData",
+                                  "type": "RequestError",
+                                },
+                                "numComments": 0,
+                                "participants": Array [],
+                                "permalink": "https://foo.io/organizations/foo/issues/1234/",
+                                "pluginActions": Array [],
+                                "pluginContexts": Array [],
+                                "pluginIssues": Array [],
                                 "project": Object {
                                   "environments": Array [],
                                   "hasAccess": true,
@@ -404,6 +535,9 @@ exports[`SharedGroupDetails renders 1`] = `
                                   "slug": "project-slug",
                                   "teams": Array [],
                                 },
+                                "seenBy": Array [],
+                                "shareId": null,
+                                "shortId": "JAVASCRIPT-6QS",
                                 "stats": Object {
                                   "24h": Array [
                                     Array [
@@ -426,8 +560,14 @@ exports[`SharedGroupDetails renders 1`] = `
                                     ],
                                   ],
                                 },
+                                "status": "unresolved",
+                                "statusDetails": Object {},
+                                "subscriptionDetails": null,
                                 "tags": Array [],
                                 "title": "ZeroDivisionError",
+                                "type": "error",
+                                "userCount": 35097,
+                                "userReportCount": 0,
                               }
                             }
                             orgId="test-org"
@@ -486,8 +626,20 @@ exports[`SharedGroupDetails renders 1`] = `
                             }
                             group={
                               Object {
+                                "activity": Array [],
+                                "annotations": Array [],
                                 "assignedTo": null,
+                                "count": "327482",
+                                "culprit": "fetchData(app/components/group/suggestedOwners)",
+                                "firstRelease": null,
+                                "firstSeen": "2019-04-05T19:44:05.963Z",
+                                "hasSeen": false,
                                 "id": "1",
+                                "isBookmarked": false,
+                                "isPublic": false,
+                                "isSubscribed": false,
+                                "lastRelease": null,
+                                "lastSeen": "2019-04-11T01:08:59Z",
                                 "latestEvent": Object {
                                   "entries": Array [
                                     Object {
@@ -503,6 +655,18 @@ exports[`SharedGroupDetails renders 1`] = `
                                   "id": "1",
                                   "message": "ApiException",
                                 },
+                                "level": "warning",
+                                "logger": null,
+                                "metadata": Object {
+                                  "function": "fetchData",
+                                  "type": "RequestError",
+                                },
+                                "numComments": 0,
+                                "participants": Array [],
+                                "permalink": "https://foo.io/organizations/foo/issues/1234/",
+                                "pluginActions": Array [],
+                                "pluginContexts": Array [],
+                                "pluginIssues": Array [],
                                 "project": Object {
                                   "environments": Array [],
                                   "hasAccess": true,
@@ -516,6 +680,9 @@ exports[`SharedGroupDetails renders 1`] = `
                                   "slug": "project-slug",
                                   "teams": Array [],
                                 },
+                                "seenBy": Array [],
+                                "shareId": null,
+                                "shortId": "JAVASCRIPT-6QS",
                                 "stats": Object {
                                   "24h": Array [
                                     Array [
@@ -538,8 +705,14 @@ exports[`SharedGroupDetails renders 1`] = `
                                     ],
                                   ],
                                 },
+                                "status": "unresolved",
+                                "statusDetails": Object {},
+                                "subscriptionDetails": null,
                                 "tags": Array [],
                                 "title": "ZeroDivisionError",
+                                "type": "error",
+                                "userCount": 35097,
+                                "userReportCount": 0,
                               }
                             }
                             isShare={true}
@@ -566,8 +739,20 @@ exports[`SharedGroupDetails renders 1`] = `
                               }
                               group={
                                 Object {
+                                  "activity": Array [],
+                                  "annotations": Array [],
                                   "assignedTo": null,
+                                  "count": "327482",
+                                  "culprit": "fetchData(app/components/group/suggestedOwners)",
+                                  "firstRelease": null,
+                                  "firstSeen": "2019-04-05T19:44:05.963Z",
+                                  "hasSeen": false,
                                   "id": "1",
+                                  "isBookmarked": false,
+                                  "isPublic": false,
+                                  "isSubscribed": false,
+                                  "lastRelease": null,
+                                  "lastSeen": "2019-04-11T01:08:59Z",
                                   "latestEvent": Object {
                                     "entries": Array [
                                       Object {
@@ -583,6 +768,18 @@ exports[`SharedGroupDetails renders 1`] = `
                                     "id": "1",
                                     "message": "ApiException",
                                   },
+                                  "level": "warning",
+                                  "logger": null,
+                                  "metadata": Object {
+                                    "function": "fetchData",
+                                    "type": "RequestError",
+                                  },
+                                  "numComments": 0,
+                                  "participants": Array [],
+                                  "permalink": "https://foo.io/organizations/foo/issues/1234/",
+                                  "pluginActions": Array [],
+                                  "pluginContexts": Array [],
+                                  "pluginIssues": Array [],
                                   "project": Object {
                                     "environments": Array [],
                                     "hasAccess": true,
@@ -596,6 +793,9 @@ exports[`SharedGroupDetails renders 1`] = `
                                     "slug": "project-slug",
                                     "teams": Array [],
                                   },
+                                  "seenBy": Array [],
+                                  "shareId": null,
+                                  "shortId": "JAVASCRIPT-6QS",
                                   "stats": Object {
                                     "24h": Array [
                                       Array [
@@ -618,8 +818,14 @@ exports[`SharedGroupDetails renders 1`] = `
                                       ],
                                     ],
                                   },
+                                  "status": "unresolved",
+                                  "statusDetails": Object {},
+                                  "subscriptionDetails": null,
                                   "tags": Array [],
                                   "title": "ZeroDivisionError",
+                                  "type": "error",
+                                  "userCount": 35097,
+                                  "userReportCount": 0,
                                 }
                               }
                               raw={false}

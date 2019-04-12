@@ -4,12 +4,40 @@ exports[`GroupReleaseStats renders 1`] = `
 <GroupReleaseStats
   allEnvironments={
     Object {
+      "activity": Array [],
+      "annotations": Array [],
       "assignedTo": null,
+      "count": "327482",
+      "culprit": "fetchData(app/components/group/suggestedOwners)",
+      "firstRelease": null,
+      "firstSeen": "2019-04-05T19:44:05.963Z",
+      "hasSeen": false,
       "id": "1",
+      "isBookmarked": false,
+      "isPublic": false,
+      "isSubscribed": false,
+      "lastRelease": null,
+      "lastSeen": "2019-04-11T01:08:59Z",
+      "level": "warning",
+      "logger": null,
+      "metadata": Object {
+        "function": "fetchData",
+        "type": "RequestError",
+      },
+      "numComments": 0,
+      "participants": Array [],
+      "permalink": "https://foo.io/organizations/foo/issues/1234/",
+      "pluginActions": Array [],
+      "pluginContexts": Array [],
+      "pluginIssues": Array [],
       "project": Object {
         "id": "2",
+        "platform": "javascript",
         "slug": "project-slug",
       },
+      "seenBy": Array [],
+      "shareId": null,
+      "shortId": "JAVASCRIPT-6QS",
       "stats": Object {
         "24h": Array [
           Array [
@@ -32,17 +60,52 @@ exports[`GroupReleaseStats renders 1`] = `
           ],
         ],
       },
+      "status": "unresolved",
+      "statusDetails": Object {},
+      "subscriptionDetails": null,
       "tags": Array [],
+      "title": "RequestError: GET /issues/ 404",
+      "type": "error",
+      "userCount": 35097,
+      "userReportCount": 0,
     }
   }
   group={
     Object {
+      "activity": Array [],
+      "annotations": Array [],
       "assignedTo": null,
+      "count": "327482",
+      "culprit": "fetchData(app/components/group/suggestedOwners)",
+      "firstRelease": null,
+      "firstSeen": "2019-04-05T19:44:05.963Z",
+      "hasSeen": false,
       "id": "1",
+      "isBookmarked": false,
+      "isPublic": false,
+      "isSubscribed": false,
+      "lastRelease": null,
+      "lastSeen": "2019-04-11T01:08:59Z",
+      "level": "warning",
+      "logger": null,
+      "metadata": Object {
+        "function": "fetchData",
+        "type": "RequestError",
+      },
+      "numComments": 0,
+      "participants": Array [],
+      "permalink": "https://foo.io/organizations/foo/issues/1234/",
+      "pluginActions": Array [],
+      "pluginContexts": Array [],
+      "pluginIssues": Array [],
       "project": Object {
         "id": "2",
+        "platform": "javascript",
         "slug": "project-slug",
       },
+      "seenBy": Array [],
+      "shareId": null,
+      "shortId": "JAVASCRIPT-6QS",
       "stats": Object {
         "24h": Array [
           Array [
@@ -65,7 +128,14 @@ exports[`GroupReleaseStats renders 1`] = `
           ],
         ],
       },
+      "status": "unresolved",
+      "statusDetails": Object {},
+      "subscriptionDetails": null,
       "tags": Array [],
+      "title": "RequestError: GET /issues/ 404",
+      "type": "error",
+      "userCount": 35097,
+      "userReportCount": 0,
     }
   }
   location={
@@ -125,14 +195,43 @@ exports[`GroupReleaseStats renders 1`] = `
               ],
             }
           }
+          firstSeen="2019-04-05T19:44:05.963Z"
           group={
             Object {
+              "activity": Array [],
+              "annotations": Array [],
               "assignedTo": null,
+              "count": "327482",
+              "culprit": "fetchData(app/components/group/suggestedOwners)",
+              "firstRelease": null,
+              "firstSeen": "2019-04-05T19:44:05.963Z",
+              "hasSeen": false,
               "id": "1",
+              "isBookmarked": false,
+              "isPublic": false,
+              "isSubscribed": false,
+              "lastRelease": null,
+              "lastSeen": "2019-04-11T01:08:59Z",
+              "level": "warning",
+              "logger": null,
+              "metadata": Object {
+                "function": "fetchData",
+                "type": "RequestError",
+              },
+              "numComments": 0,
+              "participants": Array [],
+              "permalink": "https://foo.io/organizations/foo/issues/1234/",
+              "pluginActions": Array [],
+              "pluginContexts": Array [],
+              "pluginIssues": Array [],
               "project": Object {
                 "id": "2",
+                "platform": "javascript",
                 "slug": "project-slug",
               },
+              "seenBy": Array [],
+              "shareId": null,
+              "shortId": "JAVASCRIPT-6QS",
               "stats": Object {
                 "24h": Array [
                   Array [
@@ -155,9 +254,17 @@ exports[`GroupReleaseStats renders 1`] = `
                   ],
                 ],
               },
+              "status": "unresolved",
+              "statusDetails": Object {},
+              "subscriptionDetails": null,
               "tags": Array [],
+              "title": "RequestError: GET /issues/ 404",
+              "type": "error",
+              "userCount": 35097,
+              "userReportCount": 0,
             }
           }
+          lastSeen="2019-04-11T01:08:59Z"
           release={null}
           releaseStats={null}
           statsPeriod="24h"
@@ -183,7 +290,23 @@ exports[`GroupReleaseStats renders 1`] = `
               gap={0.75}
               height={40}
               label="events"
-              markers={Array []}
+              markers={
+                Array [
+                  Object {
+                    "className": "first-seen",
+                    "fill": "#F868BC",
+                    "label": "First seen",
+                    "offset": -7.5,
+                    "x": 1554493445.963,
+                  },
+                  Object {
+                    "className": "last-seen",
+                    "fill": "#57be8c",
+                    "label": "Last seen",
+                    "x": 1554944939,
+                  },
+                ]
+              }
               minHeights={
                 Array [
                   0,
@@ -378,6 +501,86 @@ exports[`GroupReleaseStats renders 1`] = `
                           </Tooltip>
                         </svg>
                       </StyledSvg>
+                      <Tooltip
+                        key="m-first-seen-1554493445.963"
+                        title="<div style=\\"width:130px\\">First seen<br/>Apr 5, 2019 12:44 PM</div>"
+                        tooltipOptions={
+                          Object {
+                            "container": "body",
+                            "html": true,
+                            "placement": "bottom",
+                          }
+                        }
+                      >
+                        <CircleSvg
+                          className="tip"
+                          left={100.84}
+                          offset={-7.5}
+                          size={10}
+                          title="<div style=\\"width:130px\\">First seen<br/>Apr 5, 2019 12:44 PM</div>"
+                          viewBox="0 0 10 10"
+                        >
+                          <svg
+                            className="tip css-m7l75b-CircleSvg e5t71583"
+                            offset={-7.5}
+                            size={10}
+                            title="<div style=\\"width:130px\\">First seen<br/>Apr 5, 2019 12:44 PM</div>"
+                            viewBox="0 0 10 10"
+                          >
+                            <circle
+                              cx="50%"
+                              cy="50%"
+                              data-test-id="chart-column"
+                              fill="#F868BC"
+                              r="4"
+                              stroke="#fff"
+                              strokeWidth="2"
+                            >
+                              First seen
+                            </circle>
+                          </svg>
+                        </CircleSvg>
+                      </Tooltip>
+                      <Tooltip
+                        key="m-last-seen-1554944939"
+                        title="<div style=\\"width:130px\\">Last seen<br/>Apr 10, 2019 6:08 PM</div>"
+                        tooltipOptions={
+                          Object {
+                            "container": "body",
+                            "html": true,
+                            "placement": "bottom",
+                          }
+                        }
+                      >
+                        <CircleSvg
+                          className="tip"
+                          left={100.84}
+                          offset={0}
+                          size={10}
+                          title="<div style=\\"width:130px\\">Last seen<br/>Apr 10, 2019 6:08 PM</div>"
+                          viewBox="0 0 10 10"
+                        >
+                          <svg
+                            className="tip css-1yt4gr0-CircleSvg e5t71583"
+                            offset={0}
+                            size={10}
+                            title="<div style=\\"width:130px\\">Last seen<br/>Apr 10, 2019 6:08 PM</div>"
+                            viewBox="0 0 10 10"
+                          >
+                            <circle
+                              cx="50%"
+                              cy="50%"
+                              data-test-id="chart-column"
+                              fill="#57be8c"
+                              r="4"
+                              stroke="#fff"
+                              strokeWidth="2"
+                            >
+                              Last seen
+                            </circle>
+                          </svg>
+                        </CircleSvg>
+                      </Tooltip>
                     </div>
                   </SvgContainer>
                 </figure>
@@ -412,14 +615,43 @@ exports[`GroupReleaseStats renders 1`] = `
               ],
             }
           }
+          firstSeen="2019-04-05T19:44:05.963Z"
           group={
             Object {
+              "activity": Array [],
+              "annotations": Array [],
               "assignedTo": null,
+              "count": "327482",
+              "culprit": "fetchData(app/components/group/suggestedOwners)",
+              "firstRelease": null,
+              "firstSeen": "2019-04-05T19:44:05.963Z",
+              "hasSeen": false,
               "id": "1",
+              "isBookmarked": false,
+              "isPublic": false,
+              "isSubscribed": false,
+              "lastRelease": null,
+              "lastSeen": "2019-04-11T01:08:59Z",
+              "level": "warning",
+              "logger": null,
+              "metadata": Object {
+                "function": "fetchData",
+                "type": "RequestError",
+              },
+              "numComments": 0,
+              "participants": Array [],
+              "permalink": "https://foo.io/organizations/foo/issues/1234/",
+              "pluginActions": Array [],
+              "pluginContexts": Array [],
+              "pluginIssues": Array [],
               "project": Object {
                 "id": "2",
+                "platform": "javascript",
                 "slug": "project-slug",
               },
+              "seenBy": Array [],
+              "shareId": null,
+              "shortId": "JAVASCRIPT-6QS",
               "stats": Object {
                 "24h": Array [
                   Array [
@@ -442,9 +674,17 @@ exports[`GroupReleaseStats renders 1`] = `
                   ],
                 ],
               },
+              "status": "unresolved",
+              "statusDetails": Object {},
+              "subscriptionDetails": null,
               "tags": Array [],
+              "title": "RequestError: GET /issues/ 404",
+              "type": "error",
+              "userCount": 35097,
+              "userReportCount": 0,
             }
           }
+          lastSeen="2019-04-11T01:08:59Z"
           release={null}
           releaseStats={null}
           statsPeriod="30d"
@@ -470,7 +710,23 @@ exports[`GroupReleaseStats renders 1`] = `
               gap={0.75}
               height={40}
               label="events"
-              markers={Array []}
+              markers={
+                Array [
+                  Object {
+                    "className": "first-seen",
+                    "fill": "#F868BC",
+                    "label": "First seen",
+                    "offset": -7.5,
+                    "x": 1554493445.963,
+                  },
+                  Object {
+                    "className": "last-seen",
+                    "fill": "#57be8c",
+                    "label": "Last seen",
+                    "x": 1554944939,
+                  },
+                ]
+              }
               minHeights={
                 Array [
                   0,
@@ -665,6 +921,86 @@ exports[`GroupReleaseStats renders 1`] = `
                           </Tooltip>
                         </svg>
                       </StyledSvg>
+                      <Tooltip
+                        key="m-first-seen-1554493445.963"
+                        title="<div style=\\"width:130px\\">First seen<br/>Apr 5, 2019 12:44 PM</div>"
+                        tooltipOptions={
+                          Object {
+                            "container": "body",
+                            "html": true,
+                            "placement": "bottom",
+                          }
+                        }
+                      >
+                        <CircleSvg
+                          className="tip"
+                          left={100.84}
+                          offset={-7.5}
+                          size={10}
+                          title="<div style=\\"width:130px\\">First seen<br/>Apr 5, 2019 12:44 PM</div>"
+                          viewBox="0 0 10 10"
+                        >
+                          <svg
+                            className="tip css-m7l75b-CircleSvg e5t71583"
+                            offset={-7.5}
+                            size={10}
+                            title="<div style=\\"width:130px\\">First seen<br/>Apr 5, 2019 12:44 PM</div>"
+                            viewBox="0 0 10 10"
+                          >
+                            <circle
+                              cx="50%"
+                              cy="50%"
+                              data-test-id="chart-column"
+                              fill="#F868BC"
+                              r="4"
+                              stroke="#fff"
+                              strokeWidth="2"
+                            >
+                              First seen
+                            </circle>
+                          </svg>
+                        </CircleSvg>
+                      </Tooltip>
+                      <Tooltip
+                        key="m-last-seen-1554944939"
+                        title="<div style=\\"width:130px\\">Last seen<br/>Apr 10, 2019 6:08 PM</div>"
+                        tooltipOptions={
+                          Object {
+                            "container": "body",
+                            "html": true,
+                            "placement": "bottom",
+                          }
+                        }
+                      >
+                        <CircleSvg
+                          className="tip"
+                          left={100.84}
+                          offset={0}
+                          size={10}
+                          title="<div style=\\"width:130px\\">Last seen<br/>Apr 10, 2019 6:08 PM</div>"
+                          viewBox="0 0 10 10"
+                        >
+                          <svg
+                            className="tip css-1yt4gr0-CircleSvg e5t71583"
+                            offset={0}
+                            size={10}
+                            title="<div style=\\"width:130px\\">Last seen<br/>Apr 10, 2019 6:08 PM</div>"
+                            viewBox="0 0 10 10"
+                          >
+                            <circle
+                              cx="50%"
+                              cy="50%"
+                              data-test-id="chart-column"
+                              fill="#57be8c"
+                              r="4"
+                              stroke="#fff"
+                              strokeWidth="2"
+                            >
+                              Last seen
+                            </circle>
+                          </svg>
+                        </CircleSvg>
+                      </Tooltip>
                     </div>
                   </SvgContainer>
                 </figure>
@@ -678,6 +1014,8 @@ exports[`GroupReleaseStats renders 1`] = `
           </span>
         </h6>
         <SeenInfo
+          date="2019-04-05T19:44:05.963Z"
+          dateGlobal="2019-04-05T19:44:05.963Z"
           environment={null}
           hasRelease={false}
           orgId="org-slug"
@@ -697,7 +1035,40 @@ exports[`GroupReleaseStats renders 1`] = `
             <dd
               key="1"
             >
-              n/a
+              <Tooltip
+                title="<div style=\\"width:170px\\"><div class=\\"time-label\\">First seen</div><dl class=\\"flat\\"><dt>Globally:</dt><dd><time dateTime=\\"2019-04-05T19:44:05.963Z\\" title=\\"April 5, 2019 12:44 PM PDT\\">in a year</time><br/></dd></dl></div>"
+                tooltipOptions={
+                  Object {
+                    "html": true,
+                  }
+                }
+              >
+                <TimeSince
+                  className="tip dotted-underline"
+                  date="2019-04-05T19:44:05.963Z"
+                  suffix="ago"
+                  title="<div style=\\"width:170px\\"><div class=\\"time-label\\">First seen</div><dl class=\\"flat\\"><dt>Globally:</dt><dd><time dateTime=\\"2019-04-05T19:44:05.963Z\\" title=\\"April 5, 2019 12:44 PM PDT\\">in a year</time><br/></dd></dl></div>"
+                >
+                  <time
+                    className="tip dotted-underline"
+                    dateTime="2019-04-05T19:44:05.963Z"
+                    title="April 5, 2019 12:44 PM PDT"
+                  >
+                    in a year
+                  </time>
+                </TimeSince>
+              </Tooltip>
+              <br />
+              <small>
+                <DateTime
+                  date="2019-04-05T19:44:05.963Z"
+                  seconds={true}
+                >
+                  <time>
+                    Apr 5, 2019 12:44:05 PM PDT
+                  </time>
+                </DateTime>
+              </small>
             </dd>
             <dt
               key="4"
@@ -731,6 +1102,8 @@ exports[`GroupReleaseStats renders 1`] = `
           </span>
         </h6>
         <SeenInfo
+          date="2019-04-11T01:08:59Z"
+          dateGlobal="2019-04-11T01:08:59Z"
           environment={null}
           hasRelease={false}
           orgId="org-slug"
@@ -750,7 +1123,40 @@ exports[`GroupReleaseStats renders 1`] = `
             <dd
               key="1"
             >
-              n/a
+              <Tooltip
+                title="<div style=\\"width:170px\\"><div class=\\"time-label\\">Last seen</div><dl class=\\"flat\\"><dt>Globally:</dt><dd><time dateTime=\\"2019-04-11T01:08:59.000Z\\" title=\\"April 10, 2019 6:08 PM PDT\\">in a year</time><br/></dd></dl></div>"
+                tooltipOptions={
+                  Object {
+                    "html": true,
+                  }
+                }
+              >
+                <TimeSince
+                  className="tip dotted-underline"
+                  date="2019-04-11T01:08:59Z"
+                  suffix="ago"
+                  title="<div style=\\"width:170px\\"><div class=\\"time-label\\">Last seen</div><dl class=\\"flat\\"><dt>Globally:</dt><dd><time dateTime=\\"2019-04-11T01:08:59.000Z\\" title=\\"April 10, 2019 6:08 PM PDT\\">in a year</time><br/></dd></dl></div>"
+                >
+                  <time
+                    className="tip dotted-underline"
+                    dateTime="2019-04-11T01:08:59.000Z"
+                    title="April 10, 2019 6:08 PM PDT"
+                  >
+                    in a year
+                  </time>
+                </TimeSince>
+              </Tooltip>
+              <br />
+              <small>
+                <DateTime
+                  date="2019-04-11T01:08:59Z"
+                  seconds={true}
+                >
+                  <time>
+                    Apr 10, 2019 6:08:59 PM PDT
+                  </time>
+                </DateTime>
+              </small>
             </dd>
             <dt
               key="4"

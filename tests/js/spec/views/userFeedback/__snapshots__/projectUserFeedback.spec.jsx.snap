@@ -16,12 +16,40 @@ exports[`projectUserFeedback renders 1`] = `
     <WithOrganizationMockWrapper
       data={
         Object {
+          "activity": Array [],
+          "annotations": Array [],
           "assignedTo": null,
+          "count": "327482",
+          "culprit": "fetchData(app/components/group/suggestedOwners)",
+          "firstRelease": null,
+          "firstSeen": "2019-04-05T19:44:05.963Z",
+          "hasSeen": false,
           "id": "1",
+          "isBookmarked": false,
+          "isPublic": false,
+          "isSubscribed": false,
+          "lastRelease": null,
+          "lastSeen": "2019-04-11T01:08:59Z",
+          "level": "warning",
+          "logger": null,
+          "metadata": Object {
+            "function": "fetchData",
+            "type": "RequestError",
+          },
+          "numComments": 0,
+          "participants": Array [],
+          "permalink": "https://foo.io/organizations/foo/issues/1234/",
+          "pluginActions": Array [],
+          "pluginContexts": Array [],
+          "pluginIssues": Array [],
           "project": Object {
             "id": "2",
+            "platform": "javascript",
             "slug": "project-slug",
           },
+          "seenBy": Array [],
+          "shareId": null,
+          "shortId": "JAVASCRIPT-6QS",
           "stats": Object {
             "24h": Array [
               Array [
@@ -44,7 +72,14 @@ exports[`projectUserFeedback renders 1`] = `
               ],
             ],
           },
+          "status": "unresolved",
+          "statusDetails": Object {},
+          "subscriptionDetails": null,
           "tags": Array [],
+          "title": "RequestError: GET /issues/ 404",
+          "type": "error",
+          "userCount": 35097,
+          "userReportCount": 0,
         }
       }
       id="1"
@@ -67,12 +102,40 @@ exports[`projectUserFeedback renders 1`] = `
             },
             "id": "123",
             "issue": Object {
+              "activity": Array [],
+              "annotations": Array [],
               "assignedTo": null,
+              "count": "327482",
+              "culprit": "fetchData(app/components/group/suggestedOwners)",
+              "firstRelease": null,
+              "firstSeen": "2019-04-05T19:44:05.963Z",
+              "hasSeen": false,
               "id": "1",
+              "isBookmarked": false,
+              "isPublic": false,
+              "isSubscribed": false,
+              "lastRelease": null,
+              "lastSeen": "2019-04-11T01:08:59Z",
+              "level": "warning",
+              "logger": null,
+              "metadata": Object {
+                "function": "fetchData",
+                "type": "RequestError",
+              },
+              "numComments": 0,
+              "participants": Array [],
+              "permalink": "https://foo.io/organizations/foo/issues/1234/",
+              "pluginActions": Array [],
+              "pluginContexts": Array [],
+              "pluginIssues": Array [],
               "project": Object {
                 "id": "2",
+                "platform": "javascript",
                 "slug": "project-slug",
               },
+              "seenBy": Array [],
+              "shareId": null,
+              "shortId": "JAVASCRIPT-6QS",
               "stats": Object {
                 "24h": Array [
                   Array [
@@ -95,7 +158,14 @@ exports[`projectUserFeedback renders 1`] = `
                   ],
                 ],
               },
+              "status": "unresolved",
+              "statusDetails": Object {},
+              "subscriptionDetails": null,
               "tags": Array [],
+              "title": "RequestError: GET /issues/ 404",
+              "type": "error",
+              "userCount": 35097,
+              "userReportCount": 0,
             },
             "name": "Lyn",
           }
