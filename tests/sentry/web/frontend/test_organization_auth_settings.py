@@ -279,7 +279,8 @@ class OrganizationAuthSettingsTest(AuthProviderTestCase):
 
         auth_provider = AuthProvider.objects.get(organization=organization)
         assert getattr(auth_provider.flags, 'allow_unlinked')
-        assert Organization.objects.filter(id=organization.id, default_role='owner').exists()
+        organization = Organization.objects.get(id=organization.id)
+        assert organization.default_role == 'owner'
 
         assert AuditLogEntry.objects.filter(
             organization=organization,
@@ -309,7 +310,8 @@ class OrganizationAuthSettingsTest(AuthProviderTestCase):
 
         auth_provider = AuthProvider.objects.get(organization=organization)
         assert getattr(auth_provider.flags, 'allow_unlinked')
-        assert Organization.objects.filter(id=organization.id, default_role='member').exists()
+        organization = Organization.objects.get(id=organization.id)
+        assert organization.default_role == 'member'
 
         assert AuditLogEntry.objects.filter(
             organization=organization,
@@ -339,7 +341,8 @@ class OrganizationAuthSettingsTest(AuthProviderTestCase):
 
         auth_provider = AuthProvider.objects.get(organization=organization)
         assert not getattr(auth_provider.flags, 'allow_unlinked')
-        assert Organization.objects.filter(id=organization.id, default_role='owner').exists()
+        organization = Organization.objects.get(id=organization.id)
+        assert organization.default_role == 'owner'
 
         assert AuditLogEntry.objects.filter(
             organization=organization,
@@ -369,7 +372,8 @@ class OrganizationAuthSettingsTest(AuthProviderTestCase):
 
         auth_provider = AuthProvider.objects.get(organization=organization)
         assert not getattr(auth_provider.flags, 'allow_unlinked')
-        assert Organization.objects.filter(id=organization.id, default_role='member').exists()
+        organization = Organization.objects.get(id=organization.id)
+        assert organization.default_role == 'member'
 
         assert not AuditLogEntry.objects.filter(
             organization=organization,
