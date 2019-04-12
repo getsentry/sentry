@@ -299,10 +299,9 @@ class SnubaSearchBackend(SearchBackend):
 
         # TODO: It's possible `first_release` could be handled by Snuba.
         if environments is not None:
+            environment_ids = [environment.id for environment in environments]
             group_queryset = group_queryset.filter(
-                groupenvironment__environment_id__in=[
-                    environment.id for environment in environments
-                ],
+                groupenvironment__environment_id__in=environment_ids
             )
             group_queryset = QuerySetBuilder({
                 'first_release': QCallbackCondition(
@@ -310,6 +309,10 @@ class SnubaSearchBackend(SearchBackend):
                         groupenvironment__first_release__organization_id=projects[0].organization_id,
                         groupenvironment__first_release__version=version,
                     )
+                ),
+                'first_seen': ds.SearchFilterScalarCondition(
+                    'groupenvironment__first_seen',
+                    {'groupenvironment__environment_id__in': environment_ids}
                 ),
             }).build(group_queryset, search_filters)
         else:
@@ -320,6 +323,7 @@ class SnubaSearchBackend(SearchBackend):
                         first_release__version=version,
                     ),
                 ),
+                'first_seen': ds.SearchFilterScalarCondition('first_seen'),
             }).build(group_queryset, search_filters)
 
         now = timezone.now()
