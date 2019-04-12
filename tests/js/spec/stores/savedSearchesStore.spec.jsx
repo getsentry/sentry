@@ -42,7 +42,7 @@ describe('SavedSearchesStore', function() {
   });
 
   it('fetching saved searches updates store', async function() {
-    await fetchSavedSearches(api, 'org-1');
+    await fetchSavedSearches(api, 'org-1', {});
     await tick();
 
     expect(SavedSearchesStore.get().savedSearches).toHaveLength(2);
@@ -50,7 +50,7 @@ describe('SavedSearchesStore', function() {
   });
 
   it('creates a new pin search', async function() {
-    await fetchSavedSearches(api, 'org-1');
+    await fetchSavedSearches(api, 'org-1', {});
     await tick();
 
     pinSearch(api, 'org-1', 0, 'level:info');
@@ -83,7 +83,7 @@ describe('SavedSearchesStore', function() {
         ...searches,
       ],
     });
-    fetchSavedSearches(api, 'org-1');
+    await fetchSavedSearches(api, 'org-1', {});
     await tick();
 
     pinSearch(api, 'org-1', 0, searches[1].query);
@@ -111,7 +111,7 @@ describe('SavedSearchesStore', function() {
       url: '/organizations/org-1/searches/',
       body: [{...searches[0], isPinned: true}, searches[1]],
     });
-    fetchSavedSearches(api, 'org-1');
+    await fetchSavedSearches(api, 'org-1', {});
     await tick();
 
     pinSearch(api, 'org-1', 0, searches[1].query);
@@ -155,7 +155,7 @@ describe('SavedSearchesStore', function() {
         ...searches,
       ],
     });
-    fetchSavedSearches(api, 'org-1');
+    await fetchSavedSearches(api, 'org-1', {});
     await tick();
 
     unpinSearch(api, 'org-1', 0, searches[0]);
@@ -192,7 +192,7 @@ describe('SavedSearchesStore', function() {
       url: '/organizations/org-1/searches/',
       body: [{...searches[0], isPinned: true}, searches[1]],
     });
-    fetchSavedSearches(api, 'org-1');
+    await fetchSavedSearches(api, 'org-1', {});
     await tick();
 
     unpinSearch(api, 'org-1', 0, searches[0]);
@@ -231,7 +231,7 @@ describe('SavedSearchesStore', function() {
         searches[1],
       ],
     });
-    fetchSavedSearches(api, 'org-1');
+    await fetchSavedSearches(api, 'org-1', {});
     await tick();
 
     unpinSearch(api, 'org-1', 0, searches[0]);

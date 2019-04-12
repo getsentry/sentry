@@ -4,7 +4,7 @@ import {t} from 'app/locale';
 import SavedSearchesActions from 'app/actions/savedSearchesActions';
 import handleXhrErrorResponse from 'app/utils/handleXhrErrorResponse';
 
-export function fetchSavedSearches(api, orgId, useOrgSavedSearches = false) {
+export function fetchSavedSearches(api, orgId, projectMap, useOrgSavedSearches = false) {
   const url = `/organizations/${orgId}/searches/`;
 
   const data = {};
@@ -21,7 +21,13 @@ export function fetchSavedSearches(api, orgId, useOrgSavedSearches = false) {
 
   promise
     .then(resp => {
-      SavedSearchesActions.fetchSavedSearchesSuccess(resp);
+      // Add in project slugs so that we can display them in the picker bars.
+      const savedSearchList = resp.map(search => ({
+        ...search,
+        projectSlug: projectMap[search.projectId],
+      }));
+
+      SavedSearchesActions.fetchSavedSearchesSuccess(savedSearchList);
     })
     .catch(err => {
       SavedSearchesActions.fetchSavedSearchesError(err);

@@ -2,11 +2,20 @@ import {browserHistory} from 'react-router';
 import {clonedeep} from 'lodash';
 import React from 'react';
 
-import {OrganizationStream} from 'app/views/organizationStream/overview';
-import {shallow} from 'enzyme';
+import {initializeOrg} from 'app-test/helpers/initializeOrg';
+import {mount, shallow} from 'enzyme';
 import ErrorRobot from 'app/components/errorRobot';
 import GroupStore from 'app/stores/groupStore';
+import OrganizationStreamWithStores, {
+  OrganizationStream,
+} from 'app/views/organizationStream/overview';
+import StreamGroup from 'app/components/stream/group';
 import TagStore from 'app/stores/tagStore';
+
+// Mock <StreamSidebar> and <StreamActions>
+jest.mock('app/views/stream/sidebar', () => jest.fn(() => null));
+jest.mock('app/views/stream/actions', () => jest.fn(() => null));
+jest.mock('app/components/stream/group', () => jest.fn(() => null));
 
 const DEFAULT_LINKS_HEADER =
   '<http://127.0.0.1:8000/api/0/organizations/org-slug/issues/?cursor=1443575731:0:1>; rel="previous"; results="false"; cursor="1443575731:0:1", ' +
@@ -25,6 +34,7 @@ describe('OrganizationStream', function() {
   let fetchMembersRequest;
 
   beforeEach(function() {
+    MockApiClient.clearMockResponses();
     project = TestStubs.ProjectDetails({
       id: '3559',
       name: 'Foo Project',
@@ -35,13 +45,13 @@ describe('OrganizationStream', function() {
       id: '1337',
       slug: 'org-slug',
       access: ['releases'],
-      features: ['org-saved-searches'],
+      features: [],
       projects: [project],
     });
     savedSearch = {
       id: '789',
       query: 'is:unresolved',
-      name: 'test',
+      name: 'Unresolved Issues',
       projectId: project.id,
     };
 
@@ -83,6 +93,9 @@ describe('OrganizationStream', function() {
     TagStore.init();
 
     props = {
+      savedSearchLoading: false,
+      savedSearches: [savedSearch],
+      useOrgSavedSearches: true,
       selection: {
         projects: [parseInt(organization.projects[0].id, 10)],
         environments: [],
@@ -98,6 +111,294 @@ describe('OrganizationStream', function() {
     MockApiClient.clearMockResponses();
   });
 
+  describe('withStores', function() {
+    const {router, routerContext} = initializeOrg({
+      organization: {
+        features: ['org-saved-searches', 'recent-searches'],
+        slug: 'org-slug',
+      },
+      router: {
+        location: {query: {}, search: ''},
+        params: {orgId: 'org-slug'},
+      },
+    });
+    const defaultProps = {};
+    let savedSearchesRequest;
+    let recentSearchesRequest;
+    let issuesRequest;
+
+    /* helpers */
+    const getSavedSearchTitle = w =>
+      w.find('OrganizationSavedSearchSelector .dropdown-actor-title').text();
+
+    const getSearchBarValue = w =>
+      w
+        .find('SmartSearchBarContainer input')
+        .prop('value')
+        .trim();
+
+    beforeAll(function() {});
+
+    beforeEach(function() {
+      StreamGroup.mockClear();
+
+      recentSearchesRequest = MockApiClient.addMockResponse({
+        url: '/organizations/org-slug/recent-searches/',
+        method: 'GET',
+        body: [],
+      });
+      savedSearchesRequest = MockApiClient.addMockResponse({
+        url: '/organizations/org-slug/searches/',
+        body: [savedSearch],
+      });
+      issuesRequest = MockApiClient.addMockResponse({
+        url: '/organizations/org-slug/issues/',
+        body: [group],
+        headers: {
+          Link: DEFAULT_LINKS_HEADER,
+        },
+      });
+    });
+
+    const createWrapper = ({params, location, ...p} = {}) => {
+      const newRouter = {
+        ...router,
+        params: {
+          ...router.params,
+          ...params,
+        },
+        location: {
+          ...router.location,
+          ...location,
+        },
+      };
+
+      const wrap = mount(
+        <OrganizationStreamWithStores {...newRouter} {...defaultProps} {...p} />,
+        routerContext
+      );
+
+      return wrap;
+    };
+
+    it('loads group rows with default query (no pinned queries, and no query in URL)', async function() {
+      wrapper = createWrapper();
+
+      // Loading saved searches
+      expect(savedSearchesRequest).toHaveBeenCalledTimes(1);
+      // Update stores with saved searches
+      await tick();
+      wrapper.update();
+
+      // Check for fetch tags req
+      // Check for fetch member list req
+
+      // Main /issues/ request
+      expect(issuesRequest).toHaveBeenCalledWith(
+        expect.anything(),
+        expect.objectContaining({
+          // Should be called with default query
+          data: expect.stringContaining('is%3Aunresolved'),
+        })
+      );
+
+      expect(getSearchBarValue(wrapper)).toBe('is:unresolved');
+
+      // Organization saved search selector should have default saved search selected
+      expect(getSavedSearchTitle(wrapper)).toBe('Unresolved Issues');
+
+      // This is mocked
+      expect(StreamGroup).toHaveBeenCalled();
+    });
+
+    it('loads with query in URL and pinned queries', async function() {
+      savedSearchesRequest = MockApiClient.addMockResponse({
+        url: '/organizations/org-slug/searches/',
+        body: [
+          savedSearch,
+          TestStubs.Search({
+            id: '123',
+            name: 'My Pinned Search',
+            isPinned: true,
+            query: 'is:resolved',
+          }),
+        ],
+      });
+
+      wrapper = createWrapper({
+        location: {
+          query: {
+            query: 'level:foo',
+          },
+        },
+      });
+
+      // Update stores with saved searches
+      await tick();
+      wrapper.update();
+
+      // Main /issues/ request
+      expect(issuesRequest).toHaveBeenCalledWith(
+        expect.anything(),
+        expect.objectContaining({
+          // Should be called with default query
+          data: expect.stringContaining('level%3Afoo'),
+        })
+      );
+
+      expect(getSearchBarValue(wrapper)).toBe('level:foo');
+
+      // Custom search
+      expect(getSavedSearchTitle(wrapper)).toBe('Custom Search');
+    });
+
+    it('loads with a pinned saved query', async function() {
+      savedSearchesRequest = MockApiClient.addMockResponse({
+        url: '/organizations/org-slug/searches/',
+        body: [
+          savedSearch,
+          TestStubs.Search({
+            id: '123',
+            name: 'Org Custom',
+            isPinned: true,
+            isGlobal: false,
+            isOrgCustom: true,
+            query: 'is:resolved',
+          }),
+        ],
+      });
+      wrapper = createWrapper();
+
+      await tick();
+      wrapper.update();
+
+      expect(issuesRequest).toHaveBeenCalledWith(
+        expect.anything(),
+        expect.objectContaining({
+          // Should be called with default query
+          data: expect.stringContaining('is%3Aresolved'),
+        })
+      );
+
+      expect(getSearchBarValue(wrapper)).toBe('is:resolved');
+
+      // Organization saved search selector should have default saved search selected
+      expect(getSavedSearchTitle(wrapper)).toBe('Org Custom');
+    });
+
+    it('loads with a pinned custom query', async function() {
+      savedSearchesRequest = MockApiClient.addMockResponse({
+        url: '/organizations/org-slug/searches/',
+        body: [
+          savedSearch,
+          TestStubs.Search({
+            id: '123',
+            name: 'My Pinned Search',
+            isPinned: true,
+            isGlobal: false,
+            isOrgCustom: false,
+            query: 'is:resolved',
+          }),
+        ],
+      });
+      wrapper = createWrapper();
+
+      await tick();
+      wrapper.update();
+
+      expect(issuesRequest).toHaveBeenCalledWith(
+        expect.anything(),
+        expect.objectContaining({
+          // Should be called with default query
+          data: expect.stringContaining('is%3Aresolved'),
+        })
+      );
+
+      expect(getSearchBarValue(wrapper)).toBe('is:resolved');
+
+      // Organization saved search selector should have default saved search selected
+      expect(getSavedSearchTitle(wrapper)).toBe('My Pinned Search');
+    });
+
+    it('loads with a saved query', async function() {
+      savedSearchesRequest = MockApiClient.addMockResponse({
+        url: '/organizations/org-slug/searches/',
+        body: [
+          TestStubs.Search({
+            id: '123',
+            name: 'Assigned to Me',
+            isPinned: false,
+            isGlobal: true,
+            query: 'assigned:me',
+            projectId: null,
+            type: 0,
+          }),
+        ],
+      });
+      wrapper = createWrapper({params: {searchId: '123'}});
+
+      await tick();
+      wrapper.update();
+
+      expect(issuesRequest).toHaveBeenCalledWith(
+        expect.anything(),
+        expect.objectContaining({
+          // Should be called with default query
+          data: expect.stringContaining('assigned%3Ame'),
+        })
+      );
+
+      expect(getSearchBarValue(wrapper)).toBe('assigned:me');
+
+      // Organization saved search selector should have default saved search selected
+      expect(getSavedSearchTitle(wrapper)).toBe('Assigned to Me');
+    });
+
+    it('loads with a query in URL', async function() {
+      savedSearchesRequest = MockApiClient.addMockResponse({
+        url: '/organizations/org-slug/searches/',
+        body: [
+          TestStubs.Search({
+            id: '123',
+            name: 'Assigned to Me',
+            isPinned: false,
+            isGlobal: true,
+            query: 'assigned:me',
+            projectId: null,
+            type: 0,
+          }),
+        ],
+      });
+      wrapper = createWrapper({location: {query: {query: 'level:error'}}});
+
+      await tick();
+      wrapper.update();
+
+      expect(issuesRequest).toHaveBeenCalledWith(
+        expect.anything(),
+        expect.objectContaining({
+          // Should be called with default query
+          data: expect.stringContaining('level%3Aerror'),
+        })
+      );
+
+      expect(getSearchBarValue(wrapper)).toBe('level:error');
+
+      // Organization saved search selector should have default saved search selected
+      expect(getSavedSearchTitle(wrapper)).toBe('Custom Search');
+    });
+
+    it('pins and unpins a custom query', async function() {});
+
+    it('pins and unpins a saved query', async function() {});
+
+    it('selects a saved search', async function() {});
+
+    it('saves a new query', async function() {});
+
+    it('loads pinned search when invalid saved search id is accessed', async function() {});
+  });
+
   describe('transitionTo', function() {
     let instance;
     beforeEach(function() {
@@ -106,7 +407,7 @@ describe('OrganizationStream', function() {
     });
 
     it('transitions to query updates', function() {
-      instance.transitionTo({query: 'is:ignored'});
+      instance.transitionTo(null, {query: 'is:ignored'});
 
       expect(browserHistory.push).toHaveBeenCalledWith({
         pathname: '/organizations/org-slug/issues/',
@@ -125,8 +426,8 @@ describe('OrganizationStream', function() {
         projectId: 99,
         query: 'foo:bar',
       };
-      instance.setState({savedSearch});
-      instance.transitionTo();
+      // instance.setState({savedSearch});
+      instance.transitionTo(savedSearch, {query: savedSearch.query});
 
       expect(browserHistory.push).toHaveBeenCalledWith({
         pathname: '/organizations/org-slug/issues/searches/123/',
@@ -145,8 +446,7 @@ describe('OrganizationStream', function() {
         project: null,
         query: 'is:unresolved',
       };
-      instance.setState({savedSearch});
-      instance.transitionTo();
+      instance.transitionTo(savedSearch, {query: savedSearch.query});
 
       expect(browserHistory.push).toHaveBeenCalledWith({
         pathname: '/organizations/org-slug/issues/searches/1/',
@@ -164,8 +464,7 @@ describe('OrganizationStream', function() {
         projectId: null,
         query: 'is:unresolved',
       };
-      instance.setState({savedSearch});
-      instance.transitionTo();
+      instance.transitionTo(savedSearch, {query: savedSearch.query});
 
       expect(browserHistory.push).toHaveBeenCalledWith({
         pathname: '/organizations/org-slug/issues/searches/1/',
@@ -257,44 +556,6 @@ describe('OrganizationStream', function() {
     });
   });
 
-  describe('componentDidMount with a valid saved search', function() {
-    beforeEach(function() {
-      props.params.searchId = '789';
-      wrapper = shallow(<OrganizationStream {...props} />);
-    });
-
-    it('fetches searches and sets the savedSearch', async function() {
-      const instance = wrapper.instance();
-      instance.componentDidMount();
-      await wrapper.update();
-
-      expect(instance.state.savedSearch).toBeTruthy();
-    });
-
-    it('uses the saved search query', async function() {
-      const instance = wrapper.instance();
-      instance.componentDidMount();
-      await wrapper.update();
-
-      expect(instance.getQuery()).toEqual(savedSearch.query);
-    });
-  });
-
-  describe('componentDidMount with an invalid saved search', function() {
-    beforeEach(function() {
-      props.params.searchId = '999';
-      wrapper = shallow(<OrganizationStream {...props} />);
-    });
-
-    it('does not set the savedSearch state', async function() {
-      const instance = wrapper.instance();
-      instance.componentDidMount();
-      await wrapper.update();
-
-      expect(instance.state.savedSearch).toBeNull();
-    });
-  });
-
   describe('componentDidUpdate fetching groups', function() {
     let fetchDataMock;
     beforeEach(function() {
@@ -314,7 +575,8 @@ describe('OrganizationStream', function() {
 
     it('fetches data on savedSearch change', function() {
       savedSearch = {id: '1', query: 'is:resolved'};
-      wrapper.setState({savedSearch});
+      wrapper.setProps({savedSearch});
+      wrapper.update();
 
       expect(fetchDataMock).toHaveBeenCalled();
     });
@@ -327,9 +589,10 @@ describe('OrganizationStream', function() {
         location = clonedeep(location);
         location.query[attr] = 'newValue';
         wrapper.setProps({location});
+        wrapper.update();
 
         // Each propery change should cause a new fetch incrementing the call count.
-        expect(fetchDataMock).toHaveBeenCalledTimes(i + 2);
+        expect(fetchDataMock).toHaveBeenCalledTimes(i + 1);
       });
     });
   });
@@ -433,23 +696,13 @@ describe('OrganizationStream', function() {
       });
       expect(wrapper.find('EmptyStateWarning')).toHaveLength(1);
     });
-
-    it('displays group rows', function() {
-      GroupStore.add([group]);
-      wrapper.setState({
-        error: false,
-        savedSearchLoading: false,
-        issuesLoading: false,
-        groupIds: ['1'],
-      });
-      const groups = wrapper.find('StreamGroup');
-      expect(groups).toHaveLength(1);
-    });
   });
 
   describe('Empty State', function() {
     const createWrapper = moreProps => {
       const defaultProps = {
+        savedSearchLoading: false,
+        useOrgSavedSearches: true,
         selection: {
           projects: [],
           environments: [],
@@ -465,7 +718,6 @@ describe('OrganizationStream', function() {
       const localWrapper = shallow(<OrganizationStream {...defaultProps} />);
       localWrapper.setState({
         error: false,
-        savedSearchLoading: false,
         issuesLoading: false,
         groupIds: [],
       });
@@ -597,59 +849,6 @@ describe('OrganizationStream', function() {
       });
 
       expect(wrapper.find(ErrorRobot)).toHaveLength(0);
-    });
-  });
-
-  describe('pinned searches', function() {
-    let pinnedSearch;
-
-    beforeEach(function() {
-      pinnedSearch = {
-        id: '888',
-        query: 'best:yes',
-        name: 'best issues',
-        isPinned: true,
-      };
-
-      MockApiClient.addMockResponse({
-        url: '/organizations/org-slug/searches/',
-        body: [savedSearch, pinnedSearch],
-      });
-
-      wrapper = shallow(<OrganizationStream {...props} />, {
-        disableLifecycleMethods: false,
-      });
-    });
-
-    it('defaults to the pinned search', async function() {
-      await wrapper.update();
-
-      const instance = wrapper.instance();
-      expect(instance.state.savedSearch).toEqual(pinnedSearch);
-    });
-
-    it('does not use pin when there is an existing query', async function() {
-      const location = {query: {query: 'timesSeen:>100'}};
-      wrapper = shallow(<OrganizationStream {...props} location={location} />, {
-        disableLifecycleMethods: false,
-      });
-      await wrapper.update();
-
-      const instance = wrapper.instance();
-      expect(instance.state.savedSearch).toEqual(null);
-    });
-
-    it('does not use pin when there is a saved search selected', async function() {
-      const params = {orgId: organization.slug, searchId: savedSearch.id};
-      wrapper = shallow(<OrganizationStream {...props} params={params} />, {
-        disableLifecycleMethods: false,
-      });
-
-      const instance = wrapper.instance();
-      instance.setState({savedSearch});
-      await wrapper.update();
-
-      expect(instance.state.savedSearch).toEqual(savedSearch);
     });
   });
 });
