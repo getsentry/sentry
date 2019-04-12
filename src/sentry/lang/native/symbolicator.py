@@ -49,6 +49,12 @@ VALID_FILE_TYPES = (
     'breakpad',
 )
 
+VALID_CASINGS = (
+    'lowercase',
+    'uppercase',
+    'default'
+)
+
 COMMON_SOURCE_PROPERTIES = {
     'id': {
         'type': 'string',
@@ -57,6 +63,10 @@ COMMON_SOURCE_PROPERTIES = {
     'layout': {
         'type': 'string',
         'enum': list(VALID_LAYOUTS),
+    },
+    'casing': {
+        'type': 'string',
+        'enum': list(VALID_CASINGS),
     },
     'filetypes': {
         'type': 'array',
