@@ -1,15 +1,17 @@
 import Reflux from 'reflux';
+import SentryAppComponentsActions from 'app/actions/sentryAppComponentActions';
 
 const SentryAppComponentsStore = Reflux.createStore({
   init() {
     this.items = [];
+    this.listenTo(SentryAppComponentsActions.loadComponents, this.onLoadComponents);
   },
 
   getInitialState() {
     return this.items;
   },
 
-  load(items) {
+  onLoadComponents(items) {
     this.items = items;
     this.trigger(items);
   },
