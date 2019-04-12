@@ -12,7 +12,6 @@ from .errorlocale import translate_exception
 def preprocess_event(data):
     rewrite_exception(data)
     translate_exception(data)
-    fix_culprit(data)
     generate_modules(data)
     return data
 
@@ -28,14 +27,6 @@ def generate_modules(data):
             abs_path = frame.get('abs_path')
             if abs_path and abs_path.startswith(('http:', 'https:', 'webpack:', 'app:')):
                 frame['module'] = generate_module(abs_path)
-
-
-def fix_culprit(data):
-    if not get_path(data, 'exception', 'values', filter=True):
-        return
-
-    from sentry.event_manager import generate_culprit
-    data['culprit'] = generate_culprit(data)
 
 
 class JavascriptPlugin(Plugin2):

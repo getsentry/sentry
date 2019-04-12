@@ -9,6 +9,7 @@ const theme = {
   offWhite2: '#E7E1EC',
   whiteDark: '#fbfbfc',
   white: '#FFFFFF',
+  foreground: '#493E54',
 
   gray1: '#BDB4C7',
   gray2: '#9585A3',

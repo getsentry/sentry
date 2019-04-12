@@ -69,7 +69,7 @@ describe('IgnoreActions', function() {
 
     beforeEach(function() {
       component = mount(
-        <IgnoreActions onUpdate={spy} shouldConfirm={true} confirmMessage={'Yoooooo'} />,
+        <IgnoreActions onUpdate={spy} shouldConfirm={true} confirmMessage="Yoooooo" />,
         routerContext
       );
       button = component.find('a.btn.btn-default').first();

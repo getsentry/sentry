@@ -31,7 +31,7 @@ const StyledButton = styled(({isOpen, ...props}) => <Button {...props} />)`
   z-index: 2;
   box-shadow: ${p => (p.isOpen || p.disabled ? 'none' : p.theme.dropShadowLight)};
 
-  &,
+  &:focus,
   &:hover {
     border-bottom-color: ${p => (p.isOpen ? 'transparent' : p.theme.borderDark)};
   }

@@ -367,9 +367,7 @@ const KeySettings = createReactClass({
                     label={t('Enabled')}
                     required={false}
                     disabled={!hasAccess}
-                    help={
-                      'Accept events from this key? This may be used to temporarily suspend a key.'
-                    }
+                    help="Accept events from this key? This may be used to temporarily suspend a key."
                   />
                   <Field label={t('Created')}>
                     <div className="controls">

@@ -163,18 +163,18 @@ exports[`OrganizationTeamProjects Should render 1`] = `
                                           size="xsmall"
                                         >
                                           <Component
-                                            className="css-o27a2e-StyledButton e1yghndz1"
+                                            className="css-qfyoa0-StyledButton e1yghndz1"
                                             isOpen={false}
                                             size="xsmall"
                                           >
                                             <Button
-                                              className="css-o27a2e-StyledButton e1yghndz1"
+                                              className="css-qfyoa0-StyledButton e1yghndz1"
                                               disabled={false}
                                               size="xsmall"
                                             >
                                               <StyledButton
                                                 aria-disabled={false}
-                                                className="css-o27a2e-StyledButton e1yghndz1"
+                                                className="css-qfyoa0-StyledButton e1yghndz1"
                                                 disabled={false}
                                                 onClick={[Function]}
                                                 role="button"
@@ -182,14 +182,14 @@ exports[`OrganizationTeamProjects Should render 1`] = `
                                               >
                                                 <Component
                                                   aria-disabled={false}
-                                                  className="e1yghndz1 css-108zzii-StyledButton-getColors-StyledButton eqrebog0"
+                                                  className="e1yghndz1 css-1momm09-StyledButton-getColors-StyledButton eqrebog0"
                                                   onClick={[Function]}
                                                   role="button"
                                                   size="xsmall"
                                                 >
                                                   <button
                                                     aria-disabled={false}
-                                                    className="e1yghndz1 css-108zzii-StyledButton-getColors-StyledButton eqrebog0"
+                                                    className="e1yghndz1 css-1momm09-StyledButton-getColors-StyledButton eqrebog0"
                                                     onClick={[Function]}
                                                     role="button"
                                                     size="xsmall"
