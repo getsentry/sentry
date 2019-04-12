@@ -55,7 +55,7 @@ export default class OrganizationSavedSearchSelector extends React.Component {
 
     return savedSearchList.map(search => (
       <StyledMenuItem onSelect={() => onSavedSearchSelect(search)} key={search.id}>
-        {search.isPinned && <InlineSvg src={'icon-pin'} />}
+        {search.isPinned && <InlineSvg src="icon-pin" />}
         <SearchTitle>{search.name}</SearchTitle>
         <SearchQuery>{search.query}</SearchQuery>
         {search.isGlobal === false && (

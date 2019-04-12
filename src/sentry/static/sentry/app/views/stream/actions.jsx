@@ -360,7 +360,7 @@ const StreamActions = createReactClass({
             />
             <div className="btn-group hidden-sm hidden-xs">
               <ActionLink
-                className={'btn btn-default btn-sm action-merge'}
+                className="btn btn-default btn-sm action-merge"
                 disabled={mergeDisabled}
                 onAction={this.onMerge}
                 shouldConfirm={this.shouldConfirm('merge')}
@@ -373,7 +373,7 @@ const StreamActions = createReactClass({
             </div>
             <div className="btn-group hidden-xs">
               <ActionLink
-                className={'btn btn-default btn-sm action-bookmark hidden-sm hidden-xs'}
+                className="btn btn-default btn-sm action-bookmark hidden-sm hidden-xs"
                 onAction={() => this.onUpdate({isBookmarked: true})}
                 shouldConfirm={this.shouldConfirm('bookmark')}
                 message={confirm('bookmark', false)}
@@ -394,7 +394,7 @@ const StreamActions = createReactClass({
               >
                 <MenuItem noAnchor={true}>
                   <ActionLink
-                    className={'action-merge hidden-md hidden-lg hidden-xl'}
+                    className="action-merge hidden-md hidden-lg hidden-xl"
                     disabled={mergeDisabled}
                     onAction={this.onMerge}
                     shouldConfirm={this.shouldConfirm('merge')}
@@ -405,10 +405,10 @@ const StreamActions = createReactClass({
                     {t('Merge')}
                   </ActionLink>
                 </MenuItem>
-                <MenuItem divider={true} className={'hidden-md hidden-lg hidden-xl'} />
+                <MenuItem divider={true} className="hidden-md hidden-lg hidden-xl" />
                 <MenuItem noAnchor={true}>
                   <ActionLink
-                    className={'action-bookmark hidden-md hidden-lg hidden-xl'}
+                    className="action-bookmark hidden-md hidden-lg hidden-xl"
                     disabled={!anySelected}
                     onAction={() => this.onUpdate({isBookmarked: true})}
                     shouldConfirm={this.shouldConfirm('bookmark')}
@@ -419,7 +419,7 @@ const StreamActions = createReactClass({
                     {t('Add to Bookmarks')}
                   </ActionLink>
                 </MenuItem>
-                <MenuItem divider={true} className={'hidden-md hidden-lg hidden-xl'} />
+                <MenuItem divider={true} className="hidden-md hidden-lg hidden-xl" />
                 <MenuItem noAnchor={true}>
                   <ActionLink
                     className="action-remove-bookmark"

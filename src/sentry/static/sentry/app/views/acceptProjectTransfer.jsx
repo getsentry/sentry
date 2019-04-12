@@ -93,7 +93,7 @@ class AcceptProjectTransfer extends AsyncView {
           <SelectField
             choices={choices}
             label={t('Organization')}
-            name={'organization'}
+            name="organization"
             style={{borderBottom: 'none'}}
           />
         </Form>
