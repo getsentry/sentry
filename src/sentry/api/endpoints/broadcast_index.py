@@ -24,12 +24,13 @@ logger = logging.getLogger('sentry')
 class BroadcastIndexEndpoint(Endpoint):
     permission_classes = (IsAuthenticated, )
 
-    def _serialize_objects(self, items, request):
+    def _get_serializer(self, request):
         if is_active_superuser(request):
-            serializer_cls = AdminBroadcastSerializer
-        else:
-            serializer_cls = BroadcastSerializer
+            return AdminBroadcastSerializer
+        return BroadcastSerializer
 
+    def _serialize_objects(self, items, request):
+        serializer_cls = self._get_serializer(request)
         return serialize(items, request.user, serializer=serializer_cls())
 
     def get(self, request):
