@@ -76,7 +76,6 @@ describe('SavedSearchesStore', function() {
         {
           id: null,
           isPinned: true,
-          isPrivate: true,
           type: 0,
           query: 'assigned:me',
         },
@@ -94,8 +93,6 @@ describe('SavedSearchesStore', function() {
       expect.objectContaining({
         id: '1',
         isPinned: true,
-        isPrivate: false,
-        isGlobal: true,
         type: 0,
         name: 'Unresolved Issues',
         query: 'is:unresolved',
@@ -125,8 +122,6 @@ describe('SavedSearchesStore', function() {
       expect.objectContaining({
         id: '2',
         isPinned: false,
-        isPrivate: false,
-        isGlobal: true,
         type: 0,
         name: 'Needs Triage',
         query: 'is:unresolved is:unassigned',
@@ -137,8 +132,6 @@ describe('SavedSearchesStore', function() {
       expect.objectContaining({
         id: '1',
         isPinned: true,
-        isPrivate: false,
-        isGlobal: true,
         type: 0,
         name: 'Unresolved Issues',
         query: 'is:unresolved',
@@ -146,7 +139,7 @@ describe('SavedSearchesStore', function() {
     );
   });
 
-  it('unpins a user custom search (private)', async function() {
+  it('unpins a user custom search (not global, and not org custom)', async function() {
     const searches = TestStubs.Searches();
 
     Client.addMockResponse({
@@ -155,7 +148,6 @@ describe('SavedSearchesStore', function() {
         {
           id: null,
           isPinned: true,
-          isPrivate: true,
           type: 0,
           query: 'assigned:me',
         },
@@ -175,7 +167,6 @@ describe('SavedSearchesStore', function() {
       expect.objectContaining({
         id: '2',
         isPinned: false,
-        isGlobal: true,
         type: 0,
         name: 'Needs Triage',
         query: 'is:unresolved is:unassigned',
@@ -186,8 +177,6 @@ describe('SavedSearchesStore', function() {
       expect.objectContaining({
         id: '1',
         isPinned: false,
-        isPrivate: false,
-        isGlobal: true,
         type: 0,
         name: 'Unresolved Issues',
         query: 'is:unresolved',
@@ -195,7 +184,7 @@ describe('SavedSearchesStore', function() {
     );
   });
 
-  it('unpins an existing org saved search', async function() {
+  it('unpins an existing global saved search', async function() {
     const searches = TestStubs.Searches();
 
     Client.addMockResponse({
@@ -214,8 +203,6 @@ describe('SavedSearchesStore', function() {
       expect.objectContaining({
         id: '2',
         isPinned: false,
-        isPrivate: false,
-        isGlobal: true,
         type: 0,
         name: 'Needs Triage',
         query: 'is:unresolved is:unassigned',
@@ -226,8 +213,45 @@ describe('SavedSearchesStore', function() {
       expect.objectContaining({
         id: '1',
         isPinned: false,
-        isPrivate: false,
-        isGlobal: true,
+        type: 0,
+        name: 'Unresolved Issues',
+        query: 'is:unresolved',
+      })
+    );
+  });
+
+  it('unpins an existing org saved search', async function() {
+    const searches = TestStubs.Searches();
+
+    Client.addMockResponse({
+      url: '/organizations/org-1/searches/',
+      body: [
+        {...searches[0], isOrgCustom: true, isGlobal: false, isPinned: true},
+        searches[1],
+      ],
+    });
+    fetchSavedSearches(api, 'org-1');
+    await tick();
+
+    unpinSearch(api, 'org-1', 0, searches[0]);
+    await tick();
+
+    expect(SavedSearchesStore.get().savedSearches).toHaveLength(2);
+
+    expect(SavedSearchesStore.get().savedSearches[0]).toEqual(
+      expect.objectContaining({
+        id: '2',
+        isPinned: false,
+        type: 0,
+        name: 'Needs Triage',
+        query: 'is:unresolved is:unassigned',
+      })
+    );
+
+    expect(SavedSearchesStore.get().savedSearches[1]).toEqual(
+      expect.objectContaining({
+        id: '1',
+        isPinned: false,
         type: 0,
         name: 'Unresolved Issues',
         query: 'is:unresolved',

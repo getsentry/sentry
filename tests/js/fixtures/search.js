@@ -1,9 +1,9 @@
 export function Search(params = {}) {
   return {
     dateCreated: '2017-11-14T02:22:58.026Z',
-    isUserDefault: false,
-    isPrivate: false,
-    isDefault: true,
+    isGlobal: false,
+    isOrgCustom: false,
+    isPinned: false,
     type: 0,
 
     name: 'Needs Triage',

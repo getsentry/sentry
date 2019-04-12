@@ -10,8 +10,6 @@ export function Searches(params = []) {
     }),
     Search({
       name: 'Unresolved Issues',
-      isUserDefault: false,
-      isPrivate: false,
       query: 'is:unresolved',
       id: '1',
       isGlobal: true,

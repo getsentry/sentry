@@ -39,14 +39,18 @@ const SavedSearchesStore = Reflux.createStore({
   },
 
   /**
-   * If pinned search, remove from list if `isPrivate` is true (meaning user created as pin).
+   * If pinned search, remove from list if user created pin (e.g. not org saved search and not global)
    * Otherwise change `isPinned` to false (e.g. if it's default or org saved search)
    */
   getFilteredSearches(type, existingSearchId) {
     return this.state.savedSearches
       .filter(
         savedSearch =>
-          !(savedSearch.isPinned && savedSearch.type === type && savedSearch.isPrivate)
+          !(
+            savedSearch.isPinned &&
+            savedSearch.type === type &&
+            (!savedSearch.isOrgCustom && !savedSearch.isGlobal)
+          )
       )
       .map(savedSearch => {
         if (
