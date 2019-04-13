@@ -3,6 +3,7 @@ import PropTypes from 'prop-types';
 import React from 'react';
 import styled, {css} from 'react-emotion';
 import isPropValid from '@emotion/is-prop-valid';
+import {pickBy} from 'lodash';
 
 import ExternalLink from 'app/components/externalLink';
 import InlineSvg from 'app/components/inlineSvg';
@@ -196,27 +197,28 @@ const getColors = ({priority, disabled, borderless, theme}) => {
   `;
 };
 
-const customProps = ['external', 'size'];
-const shouldForwardProp = p =>
-  (p !== 'disabled' && isPropValid(p)) || customProps.includes(p);
-
 const StyledButton = styled(
-  React.forwardRef((props, ref) => {
+  React.forwardRef((prop, ref) => {
+    const forwardProps = pickBy(
+      prop,
+      (value, key) => key !== 'disabled' && isPropValid(key)
+    );
+
     // Get component to use based on existance of `to` or `href` properties
     // Can be react-router `Link`, `a`, or `button`
-    if (props.to) {
-      return <Link ref={ref} {...props} />;
+    if (prop.to) {
+      return <Link ref={ref} {...forwardProps} />;
     }
 
-    if (!props.href) {
-      return <button ref={ref} {...props} />;
+    if (!prop.href) {
+      return <button ref={ref} {...forwardProps} />;
     }
 
-    if (external) {
-      return <ExternalLink ref={ref} {...props} />;
+    if (prop.external) {
+      return <ExternalLink ref={ref} {...forwardProps} />;
     }
 
-    return <a ref={ref} {...props} />;
+    return <a ref={ref} {...forwardProps} />;
   })
 )`
   display: inline-block;

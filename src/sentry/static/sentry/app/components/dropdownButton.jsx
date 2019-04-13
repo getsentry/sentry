@@ -3,6 +3,7 @@ import React from 'react';
 import styled from 'react-emotion';
 import Button from 'app/components/button';
 import InlineSvg from 'app/components/inlineSvg';
+import {omit} from 'lodash';
 
 class DropdownButton extends React.Component {
   static propTypes = {
@@ -26,7 +27,10 @@ const StyledChevronDown = styled(props => (
 `;
 
 const StyledButton = styled(
-  React.forwardRef((props, ref) => <Button innerRef={ref} {...props} />)
+  React.forwardRef((props, ref) => {
+    const forwardProps = omit(props, ['isOpen']);
+    return <Button innerRef={ref} {...forwardProps} />;
+  })
 )`
   border-bottom-right-radius: ${p => (p.isOpen ? 0 : p.theme.borderRadius)};
   border-bottom-left-radius: ${p => (p.isOpen ? 0 : p.theme.borderRadius)};
