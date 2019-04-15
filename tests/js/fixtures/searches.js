@@ -1,4 +1,4 @@
-import {Search} from 'app-test/fixtures/search';
+import {Search} from './search';
 
 export function Searches(params = []) {
   return [
