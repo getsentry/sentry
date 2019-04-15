@@ -1,6 +1,8 @@
 import React from 'react';
 import PropTypes from 'prop-types';
 import styled from 'react-emotion';
+import {Link} from 'react-router';
+
 import InlineSvg from 'app/components/inlineSvg';
 import Tooltip from 'app/components/tooltip';
 import space from 'app/styles/space';
@@ -16,6 +18,7 @@ class HeaderItem extends React.Component {
     isOpen: PropTypes.bool,
     locked: PropTypes.bool,
     lockedMessage: PropTypes.string,
+    settingsLink: PropTypes.string,
   };
 
   static defaultProps = {
@@ -37,6 +40,7 @@ class HeaderItem extends React.Component {
       icon,
       locked,
       lockedMessage,
+      settingsLink,
       onClear, // eslint-disable-line no-unused-vars
       ...props
     } = this.props;
@@ -60,6 +64,11 @@ class HeaderItem extends React.Component {
             hasSelected={hasSelected}
             onClick={this.handleClear}
           />
+        )}
+        {settingsLink && (
+          <SettingsIconLink to={settingsLink}>
+            <SettingsIcon src="icon-settings" />
+          </SettingsIconLink>
         )}
         {!locked && (
           <StyledChevron isOpen={isOpen}>
@@ -127,6 +136,24 @@ const StyledChevron = styled('div')`
   display: flex;
   align-items: center;
   justify-content: center;
+`;
+
+const SettingsIconLink = styled(Link)`
+  color: ${p => p.theme.gray2};
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: ${space(1)};
+  transition: 0.5s opacity ease-out;
+
+  &:hover {
+    color: ${p => p.theme.gray4};
+  }
+`;
+
+const SettingsIcon = styled(InlineSvg)`
+  height: 16px;
+  width: 16px;
 `;
 
 const StyledLock = styled(InlineSvg)`
