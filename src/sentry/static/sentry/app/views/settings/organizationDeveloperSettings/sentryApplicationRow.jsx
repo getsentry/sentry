@@ -5,7 +5,6 @@ import Access from 'app/components/acl/access';
 import Button from 'app/components/button';
 import Confirm from 'app/components/confirm';
 import ConfirmDelete from 'app/components/confirmDelete';
-import SentryAppAvatar from 'app/components/avatar/sentryAppAvatar';
 import PropTypes from 'prop-types';
 import SentryTypes from 'app/sentryTypes';
 import Tooltip from 'app/components/tooltip';
@@ -15,6 +14,7 @@ import styled from 'react-emotion';
 import space from 'app/styles/space';
 import {withTheme} from 'emotion-theming';
 import CircleIndicator from 'app/components/circleIndicator';
+import PluginIcon from 'app/plugins/components/pluginIcon';
 
 export default class SentryApplicationRow extends React.PureComponent {
   static propTypes = {
@@ -72,7 +72,7 @@ export default class SentryApplicationRow extends React.PureComponent {
     return (
       <SentryAppItem>
         <StyledFlex>
-          <SentryAppAvatar size={36} sentryApp={app} />
+          <PluginIcon size={36} pluginId={app.slug} />
           <SentryAppBox>
             <SentryAppName>
               {showPublishStatus ? (
