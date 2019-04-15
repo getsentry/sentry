@@ -49,7 +49,7 @@ class OpenInContextLine extends React.Component {
 export default OpenInContextLine;
 
 const OpenInContainer = styled('div')`
-  font-family: 'Rubik', 'Avenir Next', 'Helvetica Neue', sans-serif;
+  font-family: ${p => p.theme.text.family};
   font-size: 13px;
   padding: 3px;
   border-bottom: 1px solid ${p => p.theme.borderLight};
@@ -60,8 +60,8 @@ const OpenInContainer = styled('div')`
 
 const OpenInIcon = styled(SentryAppIcon)`
   vertical-align: text-top;
-  height: 16px;
-  width: 16px;
+  height: 15px;
+  width: 15px;
   margin-left: ${space(1)};
 `;
 
