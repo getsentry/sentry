@@ -43,7 +43,6 @@ class ApiToken(Model, HasApiScopes):
     expires_at = models.DateTimeField(
         null=True, default=default_expiration
     )
-    refreshed = models.NullBooleanField()
     date_added = models.DateTimeField(default=timezone.now)
 
     objects = BaseManager(cache_fields=('token', ))

@@ -1,9 +1,6 @@
 from __future__ import absolute_import
 
 import six
-import pytz
-
-from datetime import datetime
 
 from sentry import analytics
 from sentry.coreapi import APIUnauthorized
@@ -26,7 +23,7 @@ class Refresher(Mediator):
 
     def call(self):
         self._validate()
-        self._expire_token()
+        self._delete_token()
 
         return ApiToken.objects.create(
             user=self.user,
@@ -50,18 +47,13 @@ class Refresher(Mediator):
         )
 
         self._validate_token_belongs_to_app()
-        self._validate_token_is_active()
 
     def _validate_token_belongs_to_app(self):
         if self.token.application != self.application:
             raise APIUnauthorized
 
-    def _validate_token_is_active(self):
-        if self.token.expires_at < datetime.utcnow().replace(tzinfo=pytz.UTC):
-            raise APIUnauthorized
-
-    def _expire_token(self):
-        self.token.update(expires_at=datetime.utcnow())
+    def _delete_token(self):
+        self.token.delete()
 
     @memoize
     def token(self):
