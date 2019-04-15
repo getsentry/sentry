@@ -18,7 +18,10 @@ class TestUpdater(TestCase):
             schema={'elements': [self.create_issue_link_schema()]},
         )
 
-        self.updater = Updater(sentry_app=self.sentry_app)
+        self.updater = Updater(
+            sentry_app=self.sentry_app,
+            user=self.user,
+        )
 
     def test_updates_name(self):
         self.updater.name = 'A New Thing'
@@ -38,7 +41,7 @@ class TestUpdater(TestCase):
             scopes=('project:read',),
             published=True,
         )
-        updater = Updater(sentry_app=sentry_app)
+        updater = Updater(sentry_app=sentry_app, user=self.user)
         updater.scopes = ('project:read', 'project:write', )
 
         with self.assertRaises(APIError):
@@ -50,7 +53,7 @@ class TestUpdater(TestCase):
             organization=self.org,
             scopes=('project:read',),
         )
-        updater = Updater(sentry_app=sentry_app)
+        updater = Updater(sentry_app=sentry_app, user=self.user)
         updater.events = ('issue',)
         with self.assertRaises(APIError):
             updater.call()
@@ -63,7 +66,7 @@ class TestUpdater(TestCase):
             events=('event.alert',),
         )
         self.create_sentry_app_installation(slug='sentry')
-        updater = Updater(sentry_app=sentry_app, events=('issue',))
+        updater = Updater(sentry_app=sentry_app, events=('issue',), user=self.user)
         updater.call()
         assert set(sentry_app.events) == expand_events(['issue'])
         service_hook = ServiceHook.objects.filter(application=sentry_app.application)[0]

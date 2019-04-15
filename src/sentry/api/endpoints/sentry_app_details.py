@@ -37,6 +37,7 @@ class SentryAppDetailsEndpoint(SentryAppBaseEndpoint):
             result = serializer.object
 
             updated_app = Updater.run(
+                user=request.user,
                 sentry_app=sentry_app,
                 name=result.get('name'),
                 author=result.get('author'),
@@ -61,6 +62,7 @@ class SentryAppDetailsEndpoint(SentryAppBaseEndpoint):
 
         if sentry_app.status == SentryAppStatus.UNPUBLISHED:
             Destroyer.run(
+                user=request.user,
                 sentry_app=sentry_app,
                 request=request,
             )

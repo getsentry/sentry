@@ -75,3 +75,18 @@ class TestGrantExchanger(TestCase):
         grant_id = self.install.api_grant_id
         self.grant_exchanger.call()
         assert not ApiGrant.objects.filter(id=grant_id)
+
+    @patch('sentry.analytics.record')
+    def test_records_analytics(self, record):
+        GrantExchanger.run(
+            install=self.install,
+            client_id=self.client_id,
+            code=self.code,
+            user=self.user,
+        )
+
+        record.assert_called_with(
+            'sentry_app.token_exchanged',
+            sentry_app_installation_id=self.install.id,
+            exchange_type='authorization',
+        )

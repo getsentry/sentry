@@ -97,3 +97,19 @@ class TestCreator(TestCase):
 
         assert install.api_grant is not None
         assert install.authorization is not None
+
+    @patch('sentry.analytics.record')
+    def test_records_analytics(self, record):
+        Creator.run(
+            organization=self.org,
+            slug='nulldb',
+            user=self.user,
+            request=self.make_request(user=self.user, method='GET'),
+        )
+
+        record.assert_called_with(
+            'sentry_app.installed',
+            user_id=self.user.id,
+            organization_id=self.org.id,
+            sentry_app='nulldb',
+        )

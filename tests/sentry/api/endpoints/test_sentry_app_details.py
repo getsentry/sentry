@@ -158,7 +158,7 @@ class UpdateSentryAppDetailsTest(SentryAppDetailsTest):
             organization=self.org,
         )
 
-        sentry_apps.Destroyer.run(sentry_app=sentry_app)
+        sentry_apps.Destroyer.run(sentry_app=sentry_app, user=self.user)
 
         response = self.client.put(
             self.url,

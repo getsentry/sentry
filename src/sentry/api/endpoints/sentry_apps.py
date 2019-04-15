@@ -31,6 +31,7 @@ class SentryAppsEndpoint(SentryAppsBaseEndpoint):
 
             sentry_app = Creator.run(
                 name=result.get('name'),
+                user=request.user,
                 author=result.get('author'),
                 organization=self._get_user_org(request),
                 scopes=result.get('scopes'),

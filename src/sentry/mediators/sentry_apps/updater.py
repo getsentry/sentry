@@ -3,8 +3,9 @@ from __future__ import absolute_import
 import six
 
 from collections import Iterable
-from sentry.coreapi import APIError
 
+from sentry import analytics
+from sentry.coreapi import APIError
 from sentry.constants import SentryAppStatus
 from sentry.mediators import Mediator, Param
 from sentry.mediators import service_hooks
@@ -23,6 +24,7 @@ class Updater(Mediator):
     is_alertable = Param(bool, required=False)
     schema = Param(dict, required=False)
     overview = Param(six.string_types, required=False)
+    user = Param('sentry.models.User')
 
     def call(self):
         self._update_name()
@@ -103,3 +105,10 @@ class Updater(Mediator):
                 sentry_app_id=self.sentry_app.id,
                 schema=element,
             )
+
+    def record_analytics(self):
+        analytics.record(
+            'sentry_app.updated',
+            user_id=self.user.id,
+            sentry_app=self.sentry_app.slug,
+        )

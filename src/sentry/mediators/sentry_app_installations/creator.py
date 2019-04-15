@@ -2,6 +2,7 @@ from __future__ import absolute_import
 
 import six
 
+from sentry import analytics
 from sentry.mediators import Mediator, Param, service_hooks
 from sentry.models import (
     AuditLogEntryEvent, ApiAuthorization, ApiGrant, SentryApp, SentryAppInstallation
@@ -71,6 +72,14 @@ class Creator(Mediator):
                     'sentry_app': self.sentry_app.name,
                 },
             )
+
+    def record_analytics(self):
+        analytics.record(
+            'sentry_app.installed',
+            user_id=self.user.id,
+            organization_id=self.organization.id,
+            sentry_app=self.slug,
+        )
 
     @memoize
     def api_application(self):
