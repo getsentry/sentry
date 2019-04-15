@@ -1168,22 +1168,6 @@ class SnubaSearchTest(TestCase, SnubaTestCase):
             **common_args
         )
 
-        self.make_query(
-            search_filter_query='age:>=%s foo' % date_to_query_format(timezone.now()),
-            query='foo',
-            age_from=timezone.now(),
-            sort_by='new',
-        )
-        assert query_mock.call_args == mock.call(
-            orderby=['-first_seen', 'issue'],
-            aggregations=[
-                ['toUInt64(min(timestamp)) * 1000', '', 'first_seen'],
-                ['uniq', 'issue', 'total'],
-            ],
-            having=[['first_seen', '>=', Any(int)]],
-            **common_args
-        )
-
     def test_pre_and_post_filtering(self):
         prev_max_pre = options.get('snuba.search.max-pre-snuba-candidates')
         options.set('snuba.search.max-pre-snuba-candidates', 1)
