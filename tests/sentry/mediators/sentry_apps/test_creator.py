@@ -1,5 +1,7 @@
 from __future__ import absolute_import
 
+from mock import patch
+
 from sentry.mediators.sentry_apps import Creator
 from sentry.models import AuditLogEntry, AuditLogEntryEvent, ApiApplication, SentryApp, SentryAppComponent, User
 from sentry.testutils import TestCase
@@ -11,6 +13,7 @@ class TestCreator(TestCase):
         self.org = self.create_organization(owner=self.user)
         self.creator = Creator(
             name='nulldb',
+            user=self.user,
             author='Sentry',
             organization=self.org,
             scopes=('project:read',),
@@ -80,6 +83,7 @@ class TestCreator(TestCase):
         request = self.make_request(user=self.user, method='GET')
         Creator.run(
             name='nulldb',
+            user=self.user,
             author='Sentry',
             organization=self.org,
             scopes=('project:read',),
@@ -100,3 +104,23 @@ class TestCreator(TestCase):
     def test_schema_with_no_elements(self):
         self.creator.schema = {'elements': []}
         assert self.creator.call()
+
+    @patch('sentry.analytics.record')
+    def test_records_analytics(self, record):
+        sentry_app = Creator.run(
+            name='nulldb',
+            user=self.user,
+            author='Sentry',
+            organization=self.org,
+            scopes=('project:read',),
+            webhook_url='http://example.com',
+            schema={'elements': [self.create_issue_link_schema()]},
+            request=self.make_request(user=self.user, method='GET')
+        )
+
+        record.assert_called_with(
+            'sentry_app.created',
+            user_id=self.user.id,
+            organization_id=self.org.id,
+            sentry_app=sentry_app.slug,
+        )
