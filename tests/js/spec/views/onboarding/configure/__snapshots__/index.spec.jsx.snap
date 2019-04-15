@@ -66,11 +66,13 @@ exports[`Configure should render correctly render() should render platform docs 
                     priority="primary"
                     role="button"
                   >
-                    <Component
+                    <ForwardRef
                       aria-disabled={false}
                       aria-label="Or See Sample Event"
                       className="eadl9o50 css-w2sk1s-StyledButton-getColors-StyledButton eqrebog0"
+                      disabled={false}
                       onClick={[Function]}
+                      priority="primary"
                       role="button"
                     >
                       <button
@@ -95,7 +97,7 @@ exports[`Configure should render correctly render() should render platform docs 
                           </Component>
                         </ButtonLabel>
                       </button>
-                    </Component>
+                    </ForwardRef>
                   </StyledButton>
                 </Button>
               </StyledButton>
@@ -379,10 +381,11 @@ exports[`Configure should render correctly render() should render platform docs 
                                                       role="button"
                                                       size="small"
                                                     >
-                                                      <Component
+                                                      <ForwardRef
                                                         aria-disabled={false}
                                                         aria-label="< Back"
                                                         className="css-dkprmi-StyledButton-getColors eqrebog0"
+                                                        disabled={false}
                                                         href="/testOrg/project-slug/getting-started/"
                                                         onClick={[Function]}
                                                         role="button"
@@ -412,7 +415,7 @@ exports[`Configure should render correctly render() should render platform docs 
                                                             </Component>
                                                           </ButtonLabel>
                                                         </a>
-                                                      </Component>
+                                                      </ForwardRef>
                                                     </StyledButton>
                                                   </Button>
                                                 </div>
@@ -445,10 +448,11 @@ exports[`Configure should render correctly render() should render platform docs 
                                                       role="button"
                                                       size="small"
                                                     >
-                                                      <Component
+                                                      <ForwardRef
                                                         aria-disabled={false}
                                                         aria-label="Full Documentation"
                                                         className="css-dkprmi-StyledButton-getColors eqrebog0"
+                                                        disabled={false}
                                                         external={true}
                                                         href="https://docs.getsentry.com/hosted/clients/csharp/"
                                                         onClick={[Function]}
@@ -493,7 +497,7 @@ exports[`Configure should render correctly render() should render platform docs 
                                                             </ButtonLabel>
                                                           </a>
                                                         </ExternalLink>
-                                                      </Component>
+                                                      </ForwardRef>
                                                     </StyledButton>
                                                   </Button>
                                                 </div>
@@ -611,12 +615,14 @@ exports[`Configure should render correctly render() should render platform docs 
               priority="primary"
               role="button"
             >
-              <Component
+              <ForwardRef
                 aria-disabled={false}
                 aria-label="All done!"
                 className="css-1msljz8-StyledButton-getColors eqrebog0"
                 data-test-id="configure-done"
+                disabled={false}
                 onClick={[Function]}
+                priority="primary"
                 role="button"
               >
                 <button
@@ -642,7 +648,7 @@ exports[`Configure should render correctly render() should render platform docs 
                     </Component>
                   </ButtonLabel>
                 </button>
-              </Component>
+              </ForwardRef>
             </StyledButton>
           </Button>
         </div>

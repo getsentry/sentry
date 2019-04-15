@@ -93,7 +93,10 @@ export default class OrganizationSavedSearchSelector extends React.Component {
           {({isOpen, getMenuProps, getActorProps}) => {
             return (
               <React.Fragment>
-                <StyledDropdownButton {...getActorProps()} isOpen={isOpen}>
+                <StyledDropdownButton
+                  {...getActorProps({isStyled: true})}
+                  isOpen={isOpen}
+                >
                   <ButtonTitle>{this.getTitle()}</ButtonTitle>
                 </StyledDropdownButton>
                 <MenuContainer {...getMenuProps({isStyled: true})} isOpen={isOpen}>

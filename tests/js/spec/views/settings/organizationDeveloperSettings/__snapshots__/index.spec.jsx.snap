@@ -86,11 +86,13 @@ exports[`Organization Developer Settings when no Apps exist displays empty state
                             size="small"
                             to="/settings/org-slug/developer-settings/new/"
                           >
-                            <Component
+                            <ForwardRef
                               aria-disabled={false}
                               aria-label="Create New Application"
                               className="css-zvpqlo-StyledButton-getColors eqrebog0"
+                              disabled={false}
                               onClick={[Function]}
+                              priority="primary"
                               role="button"
                               size="small"
                               to="/settings/org-slug/developer-settings/new/"
@@ -178,7 +180,7 @@ exports[`Organization Developer Settings when no Apps exist displays empty state
                                   </ButtonLabel>
                                 </a>
                               </Link>
-                            </Component>
+                            </ForwardRef>
                           </StyledButton>
                         </Button>
                       </div>
@@ -347,11 +349,13 @@ exports[`Organization Developer Settings with published apps trash button is dis
                             size="small"
                             to="/settings/org-slug/developer-settings/new/"
                           >
-                            <Component
+                            <ForwardRef
                               aria-disabled={false}
                               aria-label="Create New Application"
                               className="css-zvpqlo-StyledButton-getColors eqrebog0"
+                              disabled={false}
                               onClick={[Function]}
+                              priority="primary"
                               role="button"
                               size="small"
                               to="/settings/org-slug/developer-settings/new/"
@@ -439,7 +443,7 @@ exports[`Organization Developer Settings with published apps trash button is dis
                                   </ButtonLabel>
                                 </a>
                               </Link>
-                            </Component>
+                            </ForwardRef>
                           </StyledButton>
                         </Button>
                       </div>
@@ -736,9 +740,10 @@ exports[`Organization Developer Settings with published apps trash button is dis
                                               title="Published apps cannot be removed."
                                               to={null}
                                             >
-                                              <Component
+                                              <ForwardRef
                                                 aria-disabled={true}
                                                 className="tip tip css-1ujzp8g-StyledButton-getColors eqrebog0"
+                                                disabled={true}
                                                 href={null}
                                                 onClick={[Function]}
                                                 role="button"
@@ -815,7 +820,7 @@ exports[`Organization Developer Settings with published apps trash button is dis
                                                     </Component>
                                                   </ButtonLabel>
                                                 </button>
-                                              </Component>
+                                              </ForwardRef>
                                             </StyledButton>
                                           </Tooltip>
                                         </Button>
@@ -927,11 +932,13 @@ exports[`Organization Developer Settings with unpublished apps displays all Apps
                             size="small"
                             to="/settings/org-slug/developer-settings/new/"
                           >
-                            <Component
+                            <ForwardRef
                               aria-disabled={false}
                               aria-label="Create New Application"
                               className="css-zvpqlo-StyledButton-getColors eqrebog0"
+                              disabled={false}
                               onClick={[Function]}
+                              priority="primary"
                               role="button"
                               size="small"
                               to="/settings/org-slug/developer-settings/new/"
@@ -1019,7 +1026,7 @@ exports[`Organization Developer Settings with unpublished apps displays all Apps
                                   </ButtonLabel>
                                 </a>
                               </Link>
-                            </Component>
+                            </ForwardRef>
                           </StyledButton>
                         </Button>
                       </div>
@@ -1467,9 +1474,10 @@ exports[`Organization Developer Settings with unpublished apps displays all Apps
                                                     role="button"
                                                     size="small"
                                                   >
-                                                    <Component
+                                                    <ForwardRef
                                                       aria-disabled={false}
                                                       className="css-dkprmi-StyledButton-getColors eqrebog0"
+                                                      disabled={false}
                                                       onClick={[Function]}
                                                       role="button"
                                                       size="small"
@@ -1540,7 +1548,7 @@ exports[`Organization Developer Settings with unpublished apps displays all Apps
                                                           </Component>
                                                         </ButtonLabel>
                                                       </button>
-                                                    </Component>
+                                                    </ForwardRef>
                                                   </StyledButton>
                                                 </Button>
                                                 <Modal
@@ -1707,11 +1715,13 @@ exports[`Organization Developer Settings without Owner permissions trash button 
                             size="small"
                             to="/settings/org-slug/developer-settings/new/"
                           >
-                            <Component
+                            <ForwardRef
                               aria-disabled={false}
                               aria-label="Create New Application"
                               className="css-zvpqlo-StyledButton-getColors eqrebog0"
+                              disabled={false}
                               onClick={[Function]}
+                              priority="primary"
                               role="button"
                               size="small"
                               to="/settings/org-slug/developer-settings/new/"
@@ -1799,7 +1809,7 @@ exports[`Organization Developer Settings without Owner permissions trash button 
                                   </ButtonLabel>
                                 </a>
                               </Link>
-                            </Component>
+                            </ForwardRef>
                           </StyledButton>
                         </Button>
                       </div>
@@ -2197,9 +2207,10 @@ exports[`Organization Developer Settings without Owner permissions trash button 
                                                     title="Owner permissions are required for this action."
                                                     to={null}
                                                   >
-                                                    <Component
+                                                    <ForwardRef
                                                       aria-disabled={true}
                                                       className="tip tip css-1ujzp8g-StyledButton-getColors eqrebog0"
+                                                      disabled={true}
                                                       href={null}
                                                       onClick={[Function]}
                                                       role="button"
@@ -2276,7 +2287,7 @@ exports[`Organization Developer Settings without Owner permissions trash button 
                                                           </Component>
                                                         </ButtonLabel>
                                                       </button>
-                                                    </Component>
+                                                    </ForwardRef>
                                                   </StyledButton>
                                                 </Tooltip>
                                               </Button>

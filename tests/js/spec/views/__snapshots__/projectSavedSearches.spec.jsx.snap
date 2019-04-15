@@ -390,9 +390,10 @@ exports[`ProjectSavedSearches renders 1`] = `
                                                 role="button"
                                                 size="small"
                                               >
-                                                <Component
+                                                <ForwardRef
                                                   aria-disabled={false}
                                                   className="css-dkprmi-StyledButton-getColors eqrebog0"
+                                                  disabled={false}
                                                   onClick={[Function]}
                                                   role="button"
                                                   size="small"
@@ -463,7 +464,7 @@ exports[`ProjectSavedSearches renders 1`] = `
                                                       </Component>
                                                     </ButtonLabel>
                                                   </button>
-                                                </Component>
+                                                </ForwardRef>
                                               </StyledButton>
                                             </Button>
                                             <Modal
@@ -708,9 +709,10 @@ exports[`ProjectSavedSearches renders 1`] = `
                                                 role="button"
                                                 size="small"
                                               >
-                                                <Component
+                                                <ForwardRef
                                                   aria-disabled={false}
                                                   className="css-dkprmi-StyledButton-getColors eqrebog0"
+                                                  disabled={false}
                                                   onClick={[Function]}
                                                   role="button"
                                                   size="small"
@@ -781,7 +783,7 @@ exports[`ProjectSavedSearches renders 1`] = `
                                                       </Component>
                                                     </ButtonLabel>
                                                   </button>
-                                                </Component>
+                                                </ForwardRef>
                                               </StyledButton>
                                             </Button>
                                             <Modal

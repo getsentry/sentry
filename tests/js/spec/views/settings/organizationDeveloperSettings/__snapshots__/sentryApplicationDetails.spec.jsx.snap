@@ -22513,12 +22513,14 @@ exports[`Sentry Application Details edit existing application renders() it shows
                       role="button"
                       type="submit"
                     >
-                      <Component
+                      <ForwardRef
                         aria-disabled={false}
                         aria-label="Save Changes"
                         className="css-1msljz8-StyledButton-getColors eqrebog0"
                         data-test-id="form-submit"
+                        disabled={false}
                         onClick={[Function]}
+                        priority="primary"
                         role="button"
                         type="submit"
                       >
@@ -22546,7 +22548,7 @@ exports[`Sentry Application Details edit existing application renders() it shows
                             </Component>
                           </ButtonLabel>
                         </button>
-                      </Component>
+                      </ForwardRef>
                     </StyledButton>
                   </Button>
                 </Observer>
@@ -40669,12 +40671,14 @@ exports[`Sentry Application Details new sentry application renders() it shows em
                       role="button"
                       type="submit"
                     >
-                      <Component
+                      <ForwardRef
                         aria-disabled={false}
                         aria-label="Save Changes"
                         className="css-1msljz8-StyledButton-getColors eqrebog0"
                         data-test-id="form-submit"
+                        disabled={false}
                         onClick={[Function]}
+                        priority="primary"
                         role="button"
                         type="submit"
                       >
@@ -40702,7 +40706,7 @@ exports[`Sentry Application Details new sentry application renders() it shows em
                             </Component>
                           </ButtonLabel>
                         </button>
-                      </Component>
+                      </ForwardRef>
                     </StyledButton>
                   </Button>
                 </Observer>

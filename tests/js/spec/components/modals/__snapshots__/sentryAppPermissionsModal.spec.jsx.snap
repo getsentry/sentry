@@ -141,11 +141,13 @@ exports[`SentryAppPermissionsModal installs the application 1`] = `
           priority="success"
           role="button"
         >
-          <Component
+          <ForwardRef
             aria-disabled={false}
             aria-label="Install"
             className="ey7jt0i0 css-17kpa0r-StyledButton-getColors-StyledButton eqrebog0"
+            disabled={false}
             onClick={[Function]}
+            priority="success"
             role="button"
           >
             <button
@@ -170,7 +172,7 @@ exports[`SentryAppPermissionsModal installs the application 1`] = `
                 </Component>
               </ButtonLabel>
             </button>
-          </Component>
+          </ForwardRef>
         </StyledButton>
       </Button>
     </StyledButton>
@@ -190,10 +192,11 @@ exports[`SentryAppPermissionsModal installs the application 1`] = `
           onClick={[Function]}
           role="button"
         >
-          <Component
+          <ForwardRef
             aria-disabled={false}
             aria-label="Cancel"
             className="ey7jt0i0 css-1xref87-StyledButton-getColors-StyledButton eqrebog0"
+            disabled={false}
             onClick={[Function]}
             role="button"
           >
@@ -216,7 +219,7 @@ exports[`SentryAppPermissionsModal installs the application 1`] = `
                 </Component>
               </ButtonLabel>
             </button>
-          </Component>
+          </ForwardRef>
         </StyledButton>
       </Button>
     </StyledButton>
@@ -365,11 +368,13 @@ exports[`SentryAppPermissionsModal renders permissions modal 1`] = `
           priority="success"
           role="button"
         >
-          <Component
+          <ForwardRef
             aria-disabled={false}
             aria-label="Install"
             className="ey7jt0i0 css-17kpa0r-StyledButton-getColors-StyledButton eqrebog0"
+            disabled={false}
             onClick={[Function]}
+            priority="success"
             role="button"
           >
             <button
@@ -394,7 +399,7 @@ exports[`SentryAppPermissionsModal renders permissions modal 1`] = `
                 </Component>
               </ButtonLabel>
             </button>
-          </Component>
+          </ForwardRef>
         </StyledButton>
       </Button>
     </StyledButton>
@@ -414,10 +419,11 @@ exports[`SentryAppPermissionsModal renders permissions modal 1`] = `
           onClick={[Function]}
           role="button"
         >
-          <Component
+          <ForwardRef
             aria-disabled={false}
             aria-label="Cancel"
             className="ey7jt0i0 css-1xref87-StyledButton-getColors-StyledButton eqrebog0"
+            disabled={false}
             onClick={[Function]}
             role="button"
           >
@@ -440,7 +446,7 @@ exports[`SentryAppPermissionsModal renders permissions modal 1`] = `
                 </Component>
               </ButtonLabel>
             </button>
-          </Component>
+          </ForwardRef>
         </StyledButton>
       </Button>
     </StyledButton>

@@ -231,11 +231,13 @@ exports[`projectAlertRules renders 1`] = `
                                 size="small"
                                 to="/settings/org-slug/projects/project1/alerts/rules/new/"
                               >
-                                <Component
+                                <ForwardRef
                                   aria-disabled={false}
                                   aria-label="New Alert Rule"
                                   className="css-zvpqlo-StyledButton-getColors eqrebog0"
+                                  disabled={false}
                                   onClick={[Function]}
+                                  priority="primary"
                                   role="button"
                                   size="small"
                                   to="/settings/org-slug/projects/project1/alerts/rules/new/"
@@ -323,7 +325,7 @@ exports[`projectAlertRules renders 1`] = `
                                       </ButtonLabel>
                                     </a>
                                   </Link>
-                                </Component>
+                                </ForwardRef>
                               </StyledButton>
                             </Button>
                           </Tooltip>
@@ -672,11 +674,12 @@ exports[`projectAlertRules renders 1`] = `
                                         }
                                         to="1/"
                                       >
-                                        <Component
+                                        <ForwardRef
                                           aria-disabled={false}
                                           aria-label="Edit Rule"
                                           className="css-dkprmi-StyledButton-getColors eqrebog0"
                                           data-test-id="edit-rule"
+                                          disabled={false}
                                           onClick={[Function]}
                                           role="button"
                                           size="xsmall"
@@ -733,7 +736,7 @@ exports[`projectAlertRules renders 1`] = `
                                               </ButtonLabel>
                                             </a>
                                           </Link>
-                                        </Component>
+                                        </ForwardRef>
                                       </StyledButton>
                                     </Button>
                                   </Tooltip>
@@ -764,9 +767,10 @@ exports[`projectAlertRules renders 1`] = `
                                           role="button"
                                           size="xsmall"
                                         >
-                                          <Component
+                                          <ForwardRef
                                             aria-disabled={false}
                                             className="css-dkprmi-StyledButton-getColors eqrebog0"
+                                            disabled={false}
                                             onClick={[Function]}
                                             role="button"
                                             size="xsmall"
@@ -837,7 +841,7 @@ exports[`projectAlertRules renders 1`] = `
                                                 </Component>
                                               </ButtonLabel>
                                             </button>
-                                          </Component>
+                                          </ForwardRef>
                                         </StyledButton>
                                       </Button>
                                       <Modal

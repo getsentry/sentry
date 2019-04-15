@@ -220,10 +220,11 @@ exports[`ProjectPluginDetails renders 1`] = `
                                   }
                                 }
                               >
-                                <Component
+                                <ForwardRef
                                   aria-disabled={false}
                                   aria-label="Enable Plugin"
                                   className="css-dkprmi-StyledButton-getColors eqrebog0"
+                                  disabled={false}
                                   onClick={[Function]}
                                   role="button"
                                   size="small"
@@ -261,7 +262,7 @@ exports[`ProjectPluginDetails renders 1`] = `
                                       </Component>
                                     </ButtonLabel>
                                   </button>
-                                </Component>
+                                </ForwardRef>
                               </StyledButton>
                             </Button>
                             <Button
@@ -277,10 +278,11 @@ exports[`ProjectPluginDetails renders 1`] = `
                                 role="button"
                                 size="small"
                               >
-                                <Component
+                                <ForwardRef
                                   aria-disabled={false}
                                   aria-label="Reset Configuration"
                                   className="css-dkprmi-StyledButton-getColors eqrebog0"
+                                  disabled={false}
                                   onClick={[Function]}
                                   role="button"
                                   size="small"
@@ -308,7 +310,7 @@ exports[`ProjectPluginDetails renders 1`] = `
                                       </Component>
                                     </ButtonLabel>
                                   </button>
-                                </Component>
+                                </ForwardRef>
                               </StyledButton>
                             </Button>
                           </div>

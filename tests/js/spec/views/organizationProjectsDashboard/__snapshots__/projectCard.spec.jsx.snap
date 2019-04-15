@@ -902,10 +902,11 @@ exports[`ProjectCard renders 1`] = `
                                 role="button"
                                 size="xsmall"
                               >
-                                <Component
+                                <ForwardRef
                                   aria-disabled={false}
                                   aria-label="Track deploys"
                                   className="css-dkprmi-StyledButton-getColors eqrebog0"
+                                  disabled={false}
                                   external={true}
                                   href="https://docs.sentry.io/learn/releases/"
                                   onClick={[Function]}
@@ -950,7 +951,7 @@ exports[`ProjectCard renders 1`] = `
                                       </ButtonLabel>
                                     </a>
                                   </ExternalLink>
-                                </Component>
+                                </ForwardRef>
                               </StyledButton>
                             </Button>
                           </div>

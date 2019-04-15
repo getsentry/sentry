@@ -749,12 +749,12 @@ exports[`OrganizationIntegrations render() with installed integrations Displays 
                                                     "actor": 1008,
                                                     "menu": 1007,
                                                   },
-                                                  "globalSelectionHeader": 1002,
+                                                  "globalSelectionHeader": 1009,
                                                   "header": 1000,
                                                   "modal": 10000,
-                                                  "orgAndUserMenu": 1004,
-                                                  "sentryErrorEmbed": 1009,
-                                                  "sidebar": 1003,
+                                                  "orgAndUserMenu": 1011,
+                                                  "sentryErrorEmbed": 1090,
+                                                  "sidebar": 1010,
                                                   "toast": 10001,
                                                 },
                                               }
@@ -1018,12 +1018,12 @@ exports[`OrganizationIntegrations render() with installed integrations Displays 
                                                             "actor": 1008,
                                                             "menu": 1007,
                                                           },
-                                                          "globalSelectionHeader": 1002,
+                                                          "globalSelectionHeader": 1009,
                                                           "header": 1000,
                                                           "modal": 10000,
-                                                          "orgAndUserMenu": 1004,
-                                                          "sentryErrorEmbed": 1009,
-                                                          "sidebar": 1003,
+                                                          "orgAndUserMenu": 1011,
+                                                          "sentryErrorEmbed": 1090,
+                                                          "sidebar": 1010,
                                                           "toast": 10001,
                                                         },
                                                       }
@@ -1080,10 +1080,11 @@ exports[`OrganizationIntegrations render() with installed integrations Displays 
                                     role="button"
                                     size="small"
                                   >
-                                    <Component
+                                    <ForwardRef
                                       aria-disabled={false}
                                       aria-label="Add Another"
                                       className="css-dkprmi-StyledButton-getColors eqrebog0"
+                                      disabled={false}
                                       onClick={[Function]}
                                       role="button"
                                       size="small"
@@ -1156,7 +1157,7 @@ exports[`OrganizationIntegrations render() with installed integrations Displays 
                                           </Component>
                                         </ButtonLabel>
                                       </button>
-                                    </Component>
+                                    </ForwardRef>
                                   </StyledButton>
                                 </Button>
                               </div>
@@ -1692,10 +1693,12 @@ exports[`OrganizationIntegrations render() with installed integrations Displays 
                                                     onClick={[Function]}
                                                     role="button"
                                                   >
-                                                    <Component
+                                                    <ForwardRef
                                                       aria-disabled={false}
                                                       aria-label="Remove"
+                                                      borderless={true}
                                                       className="ejqw4f70 css-1rs3lxn-StyledButton-getColors-StyledButton eqrebog0"
+                                                      disabled={false}
                                                       onClick={[Function]}
                                                       role="button"
                                                     >
@@ -1763,7 +1766,7 @@ exports[`OrganizationIntegrations render() with installed integrations Displays 
                                                           </Component>
                                                         </ButtonLabel>
                                                       </button>
-                                                    </Component>
+                                                    </ForwardRef>
                                                   </StyledButton>
                                                 </Button>
                                               </StyledButton>
@@ -2216,12 +2219,12 @@ exports[`OrganizationIntegrations render() with installed integrations Displays 
                                                     "actor": 1008,
                                                     "menu": 1007,
                                                   },
-                                                  "globalSelectionHeader": 1002,
+                                                  "globalSelectionHeader": 1009,
                                                   "header": 1000,
                                                   "modal": 10000,
-                                                  "orgAndUserMenu": 1004,
-                                                  "sentryErrorEmbed": 1009,
-                                                  "sidebar": 1003,
+                                                  "orgAndUserMenu": 1011,
+                                                  "sentryErrorEmbed": 1090,
+                                                  "sidebar": 1010,
                                                   "toast": 10001,
                                                 },
                                               }
@@ -2485,12 +2488,12 @@ exports[`OrganizationIntegrations render() with installed integrations Displays 
                                                             "actor": 1008,
                                                             "menu": 1007,
                                                           },
-                                                          "globalSelectionHeader": 1002,
+                                                          "globalSelectionHeader": 1009,
                                                           "header": 1000,
                                                           "modal": 10000,
-                                                          "orgAndUserMenu": 1004,
-                                                          "sentryErrorEmbed": 1009,
-                                                          "sidebar": 1003,
+                                                          "orgAndUserMenu": 1011,
+                                                          "sentryErrorEmbed": 1090,
+                                                          "sidebar": 1010,
                                                           "toast": 10001,
                                                         },
                                                       }
@@ -2547,10 +2550,11 @@ exports[`OrganizationIntegrations render() with installed integrations Displays 
                                     role="button"
                                     size="small"
                                   >
-                                    <Component
+                                    <ForwardRef
                                       aria-disabled={false}
                                       aria-label="Add Another"
                                       className="css-dkprmi-StyledButton-getColors eqrebog0"
+                                      disabled={false}
                                       onClick={[Function]}
                                       role="button"
                                       size="small"
@@ -2623,7 +2627,7 @@ exports[`OrganizationIntegrations render() with installed integrations Displays 
                                           </Component>
                                         </ButtonLabel>
                                       </button>
-                                    </Component>
+                                    </ForwardRef>
                                   </StyledButton>
                                 </Button>
                               </div>
@@ -3138,10 +3142,12 @@ exports[`OrganizationIntegrations render() with installed integrations Displays 
                                                     onClick={[Function]}
                                                     role="button"
                                                   >
-                                                    <Component
+                                                    <ForwardRef
                                                       aria-disabled={false}
                                                       aria-label="Remove"
+                                                      borderless={true}
                                                       className="ejqw4f70 css-1rs3lxn-StyledButton-getColors-StyledButton eqrebog0"
+                                                      disabled={false}
                                                       onClick={[Function]}
                                                       role="button"
                                                     >
@@ -3209,7 +3215,7 @@ exports[`OrganizationIntegrations render() with installed integrations Displays 
                                                           </Component>
                                                         </ButtonLabel>
                                                       </button>
-                                                    </Component>
+                                                    </ForwardRef>
                                                   </StyledButton>
                                                 </Button>
                                               </StyledButton>
@@ -3973,12 +3979,12 @@ exports[`OrganizationIntegrations render() without integrations Displays integra
                                                     "actor": 1008,
                                                     "menu": 1007,
                                                   },
-                                                  "globalSelectionHeader": 1002,
+                                                  "globalSelectionHeader": 1009,
                                                   "header": 1000,
                                                   "modal": 10000,
-                                                  "orgAndUserMenu": 1004,
-                                                  "sentryErrorEmbed": 1009,
-                                                  "sidebar": 1003,
+                                                  "orgAndUserMenu": 1011,
+                                                  "sentryErrorEmbed": 1090,
+                                                  "sidebar": 1010,
                                                   "toast": 10001,
                                                 },
                                               }
@@ -4242,12 +4248,12 @@ exports[`OrganizationIntegrations render() without integrations Displays integra
                                                             "actor": 1008,
                                                             "menu": 1007,
                                                           },
-                                                          "globalSelectionHeader": 1002,
+                                                          "globalSelectionHeader": 1009,
                                                           "header": 1000,
                                                           "modal": 10000,
-                                                          "orgAndUserMenu": 1004,
-                                                          "sentryErrorEmbed": 1009,
-                                                          "sidebar": 1003,
+                                                          "orgAndUserMenu": 1011,
+                                                          "sentryErrorEmbed": 1090,
+                                                          "sidebar": 1010,
                                                           "toast": 10001,
                                                         },
                                                       }
@@ -4304,10 +4310,11 @@ exports[`OrganizationIntegrations render() without integrations Displays integra
                                     role="button"
                                     size="small"
                                   >
-                                    <Component
+                                    <ForwardRef
                                       aria-disabled={false}
                                       aria-label="Install"
                                       className="css-dkprmi-StyledButton-getColors eqrebog0"
+                                      disabled={false}
                                       onClick={[Function]}
                                       role="button"
                                       size="small"
@@ -4380,7 +4387,7 @@ exports[`OrganizationIntegrations render() without integrations Displays integra
                                           </Component>
                                         </ButtonLabel>
                                       </button>
-                                    </Component>
+                                    </ForwardRef>
                                   </StyledButton>
                                 </Button>
                               </div>
@@ -4739,12 +4746,12 @@ exports[`OrganizationIntegrations render() without integrations Displays integra
                                                     "actor": 1008,
                                                     "menu": 1007,
                                                   },
-                                                  "globalSelectionHeader": 1002,
+                                                  "globalSelectionHeader": 1009,
                                                   "header": 1000,
                                                   "modal": 10000,
-                                                  "orgAndUserMenu": 1004,
-                                                  "sentryErrorEmbed": 1009,
-                                                  "sidebar": 1003,
+                                                  "orgAndUserMenu": 1011,
+                                                  "sentryErrorEmbed": 1090,
+                                                  "sidebar": 1010,
                                                   "toast": 10001,
                                                 },
                                               }
@@ -5008,12 +5015,12 @@ exports[`OrganizationIntegrations render() without integrations Displays integra
                                                             "actor": 1008,
                                                             "menu": 1007,
                                                           },
-                                                          "globalSelectionHeader": 1002,
+                                                          "globalSelectionHeader": 1009,
                                                           "header": 1000,
                                                           "modal": 10000,
-                                                          "orgAndUserMenu": 1004,
-                                                          "sentryErrorEmbed": 1009,
-                                                          "sidebar": 1003,
+                                                          "orgAndUserMenu": 1011,
+                                                          "sentryErrorEmbed": 1090,
+                                                          "sidebar": 1010,
                                                           "toast": 10001,
                                                         },
                                                       }
@@ -5070,10 +5077,11 @@ exports[`OrganizationIntegrations render() without integrations Displays integra
                                     role="button"
                                     size="small"
                                   >
-                                    <Component
+                                    <ForwardRef
                                       aria-disabled={false}
                                       aria-label="Install"
                                       className="css-dkprmi-StyledButton-getColors eqrebog0"
+                                      disabled={false}
                                       onClick={[Function]}
                                       role="button"
                                       size="small"
@@ -5146,7 +5154,7 @@ exports[`OrganizationIntegrations render() without integrations Displays integra
                                           </Component>
                                         </ButtonLabel>
                                       </button>
-                                    </Component>
+                                    </ForwardRef>
                                   </StyledButton>
                                 </Button>
                               </div>

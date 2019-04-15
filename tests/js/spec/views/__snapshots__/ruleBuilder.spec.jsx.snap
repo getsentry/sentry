@@ -1001,11 +1001,13 @@ exports[`RuleBuilder renders 1`] = `
             size="small"
             to={null}
           >
-            <Component
+            <ForwardRef
               aria-disabled={true}
               className="e1hyuoc79 css-ogw40-StyledButton-getColors-AddButton eqrebog0"
+              disabled={true}
               href={null}
               onClick={[Function]}
+              priority="primary"
               role="button"
               size="small"
               to={null}
@@ -1080,7 +1082,7 @@ exports[`RuleBuilder renders 1`] = `
                   </Component>
                 </ButtonLabel>
               </button>
-            </Component>
+            </ForwardRef>
           </StyledButton>
         </Button>
       </AddButton>
@@ -2816,10 +2818,12 @@ exports[`RuleBuilder renders with suggestions 1`] = `
             role="button"
             size="small"
           >
-            <Component
+            <ForwardRef
               aria-disabled={false}
               className="e1hyuoc79 css-1q9tuf6-StyledButton-getColors-AddButton eqrebog0"
+              disabled={false}
               onClick={[Function]}
+              priority="primary"
               role="button"
               size="small"
             >
@@ -2891,7 +2895,7 @@ exports[`RuleBuilder renders with suggestions 1`] = `
                   </Component>
                 </ButtonLabel>
               </button>
-            </Component>
+            </ForwardRef>
           </StyledButton>
         </Button>
       </AddButton>
