@@ -42,14 +42,15 @@ describe('SavedSearchesStore', function() {
   });
 
   it('fetching saved searches updates store', async function() {
-    fetchSavedSearches(api, 'org-1');
+    await fetchSavedSearches(api, 'org-1');
     await tick();
+
     expect(SavedSearchesStore.get().savedSearches).toHaveLength(2);
     expect(SavedSearchesStore.get().isLoading).toBe(false);
   });
 
   it('creates a new pin search', async function() {
-    fetchSavedSearches(api, 'org-1');
+    await fetchSavedSearches(api, 'org-1');
     await tick();
 
     pinSearch(api, 'org-1', 0, 'level:info');
