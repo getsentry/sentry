@@ -9,7 +9,7 @@ from sentry.models import (
     Activity, Environment, File, Release, ReleaseCommit, ReleaseFile, ReleaseProject, ReleaseProjectEnvironment, Repository
 )
 from sentry.testutils import APITestCase
-from sentry.api.endpoints.organization_release_details import ReleaseSerializer
+from sentry.api.endpoints.organization_release_details import OrganizationReleaseSerializer
 
 
 class ReleaseDetailsTest(APITestCase):
@@ -715,7 +715,7 @@ class ReleaseSerializerTest(unittest.TestCase):
         ]
 
     def test_simple(self):
-        serializer = ReleaseSerializer(data={
+        serializer = OrganizationReleaseSerializer(data={
             'ref': self.ref,
             'url': self.url,
             'dateReleased': self.dateReleased,
@@ -737,33 +737,33 @@ class ReleaseSerializerTest(unittest.TestCase):
         assert result['refs'] == self.refs
 
     def test_fields_not_required(self):
-        serializer = ReleaseSerializer(data={})
+        serializer = OrganizationReleaseSerializer(data={})
         assert serializer.is_valid()
 
     def test_do_not_allow_null_commits(self):
-        serializer = ReleaseSerializer(data={
+        serializer = OrganizationReleaseSerializer(data={
             'commits': None,
         })
         assert not serializer.is_valid()
 
     def test_do_not_allow_null_head_commits(self):
-        serializer = ReleaseSerializer(data={
+        serializer = OrganizationReleaseSerializer(data={
             'headCommits': None,
         })
         assert not serializer.is_valid()
 
     def test_do_not_allow_null_refs(self):
-        serializer = ReleaseSerializer(data={
+        serializer = OrganizationReleaseSerializer(data={
             'refs': None,
         })
         assert not serializer.is_valid()
 
     def test_ref_limited_by_max_version_length(self):
-        serializer = ReleaseSerializer(data={
+        serializer = OrganizationReleaseSerializer(data={
             'ref': 'a' * VERSION_LENGTH,
         })
         assert serializer.is_valid()
-        serializer = ReleaseSerializer(data={
+        serializer = OrganizationReleaseSerializer(data={
             'ref': 'a' * (VERSION_LENGTH + 1),
         })
         assert not serializer.is_valid()
