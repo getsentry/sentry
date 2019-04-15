@@ -22,7 +22,7 @@ class SentryAppExternalIssueActions extends React.Component {
     sentryAppComponent: PropTypes.object.isRequired,
     sentryAppInstallation: PropTypes.object,
     externalIssue: PropTypes.object,
-    event: SentryTypes.object.Event,
+    event: SentryTypes.Event,
   };
 
   constructor(props) {
