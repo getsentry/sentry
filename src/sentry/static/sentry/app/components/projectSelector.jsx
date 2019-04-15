@@ -428,14 +428,21 @@ const SettingsIcon = styled(InlineSvg)`
   width: 16px;
 `;
 
+const getNonMemberStyles = p => {
+  return `
+    color: ${p.theme.gray2};
+    font-style: italic;
+  `;
+};
+
 const BadgeAndActionsWrapper = styled('div')`
-  background-color: ${p => (p.isProjectMember ? p.theme.white : p.theme.offWhite2)};
   animation: ${p => (p.bookmarkHasChanged ? `1s ${alertHighlight('info')}` : 'none')};
   z-index: ${p => (p.bookmarkHasChanged ? 1 : 'inherit')};
   position: relative;
   border-style: solid;
   border-width: 1px 0;
   border-color: transparent;
+  ${p => (p.isProjectMember ? null : getNonMemberStyles(p))}
   &:hover ${StyledBookmarkStar}, &:hover ${SettingsIconLink} {
     opacity: 1;
   }
