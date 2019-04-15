@@ -33,8 +33,6 @@ describe('PlatformPicker', function() {
 
       expect(filteredPlatforms).not.toContain('java');
       expect(filteredPlatforms).toContain('swift');
-
-      expect(wrapper).toMatchSnapshot();
     });
 
     it('should render renderPlatformList with Python when filtered with py', function() {
@@ -51,8 +49,6 @@ describe('PlatformPicker', function() {
         .map(node => node.prop('platform').id);
       expect(filteredPlatforms).not.toContain('java');
       expect(filteredPlatforms).toContain('python-flask');
-
-      expect(wrapper).toMatchSnapshot();
     });
 
     it('should render renderPlatformList with community SDKs message if platform not found', function() {
@@ -64,8 +60,6 @@ describe('PlatformPicker', function() {
       wrapper.setState({filter: 'aaaaaa'});
 
       expect(wrapper.find('EmptyMessage')).toHaveLength(1);
-
-      expect(wrapper).toMatchSnapshot();
     });
 
     it('should update State.tab onClick when particular tab is clicked', function() {
@@ -83,8 +77,6 @@ describe('PlatformPicker', function() {
 
       testListLink.simulate('click');
       expect(wrapper.state().category).toBe('all');
-
-      expect(wrapper).toMatchSnapshot();
     });
 
     it('should clear the platform when clear is clicked', function() {

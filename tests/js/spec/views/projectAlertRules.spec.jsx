@@ -22,14 +22,6 @@ describe('projectAlertRules', function() {
     MockApiClient.clearMockResponses();
   });
 
-  it('renders', function() {
-    const wrapper = mount(
-      <ProjectAlertRules routes={[]} params={{orgId: 'org1', projectId: 'project1'}} />,
-      TestStubs.routerContext()
-    );
-    expect(wrapper).toMatchSnapshot();
-  });
-
   it('deletes', function() {
     const wrapper = mount(
       <ProjectAlertRules routes={[]} params={{orgId: 'org1', projectId: 'project1'}} />,

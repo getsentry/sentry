@@ -48,7 +48,7 @@ describe('OrganizationUserFeedback', function() {
     };
     const wrapper = mount(<OrganizationUserFeedback {...params} />, routerContext);
 
-    expect(wrapper).toMatchSnapshot();
+    expect(wrapper.find('CompactIssue')).toHaveLength(1);
   });
 
   it('no access', function() {

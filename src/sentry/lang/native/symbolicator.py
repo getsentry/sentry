@@ -255,6 +255,7 @@ def run_symbolicator(stacktraces, modules, project, arch, signal, request_id_cac
                     return rv.json()
                 else:
                     logger.error("Unexpected status: %s", json['status'])
+
                     default_cache.delete(request_id_cache_key)
                     return
 
@@ -262,6 +263,7 @@ def run_symbolicator(stacktraces, modules, project, arch, signal, request_id_cac
                 attempts += 1
                 if attempts > MAX_ATTEMPTS:
                     logger.error('Failed to contact symbolicator', exc_info=True)
+
                     default_cache.delete(request_id_cache_key)
                     return
 

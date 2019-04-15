@@ -83,9 +83,6 @@ describe('ProjectAlertRuleDetails', function() {
         TestStubs.routerContext()
       );
     });
-    it('renders', function() {
-      expect(wrapper).toMatchSnapshot();
-    });
 
     it('sets defaults', function() {
       const selects = wrapper.find('SelectField Select');
@@ -136,9 +133,6 @@ describe('ProjectAlertRuleDetails', function() {
         />,
         TestStubs.routerContext()
       );
-    });
-    it('renders', function() {
-      expect(wrapper).toMatchSnapshot();
     });
 
     it('updates', function() {
