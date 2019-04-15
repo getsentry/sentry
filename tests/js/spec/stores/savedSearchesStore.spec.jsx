@@ -14,7 +14,6 @@ describe('SavedSearchesStore', function() {
   });
 
   beforeEach(function() {
-    SavedSearchesStore.reset();
     Client.addMockResponse({
       url: '/organizations/org-1/searches/',
       body: TestStubs.Searches(),
@@ -31,6 +30,7 @@ describe('SavedSearchesStore', function() {
 
   afterEach(function() {
     Client.clearMockResponses();
+    SavedSearchesStore.reset();
   });
 
   it('get', function() {
