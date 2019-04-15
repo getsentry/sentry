@@ -23,8 +23,7 @@ class BasePage(object):
 
 
 class BaseElement(object):
-    def __init__(self, selector, element):
-        self.selector = selector
+    def __init__(self, element):
         self.element = element
 
 
