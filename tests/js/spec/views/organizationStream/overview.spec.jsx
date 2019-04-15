@@ -48,12 +48,13 @@ describe('OrganizationStream', function() {
       features: [],
       projects: [project],
     });
-    savedSearch = {
+
+    savedSearch = TestStubs.Search({
       id: '789',
       query: 'is:unresolved',
       name: 'Unresolved Issues',
       projectId: project.id,
-    };
+    });
 
     group = TestStubs.Group({project});
     MockApiClient.addMockResponse({
@@ -115,10 +116,10 @@ describe('OrganizationStream', function() {
     wrapper = null;
   });
 
-  describe('withStores', function() {
+  describe('withStores and feature flags', function() {
     const {router, routerContext} = initializeOrg({
       organization: {
-        features: ['org-saved-searches', 'recent-searches'],
+        features: ['org-saved-searches', 'recent-searches', 'global-views'],
         slug: 'org-slug',
       },
       router: {
@@ -190,12 +191,12 @@ describe('OrganizationStream', function() {
       await tick();
       wrapper.update();
 
+      // auxillary requests being made
       expect(recentSearchesRequest).toHaveBeenCalledTimes(1);
+      expect(fetchTagsRequest).toHaveBeenCalledTimes(1);
+      expect(fetchMembersRequest).toHaveBeenCalledTimes(1);
 
-      // Check for fetch tags req
-      // Check for fetch member list req
-
-      // Main /issues/ request
+      // primary /issues/ request
       expect(issuesRequest).toHaveBeenCalledWith(
         expect.anything(),
         expect.objectContaining({
@@ -390,15 +391,65 @@ describe('OrganizationStream', function() {
       expect(getSavedSearchTitle(wrapper)).toBe('Custom Search');
     });
 
-    it('pins and unpins a custom query', async function() {});
+    it('selects a saved search and changes sort', async function() {
+      const localSavedSearch = {...savedSearch, projectId: null};
+      savedSearchesRequest = MockApiClient.addMockResponse({
+        url: '/organizations/org-slug/searches/',
+        body: [localSavedSearch],
+      });
+      createWrapper();
+      await tick();
+      wrapper.update();
 
-    it('pins and unpins a saved query', async function() {});
+      wrapper.find('OrganizationSavedSearchSelector DropdownButton').simulate('click');
+      wrapper
+        .find('OrganizationSavedSearchSelector MenuItem a')
+        .first()
+        .simulate('click');
 
-    it('selects a saved search', async function() {});
+      expect(browserHistory.push).toHaveBeenLastCalledWith(
+        expect.objectContaining({
+          pathname: '/organizations/org-slug/issues/searches/789/',
+        })
+      );
 
-    it('saves a new query', async function() {});
+      // Need to update component
+      wrapper.setProps({
+        savedSearch: localSavedSearch,
+        location: {
+          ...router.location,
+          pathname: '/organizations/org-slug/issues/searches/789/',
+          query: {
+            environment: [],
+            project: [],
+          },
+        },
+      });
 
-    it('loads pinned search when invalid saved search id is accessed', async function() {});
+      wrapper.find('SortOptions DropdownButton').simulate('click');
+      wrapper
+        .find('SortOptions MenuItem a')
+        .at(3)
+        .simulate('click');
+
+      expect(browserHistory.push).toHaveBeenLastCalledWith(
+        expect.objectContaining({
+          pathname: '/organizations/org-slug/issues/searches/789/',
+          query: {
+            environment: [],
+            sort: 'freq',
+          },
+        })
+      );
+    });
+
+    it.todo('pins and unpins a custom query');
+
+    it.todo('pins and unpins a saved query');
+
+    it.todo('saves a new query');
+
+    it.todo('loads pinned search when invalid saved search id is accessed');
   });
 
   describe('transitionTo', function() {
@@ -411,7 +462,7 @@ describe('OrganizationStream', function() {
     });
 
     it('transitions to query updates', function() {
-      instance.transitionTo(null, {query: 'is:ignored'});
+      instance.transitionTo({query: 'is:ignored'});
 
       expect(browserHistory.push).toHaveBeenCalledWith({
         pathname: '/organizations/org-slug/issues/',
@@ -430,8 +481,7 @@ describe('OrganizationStream', function() {
         projectId: 99,
         query: 'foo:bar',
       };
-      // instance.setState({savedSearch});
-      instance.transitionTo(savedSearch, {query: savedSearch.query});
+      instance.transitionTo(null, savedSearch);
 
       expect(browserHistory.push).toHaveBeenCalledWith({
         pathname: '/organizations/org-slug/issues/searches/123/',
@@ -450,7 +500,7 @@ describe('OrganizationStream', function() {
         project: null,
         query: 'is:unresolved',
       };
-      instance.transitionTo(savedSearch, {query: savedSearch.query});
+      instance.transitionTo(null, savedSearch);
 
       expect(browserHistory.push).toHaveBeenCalledWith({
         pathname: '/organizations/org-slug/issues/searches/1/',
@@ -468,7 +518,7 @@ describe('OrganizationStream', function() {
         projectId: null,
         query: 'is:unresolved',
       };
-      instance.transitionTo(savedSearch, {query: savedSearch.query});
+      instance.transitionTo(null, savedSearch);
 
       expect(browserHistory.push).toHaveBeenCalledWith({
         pathname: '/organizations/org-slug/issues/searches/1/',
@@ -521,7 +571,6 @@ describe('OrganizationStream', function() {
     });
 
     it('uses saved search data', function() {
-      wrapper.setState({savedSearch});
       const value = wrapper.instance().getEndpointParams();
 
       expect(value.query).toEqual(savedSearch.query);

@@ -22,6 +22,7 @@ export function fetchSavedSearches(api, orgId, projectMap, useOrgSavedSearches =
   promise
     .then(resp => {
       // Add in project slugs so that we can display them in the picker bars.
+      // TODO(billyvg): #org-saved-searches -- cleanup when removing project saved searches
       const savedSearchList = resp.map(search => ({
         ...search,
         projectSlug: projectMap[search.projectId],

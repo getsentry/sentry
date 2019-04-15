@@ -354,7 +354,7 @@ const OrganizationStream = createReactClass({
 
   onSelectStatsPeriod(period) {
     if (period != this.getGroupStatsPeriod()) {
-      this.transitionTo(null, {groupStatsPeriod: period});
+      this.transitionTo({groupStatsPeriod: period});
     }
   },
 
@@ -379,16 +379,16 @@ const OrganizationStream = createReactClass({
       // if query is the same, just re-fetch data
       this.fetchData();
     } else {
-      this.transitionTo(null, {query});
+      this.transitionTo({query});
     }
   },
 
   onSortChange(sort) {
-    this.transitionTo(null, {sort});
+    this.transitionTo({sort});
   },
 
   onCursorChange(cursor, path, query) {
-    this.transitionTo(null, {cursor});
+    this.transitionTo({cursor});
   },
 
   onTagsChange(tags) {
@@ -444,7 +444,7 @@ const OrganizationStream = createReactClass({
     return links && !links.previous.results && !links.next.results;
   },
 
-  transitionTo(savedSearch, newParams = {}) {
+  transitionTo(newParams = {}, savedSearch = this.props.savedSearch) {
     const query = {
       ...this.getEndpointParams(),
       ...newParams,
@@ -568,13 +568,13 @@ const OrganizationStream = createReactClass({
     );
   },
 
-  onSavedSearchCreate(data) {
+  onSavedSearchCreate(newSavedSearch) {
     // Navigate to new saved search
-    this.transitionTo(data, null);
+    this.transitionTo(null, newSavedSearch);
   },
 
-  onSavedSearchSelect(search) {
-    this.setState({issuesLoading: true}, () => this.transitionTo(search, null));
+  onSavedSearchSelect(savedSearch) {
+    this.setState({issuesLoading: true}, () => this.transitionTo(null, savedSearch));
   },
 
   onSavedSearchDelete(search) {
@@ -585,7 +585,7 @@ const OrganizationStream = createReactClass({
         {
           issuesLoading: true,
         },
-        () => this.transitionTo(null)
+        () => this.transitionTo({}, null)
       );
     });
   },
