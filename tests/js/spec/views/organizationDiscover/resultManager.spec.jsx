@@ -2,7 +2,7 @@ import createResultManager from 'app/views/organizationDiscover/resultManager';
 import createQueryBuilder from 'app/views/organizationDiscover/queryBuilder';
 
 describe('Result manager', function() {
-  let resultManager, queryBuilder, discoverMock;
+  let resultManager, queryBuilder, discoverMock, discoverByDayMock;
   beforeEach(function() {
     queryBuilder = createQueryBuilder(
       {},
@@ -13,6 +13,14 @@ describe('Result manager', function() {
 
     discoverMock = MockApiClient.addMockResponse({
       url: '/organizations/org-slug/discover/query/?per_page=1000&cursor=0:0:1',
+      method: 'POST',
+      body: {
+        data: [],
+      },
+    });
+
+    discoverByDayMock = MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/discover/query/',
       method: 'POST',
       body: {
         data: [],
@@ -48,7 +56,8 @@ describe('Result manager', function() {
     it('handles aggregations', async function() {
       queryBuilder.updateField('aggregations', [['count()', null, 'count']]);
       await resultManager.fetchAll();
-      expect(discoverMock).toHaveBeenCalledTimes(2);
+      expect(discoverMock).toHaveBeenCalledTimes(1);
+      expect(discoverByDayMock).toHaveBeenCalledTimes(1);
       expect(discoverMock).toHaveBeenCalledWith(
         '/organizations/org-slug/discover/query/?per_page=1000&cursor=0:0:1',
         expect.objectContaining({

@@ -66,7 +66,7 @@ export default function createResultManager(queryBuilder) {
 
     // If there are aggregations, get by-day data
     if (hasAggregations) {
-      promises.push(queryBuilder.fetch(byDayQuery));
+      promises.push(queryBuilder.fetchWithoutLimit(byDayQuery));
     }
 
     return Promise.all(promises).then(resp => {
