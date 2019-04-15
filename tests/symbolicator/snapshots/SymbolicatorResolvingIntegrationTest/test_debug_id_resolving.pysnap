@@ -1,5 +1,5 @@
 ---
-created: '2019-04-15T09:43:16.539260Z'
+created: '2019-04-15T11:04:01.534478Z'
 creator: sentry
 source: tests/symbolicator/test_native_plugin.py
 ---
@@ -20,6 +20,7 @@ debug_meta:
     image_addr: '0x2a0000'
     image_size: 36864
     type: symbolic
+errors: null
 exception:
   values:
   - raw_stacktrace:

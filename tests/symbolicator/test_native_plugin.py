@@ -1098,6 +1098,7 @@ class ResolvingIntegrationTestBase(object):
             "threads": event.get('threads'),
             "debug_meta": event.get('debug_meta'),
             "contexts": event.get('contexts'),
+            "errors": event.get('errors'),
         })
 
     def test_real_resolving(self):

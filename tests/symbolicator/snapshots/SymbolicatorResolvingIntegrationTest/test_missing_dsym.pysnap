@@ -1,5 +1,5 @@
 ---
-created: '2019-04-15T09:43:18.847125Z'
+created: '2019-04-15T11:04:03.933068Z'
 creator: sentry
 source: tests/symbolicator/test_native_plugin.py
 ---
@@ -18,6 +18,12 @@ debug_meta:
     version_major: 10
     version_minor: 12
     version_patchlevel: 4
+errors:
+- image_arch: x86_64
+  image_path: Foo.app/Contents/Foo
+  image_uuid: 502fc0a5-1ec1-3e47-9998-684fa139dca7
+  message: None
+  type: native_missing_dsym
 exception:
   values:
   - raw_stacktrace:
