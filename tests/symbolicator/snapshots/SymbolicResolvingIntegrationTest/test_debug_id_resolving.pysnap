@@ -1,8 +1,17 @@
 ---
-created: '2019-04-11T15:46:33.080852Z'
+created: '2019-04-15T09:43:14.321187Z'
 creator: sentry
 source: tests/symbolicator/test_native_plugin.py
 ---
+contexts:
+  device:
+    arch: x86
+    type: device
+  os:
+    build: ''
+    name: Windows
+    type: os
+    version: 10.0.14393
 debug_meta:
   images:
   - code_file: C:\projects\breakpad-tools\windows\Release\crash.exe
