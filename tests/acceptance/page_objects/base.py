@@ -6,19 +6,10 @@ class BasePage(object):
 
     def __init__(self, browser):
         self.browser = browser
-        try:
-            self.assert_correct_page()
-        except AssertionError:
-            raise Exception(
-                'This is not the %s page. Current url is %s.' %
-                (self.page_name, self.driver.current_url))
 
     @property
     def driver(self):
         return self.browser.driver
-
-    def assert_correct_page(self):
-        pass
 
 
 class BaseElement(object):

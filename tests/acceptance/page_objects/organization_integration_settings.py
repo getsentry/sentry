@@ -98,12 +98,6 @@ class OrganizationIntegrationSettingsPage(BasePage):
     def __init__(self, providers=None, *args, **kwargs):
         super(OrganizationIntegrationSettingsPage, self).__init__(*args, **kwargs)
 
-    def assert_correct_page(self):
-        # TODO(lb): What would be best to do here?
-        url = self.driver.current_url
-        assert 'settings' in url
-        assert 'integrations' in url
-
     def get_provider(self, provider):
         selector = IntegrationProviderRowElement.get_selector(provider.key)
         return IntegrationProviderRowElement(
