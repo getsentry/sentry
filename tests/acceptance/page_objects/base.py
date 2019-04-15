@@ -3,7 +3,6 @@ from __future__ import absolute_import
 
 class BasePage(object):
     """Base class for PageObjects"""
-    page_name = 'base'
 
     def __init__(self, browser):
         self.browser = browser

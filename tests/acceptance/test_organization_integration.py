@@ -42,19 +42,6 @@ class OrganizationIntegrationAcceptanceTestCase(AcceptanceTestCase):
 
         self.integration_settings_path = 'sentry-api-0-organization-integrations'
 
-    def create_user_with_role(self, role, organization=None, teams=None):
-        """
-        Owner, manager, admin
-        """
-        user = self.create_user()
-        self.create_member(
-            organization=organization if organization else self.organization,
-            user=user,
-            role=role,
-            teams=teams if teams else [],
-        )
-        return user
-
     def load_page(self, url):
         self.browser.get(url)
         self.browser.wait_until_not('.loading-indicator')
@@ -88,6 +75,7 @@ class OrganizationIntegrationSettingsTest(OrganizationIntegrationAcceptanceTestC
             browser=self.browser
         )
         provider_element = org_settings_page.get_provider(self.provider)
+
         # assert installation rather than upgrade button
         assert provider_element.install_button.label == 'Install'
         assert provider_element.install_button.icon_href == '#icon-circle-add'
@@ -108,5 +96,3 @@ class OrganizationIntegrationSettingsTest(OrganizationIntegrationAcceptanceTestC
             provider=self.provider.key,
             external_id=self.provider.name
         ).exists()
-
-        return installation_element

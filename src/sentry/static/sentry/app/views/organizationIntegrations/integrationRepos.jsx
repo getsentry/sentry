@@ -167,7 +167,7 @@ export default class IntegrationRepos extends AsyncComponent {
         busy={this.state.dropdownBusy}
       >
         {({isOpen}) => (
-          <DropdownButton isOpen={isOpen} size="xsmall" busy={this.state.adding} data-testid="add-repository-dropdown-button">
+          <DropdownButton isOpen={isOpen} size="xsmall" busy={this.state.adding}>
             {t('Add Repository')}
           </DropdownButton>
         )}

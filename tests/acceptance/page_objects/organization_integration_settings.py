@@ -34,7 +34,7 @@ class IntegrationProviderRowElement(BaseElement):
 
 class InstallationElement(BaseElement):
     configure_button_selector = '[data-testid="integration-configure-button"]'
-    remove_button_selector = '[data-testid="integration-configure-button"]'
+    remove_button_selector = '[data-testid="integration-remove-button"]'
 
     def __init__(self, integration, *args, **kwargs):
         super(InstallationElement, self).__init__(
@@ -89,17 +89,17 @@ class ExampleIntegrationSetupWindowElement(IntegrationSetupWindowElement):
         self.continue_button = ButtonElement(continue_button_element)
 
     def fill_in_setup_form(self, installation_data):
-        self.name.send_keys(installation_data['name'])
+        self.name.send_keys(installation_data[self.name_field_selector])
 
 
 class OrganizationIntegrationSettingsPage(BasePage):
-    page_name = 'organization-integration-settings'
     modal_selector = '.modal-dialog'
 
     def __init__(self, providers=None, *args, **kwargs):
         super(OrganizationIntegrationSettingsPage, self).__init__(*args, **kwargs)
 
     def assert_correct_page(self):
+        # TODO(lb): What would be best to do here?
         url = self.driver.current_url
         assert 'settings' in url
         assert 'integrations' in url
