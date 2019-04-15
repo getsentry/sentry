@@ -11,6 +11,7 @@ import SentryAppIcon from 'app/components/sentryAppIcon';
 import SentryAppExternalIssueForm from 'app/components/group/sentryAppExternalIssueForm';
 import NavTabs from 'app/components/navTabs';
 import {t, tct} from 'app/locale';
+import SentryTypes from 'app/sentryTypes';
 import space from 'app/styles/space';
 import {deleteExternalIssue} from 'app/actionCreators/platformExternalIssues';
 
@@ -21,6 +22,7 @@ class SentryAppExternalIssueActions extends React.Component {
     sentryAppComponent: PropTypes.object.isRequired,
     sentryAppInstallation: PropTypes.object,
     externalIssue: PropTypes.object,
+    event: SentryTypes.object.Event,
   };
 
   constructor(props) {
@@ -144,6 +146,7 @@ class SentryAppExternalIssueActions extends React.Component {
             config={sentryAppComponent.schema}
             action={action}
             onSubmitSuccess={this.onSubmitSuccess}
+            event={this.props.event}
           />
         </Modal.Body>
       </Modal>

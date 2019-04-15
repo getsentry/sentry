@@ -18,6 +18,7 @@ class SentryAppExternalIssueForm extends React.Component {
     sentryAppInstallation: PropTypes.object,
     config: PropTypes.object.isRequired,
     action: PropTypes.oneOf(['link', 'create']),
+    event: SentryTypes.object.Event,
     onSubmitSuccess: PropTypes.func,
   };
 
